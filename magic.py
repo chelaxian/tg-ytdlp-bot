@@ -1076,7 +1076,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
                 # Video downloaded successfully
                 break
         if info_dict is None:
-            send_to_all(message, "Failed to download video. You may need Cookie for downloading. \nUpdate Youtube's cookie via /download_cookie command (or send your own cookie from any site with /save_as_cookie like instructed here https://t.me/c/2303231066/18) and try to send your video link again.")
+            send_to_all(message, "Failed to download video. You may need Cookie for downloading. \nUpdate Youtube's cookie via /download_cookie command or send your own cookie from any site ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that try to send your video link again.")
             continue  # move to the next video if available
 
         # Increment counter when download succeeds
