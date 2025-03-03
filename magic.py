@@ -95,13 +95,13 @@ def cookies_from_browser(app, message):
             exists = any(os.path.exists(os.path.expanduser(p)) for p in path)
         else:
             exists = os.path.exists(os.path.expanduser(path))
-        emoji = "✅" if exists else "❌"
+        emoji = "✅" if exists else "☑️"
         display_name = browser.capitalize()  # Capitalize the first letter
         button = InlineKeyboardButton(f"{emoji} {display_name}", callback_data=f"browser_choice|{browser}")
         buttons.append([button])
     
     # Add a Cancel button to cancel the selection
-    buttons.append([InlineKeyboardButton("Cancel", callback_data="browser_choice|cancel")])
+    buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="browser_choice|cancel")])
     keyboard = InlineKeyboardMarkup(buttons)
 
     app.send_message(
