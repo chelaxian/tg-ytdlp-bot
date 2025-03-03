@@ -380,7 +380,7 @@ def is_user_in_channel(app, message):
 
     except:
 
-        text = "__To use this bot you needs to subscribe @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl's Telegram channel.__\nAfter you join the channel, **send your link** ❤️\n \n \n__Managed by @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl__"
+        text = "__To use this bot you needs to subscribe to https://t.me/+fpIcU8Y3eHIzMDVi Telegram channel.__\nAfter you join the channel, **resend your video link again** ❤️\n \n__Managed by @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl__"
         button = InlineKeyboardButton(
             "Join Channel", url=Config.SUBSCRIBE_CHANNEL_URL)
         keyboard = InlineKeyboardMarkup([[button]])
