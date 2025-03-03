@@ -999,19 +999,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
     else:
         # Default fallback cascade (if /format not set)
         attempts = [
-            # 1) Attempt: select H.264 (avc1) up to 1080p + AAC without transcoding
             {
                 'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best',
                 'prefer_ffmpeg': True,
                 'merge_output_format': 'mp4'
             },
-            # 2) Attempt: bestvideo+bestaudio/best with merge_output_format (without transcoding)
             {
                 'format': 'bestvideo+bestaudio/best',
                 'prefer_ffmpeg': True,
                 'merge_output_format': 'mp4'
             },
-            # 3) Fallback to the original option
             {
                 'format': 'best',
                 'prefer_ffmpeg': False
@@ -1045,7 +1042,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
             print('Some error occurred.')
             send_to_all(message, "Sorry... Some error occurred during download.")
 
-    # Process each video in the loop
+    successful_uploads = 0  # counter for successful downloads/uploads
+
     for x in range(video_count):
         current_index = x  # used in playlist_items
         j = ((x + 1) / video_count * 100)
@@ -1073,6 +1071,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
         if info_dict is None:
             send_to_all(message, "Failed to download video. You may need Cookie for downloading. \nUpdate Youtube's cookie via /download_cookie command (or send your own cookie from any site with /save_as_cookie + Netscape_format_cookie command) and try to send your video link again.")
             continue  # move to the next video if available
+
+        # Increment counter when download succeeds
+        successful_uploads += 1
 
         # After download, continue with standard processing:
         video_id = info_dict.get("id", None)
@@ -1152,9 +1153,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
                 time.sleep(2)
             else:
                 send_to_all(message, "Some error occurred during processing. 😢")
-    else:
+
+    # Send final summary only if all videos were successfully downloaded/uploaded
+    if successful_uploads == video_count:
         success_msg = f"**Upload complete** - {video_count} files uploaded.\n \n__Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl"
         app.edit_message_text(user_id, (msg_id + 1), success_msg)
+
         
 
 
