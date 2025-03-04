@@ -99,7 +99,7 @@ def cookies_from_browser(app, message):
         display_name = browser.capitalize()  # Capitalize the first letter
         button = InlineKeyboardButton(f"{emoji} {display_name}", callback_data=f"browser_choice|{browser}")
         buttons.append([button])
-    
+
     # Add a Cancel button to cancel the selection
     buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="browser_choice|cancel")])
     keyboard = InlineKeyboardMarkup(buttons)
@@ -110,7 +110,7 @@ def cookies_from_browser(app, message):
         reply_markup=keyboard
     )
 
-# Callback handler for browser selection remains unchanged.
+# Callback handler for browser selection
 @app.on_callback_query(filters.regex(r"^browser_choice\|"))
 def browser_choice_callback(app, callback_query):
     import subprocess
@@ -123,7 +123,7 @@ def browser_choice_callback(app, callback_query):
     cookie_file = os.path.join(user_dir, "cookie.txt")
 
     if data == "cancel":
-        app.send_message(user_id, "🔚 Browser selection canceled.")
+        callback_query.edit_message_text("🔚 Browser selection canceled.")
         callback_query.answer("✅ Browser choice updated.")
         return
 
@@ -146,7 +146,7 @@ def browser_choice_callback(app, callback_query):
     if (browser_option == "safari") or (
         isinstance(path, list) and not any(os.path.exists(os.path.expanduser(p)) for p in path)
     ) or (isinstance(path, str) and not os.path.exists(os.path.expanduser(path))):
-        app.send_message(user_id, f"⚠️ {browser_option.capitalize()} browser not installed.")
+        callback_query.edit_message_text(f"⚠️ {browser_option.capitalize()} browser not installed.")
         callback_query.answer("⚠️ Browser not installed.")
         return
 
@@ -157,11 +157,11 @@ def browser_choice_callback(app, callback_query):
     # If the return code is not 0, but the error is due to missing URL, consider the cookies as successfully extracted
     if result.returncode != 0:
         if "You must provide at least one URL" in result.stderr:
-            app.send_message(user_id, f"✅ Cookies saved using browser: {browser_option}")
+            callback_query.edit_message_text(f"✅ Cookies saved using browser: {browser_option}")
         else:
-            app.send_message(user_id, f"❌ Failed to save cookies: {result.stderr}")
+            callback_query.edit_message_text(f"❌ Failed to save cookies: {result.stderr}")
     else:
-        app.send_message(user_id, f"✅ Cookies saved using browser: {browser_option}")
+        callback_query.edit_message_text(f"✅ Cookies saved using browser: {browser_option}")
 
     callback_query.answer("✅ Browser choice updated.")
 
@@ -175,7 +175,7 @@ def set_format(app, message):
         return
 
     user_dir = f"./users/{user_id}"
-    create_directory(str(user_id))  # Ensure user folder exists
+    create_directory(str(user_id))  # Ensure the user folder exists
 
     # If additional text is passed, save it as a custom format
     if len(message.command) > 1:
@@ -184,13 +184,14 @@ def set_format(app, message):
             f.write(custom_format)
         app.send_message(user_id, f"✅ Format updated to:\n{custom_format}")
     else:
-        # Otherwise display a menu with preset options
+        # Otherwise, display a menu with preset options and a Cancel button
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("💻<=4k (best for desktop TG app)", callback_data="format_option|bv2160")],
             [InlineKeyboardButton("📱<=FullHD (best for mobile TG app)", callback_data="format_option|bv1080")],
             [InlineKeyboardButton("📈bestvideo+bestaudio (MAX quality)", callback_data="format_option|bestvideo")],
             [InlineKeyboardButton("📉best (no ffmpeg)", callback_data="format_option|best")],
-            [InlineKeyboardButton("🎚 custom", callback_data="format_option|custom")]
+            [InlineKeyboardButton("🎚 custom", callback_data="format_option|custom")],
+            [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
         ])
         app.send_message(
             user_id,
@@ -198,23 +199,20 @@ def set_format(app, message):
             reply_markup=keyboard
         )
 
-
 # CallbackQuery handler for /format menu selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
 def format_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    # Optional: Add subscription check for callback queries if desired.
-    # For example, you can verify if the user is in the channel via:
-    # if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, callback_query.message):
-    #     callback_query.answer("Please join the channel to use this command.", show_alert=True)
-    #     return
-
     data = callback_query.data.split("|")[1]
-    
+
+    if data == "cancel":
+        callback_query.edit_message_text("🔚 Format selection canceled.")
+        callback_query.answer("✅ Format choice updated.")
+        return
+
     if data == "custom":
         # Sending a hint on how to use the custom format
-        app.send_message(
-            user_id,
+        callback_query.edit_message_text(
             "To use a custom format, send the command in the following form:\n\n`/format bestvideo+bestaudio/best`\n\nReplace `bestvideo+bestaudio/best` with the desired format string."
         )
         callback_query.answer("Hint sent.")
@@ -236,8 +234,10 @@ def format_option_callback(app, callback_query):
     create_directory(str(user_id))
     with open(f"{user_dir}/format.txt", "w", encoding="utf-8") as f:
         f.write(chosen_format)
-    app.send_message(user_id, f"✅ Format updated to:\n{chosen_format}")
+    callback_query.edit_message_text(f"✅ Format updated to:\n{chosen_format}")
     callback_query.answer("✅ Format saved.")
+
+
 
 
 
@@ -291,7 +291,7 @@ def url_distractor(app, message):
     if text == Config.DOWNLOAD_COOKIE_COMMAND:
         download_cookie(app, message)
         return
-    
+
     # /check_cookie command
     if text == Config.CHECK_COOKIE_COMMAND:
         checking_cookie_file(app, message)
@@ -701,7 +701,7 @@ def checking_cookie_file(app, message):
     cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
     # Construct the path to the cookie file within the user's folder
     file_path = os.path.join("users", user_id, cookie_filename)
-    
+
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as cookie:
             cookie_content = cookie.read()
@@ -724,7 +724,7 @@ def save_as_cookie_file(app, message):
     # Extract the cookie content from the message text after the command
     content = message.text[len(Config.SAVE_AS_COOKIE_COMMAND):].strip()
     new_cookie = ""
-    
+
     # Check if the content starts with a code block
     if content.startswith("```"):
         lines = content.splitlines()
@@ -1166,7 +1166,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
         success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n \n__Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl"
         app.edit_message_text(user_id, (msg_id + 1), success_msg)
 
-        
+
 
 
 
