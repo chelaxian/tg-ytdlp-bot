@@ -257,14 +257,25 @@ def is_user_blocked(message):
 
 # cheking users are in main user directory in db
 def check_user(message):
+    user_id_str = str(message.chat.id)
+    # Create the user folder inside the "users" directory
+    user_dir = os.path.join("users", user_id_str)
+    create_directory(user_dir)
+    
+    # Copy cookie.txt from the project root to the user's folder if not already present
+    cookie_src = os.path.join(os.getcwd(), "cookie.txt")
+    cookie_dest = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
+    if os.path.exists(cookie_src) and not os.path.exists(cookie_dest):
+        import shutil
+        shutil.copy(cookie_src, cookie_dest)
+    
+    # Register the user in the database if not already registered
     user_db = db.child(f"{Config.BOT_DB_PATH}/users").get().each()
-    users = [int(user.key()) for user in user_db]
+    users = [user.key() for user in user_db] if user_db else []
+    if user_id_str not in users:
+        data = {"ID": message.chat.id, "timestamp": math.floor(time.time())}
+        db.child(f"{Config.BOT_DB_PATH}/users/{user_id_str}").set(data)
 
-    if int(message.chat.id) not in users:
-        data = {"ID": message.chat.id,
-                "timestamp": math.floor(time.time())}
-        db.child(
-            f"{Config.BOT_DB_PATH}/users/{str(message.chat.id)}").set(data)
 
 #####################################################################################
 
@@ -767,17 +778,19 @@ def save_as_cookie_file(app, message):
 # url extractor
 @app.on_message(filters.text & filters.private)
 def video_url_extractor(app, message):
+    # Ensure the user folder is created and the user is registered
+    check_user(message)
     user_id = message.chat.id
     full_string = message.text
     if ("https://" in full_string) or ("http://" in full_string):
-        # printing
+        # Log the entered URL
         users_first_name = message.chat.first_name
         send_to_logger(
             message, f"User entered a **url**\n **user's name:** {users_first_name}\nURL: {full_string}")
         for j in range(len(Config.PORN_LIST)):
             if Config.PORN_LIST[j] in full_string:
                 send_to_all(
-                    message, "❌ User entered a porn content. Cannot be downloaded.")
+                    message, "User entered a porn content. Cannot be downloaded.")
                 return
 
         url_with_everything = full_string.split("*")
@@ -787,25 +800,20 @@ def video_url_extractor(app, message):
             video_start_with = 1
             playlist_name = False
         elif len(url_with_everything) == 3:
-            video_count = (
-                int(url_with_everything[2]) - int(url_with_everything[1]) + 1)
+            video_count = (int(url_with_everything[2]) - int(url_with_everything[1]) + 1)
             video_start_with = int(url_with_everything[1])
             playlist_name = False
         else:
             video_start_with = int(url_with_everything[1])
             playlist_name = f"{url_with_everything[3]}"
-            video_count = (
-                int(url_with_everything[2]) - int(url_with_everything[1]) + 1)
+            video_count = (int(url_with_everything[2]) - int(url_with_everything[1]) + 1)
 
-#############################################################################################################################################
-        # Downloading and uploading parts comes here..............
-        down_and_up(app, message, url, playlist_name,
-                    video_count, video_start_with)
-
-#############################################################################################################################################
+        # Downloading and uploading parts come here...
+        down_and_up(app, message, url, playlist_name, video_count, video_start_with)
     else:
         send_to_all(
             message, f"**User entered like this:** {full_string}\n{Config.ERROR1}")
+
 
 #############################################################################################
 
