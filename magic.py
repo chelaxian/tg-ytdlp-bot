@@ -174,13 +174,13 @@ def set_format(app, message):
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
 
-    user_dir = f"./users/{user_id}"
-    create_directory(str(user_id))  # Ensure the user folder exists
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)  # Ensure the user folder exists
 
     # If additional text is passed, save it as a custom format
     if len(message.command) > 1:
         custom_format = message.text.split(" ", 1)[1].strip()
-        with open(f"{user_dir}/format.txt", "w", encoding="utf-8") as f:
+        with open(os.path.join(user_dir, "format.txt"), "w", encoding="utf-8") as f:
             f.write(custom_format)
         app.send_message(user_id, f"✅ Format updated to:\n{custom_format}")
     else:
@@ -199,6 +199,8 @@ def set_format(app, message):
             reply_markup=keyboard
         )
 
+
+# CallbackQuery handler for /format menu selection
 # CallbackQuery handler for /format menu selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
 def format_option_callback(app, callback_query):
@@ -230,15 +232,13 @@ def format_option_callback(app, callback_query):
     else:
         chosen_format = data
 
-    user_dir = f"./users/{user_id}"
-    create_directory(str(user_id))
-    with open(f"{user_dir}/format.txt", "w", encoding="utf-8") as f:
+    # Build the user directory inside "users"
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    with open(os.path.join(user_dir, "format.txt"), "w", encoding="utf-8") as f:
         f.write(chosen_format)
     callback_query.edit_message_text(f"✅ Format updated to:\n{chosen_format}")
     callback_query.answer("✅ Format saved.")
-
-
-
 
 
 
@@ -512,29 +512,28 @@ def get_user_log(app, message):
                 info = data_tg[(total - 10) + i]
                 least_10.append(info)
             least_10.sort(key=str.lower)
-            format = '\n \n'.join(least_10)
+            format_str = '\n \n'.join(least_10)
         else:
             data_tg.sort(key=str.lower)
-            format = '\n \n'.join(data_tg)
+            format_str = '\n \n'.join(data_tg)
         data.sort(key=str.lower)
         now = datetime.fromtimestamp(math.floor(time.time()))
         txt_format = f"Logs of {Config.BOT_NAME_FOR_USERS}\nUser: {user_id}\nTotal logs: {total}\nCurrent time: {now}\n \n" + \
             '\n'.join(data)
 
-        create_directory(str(message.chat.id))
-        log_path = f"./users/{str(message.chat.id)}/logs.txt"
+        user_dir = os.path.join("users", str(message.chat.id))
+        create_directory(user_dir)
+        log_path = os.path.join(user_dir, "logs.txt")
         with open(log_path, 'w', encoding="utf-8") as f:
             f.write(str(txt_format))
 
-        send_to_all(
-            message, f"Total: **{total}**\n**{user_id}** - logs (Last 10):\n \n \n{format}")
+        send_to_all(message, f"Total: **{total}**\n**{user_id}** - logs (Last 10):\n \n \n{format_str}")
         app.send_document(message.chat.id, log_path,
                           caption=f"{user_id} - all logs")
         app.send_document(Config.LOGS_ID, log_path,
                           caption=f"{user_id} - all logs")
     except:
-        send_to_all(
-            message, "**❌ User did not download any content yet...** Not exist in logs")
+        send_to_all(message, "**❌ User did not download any content yet...** Not exist in logs")
 
 # Get all kinds of users (users/ blocked/ unblocked)
 
@@ -678,12 +677,13 @@ def download_cookie(app, message):
     user_id = str(message.chat.id)
     response = requests.get(Config.COOKIE_URL)
     if response.status_code == 200:
-        # Create a directory for the user if it doesn't exist yet
-        create_directory(user_id)
+        # Create the user directory inside "users" if it doesn't exist yet
+        user_dir = os.path.join("users", user_id)
+        create_directory(user_dir)
         # Extract the cookie filename from the full path specified in the config
         cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
         # Construct the full path for saving the cookie file in the user's folder
-        file_path = os.path.join("users", user_id, cookie_filename)
+        file_path = os.path.join(user_dir, cookie_filename)
         with open(file_path, "wb") as cf:
             cf.write(response.content)
         send_to_all(message, "**✅ Cookie file downloaded and saved in your folder.**")
@@ -736,13 +736,10 @@ def save_as_cookie_file(app, message):
     # Extract the cookie content from the message text after the command
     content = message.text[len(Config.SAVE_AS_COOKIE_COMMAND):].strip()
     new_cookie = ""
-
-    # Check if the content starts with a code block
+    
     if content.startswith("```"):
         lines = content.splitlines()
-        # Remove the first line (e.g., "```cookie")
         if lines[0].startswith("```"):
-            # If the last line is a closing code block, remove it as well
             if lines[-1].strip() == "```":
                 lines = lines[1:-1]
             else:
@@ -753,7 +750,6 @@ def save_as_cookie_file(app, message):
     else:
         new_cookie = content
 
-    # Replace multiple spaces with a tab if no tab exists in the line
     processed_lines = []
     for line in new_cookie.splitlines():
         if "\t" not in line:
@@ -763,17 +759,15 @@ def save_as_cookie_file(app, message):
 
     if final_cookie:
         send_to_all(message, "**✅ User provided a new cookie file.**")
-        create_directory(user_id)
-        # Extract only the filename from the full cookie file path in the config
+        user_dir = os.path.join("users", user_id)
+        create_directory(user_dir)
         cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
-        # Construct the path to save the cookie file inside the user's folder
-        file_path = os.path.join("users", user_id, cookie_filename)
+        file_path = os.path.join(user_dir, cookie_filename)
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(final_cookie)
         send_to_all(message, f"**✅ Cookie successfully updated:**\n`{final_cookie}`")
     else:
         send_to_all(message, "**❌ Not a valid cookie.**")
-
 
 
 # url extractor
@@ -993,8 +987,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
     app.send_message(user_id, "Processing... ♻️")
     check_user(message)
 
-    create_directory(str(user_id))
-    user_dir_name = os.path.abspath("./users/" + str(user_id))
+    # Create the user folder inside "users" using the absolute path
+    user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
+    create_directory(user_dir_name)  # Ensure the folder exists
 
     # If user has custom format saved, use it; otherwise use the default fallback cascade
     custom_format_path = f"{user_dir_name}/format.txt"
