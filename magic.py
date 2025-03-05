@@ -277,6 +277,7 @@ def check_user(message):
         db.child(f"{Config.BOT_DB_PATH}/users/{user_id_str}").set(data)
 
 
+
 #####################################################################################
 
 
@@ -783,7 +784,7 @@ def video_url_extractor(app, message):
     user_id = message.chat.id
     full_string = message.text
     if ("https://" in full_string) or ("http://" in full_string):
-        # Log the entered URL
+        # Logging the entered URL
         users_first_name = message.chat.first_name
         send_to_logger(
             message, f"User entered a **url**\n **user's name:** {users_first_name}\nURL: {full_string}")
@@ -813,6 +814,7 @@ def video_url_extractor(app, message):
     else:
         send_to_all(
             message, f"**User entered like this:** {full_string}\n{Config.ERROR1}")
+
 
 
 #############################################################################################
