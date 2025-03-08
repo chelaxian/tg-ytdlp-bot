@@ -691,6 +691,19 @@ def download_cookie(app, message):
         send_to_all(message, "❌ Cookie URL is not available!")
 
 
+# Command to download audio from video URL
+@app.on_message(filters.command("audio") & filters.private)
+def audio_command_handler(app, message):
+    # Разбиваем сообщение на части: команда и URL
+    parts = message.text.split()
+    if len(parts) < 2:
+        send_to_user(message, "Пожалуйста, укажите URL видео для скачивания аудио.")
+        return
+    url = parts[1]
+    # Вызываем функцию для скачивания аудио
+    down_and_audio(app, message, url)
+
+
 # caption editor for videos
 @app.on_message(filters.text & filters.private)
 def caption_editor(app, message):
@@ -768,6 +781,67 @@ def save_as_cookie_file(app, message):
         send_to_all(message, f"**✅ Cookie successfully updated:**\n`{final_cookie}`")
     else:
         send_to_all(message, "**❌ Not a valid cookie.**")
+
+
+def down_and_audio(app, message, url):
+    user_id = message.chat.id
+    # Формируем абсолютный путь к каталогу пользователя: ./users/<user_id>
+    user_folder = os.path.abspath(os.path.join("users", str(user_id)))
+    # Создаем директорию пользователя, если ее еще нет
+    create_directory(user_folder)
+    
+    # Формируем путь к файлу cookie: берется имя файла из Config.COOKIE_FILE_PATH и кладется в каталог пользователя
+    cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
+    
+    # Опции для скачивания аудио с помощью yt-dlp
+    ytdl_opts = {
+        'format': 'ba',  # Выбираем лучшую аудиодорожку
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'prefer_ffmpeg': True,
+        'extractaudio': True,
+        'cookiefile': cookie_file,
+        'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
+    }
+    
+    # Локальный progress hook (при ошибке уведомляем пользователя)
+    def progress_hook(d):
+        if d.get('status') == 'error':
+            send_to_user(message, "Ошибка при скачивании аудио.")
+    
+    ytdl_opts['progress_hooks'] = [progress_hook]
+    
+    try:
+        # Скачиваем аудио
+        with YoutubeDL(ytdl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+        
+        # Определяем ожидаемое имя файла (предполагается, что расширение .mp3)
+        audio_title = info.get('title', 'audio')
+        audio_file = os.path.join(user_folder, audio_title + ".mp3")
+        
+        # Если файла с ожидаемым именем не найдено, ищем любой .mp3 в каталоге
+        if not os.path.exists(audio_file):
+            files = [f for f in os.listdir(user_folder) if f.endswith(".mp3")]
+            if files:
+                audio_file = os.path.join(user_folder, files[0])
+            else:
+                send_to_user(message, "Аудио файл не найден после скачивания.")
+                return
+        
+        # Отправляем аудио файл пользователю
+        app.send_audio(chat_id=user_id, audio=audio_file, caption=f"Скачано аудио: {audio_title}")
+        send_to_user(message, "Аудио успешно скачано и отправлено.")
+        
+        # Опционально: если не нужно сохранять файл на сервере, можно удалить его после отправки
+        # os.remove(audio_file)
+        
+    except Exception as e:
+        send_to_user(message, f"Не удалось скачать аудио: {e}")
+
 
 
 # url extractor
