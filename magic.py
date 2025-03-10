@@ -166,16 +166,28 @@ def browser_choice_callback(app, callback_query):
     callback_query.answer("✅ Browser choice updated.")
 
 
+
+# Command to download audio from a video URL
+@app.on_message(filters.command("audio") & filters.private)
+def audio_command_handler(app, message):
+    # A command like this is expected: /audio <URL>
+    if len(message.command) < 2:
+        send_to_user(message, "Please provide the URL of the video to download the audio.")
+        return
+    url = message.command[1]  # Take the URL from the command arguments
+    down_and_audio(app, message, url)
+
+
 # Command /format handler
 @app.on_message(filters.command("format") & filters.private)
 def set_format(app, message):
     user_id = message.chat.id
-    # For non-admin users, check subscription
+    # For non-administrators, we're checking subscriptions
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
 
     user_dir = os.path.join("users", str(user_id))
-    create_directory(user_dir)  # Ensure the user folder exists
+    create_directory(user_dir)  # Let's make sure the user folder exists
 
     # If additional text is passed, save it as a custom format
     if len(message.command) > 1:
@@ -184,12 +196,13 @@ def set_format(app, message):
             f.write(custom_format)
         app.send_message(user_id, f"✅ Format updated to:\n{custom_format}")
     else:
-        # Otherwise, display a menu with preset options and a Cancel button
+        # Main menu with a few popular options, plus the Others button
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("💻<=4k (best for desktop TG app)", callback_data="format_option|bv2160")],
             [InlineKeyboardButton("📱<=FullHD (best for mobile TG app)", callback_data="format_option|bv1080")],
             [InlineKeyboardButton("📈bestvideo+bestaudio (MAX quality)", callback_data="format_option|bestvideo")],
             [InlineKeyboardButton("📉best (no ffmpeg)", callback_data="format_option|best")],
+            [InlineKeyboardButton("Others", callback_data="format_option|others")],
             [InlineKeyboardButton("🎚 custom", callback_data="format_option|custom")],
             [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
         ])
@@ -201,30 +214,83 @@ def set_format(app, message):
 
 
 # CallbackQuery handler for /format menu selection
-# CallbackQuery handler for /format menu selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
 def format_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
 
+    # If the Cancel button is pressed
     if data == "cancel":
         callback_query.edit_message_text("🔚 Format selection canceled.")
         callback_query.answer("✅ Format choice updated.")
         return
 
+    # When the Custom button is pressed
     if data == "custom":
-        # Sending a hint on how to use the custom format
         callback_query.edit_message_text(
-            "To use a custom format, send the command in the following form:\n\n`/format bestvideo+bestaudio/best`\n\nReplace `bestvideo+bestaudio/best` with the desired format string."
+            "To use a custom format, send the command in the following form:\n\n`/format bestvideo+bestaudio/best`\n\nReplace `bestvideo+bestaudio/best` with your desired format string."
         )
         callback_query.answer("Hint sent.")
         return
 
-    # Mapping a short identifier to a full format string
-    if data == "bv2160":
-        chosen_format = "bv*[vcodec*=avc1][height<=2160]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    # If the Others button is pressed, the second menu with the full set of permissions is displayed
+    if data == "others":
+        full_res_keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"),
+                InlineKeyboardButton("240p (426×240)", callback_data="format_option|bv240"),
+                InlineKeyboardButton("360p (640×360)", callback_data="format_option|bv360")
+            ],
+            [
+                InlineKeyboardButton("480p (854×480)", callback_data="format_option|bv480"),
+                InlineKeyboardButton("720p (1280×720)", callback_data="format_option|bv720"),
+                InlineKeyboardButton("1080p (1920×1080)", callback_data="format_option|bv1080")
+            ],
+            [
+                InlineKeyboardButton("1440p (2560×1440)", callback_data="format_option|bv1440"),
+                InlineKeyboardButton("2160p (3840×2160)", callback_data="format_option|bv2160"),
+                InlineKeyboardButton("4320p (7680×4320)", callback_data="format_option|bv4320")
+            ],
+            [InlineKeyboardButton("🔙 Back", callback_data="format_option|back")]
+        ])
+        callback_query.edit_message_text("Select your desired resolution:", reply_markup=full_res_keyboard)
+        callback_query.answer()
+        return
+
+    # If the Back button is pressed in the second menu - return to the original menu
+    if data == "back":
+        main_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💻<=4k (best for desktop TG app)", callback_data="format_option|bv2160")],
+            [InlineKeyboardButton("📱<=FullHD (best for mobile TG app)", callback_data="format_option|bv1080")],
+            [InlineKeyboardButton("📈bestvideo+bestaudio (MAX quality)", callback_data="format_option|bestvideo")],
+            [InlineKeyboardButton("📉best (no ffmpeg)", callback_data="format_option|best")],
+            [InlineKeyboardButton("Others", callback_data="format_option|others")],
+            [InlineKeyboardButton("🎚 custom", callback_data="format_option|custom")],
+            [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
+        ])
+        callback_query.edit_message_text("Select a format option or send a custom one using `/format <format_string>`:", reply_markup=main_keyboard)
+        callback_query.answer()
+        return
+
+    # Mapping for the rest of the options
+    if data == "bv144":
+        chosen_format = "bv*[vcodec*=avc1][height<=144]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv240":
+        chosen_format = "bv*[vcodec*=avc1][height<=240]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv360":
+        chosen_format = "bv*[vcodec*=avc1][height<=360]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv480":
+        chosen_format = "bv*[vcodec*=avc1][height<=480]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv720":
+        chosen_format = "bv*[vcodec*=avc1][height<=720]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv1080":
         chosen_format = "bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv1440":
+        chosen_format = "bv*[vcodec*=avc1][height<=1440]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv2160":
+        chosen_format = "bv*[vcodec*=avc1][height<=2160]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv4320":
+        chosen_format = "bv*[vcodec*=avc1][height<=4320]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bestvideo":
         chosen_format = "bestvideo+bestaudio/best"
     elif data == "best":
@@ -232,13 +298,14 @@ def format_option_callback(app, callback_query):
     else:
         chosen_format = data
 
-    # Build the user directory inside "users"
+    # Save the selected format
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     with open(os.path.join(user_dir, "format.txt"), "w", encoding="utf-8") as f:
         f.write(chosen_format)
     callback_query.edit_message_text(f"✅ Format updated to:\n{chosen_format}")
     callback_query.answer("✅ Format saved.")
+
 
 
 
@@ -261,14 +328,14 @@ def check_user(message):
     # Create the user folder inside the "users" directory
     user_dir = os.path.join("users", user_id_str)
     create_directory(user_dir)
-    
+
     # Copy cookie.txt from the project root to the user's folder if not already present
     cookie_src = os.path.join(os.getcwd(), "cookie.txt")
     cookie_dest = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
     if os.path.exists(cookie_src) and not os.path.exists(cookie_dest):
         import shutil
         shutil.copy(cookie_src, cookie_dest)
-    
+
     # Register the user in the database if not already registered
     user_db = db.child(f"{Config.BOT_DB_PATH}/users").get().each()
     users = [user.key() for user in user_db] if user_db else []
@@ -279,6 +346,93 @@ def check_user(message):
 
 
 #####################################################################################
+
+
+def down_and_audio(app, message, url):
+    user_id = message.chat.id
+    # Send initial status message and get its id for editing
+    status_message = app.send_message(user_id, "Processing audio... ♻️")
+    status_message_id = status_message.id  # Use .id since .message_id might not exist
+
+    # Form the absolute path to the user's directory (./users/<user_id>)
+    user_folder = os.path.abspath(os.path.join("users", str(user_id)))
+    create_directory(user_folder)
+    
+    # Form the path to the cookie file (filename taken from Config.COOKIE_FILE_PATH)
+    cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
+    
+    # Options for yt-dlp: download the best audio track and convert to mp3
+    ytdl_opts = {
+        'format': 'ba',  # choose the best audio track
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'prefer_ffmpeg': True,
+        'extractaudio': True,
+        'cookiefile': cookie_file,
+        'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
+        'progress_hooks': [],
+    }
+    
+    # Local function to update download status
+    def progress_hook(d):
+        if d.get("status") == "downloading":
+            downloaded = d.get("downloaded_bytes", 0)
+            total = d.get("total_bytes", 0)
+            percent = (downloaded / total * 100) if total else 0
+            try:
+                app.edit_message_text(user_id, status_message_id, f"Downloading audio: {percent:.1f}%")
+            except Exception as e:
+                print(f"Error editing message: {e}")
+        elif d.get("status") == "finished":
+            try:
+                app.edit_message_text(user_id, status_message_id, "Download finished, processing audio...")
+            except Exception as e:
+                print(f"Error editing message: {e}")
+        elif d.get("status") == "error":
+            try:
+                app.edit_message_text(user_id, status_message_id, "Error occurred during audio download.")
+            except Exception as e:
+                print(f"Error editing message: {e}")
+    
+    ytdl_opts['progress_hooks'].append(progress_hook)
+    
+    try:
+        # Download audio using yt-dlp
+        with YoutubeDL(ytdl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+        
+        # Form the expected filename (with .mp3 extension)
+        audio_title = info.get("title", "audio")
+        audio_file = os.path.join(user_folder, audio_title + ".mp3")
+        if not os.path.exists(audio_file):
+            files = [f for f in os.listdir(user_folder) if f.endswith(".mp3")]
+            if files:
+                audio_file = os.path.join(user_folder, files[0])
+            else:
+                send_to_user(message, "Audio file not found after download.")
+                return
+        
+        # Update status before uploading the file
+        app.edit_message_text(user_id, status_message_id, "Uploading audio file... 📤")
+        app.send_audio(chat_id=user_id, audio=audio_file, caption=f"Audio downloaded: {audio_title}")
+        app.edit_message_text(user_id, status_message_id, "✅ Audio successfully downloaded and sent.")
+        
+        # Delete the audio file after sending to avoid disk clutter
+        try:
+            os.remove(audio_file)
+        except Exception as e:
+            print(f"Failed to delete file {audio_file}: {e}")
+        
+    except Exception as e:
+        send_to_user(message, f"Failed to download audio: {e}")
+        try:
+            app.edit_message_text(user_id, status_message_id, f"Error: {e}")
+        except Exception as e:
+            print(f"Error editing message on exception: {e}")
+
 
 
 # checking actions
@@ -691,19 +845,6 @@ def download_cookie(app, message):
         send_to_all(message, "❌ Cookie URL is not available!")
 
 
-# Command to download audio from video URL
-@app.on_message(filters.command("audio") & filters.private)
-def audio_command_handler(app, message):
-    # Разбиваем сообщение на части: команда и URL
-    parts = message.text.split()
-    if len(parts) < 2:
-        send_to_user(message, "Пожалуйста, укажите URL видео для скачивания аудио.")
-        return
-    url = parts[1]
-    # Вызываем функцию для скачивания аудио
-    down_and_audio(app, message, url)
-
-
 # caption editor for videos
 @app.on_message(filters.text & filters.private)
 def caption_editor(app, message):
@@ -749,7 +890,7 @@ def save_as_cookie_file(app, message):
     # Extract the cookie content from the message text after the command
     content = message.text[len(Config.SAVE_AS_COOKIE_COMMAND):].strip()
     new_cookie = ""
-    
+
     if content.startswith("```"):
         lines = content.splitlines()
         if lines[0].startswith("```"):
@@ -781,67 +922,6 @@ def save_as_cookie_file(app, message):
         send_to_all(message, f"**✅ Cookie successfully updated:**\n`{final_cookie}`")
     else:
         send_to_all(message, "**❌ Not a valid cookie.**")
-
-
-def down_and_audio(app, message, url):
-    user_id = message.chat.id
-    # Формируем абсолютный путь к каталогу пользователя: ./users/<user_id>
-    user_folder = os.path.abspath(os.path.join("users", str(user_id)))
-    # Создаем директорию пользователя, если ее еще нет
-    create_directory(user_folder)
-    
-    # Формируем путь к файлу cookie: берется имя файла из Config.COOKIE_FILE_PATH и кладется в каталог пользователя
-    cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
-    
-    # Опции для скачивания аудио с помощью yt-dlp
-    ytdl_opts = {
-        'format': 'ba',  # Выбираем лучшую аудиодорожку
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-        'prefer_ffmpeg': True,
-        'extractaudio': True,
-        'cookiefile': cookie_file,
-        'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
-    }
-    
-    # Локальный progress hook (при ошибке уведомляем пользователя)
-    def progress_hook(d):
-        if d.get('status') == 'error':
-            send_to_user(message, "Ошибка при скачивании аудио.")
-    
-    ytdl_opts['progress_hooks'] = [progress_hook]
-    
-    try:
-        # Скачиваем аудио
-        with YoutubeDL(ytdl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-        
-        # Определяем ожидаемое имя файла (предполагается, что расширение .mp3)
-        audio_title = info.get('title', 'audio')
-        audio_file = os.path.join(user_folder, audio_title + ".mp3")
-        
-        # Если файла с ожидаемым именем не найдено, ищем любой .mp3 в каталоге
-        if not os.path.exists(audio_file):
-            files = [f for f in os.listdir(user_folder) if f.endswith(".mp3")]
-            if files:
-                audio_file = os.path.join(user_folder, files[0])
-            else:
-                send_to_user(message, "Аудио файл не найден после скачивания.")
-                return
-        
-        # Отправляем аудио файл пользователю
-        app.send_audio(chat_id=user_id, audio=audio_file, caption=f"Скачано аудио: {audio_title}")
-        send_to_user(message, "Аудио успешно скачано и отправлено.")
-        
-        # Опционально: если не нужно сохранять файл на сервере, можно удалить его после отправки
-        # os.remove(audio_file)
-        
-    except Exception as e:
-        send_to_user(message, f"Не удалось скачать аудио: {e}")
-
 
 
 # url extractor
