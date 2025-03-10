@@ -49,6 +49,7 @@ class Config(object):
 
     # Messages and errors
     CREDITS_MSG = "__Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl"
+    TO_USE_MSG = "__To use this bot you need to subscribe to this https://t.me/+fpIcU8Y3eHIzMDVi Telegram channel.__\nAfter you join the channel, **resend your video link again and I will download it for you** ❤️"
     MSG1 = "Hello "
     MSG2 = "This is the second message. which means my own message... 😁"
     ERROR1 = "Did not found a url link. Please enter a url with **https://** or **http://**"
