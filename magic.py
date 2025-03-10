@@ -468,6 +468,11 @@ def url_distractor(app, message):
         cookies_from_browser(app, message)
         return
 
+    # /audio command
+    if text.startswith(Config.AUDIO_COMMAND):
+        audio_command_handler(app, message)
+        return    
+
     # /format command
     if text.startswith(Config.FORMAT_COMMAND):
         set_format(app, message)
