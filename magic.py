@@ -70,7 +70,7 @@ def cookies_from_browser(app, message):
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
 
-    # Path to the user's directory, e.g. "./users/7360853"
+    # Path to the user's directory, e.g. "./users/1234567"
     user_dir = os.path.join(".", "users", str(user_id))
     create_directory(user_dir)  # Ensure the user's folder exists
 
@@ -117,7 +117,7 @@ def browser_choice_callback(app, callback_query):
 
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]  # e.g. "chromium", "firefox", or "cancel"
-    # Path to the user's directory, e.g. "./users/7360853"
+    # Path to the user's directory, e.g. "./users/1234567"
     user_dir = os.path.join(".", "users", str(user_id))
     create_directory(user_dir)
     cookie_file = os.path.join(user_dir, "cookie.txt")
@@ -170,6 +170,14 @@ def browser_choice_callback(app, callback_query):
 # Command to download audio from a video URL
 @app.on_message(filters.command("audio") & filters.private)
 def audio_command_handler(app, message):
+    user_id = message.chat.id
+    # For non-administrators, we're checking subscriptions
+    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+        return
+
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)  # Let's make sure the user folder exists
+        
     # A command like this is expected: /audio <URL>
     if len(message.command) < 2:
         send_to_user(message, "Please provide the URL of the video to download the audio.")
@@ -818,7 +826,7 @@ def check_runtime(message):
 @app.on_message(filters.document & filters.private)
 def save_my_cookie(app, message):
     user_id = str(message.chat.id)
-    # Define the user folder path (e.g., "./users/7360853")
+    # Define the user folder path (e.g., "./users/1234567")
     user_folder = f"./users/{user_id}"
     # Create the user directory if it doesn't exist
     create_directory(user_folder)
