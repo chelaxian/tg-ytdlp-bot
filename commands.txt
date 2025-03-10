@@ -10,6 +10,7 @@ save_as_cookie - Save txt as cookie
 download_cookie - Download the cookie file
 cookies_from_browser - Get cookies from browser
 format - Choose media format options
+audio - + URL - Download only audio
 
 ---
 
