@@ -87,7 +87,7 @@ __this will download all videos from --index 1-- to --index 4-- on that playlist
 
 
 
-__Developed by__ @upekshaip
+__Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
 """
 
 # Firebase initialization
