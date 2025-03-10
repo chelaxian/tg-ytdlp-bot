@@ -473,6 +473,11 @@ def url_distractor(app, message):
         set_format(app, message)
         return
 
+    # /audio command
+    if text.startswith(Config.AUDIO_COMMAND):
+        audio_command_handler(app, message)
+        return
+    
     # /clean command
     if Config.CLEAN_COMMAND in text:
         remove_media(message)
