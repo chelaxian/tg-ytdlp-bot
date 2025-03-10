@@ -47,7 +47,7 @@ def command1(app, message):
     else:
         check_user(message)
         app.send_message(
-            message.chat.id, f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n __Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl")
+            message.chat.id, f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
         send_to_logger(message, f"{message.chat.id} - user started the bot")
 
 
@@ -473,11 +473,6 @@ def url_distractor(app, message):
         set_format(app, message)
         return
 
-    # /audio command
-    if text.startswith(Config.AUDIO_COMMAND):
-        audio_command_handler(app, message)
-        return
-    
     # /clean command
     if Config.CLEAN_COMMAND in text:
         remove_media(message)
@@ -1310,7 +1305,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
                 os.remove(path_lst[p])
             os.remove(thumb_dir)
             os.remove(user_vid_path)
-            success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n \n__Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl"
+            success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n \n{Config.CREDITS_MSG}"
             app.edit_message_text(user_id, (msg_id + 1), success_msg)
             break
         else:
@@ -1327,7 +1322,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with)
 
     # Send final summary only if all videos were successfully downloaded/uploaded
     if successful_uploads == video_count:
-        success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n \n__Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl"
+        success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n \n{Config.CREDITS_MSG}"
         app.edit_message_text(user_id, (msg_id + 1), success_msg)
 
 
