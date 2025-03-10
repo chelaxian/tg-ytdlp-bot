@@ -34,6 +34,7 @@ class Config(object):
     DOWNLOAD_COOKIE_COMMAND = "/download_cookie"
     CHECK_COOKIE_COMMAND = "/check_cookie"
     SAVE_AS_COOKIE_COMMAND = "/save_as_cookie"
+    AUDIO_COMMAND = "/audio"
     FORMAT_COMMAND = "/format"
     COOKIES_FROM_BROWSER_COMMAND = "/cookies_from_browser"
     BLOCK_USER_COMMAND = "/block_user"
@@ -47,6 +48,7 @@ class Config(object):
     GET_USER_DETAILS_COMMAND = "/all"
 
     # Messages and errors
+    CREDITS_MSG = "__Managed by__ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl"
     MSG1 = "Hello "
     MSG2 = "This is the second message. which means my own message... 😁"
     ERROR1 = "Did not found a url link. Please enter a url with **https://** or **http://**"
