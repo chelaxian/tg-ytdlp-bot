@@ -418,7 +418,7 @@ def down_and_audio(app, message, url):
         # Update status before uploading the file
         app.edit_message_text(user_id, status_message_id, "Uploading audio file... 📤")
         app.send_audio(chat_id=user_id, audio=audio_file, caption=f"Audio downloaded: {audio_title}")
-        app.edit_message_text(user_id, status_message_id, "✅ Audio successfully downloaded and sent.")
+        app.edit_message_text(user_id, status_message_id, f"✅ Audio successfully downloaded and sent.\n\n{Config.CREDITS_MSG}")
         
         # Delete the audio file after sending to avoid disk clutter
         try:
