@@ -70,6 +70,8 @@ class Config(object):
 > • Check or update your cookie file with **/check_cookie**, **/download_cookie**, **/save_as_cookie** and **/cookies_from_browser** commands.
 > • To clean your workspace on server from bad files (e.g. old cookies or media) use **/clean** command (might be helpfull for get rid of errors).
 > • See your usage statistics and logs by sending the **/usage** command.
+> • You can add tags to any link: just add #tag1#tag2 after the URL (e.g. https://youtu.be/xxxx#mytag#music). Tags will appear in the caption and are saved for navigation. See all your tags with /tags.
+
 
 __Developed by__ @upekshaip
 __Contributor___ @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
