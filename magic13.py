@@ -23,7 +23,7 @@ import subprocess
 import signal
 import sys
 from config import Config
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 from pyrogram.errors import FloodWait
 import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
@@ -2706,6 +2706,17 @@ def extract_url_range_tags(text: str):
     if not url_match:
         return None, 1, 1, None, [], '', None
     url = url_match.group(0)
+
+    # --- Распаковка поисковых ссылок ---
+    try:
+        parsed = urlparse(url)
+        if any(domain in parsed.netloc for domain in Config.SEARCH_ENGINE_DOMAINS):
+            query_params = parse_qs(parsed.query)
+            if 'url' in query_params:
+                url = query_params['url'][0]
+    except Exception:
+        pass # Оставляем как есть, если что-то пошло не так
+
     after_url = text[url_match.end():]
     # Диапазон
     range_match = re.match(r'\*([0-9]+)\*([0-9]+)', after_url)
