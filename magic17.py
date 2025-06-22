@@ -1,4 +1,4 @@
-# Version 1.5.4 - Глубокое исправление обработки ссылок из поисковиков
+# Version 1.5.6 - Глубокое исправление обработки ссылок из поисковиков
 import pyrebase
 import re
 import os
@@ -29,12 +29,31 @@ import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
 import json
 
+# --- Новая функция для очистки URL только для тегов ---
+def get_clean_url_for_tagging(url: str) -> str:
+    """
+    Извлекает последнюю (самую вложенную) ссылку из URL-оберток поисковиков.
+    Используется ТОЛЬКО для генерации тегов.
+    """
+    if not isinstance(url, str):
+        return ''
+    last_http_pos = url.rfind('http://')
+    last_https_pos = url.rfind('https://')
+
+    start_of_real_url_pos = max(last_http_pos, last_https_pos)
+
+    # Если нашли еще один http/https (не в самом начале), то это и есть реальная ссылка
+    if start_of_real_url_pos > 0:
+        return url[start_of_real_url_pos:]
+    return url
+
 def is_tiktok_url(url: str) -> bool:
     """
     Проверяет, является ли URL ссылкой на TikTok
     """
     try:
-        parsed_url = urlparse(url)
+        clean_url = get_clean_url_for_tagging(url)
+        parsed_url = urlparse(clean_url)
         return any(domain in parsed_url.netloc for domain in Config.TIKTOK_DOMAINS)
     except:
         return False
@@ -43,7 +62,8 @@ def is_tiktok_url(url: str) -> bool:
 def extract_tiktok_profile(url: str) -> str:
     # Ищем @username после домена
     import re
-    m = re.search(r'/@([\w\.\-_]+)', url)
+    clean_url = get_clean_url_for_tagging(url)
+    m = re.search(r'/@([\w\.\-_]+)', clean_url)
     if m:
         return m.group(1)
     return ''
@@ -2702,22 +2722,12 @@ def clean_telegram_tag(tag: str) -> str:
 
 # --- Функция для извлечения url, диапазона и тегов из текста ---
 def extract_url_range_tags(text: str):
+    # Эта функция теперь всегда возвращает ПОЛНУЮ оригинальную ссылку для скачивания
     url_match = re.search(r'https?://[^\s\*#]+', text)
     if not url_match:
         return None, 1, 1, None, [], '', None
+    url = url_match.group(0)
 
-    # --- Новая логика: ищем последнюю http/https ссылку в найденном блоке ---
-    full_url_block = url_match.group(0)
-    last_http_pos = full_url_block.rfind('http://')
-    last_https_pos = full_url_block.rfind('https://')
-
-    start_of_real_url_pos = max(last_http_pos, last_https_pos)
-
-    url = full_url_block
-    # Если нашли еще один http/https (не в самом начале), то это и есть реальная ссылка
-    if start_of_real_url_pos > 0:
-        url = full_url_block[start_of_real_url_pos:]
-    
     after_url = text[url_match.end():]
     # Диапазон
     range_match = re.match(r'\*([0-9]+)\*([0-9]+)', after_url)
@@ -2883,8 +2893,9 @@ def extract_domain_parts(url):
 # --- Вспомогательная функция для поиска автотегов ---
 def get_auto_tags(url, user_tags):
     auto_tags = set()
-    url_l = url.lower()
-    domain_parts, main_domain = extract_domain_parts(url)
+    clean_url = get_clean_url_for_tagging(url)
+    url_l = clean_url.lower()
+    domain_parts, main_domain = extract_domain_parts(url_l)
     # 1. Porn check (по всем суффиксам домена, но с учётом белого списка)
     if is_porn_domain(domain_parts):
         auto_tags.add(sanitize_autotag('porn'))
@@ -3091,26 +3102,19 @@ def askq_callback(app, callback_query):
         return
 
     url = None
-    # Сначала ищем скрытую ссылку в сообщении с кнопками, она уже должна быть "чистой"
+    # Сначала ищем скрытую ссылку в сообщении с кнопками.
+    # Эта ссылка - ПОЛНАЯ, оригинальная, как и нужно для скачивания.
     if callback_query.message.caption_entities:
         for entity in callback_query.message.caption_entities:
             if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
                 url = entity.url
                 break
     
-    # Если по какой-то причине в кнопках не было ссылки, берем из исходного сообщения и чистим
-    if not url:
-        if original_message.text:
-            # Используем extract_url_range_tags, которая уже умеет чистить ссылки
-            cleaned_url, _, _, _, _, _, _ = extract_url_range_tags(original_message.text)
-            url = cleaned_url
-        else:
-            # Если в исходном сообщении нет текста (маловероятно), пытаемся найти ссылку в его caption
-            if original_message.caption and original_message.caption_entities:
-                 for entity in original_message.caption_entities:
-                    if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
-                        url = entity.url
-                        break
+    # Если не нашли, извлекаем из оригинального сообщения пользователя
+    if not url and original_message.text:
+        url_match = re.search(r'https?://[^\s\*#]+', original_message.text)
+        if url_match:
+            url = url_match.group(0)
 
     if not url:
         callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
@@ -3183,11 +3187,13 @@ def generate_final_tags(url, user_tags, info_dict):
     final_tags = set(user_tags)
 
     # 2. Добавляем авто-теги (порно, supported.txt)
+    # Важно: передаем оригинальный URL в get_auto_tags, т.к. она сама его чистит
     auto_tags_list = get_auto_tags(url, list(final_tags))
     for tag in auto_tags_list:
         final_tags.add(tag)
 
     # 3. Добавляем тег профиля TikTok
+    # is_tiktok_url и extract_tiktok_profile сами очищают ссылку
     if is_tiktok_url(url):
         tiktok_profile = extract_tiktok_profile(url)
         if tiktok_profile:
@@ -3196,7 +3202,8 @@ def generate_final_tags(url, user_tags, info_dict):
         final_tags.add("#tiktok")
 
     # 4. Добавляем тег канала YouTube (из info_dict)
-    if ("youtube.com" in url or "youtu.be" in url) and info_dict:
+    clean_url_for_check = get_clean_url_for_tagging(url)
+    if ("youtube.com" in clean_url_for_check or "youtu.be" in clean_url_for_check) and info_dict:
         channel_name = info_dict.get("channel") or info_dict.get("uploader")
         if channel_name:
             final_tags.add(sanitize_autotag(channel_name))
