@@ -1344,15 +1344,12 @@ def send_videos(
     temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
     was_truncated = False
     try:
-        # ПЕРЕНЕСЕНО: Сначала генерируем финальные теги
-        info_dict_for_tags = {'title': caption, 'description': full_video_title}
-        final_tags = generate_final_tags(video_url, tags_text.split(), info_dict_for_tags)
-
+        # Логика упрощена: используем теги, которые уже были сгенерированы в down_and_up
         title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
             title=caption,
             description=full_video_title,
             url=video_url,
-            tags_text=final_tags, # Используем финальные теги для расчета
+            tags_text=tags_text, # Используем финальные теги для расчета
             max_length=1024
         )
         # Формируем HTML caption: title вне цитаты, таймкоды вне цитаты, description в цитате, теги и ссылка вне цитаты
@@ -2952,11 +2949,16 @@ def is_porn(url, title, description):
     title_lower = title.lower() if title else ""
     description_lower = description.lower() if description else ""
 
+    logger.debug(f"is_porn check for url: {url}")
+    logger.debug(f"is_porn title: '{title_lower}'")
+    logger.debug(f"is_porn keywords being checked: {PORN_KEYWORDS}")
+
     if not title_lower and not description_lower:
         return False
 
     for keyword in PORN_KEYWORDS:
         if keyword in title_lower or keyword in description_lower:
+            logger.info(f"Porn keyword '{keyword}' found in title/description.")
             return True
 
     return False
@@ -3256,6 +3258,8 @@ def generate_final_tags(url, user_tags, info_dict):
         if tag.lower() not in unique_tags_case_insensitive:
             unique_tags_case_insensitive[tag.lower()] = tag
 
-    return ' '.join(unique_tags_case_insensitive.values())
+    result = ' '.join(unique_tags_case_insensitive.values())
+    logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
+    return result
 
 app.run()
