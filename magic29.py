@@ -3067,7 +3067,6 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         'forcejson': True,
         'no_warnings': True,
         'extract_flat': False,
-        'simulate': True,
         'playlist_items': str(playlist_start_index),
     }
     if user_id is not None:
@@ -3366,11 +3365,15 @@ def generate_final_tags(url, user_tags, info_dict):
 
 # --- Новые функции для кэширования ---
 def get_video_key(info_dict: dict) -> str:
-    """Gets a stable key for a video, preferring webpage_url."""
+    """Gets a stable and unique key for a video, preferring the video ID."""
     if not info_dict:
         return None
-    # webpage_url is the original URL of the video page, more stable than 'id' for some sites.
-    return info_dict.get('webpage_url') or info_dict.get('id')
+    # 'id' is the most stable and unique identifier provided by yt-dlp.
+    video_id = info_dict.get('id')
+    if video_id:
+        return str(video_id)
+    # Fallback to webpage_url only if id is not available.
+    return info_dict.get('webpage_url')
 
 def get_key_hash(key: str) -> str:
     """Создает MD5 хэш из ключа (URL или ID) для использования в качестве ключа Firebase."""
