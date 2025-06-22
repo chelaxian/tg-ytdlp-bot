@@ -3103,7 +3103,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             buttons.append(quality_buttons[i:i+3])
         # --- Кнопка mp3 ---
         buttons.append([InlineKeyboardButton("🎵 audio (mp3)", callback_data="askq|mp3")])
-        buttons.append([InlineKeyboardButton("❌ Cancel", callback_data="askq|cancel")])
+        buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(buttons)
         # --- Caption ---
         hidden_link = f'<a href="{url}">&#8203;</a>'
