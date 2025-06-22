@@ -2029,12 +2029,35 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         for x in range(video_count):
             current_index = x
+            current_playlist_index = video_start_with + x
             total_process = f"""
 **📶 Total Progress**
 > **Video:** {x + 1} / {video_count}
 """
-
             current_total_process = total_process
+            
+            # --- НОВАЯ ЛОГИКА ПРОВЕРКИ КЭША ---
+            try:
+                # 1. Получаем метаданные для текущего видео в плейлисте
+                info_dict_pre = get_video_formats(url, user_id, playlist_start_index=current_playlist_index)
+                video_id = info_dict_pre.get("id")
+
+                if video_id and quality_key:
+                    # 2. Проверяем, есть ли это видео в кэше
+                    cached_message_ids = get_cached_message_ids(video_id, quality_key)
+                    if cached_message_ids:
+                        safe_edit_message_text(user_id, proc_msg_id, f"{total_process}\n\n🚀 Forwarding video {x + 1}/{video_count} from cache...")
+                        app.forward_messages(
+                            chat_id=user_id,
+                            from_chat_id=Config.LOGS_ID,
+                            message_ids=cached_message_ids
+                        )
+                        successful_uploads += 1
+                        time.sleep(1.5) # Пауза для избежания флуда
+                        continue # Переходим к следующему видео в плейлисте
+            except Exception as e:
+                logger.warning(f"Cache check failed for index {current_playlist_index}: {e}. Proceeding with download.")
+            # --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
             # Определяем rename_name на основе входящего playlist_name:
             if playlist_name and playlist_name.strip():
@@ -3068,9 +3091,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     try:
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
         
-        cached_qualities = get_cached_qualities(url)
-
         info = get_video_formats(url, user_id, playlist_start_index)
+        video_id_for_cache_check = info.get("id") # ID первого видео для проверки кэша
+        cached_qualities = get_cached_qualities(video_id_for_cache_check)
+
         title = info.get('title', 'Video')
         video_id = info.get('id')
         # --- Автотеги ---
