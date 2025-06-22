@@ -3097,12 +3097,25 @@ def askq_callback(app, callback_query):
                 url = entity.url
                 break
     
-    # Если не нашли, извлекаем из оригинального сообщения пользователя
+    # Если не нашли, извлекаем из оригинального сообщения пользователя и РАСПАКОВЫВАЕМ
     if not url and original_message.text:
         # Важно: здесь нам нужна только сама ссылка, без диапазона
         url_match = re.search(r'https?://[^\s\*#]+', original_message.text)
         if url_match:
-            url = url_match.group(0)
+            raw_url = url_match.group(0)
+            # --- Распаковка поисковых ссылок ---
+            try:
+                parsed = urlparse(raw_url)
+                if any(domain in parsed.netloc for domain in Config.SEARCH_ENGINE_DOMAINS):
+                    query_params = parse_qs(parsed.query)
+                    if 'url' in query_params:
+                        url = query_params['url'][0]
+                    else:
+                        url = raw_url
+                else:
+                    url = raw_url
+            except Exception:
+                url = raw_url
 
     if not url:
         callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
