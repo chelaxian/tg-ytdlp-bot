@@ -2705,18 +2705,19 @@ def extract_url_range_tags(text: str):
     url_match = re.search(r'https?://[^\s\*#]+', text)
     if not url_match:
         return None, 1, 1, None, [], '', None
-    url = url_match.group(0)
 
-    # --- Распаковка поисковых ссылок ---
-    try:
-        parsed = urlparse(url)
-        if any(domain in parsed.netloc for domain in Config.SEARCH_ENGINE_DOMAINS):
-            query_params = parse_qs(parsed.query)
-            if 'url' in query_params:
-                url = query_params['url'][0]
-    except Exception:
-        pass # Оставляем как есть, если что-то пошло не так
+    # --- Новая логика: ищем последнюю http/https ссылку в найденном блоке ---
+    full_url_block = url_match.group(0)
+    last_http_pos = full_url_block.rfind('http://')
+    last_https_pos = full_url_block.rfind('https://')
 
+    start_of_real_url_pos = max(last_http_pos, last_https_pos)
+
+    url = full_url_block
+    # Если нашли еще один http/https (не в самом начале), то это и есть реальная ссылка
+    if start_of_real_url_pos > 0:
+        url = full_url_block[start_of_real_url_pos:]
+    
     after_url = text[url_match.end():]
     # Диапазон
     range_match = re.match(r'\*([0-9]+)\*([0-9]+)', after_url)
