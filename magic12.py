@@ -2071,7 +2071,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 **📋 Video Info**
 > **Number:** {x + video_start_with}
 > **Title:** {video_title}
-> **Caption:** {rename_name}
 > **ID:** {video_id}
 """
 
@@ -2881,6 +2880,9 @@ def get_auto_tags(url, user_tags):
     for word in SUPPORTED_WORDS:
         if word == main_domain:
             auto_tags.add(sanitize_autotag(word))
+    # 3. YouTube check (включая youtu.be)
+    if ("youtube.com" in url_l or "youtu.be" in url_l):
+        auto_tags.add("#youtube")
     # Не дублируем пользовательские теги
     auto_tags = [t for t in auto_tags if t.lower() not in [ut.lower() for ut in user_tags]]
     return auto_tags
@@ -2911,7 +2913,7 @@ def split_command(app, message):
         return
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
-    # Кнопки выбора размера
+    # Кнопки выбора размера в 2-3 ряда
     sizes = [
         ("250 MB", 250 * 1024 * 1024),
         ("500 MB", 500 * 1024 * 1024),
@@ -2919,7 +2921,15 @@ def split_command(app, message):
         ("1.5 GB", 1536 * 1024 * 1024),
         ("2 GB (default)", 1950 * 1024 * 1024)
     ]
-    buttons = [[InlineKeyboardButton(text, callback_data=f"split_size|{size}")] for text, size in sizes]
+    buttons = []
+    # Располагаем кнопки в 2-3 ряда
+    for i in range(0, len(sizes), 2):
+        row = []
+        for j in range(2):
+            if i + j < len(sizes):
+                text, size = sizes[i + j]
+                row.append(InlineKeyboardButton(text, callback_data=f"split_size|{size}"))
+        buttons.append(row)
     buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="split_size|cancel")])
     keyboard = InlineKeyboardMarkup(buttons)
     app.send_message(user_id, "Choose max part size for video splitting:", reply_markup=keyboard)
@@ -3031,6 +3041,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     if not quality_buttons and available_heights:
         for height in sorted(list(available_heights)):
              quality_buttons.append(InlineKeyboardButton(f"📹 {height}p", callback_data=f"askq|{height}p"))
+    
+    # Если нет доступных качеств видео, добавляем кнопку лучшего качества
+    if not quality_buttons:
+        quality_buttons.append(InlineKeyboardButton("📹 Best Quality", callback_data="askq|best"))
+    
     # Располагаем кнопки в 3 ряда
     for i in range(0, len(quality_buttons), 3):
         buttons.append(quality_buttons[i:i+3])
@@ -3101,13 +3116,17 @@ def askq_callback(app, callback_query):
         down_and_audio(app, original_message, url, tags_text)
         return
 
-    quality_str = data.replace('p', '')
-    try:
-        quality_val = int(quality_str)
-        fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
-    except ValueError:
-        callback_query.answer("Unknown quality.")
-        return
+    if data == "best":
+        callback_query.answer("Downloading best quality...")
+        fmt = "bestvideo+bestaudio/best"
+    else:
+        quality_str = data.replace('p', '')
+        try:
+            quality_val = int(quality_str)
+            fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+        except ValueError:
+            callback_query.answer("Unknown quality.")
+            return
 
     callback_query.answer(f"Downloading {data}...")
     # Передаем оригинальное сообщение пользователя, т.к. в нем есть диапазон
