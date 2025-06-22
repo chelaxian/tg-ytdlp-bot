@@ -2859,22 +2859,22 @@ PORN_KEYWORDS = set()
 def load_domain_lists():
     global PORN_DOMAINS, SUPPORTED_SITES, PORN_KEYWORDS
     try:
-        with open('porn_domains.txt', 'r', encoding='utf-8', errors='ignore') as f:
+        with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
     except Exception as e:
-        logger.error(f"Не удалось загрузить porn_domains.txt: {e}")
+        logger.error(f"Не удалось загрузить {Config.PORN_DOMAINS_FILE}: {e}")
         PORN_DOMAINS = set()
     try:
-        with open('porn_keywords.txt', 'r', encoding='utf-8', errors='ignore') as f:
+        with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
     except Exception as e:
-        logger.error(f"Не удалось загрузить porn_keywords.txt: {e}")
+        logger.error(f"Не удалось загрузить {Config.PORN_KEYWORDS_FILE}: {e}")
         PORN_KEYWORDS = set()
     try:
-        with open('supported_sites.txt', 'r', encoding='utf-8', errors='ignore') as f:
+        with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
     except Exception as e:
-        logger.error(f"Не удалось загрузить supported_sites.txt: {e}")
+        logger.error(f"Не удалось загрузить {Config.SUPPORTED_SITES_FILE}: {e}")
         SUPPORTED_SITES = set()
 
 load_domain_lists()
