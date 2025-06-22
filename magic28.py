@@ -2040,11 +2040,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             try:
                 # 1. Получаем метаданные для текущего видео в плейлисте
                 info_dict_pre = get_video_formats(url, user_id, playlist_start_index=current_playlist_index)
-                video_id = info_dict_pre.get("id")
+                video_key = get_video_key(info_dict_pre)
 
-                if video_id and quality_key:
+                if video_key and quality_key:
                     # 2. Проверяем, есть ли это видео в кэше
-                    cached_message_ids = get_cached_message_ids(video_id, quality_key)
+                    cached_message_ids = get_cached_message_ids(video_key, quality_key)
                     if cached_message_ids:
                         safe_edit_message_text(user_id, proc_msg_id, f"{total_process}\n\n🚀 Forwarding video {x + 1}/{video_count} from cache...")
                         app.forward_messages(
@@ -2080,12 +2080,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         playlist_errors[error_key] = True
                         send_to_all(
                             message,
-                            f"❌ Failed to download video: {error_message}\n────────────────\n"
-                            "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
-                            "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                            "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
+                            f"❌ Failed to download video #{current_playlist_index}: {error_message}"
                         )
-                break
+                continue # <--- ИСПРАВЛЕНИЕ: ПРОДОЛЖАЕМ ЦИКЛ
 
             successful_uploads += 1
 
@@ -3092,8 +3089,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
         
         info = get_video_formats(url, user_id, playlist_start_index)
-        video_id_for_cache_check = info.get("id") # ID первого видео для проверки кэша
-        cached_qualities = get_cached_qualities(video_id_for_cache_check)
+        video_key_for_cache_check = get_video_key(info) # ID первого видео для проверки кэша
+        cached_qualities = get_cached_qualities(video_key_for_cache_check)
 
         title = info.get('title', 'Video')
         video_id = info.get('id')
@@ -3368,21 +3365,31 @@ def generate_final_tags(url, user_tags, info_dict):
     return result
 
 # --- Новые функции для кэширования ---
-def get_url_hash(url: str) -> str:
-    """Создает MD5 хэш из URL для использования в качестве ключа Firebase."""
-    return hashlib.md5(url.encode()).hexdigest()
+def get_video_key(info_dict: dict) -> str:
+    """Gets a stable key for a video, preferring webpage_url."""
+    if not info_dict:
+        return None
+    # webpage_url is the original URL of the video page, more stable than 'id' for some sites.
+    return info_dict.get('webpage_url') or info_dict.get('id')
 
-def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False):
-    """Сохраняет или удаляет ID сообщения в кэше."""
-    if not quality_key:
+def get_key_hash(key: str) -> str:
+    """Создает MD5 хэш из ключа (URL или ID) для использования в качестве ключа Firebase."""
+    if not isinstance(key, str):
+        return None
+    return hashlib.md5(key.encode()).hexdigest()
+
+def save_to_video_cache(video_key: str, quality_key: str, message_ids: list, clear: bool = False):
+    """Сохраняет или удаляет ID сообщения в кэше по ключу видео."""
+    if not quality_key or not video_key:
         return
     try:
-        url_hash = get_url_hash(url)
-        cache_ref = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash)
+        key_hash = get_key_hash(video_key)
+        if not key_hash: return
+        cache_ref = db.child(Config.VIDEO_CACHE_DB_PATH).child(key_hash)
         
         if clear:
             cache_ref.child(quality_key).remove()
-            logger.info(f"Cache cleared for URL hash {url_hash}, quality {quality_key}")
+            logger.info(f"Cache cleared for video key hash {key_hash}, quality {quality_key}")
             return
 
         if not message_ids:
@@ -3391,15 +3398,17 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
         # Сохраняем ID сообщений как строку, разделенную запятыми
         ids_string = ",".join(map(str, message_ids))
         cache_ref.update({quality_key: ids_string})
-        logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string}")
+        logger.info(f"Saved to cache for video key hash {key_hash}, quality {quality_key}, msg_ids {ids_string}")
     except Exception as e:
         logger.error(f"Failed to save to cache: {e}")
 
-def get_cached_message_ids(url: str, quality_key: str) -> list:
-    """Получает список ID сообщений из кэша."""
+def get_cached_message_ids(video_key: str, quality_key: str) -> list:
+    """Получает список ID сообщений из кэша по ключу видео."""
+    if not video_key or not quality_key: return None
     try:
-        url_hash = get_url_hash(url)
-        ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
+        key_hash = get_key_hash(video_key)
+        if not key_hash: return None
+        ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(key_hash).child(quality_key).get().val()
         if ids_string:
             # Преобразуем строку обратно в список чисел
             return [int(msg_id) for msg_id in ids_string.split(',')]
@@ -3408,11 +3417,13 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
         logger.error(f"Failed to get from cache: {e}")
         return None
 
-def get_cached_qualities(url: str) -> set:
-    """Получает все закэшированные качества для URL."""
+def get_cached_qualities(video_key: str) -> set:
+    """Получает все закэшированные качества для видео по его ключу."""
+    if not video_key: return set()
     try:
-        url_hash = get_url_hash(url)
-        data = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).get().val()
+        key_hash = get_key_hash(video_key)
+        if not key_hash: return set()
+        data = db.child(Config.VIDEO_CACHE_DB_PATH).child(key_hash).get().val()
         if data:
             return set(data.keys())
         return set()
