@@ -3138,6 +3138,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
+        
+        hint = "choose quality to download. 🚀 - instant repost. video already saved."
+        cap += f"\n<blockquote>{hint}</blockquote>"
+
         cap += hidden_link
         # --- Отправка ---
         app.delete_messages(user_id, proc_msg.id)
