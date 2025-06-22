@@ -1,4 +1,4 @@
-# Version 1.5.0 - Always Ask по умолчанию, авто-санитизация тегов
+# Version 1.5.4 - Глубокое исправление обработки ссылок из поисковиков
 import pyrebase
 import re
 import os
@@ -3090,32 +3090,26 @@ def askq_callback(app, callback_query):
         return
 
     url = None
-    # Сначала ищем скрытую ссылку в сообщении с кнопками
+    # Сначала ищем скрытую ссылку в сообщении с кнопками, она уже должна быть "чистой"
     if callback_query.message.caption_entities:
         for entity in callback_query.message.caption_entities:
             if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
                 url = entity.url
                 break
     
-    # Если не нашли, извлекаем из оригинального сообщения пользователя и РАСПАКОВЫВАЕМ
-    if not url and original_message.text:
-        # Важно: здесь нам нужна только сама ссылка, без диапазона
-        url_match = re.search(r'https?://[^\s\*#]+', original_message.text)
-        if url_match:
-            raw_url = url_match.group(0)
-            # --- Распаковка поисковых ссылок ---
-            try:
-                parsed = urlparse(raw_url)
-                if any(domain in parsed.netloc for domain in Config.SEARCH_ENGINE_DOMAINS):
-                    query_params = parse_qs(parsed.query)
-                    if 'url' in query_params:
-                        url = query_params['url'][0]
-                    else:
-                        url = raw_url
-                else:
-                    url = raw_url
-            except Exception:
-                url = raw_url
+    # Если по какой-то причине в кнопках не было ссылки, берем из исходного сообщения и чистим
+    if not url:
+        if original_message.text:
+            # Используем extract_url_range_tags, которая уже умеет чистить ссылки
+            cleaned_url, _, _, _, _, _, _ = extract_url_range_tags(original_message.text)
+            url = cleaned_url
+        else:
+            # Если в исходном сообщении нет текста (маловероятно), пытаемся найти ссылку в его caption
+            if original_message.caption and original_message.caption_entities:
+                 for entity in original_message.caption_entities:
+                    if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
+                        url = entity.url
+                        break
 
     if not url:
         callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
