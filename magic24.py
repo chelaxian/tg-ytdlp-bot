@@ -2731,6 +2731,8 @@ def clean_telegram_tag(tag: str) -> str:
 # --- Функция для извлечения url, диапазона и тегов из текста ---
 def extract_url_range_tags(text: str):
     # Эта функция теперь всегда возвращает ПОЛНУЮ оригинальную ссылку для скачивания
+    if not isinstance(text, str):
+        return None, 1, 1, None, [], '', None
     url_match = re.search(r'https?://[^\s\*#]+', text)
     if not url_match:
         return None, 1, 1, None, [], '', None
@@ -3184,6 +3186,12 @@ def askq_callback(app, callback_query):
         callback_query.answer("Menu closed.")
         return
 
+    original_message = callback_query.message.reply_to_message
+    if not original_message:
+        callback_query.answer("❌ Error: Original message not found. It might have been deleted. Please send the link again.", show_alert=True)
+        callback_query.message.delete()
+        return
+
     url = None
     # Сначала ищем скрытую ссылку в сообщении с кнопками.
     # Эта ссылка - ПОЛНАЯ, оригинальная, как и нужно для скачивания.
@@ -3227,17 +3235,17 @@ def askq_callback(app, callback_query):
                 message_ids=message_ids
             )
             # Отправляем подтверждение пользователю
-            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=callback_query.message.id)
+            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
             # Если пересылка не удалась, пробуем скачать заново
             save_to_video_cache(url, data, [], clear=True) # Очищаем невалидную запись в кэше
-            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=callback_query.message.id)
+            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
             # Рекурсивный вызов или вызов основной функции? Лучше вызвать основную.
-            askq_callback_logic(app, callback_query, data, callback_query.message, url, tags_text)
+            askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
 
-    askq_callback_logic(app, callback_query, data, callback_query.message, url, tags_text)
+    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
 
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
@@ -3268,7 +3276,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
 # --- Вспомогательная функция для скачивания с форматом ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
     # Извлекаем диапазон и другие параметры из оригинального сообщения пользователя
-    full_string = message.text
+    full_string = message.text or message.caption or ""
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
 
     # Эту ошибку уже должны были поймать ранее, но для подстраховки
