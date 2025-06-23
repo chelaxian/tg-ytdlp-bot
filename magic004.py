@@ -3421,14 +3421,20 @@ def get_cached_qualities(url: str) -> set:
 # Version 1.6.5 - Cache now works on a cleared link (without query and fragment)
 def normalize_url_for_cache(url: str) -> str:
     """
-    Clears the cache link: removes query parameters and fragments, leaving only the main part.
+    Clears the cache link: removes query parameters and fragments, leaving only the main part for domains in Config.CLEAN_QUERY.
+    For all other domains, keeps the query (for YouTube, Facebook и др.).
     """
     if not isinstance(url, str):
         return ''
     clean_url = get_clean_url_for_tagging(url)
     parsed = urlparse(clean_url)
-    # Putting it back together without query and fragment
-    normalized = urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
-    return normalized
+    domain = parsed.netloc.lower()
+    # Check if the domain is on the list to be cleaned
+    for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
+        if clean_domain in domain:
+            normalized = urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
+            return normalized
+    # For the rest, we leave query
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ''))
 
 app.run()
