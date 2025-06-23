@@ -3596,4 +3596,272 @@ def askq_callback(app, callback_query):
 #       save_playlist_cache(url, quality_key, playlist_msg_ids)
 # ... существующий код ...
 
+# --- Новый кэш для плейлистов: список (video_url, message_id) по ссылке и качеству ---
+def save_playlist_cache(url, quality_key, video_url, message_id):
+    try:
+        url_hash = get_url_hash(url)
+        cache_ref = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash)
+        cache = cache_ref.child(quality_key).get().val()
+        if cache:
+            cache_list = json.loads(cache)
+        else:
+            cache_list = []
+        # Не добавлять дубликаты
+        if not any(entry[0] == video_url for entry in cache_list):
+            cache_list.append([video_url, message_id])
+            cache_ref.update({quality_key: json.dumps(cache_list)})
+    except Exception as e:
+        logger.error(f"Failed to save playlist cache: {e}")
+
+def get_playlist_cache(url, quality_key):
+    try:
+        url_hash = get_url_hash(url)
+        cache = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
+        if cache:
+            return json.loads(cache)
+        return []
+    except Exception as e:
+        logger.error(f"Failed to get playlist cache: {e}")
+        return []
+
+# --- ask_quality_menu: показываю 🚀 (N/M) для плейлистов ---
+def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
+    user_id = message.chat.id
+    proc_msg = None
+    try:
+        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
+        _, video_start_with, video_end_with, playlist_name, _, _, _ = extract_url_range_tags(message.text)
+        is_playlist = (video_end_with > video_start_with)
+        indices = list(range(video_start_with, video_end_with + 1)) if is_playlist else []
+        cached_qualities = get_cached_qualities(url)
+        playlist_cache_counts = {}
+        video_urls_in_range = []
+        if is_playlist:
+            # Получаем список video_url для диапазона через yt-dlp
+            info = get_video_formats(url, user_id, playlist_start_index)
+            entries = info.get('entries') or [info]
+            for i in range(video_start_with-1, min(video_end_with, len(entries))):
+                entry = entries[i]
+                video_urls_in_range.append(entry.get('webpage_url') or entry.get('url'))
+            for q in cached_qualities:
+                cache = get_playlist_cache(url, q)
+                cached_urls = set(entry[0] for entry in cache)
+                count = sum(1 for vurl in video_urls_in_range if vurl in cached_urls)
+                playlist_cache_counts[q] = count
+        else:
+            info = get_video_formats(url, user_id, playlist_start_index)
+        title = info.get('title', 'Video')
+        video_id = info.get('id')
+        auto_tags = get_auto_tags(url, tags)
+        all_tags = tags + auto_tags
+        tags_text = ' '.join(all_tags)
+        thumb_path = None
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        if ("youtube.com" in url or "youtu.be" in url) and video_id:
+            thumb_path = os.path.join(user_dir, f"yt_thumb_{video_id}.jpg")
+            try:
+                download_thumbnail(video_id, thumb_path)
+            except Exception:
+                thumb_path = None
+        buttons = []
+        available_heights = set()
+        for f in info.get('formats', []):
+            if f.get('vcodec', 'none') != 'none' and f.get('height'):
+                available_heights.add(f['height'])
+        quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
+        quality_buttons = []
+        for height in quality_order:
+            if height in available_heights:
+                quality_key = f"{height}p"
+                if is_playlist:
+                    count = playlist_cache_counts.get(quality_key, 0)
+                    total = len(video_urls_in_range)
+                    icon = "🚀" if count else "📹"
+                    button_text = f"{icon} {quality_key} ({count}/{total})"
+                else:
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
+                    button_text = f"{icon} {quality_key}"
+                quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+        if not quality_buttons and available_heights:
+            for height in sorted(list(available_heights)):
+                quality_key = f"{height}p"
+                if is_playlist:
+                    count = playlist_cache_counts.get(quality_key, 0)
+                    total = len(video_urls_in_range)
+                    icon = "🚀" if count else "📹"
+                    button_text = f"{icon} {quality_key} ({count}/{total})"
+                else:
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
+                    button_text = f"{icon} {quality_key}"
+                quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+        if not quality_buttons:
+            quality_key = "best"
+            if is_playlist:
+                count = playlist_cache_counts.get(quality_key, 0)
+                total = len(video_urls_in_range)
+                icon = "🚀" if count else "📹"
+                button_text = f"{icon} Best Quality ({count}/{total})"
+            else:
+                icon = "🚀" if quality_key in cached_qualities else "📹"
+                button_text = f"{icon} Best Quality"
+            quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+        for i in range(0, len(quality_buttons), 3):
+            buttons.append(quality_buttons[i:i+3])
+        quality_key = "mp3"
+        if is_playlist:
+            count = playlist_cache_counts.get(quality_key, 0)
+            total = len(video_urls_in_range)
+            icon = "🚀" if count else "🎵"
+            button_text = f"{icon} audio (mp3) ({count}/{total})"
+        else:
+            icon = "🚀" if quality_key in cached_qualities else "🎵"
+            button_text = f"{icon} audio (mp3)"
+        buttons.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
+        buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
+        keyboard = InlineKeyboardMarkup(buttons)
+        hidden_link = f'<a href="{url}">&#8203;</a>'
+        cap = f"<b>{title}</b>\n"
+        if tags_text:
+            cap += f"{tags_text}\n"
+        hint = "choose quality to download. 🚀 - instant repost. video already saved."
+        cap += f"\n<blockquote>{hint}</blockquote>"
+        cap += hidden_link
+        app.delete_messages(user_id, proc_msg.id)
+        proc_msg = None
+        if thumb_path and os.path.exists(thumb_path):
+            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
+        else:
+            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
+        send_to_logger(message, f"Always Ask menu sent for {url}")
+    except FloodWait as e:
+        wait_time = e.value
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
+        with open(flood_time_file, 'w') as f:
+            f.write(str(wait_time))
+        hours = wait_time // 3600
+        minutes = (wait_time % 3600) // 60
+        seconds = wait_time % 60
+        time_str = f"{hours}h {minutes}m {seconds}s"
+        flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
+        if proc_msg:
+            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+        return
+    except Exception as e:
+        error_text = f"❌ Error while getting video info:\n{e}\n\nFirst, try the /clean command and then try again.\nIf the error persists, YouTube may require authentication.\nPlease update your cookie.txt using /download_cookie or /cookies_from_browser and try again."
+        if proc_msg:
+            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+        else:
+            app.send_message(user_id, error_text, reply_to_message_id=message.id)
+        send_to_logger(message, f"Always Ask menu error for {url}: {e}")
+        return
+
+# --- askq_callback: репост по video_url, недостающие скачиваем и добавляем в кэш ---
+@app.on_callback_query(filters.regex(r"^askq\|"))
+def askq_callback(app, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+    if data == "cancel":
+        callback_query.message.delete()
+        callback_query.answer("Menu closed.")
+        return
+    original_message = callback_query.message.reply_to_message
+    if not original_message:
+        callback_query.answer("❌ Error: Original message not found. It might have been deleted. Please send the link again.", show_alert=True)
+        callback_query.message.delete()
+        return
+    url = None
+    if callback_query.message.caption_entities:
+        for entity in callback_query.message.caption_entities:
+            if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
+                url = entity.url
+                break
+    if not url and callback_query.message.reply_to_message:
+        url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
+        if url_match:
+            url = url_match.group(0)
+    if not url:
+        callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
+        callback_query.message.delete()
+        return
+    tags = []
+    caption_text = callback_query.message.caption
+    if caption_text:
+        tag_matches = re.findall(r'#\S+', caption_text)
+        if tag_matches:
+            tags = tag_matches
+    tags_text = ' '.join(tags)
+    callback_query.message.delete()
+    _, video_start_with, video_end_with, playlist_name, _, _, _ = extract_url_range_tags(original_message.text)
+    is_playlist = (video_end_with > video_start_with)
+    if is_playlist:
+        info = get_video_formats(url, user_id, video_start_with)
+        entries = info.get('entries') or [info]
+        video_urls_in_range = []
+        for i in range(video_start_with-1, min(video_end_with, len(entries))):
+            entry = entries[i]
+            video_urls_in_range.append(entry.get('webpage_url') or entry.get('url'))
+        cache = get_playlist_cache(url, data)
+        cache_dict = {entry[0]: entry[1] for entry in cache}
+        reposted = 0
+        to_download = []
+        for vurl in video_urls_in_range:
+            if vurl in cache_dict:
+                try:
+                    app.forward_messages(
+                        chat_id=user_id,
+                        from_chat_id=Config.LOGS_ID,
+                        message_ids=[cache_dict[vurl]]
+                    )
+                    reposted += 1
+                    time.sleep(1.5)
+                except Exception as e:
+                    logger.error(f"Error forwarding playlist video {vurl}: {e}")
+            else:
+                to_download.append(vurl)
+        if reposted == len(video_urls_in_range):
+            callback_query.answer(f"🚀 {reposted} videos sent from cache!", show_alert=False)
+            app.send_message(user_id, f"✅ {reposted} videos successfully sent from cache.", reply_to_message_id=original_message.id)
+            return
+        if not to_download:
+            return
+        # Для недостающих скачиваем диапазон начиная с первого неотправленного
+        new_start = video_start_with + reposted
+        new_end = video_end_with
+        import copy
+        new_message = copy.copy(original_message)
+        import re as _re
+        new_text = _re.sub(r'\*[0-9]+\*[0-9]+', f'*{new_start}*{new_end}', new_message.text)
+        new_message.text = new_text
+        callback_query.answer(f"Downloading {len(to_download)} new videos...", show_alert=False)
+        askq_callback_logic(app, callback_query, data, new_message, url, tags_text)
+        return
+    # --- Одиночные видео ---
+    message_ids = get_cached_message_ids(url, data)
+    if message_ids:
+        callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
+        try:
+            app.forward_messages(
+                chat_id=user_id,
+                from_chat_id=Config.LOGS_ID,
+                message_ids=message_ids
+            )
+            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
+        except Exception as e:
+            logger.error(f"Error forwarding from cache: {e}")
+            save_to_video_cache(url, data, [], clear=True)
+            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
+            askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+        return
+    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+
+# --- В down_and_up после отправки каждого видео из плейлиста сохраняю (video_url, message_id) ---
+# Найди цикл for x in range(video_count): в down_and_up и после успешной отправки видео (video_msg) добавь:
+#   если video_count > 1 и quality_key:
+#       video_url = info_dict.get('webpage_url') or info_dict.get('url')
+#       save_playlist_cache(url, quality_key, video_url, video_msg.id)
+# ... существующий код ...
+
 app.run()
