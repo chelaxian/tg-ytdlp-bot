@@ -1292,7 +1292,10 @@ def truncate_caption(
     post_block_str = '\n'.join(post_block_lines).strip()
 
     tags_block = (tags_text.strip() + '\n') if tags_text and tags_text.strip() else ''
-    link_block = f'<a href="{url}">🔗 Video URL</a>'
+    # --- Добавляем имя бота рядом с ссылкой ---
+    bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
+    bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
+    link_block = f'<a href="{url}">🔗 Video URL</a> {bot_mention}'
     
     was_truncated = False
     
@@ -1320,7 +1323,6 @@ def truncate_caption(
             was_truncated = True
         else: # если даже с усеченным pre_block не влезает, усекаем всё
              pre_block_str = ''
-
 
     if pre_block_str:
         pre_block_str += '\n'
@@ -1751,7 +1753,9 @@ def down_and_audio(app, message, url, tags_text, quality_key=None):
             logger.error(f"Error updating upload status: {e}")
         # Формируем текст с тегами и ссылкой для аудио
         tags_block = (tags_text.strip() + '\n') if tags_text and tags_text.strip() else ''
-        caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({url})"
+        bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
+        bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
+        caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({url}) {bot_mention}"
         try:
             audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
             forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
