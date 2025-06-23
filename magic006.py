@@ -25,7 +25,7 @@ import subprocess
 import signal
 import sys
 from config import Config
-from urllib.parse import urlparse, parse_qs, urlunparse
+from urllib.parse import urlparse, parse_qs, urlunparse, unquote
 from pyrogram.errors import FloodWait
 import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
@@ -3422,18 +3422,36 @@ def normalize_url_for_cache(url: str) -> str:
     """
     Clears the cache link: removes query parameters and fragments, leaving only the main part for domains in Config.CLEAN_QUERY.
     For all other domains, keeps the query (for YouTube, Facebook и др.).
+    If the link is a Google redirect, uses the target link for cache.
     """
     if not isinstance(url, str):
         return ''
+    # If Google redirect, extract the real URL
+    url = extract_real_url_if_google(url)
     clean_url = get_clean_url_for_tagging(url)
     parsed = urlparse(clean_url)
     domain = parsed.netloc.lower()
-    # Check if the domain is on the list to be cleaned
+    # Check if the domain is on the list to be cleaned (full match only)
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
-        if clean_domain in domain:
+        if domain == clean_domain:
             normalized = urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
             return normalized
     # For the rest, we leave query
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ''))
+
+def extract_real_url_if_google(url: str) -> str:
+    """
+    If the link is a redirect via Google, returns the target link.
+    Otherwise, returns the original link.
+    """
+    parsed = urlparse(url)
+    if parsed.netloc.endswith('google.com') and parsed.path.startswith('/url'):
+        qs = parse_qs(parsed.query)
+        # Google may use either ?q= or ?url=
+        real_url = qs.get('q') or qs.get('url')
+        if real_url:
+            # Take the first variant, decode if needed
+            return unquote(real_url[0])
+    return url
 
 app.run()
