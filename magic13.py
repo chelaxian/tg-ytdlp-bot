@@ -430,7 +430,7 @@ def audio_command_handler(app, message):
         send_to_user(message, "Пожалуйста, укажите ссылку на видео для загрузки аудио.")
         return
     save_user_tags(user_id, tags)
-    down_and_audio(app, message, url, tags_text)
+    down_and_audio(app, message, url, tags)
 
 # Command /Format Handler
 @app.on_message(filters.command("format") & filters.private)
@@ -1612,7 +1612,7 @@ def write_logs(message, video_url, video_title):
 # Down_and_audio function
 #########################################
 
-def down_and_audio(app, message, url, tags_text, quality_key=None):
+def down_and_audio(app, message, url, tags, quality_key=None):
     user_id = message.chat.id
     anim_thread = None
     stop_anim = threading.Event()
@@ -3270,7 +3270,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     if data == "mp3":
         callback_query.answer("Downloading audio...")
         # Передаем оригинальное сообщение пользователя и ключ качества
-        down_and_audio(app, original_message, url, tags_text, quality_key="mp3")
+        down_and_audio(app, original_message, url, tags)
         return
 
     if data == "best":
