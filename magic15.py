@@ -1731,6 +1731,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         try:
             with YoutubeDL(ytdl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
+            logger.info(f"AUDIO INFO_DICT: {info}")
         except Exception as ytdl_error:
             logger.error(f"YouTube-DL error: {ytdl_error}")
             send_to_user(message, f"❌ Failed to download audio: {ytdl_error}")
@@ -3266,11 +3267,10 @@ def askq_callback(app, callback_query):
 
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
-    """Основная логика обработки выбора качества, вынесенная для повторного использования."""
     user_id = callback_query.from_user.id
+    tags = tags_text.split() if tags_text else []
     if data == "mp3":
         callback_query.answer("Downloading audio...")
-        # Передаем оригинальное сообщение пользователя и ключ качества
         down_and_audio(app, original_message, url, tags)
         return
 
@@ -3287,7 +3287,6 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             return
 
     callback_query.answer(f"Downloading {data}...")
-    # Передаем оригинальное сообщение пользователя и ключ качества
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
 
 # --- Вспомогательная функция для скачивания с форматом ---
