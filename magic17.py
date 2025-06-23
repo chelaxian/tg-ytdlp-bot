@@ -1763,7 +1763,11 @@ def down_and_audio(app, message, url, tags, quality_key=None):
             audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
             forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
             if quality_key and forwarded_msg:
-                save_to_video_cache(url, quality_key, [m.id for m in forwarded_msg])
+                if isinstance(forwarded_msg, list):
+                    msg_ids = [m.id for m in forwarded_msg]
+                else:
+                    msg_ids = [forwarded_msg.id]
+                save_to_video_cache(url, quality_key, msg_ids)
         except Exception as send_error:
             logger.error(f"Error sending audio: {send_error}")
             send_to_user(message, f"❌ Failed to send audio: {send_error}")
@@ -3271,7 +3275,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     tags = tags_text.split() if tags_text else []
     if data == "mp3":
         callback_query.answer("Downloading audio...")
-        down_and_audio(app, original_message, url, tags)
+        down_and_audio(app, original_message, url, tags, quality_key="mp3")
         return
 
     if data == "best":
