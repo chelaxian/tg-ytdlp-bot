@@ -3098,35 +3098,66 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         # Список для сортировки и отображения
         quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
         quality_buttons = []
+        # --- Новый блок: определяем диапазон плейлиста ---
+        _, video_start_with, video_end_with, playlist_name, _, _, _ = extract_url_range_tags(message.text)
+        is_playlist = (video_end_with > video_start_with)
+        indices = list(range(video_start_with, video_end_with + 1)) if is_playlist else []
+        playlist_cache_counts = {}
+        if is_playlist:
+            for q in cached_qualities:
+                cached = get_cached_playlist_message_ids(url, q, indices)
+                playlist_cache_counts[q] = len(cached)
         # Создаем кнопки в правильном порядке
         for height in quality_order:
             if height in available_heights:
                 quality_key = f"{height}p"
-                icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} {quality_key}"
+                if is_playlist:
+                    count = playlist_cache_counts.get(quality_key, 0)
+                    total = len(indices)
+                    icon = "🚀" if count else "📹"
+                    button_text = f"{icon} {quality_key} ({count}/{total})"
+                else:
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
+                    button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         # Если ни одного стандартного качества не нашлось, но есть другие
         if not quality_buttons and available_heights:
             for height in sorted(list(available_heights)):
                 quality_key = f"{height}p"
-                icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} {quality_key}"
+                if is_playlist:
+                    count = playlist_cache_counts.get(quality_key, 0)
+                    total = len(indices)
+                    icon = "🚀" if count else "📹"
+                    button_text = f"{icon} {quality_key} ({count}/{total})"
+                else:
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
+                    button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        
         # Если нет доступных качеств видео, добавляем кнопку лучшего качества
         if not quality_buttons:
             quality_key = "best"
-            icon = "🚀" if quality_key in cached_qualities else "📹"
-            button_text = f"{icon} Best Quality"
+            if is_playlist:
+                count = playlist_cache_counts.get(quality_key, 0)
+                total = len(indices)
+                icon = "🚀" if count else "📹"
+                button_text = f"{icon} Best Quality ({count}/{total})"
+            else:
+                icon = "🚀" if quality_key in cached_qualities else "📹"
+                button_text = f"{icon} Best Quality"
             quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        
         # Располагаем кнопки в 3 ряда
         for i in range(0, len(quality_buttons), 3):
             buttons.append(quality_buttons[i:i+3])
         # --- Кнопка mp3 ---
         quality_key = "mp3"
-        icon = "🚀" if quality_key in cached_qualities else "🎵"
-        button_text = f"{icon} audio (mp3)"
+        if is_playlist:
+            count = playlist_cache_counts.get(quality_key, 0)
+            total = len(indices)
+            icon = "🚀" if count else "🎵"
+            button_text = f"{icon} audio (mp3) ({count}/{total})"
+        else:
+            icon = "🚀" if quality_key in cached_qualities else "🎵"
+            button_text = f"{icon} audio (mp3)"
         buttons.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(buttons)
@@ -3135,10 +3166,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
-        
         hint = "choose quality to download. 🚀 - instant repost. video already saved."
         cap += f"\n<blockquote>{hint}</blockquote>"
-
         cap += hidden_link
         # --- Отправка ---
         app.delete_messages(user_id, proc_msg.id)
