@@ -3057,8 +3057,9 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
             ytdl_opts['cookiefile'] = cookie_file
     with YoutubeDL(ytdl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-    if 'entries' in info and info.get('entries'):
-        return info['entries'][0]
+    # Если это плейлист — всегда возвращаем info с entries (список)
+    if 'entries' in info and isinstance(info['entries'], list) and info['entries']:
+        return info
     return info
 
 # --- Always Ask обработка ---
