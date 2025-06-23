@@ -3469,4 +3469,131 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None)
     # Вызываем основную функцию загрузки с правильными параметрами плейлиста
     down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
 
+# ... существующий код ...
+# --- Новый кэш для плейлистов: просто список message_id по ссылке и качеству ---
+def save_playlist_cache(url, quality_key, message_ids):
+    if not quality_key or not message_ids:
+        return
+    try:
+        url_hash = get_url_hash(url)
+        cache_ref = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash)
+        ids_string = ",".join(map(str, message_ids))
+        cache_ref.update({quality_key: ids_string})
+        logger.info(f"Saved playlist cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string}")
+    except Exception as e:
+        logger.error(f"Failed to save playlist cache: {e}")
+
+def get_playlist_cache(url, quality_key):
+    try:
+        url_hash = get_url_hash(url)
+        ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
+        if ids_string:
+            return [int(msg_id) for msg_id in ids_string.split(',') if msg_id]
+        return []
+    except Exception as e:
+        logger.error(f"Failed to get playlist cache: {e}")
+        return []
+
+# --- Модификация askq_callback для плейлистов ---
+@app.on_callback_query(filters.regex(r"^askq\|"))
+def askq_callback(app, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+    if data == "cancel":
+        callback_query.message.delete()
+        callback_query.answer("Menu closed.")
+        return
+    original_message = callback_query.message.reply_to_message
+    if not original_message:
+        callback_query.answer("❌ Error: Original message not found. It might have been deleted. Please send the link again.", show_alert=True)
+        callback_query.message.delete()
+        return
+    url = None
+    if callback_query.message.caption_entities:
+        for entity in callback_query.message.caption_entities:
+            if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
+                url = entity.url
+                break
+    if not url and callback_query.message.reply_to_message:
+        url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
+        if url_match:
+            url = url_match.group(0)
+    if not url:
+        callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
+        callback_query.message.delete()
+        return
+    tags = []
+    caption_text = callback_query.message.caption
+    if caption_text:
+        tag_matches = re.findall(r'#\S+', caption_text)
+        if tag_matches:
+            tags = tag_matches
+    tags_text = ' '.join(tags)
+    callback_query.message.delete()
+    # --- Новый блок: определяем диапазон плейлиста ---
+    _, video_start_with, video_end_with, playlist_name, _, _, _ = extract_url_range_tags(original_message.text)
+    is_playlist = (video_end_with > video_start_with)
+    count_needed = video_end_with - video_start_with + 1 if is_playlist else 1
+    if is_playlist:
+        cached_ids = get_playlist_cache(url, data)
+        reposted = 0
+        # Репостим только первые N message_id из кэша
+        for idx in range(min(count_needed, len(cached_ids))):
+            msg_id = cached_ids[idx]
+            try:
+                app.forward_messages(
+                    chat_id=user_id,
+                    from_chat_id=Config.LOGS_ID,
+                    message_ids=[msg_id]
+                )
+                reposted += 1
+                time.sleep(1.5)
+            except Exception as e:
+                logger.error(f"Error forwarding playlist video idx {idx}: {e}")
+        if reposted == count_needed:
+            callback_query.answer(f"🚀 {reposted} videos sent from cache!", show_alert=False)
+            app.send_message(user_id, f"✅ {reposted} videos successfully sent from cache.", reply_to_message_id=original_message.id)
+            return
+        # Если не все есть — докачиваем недостающие
+        missing_count = count_needed - len(cached_ids)
+        if missing_count <= 0:
+            return
+        # Формируем новый диапазон для скачивания
+        new_start = len(cached_ids) + 1
+        new_end = count_needed
+        import copy
+        new_message = copy.copy(original_message)
+        import re as _re
+        new_text = _re.sub(r'\*[0-9]+\*[0-9]+', f'*{new_start}*{new_end}', new_message.text)
+        new_message.text = new_text
+        callback_query.answer(f"Downloading {missing_count} new videos...", show_alert=False)
+        # Передаём в askq_callback_logic
+        askq_callback_logic(app, callback_query, data, new_message, url, tags_text)
+        return
+    # --- Одиночные видео ---
+    message_ids = get_cached_message_ids(url, data)
+    if message_ids:
+        callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
+        try:
+            app.forward_messages(
+                chat_id=user_id,
+                from_chat_id=Config.LOGS_ID,
+                message_ids=message_ids
+            )
+            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
+        except Exception as e:
+            logger.error(f"Error forwarding from cache: {e}")
+            save_to_video_cache(url, data, [], clear=True)
+            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
+            askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+        return
+    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+
+# --- В down_and_up после отправки каждого видео из плейлиста сохраняю весь список message_id ---
+# Найди цикл for x in range(video_count): в down_and_up и после успешной отправки видео (video_msg) добавь:
+#   если video_count > 1 и quality_key:
+#       playlist_msg_ids.append(video_msg.id)
+#       save_playlist_cache(url, quality_key, playlist_msg_ids)
+# ... существующий код ...
+
 app.run()
