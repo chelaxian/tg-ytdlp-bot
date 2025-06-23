@@ -3400,7 +3400,7 @@ def save_to_playlist_cache(url: str, quality_key: str, index: int, message_id: i
             return
         if not message_id:
             return
-        cache_ref.update({str(index): str(message_id)})
+        cache_ref.child(str(index)).set(str(message_id))
         logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, index {index}, msg_id {message_id}")
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
@@ -3411,11 +3411,14 @@ def get_cached_playlist_message_ids(url: str, quality_key: str, indices: list) -
         url_hash = get_url_hash(url)
         data = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
         result = {}
-        if data:
+        if isinstance(data, dict):
             for idx in indices:
                 msg_id = data.get(str(idx))
                 if msg_id:
                     result[idx] = int(msg_id)
+        else:
+            # Если data строка — это кэш одиночного видео, игнорируем для плейлистов
+            pass
         return result
     except Exception as e:
         logger.error(f"Failed to get playlist cache: {e}")
