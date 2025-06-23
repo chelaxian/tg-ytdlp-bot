@@ -1731,7 +1731,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         try:
             with YoutubeDL(ytdl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-            logger.info(f"AUDIO INFO_DICT: {info}")
+            #logger.info(f"AUDIO INFO_DICT: {info}")
         except Exception as ytdl_error:
             logger.error(f"YouTube-DL error: {ytdl_error}")
             send_to_user(message, f"❌ Failed to download audio: {ytdl_error}")
