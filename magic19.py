@@ -1,4 +1,4 @@
-# Version 1.6.2 - All Russian comments translated to English
+# Version 1.6.5 - Improved English translation for all comments and docstrings
 import pyrebase
 import re
 import os
@@ -427,7 +427,7 @@ def audio_command_handler(app, message):
         app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
         return
     if not url:
-        send_to_user(message, "Пожалуйста, укажите ссылку на видео для загрузки аудио.")
+        send_to_user(message, "Please, send valid URL.")
         return
     save_user_tags(user_id, tags)
     down_and_audio(app, message, url, tags)
@@ -1347,15 +1347,15 @@ def send_videos(
     temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
     was_truncated = False
     try:
-        # Логика упрощена: используем теги, которые уже были сгенерированы в down_and_up
+        # Logic simplified: use tags that were already generated in down_and_up.
         title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
             title=caption,
             description=full_video_title,
             url=video_url,
-            tags_text=tags_text, # Используем финальные теги для расчета
+            tags_text=tags_text, # Use final tags for calculation
             max_length=1024
         )
-        # Формируем HTML caption: title вне цитаты, таймкоды вне цитаты, description в цитате, теги и ссылка вне цитаты
+        # Form HTML caption: title outside the quote, timecodes outside the quote, description in the quote, tags and link outside the quote
         cap = ''
         if title_html:
             cap += title_html + '\n\n'
@@ -1633,7 +1633,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         else:
             proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.")
 
-        # We are trying to replace with "Download Started"
+        # We are trying to replace with "Download started"
         try:
             app.edit_message_text(
                 chat_id=user_id,
@@ -1837,7 +1837,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         else:
             proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.")
 
-        # We are trying to replace with "Download Started"
+        # We are trying to replace with "Download started"
         try:
             app.edit_message_text(
                 chat_id=user_id,
@@ -2047,12 +2047,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             current_total_process = total_process
 
-            # Определяем rename_name на основе входящего playlist_name:
+            # Determine rename_name based on the incoming playlist_name:
             if playlist_name and playlist_name.strip():
-                # Явно задано новое имя для плейлиста – используем его
+                # A new name for the playlist is explicitly set - let's use it
                 rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {x + video_start_with}")
             else:
-                # Новое имя не задано – извлекаем название из метаданных
+                # No new name set - extract name from metadata
                 rename_name = None
 
             info_dict = None
@@ -2082,17 +2082,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             full_video_title = info_dict.get("description", video_title)
             video_title = sanitize_filename(video_title) if video_title else "video"
 
-            # --- Используем новую централизованную функцию для всех тегов ---
+            # --- Use new centralized function for all tags ---
             tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
-            # Если rename_name не задано, устанавливаем его равным video_title
+           # If rename_name is not set, set it equal to video_title
             if rename_name is None:
                 rename_name = video_title
 
             dir_path = os.path.join("users", str(user_id))
 
-            # Сохраняем полное название в файл
+            # Save the full name to a file
             full_title_path = os.path.join(dir_path, "full_title.txt")
             try:
                 with open(full_title_path, "w", encoding="utf-8") as f:
@@ -2181,7 +2181,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     break
 
             after_rename_abs_path = os.path.abspath(user_vid_path)
-            # --- Новый блок: если YouTube, скачиваем превью ---
+            # --- New block: if YouTube, download preview ---
             youtube_thumb_path = None
             thumb_dir = None
             try:
@@ -2198,8 +2198,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         thumb_dir = youtube_thumb_path
             except Exception as e:
                 logger.warning(f"YouTube thumbnail error: {e}")
-            # --- Конец блока ---
-            # Если thumb_dir не определён — используем ffmpeg превью
+            # --- End of block ---
+            # If thumb_dir is not defined - use ffmpeg preview
 
             result = get_duration_thumb(message, dir_path, user_vid_path, sanitize_filename(caption_name))
             if result is None:
@@ -2211,9 +2211,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 duration, thumb_dir_default = result
                 if not youtube_thumb_path:
                     thumb_dir = thumb_dir_default
-            # ... существующий код ...
-
-            # Проверяем существование превью и создаем дефолтное если нужно
+            
+            # Check for the existence of a preview and create a default one if needed
             if thumb_dir and not os.path.exists(thumb_dir):
                 logger.warning(f"Thumbnail not found at {thumb_dir}, creating default")
                 thumb_dir = create_default_thumbnail(os.path.join(dir_path, "default_thumb.jpg"))
@@ -2235,7 +2234,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if part_result is None:
                         continue
                     part_duration, splited_thumb_dir = part_result
-                    # --- TikTok: не передавать title ---
+                    # --- TikTok: Don't Pass Title ---
                     video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                     try:
                         forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
@@ -2257,7 +2256,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 break
             else:
                 if final_name:
-                    # Читаем полное название из файла
+                    # Read the full name from the file
                     full_caption = caption_name
                     try:
                         if os.path.exists(full_title_path):
@@ -2266,7 +2265,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     except Exception as e:
                         logger.error(f"Error reading full title: {e}")
 
-                    # Проверяем существование превью перед отправкой
+                    # Check for preview existence before sending
                     if thumb_dir and not os.path.exists(thumb_dir):
                         logger.warning(f"Thumbnail not found before sending, creating default")
                         thumb_dir = create_default_thumbnail(os.path.join(dir_path, "default_thumb.jpg"))
@@ -2275,7 +2274,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             thumb_dir = None
 
                     try:
-                        # --- TikTok: не передавать title ---
+                        # --- TikTok: Don't Pass Title ---
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
@@ -2299,7 +2298,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             send_to_logger(message, success_msg)
     finally:
         set_active_download(user_id, False)
-        clear_download_start_time(user_id)  # Очищаем время начала загрузки
+        clear_download_start_time(user_id)  # Clear the download start time
         if playlist_name:
             with playlist_errors_lock:
                 error_key = f"{user_id}_{playlist_name}"
@@ -2313,8 +2312,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
         except Exception as e:
             logger.error(f"Error deleting status messages: {e}")
-
-        # Удалено открепление статусного сообщения
 
 #########################################
 
@@ -2471,7 +2468,7 @@ def set_active_download(user_id, status):
 
 # Helper function for safe message sending with flood wait handling
 def safe_send_message(chat_id, text, **kwargs):
-    # Добавляем reply_to_message_id если передан message
+    # Add reply_to_message_id if message is passed
     if 'reply_to_message_id' not in kwargs and 'message' in kwargs:
         kwargs['reply_to_message_id'] = kwargs['message'].id
         del kwargs['message']
@@ -2840,7 +2837,7 @@ def tags_command(app, message):
 
 def extract_youtube_id(url: str) -> str:
     """
-    Извлекает YouTube video ID из разных форматов ссылок.
+    It extracts YouTube Video ID from different link formats.
     """
     patterns = [
         r"youtu\.be/([^?&/]+)",
@@ -2852,11 +2849,11 @@ def extract_youtube_id(url: str) -> str:
         m = re.search(pat, url)
         if m:
             return m.group(1)
-    raise ValueError("Не удалось извлечь YouTube ID")
+    raise ValueError("Failed to extract YouTube ID")
 
 def download_thumbnail(video_id: str, dest: str) -> None:
     """
-    Пытается скачать maxresdefault.jpg, затем hqdefault.jpg.
+    Trying to download maxressdefault.jpg, then hqdefault.jpg.
     """
     base = f"https://img.youtube.com/vi/{video_id}"
     for name in ("maxresdefault.jpg", "hqdefault.jpg"):
@@ -2865,46 +2862,46 @@ def download_thumbnail(video_id: str, dest: str) -> None:
             with open(dest, "wb") as f:
                 f.write(r.content)
             return
-    raise RuntimeError("Не удалось скачать thumbnail или он слишком большой")
+    raise RuntimeError("Failed to download thumbnail or it is too big")
 
-# --- Глобальные списки доменов и ключевых слов ---
+# --- global lists of domains and keywords ---
 PORN_DOMAINS = set()
 SUPPORTED_SITES = set()
 PORN_KEYWORDS = set()
 
-# --- Загрузка списков при старте ---
+# --- loading lists at start ---
 def load_domain_lists():
     global PORN_DOMAINS, SUPPORTED_SITES, PORN_KEYWORDS
     try:
         with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
     except Exception as e:
-        logger.error(f"Не удалось загрузить {Config.PORN_DOMAINS_FILE}: {e}")
+        logger.error(f"Failed to load {Config.PORN_DOMAINS_FILE}: {e}")
         PORN_DOMAINS = set()
     try:
         with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
     except Exception as e:
-        logger.error(f"Не удалось загрузить {Config.PORN_KEYWORDS_FILE}: {e}")
+        logger.error(f"Failed to load {Config.PORN_KEYWORDS_FILE}: {e}")
         PORN_KEYWORDS = set()
     try:
         with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
     except Exception as e:
-        logger.error(f"Не удалось загрузить {Config.SUPPORTED_SITES_FILE}: {e}")
+        logger.error(f"Failed to load {Config.SUPPORTED_SITES_FILE}: {e}")
         SUPPORTED_SITES = set()
 
 load_domain_lists()
 
-# --- Вспомогательная функция для извлечения домена ---
+# --- an auxiliary function for extracting a domain ---
 def extract_domain_parts(url):
     try:
         ext = tldextract.extract(url)
-        # Собираем домен: domain.suffix (например, xvideos.com)
+        # We collect the domain: Domain.suffix (for example, xvideos.com)
         if ext.domain and ext.suffix:
             full_domain = f"{ext.domain}.{ext.suffix}".lower()
             subdomain = ext.subdomain.lower() if ext.subdomain else ''
-            # Получаем все суффиксы: xvideos.com, b.xvideos.com, a.b.xvideos.com
+            # We get all the suffixes: xvideos.com, b.xvideos.com, a.b.xvideos.com
             parts = [full_domain]
             if subdomain:
                 sub_parts = subdomain.split('.')
@@ -2918,20 +2915,20 @@ def extract_domain_parts(url):
     except Exception:
         return [url.lower()], url.lower()
 
-# --- Вспомогательная функция для поиска автотегов ---
+# --- an auxiliary function for searching for car tues ---
 def get_auto_tags(url, user_tags):
     auto_tags = set()
     clean_url = get_clean_url_for_tagging(url)
     url_l = clean_url.lower()
     domain_parts, main_domain = extract_domain_parts(url_l)
-    # 1. Porn check (по всем суффиксам домена, но с учётом белого списка)
+    # 1. Porn Check (for all the suffixes of the domain, but taking into account the white list)
     if is_porn_domain(domain_parts):
         auto_tags.add(sanitize_autotag('porn'))
-    # 2. Supported check (только точное совпадение слова с доменом)
+    # 2. Supported Check (only the exact coincidence of the word with the domain)
     for word in SUPPORTED_SITES:
         if word == main_domain:
             auto_tags.add(sanitize_autotag(word))
-    # 3. YouTube check (включая youtu.be)
+    # 3. YouTube Check (including YouTu.be)
     if ("youtube.com" in url_l or "youtu.be" in url_l):
         auto_tags.add("#youtube")
     # 4. Twitter/X check
@@ -2941,38 +2938,38 @@ def get_auto_tags(url, user_tags):
     if ("boosty.to" in url_l or "boosty.com" in url_l):
         auto_tags.add("#boosty")
         auto_tags.add("#porn")
-    # Не дублируем пользовательские теги
+    # Do not duplicate user tags
     auto_tags = [t for t in auto_tags if t.lower() not in [ut.lower() for ut in user_tags]]
     return auto_tags
 
-# Version 1.0.9 - Белый список доменов для порно берётся из config.py
+# Version 1.0.9 - White list of domains for porn is taken from config.py
 
-# --- Белый список доменов, которые не считаются порно ---
-# Теперь берём из config.py
+# --- White list of domains that are not considered porn ---
+# Now we take from config.py
 
 def is_porn_domain(domain_parts):
-    # Если любой суффикс домена в белом списке — не порно
+    # If any suffix domain on a white list is not porn
     for dom in domain_parts:
         if dom in Config.WHITELIST:
             return False
-    # Если любой суффикс домена в списке порно — это порно
+    # If any suffix domain in the list of porn is porn
     for dom in domain_parts:
         if dom in PORN_DOMAINS:
             return True
     return False
 
-# --- Новая функция для проверки на порно ---
+# --- a new function for checking for porn ---
 def is_porn(url, title, description):
     """
-    Проверяет контент на порнографию по домену и ключевым словам (только точные совпадения по словам).
+    Checks the content for pornography by domain and keywords (only accurate coincidences by words).
     """
-    # 1. Проверка домена по URL
+    # 1. Checking the domain by URL
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
     if is_porn_domain(domain_parts):
         return True
 
-    # 2. Проверка ключевых слов в заголовке и описании
+    # 2. Checking keywords in the heading and description
     title_lower = title.lower() if title else ""
     description_lower = description.lower() if description else ""
 
@@ -2983,7 +2980,7 @@ def is_porn(url, title, description):
     if not title_lower and not description_lower:
         return False
 
-    # Проверяем только точные совпадения по словам (границы слова)
+    # We check only accurate coincidences by words (the boundaries of the word)
     for keyword in PORN_KEYWORDS:
         if not keyword:
             continue
@@ -2994,17 +2991,17 @@ def is_porn(url, title, description):
 
     return False
 
-# Version 1.3.0 - Добавлена команда /split для выбора размера частей видео
+# Version 1.3.0 - Added command /Split to select the size of the parts of the video
 
 @app.on_message(filters.command("split") & filters.private)
 def split_command(app, message):
     user_id = message.chat.id
-    # Проверка подписки для не-админов
+    # Subscription check for non-admines
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
-    # Кнопки выбора размера в 2-3 ряда
+    # 2-3 row buttons
     sizes = [
         ("250 MB", 250 * 1024 * 1024),
         ("500 MB", 500 * 1024 * 1024),
@@ -3013,7 +3010,7 @@ def split_command(app, message):
         ("2 GB (default)", 1950 * 1024 * 1024)
     ]
     buttons = []
-    # Располагаем кнопки в 2-3 ряда
+    # Pass the buttons in 2-3 rows
     for i in range(0, len(sizes), 2):
         row = []
         for j in range(2):
@@ -3048,7 +3045,7 @@ def split_size_callback(app, callback_query):
     callback_query.edit_message_text(f"✅ Split part size set to: {humanbytes(size)}")
     send_to_logger(callback_query.message, f"Split size set to {size} bytes.")
 
-# --- Функция для чтения split.txt ---
+# --- Function for reading split.txt ---
 def get_user_split_size(user_id):
     user_dir = os.path.join("users", str(user_id))
     split_file = os.path.join(user_dir, "split.txt")
@@ -3061,7 +3058,7 @@ def get_user_split_size(user_id):
             pass
     return 1950 * 1024 * 1024  # default 1.95GB
 
-# --- Получение форматов и метаданных через yt-dlp ---
+# --- receiving formats and metadata via yt-dlp ---
 def get_video_formats(url, user_id=None, playlist_start_index=1):
     ytdl_opts = {
         'quiet': True,
@@ -3083,7 +3080,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         return info['entries'][0]
     return info
 
-# --- Always Ask обработка ---
+# --- Always ask processing ---
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
@@ -3095,11 +3092,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         info = get_video_formats(url, user_id, playlist_start_index)
         title = info.get('title', 'Video')
         video_id = info.get('id')
-        # --- Автотеги ---
+        # --- Autotics ---
         auto_tags = get_auto_tags(url, tags)
         all_tags = tags + auto_tags
         tags_text = ' '.join(all_tags)
-        # --- Картинка ---
+        # --- Picture ---
         thumb_path = None
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
@@ -3109,24 +3106,24 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 download_thumbnail(video_id, thumb_path)
             except Exception:
                 thumb_path = None
-        # --- Кнопки по форматам ---
+        # --- buttons on formats ---
         buttons = []
-        # Собираем все доступные разрешения видео (высоты)
+        # We collect all the available permits of the video (heights)
         available_heights = set()
         for f in info.get('formats', []):
             if f.get('vcodec', 'none') != 'none' and f.get('height'):
                 available_heights.add(f['height'])
-        # Список для сортировки и отображения
+        # List for sorting and display
         quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
         quality_buttons = []
-        # Создаем кнопки в правильном порядке
+        # Create the buttons in the correct order
         for height in quality_order:
             if height in available_heights:
                 quality_key = f"{height}p"
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        # Если ни одного стандартного качества не нашлось, но есть другие
+        # If no standard quality was found, but there are others
         if not quality_buttons and available_heights:
             for height in sorted(list(available_heights)):
                 quality_key = f"{height}p"
@@ -3134,17 +3131,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
-        # Если нет доступных качеств видео, добавляем кнопку лучшего качества
+        # If there are no available video qualities, add the best quality button
         if not quality_buttons:
             quality_key = "best"
             icon = "🚀" if quality_key in cached_qualities else "📹"
             button_text = f"{icon} Best Quality"
             quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
-        # Располагаем кнопки в 3 ряда
+        # Pass the buttons in 3 rows
         for i in range(0, len(quality_buttons), 3):
             buttons.append(quality_buttons[i:i+3])
-        # --- Кнопка mp3 ---
+        # --- button mp3 ---
         quality_key = "mp3"
         icon = "🚀" if quality_key in cached_qualities else "🎵"
         button_text = f"{icon} audio (mp3)"
@@ -3161,7 +3158,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         cap += f"\n<blockquote>{hint}</blockquote>"
 
         cap += hidden_link
-        # --- Отправка ---
+        # --- Sending ---
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
@@ -3197,7 +3194,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         send_to_logger(message, f"Always Ask menu error for {url}: {e}")
         return
 
-# --- Callback обработчик ---
+# --- Callback Processor ---
 @app.on_callback_query(filters.regex(r"^askq\|"))
 def askq_callback(app, callback_query):
     user_id = callback_query.from_user.id
@@ -3215,15 +3212,15 @@ def askq_callback(app, callback_query):
         return
 
     url = None
-    # Сначала ищем скрытую ссылку в сообщении с кнопками.
-    # Эта ссылка - ПОЛНАЯ, оригинальная, как и нужно для скачивания.
+    # First, we are looking for a hidden link in a message with the buttons.
+    # This link is complete, original, as is necessary for download.
     if callback_query.message.caption_entities:
         for entity in callback_query.message.caption_entities:
             if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
                 url = entity.url
                 break
     
-    # Если не нашли, извлекаем из оригинального сообщения пользователя
+    # If you have not found it, we extract from the original user message
     if not url and callback_query.message.reply_to_message:
         url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
         if url_match:
@@ -3234,7 +3231,7 @@ def askq_callback(app, callback_query):
         callback_query.message.delete()
         return
 
-    # Теги берем из сообщения с кнопками
+    # Tags from the message with buttons
     tags = []
     caption_text = callback_query.message.caption
     if caption_text:
@@ -3243,10 +3240,10 @@ def askq_callback(app, callback_query):
             tags = tag_matches
     tags_text = ' '.join(tags)
 
-    # После того как все данные извлечены, удаляем сообщение с кнопками
+    # After all the data is extracted, delete the message with the buttons
     callback_query.message.delete()
 
-    # Проверяем кэш перед скачиванием
+    # Check the cache before downloading
     message_ids = get_cached_message_ids(url, data)
     if message_ids:
         callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
@@ -3256,14 +3253,14 @@ def askq_callback(app, callback_query):
                 from_chat_id=Config.LOGS_ID,
                 message_ids=message_ids
             )
-            # Отправляем подтверждение пользователю
+            # We send confirmation to the user
             app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
-            # Если пересылка не удалась, пробуем скачать заново
-            save_to_video_cache(url, data, [], clear=True) # Очищаем невалидную запись в кэше
+            # If the shipping failed, we try to download it again
+            save_to_video_cache(url, data, [], clear=True) # Cleaning the universal record in the cache
             app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-            # Рекурсивный вызов или вызов основной функции? Лучше вызвать основную.
+            # Recursive call or a challenge of the main function? It is better to call the main one.
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
 
@@ -3293,13 +3290,13 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     callback_query.answer(f"Downloading {data}...")
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
 
-# --- Вспомогательная функция для скачивания с форматом ---
+# --- an auxiliary function for downloading with the format ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
-    # Извлекаем диапазон и другие параметры из оригинального сообщения пользователя
+    # We extract the range and other parameters from the original user message
     full_string = message.text or message.caption or ""
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
 
-    # Эту ошибку уже должны были поймать ранее, но для подстраховки
+    # This mistake should have already been caught earlier, but for safety
     if tag_error:
         wrong, example = tag_error
         app.send_message(message.chat.id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
@@ -3307,54 +3304,54 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None)
 
     video_count = video_end_with - video_start_with + 1
     
-    # Проверяем, является ли ссылка на TikTok
+    # Check if there is a link to Tiktok
     is_tiktok = is_tiktok_url(url)
 
-    # Вызываем основную функцию загрузки с правильными параметрами плейлиста
+    # We call the main function of loading with the correct parameters of the playlist
     down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
 
-# Version 1.4.1 - Добавлена функция sanitize_autotag для автотегов
+# Version 1.4.1 - Added the Sanitize_autotag function
 def sanitize_autotag(tag: str) -> str:
-    # Оставляем только буквы (любой язык), цифры и _
+    # Leave only letters (any language), numbers and _
     return '#' + re.sub(r'[^\w\d_]', '_', tag.lstrip('#'), flags=re.UNICODE)
 
 def generate_final_tags(url, user_tags, info_dict):
-    """Генерирует финальную строку тегов, включая пользовательские и все виды автоматических."""
+    """Generates the final line of tags, including user and all types of automatic."""
     
-    # 1. Начинаем с тегов, заданных пользователем (приводим к set для уникальности)
+    # 1. We start with tags set by the user (lead to SET for uniqueness)
     final_tags = set(user_tags)
 
-    # 2. Добавляем авто-теги (porn, supported_sites.txt)
-    # Важно: передаем оригинальный URL в get_auto_tags, т.к. она сама его чистит
+    # 2. Add auto tags (porn, supported_sites.txt)
+    # Important: we transfer the original URL to Get_auto_tags, because she cleans him herself
     auto_tags_list = get_auto_tags(url, list(final_tags))
     for tag in auto_tags_list:
         final_tags.add(tag)
 
-    # 3. Добавляем тег профиля TikTok
-    # is_tiktok_url и extract_tiktok_profile сами очищают ссылку
+    # 3. Add tiktok profile tag
+    # IS_TIKTOK_URL and EXTRACT_TIKTOK_PROFILE themselves clean the link
     if is_tiktok_url(url):
         tiktok_profile = extract_tiktok_profile(url)
         if tiktok_profile:
             final_tags.add(sanitize_autotag(tiktok_profile))
-        # Также добавляем общий тег #tiktok
+        # Also add the overall tag #tiktok
         final_tags.add("#tiktok")
 
-    # 4. Добавляем тег канала YouTube (из info_dict)
+    # 4. Add the YouTube channel tag (from info_dict)
     clean_url_for_check = get_clean_url_for_tagging(url)
     if ("youtube.com" in clean_url_for_check or "youtu.be" in clean_url_for_check) and info_dict:
         channel_name = info_dict.get("channel") or info_dict.get("uploader")
         if channel_name:
             final_tags.add(sanitize_autotag(channel_name))
             
-    # 5. NEW: Добавляем тег #porn на основе полной проверкия 
+    # 5. New: Add #Porn tag based on a complete check
     video_title = info_dict.get("title")
     video_description = info_dict.get("description")
     if is_porn(url, video_title, video_description):
         final_tags.add("#porn")
             
-    # Собираем уникальные теги без учета регистра, сохраняя регистр первого вхождения
+    # We collect unique tags without taking into account the register, preserving the register of the first entry
     unique_tags_case_insensitive = {}
-    # Сортируем для стабильного порядка и предсказуемости
+    # We sort for stable order and predictability
     for tag in sorted(list(final_tags)):
         if tag.lower() not in unique_tags_case_insensitive:
             unique_tags_case_insensitive[tag.lower()] = tag
@@ -3363,13 +3360,13 @@ def generate_final_tags(url, user_tags, info_dict):
     logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
     return result
 
-# --- Новые функции для кэширования ---
+# --- new functions for caching ---
 def get_url_hash(url: str) -> str:
-    """Создает MD5 хэш из URL для использования в качестве ключа Firebase."""
+    """Creates MD5 URL hash for use as a Firebase key."""
     return hashlib.md5(url.encode()).hexdigest()
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False):
-    """Сохраняет или удаляет ID сообщения в кэше."""
+    """Saves or deleys ID messages in the cache."""
     if not quality_key:
         return
     try:
@@ -3384,7 +3381,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
         if not message_ids:
             return
 
-        # Сохраняем ID сообщений как строку, разделенную запятыми
+        # We save ID messages as a string separated
         ids_string = ",".join(map(str, message_ids))
         cache_ref.update({quality_key: ids_string})
         logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string}")
@@ -3392,12 +3389,12 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
         logger.error(f"Failed to save to cache: {e}")
 
 def get_cached_message_ids(url: str, quality_key: str) -> list:
-    """Получает список ID сообщений из кэша."""
+    """Receives a list of ID messages from the cache."""
     try:
         url_hash = get_url_hash(url)
         ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
         if ids_string:
-            # Преобразуем строку обратно в список чисел
+            # We convert the line back to the list of numbers
             return [int(msg_id) for msg_id in ids_string.split(',')]
         return None
     except Exception as e:
@@ -3405,7 +3402,7 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
         return None
 
 def get_cached_qualities(url: str) -> set:
-    """Получает все закэшированные качества для URL."""
+    """He gets all the castle qualities for the URL."""
     try:
         url_hash = get_url_hash(url)
         data = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).get().val()
