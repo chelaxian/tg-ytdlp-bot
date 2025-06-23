@@ -1,4 +1,5 @@
-# Version 1.6.5 - Improved English translation for all comments and docstrings
+# Version 1.6.4 - All remaining Russian comments translated to English
+
 import pyrebase
 import re
 import os
