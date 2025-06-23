@@ -1752,7 +1752,8 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         except Exception as e:
             logger.error(f"Error updating upload status: {e}")
         # Формируем текст с тегами и ссылкой для аудио
-        tags_text_final = generate_final_tags(url, tags, info)
+        tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
+        tags_text_final = generate_final_tags(url, tags_for_final, info)
         tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
         bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
         bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
