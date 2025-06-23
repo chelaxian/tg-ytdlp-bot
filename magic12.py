@@ -1752,7 +1752,8 @@ def down_and_audio(app, message, url, tags_text, quality_key=None):
         except Exception as e:
             logger.error(f"Error updating upload status: {e}")
         # Формируем текст с тегами и ссылкой для аудио
-        tags_block = (tags_text.strip() + '\n') if tags_text and tags_text.strip() else ''
+        tags_text_final = generate_final_tags(url, tags, info)
+        tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
         bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
         bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
         caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
@@ -3341,7 +3342,7 @@ def generate_final_tags(url, user_tags, info_dict):
         if channel_name:
             final_tags.add(sanitize_autotag(channel_name))
             
-    # 5. NEW: Добавляем тег #porn на основе полной проверки
+    # 5. NEW: Добавляем тег #porn на основе полной проверкия 
     video_title = info_dict.get("title")
     video_description = info_dict.get("description")
     if is_porn(url, video_title, video_description):
