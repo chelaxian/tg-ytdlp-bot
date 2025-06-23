@@ -1,4 +1,4 @@
-# Version 1.6.1 - Добавлено кэширование видео
+# Version 1.6.2 - All Russian comments translated to English
 import pyrebase
 import re
 import os
@@ -30,11 +30,11 @@ import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
 import json
 
-# --- Новая функция для очистки URL только для тегов ---
+# --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
     """
-    Извлекает последнюю (самую вложенную) ссылку из URL-оберток поисковиков.
-    Используется ТОЛЬКО для генерации тегов.
+    Extracts the last (deepest nested) link from URL-wrappers.
+    Used ONLY for generating tags.
     """
     if not isinstance(url, str):
         return ''
@@ -43,14 +43,14 @@ def get_clean_url_for_tagging(url: str) -> str:
 
     start_of_real_url_pos = max(last_http_pos, last_https_pos)
 
-    # Если нашли еще один http/https (не в самом начале), то это и есть реальная ссылка
+    # If another http/https is found (not at the very beginning), this is the real link
     if start_of_real_url_pos > 0:
         return url[start_of_real_url_pos:]
     return url
 
 def is_tiktok_url(url: str) -> bool:
     """
-    Проверяет, является ли URL ссылкой на TikTok
+    Checks if URL is a TikTok link
     """
     try:
         clean_url = get_clean_url_for_tagging(url)
@@ -59,9 +59,9 @@ def is_tiktok_url(url: str) -> bool:
     except:
         return False
 
-# --- Извлечение имени профиля из TikTok URL ---
+# --- Extracting TikTok profile name from URL ---
 def extract_tiktok_profile(url: str) -> str:
-    # Ищем @username после домена
+    # Looking for @username after the domain
     import re
     clean_url = get_clean_url_for_tagging(url)
     m = re.search(r'/@([\w\.\-_]+)', clean_url)
@@ -80,7 +80,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-################################################################################################
+# ###############################################################################################
 # Global starting point list (do not modify)
 starting_point = []
 
@@ -92,20 +92,20 @@ active_downloads_lock = threading.Lock()
 playlist_errors = {}
 playlist_errors_lock = threading.Lock()
 
-# Добавляем глобальный словарь для отслеживания времени начала загрузок
+# Add a global dictionary to track download start times
 download_start_times = {}
 download_start_times_lock = threading.Lock()
 
 def set_download_start_time(user_id):
     """
-    Устанавливает время начала загрузки для пользователя
+    Sets the download start time for a user
     """
     with download_start_times_lock:
         download_start_times[user_id] = time.time()
 
 def clear_download_start_time(user_id):
     """
-    Очищает время начала загрузки для пользователя
+    Clears the download start time for a user
     """
     with download_start_times_lock:
         if user_id in download_start_times:
@@ -113,9 +113,9 @@ def clear_download_start_time(user_id):
 
 def check_download_timeout(user_id):
     """
-    Проверяет, не превышен ли таймаут загрузки. Для админов таймаут не применяется.
+    Checks if the download timeout has been exceeded. For admins, timeout does not apply.
     """
-    # Если пользователь — админ, таймаут не применяется
+    # If the user is an admin, timeout does not apply
     if hasattr(Config, 'ADMIN') and int(user_id) in Config.ADMIN:
         return False
     with download_start_times_lock:
@@ -129,7 +129,7 @@ def check_download_timeout(user_id):
 # Helper function to check available disk space
 def check_disk_space(path, required_bytes):
     """
-    Check if there's enough disk space available at the specified path.
+    Checks if there's enough disk space available at the specified path.
 
     Args:
         path (str): Path to check
@@ -244,7 +244,7 @@ def token_refresher():
 token_thread = threading.Thread(target=token_refresher, daemon=True)
 token_thread.start()
 
-################################################################################################
+# ###############################################################################################
 
 # Pyrogram App Initialization
 app = Client(
@@ -254,8 +254,8 @@ app = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-##############################################################################################################################
-##############################################################################################################################
+# #############################################################################################################################
+# #############################################################################################################################
 
 @app.on_message(filters.command("start") & filters.private)
 
@@ -309,7 +309,7 @@ def cookies_from_browser(app, message):
         "whale": ["~/.config/Whale/", "~/.config/naver-whale/"]
     }
 
-    # Создаем список только установленных браузеров
+    # Create a list of only installed browsers
     installed_browsers = []
     for browser, path in browsers.items():
         if browser == "safari":
@@ -321,7 +321,7 @@ def cookies_from_browser(app, message):
         if exists:
             installed_browsers.append(browser)
 
-    # Если нет установленных браузеров, отправляем сообщение об этом
+    # If there are no installed browsers, send a message about it
     if not installed_browsers:
         app.send_message(
             user_id,
@@ -330,14 +330,14 @@ def cookies_from_browser(app, message):
         send_to_logger(message, "No installed browsers found.")
         return
 
-    # Создаем кнопки только для установленных браузеров
+    # Create buttons only for installed browsers
     buttons = []
     for browser in installed_browsers:
         display_name = browser.capitalize()
         button = InlineKeyboardButton(f"✅ {display_name}", callback_data=f"browser_choice|{browser}")
         buttons.append([button])
 
-    # Добавляем кнопку отмены
+    # Add a cancel button
     buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="browser_choice|cancel")])
     keyboard = InlineKeyboardMarkup(buttons)
 
@@ -461,7 +461,7 @@ def set_format(app, message):
             [InlineKeyboardButton("💻4k (best for PC/Mac Telegram)", callback_data="format_option|bv2160")],
             [InlineKeyboardButton("📱FullHD (best for mobile Telegram)", callback_data="format_option|bv1080")],
             [InlineKeyboardButton("📈Bestvideo+Bestaudio (MAX quality)", callback_data="format_option|bestvideo")],
-            #[InlineKeyboardButton("📉best (no ffmpeg) (bad)", callback_data="format_option|best")],
+            # [InlineKeyboardButton("📉best (no ffmpeg) (bad)", callback_data="format_option|best")],
             [InlineKeyboardButton("🎚 Custom (enter your own)", callback_data="format_option|custom")],
             [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
         ])
@@ -528,7 +528,7 @@ def format_option_callback(app, callback_query):
             [InlineKeyboardButton("💻4k (best for PC/Mac Telegram)", callback_data="format_option|bv2160")],
             [InlineKeyboardButton("📱FullHD (best for mobile Telegram)", callback_data="format_option|bv1080")],
             [InlineKeyboardButton("📈Bestvideo+Bestaudio (MAX quality)", callback_data="format_option|bestvideo")],
-            #[InlineKeyboardButton("📉best (no ffmpeg) (bad)", callback_data="format_option|best")],
+            # [InlineKeyboardButton("📉best (no ffmpeg) (bad)", callback_data="format_option|best")],
             [InlineKeyboardButton("🎚 Custom (enter your own)", callback_data="format_option|custom")],
             [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
         ])
@@ -581,7 +581,7 @@ def format_option_callback(app, callback_query):
         send_to_logger(callback_query.message, "Format set to ALWAYS_ASK.")
         return
 
-#####################################################################################
+# ####################################################################################
 
 # Checking user is Blocked or not
 
@@ -619,7 +619,7 @@ def check_user(message):
         data = {"ID": message.chat.id, "timestamp": math.floor(time.time())}
         db.child("bot").child("tgytdlp_bot").child("users").child(user_id_str).set(data)
 
-#####################################################################################
+# ####################################################################################
 
 # Checking Actions
 # Text Message Handler for General Commands
@@ -1162,18 +1162,18 @@ def video_url_extractor(app, message):
     user_dir = os.path.join("users", str(user_id))
     format_file = os.path.join(user_dir, "format.txt")
 
-    # По умолчанию спрашиваем качество, если не выбран конкретный формат
+    # By default, ask for quality if a specific format is not selected
     should_ask = True
     if os.path.exists(format_file):
         with open(format_file, "r", encoding="utf-8") as f:
             fmt = f.read().strip()
-        # Не спрашиваем, только если формат задан и это НЕ "ALWAYS_ASK"
+        # Do not ask only if the format is set and it is NOT "ALWAYS_ASK"
         if fmt != "ALWAYS_ASK":
             should_ask = False
 
     if should_ask:
         url, video_start_with, _, _, tags, _, tag_error = extract_url_range_tags(message.text)
-        # Добавляем проверку на ошибку в тегах
+        # Add tag error check
         if tag_error:
             wrong, example = tag_error
             app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
@@ -1181,7 +1181,7 @@ def video_url_extractor(app, message):
         ask_quality_menu(app, message, url, tags, video_start_with)
         return
 
-    # Этот код выполняется, только если пользователь выбрал конкретный формат
+    # This code is executed only if the user has selected a specific format
     with playlist_errors_lock:
         keys_to_remove = [k for k in playlist_errors if k.startswith(f"{user_id}_")]
         for key in keys_to_remove:
@@ -1192,7 +1192,7 @@ def video_url_extractor(app, message):
         return
         
     full_string = message.text
-    # Также добавляем проверку на ошибку в тегах здесь
+    # Also add tag error check here
     url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(full_string)
     if tag_error:
         wrong, example = tag_error
@@ -1206,7 +1206,7 @@ def video_url_extractor(app, message):
             if Config.BLACK_LIST[j] in full_string:
                 send_to_all(message, "User entered a porn content. Cannot be downloaded.")
                 return
-        # --- TikTok: автотег профиля и без title ---
+        # --- TikTok: auto-tag profile and no title ---
         is_tiktok = is_tiktok_url(url)
         auto_tags = get_auto_tags(url, tags)
         all_tags = tags + auto_tags
@@ -1218,7 +1218,7 @@ def video_url_extractor(app, message):
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
         save_user_tags(user_id, all_tags)
-        # --- Передаём title='' для тиктока, иначе как обычно ---
+        # --- Pass title='' for TikTok, otherwise as usual ---
         if is_tiktok:
             down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, force_no_title=True)
         else:
@@ -1226,7 +1226,7 @@ def video_url_extractor(app, message):
     else:
         send_to_all(message, f"**User entered like this:** {full_string}\n{Config.ERROR1}")
 
-#############################################################################################
+# ############################################################################################
 
 # Send Message to Logger
 
@@ -1271,17 +1271,17 @@ def truncate_caption(
     max_length: int = 1024
 ) -> Tuple[str, str, str, str, str, bool]:
     """
-    Возвращает: (title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated)
+    Returns: (title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated)
     """
     title_html = f'<b>{title}</b>' if title else ''
-    # Паттерн для поиска таймкодов в начале строки (00:00, 0:00:00, 0.00 и т.д.)
+    # Pattern for finding timestamps at the beginning of a line (00:00, 0:00:00, 0.00, etc.)
     timestamp_pattern = r'^\s*(\d{1,2}:\d{2}(?::\d{2})?|\d{1,2}\.\d{2}(?:\.\d{2})?)\s+.*'
 
     lines = description.split('\n') if description else []
     pre_block_lines = []
     post_block_lines = []
 
-    # Разделяем строки на таймкоды и основной текст
+    # Split lines into timestamps and main text
     for line in lines:
         if re.match(timestamp_pattern, line):
             pre_block_lines.append(line)
@@ -1292,21 +1292,21 @@ def truncate_caption(
     post_block_str = '\n'.join(post_block_lines).strip()
 
     tags_block = (tags_text.strip() + '\n') if tags_text and tags_text.strip() else ''
-    # --- Добавляем имя бота рядом с ссылкой ---
+    # --- Add bot name next to the link ---
     bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
     bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
     link_block = f'<a href="{url}">🔗 Video URL</a>{bot_mention}'
     
     was_truncated = False
     
-    # Рассчитываем постоянный overhead
+    # Calculate constant overhead
     overhead = len(tags_block) + len(link_block)
     if title_html:
         overhead += len(title_html) + 2 # for '\n\n'
     if pre_block_str:
         overhead += len(pre_block_str) + 1 # for '\n'
     
-    # Рассчитываем лимит для blockquote (с учетом тегов <blockquote>)
+    # Calculate limit for blockquote (taking into account <blockquote> tags)
     blockquote_overhead = len('<blockquote expandable></blockquote>') + 1 # for '\n'
     blockquote_limit = max_length - overhead - blockquote_overhead
     
@@ -1315,13 +1315,13 @@ def truncate_caption(
         blockquote_content = blockquote_content[:blockquote_limit - 4] + '...'
         was_truncated = True
 
-    # Итоговая проверка и возможное усечение pre_block
+    # Final check and possible truncation of pre_block
     if overhead + len(blockquote_content) + blockquote_overhead > max_length:
         pre_block_limit = max_length - (overhead - len(pre_block_str) -1) - len(blockquote_content) - blockquote_overhead
         if pre_block_limit < len(pre_block_str):
             pre_block_str = pre_block_str[:pre_block_limit-4] + '...'
             was_truncated = True
-        else: # если даже с усеченным pre_block не влезает, усекаем всё
+        else: # if even with truncated pre_block it does not fit, truncate everything
              pre_block_str = ''
 
     if pre_block_str:
@@ -1605,23 +1605,23 @@ def write_logs(message, video_url, video_title):
             "name": message.chat.first_name, "urls": str(video_url), "title": video_title}
     db.child("bot").child("tgytdlp_bot").child("logs").child(str(message.chat.id)).child(str(ts)).set(data)
     logger.info("Log for user added")
-#####################################################################################
-#####################################################################################
+# ####################################################################################
+# ####################################################################################
 
-#########################################
+# ########################################
 # Down_and_audio function
-#########################################
+# ########################################
 
 def down_and_audio(app, message, url, tags, quality_key=None):
     user_id = message.chat.id
     anim_thread = None
     stop_anim = threading.Event()
     try:
-        # Проверяем, есть ли сохраненное время ожидания
+        # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
         flood_time_file = os.path.join(user_dir, "flood_wait.txt")
 
-        # Отправляем начальное сообщение
+        # We send the initial message
         if os.path.exists(flood_time_file):
             with open(flood_time_file, 'r') as f:
                 wait_time = int(f.read().strip())
@@ -1633,7 +1633,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         else:
             proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.")
 
-        # Пытаемся заменить на "Download started"
+        # We are trying to replace with "Download Started"
         try:
             app.edit_message_text(
                 chat_id=user_id,
@@ -1656,7 +1656,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         logger.error(f"Error in down_and_audio: {e}")
         return
 
-    # Если ошибки флуда нет, отправляем обычное сообщение (только один раз)
+    # If there is no flood error, send a normal message (only once)
     proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
     proc_msg_id = proc_msg.id
     status_msg = app.send_message(user_id, "🎧 Audio is processing...")
@@ -1694,7 +1694,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         last_update = 0
         def progress_hook(d):
             nonlocal last_update
-            # Проверяем таймаут
+            # Check the timaut
             if check_download_timeout(user_id):
                 raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
             current_time = time.time()
@@ -1731,7 +1731,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
         try:
             with YoutubeDL(ytdl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-            #logger.info(f"AUDIO INFO_DICT: {info}")
+            # logger.info(f"AUDIO INFO_DICT: {info}")
         except Exception as ytdl_error:
             logger.error(f"YouTube-DL error: {ytdl_error}")
             send_to_user(message, f"❌ Failed to download audio: {ytdl_error}")
@@ -1752,7 +1752,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
             safe_edit_message_text(user_id, proc_msg_id, f"Uploading audio file...\n{full_bar}   100.0%")
         except Exception as e:
             logger.error(f"Error updating upload status: {e}")
-        # Формируем текст с тегами и ссылкой для аудио
+        # We form a text with tags and a link for audio
         tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
         tags_text_final = generate_final_tags(url, tags_for_final, info)
         tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
@@ -1810,22 +1810,22 @@ def down_and_audio(app, message, url, tags, quality_key=None):
             logger.error(f"Failed to delete file {audio_file}: {e}")
 
         set_active_download(user_id, False)
-        clear_download_start_time(user_id)  # Очищаем время начала загрузки
+        clear_download_start_time(user_id)  # Cleaning the start time
 
-        # Удалено открепление статусного сообщения
+        # Removing the Removing of the Status Communication
 
-#########################################
+# ########################################
 # Download_and_up function
-#########################################
+# ########################################
 
 def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
     user_id = message.chat.id
     try:
-        # Проверяем, есть ли сохраненное время ожидания
+        # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
         flood_time_file = os.path.join(user_dir, "flood_wait.txt")
 
-        # Отправляем начальное сообщение
+        # We send the initial message
         if os.path.exists(flood_time_file):
             with open(flood_time_file, 'r') as f:
                 wait_time = int(f.read().strip())
@@ -1837,18 +1837,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         else:
             proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.")
 
-        # Пытаемся заменить на "Download started"
+        # We are trying to replace with "Download Started"
         try:
             app.edit_message_text(
                 chat_id=user_id,
                 message_id=proc_msg.id,
                 text="Download started"
             )
-            # Если удалось заменить, значит ошибки флуда нет
+            # If you managed to replace, then there is no flood error
             if os.path.exists(flood_time_file):
                 os.remove(flood_time_file)
         except FloodWait as e:
-            # Обновляем счетчик
+            # Update the counter
             wait_time = e.value
             os.makedirs(user_dir, exist_ok=True)
             with open(flood_time_file, 'w') as f:
@@ -1862,7 +1862,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         logger.error(f"Error in down_and_up: {e}")
         return
 
-    # Если ошибки флуда нет, отправляем обычное сообщение
+    # If there is no flood error, send a normal message
     proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
     proc_msg_id = proc_msg.id
     error_message = ""
@@ -1885,7 +1885,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         check_user(message)
 
-        # Сброс флага ошибок для нового запуска плейлиста
+        # Reset of the flag of errors for the new launch of the playlist
         if playlist_name:
             with playlist_errors_lock:
                 error_key = f"{user_id}_{playlist_name}"
@@ -1924,11 +1924,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         current_total_process = ""
         last_update = 0
         full_bar = "🟩" * 10
-        first_progress_update = True  # Флаг для отслеживания первого обновления
+        first_progress_update = True  # Flag for tracking the first update
 
         def progress_func(d):
             nonlocal last_update, first_progress_update
-            # Проверяем таймаут
+            # Check the timaut
             if check_download_timeout(user_id):
                 raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
             current_time = time.time()
@@ -1941,10 +1941,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 blocks = int(percent // 10)
                 bar = "🟩" * blocks + "⬜️" * (10 - blocks)
                 try:
-                    # При первом обновлении прогресса удаляем первые сообщения Processing
+                    # With the first renewal of progress, we delete the first posts Processing
                     if first_progress_update:
                         try:
-                            # Получаем больше сообщений для поиска всех Processing сообщений
+                            # We get more messages to search for all Processing messages
                             messages = app.get_chat_history(user_id, limit=20)
                             processing_messages = []
                             download_started_messages = []
@@ -1953,10 +1953,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     processing_messages.append(msg.id)
                                 elif msg.text == "Download started":
                                     download_started_messages.append(msg.id)
-                            # Удаляем первые 2 Processing сообщения (если их больше 1)
+                            # We delete the first 2 promission messages (if there are more than 1)
                             if len(processing_messages) >= 2:
                                 safe_delete_messages(chat_id=user_id, message_ids=processing_messages[-2:], revoke=True)
-                            # Удаляем первые 2 Download started сообщения (если их больше 1)
+                            # We delete the first 2 Download Started Message (if there are more than 1)
                             if len(download_started_messages) >= 2:
                                 safe_delete_messages(chat_id=user_id, message_ids=download_started_messages[-2:], revoke=True)
                         except Exception as e:
@@ -1989,19 +1989,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     info_dict = ydl.extract_info(url, download=False)
                 if "entries" in info_dict:
                     entries = info_dict["entries"]
-                    if len(entries) > 1:  # Если видео в плейлисте больше одного
+                    if len(entries) > 1:  # If the video in the playlist is more than one
                         if current_index < len(entries):
                             info_dict = entries[current_index]
                         else:
                             raise Exception(f"Video index {current_index} out of range (total {len(entries)})")
                     else:
-                        # Если всего одно видео в плейлисте, просто скачиваем его
-                        info_dict = entries[0]  # Просто берём первое видео
+                        # If there is only one video in the playlist, just download it
+                        info_dict = entries[0]  # Just take the first video
 
                 if ("m3u8" in url.lower()) or (info_dict.get("protocol") == "m3u8_native"):
                     is_hls = True
                     # if "format" in ytdl_opts:
-                    #     del ytdl_opts["format"]
+                    # del ytdl_opts["format"]
                     ytdl_opts["downloader"] = "ffmpeg"
                     ytdl_opts["hls_use_mpegts"] = True
                 try:
@@ -2735,13 +2735,13 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
     cycle_thread.start()
     return cycle_thread
 
-# --- Функция для очистки тегов под Telegram ---
+# --- Function for cleaning tags for Telegram ---
 def clean_telegram_tag(tag: str) -> str:
     return '#' + re.sub(r'[^\w]', '', tag.lstrip('#'))
 
-# --- Функция для извлечения url, диапазона и тегов из текста ---
+# --- a function for extracting the URL, the range and tags from the text ---
 def extract_url_range_tags(text: str):
-    # Эта функция теперь всегда возвращает ПОЛНУЮ оригинальную ссылку для скачивания
+    # This function now always returns the full original download link
     if not isinstance(text, str):
         return None, 1, 1, None, [], '', None
     url_match = re.search(r'https?://[^\s\*#]+', text)
@@ -2750,7 +2750,7 @@ def extract_url_range_tags(text: str):
     url = url_match.group(0)
 
     after_url = text[url_match.end():]
-    # Диапазон
+    # Range
     range_match = re.match(r'\*([0-9]+)\*([0-9]+)', after_url)
     if range_match:
         video_start_with = int(range_match.group(1))
@@ -2775,17 +2775,17 @@ def extract_url_range_tags(text: str):
     if tag_part:
         for raw in re.finditer(r'#([^#\s]+)', tag_part):
             tag = raw.group(1)
-            # Проверяем, что тег состоит только из разрешенных символов
+            # We check that the tag consists only of the permitted characters
             if not re.fullmatch(r'[\w\d_]+', tag, re.UNICODE):
                 error_tag = tag
-                # Для примера показываем пользователю, как мог бы выглядеть исправленный тег
+                # For example, show the user how the corrected tag would look like
                 example = re.sub(r'[^\w\d_]', '_', tag, flags=re.UNICODE)
                 error_tag_example = f'#{example}'
-                break  # Прерываем проверку после первой же ошибки
+                break  # Interrupt the check after the first error
             tags.append(f'#{tag}')
-        # Формируем tags_text с пробелами между тегами
+        # We form Tags_text with spaces between tags
         tags_text = ' '.join(tags)
-    # Возвращаем кортеж с ошибкой, если она была найдена
+    # Return the motorcade with an error if it was found
     return url, video_start_with, video_end_with, playlist_name, tags, tags_text, (error_tag, error_tag_example) if error_tag else None
 
 def save_user_tags(user_id, tags):
@@ -2794,7 +2794,7 @@ def save_user_tags(user_id, tags):
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     tags_file = os.path.join(user_dir, "tags.txt")
-    # Читаем уже сохранённые теги
+    # We read already saved tags
     existing = set()
     if os.path.exists(tags_file):
         with open(tags_file, "r", encoding="utf-8") as f:
@@ -2802,7 +2802,7 @@ def save_user_tags(user_id, tags):
                 tag = line.strip()
                 if tag:
                     existing.add(tag.lower())
-    # Добавляем новые теги (без учёта регистра и без повторов)
+    # Add new tags (without registering and without repetitions)
     new_tags = [t for t in tags if t and t.lower() not in existing]
     if new_tags:
         with open(tags_file, "a", encoding="utf-8") as f:
@@ -2826,7 +2826,7 @@ def tags_command(app, message):
         app.send_message(user_id, reply_text, reply_to_message_id=message.id)
         send_to_logger(message, reply_text)
         return
-    # Формируем сообщения по 4096 символов
+    # We form posts by 4096 characters
     msg = ''
     for tag in tags:
         if len(msg) + len(tag) + 1 > 4096:
