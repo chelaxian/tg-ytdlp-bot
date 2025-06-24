@@ -1,4 +1,4 @@
-# Version 1.6.5 - Improved tagging, logging, and caching logic
+# Version 1.6.6 - Fix tag duplication and youtube shorts cache URL normalization
 
 import pyrebase
 import re
@@ -2915,6 +2915,10 @@ def extract_domain_parts(url):
         else:
             return [url.lower()], url.lower()
     except Exception:
+        # Fallback for URLs without a clear domain, e.g., "localhost"
+        parsed = urlparse(url)
+        if parsed.netloc:
+             return [parsed.netloc.lower()], parsed.netloc.lower()
         return [url.lower()], url.lower()
 
 # --- an auxiliary function for searching for car tues ---
@@ -2922,24 +2926,20 @@ def get_auto_tags(url, user_tags):
     auto_tags = set()
     clean_url = get_clean_url_for_tagging(url)
     url_l = clean_url.lower()
-    domain_parts, main_domain = extract_domain_parts(url_l)
     # 1. Porn Check (for all the suffixes of the domain, but taking into account the white list)
+    domain_parts, _ = extract_domain_parts(url_l)
     if is_porn_domain(domain_parts):
         auto_tags.add(sanitize_autotag('porn'))
-    # 2. Supported Check (only the exact coincidence of the word with the domain)
-    for word in SUPPORTED_SITES:
-        if word == main_domain:
-            auto_tags.add(sanitize_autotag(word))
-    # 3. YouTube Check (including YouTu.be)
+    # 2. YouTube Check (including YouTu.be)
     if ("youtube.com" in url_l or "youtu.be" in url_l):
         auto_tags.add("#youtube")
-    # 4. Twitter/X check (точное совпадение домена)
+    # 3. Twitter/X check (точное совпадение домена)
     twitter_domains = {"twitter.com", "x.com", "t.co"}
     parsed = urlparse(clean_url)
     domain = parsed.netloc.lower()
     if domain in twitter_domains:
         auto_tags.add("#twitter")
-    # 5. Boosty check (boosty.to, boosty.com)
+    # 4. Boosty check (boosty.to, boosty.com)
     if ("boosty.to" in url_l or "boosty.com" in url_l):
         auto_tags.add("#boosty")
         auto_tags.add("#porn")
@@ -3437,6 +3437,12 @@ def normalize_url_for_cache(url: str) -> str:
     # Specific rule for youtube watch URLs
     if "youtube.com/watch" in clean_url:
         m = re.match(r'(https://www\.youtube\.com/watch\?v=[^&]+)', clean_url)
+        if m:
+            return m.group(1)
+            
+    # Specific rule for youtube shorts URLs
+    if "youtube.com/shorts/" in clean_url:
+        m = re.match(r'(https://www\.youtube\.com/shorts/[^?]+)', clean_url)
         if m:
             return m.group(1)
 
