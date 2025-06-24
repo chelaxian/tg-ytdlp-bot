@@ -1678,6 +1678,109 @@ def down_and_audio(app, message, url, tags, quality_key=None):
 
         check_user(message)
 
+        # --- Playlist audio support ---
+        playlist_video_urls = get_playlist_video_urls(url, user_id)
+        if playlist_video_urls:
+            # Получаем диапазон из исходного сообщения пользователя
+            full_string = message.text or message.caption or ""
+            _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(full_string)
+            start_idx = max(0, video_start_with - 1)
+            end_idx = min(len(playlist_video_urls), video_end_with)
+            for vurl in playlist_video_urls[start_idx:end_idx]:
+                try:
+                    cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
+                    ytdl_opts = {
+                        'format': 'ba',
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'prefer_ffmpeg': True,
+                        'extractaudio': True,
+                        'noplaylist': True,
+                        'cookiefile': cookie_file,
+                        'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
+                        'progress_hooks': [],
+                    }
+                    last_update = 0
+                    def progress_hook(d):
+                        nonlocal last_update
+                        if check_download_timeout(user_id):
+                            raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
+                        current_time = time.time()
+                        if current_time - last_update < 0.2:
+                            return
+                        if d.get("status") == "downloading":
+                            downloaded = d.get("downloaded_bytes", 0)
+                            total = d.get("total_bytes", 0)
+                            percent = (downloaded / total * 100) if total else 0
+                            blocks = int(percent // 10)
+                            bar = "🟩" * blocks + "⬜️" * (10 - blocks)
+                            try:
+                                safe_edit_message_text(user_id, proc_msg_id, f"Downloading audio:\n{bar}   {percent:.1f}%")
+                            except Exception as e:
+                                logger.error(f"Error updating progress: {e}")
+                            last_update = current_time
+                        elif d.get("status") == "finished":
+                            try:
+                                full_bar = "🟩" * 10
+                                safe_edit_message_text(user_id, proc_msg_id,
+                                    f"Downloading audio:\n{full_bar}   100.0%\nDownload finished, processing audio...")
+                            except Exception as e:
+                                logger.error(f"Error updating progress: {e}")
+                            last_update = current_time
+                        elif d.get("status") == "error":
+                            try:
+                                safe_edit_message_text(user_id, proc_msg_id, "Error occurred during audio download.")
+                            except Exception as e:
+                                logger.error(f"Error updating progress: {e}")
+                            last_update = current_time
+                    ytdl_opts['progress_hooks'].append(progress_hook)
+                    with YoutubeDL(ytdl_opts) as ydl:
+                        info = ydl.extract_info(vurl, download=True)
+                    audio_title = info.get("title", "audio")
+                    audio_title = sanitize_filename(audio_title)
+                    audio_file = os.path.join(user_folder, audio_title + ".mp3")
+                    if not os.path.exists(audio_file):
+                        files = [f for f in os.listdir(user_folder) if f.endswith(".mp3")]
+                        if files:
+                            audio_file = os.path.join(user_folder, files[0])
+                        else:
+                            send_to_user(message, "Audio file not found after download.")
+                            continue
+                    tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
+                    tags_text_final = generate_final_tags(vurl, tags_for_final, info)
+                    tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
+                    bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
+                    bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
+                    caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({vurl}){bot_mention}"
+                    audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
+                    forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
+                    if quality_key and forwarded_msg:
+                        if isinstance(forwarded_msg, list):
+                            msg_ids = [m.id for m in forwarded_msg]
+                        else:
+                            msg_ids = [forwarded_msg.id]
+                        save_to_video_cache(vurl, quality_key, msg_ids)
+                    full_bar = "🟩" * 10
+                    safe_edit_message_text(user_id, proc_msg_id, f"Uploading audio file...\n{full_bar}   100.0%")
+                    success_msg = f"✅ Audio successfully downloaded and sent.\n\n{Config.CREDITS_MSG}"
+                    send_to_logger(message, success_msg)
+                    try:
+                        if os.path.exists(audio_file):
+                            os.remove(audio_file)
+                    except Exception as e:
+                        logger.error(f"Failed to delete file {audio_file}: {e}")
+                except Exception as ytdl_error:
+                    logger.error(f"YouTube-DL error: {ytdl_error}")
+                    send_to_user(message, f"❌ Failed to download audio: {ytdl_error}")
+                    continue
+            safe_edit_message_text(user_id, proc_msg_id, f"✅ All audios from playlist downloaded and sent! 🚀")
+            return
+        # --- End playlist audio ---
+
+        # Обычная логика для одиночного видео
         cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
         ytdl_opts = {
             'format': 'ba',
@@ -1727,18 +1830,14 @@ def down_and_audio(app, message, url, tags, quality_key=None):
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
-
         ytdl_opts['progress_hooks'].append(progress_hook)
-
         try:
             with YoutubeDL(ytdl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-            # logger.info(f"AUDIO INFO_DICT: {info}")
         except Exception as ytdl_error:
             logger.error(f"YouTube-DL error: {ytdl_error}")
             send_to_user(message, f"❌ Failed to download audio: {ytdl_error}")
             return
-
         audio_title = info.get("title", "audio")
         audio_title = sanitize_filename(audio_title)
         audio_file = os.path.join(user_folder, audio_title + ".mp3")
@@ -1754,7 +1853,6 @@ def down_and_audio(app, message, url, tags, quality_key=None):
             safe_edit_message_text(user_id, proc_msg_id, f"Uploading audio file...\n{full_bar}   100.0%")
         except Exception as e:
             logger.error(f"Error updating upload status: {e}")
-        # We form a text with tags and a link for audio
         tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
         tags_text_final = generate_final_tags(url, tags_for_final, info)
         tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
@@ -1774,14 +1872,12 @@ def down_and_audio(app, message, url, tags, quality_key=None):
             logger.error(f"Error sending audio: {send_error}")
             send_to_user(message, f"❌ Failed to send audio: {send_error}")
             return
-
         try:
             full_bar = "🟩" * 10
             success_msg = f"✅ Audio successfully downloaded and sent.\n\n{Config.CREDITS_MSG}"
             safe_edit_message_text(user_id, proc_msg_id, success_msg)
         except Exception as e:
             logger.error(f"Error updating final status: {e}")
-
         send_to_logger(message, success_msg)
 
     except Exception as e:
@@ -3302,6 +3398,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         # Корректируем индексы (Python: с 0, пользователь: с 1)
         start_idx = max(0, video_start_with - 1)
         end_idx = min(len(playlist_video_urls), video_end_with)
+        found_any = False
         for vurl in playlist_video_urls[start_idx:end_idx]:
             msg_ids = get_cached_message_ids(vurl, data)
             if msg_ids:
@@ -3310,27 +3407,39 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                     from_chat_id=Config.LOGS_ID,
                     message_ids=msg_ids
                 )
+                found_any = True
             else:
                 down_and_up_with_format(app, original_message, vurl, data, tags_text, quality_key=data)
+        if found_any:
+            app.send_message(user_id, "✅ Playlist videos sent from cache! 🚀", reply_to_message_id=original_message.id)
         return
     # --- Обычная логика для одиночного видео ---
     if data == "mp3":
         callback_query.answer("Downloading audio...")
         down_and_audio(app, original_message, url, tags, quality_key="mp3")
         return
-    if data == "best":
-        callback_query.answer("Downloading best quality...")
-        fmt = "bestvideo+bestaudio/best"
-    else:
-        quality_str = data.replace('p', '')
+    # --- Одиночное видео ---
+    msg_ids = get_cached_message_ids(url, data)
+    if msg_ids:
+        callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
         try:
-            quality_val = int(quality_str)
-            fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
-        except ValueError:
-            callback_query.answer("Unknown quality.")
-            return
-    callback_query.answer(f"Downloading {data}...")
-    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
+            app.forward_messages(
+                chat_id=user_id,
+                from_chat_id=Config.LOGS_ID,
+                message_ids=msg_ids
+            )
+            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
+            media_type = "Audio" if data == "mp3" else "Video"
+            log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
+            send_to_logger(original_message, log_msg)
+        except Exception as e:
+            logger.error(f"Error forwarding from cache: {e}")
+            save_to_video_cache(url, data, [], clear=True)
+            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
+            askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+        return
+    # --- Если не найдено в кэше ---
+    down_and_up_with_format(app, original_message, url, data, tags_text, quality_key=data)
 
 # --- an auxiliary function for downloading with the format ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
