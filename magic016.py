@@ -2926,8 +2926,12 @@ def get_auto_tags(url, user_tags):
     auto_tags = set()
     clean_url = get_clean_url_for_tagging(url)
     url_l = clean_url.lower()
+    domain_parts, main_domain = extract_domain_parts(url_l)
+    parsed = urlparse(clean_url)
+    ext = tldextract.extract(clean_url)
+    second_level = ext.domain.lower() if ext.domain else ''
+    full_domain = f"{ext.domain}.{ext.suffix}".lower() if ext.domain and ext.suffix else ''
     # 1. Porn Check (for all the suffixes of the domain, but taking into account the whitelist)
-    domain_parts, _ = extract_domain_parts(url_l)
     if is_porn_domain(domain_parts):
         auto_tags.add(sanitize_autotag('porn'))
     # 2. YouTube Check (including YouTu.be)
@@ -2935,7 +2939,6 @@ def get_auto_tags(url, user_tags):
         auto_tags.add("#youtube")
     # 3. Twitter/X check (exact domain match)
     twitter_domains = {"twitter.com", "x.com", "t.co"}
-    parsed = urlparse(clean_url)
     domain = parsed.netloc.lower()
     if domain in twitter_domains:
         auto_tags.add("#twitter")
@@ -2943,6 +2946,13 @@ def get_auto_tags(url, user_tags):
     if ("boosty.to" in url_l or "boosty.com" in url_l):
         auto_tags.add("#boosty")
         auto_tags.add("#porn")
+    # 5. Service tag for supported sites (by full domain or 2nd level)
+    for site in SUPPORTED_SITES:
+        site_l = site.lower()
+        if second_level == site_l or full_domain == site_l:
+            service_tag = '#' + re.sub(r'[^\w\d_]', '', site_l)
+            auto_tags.add(service_tag)
+            break
     # Do not duplicate user tags
     user_tags_lower = set(t.lower() for t in user_tags)
     auto_tags = [t for t in auto_tags if t.lower() not in user_tags_lower]
@@ -3435,12 +3445,17 @@ def normalize_url_for_cache(url: str) -> str:
     path = parsed.path
     query_params = parse_qs(parsed.query)
 
+    # Pornhub: ignore subdomain, always use pornhub.com
+    if domain.endswith('.pornhub.com'):
+        base_domain = 'pornhub.com'
+        return urlunparse((parsed.scheme, base_domain, path, '', '', ''))
+
     # TikTok: always strip all params, keep only path
     if 'tiktok.com' in domain:
         return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
 
     # Shorts and youtu.be: always strip all params
-    if (('youtube.com' in domain and path.startswith('/shorts/')) or ('youtu.be' in domain)):
+    if (("youtube.com" in domain and path.startswith('/shorts/')) or ("youtu.be" in domain)):
         return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
 
     # /watch: only v
