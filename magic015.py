@@ -1,4 +1,4 @@
-# Version 1.7.2 - Tag section only from user and auto-tags, improved truncate_caption
+# Version 1.7.7 - Add TikTok URL cleaning for cache
 
 import pyrebase
 import re
@@ -3422,7 +3422,7 @@ def get_cached_qualities(url: str) -> set:
 
 def normalize_url_for_cache(url: str) -> str:
     """
-    Normalizes YouTube URLs for caching based on a set of specific rules,
+    Normalizes URLs for caching based on a set of specific rules,
     removing all non-essential query parameters.
     """
     if not isinstance(url, str):
@@ -3434,6 +3434,10 @@ def normalize_url_for_cache(url: str) -> str:
     domain = parsed.netloc.lower()
     path = parsed.path
     query_params = parse_qs(parsed.query)
+
+    # TikTok: always strip all params, keep only path
+    if 'tiktok.com' in domain:
+        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
 
     # Shorts and youtu.be: always strip all params
     if (('youtube.com' in domain and path.startswith('/shorts/')) or ('youtu.be' in domain)):
@@ -3459,9 +3463,9 @@ def normalize_url_for_cache(url: str) -> str:
     # live: only way
     if 'youtube.com' in domain and (path.startswith('/live/') or path.endswith('/live')):
         return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
-    # fallback for other domains
+    # fallback for CLEAN_QUERY domains (suffix match)
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
-        if domain == clean_domain:
+        if domain == clean_domain or domain.endswith('.' + clean_domain):
             return urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
     # For all other URLs, return them as they are
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ''))
