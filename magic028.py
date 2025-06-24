@@ -1173,13 +1173,19 @@ def video_url_extractor(app, message):
             should_ask = False
 
     if should_ask:
-        url, video_start_with, _, _, tags, _, tag_error = extract_url_range_tags(message.text)
+        url, video_start_with, video_end_with, _, tags, _, tag_error = extract_url_range_tags(message.text)
         # Add tag error check
         if tag_error:
             wrong, example = tag_error
             app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
             return
-        ask_quality_menu(app, message, url, tags, video_start_with)
+        
+        # Передаем диапазон видео для проверки кэша
+        playlist_range = None
+        if video_start_with != 1 or video_end_with != 1:
+            playlist_range = (video_start_with, video_end_with)
+        
+        ask_quality_menu(app, message, url, tags, video_start_with, playlist_range)
         return
 
     # This code is executed only if the user has selected a specific format
@@ -1769,7 +1775,9 @@ def down_and_audio(app, message, url, tags, quality_key=None):
                     msg_ids = [m.id for m in forwarded_msg]
                 else:
                     msg_ids = [forwarded_msg.id]
-                save_to_video_cache(url, quality_key, msg_ids)
+                # Кэшируем конкретное видео/аудио
+                video_url_for_cache = info.get('webpage_url') or info.get('url') or url
+                save_to_video_cache(video_url_for_cache, quality_key, msg_ids)
         except Exception as send_error:
             logger.error(f"Error sending audio: {send_error}")
             send_to_user(message, f"❌ Failed to send audio: {send_error}")
@@ -2063,6 +2071,33 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 if info_dict is not None:
                     break
 
+            # --- ДОБАВЛЕНО: кэширование каждого видео из плейлиста ---
+            if info_dict is not None:
+                # Получаем уникальный url/id для кэширования
+                video_url_for_cache = info_dict.get('webpage_url') or info_dict.get('url')
+                video_quality = None
+                # Определяем качество (например, 720p, best и т.д.)
+                if format_override:
+                    video_quality = format_override
+                else:
+                    # Попробуем взять из info_dict
+                    video_quality = info_dict.get('format_note') or info_dict.get('height')
+                    if video_quality:
+                        video_quality = f"{video_quality}p" if isinstance(video_quality, int) else str(video_quality)
+                    else:
+                        video_quality = 'best'
+                # После отправки видео пользователю и в лог-канал:
+                # (примерно здесь должен быть вызов send_videos или app.send_video)
+                # Предполагаем, что message_ids - это id отправленного сообщения
+                # Нужно получить message_ids (id отправленного видео)
+                # Например:
+                # sent_msg = app.send_video(...)
+                # forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [sent_msg.id])
+                # if forwarded_msg:
+                #     msg_ids = [m.id for m in forwarded_msg] if isinstance(forwarded_msg, list) else [forwarded_msg.id]
+                #     save_to_video_cache(video_url_for_cache, video_quality, msg_ids)
+                #
+                # Здесь вставьте вызов save_to_video_cache после отправки видео и пересылки в лог-канал
             if info_dict is None:
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
@@ -2241,7 +2276,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     try:
                         forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                         if forwarded_msgs:
-                            save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs])
+                            # Кэшируем конкретное видео из плейлиста
+                            video_url_for_cache = info_dict.get('webpage_url') or info_dict.get('url')
+                            if video_url_for_cache:
+                                save_to_video_cache(video_url_for_cache, quality_key, [m.id for m in forwarded_msgs])
                     except Exception as e:
                         logger.error(f"Error forwarding video to logger: {e}")
                     safe_edit_message_text(user_id, proc_msg_id,
@@ -2281,7 +2319,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             if forwarded_msgs:
-                                save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs])
+                                # Кэшируем конкретное видео из плейлиста
+                                video_url_for_cache = info_dict.get('webpage_url') or info_dict.get('url')
+                                if video_url_for_cache:
+                                    save_to_video_cache(video_url_for_cache, quality_key, [m.id for m in forwarded_msgs])
                         except Exception as e:
                             logger.error(f"Error forwarding video to logger: {e}")
                         safe_edit_message_text(user_id, proc_msg_id,
@@ -3093,13 +3134,24 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     return info
 
 # --- Always ask processing ---
-def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
+def ask_quality_menu(app, message, url, tags, playlist_start_index=1, playlist_range=None):
     user_id = message.chat.id
     proc_msg = None
     try:
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
         
-        cached_qualities = get_cached_qualities(url)
+        # Проверяем кэш для диапазона видео, если указан
+        cached_qualities = set()
+        if playlist_range:
+            start_index, end_index = playlist_range
+            # Проверяем кэш для всех видео из диапазона
+            for quality_key in ['144p', '240p', '360p', '480p', '720p', '1080p', '1440p', '2160p', '4320p', 'best', 'mp3']:
+                cache_status = check_playlist_cache_status(url, user_id, start_index, end_index, quality_key)
+                if cache_status['cached_count'] > 0:
+                    cached_qualities.add(quality_key)
+        else:
+            # Старая логика для одного видео
+            cached_qualities = get_cached_qualities(url)
 
         info = get_video_formats(url, user_id, playlist_start_index)
         title = info.get('title', 'Video')
@@ -3164,8 +3216,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if tags_text:
             cap += f"{tags_text}\n"
         
-        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
-        cap += f"\n<blockquote>{hint}</blockquote>"
+        # Обновляем подсказку для диапазона видео
+        if playlist_range:
+            start_index, end_index = playlist_range
+            video_count = end_index - start_index + 1
+            cap += f"\n<blockquote>📹 — Choose quality for new download ({video_count} videos).\n🚀 — Instant repost. At least one video is already saved.</blockquote>"
+        else:
+            hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
+            cap += f"\n<blockquote>{hint}</blockquote>"
 
         cap += hidden_link
         # --- Sending ---
@@ -3284,46 +3342,126 @@ def askq_callback(app, callback_query):
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
     user_id = callback_query.from_user.id
     tags = tags_text.split() if tags_text else []
-    if data == "mp3":
-        callback_query.answer("Downloading audio...")
-        down_and_audio(app, original_message, url, tags, quality_key="mp3")
-        return
-
-    if data == "best":
-        callback_query.answer("Downloading best quality...")
-        fmt = "bestvideo+bestaudio/best"
+    
+    # Извлекаем диапазон видео из оригинального сообщения
+    full_string = original_message.text or original_message.caption or ""
+    _, video_start_with, video_end_with, _, _, _, tag_error = extract_url_range_tags(full_string)
+    
+    # Проверяем, есть ли диапазон видео
+    is_playlist_range = (video_start_with != 1 or video_end_with != 1)
+    
+    if is_playlist_range:
+        # Обработка диапазона видео
+        cache_status = check_playlist_cache_status(url, user_id, video_start_with, video_end_with, data)
+        
+        if cache_status['cached_count'] > 0:
+            # Пересылаем все закэшированные видео
+            callback_query.answer(f"🚀 Found {cache_status['cached_count']} videos in cache! Forwarding instantly...", show_alert=False)
+            
+            try:
+                # Пересылаем все закэшированные видео
+                for cached_video in cache_status['cached']:
+                    try:
+                        app.forward_messages(
+                            chat_id=user_id,
+                            from_chat_id=Config.LOGS_ID,
+                            message_ids=cached_video['message_ids']
+                        )
+                    except Exception as e:
+                        logger.error(f"Error forwarding cached video {cached_video['url']}: {e}")
+                
+                # Отправляем подтверждение пользователю
+                media_type = "Audio" if data == "mp3" else "Video"
+                app.send_message(user_id, f"✅ {cache_status['cached_count']} {media_type.lower()}s successfully sent from cache.", reply_to_message_id=original_message.id)
+                
+                # Логируем в канал
+                log_msg = f"{cache_status['cached_count']} {media_type}s sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
+                send_to_logger(original_message, log_msg)
+                
+                # Если есть некэшированные видео, скачиваем их
+                if cache_status['uncached_count'] > 0:
+                    app.send_message(user_id, f"📥 Downloading {cache_status['uncached_count']} remaining videos...", reply_to_message_id=original_message.id)
+                    # Скачиваем недостающие видео
+                    download_uncached_playlist_videos(app, original_message, url, cache_status['uncached'], tags, data)
+                
+            except Exception as e:
+                logger.error(f"Error processing cached playlist videos: {e}")
+                # Если что-то пошло не так, скачиваем все видео заново
+                download_playlist_videos(app, original_message, url, video_start_with, video_end_with, tags, data)
+        else:
+            # Нет закэшированных видео, скачиваем все
+            callback_query.answer(f"📥 Downloading {cache_status['total']} videos...", show_alert=False)
+            download_playlist_videos(app, original_message, url, video_start_with, video_end_with, tags, data)
     else:
-        quality_str = data.replace('p', '')
-        try:
-            quality_val = int(quality_str)
-            fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
-        except ValueError:
-            callback_query.answer("Unknown quality.")
+        # Старая логика для одного видео
+        if data == "mp3":
+            callback_query.answer("Downloading audio...")
+            down_and_audio(app, original_message, url, tags, quality_key="mp3")
             return
 
-    callback_query.answer(f"Downloading {data}...")
-    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
+        if data == "best":
+            callback_query.answer("Downloading best quality...")
+            fmt = "bestvideo+bestaudio/best"
+        else:
+            quality_str = data.replace('p', '')
+            try:
+                quality_val = int(quality_str)
+                fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+            except ValueError:
+                callback_query.answer("Unknown quality.")
+                return
 
-# --- an auxiliary function for downloading with the format ---
-def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
-    # We extract the range and other parameters from the original user message
-    full_string = message.text or message.caption or ""
-    _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
+        callback_query.answer(f"Downloading {data}...")
+        down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
 
-    # This mistake should have already been caught earlier, but for safety
-    if tag_error:
-        wrong, example = tag_error
-        app.send_message(message.chat.id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
-        return
-
-    video_count = video_end_with - video_start_with + 1
+def download_uncached_playlist_videos(app, message, url, uncached_videos, tags, quality_key):
+    """Скачивает только некэшированные видео из плейлиста."""
+    user_id = message.chat.id
     
-    # Check if there is a link to Tiktok
-    is_tiktok = is_tiktok_url(url)
+    # Создаем временное сообщение для каждого некэшированного видео
+    for i, video_info in enumerate(uncached_videos):
+        video_url = video_info['url']
+        
+        # Создаем временное сообщение для скачивания
+        temp_message = type('TempMessage', (), {
+            'chat': type('TempChat', (), {'id': user_id})(),
+            'text': video_url,
+            'id': message.id
+        })()
+        
+        # Скачиваем видео
+        if quality_key == "mp3":
+            down_and_audio(app, temp_message, video_url, tags, quality_key="mp3")
+        else:
+            if quality_key == "best":
+                fmt = "bestvideo+bestaudio/best"
+            else:
+                quality_str = quality_key.replace('p', '')
+                try:
+                    quality_val = int(quality_str)
+                    fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+                except ValueError:
+                    fmt = "best"
+            
+            down_and_up_with_format(app, temp_message, video_url, fmt, ' '.join(tags), quality_key=quality_key)
 
-    # We call the main function of loading with the correct parameters of the playlist
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
-
+def download_playlist_videos(app, message, url, start_index, end_index, tags, quality_key):
+    """Скачивает все видео из диапазона плейлиста."""
+    # Используем существующую логику down_and_up_with_format
+    if quality_key == "mp3":
+        down_and_audio(app, message, url, tags, quality_key="mp3")
+    else:
+        if quality_key == "best":
+            fmt = "bestvideo+bestaudio/best"
+        else:
+            quality_str = quality_key.replace('p', '')
+            try:
+                quality_val = int(quality_str)
+                fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+            except ValueError:
+                fmt = "best"
+        
+        down_and_up_with_format(app, message, url, fmt, ' '.join(tags), quality_key=quality_key)
 
 def sanitize_autotag(tag: str) -> str:
     # Leave only letters (any language), numbers and _
@@ -3545,5 +3683,93 @@ def youtube_to_long_url(url: str) -> str:
 def is_youtube_url(url: str) -> bool:
     parsed = urlparse(url)
     return 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc
+
+def get_playlist_videos(url: str, user_id: int, start_index: int, end_index: int) -> list:
+    """
+    Получает список видео из плейлиста по диапазону индексов.
+    Возвращает список словарей с информацией о каждом видео.
+    """
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        cookie_file = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
+        
+        ytdl_opts = {
+            'quiet': True,
+            'skip_download': True,
+            'forcejson': True,
+            'no_warnings': True,
+            'extract_flat': True,  # Быстрое извлечение без скачивания
+            'simulate': True,
+            'playlist_items': f"{start_index}-{end_index}",
+        }
+        
+        if os.path.exists(cookie_file):
+            ytdl_opts['cookiefile'] = cookie_file
+            
+        with YoutubeDL(ytdl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+        if 'entries' in info and info.get('entries'):
+            return info['entries']
+        else:
+            # Если это не плейлист, возвращаем одно видео
+            return [info] if info else []
+            
+    except Exception as e:
+        logger.error(f"Failed to get playlist videos: {e}")
+        return []
+
+def check_playlist_cache_status(url: str, user_id: int, start_index: int, end_index: int, quality_key: str) -> dict:
+    """
+    Проверяет статус кэша для всех видео из диапазона плейлиста.
+    Возвращает словарь с информацией о кэшированных и некэшированных видео.
+    """
+    videos = get_playlist_videos(url, user_id, start_index, end_index)
+    cached_videos = []
+    uncached_videos = []
+    
+    for video in videos:
+        video_url = video.get('webpage_url') or video.get('url')
+        if video_url:
+            cached_ids = get_cached_message_ids(video_url, quality_key)
+            if cached_ids:
+                cached_videos.append({
+                    'video': video,
+                    'url': video_url,
+                    'message_ids': cached_ids
+                })
+            else:
+                uncached_videos.append({
+                    'video': video,
+                    'url': video_url
+                })
+    
+    return {
+        'cached': cached_videos,
+        'uncached': uncached_videos,
+        'total': len(videos),
+        'cached_count': len(cached_videos),
+        'uncached_count': len(uncached_videos)
+    }
+
+# --- an auxiliary function for downloading with the format ---
+def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
+    # We extract the range and other parameters from the original user message
+    full_string = message.text or message.caption or ""
+    _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
+
+    # This mistake should have already been caught earlier, but for safety
+    if tag_error:
+        wrong, example = tag_error
+        app.send_message(message.chat.id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
+        return
+
+    video_count = video_end_with - video_start_with + 1
+    
+    # Check if there is a link to Tiktok
+    is_tiktok = is_tiktok_url(url)
+
+    # We call the main function of loading with the correct parameters of the playlist
+    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
 
 app.run()
