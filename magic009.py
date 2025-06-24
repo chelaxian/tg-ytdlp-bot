@@ -1,4 +1,4 @@
-# Version 1.6.6 - Fix tag duplication and youtube shorts cache URL normalization
+# Version 1.6.9 - Implemented a comprehensive YouTube URL normalization logic based on new rules
 
 import pyrebase
 import re
@@ -25,7 +25,7 @@ import subprocess
 import signal
 import sys
 from config import Config
-from urllib.parse import urlparse, parse_qs, urlunparse, unquote
+from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
 from pyrogram.errors import FloodWait
 import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
@@ -3424,36 +3424,56 @@ def get_cached_qualities(url: str) -> set:
 
 def normalize_url_for_cache(url: str) -> str:
     """
-    Clears the cache link: removes query parameters and fragments, leaving only the main part for domains in Config.CLEAN_QUERY.
-    For all other domains, keeps the query (for YouTube, Facebook и др.).
-    If the link is a Google redirect, uses the target link for cache.
+    Normalizes YouTube URLs for caching based on a set of specific rules,
+    removing all non-essential query parameters.
     """
     if not isinstance(url, str):
         return ''
-    # If Google redirect, extract the real URL
+
+    # First, handle potential redirects or URL wrappers
     url = extract_real_url_if_google(url)
     clean_url = get_clean_url_for_tagging(url)
     
-    # Specific rule for youtube watch URLs
-    if "youtube.com/watch" in clean_url:
-        m = re.match(r'(https://www\.youtube\.com/watch\?v=[^&]+)', clean_url)
-        if m:
-            return m.group(1)
-            
-    # Specific rule for youtube shorts URLs
-    if "youtube.com/shorts/" in clean_url:
-        m = re.match(r'(https://www\.youtube\.com/shorts/[^?]+)', clean_url)
-        if m:
-            return m.group(1)
-
     parsed = urlparse(clean_url)
     domain = parsed.netloc.lower()
-    # Check if the domain is on the list to be cleaned (full match only)
+
+    # Apply rules only to YouTube domains
+    if 'youtube.com' in domain or 'youtu.be' in domain:
+        path = parsed.path
+        query_params = parse_qs(parsed.query)
+
+        # --- Rule: For permanent channel live links, the path is the only identifier ---
+        if path.endswith('/live'):
+            return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+        
+        # --- Rule: For playlist links, only the 'list' parameter is essential ---
+        if path == '/playlist':
+            if 'list' in query_params:
+                new_query = urlencode({'list': query_params['list']}, doseq=True)
+                return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
+            else:
+                # A playlist link without a 'list' param is invalid, but we return its base path
+                return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+
+        # --- General Rule: For all other video links, keep only essential parameters ---
+        # Essential params: v, list, t, playlist
+        allowed_params = {'v', 'list', 'playlist'}
+        
+        filtered_params = {
+            k: v for k, v in query_params.items() if k in allowed_params
+        }
+
+        new_query = urlencode(filtered_params, doseq=True)
+        # Reconstruct URL with the cleaned path and query
+        final_path = path if 'youtu.be' not in domain else parsed.path
+        return urlunparse((parsed.scheme, parsed.netloc, final_path, '', new_query, ''))
+
+    # Fallback for other non-YouTube domains on the cleaning list
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
         if domain == clean_domain:
-            normalized = urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
-            return normalized
-    # For the rest, we leave query
+            return urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
+            
+    # For all other URLs, return them as they are
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ''))
 
 def extract_real_url_if_google(url: str) -> str:
