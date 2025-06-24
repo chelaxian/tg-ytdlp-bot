@@ -3289,21 +3289,24 @@ def askq_callback(app, callback_query):
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
     user_id = callback_query.from_user.id
     tags = tags_text.split() if tags_text else []
-    # --- Новый блок: если это плейлист, работаем по каждому видео ---
+    # --- Новый блок: если это плейлист, работаем по каждому видео в диапазоне ---
     playlist_video_urls = get_playlist_video_urls(url, user_id)
     if playlist_video_urls:
-        # Для каждого видео из плейлиста
-        for vurl in playlist_video_urls:
+        # Получаем диапазон из исходного сообщения пользователя
+        full_string = original_message.text or original_message.caption or ""
+        _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(full_string)
+        # Корректируем индексы (Python: с 0, пользователь: с 1)
+        start_idx = max(0, video_start_with - 1)
+        end_idx = min(len(playlist_video_urls), video_end_with)
+        for vurl in playlist_video_urls[start_idx:end_idx]:
             msg_ids = get_cached_message_ids(vurl, data)
             if msg_ids:
-                # Переслать из кэша
                 app.forward_messages(
                     chat_id=user_id,
                     from_chat_id=Config.LOGS_ID,
                     message_ids=msg_ids
                 )
             else:
-                # Скачать и кэшировать (через down_and_up_with_format)
                 down_and_up_with_format(app, original_message, vurl, data, tags_text, quality_key=data)
         return
     # --- Обычная логика для одиночного видео ---
