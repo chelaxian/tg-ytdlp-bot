@@ -3312,7 +3312,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None)
     is_tiktok = is_tiktok_url(url)
 
     # We call the main function of loading with the correct parameters of the playlist
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
+    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text.split(), force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
 
 
 def sanitize_autotag(tag: str) -> str:
