@@ -2241,7 +2241,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     try:
                         forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                         if forwarded_msgs:
-                            save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs])
+                            # Save to cache for each video in playlist (use real video URL, not playlist URL)
+                            video_url = info_dict.get('webpage_url', url)
+                            save_to_video_cache(video_url, quality_key, [m.id for m in forwarded_msgs])
                     except Exception as e:
                         logger.error(f"Error forwarding video to logger: {e}")
                     safe_edit_message_text(user_id, proc_msg_id,
@@ -2281,7 +2283,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             if forwarded_msgs:
-                                save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs])
+                                # Save to cache for each video in playlist (use real video URL, not playlist URL)
+                                video_url = info_dict.get('webpage_url', url)
+                                save_to_video_cache(video_url, quality_key, [m.id for m in forwarded_msgs])
                         except Exception as e:
                             logger.error(f"Error forwarding video to logger: {e}")
                         safe_edit_message_text(user_id, proc_msg_id,
