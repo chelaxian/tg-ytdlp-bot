@@ -3382,36 +3382,42 @@ def get_url_hash(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False):
-    """Saves or deleys ID messages in the cache."""
+    """Сохраняет ID сообщений в кэш сразу по двум вариантам YouTube-ссылки (длинная/короткая)."""
     if not quality_key:
         return
     try:
-        url_hash = get_url_hash(normalize_url_for_cache(url))
-        cache_ref = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash)
-        
-        if clear:
-            cache_ref.child(quality_key).remove()
-            logger.info(f"Cache cleared for URL hash {url_hash}, quality {quality_key}")
-            return
-
-        if not message_ids:
-            return
-
-        # We save ID messages as a string separated
-        ids_string = ",".join(map(str, message_ids))
-        cache_ref.update({quality_key: ids_string})
-        logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string}")
+        urls = [normalize_url_for_cache(url)]
+        # Если это YouTube, добавляем оба варианта
+        if is_youtube_url(url):
+            urls.append(normalize_url_for_cache(youtube_to_short_url(url)))
+            urls.append(normalize_url_for_cache(youtube_to_long_url(url)))
+        for u in set(urls):
+            url_hash = get_url_hash(u)
+            cache_ref = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash)
+            if clear:
+                cache_ref.child(quality_key).remove()
+                logger.info(f"Cache cleared for URL hash {url_hash}, quality {quality_key}")
+                continue
+            if not message_ids:
+                continue
+            ids_string = ",".join(map(str, message_ids))
+            cache_ref.update({quality_key: ids_string})
+            logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string}")
     except Exception as e:
         logger.error(f"Failed to save to cache: {e}")
 
 def get_cached_message_ids(url: str, quality_key: str) -> list:
-    """Receives a list of ID messages from the cache."""
+    """Ищет кэш по обоим вариантам YouTube-ссылки (длинная/короткая)."""
     try:
-        url_hash = get_url_hash(normalize_url_for_cache(url))
-        ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
-        if ids_string:
-            # We convert the line back to the list of numbers
-            return [int(msg_id) for msg_id in ids_string.split(',')]
+        urls = [normalize_url_for_cache(url)]
+        if is_youtube_url(url):
+            urls.append(normalize_url_for_cache(youtube_to_short_url(url)))
+            urls.append(normalize_url_for_cache(youtube_to_long_url(url)))
+        for u in set(urls):
+            url_hash = get_url_hash(u)
+            ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
+            if ids_string:
+                return [int(msg_id) for msg_id in ids_string.split(',')]
         return None
     except Exception as e:
         logger.error(f"Failed to get from cache: {e}")
@@ -3499,5 +3505,38 @@ def extract_real_url_if_google(url: str) -> str:
             # Take the first variant, decode if needed
             return unquote(real_url[0])
     return url
+
+def youtube_to_short_url(url: str) -> str:
+    """Преобразует youtube.com/watch?v=... в youtu.be/... с сохранением query-параметров."""
+    parsed = urlparse(url)
+    if 'youtube.com' in parsed.netloc and parsed.path == '/watch':
+        qs = parse_qs(parsed.query)
+        v = qs.get('v', [None])[0]
+        if v:
+            # Собираем query без v
+            query = {k: v for k, v in qs.items() if k != 'v'}
+            query_str = urlencode(query, doseq=True)
+            base = f'https://youtu.be/{v}'
+            if query_str:
+                return f'{base}?{query_str}'
+            return base
+    return url
+
+def youtube_to_long_url(url: str) -> str:
+    """Преобразует youtu.be/... в youtube.com/watch?v=... с сохранением query-параметров."""
+    parsed = urlparse(url)
+    if 'youtu.be' in parsed.netloc:
+        video_id = parsed.path.lstrip('/')
+        if video_id:
+            qs = parsed.query
+            base = f'https://www.youtube.com/watch?v={video_id}'
+            if qs:
+                return f'{base}&{qs}'
+            return base
+    return url
+
+def is_youtube_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc
 
 app.run()
