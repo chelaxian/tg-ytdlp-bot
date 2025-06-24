@@ -1,6 +1,9 @@
 # Version 1.7.7 - Add TikTok URL cleaning for cache
-# Version 1.0.1 - Исправлена логика кэширования и репоста плейлистов
-# Теперь бот корректно кэширует каждое видео из плейлиста отдельно
+# Version 1.0.3 - Оптимизирована скорость работы бота
+# Убрана медленная проверка кэша для всех качеств, теперь проверяется только популярные качества
+# Восстановлен extract_flat=True для быстрого получения информации о плейлистах
+# Version 1.0.2 - Исправлена логика скачивания диапазона видео и аудио
+# Теперь бот корректно скачивает и кэширует каждое видео/аудио из плейлиста отдельно
 # и пересылает все закэшированные видео из диапазона
 
 import pyrebase
@@ -1627,6 +1630,15 @@ def down_and_audio(app, message, url, tags, quality_key=None):
     user_id = message.chat.id
     anim_thread = None
     stop_anim = threading.Event()
+    
+    # Извлекаем параметры диапазона из сообщения
+    full_string = message.text or message.caption or ""
+    _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
+    
+    # Проверяем, есть ли диапазон видео
+    is_playlist_range = (video_start_with != 1 or video_end_with != 1)
+    video_count = video_end_with - video_start_with + 1
+    
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
@@ -1670,38 +1682,66 @@ def down_and_audio(app, message, url, tags, quality_key=None):
     # If there is no flood error, send a normal message (only once)
     proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
     proc_msg_id = proc_msg.id
-    status_msg = app.send_message(user_id, "🎧 Audio is processing...")
+    
+    if is_playlist_range:
+        status_msg = app.send_message(user_id, f"🎧 Processing {video_count} audio files...")
+    else:
+        status_msg = app.send_message(user_id, "🎧 Audio is processing...")
+    
     hourglass_msg = app.send_message(user_id, "⏳ Please wait...")
     status_msg_id = status_msg.id
     hourglass_msg_id = hourglass_msg.id
     anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
     audio_file = None
+    
     try:
         # Check if there's enough disk space (estimate 500MB per audio file)
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_folder)
+        
+        required_space = 500 * 1024 * 1024 * video_count if is_playlist_range else 500 * 1024 * 1024
 
-        if not check_disk_space(user_folder, 500 * 1024 * 1024):
+        if not check_disk_space(user_folder, required_space):
             send_to_user(message, "❌ Not enough disk space to download the audio.")
             return
 
         check_user(message)
 
         cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
-        ytdl_opts = {
-            'format': 'ba',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-            'prefer_ffmpeg': True,
-            'extractaudio': True,
-            'noplaylist': True,
-            'cookiefile': cookie_file,
-            'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
-            'progress_hooks': [],
-        }
+        
+        if is_playlist_range:
+            # Скачиваем диапазон аудио из плейлиста
+            ytdl_opts = {
+                'format': 'ba',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'prefer_ffmpeg': True,
+                'extractaudio': True,
+                'playlist_items': f"{video_start_with}-{video_end_with}",
+                'cookiefile': cookie_file,
+                'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
+                'progress_hooks': [],
+            }
+        else:
+            # Обычное скачивание одного аудио
+            ytdl_opts = {
+                'format': 'ba',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'prefer_ffmpeg': True,
+                'extractaudio': True,
+                'noplaylist': True,
+                'cookiefile': cookie_file,
+                'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
+                'progress_hooks': [],
+            }
+        
         last_update = 0
         def progress_hook(d):
             nonlocal last_update
@@ -1748,47 +1788,93 @@ def down_and_audio(app, message, url, tags, quality_key=None):
             send_to_user(message, f"❌ Failed to download audio: {ytdl_error}")
             return
 
-        audio_title = info.get("title", "audio")
-        audio_title = sanitize_filename(audio_title)
-        audio_file = os.path.join(user_folder, audio_title + ".mp3")
-        if not os.path.exists(audio_file):
-            files = [f for f in os.listdir(user_folder) if f.endswith(".mp3")]
-            if files:
-                audio_file = os.path.join(user_folder, files[0])
-            else:
-                send_to_user(message, "Audio file not found after download.")
-                return
-        try:
-            full_bar = "🟩" * 10
-            safe_edit_message_text(user_id, proc_msg_id, f"Uploading audio file...\n{full_bar}   100.0%")
-        except Exception as e:
-            logger.error(f"Error updating upload status: {e}")
-        # We form a text with tags and a link for audio
-        tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
-        tags_text_final = generate_final_tags(url, tags_for_final, info)
-        tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
-        bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
-        bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
-        caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
-        try:
-            audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
-            forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
-            if quality_key and forwarded_msg:
-                if isinstance(forwarded_msg, list):
-                    msg_ids = [m.id for m in forwarded_msg]
+        if is_playlist_range and 'entries' in info:
+            # Обрабатываем плейлист
+            entries = info.get('entries', [])
+            for i, entry in enumerate(entries):
+                if not entry:
+                    continue
+                    
+                audio_title = entry.get("title", f"audio_{i+1}")
+                audio_title = sanitize_filename(audio_title)
+                audio_file = os.path.join(user_folder, audio_title + ".mp3")
+                
+                if not os.path.exists(audio_file):
+                    # Ищем файл по расширению
+                    files = [f for f in os.listdir(user_folder) if f.endswith(".mp3") and audio_title in f]
+                    if files:
+                        audio_file = os.path.join(user_folder, files[0])
+                    else:
+                        continue
+                
+                # Формируем теги и отправляем
+                tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
+                tags_text_final = generate_final_tags(url, tags_for_final, entry)
+                tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
+                bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
+                bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
+                caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({entry.get('webpage_url', url)}){bot_mention}"
+                
+                try:
+                    audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
+                    forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
+                    if quality_key and forwarded_msg:
+                        if isinstance(forwarded_msg, list):
+                            msg_ids = [m.id for m in forwarded_msg]
+                        else:
+                            msg_ids = [forwarded_msg.id]
+                        # Кэшируем конкретное аудио из плейлиста
+                        video_url_for_cache = entry.get('webpage_url') or entry.get('url') or url
+                        save_to_video_cache(video_url_for_cache, quality_key, msg_ids)
+                except Exception as send_error:
+                    logger.error(f"Error sending audio {i+1}: {send_error}")
+                    continue
+        else:
+            # Обычное скачивание одного аудио
+            audio_title = info.get("title", "audio")
+            audio_title = sanitize_filename(audio_title)
+            audio_file = os.path.join(user_folder, audio_title + ".mp3")
+            if not os.path.exists(audio_file):
+                files = [f for f in os.listdir(user_folder) if f.endswith(".mp3")]
+                if files:
+                    audio_file = os.path.join(user_folder, files[0])
                 else:
-                    msg_ids = [forwarded_msg.id]
-                # Кэшируем конкретное видео/аудио
-                video_url_for_cache = info.get('webpage_url') or info.get('url') or url
-                save_to_video_cache(video_url_for_cache, quality_key, msg_ids)
-        except Exception as send_error:
-            logger.error(f"Error sending audio: {send_error}")
-            send_to_user(message, f"❌ Failed to send audio: {send_error}")
-            return
+                    send_to_user(message, "Audio file not found after download.")
+                    return
+            try:
+                full_bar = "🟩" * 10
+                safe_edit_message_text(user_id, proc_msg_id, f"Uploading audio file...\n{full_bar}   100.0%")
+            except Exception as e:
+                logger.error(f"Error updating upload status: {e}")
+            # We form a text with tags and a link for audio
+            tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
+            tags_text_final = generate_final_tags(url, tags_for_final, info)
+            tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
+            bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
+            bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
+            caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
+            try:
+                audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
+                forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
+                if quality_key and forwarded_msg:
+                    if isinstance(forwarded_msg, list):
+                        msg_ids = [m.id for m in forwarded_msg]
+                    else:
+                        msg_ids = [forwarded_msg.id]
+                    # Кэшируем конкретное видео/аудио
+                    video_url_for_cache = info.get('webpage_url') or info.get('url') or url
+                    save_to_video_cache(video_url_for_cache, quality_key, msg_ids)
+            except Exception as send_error:
+                logger.error(f"Error sending audio: {send_error}")
+                send_to_user(message, f"❌ Failed to send audio: {send_error}")
+                return
 
         try:
             full_bar = "🟩" * 10
-            success_msg = f"✅ Audio successfully downloaded and sent.\n\n{Config.CREDITS_MSG}"
+            if is_playlist_range:
+                success_msg = f"✅ {video_count} audio files successfully downloaded and sent.\n\n{Config.CREDITS_MSG}"
+            else:
+                success_msg = f"✅ Audio successfully downloaded and sent.\n\n{Config.CREDITS_MSG}"
             safe_edit_message_text(user_id, proc_msg_id, success_msg)
         except Exception as e:
             logger.error(f"Error updating final status: {e}")
@@ -3143,15 +3229,20 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, playlist_r
     try:
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
         
-        # Проверяем кэш для диапазона видео, если указан
+        # Быстрая проверка кэша только для популярных качеств
         cached_qualities = set()
         if playlist_range:
             start_index, end_index = playlist_range
-            # Проверяем кэш для всех видео из диапазона
-            for quality_key in ['144p', '240p', '360p', '480p', '720p', '1080p', '1440p', '2160p', '4320p', 'best', 'mp3']:
-                cache_status = check_playlist_cache_status(url, user_id, start_index, end_index, quality_key)
-                if cache_status['cached_count'] > 0:
-                    cached_qualities.add(quality_key)
+            # Проверяем кэш только для популярных качеств для ускорения
+            popular_qualities = ['480p', '720p', '1080p', 'best', 'mp3']
+            for quality_key in popular_qualities:
+                try:
+                    cache_status = check_playlist_cache_status(url, user_id, start_index, end_index, quality_key)
+                    if cache_status['cached_count'] > 0:
+                        cached_qualities.add(quality_key)
+                except Exception as e:
+                    logger.error(f"Error checking cache for {quality_key}: {e}")
+                    continue
         else:
             # Старая логика для одного видео
             cached_qualities = get_cached_qualities(url)
@@ -3440,9 +3531,16 @@ def download_uncached_playlist_videos(app, message, url, uncached_videos, tags, 
 
 def download_playlist_videos(app, message, url, start_index, end_index, tags, quality_key):
     """Скачивает все видео из диапазона плейлиста."""
+    # Создаем временное сообщение с правильным текстом для диапазона
+    temp_message = type('TempMessage', (), {
+        'chat': type('TempChat', (), {'id': message.chat.id})(),
+        'text': f"{url}*{start_index}*{end_index}",
+        'id': message.id
+    })()
+    
     # Используем существующую логику down_and_up_with_format
     if quality_key == "mp3":
-        down_and_audio(app, message, url, tags, quality_key="mp3")
+        down_and_audio(app, temp_message, url, tags, quality_key="mp3")
     else:
         if quality_key == "best":
             fmt = "bestvideo+bestaudio/best"
@@ -3454,7 +3552,7 @@ def download_playlist_videos(app, message, url, start_index, end_index, tags, qu
             except ValueError:
                 fmt = "best"
         
-        down_and_up_with_format(app, message, url, fmt, ' '.join(tags), quality_key=quality_key)
+        down_and_up_with_format(app, temp_message, url, fmt, ' '.join(tags), quality_key=quality_key)
 
 def sanitize_autotag(tag: str) -> str:
     # Leave only letters (any language), numbers and _
@@ -3691,7 +3789,7 @@ def get_playlist_videos(url: str, user_id: int, start_index: int, end_index: int
             'skip_download': True,
             'forcejson': True,
             'no_warnings': True,
-            'extract_flat': False,  # Убираем extract_flat для получения полной информации
+            'extract_flat': True,  # Быстрое извлечение для проверки кэша
             'simulate': True,
             'playlist_items': f"{start_index}-{end_index}",
         }
@@ -3712,6 +3810,40 @@ def get_playlist_videos(url: str, user_id: int, start_index: int, end_index: int
         logger.error(f"Failed to get playlist videos: {e}")
         return []
 
+def get_playlist_videos_full_info(url: str, user_id: int, start_index: int, end_index: int) -> list:
+    """
+    Получает полную информацию о видео из плейлиста (медленно, но с полными метаданными).
+    Используется только при необходимости получения полной информации.
+    """
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        cookie_file = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
+        
+        ytdl_opts = {
+            'quiet': True,
+            'skip_download': True,
+            'forcejson': True,
+            'no_warnings': True,
+            'extract_flat': False,  # Полная информация
+            'simulate': True,
+            'playlist_items': f"{start_index}-{end_index}",
+        }
+        
+        if os.path.exists(cookie_file):
+            ytdl_opts['cookiefile'] = cookie_file
+            
+        with YoutubeDL(ytdl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+        if 'entries' in info and info.get('entries'):
+            return info['entries']
+        else:
+            return [info] if info else []
+            
+    except Exception as e:
+        logger.error(f"Failed to get playlist videos full info: {e}")
+        return []
+
 def check_playlist_cache_status(url: str, user_id: int, start_index: int, end_index: int, quality_key: str) -> dict:
     """
     Проверяет статус кэша для всех видео из диапазона плейлиста.
@@ -3726,10 +3858,15 @@ def check_playlist_cache_status(url: str, user_id: int, start_index: int, end_in
             if not video:
                 continue
                 
-            # Получаем URL конкретного видео
-            video_url = video.get('webpage_url') or video.get('url')
+            # Получаем URL конкретного видео (используем доступные поля)
+            video_url = video.get('webpage_url') or video.get('url') or video.get('id')
             if not video_url:
+                # Если нет URL, пропускаем
                 continue
+                
+            # Для YouTube видео формируем полный URL
+            if video.get('id') and not video_url.startswith('http'):
+                video_url = f"https://www.youtube.com/watch?v={video['id']}"
                 
             # Проверяем кэш для этого видео
             cached_msg_ids = get_cached_message_ids(video_url, quality_key)
