@@ -1,4 +1,7 @@
 # Version 1.7.7 - Add TikTok URL cleaning for cache
+# Version 1.0.1 - Исправлена логика кэширования и репоста плейлистов
+# Теперь бот корректно кэширует каждое видео из плейлиста отдельно
+# и пересылает все закэшированные видео из диапазона
 
 import pyrebase
 import re
@@ -3356,63 +3359,53 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         
         if cache_status['cached_count'] > 0:
             # Пересылаем все закэшированные видео
-            callback_query.answer(f"🚀 Found {cache_status['cached_count']} videos in cache! Forwarding instantly...", show_alert=False)
+            forwarded_count = 0
+            for cached_video in cache_status['cached_videos']:
+                try:
+                    # Пересылаем все сообщения из кэша для этого видео
+                    forwarded_msgs = safe_forward_messages(user_id, Config.LOGS_ID, cached_video['msg_ids'])
+                    if forwarded_msgs:
+                        forwarded_count += 1
+                        logger.info(f"Forwarded cached video {forwarded_count}/{cache_status['cached_count']}: {cached_video['video'].get('title', 'Unknown')}")
+                except Exception as e:
+                    logger.error(f"Error forwarding cached video: {e}")
             
-            try:
-                # Пересылаем все закэшированные видео
-                for cached_video in cache_status['cached']:
-                    try:
-                        app.forward_messages(
-                            chat_id=user_id,
-                            from_chat_id=Config.LOGS_ID,
-                            message_ids=cached_video['message_ids']
-                        )
-                    except Exception as e:
-                        logger.error(f"Error forwarding cached video {cached_video['url']}: {e}")
-                
-                # Отправляем подтверждение пользователю
-                media_type = "Audio" if data == "mp3" else "Video"
-                app.send_message(user_id, f"✅ {cache_status['cached_count']} {media_type.lower()}s successfully sent from cache.", reply_to_message_id=original_message.id)
-                
-                # Логируем в канал
-                log_msg = f"{cache_status['cached_count']} {media_type}s sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
-                send_to_logger(original_message, log_msg)
-                
-                # Если есть некэшированные видео, скачиваем их
-                if cache_status['uncached_count'] > 0:
-                    app.send_message(user_id, f"📥 Downloading {cache_status['uncached_count']} remaining videos...", reply_to_message_id=original_message.id)
-                    # Скачиваем недостающие видео
-                    download_uncached_playlist_videos(app, original_message, url, cache_status['uncached'], tags, data)
-                
-            except Exception as e:
-                logger.error(f"Error processing cached playlist videos: {e}")
-                # Если что-то пошло не так, скачиваем все видео заново
+            # Отправляем сообщение о количестве пересланных видео
+            if forwarded_count > 0:
+                app.send_message(
+                    user_id, 
+                    f"🚀 Переслано {forwarded_count} видео из кэша!",
+                    reply_to_message_id=original_message.id
+                )
+            
+            # Если не все видео закэшированы, скачиваем недостающие
+            if cache_status['cached_count'] < cache_status['total_count']:
+                missing_count = cache_status['total_count'] - cache_status['cached_count']
+                app.send_message(
+                    user_id,
+                    f"📥 Скачиваю {missing_count} недостающих видео...",
+                    reply_to_message_id=original_message.id
+                )
                 download_playlist_videos(app, original_message, url, video_start_with, video_end_with, tags, data)
         else:
-            # Нет закэшированных видео, скачиваем все
-            callback_query.answer(f"📥 Downloading {cache_status['total']} videos...", show_alert=False)
+            # Ничего не закэшировано, скачиваем все
             download_playlist_videos(app, original_message, url, video_start_with, video_end_with, tags, data)
     else:
-        # Старая логика для одного видео
+        # Обычное видео (не диапазон)
         if data == "mp3":
-            callback_query.answer("Downloading audio...")
             down_and_audio(app, original_message, url, tags, quality_key="mp3")
-            return
-
-        if data == "best":
-            callback_query.answer("Downloading best quality...")
-            fmt = "bestvideo+bestaudio/best"
         else:
-            quality_str = data.replace('p', '')
-            try:
-                quality_val = int(quality_str)
-                fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
-            except ValueError:
-                callback_query.answer("Unknown quality.")
-                return
-
-        callback_query.answer(f"Downloading {data}...")
-        down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
+            if data == "best":
+                fmt = "bestvideo+bestaudio/best"
+            else:
+                quality_str = data.replace('p', '')
+                try:
+                    quality_val = int(quality_str)
+                    fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+                except ValueError:
+                    fmt = "best"
+            
+            down_and_up_with_format(app, original_message, url, fmt, ' '.join(tags), quality_key=data)
 
 def download_uncached_playlist_videos(app, message, url, uncached_videos, tags, quality_key):
     """Скачивает только некэшированные видео из плейлиста."""
@@ -3698,7 +3691,7 @@ def get_playlist_videos(url: str, user_id: int, start_index: int, end_index: int
             'skip_download': True,
             'forcejson': True,
             'no_warnings': True,
-            'extract_flat': True,  # Быстрое извлечение без скачивания
+            'extract_flat': False,  # Убираем extract_flat для получения полной информации
             'simulate': True,
             'playlist_items': f"{start_index}-{end_index}",
         }
@@ -3722,35 +3715,47 @@ def get_playlist_videos(url: str, user_id: int, start_index: int, end_index: int
 def check_playlist_cache_status(url: str, user_id: int, start_index: int, end_index: int, quality_key: str) -> dict:
     """
     Проверяет статус кэша для всех видео из диапазона плейлиста.
-    Возвращает словарь с информацией о кэшированных и некэшированных видео.
+    Возвращает словарь с информацией о закэшированных видео.
     """
-    videos = get_playlist_videos(url, user_id, start_index, end_index)
-    cached_videos = []
-    uncached_videos = []
-    
-    for video in videos:
-        video_url = video.get('webpage_url') or video.get('url')
-        if video_url:
-            cached_ids = get_cached_message_ids(video_url, quality_key)
-            if cached_ids:
+    try:
+        videos = get_playlist_videos(url, user_id, start_index, end_index)
+        cached_videos = []
+        cached_count = 0
+        
+        for video in videos:
+            if not video:
+                continue
+                
+            # Получаем URL конкретного видео
+            video_url = video.get('webpage_url') or video.get('url')
+            if not video_url:
+                continue
+                
+            # Проверяем кэш для этого видео
+            cached_msg_ids = get_cached_message_ids(video_url, quality_key)
+            if cached_msg_ids:
+                cached_count += 1
                 cached_videos.append({
                     'video': video,
                     'url': video_url,
-                    'message_ids': cached_ids
+                    'msg_ids': cached_msg_ids
                 })
-            else:
-                uncached_videos.append({
-                    'video': video,
-                    'url': video_url
-                })
-    
-    return {
-        'cached': cached_videos,
-        'uncached': uncached_videos,
-        'total': len(videos),
-        'cached_count': len(cached_videos),
-        'uncached_count': len(uncached_videos)
-    }
+        
+        return {
+            'cached_count': cached_count,
+            'total_count': len(videos),
+            'cached_videos': cached_videos,
+            'has_cache': cached_count > 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to check playlist cache status: {e}")
+        return {
+            'cached_count': 0,
+            'total_count': 0,
+            'cached_videos': [],
+            'has_cache': False
+        }
 
 # --- an auxiliary function for downloading with the format ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
