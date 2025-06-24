@@ -3382,12 +3382,12 @@ def get_url_hash(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False):
-    """Сохраняет ID сообщений в кэш сразу по двум вариантам YouTube-ссылки (длинная/короткая)."""
+    """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
     if not quality_key:
         return
     try:
         urls = [normalize_url_for_cache(url)]
-        # Если это YouTube, добавляем оба варианта
+        # If it's YouTube, add both options
         if is_youtube_url(url):
             urls.append(normalize_url_for_cache(youtube_to_short_url(url)))
             urls.append(normalize_url_for_cache(youtube_to_long_url(url)))
@@ -3452,8 +3452,10 @@ def normalize_url_for_cache(url: str) -> str:
     path = parsed.path
     query_params = parse_qs(parsed.query)
 
-    # --- YouTube/youtu.be: youtube.com (без www) оставлять, www.youtu.be -> youtu.be ---
-    if domain == 'www.youtu.be':
+    # --- YouTube/youtu.be: always from www.youtube.com and youtu.be ---
+    if domain in ('youtube.com', 'www.youtube.com'):
+        domain = 'www.youtube.com'
+    if domain in ('youtu.be', 'www.youtu.be'):
         domain = 'youtu.be'
 
     # Pornhub: ignore subdomain, always use pornhub.com
@@ -3518,7 +3520,7 @@ def youtube_to_short_url(url: str) -> str:
         qs = parse_qs(parsed.query)
         v = qs.get('v', [None])[0]
         if v:
-            # Собираем query без v
+            # Collect query without v
             query = {k: v for k, v in qs.items() if k != 'v'}
             query_str = urlencode(query, doseq=True)
             base = f'https://youtu.be/{v}'
