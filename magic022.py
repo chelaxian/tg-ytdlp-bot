@@ -3092,6 +3092,12 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         return info['entries'][0]
     return info
 
+def get_playlist_video_urls(playlist_url, user_id=None):
+    info = get_video_formats(playlist_url, user_id)
+    if 'entries' in info and info['entries']:
+        return [normalize_url_for_cache(e['webpage_url']) for e in info['entries'] if 'webpage_url' in e]
+    return []
+
 # --- Always ask processing ---
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
@@ -3126,34 +3132,39 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         # List for sorting and display
         quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
         quality_buttons = []
+        # --- Новый блок: если это плейлист, проверяем кэш по всем видео ---
+        playlist_video_urls = get_playlist_video_urls(url, user_id)
+        def playlist_any_in_cache(quality_key):
+            for vurl in playlist_video_urls:
+                if get_cached_message_ids(vurl, quality_key):
+                    return True
+            return False
         # Create the buttons in the correct order
         for height in quality_order:
             if height in available_heights:
                 quality_key = f"{height}p"
-                icon = "🚀" if quality_key in cached_qualities else "📹"
+                icon = "🚀" if (quality_key in cached_qualities or (playlist_video_urls and playlist_any_in_cache(quality_key))) else "📹"
                 button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         # If no standard quality was found, but there are others
         if not quality_buttons and available_heights:
             for height in sorted(list(available_heights)):
                 quality_key = f"{height}p"
-                icon = "🚀" if quality_key in cached_qualities else "📹"
+                icon = "🚀" if (quality_key in cached_qualities or (playlist_video_urls and playlist_any_in_cache(quality_key))) else "📹"
                 button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        
         # If there are no available video qualities, add the best quality button
         if not quality_buttons:
             quality_key = "best"
-            icon = "🚀" if quality_key in cached_qualities else "📹"
+            icon = "🚀" if (quality_key in cached_qualities or (playlist_video_urls and playlist_any_in_cache(quality_key))) else "📹"
             button_text = f"{icon} Best Quality"
             quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        
         # Pass the buttons in 3 rows
         for i in range(0, len(quality_buttons), 3):
             buttons.append(quality_buttons[i:i+3])
         # --- button mp3 ---
         quality_key = "mp3"
-        icon = "🚀" if quality_key in cached_qualities else "🎵"
+        icon = "🚀" if (quality_key in cached_qualities or (playlist_video_urls and playlist_any_in_cache(quality_key))) else "🎵"
         button_text = f"{icon} audio (mp3)"
         buttons.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
@@ -3163,10 +3174,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
-        
         hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
         cap += f"\n<blockquote>{hint}</blockquote>"
-
         cap += hidden_link
         # --- Sending ---
         app.delete_messages(user_id, proc_msg.id)
@@ -3176,7 +3185,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         else:
             app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu sent for {url}")
-
     except FloodWait as e:
         wait_time = e.value
         user_dir = os.path.join("users", str(user_id))
@@ -3184,17 +3192,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         flood_time_file = os.path.join(user_dir, "flood_wait.txt")
         with open(flood_time_file, 'w') as f:
             f.write(str(wait_time))
-        
         hours = wait_time // 3600
         minutes = (wait_time % 3600) // 60
         seconds = wait_time % 60
         time_str = f"{hours}h {minutes}m {seconds}s"
         flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
-        
         if proc_msg:
             app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
         return
-
     except Exception as e:
         error_text = f"❌ Error while getting video info:\n{e}\n\nFirst, try the /clean command and then try again.\nIf the error persists, YouTube may require authentication.\nPlease update your cookie.txt using /download_cookie or /cookies_from_browser and try again."
         if proc_msg:
@@ -3284,11 +3289,28 @@ def askq_callback(app, callback_query):
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
     user_id = callback_query.from_user.id
     tags = tags_text.split() if tags_text else []
+    # --- Новый блок: если это плейлист, работаем по каждому видео ---
+    playlist_video_urls = get_playlist_video_urls(url, user_id)
+    if playlist_video_urls:
+        # Для каждого видео из плейлиста
+        for vurl in playlist_video_urls:
+            msg_ids = get_cached_message_ids(vurl, data)
+            if msg_ids:
+                # Переслать из кэша
+                app.forward_messages(
+                    chat_id=user_id,
+                    from_chat_id=Config.LOGS_ID,
+                    message_ids=msg_ids
+                )
+            else:
+                # Скачать и кэшировать (через down_and_up_with_format)
+                down_and_up_with_format(app, original_message, vurl, data, tags_text, quality_key=data)
+        return
+    # --- Обычная логика для одиночного видео ---
     if data == "mp3":
         callback_query.answer("Downloading audio...")
         down_and_audio(app, original_message, url, tags, quality_key="mp3")
         return
-
     if data == "best":
         callback_query.answer("Downloading best quality...")
         fmt = "bestvideo+bestaudio/best"
@@ -3300,7 +3322,6 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         except ValueError:
             callback_query.answer("Unknown quality.")
             return
-
     callback_query.answer(f"Downloading {data}...")
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
 
