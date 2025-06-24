@@ -1,4 +1,4 @@
-# Version 1.7.0 - Refined YouTube URL normalization logic for caching
+# Version 1.7.2 - Tag section only from user and auto-tags, improved truncate_caption
 
 import pyrebase
 import re
@@ -2926,14 +2926,14 @@ def get_auto_tags(url, user_tags):
     auto_tags = set()
     clean_url = get_clean_url_for_tagging(url)
     url_l = clean_url.lower()
-    # 1. Porn Check (for all the suffixes of the domain, but taking into account the white list)
+    # 1. Porn Check (for all the suffixes of the domain, but taking into account the whitelist)
     domain_parts, _ = extract_domain_parts(url_l)
     if is_porn_domain(domain_parts):
         auto_tags.add(sanitize_autotag('porn'))
     # 2. YouTube Check (including YouTu.be)
     if ("youtube.com" in url_l or "youtu.be" in url_l):
         auto_tags.add("#youtube")
-    # 3. Twitter/X check (точное совпадение домена)
+    # 3. Twitter/X check (exact domain match)
     twitter_domains = {"twitter.com", "x.com", "t.co"}
     parsed = urlparse(clean_url)
     domain = parsed.netloc.lower()
@@ -2944,7 +2944,8 @@ def get_auto_tags(url, user_tags):
         auto_tags.add("#boosty")
         auto_tags.add("#porn")
     # Do not duplicate user tags
-    auto_tags = [t for t in auto_tags if t.lower() not in [ut.lower() for ut in user_tags]]
+    user_tags_lower = set(t.lower() for t in user_tags)
+    auto_tags = [t for t in auto_tags if t.lower() not in user_tags_lower]
     return auto_tags
 
 # --- White list of domains that are not considered porn ---
@@ -3319,52 +3320,49 @@ def sanitize_autotag(tag: str) -> str:
     return '#' + re.sub(r'[^\w\d_]', '_', tag.lstrip('#'), flags=re.UNICODE)
 
 def generate_final_tags(url, user_tags, info_dict):
-    """Generates the final line of tags, including user and all types of automatic."""
-    
-    video_title = info_dict.get("title", "")
-    # Find all hashtags in the title
-    title_tags = set(re.findall(r'#\w+', video_title))
-
-    # 1. We start with tags set by the user (lead to SET for uniqueness), excluding those already in the title
-    final_tags = set(tag for tag in user_tags if tag not in title_tags)
-
-
-    # 2. Add auto tags (porn, supported_sites.txt)
-    # Important: we transfer the original URL to Get_auto_tags, because she cleans him herself
-    auto_tags_list = get_auto_tags(url, list(final_tags) + list(title_tags))
-    for tag in auto_tags_list:
-        final_tags.add(tag)
-
-    # 3. Add tiktok profile tag
-    # IS_TIKTOK_URL and EXTRACT_TIKTOK_PROFILE themselves clean the link
+    """Only user and auto-tags (service, channel/profile, porn) are included in the tag section."""
+    final_tags = []
+    seen = set()
+    # 1. Custom tags
+    for tag in user_tags:
+        tag_l = tag.lower()
+        if tag_l not in seen:
+            final_tags.append(tag)
+            seen.add(tag_l)
+    # 2. Auto-tags (no duplicates with user ones)
+    auto_tags = get_auto_tags(url, final_tags)
+    for tag in auto_tags:
+        tag_l = tag.lower()
+        if tag_l not in seen:
+            final_tags.append(tag)
+            seen.add(tag_l)
+    # 3. Profile/channel tags (tiktok/youtube)
     if is_tiktok_url(url):
         tiktok_profile = extract_tiktok_profile(url)
         if tiktok_profile:
-            final_tags.add(sanitize_autotag(tiktok_profile))
-        # Also add the overall tag #tiktok
-        final_tags.add("#tiktok")
-
-    # 4. Add the YouTube channel tag (from info_dict)
+            tiktok_tag = sanitize_autotag(tiktok_profile)
+            if tiktok_tag.lower() not in seen:
+                final_tags.append(tiktok_tag)
+                seen.add(tiktok_tag.lower())
+        if '#tiktok' not in seen:
+            final_tags.append('#tiktok')
+            seen.add('#tiktok')
     clean_url_for_check = get_clean_url_for_tagging(url)
     if ("youtube.com" in clean_url_for_check or "youtu.be" in clean_url_for_check) and info_dict:
         channel_name = info_dict.get("channel") or info_dict.get("uploader")
         if channel_name:
-            final_tags.add(sanitize_autotag(channel_name))
-            
-    # 5. New: Add #Porn tag based on a complete check
+            channel_tag = sanitize_autotag(channel_name)
+            if channel_tag.lower() not in seen:
+                final_tags.append(channel_tag)
+                seen.add(channel_tag.lower())
+    # 4. #porn if determined by content
     video_title = info_dict.get("title")
     video_description = info_dict.get("description")
     if is_porn(url, video_title, video_description):
-        final_tags.add("#porn")
-            
-    # We collect unique tags without taking into account the register, preserving the register of the first entry
-    unique_tags_case_insensitive = {}
-    # We sort for stable order and predictability
-    for tag in sorted(list(final_tags)):
-        if tag.lower() not in unique_tags_case_insensitive:
-            unique_tags_case_insensitive[tag.lower()] = tag
-
-    result = ' '.join(unique_tags_case_insensitive.values())
+        if '#porn' not in seen:
+            final_tags.append('#porn')
+            seen.add('#porn')
+    result = ' '.join(final_tags)
     logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
     return result
 
@@ -3430,49 +3428,41 @@ def normalize_url_for_cache(url: str) -> str:
     if not isinstance(url, str):
         return ''
 
-    # First, handle potential redirects or URL wrappers
     url = extract_real_url_if_google(url)
     clean_url = get_clean_url_for_tagging(url)
-    
     parsed = urlparse(clean_url)
     domain = parsed.netloc.lower()
+    path = parsed.path
+    query_params = parse_qs(parsed.query)
 
-    # Apply rules only to YouTube domains
-    if 'youtube.com' in domain or 'youtu.be' in domain:
-        path = parsed.path
-        query_params = parse_qs(parsed.query)
+    # Shorts and youtu.be: always strip all params
+    if (('youtube.com' in domain and path.startswith('/shorts/')) or ('youtu.be' in domain)):
+        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
 
-        # Rule for /watch links: only 'v' is essential for identifying the video.
-        if path == '/watch':
-            if 'v' in query_params:
-                new_query = urlencode({'v': query_params['v']}, doseq=True)
-                return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
-            # If no 'v', it's an invalid link, return base.
-            return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
-        
-        # Rule for /playlist links: only 'list' is essential.
-        if path == '/playlist':
-            if 'list' in query_params:
-                new_query = urlencode({'list': query_params['list']}, doseq=True)
-                return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
-            # If no 'list', it's an invalid link, return base.
-            return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
-
-        # Rule for /embed links: ID is in path, only 'playlist' is a potentially needed param for loops.
-        if path.startswith('/embed/'):
-             allowed_params = {k: v for k, v in query_params.items() if k == 'playlist'}
-             new_query = urlencode(allowed_params, doseq=True)
-             return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
-
-        # For shorts, live links, and youtu.be, the identifier is in the path. All params can be stripped.
-        if path.startswith(('/shorts/', '/live/')) or path.endswith('/live') or 'youtu.be' in domain:
-            return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
-
-    # Fallback for other non-YouTube domains on the cleaning list
+    # /watch: only v
+    if 'youtube.com' in domain and path == '/watch':
+        if 'v' in query_params:
+            new_query = urlencode({'v': query_params['v']}, doseq=True)
+            return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
+        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+    # /playlist: list only
+    if 'youtube.com' in domain and path == '/playlist':
+        if 'list' in query_params:
+            new_query = urlencode({'list': query_params['list']}, doseq=True)
+            return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
+        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+    # /embed: playlist only
+    if 'youtube.com' in domain and path.startswith('/embed/'):
+        allowed_params = {k: v for k, v in query_params.items() if k == 'playlist'}
+        new_query = urlencode(allowed_params, doseq=True)
+        return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
+    # live: only way
+    if 'youtube.com' in domain and (path.startswith('/live/') or path.endswith('/live')):
+        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+    # fallback for other domains
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
         if domain == clean_domain:
             return urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
-            
     # For all other URLs, return them as they are
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ''))
 
