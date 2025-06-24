@@ -3440,7 +3440,7 @@ def normalize_url_for_cache(url: str) -> str:
     """
     Normalizes URLs for caching based on a set of specific rules,
     removing all non-essential query parameters.
-    Для YouTube/youtu.be всегда домен без www.
+    Для youtube.com (без www) оставлять как есть, для youtu.be всегда без www.
     """
     if not isinstance(url, str):
         return ''
@@ -3452,10 +3452,8 @@ def normalize_url_for_cache(url: str) -> str:
     path = parsed.path
     query_params = parse_qs(parsed.query)
 
-    # --- YouTube/youtu.be: всегда без www ---
-    if domain in ('www.youtube.com', 'youtube.com'):
-        domain = 'youtube.com'
-    if domain in ('www.youtu.be', 'youtu.be'):
+    # --- YouTube/youtu.be: youtube.com (без www) оставлять, www.youtu.be -> youtu.be ---
+    if domain == 'www.youtu.be':
         domain = 'youtu.be'
 
     # Pornhub: ignore subdomain, always use pornhub.com
