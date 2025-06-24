@@ -1,4 +1,4 @@
-# Version 1.7.2 - Tag section only from user and auto-tags, improved truncate_caption
+# Version 1.7.5 - Remove all old tag-related functions, only new logic remains
 
 import pyrebase
 import re
@@ -1820,7 +1820,7 @@ def down_and_audio(app, message, url, tags, quality_key=None):
 # Download_and_up function
 # ########################################
 
-def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
+def down_and_up(app, message, url, playlist_name, video_count, video_start_with, user_tags, force_no_title=False, format_override=None, quality_key=None):
     user_id = message.chat.id
     try:
         # Check if there is a saved waiting time
@@ -2085,7 +2085,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             video_title = sanitize_filename(video_title) if video_title else "video"
 
             # --- Use new centralized function for all tags ---
-            tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
+            tags_text_final = generate_final_tags(url, user_tags, info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
            # If rename_name is not set, set it equal to video_title
@@ -3312,7 +3312,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None)
     is_tiktok = is_tiktok_url(url)
 
     # We call the main function of loading with the correct parameters of the playlist
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
+    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
 
 
 def sanitize_autotag(tag: str) -> str:
@@ -3320,48 +3320,51 @@ def sanitize_autotag(tag: str) -> str:
     return '#' + re.sub(r'[^\w\d_]', '_', tag.lstrip('#'), flags=re.UNICODE)
 
 def generate_final_tags(url, user_tags, info_dict):
-    """Only user and auto-tags (service, channel/profile, porn) are included in the tag section."""
+    """
+    Generates the final tag string.
+    Includes only user-provided tags and auto-generated tags (service, channel/profile, porn).
+    Tags from the video title or description are completely ignored.
+    """
     final_tags = []
-    seen = set()
-    # 1. Custom tags
+    seen_tags = set()
+
+    # 1. Add user-provided tags (unique)
     for tag in user_tags:
-        tag_l = tag.lower()
-        if tag_l not in seen:
+        if tag.lower() not in seen_tags:
             final_tags.append(tag)
-            seen.add(tag_l)
-    # 2. Auto-tags (no duplicates with user ones)
-    auto_tags = get_auto_tags(url, final_tags)
-    for tag in auto_tags:
-        tag_l = tag.lower()
-        if tag_l not in seen:
+            seen_tags.add(tag.lower())
+
+    # 2. Add service tags (#youtube, #tiktok, etc.)
+    service_tags = get_service_tags(url, final_tags)
+    for tag in service_tags:
+        if tag.lower() not in seen_tags:
             final_tags.append(tag)
-            seen.add(tag_l)
-    # 3. Profile/channel tags (tiktok/youtube)
-    if is_tiktok_url(url):
-        tiktok_profile = extract_tiktok_profile(url)
-        if tiktok_profile:
-            tiktok_tag = sanitize_autotag(tiktok_profile)
-            if tiktok_tag.lower() not in seen:
-                final_tags.append(tiktok_tag)
-                seen.add(tiktok_tag.lower())
-        if '#tiktok' not in seen:
-            final_tags.append('#tiktok')
-            seen.add('#tiktok')
-    clean_url_for_check = get_clean_url_for_tagging(url)
-    if ("youtube.com" in clean_url_for_check or "youtu.be" in clean_url_for_check) and info_dict:
+            seen_tags.add(tag.lower())
+
+    # 3. Add channel/profile tag
+    channel_tag = None
+    clean_url = get_clean_url_for_tagging(url)
+    if "youtube.com" in clean_url or "youtu.be" in clean_url:
         channel_name = info_dict.get("channel") or info_dict.get("uploader")
         if channel_name:
             channel_tag = sanitize_autotag(channel_name)
-            if channel_tag.lower() not in seen:
-                final_tags.append(channel_tag)
-                seen.add(channel_tag.lower())
-    # 4. #porn if determined by content
+    elif is_tiktok_url(url):
+        profile_name = extract_tiktok_profile(url)
+        if profile_name:
+            channel_tag = sanitize_autotag(profile_name)
+    
+    if channel_tag and channel_tag.lower() not in seen_tags:
+        final_tags.append(channel_tag)
+        seen_tags.add(channel_tag.lower())
+
+    # 4. Add #porn tag if applicable
     video_title = info_dict.get("title")
     video_description = info_dict.get("description")
     if is_porn(url, video_title, video_description):
-        if '#porn' not in seen:
-            final_tags.append('#porn')
-            seen.add('#porn')
+        if "#porn" not in seen_tags:
+            final_tags.append("#porn")
+            seen_tags.add("#porn")
+
     result = ' '.join(final_tags)
     logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
     return result
@@ -3480,5 +3483,29 @@ def extract_real_url_if_google(url: str) -> str:
             # Take the first variant, decode if needed
             return unquote(real_url[0])
     return url
+
+def get_service_tags(url: str, user_tags: list) -> list:
+    """Gets service-level tags like #youtube, #tiktok, etc."""
+    auto_tags = set()
+    clean_url = get_clean_url_for_tagging(url)
+    url_l = clean_url.lower()
+
+    if "youtube.com" in url_l or "youtu.be" in url_l:
+        auto_tags.add("#youtube")
+    if is_tiktok_url(url):
+        auto_tags.add("#tiktok")
+    
+    twitter_domains = {"twitter.com", "x.com", "t.co"}
+    parsed = urlparse(clean_url)
+    if parsed.netloc.lower() in twitter_domains:
+        auto_tags.add("#twitter")
+        
+    if "boosty.to" in url_l or "boosty.com" in url_l:
+        auto_tags.add("#boosty")
+
+    user_tags_lower = {t.lower() for t in user_tags}
+    return [t for t in auto_tags if t.lower() not in user_tags_lower]
+
+
 
 app.run()
