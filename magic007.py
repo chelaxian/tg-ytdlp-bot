@@ -1,4 +1,4 @@
-# Version 1.6.4 - All remaining Russian comments translated to English
+# Version 1.6.5 - Improved tagging, logging, and caching logic
 
 import pyrebase
 import re
@@ -1249,7 +1249,7 @@ def send_to_user(message, msg):
 def send_to_all(message, msg):
     user_id = message.chat.id
     msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    safe_send_message(Config.LOGS_ID, msg_with_id, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
+    safe_send_message(Config.LOGS_ID, msg_with_id, parse_mode=enums.ParseMode.MARKDOWN)
     safe_send_message(user_id, msg, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
 
 def progress_bar(*args):
@@ -1392,8 +1392,9 @@ def send_videos(
                 user_doc_msg = app.send_document(
                     chat_id=user_id,
                     document=temp_desc_path,
-                    caption="📝 if you want to change video caption - reply to video with new text",
-                    reply_to_message_id=message.id
+                    caption="<blockquote>📝 if you want to change video caption - reply to video with new text</blockquote>",
+                    reply_to_message_id=message.id,
+                    parse_mode=enums.ParseMode.HTML
                 )
                 safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
             except Exception as e:
@@ -3093,9 +3094,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         title = info.get('title', 'Video')
         video_id = info.get('id')
         # --- Autotics ---
-        auto_tags = get_auto_tags(url, tags)
-        all_tags = tags + auto_tags
-        tags_text = ' '.join(all_tags)
+        tags_text = generate_final_tags(url, tags, info)
         # --- Picture ---
         thumb_path = None
         user_dir = os.path.join("users", str(user_id))
@@ -3322,12 +3321,17 @@ def sanitize_autotag(tag: str) -> str:
 def generate_final_tags(url, user_tags, info_dict):
     """Generates the final line of tags, including user and all types of automatic."""
     
-    # 1. We start with tags set by the user (lead to SET for uniqueness)
-    final_tags = set(user_tags)
+    video_title = info_dict.get("title", "")
+    # Find all hashtags in the title
+    title_tags = set(re.findall(r'#\w+', video_title))
+
+    # 1. We start with tags set by the user (lead to SET for uniqueness), excluding those already in the title
+    final_tags = set(tag for tag in user_tags if tag not in title_tags)
+
 
     # 2. Add auto tags (porn, supported_sites.txt)
     # Important: we transfer the original URL to Get_auto_tags, because she cleans him herself
-    auto_tags_list = get_auto_tags(url, list(final_tags))
+    auto_tags_list = get_auto_tags(url, list(final_tags) + list(title_tags))
     for tag in auto_tags_list:
         final_tags.add(tag)
 
@@ -3429,6 +3433,13 @@ def normalize_url_for_cache(url: str) -> str:
     # If Google redirect, extract the real URL
     url = extract_real_url_if_google(url)
     clean_url = get_clean_url_for_tagging(url)
+    
+    # Specific rule for youtube watch URLs
+    if "youtube.com/watch" in clean_url:
+        m = re.match(r'(https://www\.youtube\.com/watch\?v=[^&]+)', clean_url)
+        if m:
+            return m.group(1)
+
     parsed = urlparse(clean_url)
     domain = parsed.netloc.lower()
     # Check if the domain is on the list to be cleaned (full match only)
