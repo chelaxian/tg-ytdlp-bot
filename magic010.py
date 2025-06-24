@@ -1,4 +1,4 @@
-# Version 1.6.9 - Implemented a comprehensive YouTube URL normalization logic based on new rules
+# Version 1.7.0 - Refined YouTube URL normalization logic for caching
 
 import pyrebase
 import re
@@ -3442,31 +3442,31 @@ def normalize_url_for_cache(url: str) -> str:
         path = parsed.path
         query_params = parse_qs(parsed.query)
 
-        # --- Rule: For permanent channel live links, the path is the only identifier ---
-        if path.endswith('/live'):
+        # Rule for /watch links: only 'v' is essential for identifying the video.
+        if path == '/watch':
+            if 'v' in query_params:
+                new_query = urlencode({'v': query_params['v']}, doseq=True)
+                return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
+            # If no 'v', it's an invalid link, return base.
             return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
         
-        # --- Rule: For playlist links, only the 'list' parameter is essential ---
+        # Rule for /playlist links: only 'list' is essential.
         if path == '/playlist':
             if 'list' in query_params:
                 new_query = urlencode({'list': query_params['list']}, doseq=True)
                 return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
-            else:
-                # A playlist link without a 'list' param is invalid, but we return its base path
-                return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+            # If no 'list', it's an invalid link, return base.
+            return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
 
-        # --- General Rule: For all other video links, keep only essential parameters ---
-        # Essential params: v, list, t, playlist
-        allowed_params = {'v', 'list', 'playlist'}
-        
-        filtered_params = {
-            k: v for k, v in query_params.items() if k in allowed_params
-        }
+        # Rule for /embed links: ID is in path, only 'playlist' is a potentially needed param for loops.
+        if path.startswith('/embed/'):
+             allowed_params = {k: v for k, v in query_params.items() if k == 'playlist'}
+             new_query = urlencode(allowed_params, doseq=True)
+             return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
 
-        new_query = urlencode(filtered_params, doseq=True)
-        # Reconstruct URL with the cleaned path and query
-        final_path = path if 'youtu.be' not in domain else parsed.path
-        return urlunparse((parsed.scheme, parsed.netloc, final_path, '', new_query, ''))
+        # For shorts, live links, and youtu.be, the identifier is in the path. All params can be stripped.
+        if path.startswith(('/shorts/', '/live/')) or path.endswith('/live') or 'youtu.be' in domain:
+            return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
 
     # Fallback for other non-YouTube domains on the cleaning list
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
