@@ -5,6 +5,8 @@
 # Version 1.0.2 - Исправлена логика скачивания диапазона видео и аудио
 # Теперь бот корректно скачивает и кэширует каждое видео/аудио из плейлиста отдельно
 # и пересылает все закэшированные видео из диапазона
+# Version 1.0.4 - Исправлена ошибка с атрибутом first_name в временных объектах
+# Добавлен атрибут first_name в TempChat для совместимости с функцией write_logs
 
 import pyrebase
 import re
@@ -3508,7 +3510,10 @@ def download_uncached_playlist_videos(app, message, url, uncached_videos, tags, 
         
         # Создаем временное сообщение для скачивания
         temp_message = type('TempMessage', (), {
-            'chat': type('TempChat', (), {'id': user_id})(),
+            'chat': type('TempChat', (), {
+                'id': user_id,
+                'first_name': getattr(message.chat, 'first_name', 'User')
+            })(),
             'text': video_url,
             'id': message.id
         })()
@@ -3533,7 +3538,10 @@ def download_playlist_videos(app, message, url, start_index, end_index, tags, qu
     """Скачивает все видео из диапазона плейлиста."""
     # Создаем временное сообщение с правильным текстом для диапазона
     temp_message = type('TempMessage', (), {
-        'chat': type('TempChat', (), {'id': message.chat.id})(),
+        'chat': type('TempChat', (), {
+            'id': message.chat.id,
+            'first_name': getattr(message.chat, 'first_name', 'User')
+        })(),
         'text': f"{url}*{start_index}*{end_index}",
         'id': message.id
     })()
