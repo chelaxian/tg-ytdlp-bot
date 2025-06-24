@@ -3440,6 +3440,7 @@ def normalize_url_for_cache(url: str) -> str:
     """
     Normalizes URLs for caching based on a set of specific rules,
     removing all non-essential query parameters.
+    Для YouTube/youtu.be всегда домен без www.
     """
     if not isinstance(url, str):
         return ''
@@ -3451,6 +3452,12 @@ def normalize_url_for_cache(url: str) -> str:
     path = parsed.path
     query_params = parse_qs(parsed.query)
 
+    # --- YouTube/youtu.be: всегда без www ---
+    if domain in ('www.youtube.com', 'youtube.com'):
+        domain = 'youtube.com'
+    if domain in ('www.youtu.be', 'youtu.be'):
+        domain = 'youtu.be'
+
     # Pornhub: ignore subdomain, always use pornhub.com
     if domain.endswith('.pornhub.com'):
         base_domain = 'pornhub.com'
@@ -3458,38 +3465,38 @@ def normalize_url_for_cache(url: str) -> str:
 
     # TikTok: always strip all params, keep only path
     if 'tiktok.com' in domain:
-        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+        return urlunparse((parsed.scheme, domain, path, '', '', ''))
 
     # Shorts and youtu.be: always strip all params
     if (("youtube.com" in domain and path.startswith('/shorts/')) or ("youtu.be" in domain)):
-        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+        return urlunparse((parsed.scheme, domain, path, '', '', ''))
 
     # /watch: only v
     if 'youtube.com' in domain and path == '/watch':
         if 'v' in query_params:
             new_query = urlencode({'v': query_params['v']}, doseq=True)
-            return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
-        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+            return urlunparse((parsed.scheme, domain, path, '', new_query, ''))
+        return urlunparse((parsed.scheme, domain, path, '', '', ''))
     # /playlist: list only
     if 'youtube.com' in domain and path == '/playlist':
         if 'list' in query_params:
             new_query = urlencode({'list': query_params['list']}, doseq=True)
-            return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
-        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+            return urlunparse((parsed.scheme, domain, path, '', new_query, ''))
+        return urlunparse((parsed.scheme, domain, path, '', '', ''))
     # /embed: playlist only
     if 'youtube.com' in domain and path.startswith('/embed/'):
         allowed_params = {k: v for k, v in query_params.items() if k == 'playlist'}
         new_query = urlencode(allowed_params, doseq=True)
-        return urlunparse((parsed.scheme, parsed.netloc, path, '', new_query, ''))
+        return urlunparse((parsed.scheme, domain, path, '', new_query, ''))
     # live: only way
     if 'youtube.com' in domain and (path.startswith('/live/') or path.endswith('/live')):
-        return urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+        return urlunparse((parsed.scheme, domain, path, '', '', ''))
     # fallback for CLEAN_QUERY domains (suffix match)
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
         if domain == clean_domain or domain.endswith('.' + clean_domain):
-            return urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
+            return urlunparse((parsed.scheme, domain, parsed.path, '', '', ''))
     # For all other URLs, return them as they are
-    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ''))
+    return urlunparse((parsed.scheme, domain, parsed.path, parsed.params, parsed.query, ''))
 
 def extract_real_url_if_google(url: str) -> str:
     """
