@@ -4299,13 +4299,17 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 logger.warning(f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
                 continue
             
-            # Создаем структуру данных: {index: message_id}
-            playlist_data = {}
-            for i, msg_id in zip(video_indices, message_ids):
-                playlist_data[str(i)] = str(msg_id)
+            # Сначала получаем существующие данные для данного качества
+            existing_data = cache_ref.child(quality_key).get().val() or {}
+            logger.info(f"save_to_playlist_cache: existing data for quality {quality_key}: {existing_data}")
             
-            cache_ref.update({quality_key: playlist_data})
-            logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, data: {playlist_data}")
+            # Добавляем новые индексы к существующим данным
+            for i, msg_id in zip(video_indices, message_ids):
+                existing_data[str(i)] = str(msg_id)
+            
+            # Сохраняем обновленные данные
+            cache_ref.update({quality_key: existing_data})
+            logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, updated data: {existing_data}")
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
 
@@ -4329,14 +4333,18 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
             playlist_data = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
             
             if playlist_data:
+                logger.info(f"get_cached_playlist_videos: found playlist data: {playlist_data}")
                 # Фильтруем только запрошенные индексы
                 cached_videos = {}
                 for index in requested_indices:
                     index_str = str(index)
                     if index_str in playlist_data:
                         cached_videos[index] = int(playlist_data[index_str])
+                        logger.info(f"get_cached_playlist_videos: found cached video for index {index}: {playlist_data[index_str]}")
+                    else:
+                        logger.warning(f"get_cached_playlist_videos: index {index} not found in playlist data")
                 
-                logger.info(f"get_cached_playlist_videos: found cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
+                logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
                 return cached_videos
             else:
                 logger.info(f"get_cached_playlist_videos: no cache found for hash {url_hash}, quality {quality_key}")
