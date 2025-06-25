@@ -1,4 +1,5 @@
 # Version 1.7.9 - Add playlist support to down_and_audio function
+# Version 1.0.0 - Добавлена команда /settings с меню настроек
 
 import pyrebase
 import re
@@ -12,7 +13,7 @@ from typing import Tuple
 from pyrogram import Client, filters
 from pyrogram import enums
 from pyrogram.enums import ChatMemberStatus
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from datetime import datetime
 import requests
 import math
@@ -691,6 +692,11 @@ def url_distractor(app, message):
         mediainfo_command(app, message)
         return
     
+    # /Settings Command
+    if text.startswith(Config.SETTINGS_COMMAND):
+        settings_command(app, message)
+        return  
+    
     # /Clean Command
     if text.startswith(Config.CLEAN_COMMAND):
         clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
@@ -1073,6 +1079,122 @@ def check_runtime(message):
         now = TimeFormatter(now)
         send_to_user(message, f"⏳ __Bot running time -__ **{now}**")
     pass
+
+# ===================== /settings =====================
+@app.on_message(filters.command("settings") & filters.private)
+def settings_command(app, message):
+    user_id = message.chat.id
+    # Главное меню настроек
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🍪 COOKIES", callback_data="settings_menu|cookies")],
+        [InlineKeyboardButton("🎞 MEDIA", callback_data="settings_menu|media")],
+        [InlineKeyboardButton("📖 LOGS", callback_data="settings_menu|logs")],
+        [InlineKeyboardButton("❌ Закрыть", callback_data="settings_menu|close")]
+    ])
+    app.send_message(
+        user_id,
+        "<b>Настройки бота</b>\n\nВыберите категорию:",
+        reply_markup=keyboard,
+        parse_mode=enums.ParseMode.HTML,
+        reply_to_message_id=message.id
+    )
+    send_to_logger(message, "Открыто меню /settings")
+
+@app.on_callback_query(filters.regex(r"^settings_menu\\|"))
+def settings_menu_callback(app, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+    if data == "close":
+        callback_query.message.delete()
+        callback_query.answer("Меню закрыто.")
+        return
+    if data == "cookies":
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("/clean - Удалить cookies и битые загрузки", callback_data="settings_cmd|clean")],
+            [InlineKeyboardButton("/download_cookie - Скачать cookie YouTube", callback_data="settings_cmd|download_cookie")],
+            [InlineKeyboardButton("/cookies_from_browser - Получить cookie из браузера", callback_data="settings_cmd|cookies_from_browser")],
+            [InlineKeyboardButton("/check_cookie - Проверить cookie файл", callback_data="settings_cmd|check_cookie")],
+            [InlineKeyboardButton("/save_as_cookie - Сохранить текст как cookie", callback_data="settings_cmd|save_as_cookie")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="settings_menu|back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🍪 COOKIES</b>\n\nВыберите действие:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
+    if data == "media":
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("/format - Качество и формат видео", callback_data="settings_cmd|format")],
+            [InlineKeyboardButton("/mediainfo - Вкл/Выкл отправку MediaInfo", callback_data="settings_cmd|mediainfo")],
+            [InlineKeyboardButton("/split - Размер частей видео (0.25-2ГБ)", callback_data="settings_cmd|split")],
+            [InlineKeyboardButton("/audio - Скачать как mp3", callback_data="settings_cmd|audio")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="settings_menu|back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🎞 MEDIA</b>\n\nВыберите действие:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
+    if data == "logs":
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("/tags - Ваши #теги", callback_data="settings_cmd|tags")],
+            [InlineKeyboardButton("/help - Инструкция", callback_data="settings_cmd|help")],
+            [InlineKeyboardButton("/usage - Ваши логи", callback_data="settings_cmd|usage")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="settings_menu|back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>📖 ЛОГИ</b>\n\nВыберите действие:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
+    if data == "back":
+        # Вернуться к главному меню
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🍪 COOKIES", callback_data="settings_menu|cookies")],
+            [InlineKeyboardButton("🎞 MEDIA", callback_data="settings_menu|media")],
+            [InlineKeyboardButton("📖 LOGS", callback_data="settings_menu|logs")],
+            [InlineKeyboardButton("❌ Закрыть", callback_data="settings_menu|close")]
+        ])
+        callback_query.edit_message_text(
+            "<b>Настройки бота</b>\n\nВыберите категорию:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
+
+@app.on_callback_query(filters.regex(r"^settings_cmd\\|"))
+def settings_cmd_callback(app, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+    # Маппинг команд на текст для отправки
+    command_map = {
+        "clean": "/clean cookie",
+        "download_cookie": "/download_cookie",
+        "cookies_from_browser": "/cookies_from_browser",
+        "check_cookie": "/check_cookie",
+        "save_as_cookie": "/save_as_cookie",
+        "format": "/format",
+        "mediainfo": "/mediainfo",
+        "split": "/split",
+        "audio": "/audio https://example.com/your_video_url",
+        "tags": "/tags",
+        "help": "/help",
+        "usage": "/usage"
+    }
+    if data in command_map:
+        # Отправляем команду в чат пользователя (имитируем ввод)
+        app.send_message(user_id, command_map[data])
+        callback_query.answer("Команда отправлена.")
+    else:
+        callback_query.answer("Неизвестная команда.", show_alert=True)
+
 
 # /Mediainfo Command
 @app.on_message(filters.command("mediainfo") & filters.private)
@@ -3817,7 +3939,6 @@ def youtube_to_long_url(url: str) -> str:
 def is_youtube_url(url: str) -> bool:
     parsed = urlparse(url)
     return 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc
-
 
 
 app.run()
