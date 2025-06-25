@@ -3530,25 +3530,21 @@ def askq_callback(app, callback_query):
     if cache_data and "video" in cache_data:
         callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
         try:
-            # Репост видео
-            app.forward_messages(
-                chat_id=user_id,
-                from_chat_id=Config.LOGS_ID,
-                message_ids=cache_data["video"]
-            )
-            # Репост description, если есть
+            repost_ids = []
+            # Всегда добавляем видео
+            repost_ids.extend(cache_data["video"])
+            # Добавляем description, если есть
             if "description" in cache_data:
-                app.forward_messages(
-                    chat_id=user_id,
-                    from_chat_id=Config.LOGS_ID,
-                    message_ids=[cache_data["description"]]
-                )
-            # Репост mediainfo, если есть и mediainfo=ON
+                repost_ids.append(cache_data["description"])
+            # Добавляем mediainfo, если есть и mediainfo=ON
             if "mediainfo" in cache_data and is_mediainfo_enabled(user_id):
+                repost_ids.append(cache_data["mediainfo"])
+            # Отправляем все найденные файлы одним forward
+            if repost_ids:
                 app.forward_messages(
                     chat_id=user_id,
                     from_chat_id=Config.LOGS_ID,
-                    message_ids=[cache_data["mediainfo"]]
+                    message_ids=repost_ids
                 )
             app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
             media_type = "Audio" if data == "mp3" else "Video"
