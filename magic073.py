@@ -3786,11 +3786,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         icon = "🚀"
                         postfix = f" ({n_cached}/{total})"
                     else:
-                        icon = "🎵"
+                        icon = "📹"
                         postfix = ""
-                    button_text = f"{icon} audio (mp3){postfix}"
+                    button_text = f"{icon} {quality_key}{postfix}"
                 else:
-                    icon = "🚀" if quality_key in cached_qualities else "🎵"
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
                     button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not quality_buttons and available_heights:
@@ -3798,36 +3798,36 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 quality_key = f"{height}p"
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    cached = get_cached_playlist_videos(url, quality_key, indices)
-                    n_cached = len(cached)
-                    total = len(indices)
-                    if n_cached > 0:
+                    if is_any_playlist_index_cached(url, quality_key, indices):
+                        cached = get_cached_playlist_videos(url, quality_key, indices)
+                        n_cached = len(cached)
+                        total = len(indices)
                         icon = "🚀"
                         postfix = f" ({n_cached}/{total})"
                     else:
-                        icon = "🎵"
+                        icon = "📹"
                         postfix = ""
-                    button_text = f"{icon} audio (mp3){postfix}"
+                    button_text = f"{icon} {quality_key}{postfix}"
                 else:
-                    icon = "🚀" if quality_key in cached_qualities else "🎵"
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
                     button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not quality_buttons:
             quality_key = "best"
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                cached = get_cached_playlist_videos(url, quality_key, indices)
-                n_cached = len(cached)
-                total = len(indices)
-                if n_cached > 0:
+                if is_any_playlist_index_cached(url, quality_key, indices):
+                    cached = get_cached_playlist_videos(url, quality_key, indices)
+                    n_cached = len(cached)
+                    total = len(indices)
                     icon = "🚀"
                     postfix = f" ({n_cached}/{total})"
                 else:
-                    icon = "🎵"
+                    icon = "📹"
                     postfix = ""
                 button_text = f"{icon} Best Quality{postfix}"
             else:
-                icon = "🚀" if quality_key in cached_qualities else "🎵"
+                icon = "🚀" if quality_key in cached_qualities else "📹"
                 button_text = f"{icon} Best Quality"
             quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         for i in range(0, len(quality_buttons), 3):
