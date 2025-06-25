@@ -1138,7 +1138,7 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
     if is_mediainfo_enabled(user_id):
         try:
             mediainfo = MediaInfo.parse(file_path)
-            mediainfo_text = mediainfo.to_string()
+            mediainfo_text = str(mediainfo)
             # Удаляем абсолютные пути
             mediainfo_text = mediainfo_text.replace(Config.USERS_ROOT, "")
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
