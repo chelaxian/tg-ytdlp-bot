@@ -2,6 +2,7 @@
 # Version 1.0.0 - Добавлена команда /settings с меню настроек
 # Version 1.0.1 - Settings menu: unique callbacks, English text, correct Back emoji
 # Version 1.0.2 - Settings menu: кнопки вызывают обработчики команд напрямую
+# Version 1.0.4 - Исправлен fake_message: всегда есть chat.first_name и first_name
 
 import pyrebase
 import re
@@ -1182,10 +1183,11 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         m = types.SimpleNamespace()
         m.chat = types.SimpleNamespace()
         m.chat.id = user_id
+        m.chat.first_name = getattr(callback_query.from_user, 'first_name', 'User')
         m.text = text
-        m.first_name = callback_query.from_user.first_name if hasattr(callback_query.from_user, 'first_name') else "User"
+        m.first_name = m.chat.first_name  # для совместимости с message.first_name
         m.reply_to_message = None
-        m.id = callback_query.message.id if hasattr(callback_query, 'message') else 0
+        m.id = getattr(callback_query.message, 'id', 0)
         return m
     if data == "clean":
         url_distractor(app, fake_message("/clean cookie"))
