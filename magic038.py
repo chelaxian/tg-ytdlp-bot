@@ -1138,12 +1138,14 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
     if is_mediainfo_enabled(user_id):
         try:
             mediainfo = MediaInfo.parse(file_path)
-            mediainfo_txt = mediainfo.to_data()
+            mediainfo_text = mediainfo.to_string()
+            # Удаляем абсолютные пути
+            mediainfo_text = mediainfo_text.replace(Config.USERS_ROOT, "")
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
             with open(mediainfo_path, "w", encoding="utf-8") as f:
-                import json
-                f.write(json.dumps(mediainfo_txt, ensure_ascii=False, indent=2))
+                f.write(mediainfo_text)
             app.send_document(user_id, mediainfo_path, caption="MediaInfo", reply_to_message_id=message.id)
+            app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"MediaInfo for user {user_id}")
             if os.path.exists(mediainfo_path):
                 os.remove(mediainfo_path)
         except Exception as e:
