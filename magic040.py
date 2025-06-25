@@ -1134,12 +1134,24 @@ def is_mediainfo_enabled(user_id):
     except Exception:
         return False
 
+def get_mediainfo_cli(file_path):
+    try:
+        result = subprocess.run(
+            ["mediainfo", file_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        return result.stdout
+    except Exception as e:
+        logger.error(f"mediainfo CLI error: {e}")
+        return "MediaInfo CLI error: " + str(e)
+
 def send_mediainfo_if_enabled(user_id, file_path, message):
     if is_mediainfo_enabled(user_id):
         try:
-            mediainfo = MediaInfo.parse(file_path)
-            mediainfo_text = str(mediainfo)
-            # Удаляем абсолютные пути
+            mediainfo_text = get_mediainfo_cli(file_path)
             mediainfo_text = mediainfo_text.replace(Config.USERS_ROOT, "")
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
             with open(mediainfo_path, "w", encoding="utf-8") as f:
