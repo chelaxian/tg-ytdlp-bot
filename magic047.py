@@ -1,5 +1,4 @@
-# Version 1.7.9 - Add playlist support to down_and_audio function
-# Version 1.0.0 - Добавлена команда /settings с меню настроек
+# Version 1.7.10 - Добавлена команда /settings с меню настроек
 
 import pyrebase
 import re
