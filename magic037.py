@@ -1095,7 +1095,7 @@ def mediainfo_command(app, message):
     )
     send_to_logger(message, "User opened /mediainfo menu.")
 
-@app.on_callback_query(filters.regex(r"^mediainfo_option\\|"))
+@app.on_callback_query(filters.regex(r"^mediainfo_option\|"))
 def mediainfo_option_callback(app, callback_query):
     logger.info(f"[MEDIAINFO] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
