@@ -3391,9 +3391,15 @@ def is_porn_domain(domain_parts):
 def is_porn(url, title, description, caption=None):
     """
     Проверяет контент на порнографию по домену и ключевым словам (поиск подстроки) в title, description и caption.
+    Если домен или поддомен найден в WHITELIST — сразу возвращает False.
     """
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
+    # Сначала проверяем WHITELIST
+    for dom in domain_parts:
+        if dom in Config.WHITELIST:
+            logger.info(f"is_porn: domain in WHITELIST: {dom}")
+            return False
     if is_porn_domain(domain_parts):
         logger.info(f"is_porn: domain match: {domain_parts}")
         return True
