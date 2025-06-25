@@ -1121,11 +1121,11 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🧹 /clean - Delete cookies & broken downloads______", callback_data="settings__cmd__clean")],
-            [InlineKeyboardButton("📥 /download_cookie - Download YouTube cookie______", callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("🧹 /clean - Delete cookies & broken media files", callback_data="settings__cmd__clean")],
+            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie", callback_data="settings__cmd__download_cookie")],
             [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
-            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file_______________", callback_data="settings__cmd__check_cookie")],
-            [InlineKeyboardButton("🔖 /save_as_cookie - Save text as cookie___________", callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder", callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie", callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1137,10 +1137,10 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "media":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📼 /format - Change quality & format____", callback_data="settings__cmd__format")],
-            [InlineKeyboardButton("📊 /mediainfo - Turn ON/OFF MediaInfo___", callback_data="settings__cmd__mediainfo")],
+            [InlineKeyboardButton("📼 /format - Change quality & format", callback_data="settings__cmd__format")],
+            [InlineKeyboardButton("📊 /mediainfo - Turn ON / OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
             [InlineKeyboardButton("✂️ /split - Change split video part size", callback_data="settings__cmd__split")],
-            [InlineKeyboardButton("🎧 /audio - Download as mp3_____________", callback_data="settings__cmd__audio")],
+            [InlineKeyboardButton("🎧 /audio - Download video as audio", callback_data="settings__cmd__audio")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1152,9 +1152,9 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "logs":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("#️⃣ /tags - Your #tags_______", callback_data="settings__cmd__tags")],
-            [InlineKeyboardButton("🆘 /help - Help instructions", callback_data="settings__cmd__help")],
-            [InlineKeyboardButton("📃 /usage - Your logs_______", callback_data="settings__cmd__usage")],
+            [InlineKeyboardButton("#️⃣ /tags - Send your #tags", callback_data="settings__cmd__tags")],
+            [InlineKeyboardButton("🆘 /help - Get instructions", callback_data="settings__cmd__help")],
+            [InlineKeyboardButton("📃 /usage -Send your logs", callback_data="settings__cmd__usage")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
