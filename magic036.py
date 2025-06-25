@@ -365,8 +365,8 @@ def cookies_from_browser(app, message):
 
 # Callback Handler for Browser Selection
 @app.on_callback_query(filters.regex(r"^browser_choice\|"))
-
 def browser_choice_callback(app, callback_query):
+    logger.info(f"[BROWSER] callback: {callback_query.data}")
     import subprocess
 
     user_id = callback_query.from_user.id
@@ -495,8 +495,8 @@ def set_format(app, message):
 
 # Callbackquery Handler for /Format Menu Selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
-
 def format_option_callback(app, callback_query):
+    logger.info(f"[FORMAT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
 
@@ -1097,6 +1097,7 @@ def mediainfo_command(app, message):
 
 @app.on_callback_query(filters.regex(r"^mediainfo_option\\|"))
 def mediainfo_option_callback(app, callback_query):
+    logger.info(f"[MEDIAINFO] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
     user_dir = os.path.join("users", str(user_id))
@@ -3268,6 +3269,7 @@ def split_command(app, message):
 
 @app.on_callback_query(filters.regex(r"^split_size\|"))
 def split_size_callback(app, callback_query):
+    logger.info(f"[SPLIT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
     if data == "cancel":
@@ -3444,6 +3446,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 # --- Callback Processor ---
 @app.on_callback_query(filters.regex(r"^askq\|"))
 def askq_callback(app, callback_query):
+    logger.info(f"[ASKQ] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
 
