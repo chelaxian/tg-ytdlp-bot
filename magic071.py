@@ -2127,10 +2127,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if "entries" in info_dict:
                     entries = info_dict["entries"]
                     if len(entries) > 1:  # If the video in the playlist is more than one
-                        if current_index < len(entries):
-                            info_dict = entries[current_index]
+                        # Используем правильный индекс с учетом video_start_with
+                        actual_index = current_index + video_start_with - 1  # -1 потому что индексы в entries начинаются с 0
+                        if actual_index < len(entries):
+                            info_dict = entries[actual_index]
                         else:
-                            raise Exception(f"Audio index {current_index} out of range (total {len(entries)})")
+                            raise Exception(f"Audio index {actual_index + 1} out of range (total {len(entries)})")
                     else:
                         # If there is only one video in the playlist, just download it
                         info_dict = entries[0]  # Just take the first video
