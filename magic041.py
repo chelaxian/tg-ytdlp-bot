@@ -1156,12 +1156,12 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
             with open(mediainfo_path, "w", encoding="utf-8") as f:
                 f.write(mediainfo_text)
-            app.send_document(user_id, mediainfo_path, caption="MediaInfo", reply_to_message_id=message.id)
-            app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"MediaInfo for user {user_id}")
+            app.send_document(user_id, mediainfo_path, caption="TXT\n<blockquote>📊 MediaInfo</blockquote>", reply_to_message_id=message.id)
+            app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"TXT\n<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
             if os.path.exists(mediainfo_path):
                 os.remove(mediainfo_path)
         except Exception as e:
-            logger.error(f"Ошибка MediaInfo: {e}")
+            logger.error(f"Error MediaInfo: {e}")
 
 # SEND COOKIE VIA Document
 @app.on_message(filters.document & filters.private)
