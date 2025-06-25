@@ -30,6 +30,7 @@ from pyrogram.errors import FloodWait
 import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
 import json
+from pymediainfo import MediaInfo
 
 # --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
@@ -685,6 +686,11 @@ def url_distractor(app, message):
         set_format(app, message)
         return
 
+    # /Mediainfo Command
+    if text.startswith(Config.MEDIINFO_COMMAND):
+        mediainfo_command(app, message)
+        return
+    
     # /Clean Command
     if text.startswith(Config.CLEAN_COMMAND):
         clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
@@ -1067,6 +1073,80 @@ def check_runtime(message):
         now = TimeFormatter(now)
         send_to_user(message, f"⏳ __Bot running time -__ **{now}**")
     pass
+
+# /Mediainfo Command
+@app.on_message(filters.command("mediainfo") & filters.private)
+def mediainfo_command(app, message):
+    user_id = message.chat.id
+    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+        return
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    buttons = [
+        [InlineKeyboardButton("ON", callback_data="mediainfo_option|on")],
+        [InlineKeyboardButton("OFF", callback_data="mediainfo_option|off")],
+        [InlineKeyboardButton("Cancel", callback_data="mediainfo_option|cancel")]
+    ]
+    keyboard = InlineKeyboardMarkup(buttons)
+    app.send_message(
+        user_id,
+        "Включить или выключить отправку MediaInfo для скачанных файлов?",
+        reply_markup=keyboard
+    )
+    send_to_logger(message, "Пользователь открыл меню /mediainfo.")
+
+@app.on_callback_query(filters.regex(r"^mediainfo_option\\|"))
+def mediainfo_option_callback(app, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
+    if data == "cancel":
+        callback_query.edit_message_text("🔚 MediaInfo: отмена.")
+        callback_query.answer("Меню закрыто.")
+        send_to_logger(callback_query.message, "MediaInfo: отмена.")
+        return
+    if data == "on":
+        with open(mediainfo_file, "w", encoding="utf-8") as f:
+            f.write("ON")
+        callback_query.edit_message_text("✅ MediaInfo включён. Теперь после скачивания будет присылаться информация о файле.")
+        send_to_logger(callback_query.message, "MediaInfo включён.")
+        callback_query.answer("MediaInfo включён.")
+        return
+    if data == "off":
+        with open(mediainfo_file, "w", encoding="utf-8") as f:
+            f.write("OFF")
+        callback_query.edit_message_text("❌ MediaInfo выключен.")
+        send_to_logger(callback_query.message, "MediaInfo выключен.")
+        callback_query.answer("MediaInfo выключен.")
+        return
+
+def is_mediainfo_enabled(user_id):
+    user_dir = os.path.join("users", str(user_id))
+    mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
+    if not os.path.exists(mediainfo_file):
+        return False
+    try:
+        with open(mediainfo_file, "r", encoding="utf-8") as f:
+            return f.read().strip().upper() == "ON"
+    except Exception:
+        return False
+
+def send_mediainfo_if_enabled(user_id, file_path, message):
+    if is_mediainfo_enabled(user_id):
+        try:
+            mediainfo = MediaInfo.parse(file_path)
+            mediainfo_txt = mediainfo.to_data()
+            mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
+            with open(mediainfo_path, "w", encoding="utf-8") as f:
+                import json
+                f.write(json.dumps(mediainfo_txt, ensure_ascii=False, indent=2))
+            app.send_document(user_id, mediainfo_path, caption="MediaInfo", reply_to_message_id=message.id)
+            if os.path.exists(mediainfo_path):
+                os.remove(mediainfo_path)
+        except Exception as e:
+            logger.error(f"Ошибка MediaInfo: {e}")
 
 # SEND COOKIE VIA Document
 @app.on_message(filters.document & filters.private)
@@ -1905,6 +1985,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             # Clean up the audio file after sending
             try:
+                send_mediainfo_if_enabled(user_id, audio_file, message)
                 os.remove(audio_file)
             except Exception as e:
                 logger.error(f"Failed to delete audio file {audio_file}: {e}")
@@ -2397,6 +2478,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if p < len(caption_lst) - 1:
                         threading.Event().wait(2)
                     os.remove(splited_thumb_dir)
+                    send_mediainfo_if_enabled(user_id, path_lst[p], message)
                     os.remove(path_lst[p])
                 os.remove(thumb_dir)
                 os.remove(user_vid_path)
@@ -2434,6 +2516,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.error(f"Error forwarding video to logger: {e}")
                         safe_edit_message_text(user_id, proc_msg_id,
                             f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
+                        send_mediainfo_if_enabled(user_id, after_rename_abs_path, message)
                         os.remove(after_rename_abs_path)
                         if thumb_dir and os.path.exists(thumb_dir):
                             os.remove(thumb_dir)
@@ -3717,5 +3800,7 @@ def youtube_to_long_url(url: str) -> str:
 def is_youtube_url(url: str) -> bool:
     parsed = urlparse(url)
     return 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc
+
+
 
 app.run()
