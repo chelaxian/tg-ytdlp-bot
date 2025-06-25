@@ -2231,7 +2231,30 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 # ########################################
 
 def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
+    """
+    Теперь если quality_key указан (например, через /format), то перед скачиванием проверяется кэш и при наличии — сразу репост.
+    После отправки видео — всегда сохраняется в кэш связка url+quality_key.
+    """
     user_id = message.chat.id
+    # --- Проверка кэша по quality_key ---
+    if quality_key:
+        cached_ids = get_cached_message_ids(url, quality_key)
+        if cached_ids:
+            try:
+                app.forward_messages(
+                    chat_id=user_id,
+                    from_chat_id=Config.LOGS_ID,
+                    message_ids=cached_ids
+                )
+                app.send_message(user_id, "✅ Видео отправлено из кэша.", reply_to_message_id=message.id)
+                send_to_logger(message, f"Video sent from cache (quality={quality_key}) to user {user_id}")
+                return
+            except Exception as e:
+                logger.error(f"Error forwarding from cache: {e}")
+                save_to_video_cache(url, quality_key, [], clear=True)
+                app.send_message(user_id, "⚠️ Не удалось получить видео из кэша, начинается новая загрузка...", reply_to_message_id=message.id)
+    # ... существующий код функции ...
+
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
