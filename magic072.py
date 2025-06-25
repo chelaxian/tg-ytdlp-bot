@@ -1947,9 +1947,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Для плейлистов проверяем кэш плейлистов
             logger.info(f"down_and_audio: checking playlist cache for quality_key={quality_key}")
             requested_indices = list(range(video_start_with, video_start_with + video_count))
-            cached_videos = get_cached_playlist_videos(url, quality_key, requested_indices)
-            
-            if cached_videos:
+            if is_any_playlist_index_cached(url, quality_key, requested_indices):
+                cached_videos = get_cached_playlist_videos(url, quality_key, requested_indices)
                 logger.info(f"down_and_audio: found cached playlist videos {cached_videos}, forwarding from cache")
                 try:
                     # Отправляем кэшированные аудио в порядке запрошенных индексов
@@ -2361,9 +2360,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Для плейлистов проверяем кэш плейлистов
             logger.info(f"down_and_up: checking playlist cache for quality_key={quality_key}")
             requested_indices = list(range(video_start_with, video_start_with + video_count))
-            cached_videos = get_cached_playlist_videos(url, quality_key, requested_indices)
-            
-            if cached_videos:
+            if is_any_playlist_index_cached(url, quality_key, requested_indices):
+                cached_videos = get_cached_playlist_videos(url, quality_key, requested_indices)
                 logger.info(f"down_and_up: found cached playlist videos {cached_videos}, forwarding from cache")
                 try:
                     # Отправляем кэшированные видео в порядке запрошенных индексов
@@ -3746,10 +3744,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     try:
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
         
-        # Check if this is a playlist with range - if so, use playlist cache
         original_text = message.text or message.caption or ""
-        if is_playlist_with_range(original_text):
-            logger.info(f"Playlist with range detected, checking playlist cache for URL: {url}")
+        is_playlist = is_playlist_with_range(original_text)
+        playlist_range = None
+        if is_playlist:
+            _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
+            playlist_range = (video_start_with, video_end_with)
             cached_qualities = get_cached_playlist_qualities(url)
         else:
             cached_qualities = get_cached_qualities(url)
@@ -3757,9 +3757,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         info = get_video_formats(url, user_id, playlist_start_index)
         title = info.get('title', 'Video')
         video_id = info.get('id')
-        # --- Autotics ---
         tags_text = generate_final_tags(url, tags, info)
-        # --- Picture ---
         thumb_path = None
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
@@ -3769,59 +3767,98 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 download_thumbnail(video_id, thumb_path)
             except Exception:
                 thumb_path = None
-        # --- buttons on formats ---
         buttons = []
-        # We collect all the available permits of the video (heights)
         available_heights = set()
         for f in info.get('formats', []):
             if f.get('vcodec', 'none') != 'none' and f.get('height'):
                 available_heights.add(f['height'])
-        # List for sorting and display
         quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
         quality_buttons = []
-        # Create the buttons in the correct order
         for height in quality_order:
             if height in available_heights:
                 quality_key = f"{height}p"
-                icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} {quality_key}"
+                if is_playlist and playlist_range:
+                    indices = list(range(playlist_range[0], playlist_range[1]+1))
+                    if is_any_playlist_index_cached(url, quality_key, indices):
+                        cached = get_cached_playlist_videos(url, quality_key, indices)
+                        n_cached = len(cached)
+                        total = len(indices)
+                        icon = "🚀"
+                        postfix = f" ({n_cached}/{total})"
+                    else:
+                        icon = "🎵"
+                        postfix = ""
+                    button_text = f"{icon} audio (mp3){postfix}"
+                else:
+                    icon = "🚀" if quality_key in cached_qualities else "🎵"
+                    button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        # If no standard quality was found, but there are others
         if not quality_buttons and available_heights:
             for height in sorted(list(available_heights)):
                 quality_key = f"{height}p"
-                icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} {quality_key}"
+                if is_playlist and playlist_range:
+                    indices = list(range(playlist_range[0], playlist_range[1]+1))
+                    cached = get_cached_playlist_videos(url, quality_key, indices)
+                    n_cached = len(cached)
+                    total = len(indices)
+                    if n_cached > 0:
+                        icon = "🚀"
+                        postfix = f" ({n_cached}/{total})"
+                    else:
+                        icon = "🎵"
+                        postfix = ""
+                    button_text = f"{icon} audio (mp3){postfix}"
+                else:
+                    icon = "🚀" if quality_key in cached_qualities else "🎵"
+                    button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        
-        # If there are no available video qualities, add the best quality button
         if not quality_buttons:
             quality_key = "best"
-            icon = "🚀" if quality_key in cached_qualities else "📹"
-            button_text = f"{icon} Best Quality"
+            if is_playlist and playlist_range:
+                indices = list(range(playlist_range[0], playlist_range[1]+1))
+                cached = get_cached_playlist_videos(url, quality_key, indices)
+                n_cached = len(cached)
+                total = len(indices)
+                if n_cached > 0:
+                    icon = "🚀"
+                    postfix = f" ({n_cached}/{total})"
+                else:
+                    icon = "🎵"
+                    postfix = ""
+                button_text = f"{icon} Best Quality{postfix}"
+            else:
+                icon = "🚀" if quality_key in cached_qualities else "🎵"
+                button_text = f"{icon} Best Quality"
             quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        
-        # Pass the buttons in 3 rows
         for i in range(0, len(quality_buttons), 3):
             buttons.append(quality_buttons[i:i+3])
         # --- button mp3 ---
         quality_key = "mp3"
-        icon = "🚀" if quality_key in cached_qualities else "🎵"
-        button_text = f"{icon} audio (mp3)"
+        if is_playlist and playlist_range:
+            indices = list(range(playlist_range[0], playlist_range[1]+1))
+            if is_any_playlist_index_cached(url, quality_key, indices):
+                cached = get_cached_playlist_videos(url, quality_key, indices)
+                n_cached = len(cached)
+                total = len(indices)
+                icon = "🚀"
+                postfix = f" ({n_cached}/{total})"
+            else:
+                icon = "🎵"
+                postfix = ""
+            button_text = f"{icon} audio (mp3){postfix}"
+        else:
+            icon = "🚀" if quality_key in cached_qualities else "🎵"
+            button_text = f"{icon} audio (mp3)"
         buttons.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(buttons)
-        # --- Caption ---
         hidden_link = f'<a href="{url}">&#8203;</a>'
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
-        
         hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
         cap += f"\n<blockquote>{hint}</blockquote>"
-
         cap += hidden_link
-        # --- Sending ---
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
@@ -3829,7 +3866,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         else:
             app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu sent for {url}")
-
     except FloodWait as e:
         wait_time = e.value
         user_dir = os.path.join("users", str(user_id))
@@ -3837,17 +3873,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         flood_time_file = os.path.join(user_dir, "flood_wait.txt")
         with open(flood_time_file, 'w') as f:
             f.write(str(wait_time))
-        
         hours = wait_time // 3600
         minutes = (wait_time % 3600) // 60
         seconds = wait_time % 60
         time_str = f"{hours}h {minutes}m {seconds}s"
         flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
-        
         if proc_msg:
             app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
         return
-
     except Exception as e:
         error_text = f"❌ Error while getting video info:\n{e}\n\nFirst, try the /clean command and then try again.\nIf the error persists, YouTube may require authentication.\nPlease update your cookie.txt using /download_cookie or /cookies_from_browser and try again."
         if proc_msg:
@@ -3917,8 +3950,8 @@ def askq_callback(app, callback_query):
         requested_indices = list(range(video_start_with, video_start_with + video_count))
         
         # Check playlist cache
-        cached_videos = get_cached_playlist_videos(url, data, requested_indices)
-        if cached_videos:
+        if is_any_playlist_index_cached(url, data, requested_indices):
+            cached_videos = get_cached_playlist_videos(url, data, requested_indices)
             callback_query.answer("🚀 Found in playlist cache! Forwarding instantly...", show_alert=False)
             try:
                 # Отправляем кэшированные видео в порядке запрошенных индексов
@@ -4368,5 +4401,10 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
     except Exception as e:
         logger.error(f"Failed to get cached playlist qualities: {e}")
         return set()
+
+def is_any_playlist_index_cached(playlist_url, quality_key, indices):
+    """Проверяет, есть ли хотя бы один индекс из диапазона в кэше плейлиста."""
+    cached = get_cached_playlist_videos(playlist_url, quality_key, indices)
+    return bool(cached)
 
 app.run()
