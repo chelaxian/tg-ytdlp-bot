@@ -1,6 +1,7 @@
 # Version 1.7.9 - Add playlist support to down_and_audio function
 # Version 1.0.0 - Добавлена команда /settings с меню настроек
 # Version 1.0.1 - Settings menu: unique callbacks, English text, correct Back emoji
+# Version 1.0.2 - Settings menu: кнопки вызывают обработчики команд напрямую
 
 import pyrebase
 import re
@@ -14,7 +15,7 @@ from typing import Tuple
 from pyrogram import Client, filters
 from pyrogram import enums
 from pyrogram.enums import ChatMemberStatus
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from datetime import datetime
 import requests
 import math
@@ -33,6 +34,7 @@ import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
 import json
 from pymediainfo import MediaInfo
+import types
 
 # --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
@@ -1174,26 +1176,66 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
 def settings_cmd_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("__")[-1]
-    # Command mapping
-    command_map = {
-        "clean": "/clean cookie",
-        "download_cookie": "/download_cookie",
-        "cookies_from_browser": "/cookies_from_browser",
-        "check_cookie": "/check_cookie",
-        "save_as_cookie": "/save_as_cookie",
-        "format": "/format",
-        "mediainfo": "/mediainfo",
-        "split": "/split",
-        "audio": "/audio https://example.com/your_video_url",
-        "tags": "/tags",
-        "help": "/help",
-        "usage": "/usage"
-    }
-    if data in command_map:
-        app.send_message(user_id, command_map[data])
-        callback_query.answer("Command sent.")
-    else:
-        callback_query.answer("Unknown command.", show_alert=True)
+    # Маппинг команд на обработчики
+    # Для команд, которые обрабатываются только через url_distractor, создаём временный Message
+    def fake_message(text):
+        m = types.SimpleNamespace()
+        m.chat = types.SimpleNamespace()
+        m.chat.id = user_id
+        m.text = text
+        m.first_name = callback_query.from_user.first_name if hasattr(callback_query.from_user, 'first_name') else "User"
+        m.reply_to_message = None
+        m.id = callback_query.message.id if hasattr(callback_query, 'message') else 0
+        return m
+    if data == "clean":
+        url_distractor(app, fake_message("/clean cookie"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "download_cookie":
+        url_distractor(app, fake_message("/download_cookie"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "cookies_from_browser":
+        cookies_from_browser(app, fake_message("/cookies_from_browser"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "check_cookie":
+        url_distractor(app, fake_message("/check_cookie"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "save_as_cookie":
+        url_distractor(app, fake_message("/save_as_cookie"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "format":
+        set_format(app, fake_message("/format"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "mediainfo":
+        mediainfo_command(app, fake_message("/mediainfo"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "split":
+        split_command(app, fake_message("/split"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "audio":
+        audio_command_handler(app, fake_message("/audio https://example.com/your_video_url"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "tags":
+        tags_command(app, fake_message("/tags"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "help":
+        command2(app, fake_message("/help"))
+        callback_query.answer("Command executed.")
+        return
+    if data == "usage":
+        url_distractor(app, fake_message("/usage"))
+        callback_query.answer("Command executed.")
+        return
+    callback_query.answer("Unknown command.", show_alert=True)
 
 
 # /Mediainfo Command
