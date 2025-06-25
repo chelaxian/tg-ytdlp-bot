@@ -4,6 +4,7 @@
 # Version 1.0.2 - Settings menu: кнопки вызывают обработчики команд напрямую
 # Version 1.0.4 - Исправлен fake_message: всегда есть chat.first_name и first_name
 # Version 1.0.5 - Исправлен fake_message для /format (command), /audio теперь только подсказка
+# Version 1.0.6 - /save_as_cookie в меню теперь отправляет подсказку из Config
 
 import pyrebase
 import re
@@ -1115,11 +1116,11 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("/clean - Delete cookies & broken downloads", callback_data="settings__cmd__clean")],
-            [InlineKeyboardButton("/download_cookie - Download YouTube cookie", callback_data="settings__cmd__download_cookie")],
-            [InlineKeyboardButton("/cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
-            [InlineKeyboardButton("/check_cookie - Check cookie file", callback_data="settings__cmd__check_cookie")],
-            [InlineKeyboardButton("/save_as_cookie - Save text as cookie", callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("🧹/clean - Delete cookies & broken downloads", callback_data="settings__cmd__clean")],
+            [InlineKeyboardButton("📥/download_cookie - Download YouTube cookie", callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("🌐/cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
+            [InlineKeyboardButton("🔎/check_cookie - Check cookie file", callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("🔖/save_as_cookie - Save text as cookie", callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1131,10 +1132,10 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "media":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("/format - Change quality & format", callback_data="settings__cmd__format")],
-            [InlineKeyboardButton("/mediainfo - Turn ON/OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
-            [InlineKeyboardButton("/split - Change split video part size", callback_data="settings__cmd__split")],
-            [InlineKeyboardButton("/audio - Download as mp3", callback_data="settings__cmd__audio")],
+            [InlineKeyboardButton("📼/format - Change quality & format", callback_data="settings__cmd__format")],
+            [InlineKeyboardButton("📊/mediainfo - Turn ON/OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
+            [InlineKeyboardButton("✂️/split - Change split video part size", callback_data="settings__cmd__split")],
+            [InlineKeyboardButton("🎧/audio - Download as mp3", callback_data="settings__cmd__audio")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1146,9 +1147,9 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "logs":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("/tags - Your #tags", callback_data="settings__cmd__tags")],
-            [InlineKeyboardButton("/help - Help instructions", callback_data="settings__cmd__help")],
-            [InlineKeyboardButton("/usage - Your logs", callback_data="settings__cmd__usage")],
+            [InlineKeyboardButton("#️⃣/tags - Your #tags", callback_data="settings__cmd__tags")],
+            [InlineKeyboardButton("🆘/help - Help instructions", callback_data="settings__cmd__help")],
+            [InlineKeyboardButton("📃/usage - Your logs", callback_data="settings__cmd__usage")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1209,8 +1210,8 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         callback_query.answer("Command executed.")
         return
     if data == "save_as_cookie":
-        url_distractor(app, fake_message("/save_as_cookie"))
-        callback_query.answer("Command executed.")
+        app.send_message(user_id, Config.SAVE_AS_COOKIE_HINT, reply_to_message_id=callback_query.message.id, parse_mode=enums.ParseMode.HTML)
+        callback_query.answer("Hint sent.")
         return
     if data == "format":
         # Добавляем атрибут command для корректной работы set_format
