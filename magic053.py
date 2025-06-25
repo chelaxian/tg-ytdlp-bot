@@ -3,6 +3,7 @@
 # Version 1.0.1 - Settings menu: unique callbacks, English text, correct Back emoji
 # Version 1.0.2 - Settings menu: кнопки вызывают обработчики команд напрямую
 # Version 1.0.4 - Исправлен fake_message: всегда есть chat.first_name и first_name
+# Version 1.0.5 - Исправлен fake_message для /format (command), /audio теперь только подсказка
 
 import pyrebase
 import re
@@ -1163,7 +1164,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
             [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
             [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
-            [InlineKeyboardButton("❌ Close", callback_data="settings__menu__close")]
+            [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
         ])
         callback_query.edit_message_text(
             "<b>Bot Settings</b>\n\nChoose a category:",
@@ -1179,7 +1180,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
     data = callback_query.data.split("__")[-1]
     # Маппинг команд на обработчики
     # Для команд, которые обрабатываются только через url_distractor, создаём временный Message
-    def fake_message(text):
+    def fake_message(text, command=None):
         m = types.SimpleNamespace()
         m.chat = types.SimpleNamespace()
         m.chat.id = user_id
@@ -1188,6 +1189,8 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         m.first_name = m.chat.first_name  # для совместимости с message.first_name
         m.reply_to_message = None
         m.id = getattr(callback_query.message, 'id', 0)
+        if command is not None:
+            m.command = command
         return m
     if data == "clean":
         url_distractor(app, fake_message("/clean cookie"))
@@ -1210,7 +1213,8 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         callback_query.answer("Command executed.")
         return
     if data == "format":
-        set_format(app, fake_message("/format"))
+        # Добавляем атрибут command для корректной работы set_format
+        set_format(app, fake_message("/format", command=["format"]))
         callback_query.answer("Command executed.")
         return
     if data == "mediainfo":
@@ -1222,8 +1226,9 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         callback_query.answer("Command executed.")
         return
     if data == "audio":
-        audio_command_handler(app, fake_message("/audio https://example.com/your_video_url"))
-        callback_query.answer("Command executed.")
+        # Просто отправляем подсказку по использованию
+        app.send_message(user_id, "Download only audio from video source.\nUsage: /audio + URL (ex. /audio https://youtu.be/abc123)", reply_to_message_id=callback_query.message.id)
+        callback_query.answer("Hint sent.")
         return
     if data == "tags":
         tags_command(app, fake_message("/tags"))
