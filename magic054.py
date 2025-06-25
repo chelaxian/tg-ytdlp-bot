@@ -1094,7 +1094,7 @@ def settings_command(app, message):
         [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
         [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
         [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
-        [InlineKeyboardButton("❌ Close", callback_data="settings__menu__close")]
+        [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
     ])
     app.send_message(
         user_id,
