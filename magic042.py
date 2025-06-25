@@ -1156,8 +1156,8 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
             with open(mediainfo_path, "w", encoding="utf-8") as f:
                 f.write(mediainfo_text)
-            app.send_document(user_id, mediainfo_path, caption="TXT\n<blockquote>📊 MediaInfo</blockquote>", reply_to_message_id=message.id)
-            app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"TXT\n<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
+            app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>", reply_to_message_id=message.id)
+            app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
             if os.path.exists(mediainfo_path):
                 os.remove(mediainfo_path)
         except Exception as e:
@@ -1498,6 +1498,7 @@ def send_videos(
             reply_to_message_id=message.id,
             parse_mode=enums.ParseMode.HTML
         )
+        description_msg_id = None
         if was_truncated and full_video_title:
             with open(temp_desc_path, "w", encoding="utf-8") as f:
                 f.write(full_video_title)
@@ -1510,10 +1511,16 @@ def send_videos(
                     reply_to_message_id=message.id,
                     parse_mode=enums.ParseMode.HTML
                 )
-                safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
+                forwarded = safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
+                if forwarded:
+                    if isinstance(forwarded, list):
+                        description_msg_id = forwarded[0].id
+                    else:
+                        description_msg_id = forwarded.id
             except Exception as e:
                 logger.error(f"Error sending full description file: {e}")
-        return video_msg
+        # Возвращаем video_msg и description_msg_id для кэша
+        return video_msg, description_msg_id
     finally:
         if os.path.exists(temp_desc_path):
             try:
@@ -2481,11 +2488,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                    video_msg, description_msg_id = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                     try:
                         forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                         if forwarded_msgs:
                             save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                        if description_msg_id:
+                            save_to_video_cache(url, quality_key, [description_msg_id], original_text=message.text or message.caption or "")
                     except Exception as e:
                         logger.error(f"Error forwarding video to logger: {e}")
                     safe_edit_message_text(user_id, proc_msg_id,
@@ -2522,11 +2531,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     try:
                         # --- TikTok: Don't Pass Title ---
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                        video_msg, description_msg_id = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             if forwarded_msgs:
                                 save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                            if description_msg_id:
+                                save_to_video_cache(url, quality_key, [description_msg_id], original_text=message.text or message.caption or "")
                         except Exception as e:
                             logger.error(f"Error forwarding video to logger: {e}")
                         safe_edit_message_text(user_id, proc_msg_id,
@@ -3515,27 +3526,38 @@ def askq_callback(app, callback_query):
         return
 
     # Check the cache before downloading
-    message_ids = get_cached_message_ids(url, data)
-    if message_ids:
+    cache_data = get_cached_message_ids(url, data)
+    if cache_data and "video" in cache_data:
         callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
         try:
+            # Репост видео
             app.forward_messages(
                 chat_id=user_id,
                 from_chat_id=Config.LOGS_ID,
-                message_ids=message_ids
+                message_ids=cache_data["video"]
             )
-            # We send confirmation to the user
+            # Репост description, если есть
+            if "description" in cache_data:
+                app.forward_messages(
+                    chat_id=user_id,
+                    from_chat_id=Config.LOGS_ID,
+                    message_ids=[cache_data["description"]]
+                )
+            # Репост mediainfo, если есть и mediainfo=ON
+            if "mediainfo" in cache_data and is_mediainfo_enabled(user_id):
+                app.forward_messages(
+                    chat_id=user_id,
+                    from_chat_id=Config.LOGS_ID,
+                    message_ids=[cache_data["mediainfo"]]
+                )
             app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
-            # --- LOGGING TO LOG CHANNEL ---
             media_type = "Audio" if data == "mp3" else "Video"
             log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
             send_to_logger(original_message, log_msg)
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
-            # If the shipping failed, we try to download it again
             save_to_video_cache(url, data, [], clear=True) # Cleaning the universal record in the cache
             app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-            # Recursive call or a challenge of the main function? It is better to call the main one.
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
 
@@ -3647,19 +3669,15 @@ def get_url_hash(url: str) -> str:
     """Creates MD5 URL hash for use as a Firebase key."""
     return hashlib.md5(url.encode()).hexdigest()
 
-def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None):
-    """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
+def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None, description_id: int = None, mediainfo_id: int = None):
+    """Сохраняет message_ids видео, а также опционально description_id и mediainfo_id."""
     if not quality_key:
         return
-    
-    # Check if this is a playlist with range - if so, skip cache
     if original_text and is_playlist_with_range(original_text):
         logger.info(f"Playlist with range detected, skipping cache save for URL: {url}")
         return
-        
     try:
         urls = [normalize_url_for_cache(url)]
-        # If it's YouTube, add both options
         if is_youtube_url(url):
             urls.append(normalize_url_for_cache(youtube_to_short_url(url)))
             urls.append(normalize_url_for_cache(youtube_to_long_url(url)))
@@ -3672,14 +3690,18 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 continue
             if not message_ids:
                 continue
-            ids_string = ",".join(map(str, message_ids))
-            cache_ref.update({quality_key: ids_string})
-            logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string}")
+            cache_data = {"video": ",".join(map(str, message_ids))}
+            if description_id:
+                cache_data["description"] = str(description_id)
+            if mediainfo_id:
+                cache_data["mediainfo"] = str(mediainfo_id)
+            cache_ref.update({quality_key: cache_data})
+            logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, data {cache_data}")
     except Exception as e:
         logger.error(f"Failed to save to cache: {e}")
 
-def get_cached_message_ids(url: str, quality_key: str) -> list:
-    """Ищет кэш по обоим вариантам YouTube-ссылки (длинная/короткая)."""
+def get_cached_message_ids(url: str, quality_key: str) -> dict:
+    """Возвращает dict с message_ids для видео, description, mediainfo."""
     try:
         urls = [normalize_url_for_cache(url)]
         if is_youtube_url(url):
@@ -3687,9 +3709,21 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
             urls.append(normalize_url_for_cache(youtube_to_long_url(url)))
         for u in set(urls):
             url_hash = get_url_hash(u)
-            ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
-            if ids_string:
-                return [int(msg_id) for msg_id in ids_string.split(',')]
+            data = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
+            if data:
+                # data: {"video": "id1,id2", "description": "id3", "mediainfo": "id4"}
+                result = {}
+                if isinstance(data, dict):
+                    if "video" in data:
+                        result["video"] = [int(msg_id) for msg_id in data["video"].split(",") if msg_id]
+                    if "description" in data:
+                        result["description"] = int(data["description"])
+                    if "mediainfo" in data:
+                        result["mediainfo"] = int(data["mediainfo"])
+                else:
+                    # старый формат: просто строка id
+                    result["video"] = [int(msg_id) for msg_id in str(data).split(",") if msg_id]
+                return result
         return None
     except Exception as e:
         logger.error(f"Failed to get from cache: {e}")
