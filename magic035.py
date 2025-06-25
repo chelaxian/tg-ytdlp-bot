@@ -1090,10 +1090,10 @@ def mediainfo_command(app, message):
     keyboard = InlineKeyboardMarkup(buttons)
     app.send_message(
         user_id,
-        "Включить или выключить отправку MediaInfo для скачанных файлов?",
+        "Enable or disable sending MediaInfo for downloaded files?",
         reply_markup=keyboard
     )
-    send_to_logger(message, "Пользователь открыл меню /mediainfo.")
+    send_to_logger(message, "User opened /mediainfo menu.")
 
 @app.on_callback_query(filters.regex(r"^mediainfo_option\\|"))
 def mediainfo_option_callback(app, callback_query):
@@ -1102,24 +1102,24 @@ def mediainfo_option_callback(app, callback_query):
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
-    if data == "cancel":
-        callback_query.edit_message_text("🔚 MediaInfo: отмена.")
-        callback_query.answer("Меню закрыто.")
-        send_to_logger(callback_query.message, "MediaInfo: отмена.")
+    if callback_query.data == "mediainfo_option|cancel":
+        callback_query.edit_message_text("🔚 MediaInfo: cancelled.")
+        callback_query.answer("Menu closed.")
+        send_to_logger(callback_query.message, "MediaInfo: cancelled.")
         return
     if data == "on":
         with open(mediainfo_file, "w", encoding="utf-8") as f:
             f.write("ON")
-        callback_query.edit_message_text("✅ MediaInfo включён. Теперь после скачивания будет присылаться информация о файле.")
-        send_to_logger(callback_query.message, "MediaInfo включён.")
-        callback_query.answer("MediaInfo включён.")
+        callback_query.edit_message_text("✅ MediaInfo enabled. After downloading, file info will be sent.")
+        send_to_logger(callback_query.message, "MediaInfo enabled.")
+        callback_query.answer("MediaInfo enabled.")
         return
     if data == "off":
         with open(mediainfo_file, "w", encoding="utf-8") as f:
             f.write("OFF")
-        callback_query.edit_message_text("❌ MediaInfo выключен.")
-        send_to_logger(callback_query.message, "MediaInfo выключен.")
-        callback_query.answer("MediaInfo выключен.")
+        callback_query.edit_message_text("❌ MediaInfo disabled.")
+        send_to_logger(callback_query.message, "MediaInfo disabled.")
+        callback_query.answer("MediaInfo disabled.")
         return
 
 def is_mediainfo_enabled(user_id):
