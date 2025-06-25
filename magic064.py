@@ -3289,18 +3289,21 @@ def load_domain_lists():
     try:
         with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_DOMAINS)} domains from {Config.PORN_DOMAINS_FILE}. Example: {list(PORN_DOMAINS)[:5]}")
     except Exception as e:
         logger.error(f"Failed to load {Config.PORN_DOMAINS_FILE}: {e}")
         PORN_DOMAINS = set()
     try:
         with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_KEYWORDS)} keywords from {Config.PORN_KEYWORDS_FILE}. Example: {list(PORN_KEYWORDS)[:5]}")
     except Exception as e:
         logger.error(f"Failed to load {Config.PORN_KEYWORDS_FILE}: {e}")
         PORN_KEYWORDS = set()
     try:
         with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(SUPPORTED_SITES)} supported sites from {Config.SUPPORTED_SITES_FILE}. Example: {list(SUPPORTED_SITES)[:5]}")
     except Exception as e:
         logger.error(f"Failed to load {Config.SUPPORTED_SITES_FILE}: {e}")
         SUPPORTED_SITES = set()
@@ -3389,37 +3392,37 @@ def is_porn(url, title, description, caption=None):
     """
     Проверяет контент на порнографию по домену и ключевым словам (точные совпадения по словам) в title, description и caption.
     """
-    # 1. Проверка домена по URL
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
     if is_porn_domain(domain_parts):
+        logger.info(f"is_porn: domain match: {domain_parts}")
         return True
-
-    # 2. Проверка ключевых слов в заголовке, описании и подписи
     title_lower = title.lower() if title else ""
     description_lower = description.lower() if description else ""
     caption_lower = caption.lower() if caption else ""
-
     logger.debug(f"is_porn check for url: {url}")
     logger.debug(f"is_porn title: '{title_lower}'")
     logger.debug(f"is_porn description: '{description_lower}'")
     logger.debug(f"is_porn caption: '{caption_lower}'")
     logger.debug(f"is_porn keywords being checked: {PORN_KEYWORDS}")
-
     if not title_lower and not description_lower and not caption_lower:
+        logger.info("is_porn: all fields empty")
         return False
-
-    # Проверяем только точные совпадения по словам (границы слова)
+    found_matches = []
     for keyword in PORN_KEYWORDS:
         if not keyword:
             continue
         pattern = r'\\b' + re.escape(keyword) + r'\\b'
-        if (re.search(pattern, title_lower) or
-            re.search(pattern, description_lower) or
-            re.search(pattern, caption_lower)):
-            logger.info(f"Porn keyword '{keyword}' found in title/description/caption.")
-            return True
-
+        if re.search(pattern, title_lower):
+            found_matches.append((keyword, 'title'))
+        if re.search(pattern, description_lower):
+            found_matches.append((keyword, 'description'))
+        if re.search(pattern, caption_lower):
+            found_matches.append((keyword, 'caption'))
+    if found_matches:
+        logger.info(f"is_porn: found matches: {found_matches}")
+        return True
+    logger.info("is_porn: no matches found")
     return False
 
 @app.on_message(filters.command("split") & filters.private)
