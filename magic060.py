@@ -1,16 +1,3 @@
-# Version 1.7.9 - Add playlist support to down_and_audio function
-# Version 1.0.0 - Добавлена команда /settings с меню настроек
-# Version 1.0.1 - Settings menu: unique callbacks, English text, correct Back emoji
-# Version 1.0.2 - Settings menu: кнопки вызывают обработчики команд напрямую
-# Version 1.0.4 - Исправлен fake_message: всегда есть chat.first_name и first_name
-# Version 1.0.5 - Исправлен fake_message для /format (command), /audio теперь только подсказка
-# Version 1.0.6 - /save_as_cookie в меню теперь отправляет подсказку из Config
-# Version 1.0.7 - Выровнены надписи на кнопках COOKIES с помощью невидимых символов
-# Version 1.0.8 - Выровнены надписи на кнопках LOGS и MEDIA с помощью невидимых символов
-# Version 1.0.9 - Выровнены надписи на всех кнопках меню /settings с помощью обычных пробелов
-# Version 1.0.10 - Названия /команд на кнопках меню выделены жирным
-# Version 1.0.11 - Исправлено форматирование: жирный убран, пробелы заменены на _
-
 import pyrebase
 import re
 import os
@@ -1260,9 +1247,9 @@ def mediainfo_command(app, message):
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     buttons = [
-        [InlineKeyboardButton("ON", callback_data="mediainfo_option|on")],
-        [InlineKeyboardButton("OFF", callback_data="mediainfo_option|off")],
-        [InlineKeyboardButton("Cancel", callback_data="mediainfo_option|cancel")]
+        [InlineKeyboardButton("✅ ON", callback_data="mediainfo_option|on")],
+        [InlineKeyboardButton("❌ OFF", callback_data="mediainfo_option|off")],
+        [InlineKeyboardButton("🔙 Cancel", callback_data="mediainfo_option|cancel")]
     ]
     keyboard = InlineKeyboardMarkup(buttons)
     app.send_message(
