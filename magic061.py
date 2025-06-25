@@ -1,15 +1,4 @@
 # Version 1.7.9 - Add playlist support to down_and_audio function
-# Version 1.0.0 - Добавлена команда /settings с меню настроек
-# Version 1.0.1 - Settings menu: unique callbacks, English text, correct Back emoji
-# Version 1.0.2 - Settings menu: кнопки вызывают обработчики команд напрямую
-# Version 1.0.4 - Исправлен fake_message: всегда есть chat.first_name и first_name
-# Version 1.0.5 - Исправлен fake_message для /format (command), /audio теперь только подсказка
-# Version 1.0.6 - /save_as_cookie в меню теперь отправляет подсказку из Config
-# Version 1.0.7 - Выровнены надписи на кнопках COOKIES с помощью невидимых символов
-# Version 1.0.8 - Выровнены надписи на кнопках LOGS и MEDIA с помощью невидимых символов
-# Version 1.0.9 - Выровнены надписи на всех кнопках меню /settings с помощью обычных пробелов
-# Version 1.0.10 - Названия /команд на кнопках меню выделены жирным
-# Version 1.0.11 - Исправлено форматирование: жирный убран, пробелы заменены на _
 
 import pyrebase
 import re
@@ -3396,34 +3385,39 @@ def is_porn_domain(domain_parts):
     return False
 
 # --- a new function for checking for porn ---
-def is_porn(url, title, description):
+def is_porn(url, title, description, caption=None):
     """
-    Checks the content for pornography by domain and keywords (only accurate coincidences by words).
+    Проверяет контент на порнографию по домену и ключевым словам (точные совпадения по словам) в title, description и caption.
     """
-    # 1. Checking the domain by URL
+    # 1. Проверка домена по URL
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
     if is_porn_domain(domain_parts):
         return True
 
-    # 2. Checking keywords in the heading and description
+    # 2. Проверка ключевых слов в заголовке, описании и подписи
     title_lower = title.lower() if title else ""
     description_lower = description.lower() if description else ""
+    caption_lower = caption.lower() if caption else ""
 
     logger.debug(f"is_porn check for url: {url}")
     logger.debug(f"is_porn title: '{title_lower}'")
+    logger.debug(f"is_porn description: '{description_lower}'")
+    logger.debug(f"is_porn caption: '{caption_lower}'")
     logger.debug(f"is_porn keywords being checked: {PORN_KEYWORDS}")
 
-    if not title_lower and not description_lower:
+    if not title_lower and not description_lower and not caption_lower:
         return False
 
-    # We check only accurate coincidences by words (the boundaries of the word)
+    # Проверяем только точные совпадения по словам (границы слова)
     for keyword in PORN_KEYWORDS:
         if not keyword:
             continue
         pattern = r'\\b' + re.escape(keyword) + r'\\b'
-        if re.search(pattern, title_lower) or re.search(pattern, description_lower):
-            logger.info(f"Porn keyword '{keyword}' found in title/description.")
+        if (re.search(pattern, title_lower) or
+            re.search(pattern, description_lower) or
+            re.search(pattern, caption_lower)):
+            logger.info(f"Porn keyword '{keyword}' found in title/description/caption.")
             return True
 
     return False
@@ -3773,23 +3767,23 @@ def sanitize_autotag(tag: str) -> str:
     return '#' + re.sub(r'[^\w\d_]', '_', tag.lstrip('#'), flags=re.UNICODE)
 
 def generate_final_tags(url, user_tags, info_dict):
-    """Only user and auto-tags (service, channel/profile, porn) are included in the tag section."""
+    """В тегах теперь #porn, если найдено по title, description или caption."""
     final_tags = []
     seen = set()
-    # 1. Custom tags
+    # 1. Пользовательские теги
     for tag in user_tags:
         tag_l = tag.lower()
         if tag_l not in seen:
             final_tags.append(tag)
             seen.add(tag_l)
-    # 2. Auto-tags (no duplicates with user ones)
+    # 2. Авто-теги (без дубликатов)
     auto_tags = get_auto_tags(url, final_tags)
     for tag in auto_tags:
         tag_l = tag.lower()
         if tag_l not in seen:
             final_tags.append(tag)
             seen.add(tag_l)
-    # 3. Profile/channel tags (tiktok/youtube)
+    # 3. Теги профиля/канала (tiktok/youtube)
     if is_tiktok_url(url):
         tiktok_profile = extract_tiktok_profile(url)
         if tiktok_profile:
@@ -3808,10 +3802,11 @@ def generate_final_tags(url, user_tags, info_dict):
             if channel_tag.lower() not in seen:
                 final_tags.append(channel_tag)
                 seen.add(channel_tag.lower())
-    # 4. #porn if determined by content
+    # 4. #porn если определено по title, description или caption
     video_title = info_dict.get("title")
     video_description = info_dict.get("description")
-    if is_porn(url, video_title, video_description):
+    video_caption = info_dict.get("caption") if info_dict else None
+    if is_porn(url, video_title, video_description, video_caption):
         if '#porn' not in seen:
             final_tags.append('#porn')
             seen.add('#porn')
