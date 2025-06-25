@@ -9,6 +9,7 @@
 # Version 1.0.8 - Выровнены надписи на кнопках LOGS и MEDIA с помощью невидимых символов
 # Version 1.0.9 - Выровнены надписи на всех кнопках меню /settings с помощью обычных пробелов
 # Version 1.0.10 - Названия /команд на кнопках меню выделены жирным
+# Version 1.0.11 - Исправлено форматирование: жирный убран, пробелы заменены на _
 
 import pyrebase
 import re
@@ -1120,11 +1121,11 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🧹<b>/clean</b> - Delete cookies & broken downloads      ", callback_data="settings__cmd__clean")],
-            [InlineKeyboardButton("📥<b>/download_cookie</b> - Download YouTube cookie   ", callback_data="settings__cmd__download_cookie")],
-            [InlineKeyboardButton("🌐<b>/cookies_from_browser</b> - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
-            [InlineKeyboardButton("🔎<b>/check_cookie</b> - Check cookie file            ", callback_data="settings__cmd__check_cookie")],
-            [InlineKeyboardButton("🔖<b>/save_as_cookie</b> - Save text as cookie        ", callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("🧹 /clean - Delete cookies & broken downloads______", callback_data="settings__cmd__clean")],
+            [InlineKeyboardButton("📥 /download_cookie - Download YouTube cookie______", callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
+            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file_______________", callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("🔖 /save_as_cookie - Save text as cookie___________", callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1136,10 +1137,10 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "media":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📼<b>/format</b> - Change quality & format           ", callback_data="settings__cmd__format")],
-            [InlineKeyboardButton("📊<b>/mediainfo</b> - Turn ON/OFF MediaInfo          ", callback_data="settings__cmd__mediainfo")],
-            [InlineKeyboardButton("✂️<b>/split</b> - Change split video part size        ", callback_data="settings__cmd__split")],
-            [InlineKeyboardButton("🎧<b>/audio</b> - Download as mp3                   ", callback_data="settings__cmd__audio")],
+            [InlineKeyboardButton("📼 /format - Change quality & format____", callback_data="settings__cmd__format")],
+            [InlineKeyboardButton("📊 /mediainfo - Turn ON/OFF MediaInfo___", callback_data="settings__cmd__mediainfo")],
+            [InlineKeyboardButton("✂️ /split - Change split video part size", callback_data="settings__cmd__split")],
+            [InlineKeyboardButton("🎧 /audio - Download as mp3_____________", callback_data="settings__cmd__audio")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1151,9 +1152,9 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "logs":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("#️⃣<b>/tags</b> - Your #tags                       ", callback_data="settings__cmd__tags")],
-            [InlineKeyboardButton("🆘<b>/help</b> - Help instructions                  ", callback_data="settings__cmd__help")],
-            [InlineKeyboardButton("📃<b>/usage</b> - Your logs                        ", callback_data="settings__cmd__usage")],
+            [InlineKeyboardButton("#️⃣ /tags - Your #tags_______", callback_data="settings__cmd__tags")],
+            [InlineKeyboardButton("🆘 /help - Help instructions", callback_data="settings__cmd__help")],
+            [InlineKeyboardButton("📃 /usage - Your logs_______", callback_data="settings__cmd__usage")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
