@@ -1,4 +1,6 @@
-# Version 1.7.10 - Добавлена команда /settings с меню настроек
+# Version 1.7.9 - Add playlist support to down_and_audio function
+# Version 1.0.0 - Добавлена команда /settings с меню настроек
+# Version 1.0.1 - Settings menu: unique callbacks, English text, correct Back emoji
 
 import pyrebase
 import re
@@ -1083,41 +1085,41 @@ def check_runtime(message):
 @app.on_message(filters.command("settings") & filters.private)
 def settings_command(app, message):
     user_id = message.chat.id
-    # Главное меню настроек
+    # Main settings menu
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🍪 COOKIES", callback_data="settings_menu|cookies")],
-        [InlineKeyboardButton("🎞 MEDIA", callback_data="settings_menu|media")],
-        [InlineKeyboardButton("📖 LOGS", callback_data="settings_menu|logs")],
-        [InlineKeyboardButton("❌ Закрыть", callback_data="settings_menu|close")]
+        [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
+        [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
+        [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
+        [InlineKeyboardButton("❌ Close", callback_data="settings__menu__close")]
     ])
     app.send_message(
         user_id,
-        "<b>Настройки бота</b>\n\nВыберите категорию:",
+        "<b>Bot Settings</b>\n\nChoose a category:",
         reply_markup=keyboard,
         parse_mode=enums.ParseMode.HTML,
         reply_to_message_id=message.id
     )
-    send_to_logger(message, "Открыто меню /settings")
+    send_to_logger(message, "Opened /settings menu")
 
-@app.on_callback_query(filters.regex(r"^settings_menu\\|"))
+@app.on_callback_query(filters.regex(r"^settings__menu__"))
 def settings_menu_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    data = callback_query.data.split("|")[1]
+    data = callback_query.data.split("__")[-1]
     if data == "close":
         callback_query.message.delete()
-        callback_query.answer("Меню закрыто.")
+        callback_query.answer("Menu closed.")
         return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("/clean - Удалить cookies и битые загрузки", callback_data="settings_cmd|clean")],
-            [InlineKeyboardButton("/download_cookie - Скачать cookie YouTube", callback_data="settings_cmd|download_cookie")],
-            [InlineKeyboardButton("/cookies_from_browser - Получить cookie из браузера", callback_data="settings_cmd|cookies_from_browser")],
-            [InlineKeyboardButton("/check_cookie - Проверить cookie файл", callback_data="settings_cmd|check_cookie")],
-            [InlineKeyboardButton("/save_as_cookie - Сохранить текст как cookie", callback_data="settings_cmd|save_as_cookie")],
-            [InlineKeyboardButton("🔙 Назад", callback_data="settings_menu|back")]
+            [InlineKeyboardButton("/clean - Delete cookies & broken downloads", callback_data="settings__cmd__clean")],
+            [InlineKeyboardButton("/download_cookie - Download YouTube cookie", callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("/cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
+            [InlineKeyboardButton("/check_cookie - Check cookie file", callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("/save_as_cookie - Save text as cookie", callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
-            "<b>🍪 COOKIES</b>\n\nВыберите действие:",
+            "<b>🍪 COOKIES</b>\n\nChoose an action:",
             reply_markup=keyboard,
             parse_mode=enums.ParseMode.HTML
         )
@@ -1125,14 +1127,14 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "media":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("/format - Качество и формат видео", callback_data="settings_cmd|format")],
-            [InlineKeyboardButton("/mediainfo - Вкл/Выкл отправку MediaInfo", callback_data="settings_cmd|mediainfo")],
-            [InlineKeyboardButton("/split - Размер частей видео (0.25-2ГБ)", callback_data="settings_cmd|split")],
-            [InlineKeyboardButton("/audio - Скачать как mp3", callback_data="settings_cmd|audio")],
-            [InlineKeyboardButton("🔙 Назад", callback_data="settings_menu|back")]
+            [InlineKeyboardButton("/format - Change quality & format", callback_data="settings__cmd__format")],
+            [InlineKeyboardButton("/mediainfo - Turn ON/OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
+            [InlineKeyboardButton("/split - Change split video part size", callback_data="settings__cmd__split")],
+            [InlineKeyboardButton("/audio - Download as mp3", callback_data="settings__cmd__audio")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
-            "<b>🎞 MEDIA</b>\n\nВыберите действие:",
+            "<b>🎞 MEDIA</b>\n\nChoose an action:",
             reply_markup=keyboard,
             parse_mode=enums.ParseMode.HTML
         )
@@ -1140,39 +1142,39 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "logs":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("/tags - Ваши #теги", callback_data="settings_cmd|tags")],
-            [InlineKeyboardButton("/help - Инструкция", callback_data="settings_cmd|help")],
-            [InlineKeyboardButton("/usage - Ваши логи", callback_data="settings_cmd|usage")],
-            [InlineKeyboardButton("🔙 Назад", callback_data="settings_menu|back")]
+            [InlineKeyboardButton("/tags - Your #tags", callback_data="settings__cmd__tags")],
+            [InlineKeyboardButton("/help - Help instructions", callback_data="settings__cmd__help")],
+            [InlineKeyboardButton("/usage - Your logs", callback_data="settings__cmd__usage")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
-            "<b>📖 ЛОГИ</b>\n\nВыберите действие:",
+            "<b>📖 LOGS</b>\n\nChoose an action:",
             reply_markup=keyboard,
             parse_mode=enums.ParseMode.HTML
         )
         callback_query.answer()
         return
     if data == "back":
-        # Вернуться к главному меню
+        # Return to main menu
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🍪 COOKIES", callback_data="settings_menu|cookies")],
-            [InlineKeyboardButton("🎞 MEDIA", callback_data="settings_menu|media")],
-            [InlineKeyboardButton("📖 LOGS", callback_data="settings_menu|logs")],
-            [InlineKeyboardButton("❌ Закрыть", callback_data="settings_menu|close")]
+            [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
+            [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
+            [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
+            [InlineKeyboardButton("❌ Close", callback_data="settings__menu__close")]
         ])
         callback_query.edit_message_text(
-            "<b>Настройки бота</b>\n\nВыберите категорию:",
+            "<b>Bot Settings</b>\n\nChoose a category:",
             reply_markup=keyboard,
             parse_mode=enums.ParseMode.HTML
         )
         callback_query.answer()
         return
 
-@app.on_callback_query(filters.regex(r"^settings_cmd\\|"))
+@app.on_callback_query(filters.regex(r"^settings__cmd__"))
 def settings_cmd_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    data = callback_query.data.split("|")[1]
-    # Маппинг команд на текст для отправки
+    data = callback_query.data.split("__")[-1]
+    # Command mapping
     command_map = {
         "clean": "/clean cookie",
         "download_cookie": "/download_cookie",
@@ -1188,11 +1190,10 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         "usage": "/usage"
     }
     if data in command_map:
-        # Отправляем команду в чат пользователя (имитируем ввод)
         app.send_message(user_id, command_map[data])
-        callback_query.answer("Команда отправлена.")
+        callback_query.answer("Command sent.")
     else:
-        callback_query.answer("Неизвестная команда.", show_alert=True)
+        callback_query.answer("Unknown command.", show_alert=True)
 
 
 # /Mediainfo Command
