@@ -4368,20 +4368,16 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
         logger.info(f"save_to_playlist_cache: normalized URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            cache_ref = db_child_by_path(db, Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
             if clear:
-                cache_ref.child(quality_key).remove()
+                # Удаляем всю ветку качества
+                db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").remove()
                 logger.info(f"Playlist cache cleared for URL hash {url_hash}, quality {quality_key}")
                 continue
             if not message_ids or not video_indices:
                 logger.warning(f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
                 continue
-            existing_data = cache_ref.child(quality_key).get().val() or {}
-            logger.info(f"save_to_playlist_cache: existing data for quality {quality_key}: {existing_data}")
             for i, msg_id in zip(video_indices, message_ids):
-                existing_data[str(i)] = str(msg_id)
-            for i, msg_id in zip(video_indices, message_ids):
-                cache_ref.child(quality_key).child(str(i)).set(str(msg_id))
+                db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{str(i)}").set(str(msg_id))
             logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")    
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
@@ -4402,22 +4398,18 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            cache_ref = db_child_by_path(db, Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
-            playlist_data = cache_ref.child(quality_key).get().val()
-            if playlist_data:
-                logger.info(f"get_cached_playlist_videos: found playlist data: {playlist_data}")
-                cached_videos = {}
-                for index in requested_indices:
-                    index_str = str(index)
-                    if index_str in playlist_data:
-                        cached_videos[index] = int(playlist_data[index_str])
-                        logger.info(f"get_cached_playlist_videos: found cached video for index {index}: {playlist_data[index_str]}")
-                    else:
-                        logger.warning(f"get_cached_playlist_videos: index {index} not found in playlist data")
+            cached_videos = {}
+            for index in requested_indices:
+                index_str = str(index)
+                val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{index_str}").get().val()
+                if val is not None:
+                    cached_videos[index] = int(val)
+                    logger.info(f"get_cached_playlist_videos: found cached video for index {index}: {val}")
+                else:
+                    logger.warning(f"get_cached_playlist_videos: index {index} not found in playlist data")
+            if cached_videos:
                 logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
                 return cached_videos
-            else:
-                logger.info(f"get_cached_playlist_videos: no cache found for hash {url_hash}, quality {quality_key}")
         logger.info(f"get_cached_playlist_videos: no cache found for any URL variant, returning empty dict")
         return {}
     except Exception as e:
@@ -4428,7 +4420,8 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
     """Получает все доступные качества для плейлиста в кэше."""
     try:
         url_hash = get_url_hash(normalize_url_for_cache(strip_range_from_url(playlist_url)))
-        data = db_child_by_path(db, Config.PLAYLIST_CACHE_DB_PATH).child(url_hash).get().val()
+        # Получаем все ключи-качества внутри папки url_hash
+        data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}").get().val()
         if data:
             return set(data.keys())
         return set()
