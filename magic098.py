@@ -3861,11 +3861,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
-        # Подсказка обычным текстом, а не в цитате
-        hint = "📹 — Choose quality for new download. 🚀 — Instant repost. Video is already saved. ❓ — Size may be unknown for some formats."
+        # Подсказка теперь в самом низу
+        hint = "\n📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n❓ — Size may be unknown for some formats."
         cap += f"\n{hint}\n"
         if table_block:
-            cap += f"\n{table_block}\n"
+            cap += f"\n<blockquote>{table_block}</blockquote>\n"
         buttons = []
         for height in available_heights:
             quality_key = f"{height}p"
