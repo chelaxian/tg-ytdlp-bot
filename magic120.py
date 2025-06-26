@@ -4110,7 +4110,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
         return
     except Exception as e:
-        error_text = f"❌ Error retrieving video information:\n{e}\n\nTry the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
+        error_text = f"❌ Error retrieving video information:\n{e}\n\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
         try:
             if proc_msg:
                 result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
