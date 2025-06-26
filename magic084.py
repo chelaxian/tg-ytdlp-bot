@@ -4353,28 +4353,21 @@ def is_youtube_url(url: str) -> bool:
 
 # Версия 1.0.6: Добавлено кэширование плейлистов - отдельные функции для сохранения и получения кэша плейлистов
 def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: list, message_ids: list, clear: bool = False, original_text: str = None):
-    """Сохраняет message IDs для плейлиста с привязкой к индексам видео."""
     logger.info(f"save_to_playlist_cache called: playlist_url={playlist_url}, quality_key={quality_key}, video_indices={video_indices}, message_ids={message_ids}, clear={clear}")
     if not quality_key:
         logger.warning(f"save_to_playlist_cache: quality_key is empty, skipping cache save for playlist: {playlist_url}")
         return
-    # --- PATCH: Проверка пути ---
     if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
         logger.error(f"save_to_playlist_cache: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache write for playlist: {playlist_url}")
         return
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
-        # If it's YouTube, add both options
         if is_youtube_url(playlist_url):
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
         logger.info(f"save_to_playlist_cache: normalized URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            # --- PATCH: Проверка пути ---
-            if not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
-                logger.error(f"save_to_playlist_cache: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache write for url_hash: {url_hash}")
-                continue
             cache_ref = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
             if clear:
                 cache_ref.child(quality_key).remove()
@@ -4383,13 +4376,10 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
             if not message_ids or not video_indices:
                 logger.warning(f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
                 continue
-            # Сначала получаем существующие данные для данного качества
             existing_data = cache_ref.child(quality_key).get().val() or {}
             logger.info(f"save_to_playlist_cache: existing data for quality {quality_key}: {existing_data}")
-            # Добавляем новые индексы к существующим данным
             for i, msg_id in zip(video_indices, message_ids):
                 existing_data[str(i)] = str(msg_id)
-            # Сохраняем каждый индекс отдельно (как одиночный кэш)
             for i, msg_id in zip(video_indices, message_ids):
                 cache_ref.child(quality_key).child(str(i)).set(str(msg_id))
             logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")    
@@ -4397,12 +4387,10 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
         logger.error(f"Failed to save to playlist cache: {e}")
 
 def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_indices: list) -> dict:
-    """Получает кэшированные видео из плейлиста для запрошенных индексов."""
     logger.info(f"get_cached_playlist_videos called: playlist_url={playlist_url}, quality_key={quality_key}, requested_indices={requested_indices}")
     if not quality_key:
         logger.warning(f"get_cached_playlist_videos: quality_key is empty for playlist: {playlist_url}")
         return {}
-    # --- PATCH: Проверка пути ---
     if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
         logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache read for playlist: {playlist_url}")
         return {}
@@ -4414,14 +4402,10 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            # --- PATCH: Проверка пути ---
-            if not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
-                logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache read for url_hash: {url_hash}")
-                continue
-            playlist_data = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
+            cache_ref = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
+            playlist_data = cache_ref.child(quality_key).get().val()
             if playlist_data:
                 logger.info(f"get_cached_playlist_videos: found playlist data: {playlist_data}")
-                # Фильтруем только запрошенные индексы
                 cached_videos = {}
                 for index in requested_indices:
                     index_str = str(index)
@@ -4467,5 +4451,10 @@ def get_clean_playlist_url(url: str) -> str:
 def strip_range_from_url(url: str) -> str:
     """Удаляет диапазон вида *1*3 или *1*10000 из конца URL."""
     return re.sub(r'\*\d+\*\d+$', '', url)
+
+def db_child_by_path(db, path):
+    for part in path.split("/"):
+        db = db.child(part)
+    return db
 
 app.run()
