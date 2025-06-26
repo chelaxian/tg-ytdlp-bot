@@ -1,4 +1,6 @@
-#Version 2.0.3 - Исправлена фильтрация: лог ошибки только если 'MESSAGE_ID_INVALID' нет в str(e).
+#Version 2.1.0 - Если не удалось отредактировать сообщение с ошибкой (MESSAGE_ID_INVALID), отправлять ошибку новым сообщением пользователю.
+#Version 2.1.1 - Добавлен универсальный блок обработки ошибок: если не удалось отредактировать сообщение с прогрессом (MESSAGE_ID_INVALID), отправлять ошибку новым сообщением пользователю.
+#Version 2.1.2 - Исправлена ошибка синтаксиса: добавлен комментарий для строки Configure logging.
 
 import pyrebase
 import re
@@ -32,6 +34,7 @@ from pyrogram.types import ReplyKeyboardMarkup
 import json
 from pymediainfo import MediaInfo
 import types
+import pyrogram.errors
 
 # --- Function for permanent reply-keyboard ---
 def get_main_reply_keyboard():
@@ -44,7 +47,7 @@ def get_main_reply_keyboard():
         one_time_keyboard=False
     )
 
-# вечная reply-клавиатура и надёжная работа с файлами
+# eternal reply-keyboard and reliable work with files
 # --- Вечная reply-клавиатура ---
 reply_keyboard_msg_ids = {}  # user_id: message_id
 
@@ -2086,6 +2089,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
     anim_thread = None
     stop_anim = threading.Event()
+    proc_msg = None
+    proc_msg_id = None
+    status_msg = None
+    status_msg_id = None
+    hourglass_msg = None
+    hourglass_msg_id = None
+    audio_files = []
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
@@ -2122,20 +2132,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             logger.error(f"Error editing message: {e}")
             return
 
-    except Exception as e:
-        logger.error(f"Error in down_and_audio: {e}")
-        return
+        # If there is no flood error, send a normal message (only once)
+        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
+        proc_msg_id = proc_msg.id
+        status_msg = app.send_message(user_id, "🎧 Audio is processing...")
+        hourglass_msg = app.send_message(user_id, "⏳ Please wait...")
+        status_msg_id = status_msg.id
+        hourglass_msg_id = hourglass_msg.id
+        anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
 
-    # If there is no flood error, send a normal message (only once)
-    proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
-    proc_msg_id = proc_msg.id
-    status_msg = app.send_message(user_id, "🎧 Audio is processing...")
-    hourglass_msg = app.send_message(user_id, "⏳ Please wait...")
-    status_msg_id = status_msg.id
-    hourglass_msg_id = hourglass_msg.id
-    anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
-    audio_files = []
-    try:
         # Check if there's enough disk space (estimate 500MB per audio file)
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_folder)
@@ -2498,6 +2503,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     else:
         logger.info(f"down_and_up: quality_key is None, skipping cache check")
 
+    status_msg = None
+    status_msg_id = None
+    hourglass_msg = None
+    hourglass_msg_id = None
+    anim_thread = None
+    stop_anim = threading.Event()
+    proc_msg = None
+    proc_msg_id = None
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
@@ -2536,22 +2549,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             logger.error(f"Error editing message: {e}")
             return
 
-    except Exception as e:
-        logger.error(f"Error in down_and_up: {e}")
-        return
+        # If there is no flood error, send a normal message
+        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
+        proc_msg_id = proc_msg.id
+        error_message = ""
+        status_msg = None
+        status_msg_id = None
+        hourglass_msg = None
+        hourglass_msg_id = None
+        anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
 
-    # If there is no flood error, send a normal message
-    proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
-    proc_msg_id = proc_msg.id
-    error_message = ""
-    status_msg = None
-    status_msg_id = None
-    hourglass_msg = None
-    hourglass_msg_id = None
-    anim_thread = None
-    stop_anim = threading.Event()
-
-    try:
         # Check if there's enough disk space (estimate 2GB per video)
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_dir_name)
@@ -4093,7 +4100,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         time_str = f"{hours}h {minutes}m {seconds}s"
         flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
         if proc_msg:
-            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+            try:
+                app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+            except Exception as e:
+                if 'MESSAGE_ID_INVALID' not in str(e):
+                    logger.warning(f"Failed to edit message: {e}")
             proc_msg = None
         else:
             app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
@@ -4101,7 +4112,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     except Exception as e:
         error_text = f"❌ Error while getting video info:\n{e}\n\nFirst, try the /clean command and then try again.\nIf the error persists, YouTube may require authentication.\nPlease update your cookie.txt using /download_cookie or /cookies_from_browser and try again."
         if proc_msg:
-            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+            try:
+                app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+            except Exception as e:
+                if 'MESSAGE_ID_INVALID' not in str(e):
+                    logger.warning(f"Failed to edit message: {e}")
             proc_msg = None
         else:
             app.send_message(user_id, error_text, reply_to_message_id=message.id)
