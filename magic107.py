@@ -2239,7 +2239,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 logger.error(f"Audio download attempt failed: {e}")
                 return None
 
-        for x in range(video_count):
+        for x, current_index in enumerate(to_download):
             current_index = x
             total_process = f"""
 **📶 Total Progress**
@@ -2717,7 +2717,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 return None
 
 
-        for x in range(video_count):
+        for x, current_index in enumerate(to_download):
             current_index = x
             total_process = f"""
 **📶 Total Progress**
