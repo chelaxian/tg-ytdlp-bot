@@ -497,7 +497,7 @@ def audio_command_handler(app, message):
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
     video_count = video_end_with - video_start_with + 1
     
-    down_and_audio(app, message, url, tags, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+    down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
 
 # Command /Format Handler
 @app.on_message(filters.command("format") & filters.private)
