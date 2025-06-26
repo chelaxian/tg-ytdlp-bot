@@ -4386,9 +4386,10 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
             for i, msg_id in zip(video_indices, message_ids):
                 existing_data[str(i)] = str(msg_id)
             
-            # Сохраняем обновленные данные
-            cache_ref.child(quality_key).set(existing_data)
-            logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, updated data: {existing_data}")
+            # Сохраняем каждый индекс отдельно (как одиночный кэш)
+            for i, msg_id in zip(video_indices, message_ids):
+                cache_ref.child(quality_key).child(str(i)).set(str(msg_id))
+            logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")    
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
 
