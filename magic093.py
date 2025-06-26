@@ -3827,7 +3827,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         table_lines = []
         for height in quality_order:
             quality_key = f"{height}p"
-            size_str = f"{quality_size_map.get(height, '?')}MB" if height in quality_size_map else "?MB"
+            size_val = quality_size_map.get(height)
+            if size_val is not None:
+                if size_val >= 1024:
+                    size_str = f"{round(size_val/1024)}GB"
+                else:
+                    size_str = f"{size_val}MB"
+            else:
+                size_str = "?MB"
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 is_cached = is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices)
@@ -3842,8 +3849,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"{tags_text}\n"
         if table_block:
             cap += f"\n{table_block}\n"
-        cap += "\nAvailable formats for download ↓"
-        hidden_link = f'<a href="{url}">&#8203;</a>'
+        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
+        cap += f"\n<blockquote>{hint}</blockquote>"
+        cap += hidden_link
         cap += hidden_link
         buttons = []
         for height in quality_order:
