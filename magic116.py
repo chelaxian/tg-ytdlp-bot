@@ -1,6 +1,4 @@
-#Version 2.0.0 - Гарантируется максимум одно сообщение с reply keyboard: при отправке нового старое удаляется.
-#Version 2.0.1 - Лог ошибки редактирования reply keyboard только если ошибка не MESSAGE_ID_INVALID.
-#Version 2.0.2 - Исправлен лентер: возвращён комментарий перед logging.basicConfig.
+#Version 2.0.3 - Исправлена фильтрация: лог ошибки только если 'MESSAGE_ID_INVALID' нет в str(e).
 
 import pyrebase
 import re
@@ -60,7 +58,7 @@ def send_reply_keyboard_always(user_id):
                 return
             except Exception as e:
                 # Логируем только если ошибка не MESSAGE_ID_INVALID
-                if not (hasattr(e, 'message') and 'MESSAGE_ID_INVALID' in str(e)):
+                if 'MESSAGE_ID_INVALID' not in str(e):
                     logger.warning(f"Failed to edit persistent reply keyboard: {e}")
                 # Если не удалось — удаляем id, чтобы не зациклиться
                 reply_keyboard_msg_ids.pop(user_id, None)
