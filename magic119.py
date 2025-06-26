@@ -4119,9 +4119,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 app.send_message(user_id, error_text, reply_to_message_id=message.id)
         except Exception as e2:
-            logger.error(f\"Error sending error message: {e2}\")
+            logger.error(f"Error sending error message: {e2}")
             app.send_message(user_id, error_text, reply_to_message_id=message.id)
-        send_to_logger(message, f\"Always Ask menu error for {url}: {e}\")
+        send_to_logger(message, f"Always Ask menu error for {url}: {e}")
         return
 
 # --- Callback Processor ---
