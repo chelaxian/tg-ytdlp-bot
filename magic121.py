@@ -1,7 +1,4 @@
-#Version 2.1.0 - Если не удалось отредактировать сообщение с ошибкой (MESSAGE_ID_INVALID), отправлять ошибку новым сообщением пользователю.
-#Version 2.1.1 - Добавлен универсальный блок обработки ошибок: если не удалось отредактировать сообщение с прогрессом (MESSAGE_ID_INVALID), отправлять ошибку новым сообщением пользователю.
-#Version 2.1.2 - Исправлена ошибка синтаксиса: добавлен комментарий для строки Configure logging.
-
+#Version 2.1.0 
 import pyrebase
 import re
 import os
@@ -48,7 +45,6 @@ def get_main_reply_keyboard():
     )
 
 # eternal reply-keyboard and reliable work with files
-# --- Вечная reply-клавиатура ---
 reply_keyboard_msg_ids = {}  # user_id: message_id
 
 def send_reply_keyboard_always(user_id):
@@ -60,14 +56,14 @@ def send_reply_keyboard_always(user_id):
                 app.edit_message_text(user_id, msg_id, "\u2063", reply_markup=get_main_reply_keyboard())
                 return
             except Exception as e:
-                # Логируем только если ошибка не MESSAGE_ID_INVALID
+                # Log only if the error is not MESSAGE_ID_INVALID
                 if 'MESSAGE_ID_INVALID' not in str(e):
                     logger.warning(f"Failed to edit persistent reply keyboard: {e}")
-                # Если не удалось — удаляем id, чтобы не зациклиться
+                # If it didn't work, we delete the id to avoid getting stuck
                 reply_keyboard_msg_ids.pop(user_id, None)
-        # Всегда после неудачи или если id нет — отправляем новое
+        # Always after failure or if there is no id - send a new one
         msg = app.send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard())
-        # Если был другой служебный msg_id (и он не равен новому), пробуем удалить старое сообщение
+        # If there was another service msg_id (and it is not equal to the new one), we try to delete the old message
         if msg_id and msg_id != msg.id:
             try:
                 app.delete_messages(user_id, [msg_id])
@@ -77,11 +73,11 @@ def send_reply_keyboard_always(user_id):
     except Exception as e:
         logger.warning(f"Failed to send persistent reply keyboard: {e}")
 
-# --- Обёртка для любого пользовательского действия ---
+# --- Wrapper for any custom action ---
 def reply_with_keyboard(func):
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
-        # Определяем user_id из аргументов (Pyrogram message/chat)
+        # Determine user_id from arguments (Pyrogram message/chat)
         user_id = None
         if 'message' in kwargs:
             user_id = getattr(kwargs['message'].chat, 'id', None)
@@ -93,7 +89,7 @@ def reply_with_keyboard(func):
             send_reply_keyboard_always(user_id)
         return result
     return wrapper
-# --- Пример использования обёртки для любого хендлера ---
+# --- Example of using wrapper for any handler ---
 # @reply_with_keyboard
 # def your_handler(...):
 #     ...
@@ -500,7 +496,7 @@ def browser_choice_callback(app, callback_query):
 def audio_command_handler(app, message):
     user_id = message.chat.id
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR ПРЕДЫДУЩАЯ ЗАГРУЗКА НЕ ЗАВЕРШЕНА", reply_to_message_id=message.id)
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_to_message_id=message.id)
         return
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
@@ -1732,7 +1728,7 @@ def truncate_caption(
     if pre_block_str:
         pre_block_str += '\n'
 
-    # Сборка caption
+    # Assembly caption
     cap = ''
     if title_html:
         cap += title_html + '\n\n'
@@ -1742,7 +1738,7 @@ def truncate_caption(
     if tags_block:
         cap += tags_block
     cap += link_block
-    # Финальная обрезка с учётом HTML
+    # Final trimming taking into account HTML
     was_truncated_final = False
     if len(cap) > max_length:
         cap = cap[:max_length-3] + '...'
@@ -2254,7 +2250,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         else:
             indices_to_download = range(video_count)
         for idx, current_index in enumerate(indices_to_download):
-            current_index = current_index - video_start_with  # для нумерации/отображения
+            current_index = current_index - video_start_with  # for numbering/display
             total_process = f"""
 **📶 Total Progress**
 > **Audio:** {idx + 1} / {len(indices_to_download)}
@@ -2483,7 +2479,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 send_to_logger(message, f"Playlist videos sent from cache (quality={quality_key}) to user {user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} видео отправлены из кэша, докачиваем недостающие...", reply_to_message_id=message.id)
+                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2577,7 +2573,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
 
-        # Исправление: если format_override не задан и в format.txt лежит ALWAYS_ASK, использовать дефолтный формат
+        # if use_default_format is True, then do not take from format.txt, but use default ones
         custom_format_path = os.path.join(user_dir_name, "format.txt")
         use_default_format = False
         if not format_override and os.path.exists(custom_format_path):
@@ -2591,7 +2587,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         if format_override:
             attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
         else:
-            # если use_default_format True, то не брать из format.txt, а использовать дефолтные
+            # if use_default_format is True, then do not take from format.txt, but use default ones
             if use_default_format:
                 attempts = [
                     {'format': 'bestvideo+bestaudio/best', 'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
@@ -2743,7 +2739,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         else:
             indices_to_download = range(video_count)
         for idx, current_index in enumerate(indices_to_download):
-            x = current_index - video_start_with  # для нумерации/отображения
+            x = current_index - video_start_with  # Don't add quality if size is unknown
             total_process = f"""
 **📶 Total Progress**
 > **Video:** {idx + 1} / {len(indices_to_download)}
@@ -2956,7 +2952,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     pass
                                 save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), rounded_quality_key, [current_video_index])
-                                logger.info(f"Проверка кэша сразу после записи: {cached_check}")
+                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
                                 playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                             else:
@@ -2969,7 +2965,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 current_video_index = x + video_start_with
                                 save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                logger.info(f"Проверка кэша сразу после записи: {cached_check}")
+                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
                                 playlist_msg_ids.append(video_msg.id)
                             else:
@@ -2983,7 +2979,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             current_video_index = x + video_start_with
                             save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                            logger.info(f"Проверка кэша сразу после записи: {cached_check}")
+                            logger.info(f"Checking the cache immediately after writing: {cached_check}")
                             playlist_indices.append(current_video_index)
                             playlist_msg_ids.append(video_msg.id)
                         else:
@@ -3034,7 +3030,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     current_video_index = x + video_start_with
                                     save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                    logger.info(f"Проверка кэша сразу после записи: {cached_check}")
+                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                 else:
@@ -3047,7 +3043,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     current_video_index = x + video_start_with
                                     save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                    logger.info(f"Проверка кэша сразу после записи: {cached_check}")
+                                    logger.info(f"Checking the cache immediately after writing:{cached_check}")
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.append(video_msg.id)
                                 else:
@@ -3061,7 +3057,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 current_video_index = x + video_start_with
                                 save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                logger.info(f"Проверка кэша сразу после записи: {cached_check}")
+                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
                                 playlist_msg_ids.append(video_msg.id)
                             else:
@@ -3957,7 +3953,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             quality_key = f"{height}p"
             size_val = quality_size_map.get(height)
             if size_val is None:
-                continue  # Не добавляем качество, если размер неизвестен
+                continue  # Don't add quality if size is unknown
             size_str = ""
             if size_val >= 1024:
                 size_str = f"{round(size_val/1024, 1)}GB"
@@ -3984,11 +3980,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             emoji = "🚀" if is_cached else "📹"
             table_lines.append(f"{emoji}  {quality_key}:  {size_str}{scissors}")
         table_block = "\n".join(table_lines)
-        # --- Формируем caption ---
+        # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
-        # Подсказка теперь в самом низу
+        # The hint is now at the very bottom
         hint = "\n📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
         cap += f"\n{hint}\n"
         if table_block:
@@ -3998,7 +3994,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             quality_key = f"{height}p"
             size_val = quality_size_map.get(height)
             if size_val is None:
-                continue  # Не добавляем кнопку, если размер неизвестен
+                continue  # Don't add button if size is unknown
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
@@ -4020,7 +4016,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 quality_key = f"{height}p"
                 size_val = quality_size_map.get(height)
                 if size_val is None:
-                    continue  # Не добавляем кнопку, если размер неизвестен
+                    continue  # Don't add button if size is unknown
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
                     if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
@@ -4055,7 +4051,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 button_text = f"{icon} Best Quality"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        # --- Формируем ряды по 3 кнопки ---
+        # --- Form rows of 3 buttons ---
         keyboard_rows = []
         for i in range(0, len(buttons), 3):
             keyboard_rows.append(buttons[i:i+3])
@@ -4079,7 +4075,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
-        # cap уже содержит подсказку и таблицу
+        # cap already contains a hint and a table
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
@@ -4110,7 +4106,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
         return
     except Exception as e:
-        error_text = f"❌ Error retrieving video information:\n{e}\n\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
+        error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
         try:
             if proc_msg:
                 result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
@@ -4178,9 +4174,9 @@ def askq_callback(app, callback_query):
         cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), data, requested_indices)
         uncached_indices = [i for i in requested_indices if i not in cached_videos]
         used_quality_key = data
-        # Если кэш пустой по текущему quality_key, ищем любой другой quality_key для этих индексов
+        # If the cache is empty for the current quality_key, we look for any other quality_key for these indexes
         if not cached_videos:
-            # Получаем все доступные качества из кэша для этого плейлиста
+            # Get all available qualities from cache for this playlist
             all_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
             found = False
             for q in all_qualities:
@@ -4191,7 +4187,7 @@ def askq_callback(app, callback_query):
                     found = True
                     break
             if not found:
-                used_quality_key = data  # fallback к текущей кнопке
+                used_quality_key = data  # fallback to current button
         if cached_videos:
             callback_query.answer("🚀 Found in cache! Reposting...", show_alert=False)
             for index in requested_indices:
@@ -4214,7 +4210,7 @@ def askq_callback(app, callback_query):
             new_end = uncached_indices[-1]
             new_count = new_end - new_start + 1
             url_with_range = f"{url}*{new_start}*{new_end}"
-            # Если не удалось определить used_quality_key — fallback
+            # If used_quality_key could not be determined — fallback
             if not used_quality_key or used_quality_key == "ALWAYS_ASK":
                 if data == "mp3":
                     used_quality_key = "mp3"
@@ -4225,7 +4221,7 @@ def askq_callback(app, callback_query):
             else:
                 down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=None, quality_key=used_quality_key)
         return
-    # --- остальная логика для одиночных файлов ---
+    # --- other logic for single files ---
     message_ids = get_cached_message_ids(url, data)
     if message_ids:
         callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
@@ -4338,7 +4334,7 @@ def generate_final_tags(url, user_tags, info_dict):
             if channel_tag.lower() not in seen:
                 final_tags.append(channel_tag)
                 seen.add(channel_tag.lower())
-    # 4. #porn если определено по title, description или caption
+    # 4. #porn if defined by title, description or caption
     video_title = info_dict.get("title")
     video_description = info_dict.get("description")
     video_caption = info_dict.get("caption") if info_dict else None
@@ -4435,7 +4431,7 @@ def normalize_url_for_cache(url: str) -> str:
     """
     Normalizes URLs for caching based on a set of specific rules,
     removing all non-essential query parameters.
-    Для youtube.com (без www) оставлять как есть, для youtu.be всегда без www и без query.
+    For youtube.com (without www) leave as is, for youtu.be always without www and without query.
     """
     if not isinstance(url, str):
         return ''
@@ -4643,8 +4639,8 @@ def db_child_by_path(db, path):
         db = db.child(part)
     return db
 
-# Версия 1.0.14: округление высоты до популярного качества только для кэша
-# --- Округление высоты до ближайшего большего популярного качества ---
+# round height to popular quality for cache only
+# --- Round height to nearest higher popular quality ---
 def ceil_to_popular(h):
     popular = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
     for p in popular:
