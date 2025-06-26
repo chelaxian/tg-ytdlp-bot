@@ -1,5 +1,6 @@
 # Version 1.9.1 - Исправлена логика репоста и докачки диапазонов плейлистов: сначала репост кэшированных индексов, затем скачивание и кэширование только недостающих, без return после репоста части диапазона.
 # Version 1.9.2 - Исправлена логика репоста и докачки диапазонов плейлистов: сначала репост кэшированных индексов, затем скачивание и кэширование только недостающих, без return после репоста части диапазона.
+# Version 1.9.3 - Исправлено: если часть диапазона плейлиста есть в кэше, репостим кэшированные, а для недостающих сразу вызываем скачивание, не делаем return после репоста.
 
 import pyrebase
 import re
@@ -4092,26 +4093,20 @@ def askq_callback(app, callback_query):
         return
 
     url = None
-    # First, we are looking for a hidden link in a message with the buttons.
-    # This link is complete, original, as is necessary for download.
     if callback_query.message.caption_entities:
         for entity in callback_query.message.caption_entities:
             if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
                 url = entity.url
                 break
-    
-    # If you have not found it, we extract from the original user message
     if not url and callback_query.message.reply_to_message:
         url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
         if url_match:
             url = url_match.group(0)
-
     if not url:
         callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
         callback_query.message.delete()
         return
 
-    # Tags from the message with buttons
     tags = []
     caption_text = callback_query.message.caption
     if caption_text:
@@ -4120,54 +4115,49 @@ def askq_callback(app, callback_query):
             tags = tag_matches
     tags_text = ' '.join(tags)
 
-    # After all the data is extracted, delete the message with the buttons
     callback_query.message.delete()
 
-    # Check if this is a playlist with range - if so, use playlist cache
     original_text = original_message.text or original_message.caption or ""
     if is_playlist_with_range(original_text):
         logger.info(f"Playlist with range detected, checking playlist cache for URL: {url}")
-        # Extract playlist parameters from the original message
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
         video_count = video_end_with - video_start_with + 1
         requested_indices = list(range(video_start_with, video_start_with + video_count))
-        
-        # Check playlist cache
-        if is_any_playlist_index_cached(get_clean_playlist_url(url), data, requested_indices):
-            cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), data, requested_indices)
-            callback_query.answer("🚀 Found in playlist cache! Forwarding instantly...", show_alert=False)
-            try:
-                # Send cached videos in the order of requested indexes
-                for index in requested_indices:
-                    if index in cached_videos:
+        cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), data, requested_indices)
+        uncached_indices = [i for i in requested_indices if i not in cached_videos]
+        if cached_videos:
+            callback_query.answer("🚀 Найдено в кэше! Репостим...", show_alert=False)
+            for index in requested_indices:
+                if index in cached_videos:
+                    try:
                         app.forward_messages(
                             chat_id=user_id,
                             from_chat_id=Config.LOGS_ID,
                             message_ids=[cached_videos[index]]
                         )
-                    else:
-                        logger.warning(f"askq_callback: cached video for index {index} not found")
-                
-                # We send confirmation to the user
-                app.send_message(user_id, f"✅ Playlist sent from cache ({len(cached_videos)}/{len(requested_indices)} videos).", reply_to_message_id=original_message.id)
-                # --- LOGGING TO LOG CHANNEL ---
-                media_type = "Audio" if data == "mp3" else "Video"
-                log_msg = f"{media_type} playlist sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
-                send_to_logger(original_message, log_msg)
-            except Exception as e:
-                logger.error(f"Error forwarding playlist from cache: {e}")
-                # If the shipping failed, we try to download it again
-                save_to_playlist_cache(get_clean_playlist_url(url), data, [], [], clear=True) # Cleaning the playlist cache record
-                app.send_message(user_id, "⚠️ Unable to get playlist from cache, starting new download...", reply_to_message_id=original_message.id)
-                # Recursive call or a challenge of the main function? It is better to call the main one.
-                askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
-            return
-        else:
-            logger.info(f"askq_callback: no playlist cache found for quality_key={data}, proceeding with download")
-            askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
-            return
-
-    # Check the cache before downloading
+                    except Exception as e:
+                        logger.warning(f"askq_callback: cached video for index {index} not found: {e}")
+            app.send_message(user_id, f"✅ Из кэша отправлено: {len(cached_videos)}/{len(requested_indices)} файлов.", reply_to_message_id=original_message.id)
+            media_type = "Audio" if data == "mp3" else "Video"
+            log_msg = f"{media_type} playlist sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
+            send_to_logger(original_message, log_msg)
+        if uncached_indices:
+            # Запускаем скачивание только для недостающих индексов
+            logger.info(f"askq_callback: запускаем скачивание недостающих индексов: {uncached_indices}")
+            # Формируем параметры для скачивания только недостающих
+            new_start = uncached_indices[0]
+            new_end = uncached_indices[-1]
+            new_count = new_end - new_start + 1
+            # Формируем новый текст с диапазоном для корректного парсинга
+            url_with_range = f"{url}*{new_start}*{new_end}"
+            # Для аудио
+            if data == "mp3":
+                down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
+            else:
+                # Для видео
+                down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=None, quality_key=data)
+        return
+    # --- остальная логика для одиночных файлов ---
     message_ids = get_cached_message_ids(url, data)
     if message_ids:
         callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
@@ -4177,21 +4167,16 @@ def askq_callback(app, callback_query):
                 from_chat_id=Config.LOGS_ID,
                 message_ids=message_ids
             )
-            # We send confirmation to the user
             app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
-            # --- LOGGING TO LOG CHANNEL ---
             media_type = "Audio" if data == "mp3" else "Video"
             log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
             send_to_logger(original_message, log_msg)
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
-            # If the shipping failed, we try to download it again
-            save_to_video_cache(url, data, [], clear=True) # Cleaning the universal record in the cache
+            save_to_video_cache(url, data, [], clear=True)
             app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-            # Recursive call or a challenge of the main function? It is better to call the main one.
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
-
     askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
 
 
