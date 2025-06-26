@@ -4360,11 +4360,11 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
         return
     
     try:
-        urls = [normalize_url_for_cache(playlist_url)]
+        urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
         # If it's YouTube, add both options
         if is_youtube_url(playlist_url):
-            urls.append(normalize_url_for_cache(youtube_to_short_url(playlist_url)))
-            urls.append(normalize_url_for_cache(youtube_to_long_url(playlist_url)))
+            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
+            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
         logger.info(f"save_to_playlist_cache: normalized URLs: {urls}")
         
         for u in set(urls):
@@ -4401,10 +4401,10 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         return {}
     
     try:
-        urls = [normalize_url_for_cache(playlist_url)]
+        urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
         if is_youtube_url(playlist_url):
-            urls.append(normalize_url_for_cache(youtube_to_short_url(playlist_url)))
-            urls.append(normalize_url_for_cache(youtube_to_long_url(playlist_url)))
+            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
+            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         
         for u in set(urls):
@@ -4438,7 +4438,7 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
 def get_cached_playlist_qualities(playlist_url: str) -> set:
     """Получает все доступные качества для плейлиста в кэше."""
     try:
-        url_hash = get_url_hash(normalize_url_for_cache(playlist_url))
+        url_hash = get_url_hash(normalize_url_for_cache(strip_range_from_url(playlist_url)))
         data = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash).get().val()
         if data:
             return set(data.keys())
@@ -4458,5 +4458,9 @@ def get_clean_playlist_url(url: str) -> str:
     if m:
         return f"https://www.youtube.com/playlist?list={m.group(1)}"
     return url
+
+def strip_range_from_url(url: str) -> str:
+    """Удаляет диапазон вида *1*3 или *1*10000 из конца URL."""
+    return re.sub(r'\*\d+\*\d+$', '', url)
 
 app.run()
