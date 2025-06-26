@@ -2830,9 +2830,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if forwarded_msgs:
                             logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
                             if is_playlist:
-                                # Для плейлистов сохраняем в кэш плейлистов с индексом видео
+                                # Для плейлистов сохраняем в кэш плейлистов с индексом
                                 current_video_index = x + video_start_with
                                 save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                playlist_indices.append(current_video_index)
+                                playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                             else:
                                 # Для одиночных видео сохраняем в обычный кэш
                                 save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
@@ -2842,6 +2844,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                 current_video_index = x + video_start_with
                                 save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                playlist_indices.append(current_video_index)
+                                playlist_msg_ids.append(video_msg.id)
                             else:
                                 # Для одиночных видео сохраняем в обычный кэш
                                 save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -2852,6 +2856,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                             current_video_index = x + video_start_with
                             save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                            playlist_indices.append(current_video_index)
+                            playlist_msg_ids.append(video_msg.id)
                         else:
                             # Для одиночных видео сохраняем в обычный кэш
                             save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -2899,6 +2905,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                     current_video_index = x + video_start_with
                                     save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    playlist_indices.append(current_video_index)
+                                    playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                 else:
                                     # Для одиночных видео сохраняем в обычный кэш
                                     save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
@@ -2908,6 +2916,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                     current_video_index = x + video_start_with
                                     save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                    playlist_indices.append(current_video_index)
+                                    playlist_msg_ids.append(video_msg.id)
                                 else:
                                     # Для одиночных видео сохраняем в обычный кэш
                                     save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -2918,6 +2928,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                 current_video_index = x + video_start_with
                                 save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                playlist_indices.append(current_video_index)
+                                playlist_msg_ids.append(video_msg.id)
                             else:
                                 # Для одиночных видео сохраняем в обычный кэш
                                 save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -2952,6 +2964,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
         except Exception as e:
             logger.error(f"Error deleting status messages: {e}")
+
+        # --- ДОБАВЛЕНО: summary по кэшу после цикла ---
+        if is_playlist and playlist_indices and playlist_msg_ids:
+            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
+            cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, playlist_indices)
+            summary = "\n".join([f"Индекс {idx}: msg_id={cached_check.get(idx, '-')}") for idx in playlist_indices])
+            logger.info(f"[SUMMARY] Кэш плейлиста (качество {quality_key}):\n{summary}")
 
 #########################################
 
