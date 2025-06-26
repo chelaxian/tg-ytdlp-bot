@@ -3835,6 +3835,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     size_str = f"{size_val}MB"
             else:
                 size_str = "?MB"
+            # --- расчёт количества частей ---
+            scissors = ""
+            if size_val is not None and get_user_split_size(user_id) and (size_val * 1024 * 1024) > get_user_split_size(user_id):
+                n_parts = (size_val * 1024 * 1024 + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
+                scissors = f" ✂️{n_parts}"
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 is_cached = is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices)
@@ -3842,7 +3847,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 is_cached = quality_key in cached_qualities
             emoji = "🚀" if is_cached else "📹"
             if height in available_heights:
-                table_lines.append(f"{emoji}  {quality_key}:  {size_str}")
+                table_lines.append(f"{emoji}  {quality_key}:  {size_str}{scissors}")
         table_block = "\n".join(table_lines)
         cap = f"<b>{title}</b>\n"
         if tags_text:
