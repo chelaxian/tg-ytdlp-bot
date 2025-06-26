@@ -3809,13 +3809,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             except Exception:
                 thumb_path = None
         # --- Table with qualities and sizes ---
-        quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
-        available_heights = set()
+        # quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]  # больше не нужен
+        available_heights = sorted({f['height'] for f in info.get('formats', []) if f.get('vcodec', 'none') != 'none' and f.get('height')})
         quality_size_map = {}
         for f in info.get('formats', []):
             if f.get('vcodec', 'none') != 'none' and f.get('height'):
                 h = f['height']
-                available_heights.add(h)
                 if f.get('filesize'):
                     size_mb = int(f['filesize']) // (1024*1024)
                 elif f.get('filesize_approx'):
@@ -3825,7 +3824,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 if size_mb:
                     quality_size_map[h] = size_mb
         table_lines = []
-        for height in quality_order:
+        for height in available_heights:
             quality_key = f"{height}p"
             size_val = quality_size_map.get(height)
             size_str = ""
@@ -3856,38 +3855,38 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 is_cached = quality_key in cached_qualities
             emoji = "🚀" if is_cached else "📹"
-            if height in available_heights:
-                table_lines.append(f"{emoji}  {quality_key}:  {size_str}{scissors}")
+            table_lines.append(f"{emoji}  {quality_key}:  {size_str}{scissors}")
         table_block = "\n".join(table_lines)
+        # --- Формируем caption ---
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
+        # Подсказка обычным текстом, а не в цитате
+        hint = "📹 — Choose quality for new download. 🚀 — Instant repost. Video is already saved. ❓ — Size may be unknown for some formats."
+        cap += f"\n{hint}\n"
         if table_block:
             cap += f"\n{table_block}\n"
-        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n❓ — Size may be unknown for some formats."
-        cap += f"\n<blockquote>{hint}</blockquote>"
         buttons = []
-        for height in quality_order:
-            if height in available_heights:
-                quality_key = f"{height}p"
-                if is_playlist and playlist_range:
-                    indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
-                        cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
-                        n_cached = len(cached)
-                        total = len(indices)
-                        icon = "🚀"
-                        postfix = f" ({n_cached}/{total})"
-                    else:
-                        icon = "📹"
-                        postfix = ""
-                    button_text = f"{icon} {quality_key}{postfix}"
+        for height in available_heights:
+            quality_key = f"{height}p"
+            if is_playlist and playlist_range:
+                indices = list(range(playlist_range[0], playlist_range[1]+1))
+                if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
+                    cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
+                    n_cached = len(cached)
+                    total = len(indices)
+                    icon = "🚀"
+                    postfix = f" ({n_cached}/{total})"
                 else:
-                    icon = "🚀" if quality_key in cached_qualities else "📹"
-                    button_text = f"{icon} {quality_key}"
-                buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+                    icon = "📹"
+                    postfix = ""
+                button_text = f"{icon} {quality_key}{postfix}"
+            else:
+                icon = "🚀" if quality_key in cached_qualities else "📹"
+                button_text = f"{icon} {quality_key}"
+            buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons and available_heights:
-            for height in sorted(list(available_heights)):
+            for height in available_heights:
                 quality_key = f"{height}p"
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -3947,11 +3946,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
-        cap = f"<b>{title}</b>\n"
-        if tags_text:
-            cap += f"{tags_text}\n"
-        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n❓ — Size may be unknown for some formats."
-        cap += f"\n<blockquote>{hint}</blockquote>"
+        # cap уже содержит подсказку и таблицу
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
