@@ -33,6 +33,46 @@ import json
 from pymediainfo import MediaInfo
 import types
 
+# --- Function for permanent reply-keyboard ---
+def get_main_reply_keyboard():
+    return ReplyKeyboardMarkup(
+        [
+            ["/clean", "/download_cookie"],
+            ["/help", "/settings"]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
+
+# вечная reply-клавиатура и надёжная работа с файлами
+# --- Вечная reply-клавиатура ---
+def send_reply_keyboard_always(user_id):
+    try:
+        app.send_message(user_id, " ", reply_markup=get_main_reply_keyboard())
+    except Exception as e:
+        logger.warning(f"Failed to send persistent reply keyboard: {e}")
+
+# --- Обёртка для любого пользовательского действия ---
+def reply_with_keyboard(func):
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        # Определяем user_id из аргументов (Pyrogram message/chat)
+        user_id = None
+        if 'message' in kwargs:
+            user_id = getattr(kwargs['message'].chat, 'id', None)
+        elif len(args) > 0 and hasattr(args[0], 'chat'):
+            user_id = getattr(args[0].chat, 'id', None)
+        elif len(args) > 1 and hasattr(args[1], 'chat'):
+            user_id = getattr(args[1].chat, 'id', None)
+        if user_id:
+            send_reply_keyboard_always(user_id)
+        return result
+    return wrapper
+# --- Пример использования обёртки для любого хендлера ---
+# @reply_with_keyboard
+# def your_handler(...):
+#     ...
+
 # --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
     """
@@ -4569,42 +4609,6 @@ def db_child_by_path(db, path):
         db = db.child(part)
     return db
 
-# --- Function for permanent reply-keyboard ---
-def get_main_reply_keyboard():
-    return ReplyKeyboardMarkup(
-        [
-            ["/clean", "/download_cookie"],
-            ["/help", "/settings"]
-        ],
-        resize_keyboard=True,
-        one_time_keyboard=False
-    )
-
-# вечная reply-клавиатура и надёжная работа с файлами
-# --- Вечная reply-клавиатура ---
-def send_reply_keyboard_always(user_id):
-    try:
-        app.send_message(user_id, " ", reply_markup=get_main_reply_keyboard())
-    except Exception as e:
-        logger.warning(f"Failed to send persistent reply keyboard: {e}")
-
-# --- Обёртка для любого пользовательского действия ---
-def reply_with_keyboard(func):
-    def wrapper(*args, **kwargs):
-        result = func(*args, **kwargs)
-        # Определяем user_id из аргументов (Pyrogram message/chat)
-        user_id = None
-        if 'message' in kwargs:
-            user_id = getattr(kwargs['message'].chat, 'id', None)
-        elif len(args) > 0 and hasattr(args[0], 'chat'):
-            user_id = getattr(args[0].chat, 'id', None)
-        elif len(args) > 1 and hasattr(args[1], 'chat'):
-            user_id = getattr(args[1].chat, 'id', None)
-        if user_id:
-            send_reply_keyboard_always(user_id)
-        return result
-    return wrapper
-
 # --- Надёжная работа с файлами ---
 def safe_send_video(app, message, video_path, *args, **kwargs):
     user_id = message.chat.id
@@ -4626,11 +4630,6 @@ def safe_send_video(app, message, video_path, *args, **kwargs):
         app.send_message(user_id, f"❌ Error sending video: {e}", reply_markup=get_main_reply_keyboard())
         send_reply_keyboard_always(user_id)
         return None
-
-# --- Пример использования обёртки для любого хендлера ---
-# @reply_with_keyboard
-# def your_handler(...):
-#     ...
 
 # --- Использовать safe_send_video вместо app.send_video везде, где отправляется видео ---
 
