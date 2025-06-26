@@ -3809,7 +3809,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             except Exception:
                 thumb_path = None
         # --- Table with qualities and sizes ---
-        # quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]  # больше не нужен
+        # quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]  # no longer needed
         available_heights = sorted({f['height'] for f in info.get('formats', []) if f.get('vcodec', 'none') != 'none' and f.get('height')})
         quality_size_map = {}
         for f in info.get('formats', []):
@@ -3827,19 +3827,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         for height in available_heights:
             quality_key = f"{height}p"
             size_val = quality_size_map.get(height)
+            if size_val is None:
+                continue  # Не добавляем качество, если размер неизвестен
             size_str = ""
-            if size_val is not None:
-                if size_val >= 1024:
-                    size_str = f"{round(size_val/1024, 1)}GB"
-                else:
-                    size_str = f"{size_val}MB"
-                logger.info(f"[QUALITY] {quality_key}: size found: {size_str}")
+            if size_val >= 1024:
+                size_str = f"{round(size_val/1024, 1)}GB"
             else:
-                size_str = "?MB"
-                logger.info(f"[QUALITY] {quality_key}: size unknown (no filesize or filesize_approx in yt-dlp format)")
+                size_str = f"{size_val}MB"
+            logger.info(f"[QUALITY] {quality_key}: size found: {size_str}")
             # Calculate number of parts if size exceeds split_size
             scissors = ""
-            if size_val is not None and get_user_split_size(user_id):
+            if get_user_split_size(user_id):
                 video_bytes = size_val * 1024 * 1024
                 if video_bytes > get_user_split_size(user_id):
                     n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
@@ -3848,7 +3846,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 else:
                     logger.info(f"[SPLIT] {quality_key}: {size_str}, split_size={get_user_split_size(user_id)}B, does not exceed split_size (no scissors)")
             else:
-                logger.info(f"[SPLIT] {quality_key}: size unknown or split_size not set (no scissors)")
+                logger.info(f"[SPLIT] {quality_key}: split_size not set (no scissors)")
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 is_cached = is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices)
@@ -3862,13 +3860,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if tags_text:
             cap += f"{tags_text}\n"
         # Подсказка теперь в самом низу
-        hint = "\n📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n❓ — Size may be unknown for some formats."
+        hint = "\n📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
         cap += f"\n{hint}\n"
         if table_block:
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         buttons = []
         for height in available_heights:
             quality_key = f"{height}p"
+            size_val = quality_size_map.get(height)
+            if size_val is None:
+                continue  # Не добавляем кнопку, если размер неизвестен
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
@@ -3888,6 +3889,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if not buttons and available_heights:
             for height in available_heights:
                 quality_key = f"{height}p"
+                size_val = quality_size_map.get(height)
+                if size_val is None:
+                    continue  # Не добавляем кнопку, если размер неизвестен
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
                     if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
@@ -3968,11 +3972,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
         if proc_msg:
             app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+            proc_msg = None
+        else:
+            app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
         return
     except Exception as e:
         error_text = f"❌ Error while getting video info:\n{e}\n\nFirst, try the /clean command and then try again.\nIf the error persists, YouTube may require authentication.\nPlease update your cookie.txt using /download_cookie or /cookies_from_browser and try again."
         if proc_msg:
             app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+            proc_msg = None
         else:
             app.send_message(user_id, error_text, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu error for {url}: {e}")
@@ -4502,7 +4510,8 @@ def get_main_reply_keyboard():
             ["/clean", "/download_cookie"],
             ["/help", "/settings"]
         ],
-        resize_keyboard=True
+        resize_keyboard=True,
+        one_time_keyboard=False
     )
 
 app.run()
