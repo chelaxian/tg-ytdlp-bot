@@ -48,7 +48,7 @@ def get_main_reply_keyboard():
 # --- Вечная reply-клавиатура ---
 def send_reply_keyboard_always(user_id):
     try:
-        app.send_message(user_id, " ", reply_markup=get_main_reply_keyboard())
+        app.send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard())
     except Exception as e:
         logger.warning(f"Failed to send persistent reply keyboard: {e}")
 
