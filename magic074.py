@@ -1947,8 +1947,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Для плейлистов проверяем кэш плейлистов
             logger.info(f"down_and_audio: checking playlist cache for quality_key={quality_key}")
             requested_indices = list(range(video_start_with, video_start_with + video_count))
-            if is_any_playlist_index_cached(url, quality_key, requested_indices):
-                cached_videos = get_cached_playlist_videos(url, quality_key, requested_indices)
+            if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, requested_indices):
+                cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, requested_indices)
                 logger.info(f"down_and_audio: found cached playlist videos {cached_videos}, forwarding from cache")
                 try:
                     # Отправляем кэшированные аудио в порядке запрошенных индексов
@@ -1967,7 +1967,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     return
                 except Exception as e:
                     logger.error(f"Error forwarding audio playlist from cache: {e}")
-                    save_to_playlist_cache(url, quality_key, [], [], clear=True)
+                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [], [], clear=True)
                     app.send_message(user_id, "⚠️ Не удалось получить плейлист аудио из кэша, начинается новая загрузка...", reply_to_message_id=message.id)
             else:
                 logger.info(f"down_and_audio: no playlist cache found for quality_key={quality_key}, proceeding with download")
@@ -2266,7 +2266,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         # Для плейлистов сохраняем в кэш плейлистов с индексом
                         current_video_index = video_start_with + x
                         logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
-                        save_to_playlist_cache(url, quality_key, [current_video_index], msg_ids, original_text=message.text or message.caption or "")
+                        save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], msg_ids, original_text=message.text or message.caption or "")
                     else:
                         # Для одиночных аудио сохраняем в обычный кэш
                         logger.info(f"down_and_audio: saving to video cache: msg_ids={msg_ids}")
@@ -2360,8 +2360,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Для плейлистов проверяем кэш плейлистов
             logger.info(f"down_and_up: checking playlist cache for quality_key={quality_key}")
             requested_indices = list(range(video_start_with, video_start_with + video_count))
-            if is_any_playlist_index_cached(url, quality_key, requested_indices):
-                cached_videos = get_cached_playlist_videos(url, quality_key, requested_indices)
+            if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, requested_indices):
+                cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, requested_indices)
                 logger.info(f"down_and_up: found cached playlist videos {cached_videos}, forwarding from cache")
                 try:
                     # Отправляем кэшированные видео в порядке запрошенных индексов
@@ -2380,7 +2380,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return
                 except Exception as e:
                     logger.error(f"Error forwarding playlist from cache: {e}")
-                    save_to_playlist_cache(url, quality_key, [], [], clear=True)
+                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [], [], clear=True)
                     app.send_message(user_id, "⚠️ Не удалось получить плейлист из кэша, начинается новая загрузка...", reply_to_message_id=message.id)
             else:
                 logger.info(f"down_and_up: no playlist cache found for quality_key={quality_key}, proceeding with download")
@@ -2832,7 +2832,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(url, quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
                             else:
                                 # Для одиночных видео сохраняем в обычный кэш
                                 save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
@@ -2841,7 +2841,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(url, quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                             else:
                                 # Для одиночных видео сохраняем в обычный кэш
                                 save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -2851,7 +2851,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if is_playlist:
                             # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                             current_video_index = x + video_start_with
-                            save_to_playlist_cache(url, quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                         else:
                             # Для одиночных видео сохраняем в обычный кэш
                             save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -2898,7 +2898,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if is_playlist:
                                     # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(url, quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
                                 else:
                                     # Для одиночных видео сохраняем в обычный кэш
                                     save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
@@ -2907,7 +2907,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if is_playlist:
                                     # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(url, quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                                 else:
                                     # Для одиночных видео сохраняем в обычный кэш
                                     save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -2917,7 +2917,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # Для плейлистов сохраняем в кэш плейлистов с индексом видео
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(url, quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                             else:
                                 # Для одиночных видео сохраняем в обычный кэш
                                 save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
@@ -3750,7 +3750,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if is_playlist:
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
             playlist_range = (video_start_with, video_end_with)
-            cached_qualities = get_cached_playlist_qualities(url)
+            cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
         else:
             cached_qualities = get_cached_qualities(url)
 
@@ -3779,8 +3779,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 quality_key = f"{height}p"
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    if is_any_playlist_index_cached(url, quality_key, indices):
-                        cached = get_cached_playlist_videos(url, quality_key, indices)
+                    if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
+                        cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
                         n_cached = len(cached)
                         total = len(indices)
                         icon = "🚀"
@@ -3798,8 +3798,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 quality_key = f"{height}p"
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    if is_any_playlist_index_cached(url, quality_key, indices):
-                        cached = get_cached_playlist_videos(url, quality_key, indices)
+                    if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
+                        cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
                         n_cached = len(cached)
                         total = len(indices)
                         icon = "🚀"
@@ -3816,8 +3816,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             quality_key = "best"
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                if is_any_playlist_index_cached(url, quality_key, indices):
-                    cached = get_cached_playlist_videos(url, quality_key, indices)
+                if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
+                    cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
                     n_cached = len(cached)
                     total = len(indices)
                     icon = "🚀"
@@ -3836,8 +3836,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         quality_key = "mp3"
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
-            if is_any_playlist_index_cached(url, quality_key, indices):
-                cached = get_cached_playlist_videos(url, quality_key, indices)
+            if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
+                cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
                 n_cached = len(cached)
                 total = len(indices)
                 icon = "🚀"
@@ -3950,8 +3950,8 @@ def askq_callback(app, callback_query):
         requested_indices = list(range(video_start_with, video_start_with + video_count))
         
         # Check playlist cache
-        if is_any_playlist_index_cached(url, data, requested_indices):
-            cached_videos = get_cached_playlist_videos(url, data, requested_indices)
+        if is_any_playlist_index_cached(get_clean_playlist_url(url), data, requested_indices):
+            cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), data, requested_indices)
             callback_query.answer("🚀 Found in playlist cache! Forwarding instantly...", show_alert=False)
             try:
                 # Отправляем кэшированные видео в порядке запрошенных индексов
@@ -3974,7 +3974,7 @@ def askq_callback(app, callback_query):
             except Exception as e:
                 logger.error(f"Error forwarding playlist from cache: {e}")
                 # If the shipping failed, we try to download it again
-                save_to_playlist_cache(url, data, [], [], clear=True) # Cleaning the playlist cache record
+                save_to_playlist_cache(get_clean_playlist_url(url), data, [], [], clear=True) # Cleaning the playlist cache record
                 app.send_message(user_id, "⚠️ Не удалось получить плейлист из кэша, начинается новая загрузка...", reply_to_message_id=original_message.id)
                 # Recursive call or a challenge of the main function? It is better to call the main one.
                 askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
@@ -4406,5 +4406,12 @@ def is_any_playlist_index_cached(playlist_url, quality_key, indices):
     """Проверяет, есть ли хотя бы один индекс из диапазона в кэше плейлиста."""
     cached = get_cached_playlist_videos(playlist_url, quality_key, indices)
     return bool(cached)
+
+def get_clean_playlist_url(url: str) -> str:
+    """Возвращает чистый URL плейлиста для YouTube (https://www.youtube.com/playlist?list=...) либо исходный URL для других сайтов."""
+    m = re.search(r'list=([A-Za-z0-9_-]+)', url)
+    if m:
+        return f"https://www.youtube.com/playlist?list={m.group(1)}"
+    return url
 
 app.run()
