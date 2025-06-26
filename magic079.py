@@ -4352,7 +4352,7 @@ def is_youtube_url(url: str) -> bool:
     return 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc
 
 # Версия 1.0.6: Добавлено кэширование плейлистов - отдельные функции для сохранения и получения кэша плейлистов
-def сsave_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: list, message_ids: list, clear: bool = False, original_text: str = None):
+def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: list, message_ids: list, clear: bool = False, original_text: str = None):
     """Сохраняет message IDs для плейлиста с привязкой к индексам видео."""
     logger.info(f"save_to_playlist_cache called: playlist_url={playlist_url}, quality_key={quality_key}, video_indices={video_indices}, message_ids={message_ids}, clear={clear}")
     if not quality_key:
