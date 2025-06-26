@@ -4368,7 +4368,7 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
         logger.info(f"save_to_playlist_cache: normalized URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            cache_ref = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
+            cache_ref = db_child_by_path(db, Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
             if clear:
                 cache_ref.child(quality_key).remove()
                 logger.info(f"Playlist cache cleared for URL hash {url_hash}, quality {quality_key}")
@@ -4402,7 +4402,7 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            cache_ref = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
+            cache_ref = db_child_by_path(db, Config.PLAYLIST_CACHE_DB_PATH).child(url_hash)
             playlist_data = cache_ref.child(quality_key).get().val()
             if playlist_data:
                 logger.info(f"get_cached_playlist_videos: found playlist data: {playlist_data}")
@@ -4428,7 +4428,7 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
     """Получает все доступные качества для плейлиста в кэше."""
     try:
         url_hash = get_url_hash(normalize_url_for_cache(strip_range_from_url(playlist_url)))
-        data = db.child(Config.PLAYLIST_CACHE_DB_PATH).child(url_hash).get().val()
+        data = db_child_by_path(db, Config.PLAYLIST_CACHE_DB_PATH).child(url_hash).get().val()
         if data:
             return set(data.keys())
         return set()
