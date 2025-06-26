@@ -1,8 +1,6 @@
-#Version 1.9.6 - Если в format.txt лежит ALWAYS_ASK, для скачивания используется дефолтный формат (bestvideo+bestaudio/best), а не ALWAYS_ASK. Для аудио — если quality_key == mp3, всегда mp3.
-#Version 1.9.7 - Оптимизация: reply keyboard теперь отправляется только один раз, далее редактируется; если не удалось — отправляется заново.
-#Version 1.9.8 - reply keyboard: если редактирование не удалось, id удаляется, новое сообщение всегда обновляет id.
-#Version 1.9.9 - Исправлен лентер: возвращён комментарий перед logging.basicConfig.
 #Version 2.0.0 - Гарантируется максимум одно сообщение с reply keyboard: при отправке нового старое удаляется.
+#Version 2.0.1 - Лог ошибки редактирования reply keyboard только если ошибка не MESSAGE_ID_INVALID.
+#Version 2.0.2 - Исправлен лентер: возвращён комментарий перед logging.basicConfig.
 
 import pyrebase
 import re
@@ -61,7 +59,9 @@ def send_reply_keyboard_always(user_id):
                 app.edit_message_text(user_id, msg_id, "\u2063", reply_markup=get_main_reply_keyboard())
                 return
             except Exception as e:
-                logger.warning(f"Failed to edit persistent reply keyboard: {e}")
+                # Логируем только если ошибка не MESSAGE_ID_INVALID
+                if not (hasattr(e, 'message') and 'MESSAGE_ID_INVALID' in str(e)):
+                    logger.warning(f"Failed to edit persistent reply keyboard: {e}")
                 # Если не удалось — удаляем id, чтобы не зациклиться
                 reply_keyboard_msg_ids.pop(user_id, None)
         # Всегда после неудачи или если id нет — отправляем новое
