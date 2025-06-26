@@ -3851,8 +3851,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"\n{table_block}\n"
         hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
         cap += f"\n<blockquote>{hint}</blockquote>"
-        cap += hidden_link
-        cap += hidden_link
         buttons = []
         for height in quality_order:
             if height in available_heights:
@@ -3934,13 +3932,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
-        hidden_link = f'<a href="{url}">&#8203;</a>'
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
         hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
         cap += f"\n<blockquote>{hint}</blockquote>"
-        cap += hidden_link
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
