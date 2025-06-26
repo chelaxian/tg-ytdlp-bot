@@ -1,6 +1,8 @@
 # Version 1.9.1 - Исправлена логика репоста и докачки диапазонов плейлистов: сначала репост кэшированных индексов, затем скачивание и кэширование только недостающих, без return после репоста части диапазона.
 # Version 1.9.2 - Исправлена логика репоста и докачки диапазонов плейлистов: сначала репост кэшированных индексов, затем скачивание и кэширование только недостающих, без return после репоста части диапазона.
 # Version 1.9.3 - Исправлено: если часть диапазона плейлиста есть в кэше, репостим кэшированные, а для недостающих сразу вызываем скачивание, не делаем return после репоста.
+# Version 1.9.4 - Исправлено: если format_override или quality_key == 'ALWAYS_ASK', используется дефолтный формат (bestvideo+bestaudio/best или mp3), чтобы избежать ошибки yt-dlp.
+# Version 1.9.5 - Для недостающих файлов плейлиста используется то же качество, что и у кэшированных. Fallback — дефолтный формат.
 
 import pyrebase
 import re
@@ -2570,7 +2572,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                 ]
 
-
         status_msg = app.send_message(user_id, "📹 Video is processing...")
         hourglass_msg = app.send_message(user_id, "⌛️")
         # We save ID status messages
@@ -4125,6 +4126,21 @@ def askq_callback(app, callback_query):
         requested_indices = list(range(video_start_with, video_start_with + video_count))
         cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), data, requested_indices)
         uncached_indices = [i for i in requested_indices if i not in cached_videos]
+        used_quality_key = data
+        # Если кэш пустой по текущему quality_key, ищем любой другой quality_key для этих индексов
+        if not cached_videos:
+            # Получаем все доступные качества из кэша для этого плейлиста
+            all_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
+            found = False
+            for q in all_qualities:
+                alt_cached = get_cached_playlist_videos(get_clean_playlist_url(url), q, requested_indices)
+                if alt_cached:
+                    cached_videos = alt_cached
+                    used_quality_key = q
+                    found = True
+                    break
+            if not found:
+                used_quality_key = data  # fallback к текущей кнопке
         if cached_videos:
             callback_query.answer("🚀 Найдено в кэше! Репостим...", show_alert=False)
             for index in requested_indices:
@@ -4142,20 +4158,21 @@ def askq_callback(app, callback_query):
             log_msg = f"{media_type} playlist sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
             send_to_logger(original_message, log_msg)
         if uncached_indices:
-            # Запускаем скачивание только для недостающих индексов
             logger.info(f"askq_callback: запускаем скачивание недостающих индексов: {uncached_indices}")
-            # Формируем параметры для скачивания только недостающих
             new_start = uncached_indices[0]
             new_end = uncached_indices[-1]
             new_count = new_end - new_start + 1
-            # Формируем новый текст с диапазоном для корректного парсинга
             url_with_range = f"{url}*{new_start}*{new_end}"
-            # Для аудио
+            # Если не удалось определить used_quality_key — fallback
+            if not used_quality_key or used_quality_key == "ALWAYS_ASK":
+                if data == "mp3":
+                    used_quality_key = "mp3"
+                else:
+                    used_quality_key = None
             if data == "mp3":
-                down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
+                down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
             else:
-                # Для видео
-                down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=None, quality_key=data)
+                down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=None, quality_key=used_quality_key)
         return
     # --- остальная логика для одиночных файлов ---
     message_ids = get_cached_message_ids(url, data)
