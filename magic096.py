@@ -3828,18 +3828,28 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         for height in quality_order:
             quality_key = f"{height}p"
             size_val = quality_size_map.get(height)
+            size_str = ""
             if size_val is not None:
                 if size_val >= 1024:
-                    size_str = f"{round(size_val/1024)}GB"
+                    size_str = f"{round(size_val/1024, 1)}GB"
                 else:
                     size_str = f"{size_val}MB"
+                logger.info(f"[QUALITY] {quality_key}: size found: {size_str}")
             else:
                 size_str = "?MB"
-            # --- расчёт количества частей ---
+                logger.info(f"[QUALITY] {quality_key}: size unknown (no filesize or filesize_approx in yt-dlp format)")
+            # Calculate number of parts if size exceeds split_size
             scissors = ""
-            if size_val is not None and get_user_split_size(user_id) and (size_val * 1024 * 1024) > get_user_split_size(user_id):
-                n_parts = (size_val * 1024 * 1024 + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
-                scissors = f" ✂️{n_parts}"
+            if size_val is not None and get_user_split_size(user_id):
+                video_bytes = size_val * 1024 * 1024
+                if video_bytes > get_user_split_size(user_id):
+                    n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
+                    scissors = f" ✂️{n_parts}"
+                    logger.info(f"[SPLIT] {quality_key}: {size_str}, split_size={get_user_split_size(user_id)}B, n_parts={n_parts} (scissors added)")
+                else:
+                    logger.info(f"[SPLIT] {quality_key}: {size_str}, split_size={get_user_split_size(user_id)}B, does not exceed split_size (no scissors)")
+            else:
+                logger.info(f"[SPLIT] {quality_key}: size unknown or split_size not set (no scissors)")
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 is_cached = is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices)
@@ -3854,7 +3864,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"{tags_text}\n"
         if table_block:
             cap += f"\n{table_block}\n"
-        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
+        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n❓ — Size may be unknown for some formats."
         cap += f"\n<blockquote>{hint}</blockquote>"
         buttons = []
         for height in quality_order:
@@ -3940,7 +3950,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
-        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
+        hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n❓ — Size may be unknown for some formats."
         cap += f"\n<blockquote>{hint}</blockquote>"
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
