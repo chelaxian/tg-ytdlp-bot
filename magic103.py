@@ -48,7 +48,9 @@ def get_main_reply_keyboard():
 # --- Вечная reply-клавиатура ---
 def send_reply_keyboard_always(user_id):
     try:
-        app.send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard())
+        msg = app.send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard())
+        if msg:
+            app.delete_messages(user_id, msg.id)
     except Exception as e:
         logger.warning(f"Failed to send persistent reply keyboard: {e}")
 
@@ -2914,16 +2916,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = safe_send_video(app, message, path_lst[p],
-                        caption=('' if force_no_title else caption_lst[p]),
-                        duration=part_duration,
-                        thumb=splited_thumb_dir,
-                        parse_mode=enums.ParseMode.HTML,
-                        reply_to_message_id=message.id,
-                        width=640,
-                        height=360,
-                        supports_streaming=True
-                    )
+                    video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                     try:
                         forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                         logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
@@ -2973,8 +2966,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         threading.Event().wait(2)
                     os.remove(splited_thumb_dir)
                     send_mediainfo_if_enabled(user_id, path_lst[p], message)
-                    # safe_send_video сам удаляет файл после отправки
-                    # os.remove(path_lst[p])
+                    os.remove(path_lst[p])
                 os.remove(thumb_dir)
                 os.remove(user_vid_path)
                 success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
@@ -3002,16 +2994,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     try:
                         # --- TikTok: Don't Pass Title ---
-                        video_msg = safe_send_video(app, message, after_rename_abs_path,
-                            caption=('' if force_no_title else video_title),
-                            duration=duration,
-                            thumb=thumb_dir,
-                            parse_mode=enums.ParseMode.HTML,
-                            reply_to_message_id=message.id,
-                            width=640,
-                            height=360,
-                            supports_streaming=True
-                        )
+                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
@@ -4608,29 +4591,5 @@ def db_child_by_path(db, path):
     for part in path.split("/"):
         db = db.child(part)
     return db
-
-# --- Надёжная работа с файлами ---
-def safe_send_video(app, message, video_path, *args, **kwargs):
-    user_id = message.chat.id
-    safe_path = sanitize_filename(video_path)
-    if not os.path.exists(safe_path):
-        app.send_message(user_id, f"❌ Video file not found: {os.path.basename(safe_path)}", reply_markup=get_main_reply_keyboard())
-        send_reply_keyboard_always(user_id)
-        return None
-    try:
-        msg = app.send_video(user_id, safe_path, *args, **kwargs)
-        # Только после успешной отправки удаляем файл
-        if os.path.exists(safe_path):
-            try:
-                os.remove(safe_path)
-            except Exception as e:
-                logger.warning(f"Failed to delete video file after sending: {e}")
-        return msg
-    except Exception as e:
-        app.send_message(user_id, f"❌ Error sending video: {e}", reply_markup=get_main_reply_keyboard())
-        send_reply_keyboard_always(user_id)
-        return None
-
-# --- Использовать safe_send_video вместо app.send_video везде, где отправляется видео ---
 
 app.run()
