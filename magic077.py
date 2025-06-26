@@ -1935,6 +1935,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     После отправки аудио — всегда сохраняется в кэш связка url+quality_key.
     Для плейлистов используется отдельный кэш с привязкой к индексам аудио.
     """
+    playlist_indices = []
+    playlist_msg_ids = []  
+        
     user_id = message.chat.id
     logger.info(f"down_and_audio called: url={url}, quality_key={quality_key}, video_count={video_count}, video_start_with={video_start_with}")
     
@@ -2348,6 +2351,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     После отправки видео — всегда сохраняется в кэш связка url+quality_key.
     Для плейлистов используется отдельный кэш с привязкой к индексам видео.
     """
+    playlist_indices = []
+    playlist_msg_ids = []    
+
     user_id = message.chat.id
     logger.info(f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
     
@@ -4061,6 +4067,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
 
 # --- an auxiliary function for downloading with the format ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
+
     # We extract the range and other parameters from the original user message
     full_string = message.text or message.caption or ""
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
