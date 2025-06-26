@@ -3902,8 +3902,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 button_text = f"{icon} Best Quality"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+        # --- Формируем ряды по 3 кнопки ---
+        keyboard_rows = []
         for i in range(0, len(buttons), 3):
-            buttons.append(buttons[i:i+3])
+            keyboard_rows.append(buttons[i:i+3])
         # --- button mp3 ---
         quality_key = "mp3"
         if is_playlist and playlist_range:
@@ -3921,9 +3923,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         else:
             icon = "🚀" if quality_key in cached_qualities else "🎵"
             button_text = f"{icon} audio (mp3)"
-        buttons.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
-        buttons.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
-        keyboard = InlineKeyboardMarkup(buttons)
+        keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
+        keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
+        keyboard = InlineKeyboardMarkup(keyboard_rows)
         hidden_link = f'<a href="{url}">&#8203;</a>'
         cap = f"<b>{title}</b>\n"
         if tags_text:
