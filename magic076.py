@@ -2969,7 +2969,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         if is_playlist and playlist_indices and playlist_msg_ids:
             save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, playlist_indices)
-            summary = "\n".join([f"Индекс {idx}: msg_id={cached_check.get(idx, '-')}") for idx in playlist_indices])
+            summary = "\n".join([f"Индекс {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
             logger.info(f"[SUMMARY] Кэш плейлиста (качество {quality_key}):\n{summary}")
 
 #########################################
