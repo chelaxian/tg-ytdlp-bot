@@ -4387,7 +4387,7 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 existing_data[str(i)] = str(msg_id)
             
             # Сохраняем обновленные данные
-            cache_ref.update({quality_key: existing_data})
+            cache_ref.child(quality_key).set(existing_data)
             logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, updated data: {existing_data}")
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
