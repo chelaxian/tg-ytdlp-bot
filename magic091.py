@@ -3934,9 +3934,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
-            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id, reply_markup2=get_main_reply_keyboard())
+            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         else:
-            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id, reply_markup2=get_main_reply_keyboard())
+            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu sent for {url}")
     except FloodWait as e:
         wait_time = e.value
@@ -4479,7 +4479,7 @@ def db_child_by_path(db, path):
         db = db.child(part)
     return db
 
-# --- Функция для постоянной reply-клавиатуры ---
+# --- Function for permanent reply-keyboard ---
 def get_main_reply_keyboard():
     return ReplyKeyboardMarkup(
         [
