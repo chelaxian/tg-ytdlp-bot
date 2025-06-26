@@ -3785,8 +3785,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
     try:
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
-        
+        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
@@ -3796,7 +3795,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
         else:
             cached_qualities = get_cached_qualities(url)
-
         info = get_video_formats(url, user_id, playlist_start_index)
         title = info.get('title', 'Video')
         video_id = info.get('id')
@@ -3810,50 +3808,71 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 download_thumbnail(video_id, thumb_path)
             except Exception:
                 thumb_path = None
-        buttons = []
+        # --- Forming a table with qualities and sizes ---
+        quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
         available_heights = set()
+        quality_size_map = {}
         for f in info.get('formats', []):
             if f.get('vcodec', 'none') != 'none' and f.get('height'):
-                available_heights.add(f['height'])
-        quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
+                h = f['height']
+                available_heights.add(h)
+                if f.get('filesize'):
+                    size_mb = int(f['filesize']) // (1024*1024)
+                elif f.get('filesize_approx'):
+                    size_mb = int(f['filesize_approx']) // (1024*1024)
+                else:
+                    size_mb = None
+                if size_mb:
+                    quality_size_map[h] = size_mb
+        # --- Check cache for each quality ---
+        table_lines = []
+        for height in quality_order:
+            quality_key = f"{height}p"
+            size_str = f" ({quality_size_map.get(height, '?')}MB)" if height in quality_size_map else ""
+            if is_playlist and playlist_range:
+                indices = list(range(playlist_range[0], playlist_range[1]+1))
+                n_cached = count_cached_playlist_indices(get_clean_playlist_url(url), quality_key, indices)
+                total = len(indices)
+                postfix = f" ({n_cached}/{total})"
+                is_cached = n_cached > 0
+            else:
+                is_cached = quality_key in cached_qualities
+                postfix = ""
+            icon = "🚀" if is_cached else "📹"
+            if height in available_heights:
+                table_lines.append(f"{icon} {quality_key}{postfix}{size_str}")
+        # --- Forming caption ---
+        table_block = "\n".join(table_lines)
+        cap = f"<b>{title}</b>\n"
+        if tags_text:
+            cap += f"{tags_text}\n"
+        if table_block:
+            cap += f"\n{table_block}\n"
+        cap += "\nAvailable formats for download ↓"
+        hidden_link = f'<a href="{url}">&#8203;</a>'
+        cap += hidden_link
+        # --- Buttons ---
+        buttons = []
         quality_buttons = []
         for height in quality_order:
+            quality_key = f"{height}p"
+            size_str = f" ({quality_size_map.get(height, '?')}MB)" if height in quality_size_map else ""
+            if is_playlist and playlist_range:
+                indices = list(range(playlist_range[0], playlist_range[1]+1))
+                if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
+                    cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
+                    n_cached = len(cached)
+                    total = len(indices)
+                    icon = "🚀"
+                    postfix = f" ({n_cached}/{total})"
+                else:
+                    icon = "📹"
+                    postfix = ""
+                button_text = f"{icon} {quality_key}{postfix}{size_str}"
+            else:
+                icon = "🚀" if quality_key in cached_qualities else "📹"
+                button_text = f"{icon} {quality_key}{size_str}"
             if height in available_heights:
-                quality_key = f"{height}p"
-                if is_playlist and playlist_range:
-                    indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
-                        cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
-                        n_cached = len(cached)
-                        total = len(indices)
-                        icon = "🚀"
-                        postfix = f" ({n_cached}/{total})"
-                    else:
-                        icon = "📹"
-                        postfix = ""
-                    button_text = f"{icon} {quality_key}{postfix}"
-                else:
-                    icon = "🚀" if quality_key in cached_qualities else "📹"
-                    button_text = f"{icon} {quality_key}"
-                quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        if not quality_buttons and available_heights:
-            for height in sorted(list(available_heights)):
-                quality_key = f"{height}p"
-                if is_playlist and playlist_range:
-                    indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
-                        cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
-                        n_cached = len(cached)
-                        total = len(indices)
-                        icon = "🚀"
-                        postfix = f" ({n_cached}/{total})"
-                    else:
-                        icon = "📹"
-                        postfix = ""
-                    button_text = f"{icon} {quality_key}{postfix}"
-                else:
-                    icon = "🚀" if quality_key in cached_qualities else "📹"
-                    button_text = f"{icon} {quality_key}"
                 quality_buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not quality_buttons:
             quality_key = "best"
@@ -3901,13 +3920,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"{tags_text}\n"
         hint = "📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved."
         cap += f"\n<blockquote>{hint}</blockquote>"
+        if table_block:
+            cap += f"\n{table_block}\n"
         cap += hidden_link
+        keyboard = InlineKeyboardMarkup(buttons)
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
-            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
+            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id, reply_markup2=get_main_reply_keyboard())
         else:
-            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
+            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id, reply_markup2=get_main_reply_keyboard())
         send_to_logger(message, f"Always Ask menu sent for {url}")
     except FloodWait as e:
         wait_time = e.value
@@ -3922,14 +3944,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         time_str = f"{hours}h {minutes}m {seconds}s"
         flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
         if proc_msg:
-            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg, reply_markup=get_main_reply_keyboard())
         return
     except Exception as e:
         error_text = f"❌ Error while getting video info:\n{e}\n\nFirst, try the /clean command and then try again.\nIf the error persists, YouTube may require authentication.\nPlease update your cookie.txt using /download_cookie or /cookies_from_browser and try again."
         if proc_msg:
-            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+            app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text, reply_markup=get_main_reply_keyboard())
         else:
-            app.send_message(user_id, error_text, reply_to_message_id=message.id)
+            app.send_message(user_id, error_text, reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         send_to_logger(message, f"Always Ask menu error for {url}: {e}")
         return
 
@@ -4449,5 +4471,15 @@ def db_child_by_path(db, path):
     for part in path.split("/"):
         db = db.child(part)
     return db
+
+# --- Функция для постоянной reply-клавиатуры ---
+def get_main_reply_keyboard():
+    return ReplyKeyboardMarkup(
+        [
+            ["/clean", "/download_cookie"],
+            ["/help", "/settings"]
+        ],
+        resize_keyboard=True
+    )
 
 app.run()
