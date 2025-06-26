@@ -4482,4 +4482,9 @@ def get_main_reply_keyboard():
         resize_keyboard=True
     )
 
+def count_cached_playlist_indices(playlist_url, quality_key, indices):
+    """Counts the number of actually cached indexes for a given playlist quality."""
+    cached = get_cached_playlist_videos(playlist_url, quality_key, indices)
+    return len(cached)
+
 app.run()
