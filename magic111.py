@@ -3,6 +3,7 @@
 # Version 1.9.3 - Исправлено: если часть диапазона плейлиста есть в кэше, репостим кэшированные, а для недостающих сразу вызываем скачивание, не делаем return после репоста.
 # Version 1.9.4 - Исправлено: если format_override или quality_key == 'ALWAYS_ASK', используется дефолтный формат (bestvideo+bestaudio/best или mp3), чтобы избежать ошибки yt-dlp.
 # Version 1.9.5 - Для недостающих файлов плейлиста используется то же качество, что и у кэшированных. Fallback — дефолтный формат.
+# Version 1.9.6 - Если в format.txt лежит ALWAYS_ASK, для скачивания используется дефолтный формат (bestvideo+bestaudio/best), а не ALWAYS_ASK. Для аудио — если quality_key == mp3, всегда mp3.
 
 import pyrebase
 import re
@@ -2552,25 +2553,42 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
 
+        # Исправление: если format_override не задан и в format.txt лежит ALWAYS_ASK, использовать дефолтный формат
+        custom_format_path = os.path.join(user_dir_name, "format.txt")
+        use_default_format = False
+        if not format_override and os.path.exists(custom_format_path):
+            with open(custom_format_path, "r", encoding="utf-8") as f:
+                custom_format = f.read().strip()
+            if custom_format == "ALWAYS_ASK":
+                use_default_format = True
+        if use_default_format:
+            format_override = None
+
         if format_override:
             attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
         else:
-            custom_format_path = os.path.join(user_dir_name, "format.txt")
-            if os.path.exists(custom_format_path):
-                with open(custom_format_path, "r", encoding="utf-8") as f:
-                    custom_format = f.read().strip()
-                if custom_format.lower() == "best":
-                    attempts = [{'format': custom_format, 'prefer_ffmpeg': False}]
-                else:
-                    attempts = [{'format': custom_format, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
-            else:
+            # если use_default_format True, то не брать из format.txt, а использовать дефолтные
+            if use_default_format:
                 attempts = [
-                    {'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best',
-                    'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
-                    {'format': 'bestvideo+bestaudio/best',
-                    'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                    {'format': 'bestvideo+bestaudio/best', 'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
                     {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                 ]
+            else:
+                if os.path.exists(custom_format_path):
+                    with open(custom_format_path, "r", encoding="utf-8") as f:
+                        custom_format = f.read().strip()
+                    if custom_format.lower() == "best":
+                        attempts = [{'format': custom_format, 'prefer_ffmpeg': False}]
+                    else:
+                        attempts = [{'format': custom_format, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
+                else:
+                    attempts = [
+                        {'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best',
+                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                        {'format': 'bestvideo+bestaudio/best',
+                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                        {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
+                    ]
 
         status_msg = app.send_message(user_id, "📹 Video is processing...")
         hourglass_msg = app.send_message(user_id, "⌛️")
