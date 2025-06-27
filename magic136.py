@@ -1,4 +1,4 @@
-#Version 2.2.5 
+#Version 2.2.7 
 import pyrebase
 import re
 import os
@@ -4231,15 +4231,16 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         video_count = video_end_with - video_start_with + 1
         down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
+    is_best = False
     if data == "best":
         callback_query.answer("Downloading best quality...")
         fmt = "bestvideo+bestaudio/best"
+        quality_key = "best"
+        is_best = True
     else:
         try:
             quality_val = int(data.replace('p',''))
-            # Получаем info о видео, чтобы узнать размеры
             info = get_video_formats(url, user_id)
-            # По умолчанию ограничиваем по высоте
             min_side = 'height'
             min_val = None
             for f in info.get('formats', []):
@@ -4250,14 +4251,17 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         min_val = min(w, h)
                         min_side = 'width' if w < h else 'height'
             if min_side == 'width':
-                fmt = f"bestvideo[width<={quality_val}]+bestaudio/bestvideo[width<={quality_val}]+bestaudio/best[width<={quality_val}]/best"
+                fmt = f"bestvideo[width<={quality_val}]+bestaudio/bestvideo[width<={quality_val}]+bestaudio/best[width<={quality_val}]"
             else:
-                fmt = f"bestvideo[height<={quality_val}]+bestaudio/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+                fmt = f"bestvideo[height<={quality_val}]+bestaudio/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]"
+            quality_key = data
         except ValueError:
             callback_query.answer("Unknown quality.")
             return
     callback_query.answer(f"Downloading {data}...")
-    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
+    # Сохраняем флаг best для дальнейшей логики (например, для эмодзи)
+    original_message.is_best_quality = is_best
+    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
 
 # --- an auxiliary function for downloading with the format ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
