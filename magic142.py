@@ -3941,44 +3941,41 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
                 w = f['width']
                 h = f['height']
-                min_side = min(w, h)
-                pop_side = ceil_to_popular(min_side)
-                if f.get('filesize'):
-                    size_mb = int(f['filesize']) // (1024*1024)
-                elif f.get('filesize_approx'):
-                    size_mb = int(f['filesize_approx']) // (1024*1024)
-                else:
-                    size_mb = None
-                if size_mb:
-                    key = (pop_side, w, h)
-                    minside_size_dim_map[key] = size_mb
+                # Используем функцию get_quality_by_min_side для определения качества
+                quality_key = get_quality_by_min_side(w, h)
+                if quality_key != "best":  # Исключаем best из отображения
+                    if f.get('filesize'):
+                        size_mb = int(f['filesize']) // (1024*1024)
+                    elif f.get('filesize_approx'):
+                        size_mb = int(f['filesize_approx']) // (1024*1024)
+                    else:
+                        size_mb = None
+                    if size_mb:
+                        key = (quality_key, w, h)
+                        minside_size_dim_map[key] = size_mb
         table_lines = []
         found_quality_keys = set()
-        for pop_side in popular:
-            for (side, w, h), size_val in sorted(minside_size_dim_map.items()):
-                if side != pop_side:
-                    continue
-                quality_key = f"{side}p"
-                found_quality_keys.add(quality_key)
-                size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
-                dim_str = f" ({w}×{h})"
-                scissors = ""
-                if get_user_split_size(user_id):
-                    video_bytes = size_val * 1024 * 1024
-                    if video_bytes > get_user_split_size(user_id):
-                        n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
-                        scissors = f" ✂️{n_parts}"
-                if is_playlist and playlist_range:
-                    indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                    total = len(indices)
-                    postfix = f" ({n_cached}/{total})"
-                    is_cached = n_cached > 0
-                else:
-                    is_cached = quality_key in cached_qualities
-                    postfix = ""
-                emoji = "🚀" if is_cached else "📹"
-                table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
+        for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items()):
+            found_quality_keys.add(quality_key)
+            size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
+            dim_str = f" ({w}×{h})"
+            scissors = ""
+            if get_user_split_size(user_id):
+                video_bytes = size_val * 1024 * 1024
+                if video_bytes > get_user_split_size(user_id):
+                    n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
+                    scissors = f" ✂️{n_parts}"
+            if is_playlist and playlist_range:
+                indices = list(range(playlist_range[0], playlist_range[1]+1))
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                total = len(indices)
+                postfix = f" ({n_cached}/{total})"
+                is_cached = n_cached > 0
+            else:
+                is_cached = quality_key in cached_qualities
+                postfix = ""
+            emoji = "🚀" if is_cached else "📹"
+            table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -4187,7 +4184,18 @@ def askq_callback(app, callback_query):
                 if data == "mp3":
                     down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
                 else:
-                    down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=None, quality_key=used_quality_key)
+                    # Формируем правильный формат для недостающих видео
+                    if used_quality_key == "best":
+                        format_override = "bestvideo+bestaudio/best"
+                    else:
+                        try:
+                            quality_str = used_quality_key.replace('p', '')
+                            quality_val = int(quality_str)
+                            format_override = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+                        except ValueError:
+                            format_override = "bestvideo+bestaudio/best"
+                    
+                    down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=format_override, quality_key=used_quality_key)
             else:
                 # Все видео были в кэше
                 app.send_message(user_id, f"✅ Sent from cache: {len(cached_videos)}/{len(requested_indices)} files.", reply_to_message_id=original_message.id)
@@ -4201,7 +4209,18 @@ def askq_callback(app, callback_query):
             if data == "mp3":
                 down_and_audio(app, original_message, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
             else:
-                down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=data)
+                # Формируем правильный формат для нового скачивания
+                if data == "best":
+                    format_override = "bestvideo+bestaudio/best"
+                else:
+                    try:
+                        quality_str = data.replace('p', '')
+                        quality_val = int(quality_str)
+                        format_override = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+                    except ValueError:
+                        format_override = "bestvideo+bestaudio/best"
+                
+                down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
     message_ids = get_cached_message_ids(url, data)
@@ -4239,28 +4258,46 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
     
-    # Логика формирования формата с поддержкой привязки высот к качествам
+    # Логика формирования формата с учетом реальной height
     if data == "best":
         callback_query.answer("Downloading best quality...")
         fmt = "bestvideo+bestaudio/best"
         quality_key = "best"
     else:
         try:
-            # Получаем список высот для выбранного качества
-            heights = get_height_by_quality(data)
-            if not heights:
-                callback_query.answer("Unknown quality.")
-                return
+            # Получаем информацию о видео для определения размеров
+            info = get_video_formats(url, user_id)
+            formats = info.get('formats', [])
             
-            # Формируем формат с поддержкой всех высот для данного качества
-            height_conditions = []
-            for height in heights:
-                height_conditions.append(f"bestvideo[height={height}][ext=mp4]")
-                height_conditions.append(f"bestvideo[height={height}]")
-                height_conditions.append(f"best[height={height}]")
+            # Ищем формат с максимальным качеством для определения размеров
+            max_width = 0
+            max_height = 0
+            for f in formats:
+                if f.get('width') and f.get('height'):
+                    if f['width'] > max_width:
+                        max_width = f['width']
+                    if f['height'] > max_height:
+                        max_height = f['height']
             
-            # Создаем fallback на best если ничего не найдено
-            fmt = "+".join(height_conditions) + "+bestaudio[ext=m4a]/" + "/".join(height_conditions) + "/best"
+            # Если размеры не найдены, используем стандартную логику
+            if max_width == 0 or max_height == 0:
+                quality_str = data.replace('p', '')
+                quality_val = int(quality_str)
+                fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+            else:
+                # Определяем качество по меньшей стороне
+                min_side_quality = get_quality_by_min_side(max_width, max_height)
+                
+                # Если выбранное качество не соответствует меньшей стороне, используем стандартную логику
+                if data != min_side_quality:
+                    quality_str = data.replace('p', '')
+                    quality_val = int(quality_str)
+                    fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+                else:
+                    # Используем реальную height для формирования формата
+                    real_height = get_real_height_for_quality(data, max_width, max_height)
+                    fmt = f"bestvideo[height<={real_height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={real_height}]+bestaudio/best[height<={real_height}]/best"
+            
             quality_key = data
             callback_query.answer(f"Downloading {data}...")
         except ValueError:
@@ -4269,6 +4306,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
 
+# ... существующий code ...
 # --- an auxiliary function for downloading with the format ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
 
@@ -4715,11 +4753,15 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
         logger.error(f"get_cached_playlist_count error: {e}")
         return 0
 
-def get_quality_by_height(height: int) -> str:
+
+
+
+def get_quality_by_min_side(width: int, height: int) -> str:
     """
-    Определяет качество по высоте видео, учитывая как вертикальные, так и горизонтальные форматы.
-    Возвращает строку качества (например, '720p') или None если не найдено.
+    Определяет качество по меньшей стороне видео.
+    Например, для 1280×720 возвращает '720p', для 720×1280 тоже '720p'.
     """
+    min_side = min(width, height)
     quality_map = {
         144: "144p", 256: "144p",
         240: "240p", 426: "240p", 
@@ -4732,25 +4774,42 @@ def get_quality_by_height(height: int) -> str:
         2160: "2160p", 3840: "2160p",
         4320: "4320p", 7680: "4320p"
     }
-    return quality_map.get(height)
+    return quality_map.get(min_side, "best")
 
-def get_height_by_quality(quality: str) -> list:
+def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
     """
-    Возвращает список высот для заданного качества.
-    Например, для '720p' возвращает [720, 1280].
+    Возвращает реальную высоту для заданного качества, учитывая ориентацию видео.
+    Например, для качества '720p' и видео 1280×720 вернет 720, для 720×1280 вернет 1280.
     """
-    height_map = {
-        "144p": [144, 256],
-        "240p": [240, 426],
-        "480p": [480, 854],
-        "540p": [540, 960],
-        "576p": [576, 1024],
-        "720p": [720, 1280],
-        "1080p": [1080, 1920],
-        "1440p": [1440, 2560],
-        "2160p": [2160, 3840],
-        "4320p": [4320, 7680]
-    }
-    return height_map.get(quality, [])
+    if quality == "best":
+        return height  # Для best используем реальную высоту
+    
+    try:
+        quality_val = int(quality.replace('p', ''))
+        # Определяем, какая сторона соответствует выбранному качеству
+        if min(width, height) == quality_val:
+            # Если меньшая сторона равна качеству, используем реальную высоту
+            return height
+        else:
+            # Иначе ищем соответствующую высоту
+            quality_map = {
+                144: [144, 256],
+                240: [240, 426],
+                480: [480, 854],
+                540: [540, 960],
+                576: [576, 1024],
+                720: [720, 1280],
+                1080: [1080, 1920],
+                1440: [1440, 2560],
+                2160: [2160, 3840],
+                4320: [4320, 7680]
+            }
+            heights = quality_map.get(quality_val, [quality_val])
+            # Выбираем высоту, которая ближе к реальной высоте видео
+            return min(heights, key=lambda h: abs(h - height))
+    except ValueError:
+        return height
+
+
 
 app.run()
