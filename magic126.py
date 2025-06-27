@@ -1,4 +1,4 @@
-#Version 2.1.1 
+#Version 2.1.4 
 import pyrebase
 import re
 import os
@@ -4583,7 +4583,7 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.warning(f"get_cached_playlist_videos: quality_key is empty for playlist: {playlist_url}")
         return {}
     if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
-        logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache read for playlist: {playlist_url}")
+        logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty или invalid! Skipping cache read for playlist: {playlist_url}")
         return {}
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
@@ -4593,17 +4593,14 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            cached_videos = {}
-            for index in requested_indices:
-                index_str = str(index)
-                val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{index_str}").get().val()
-                if val is not None:
-                    cached_videos[index] = int(val)
-                    logger.info(f"get_cached_playlist_videos: found cached video for index {index}: {val}")
-                else:
-                    logger.warning(f"get_cached_playlist_videos: index {index} not found in playlist data")
+            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").get().val()
+            if not data:
+                continue
+            cached_keys = set(map(int, data.keys()))
+            indices_set = set(requested_indices)
+            cached_videos = {idx: int(data[str(idx)]) for idx in (cached_keys & indices_set) if str(idx) in data}
             if cached_videos:
-                logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
+                logger.info(f"get_cached_playlist_videos (fast): returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
                 return cached_videos
         logger.info(f"get_cached_playlist_videos: no cache found for any URL variant, returning empty dict")
         return {}
@@ -4653,5 +4650,7 @@ def ceil_to_popular(h):
         if h <= p:
             return p
     return popular[-1]
+
+
 
 app.run()
