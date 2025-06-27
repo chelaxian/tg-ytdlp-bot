@@ -1,4 +1,4 @@
-#Version 2.1.4 
+#Version 2.1.5 
 import pyrebase
 import re
 import os
@@ -3974,11 +3974,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 logger.info(f"[SPLIT] {quality_key}: split_size not set (no scissors)")
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                is_cached = is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices)
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                total = len(indices)
+                postfix = f" ({n_cached}/{total})"
+                is_cached = n_cached > 0
             else:
                 is_cached = quality_key in cached_qualities
+                postfix = ""
             emoji = "🚀" if is_cached else "📹"
-            table_lines.append(f"{emoji}  {quality_key}:  {size_str}{scissors}")
+            table_lines.append(f"{emoji}  {quality_key}:  {size_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -3995,18 +3999,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             quality_key = f"{height}p"
             size_val = quality_size_map.get(height)
             if size_val is None:
-                continue  # Don't add button if size is unknown
+                continue
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
-                    cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
-                    n_cached = len(cached)
-                    total = len(indices)
-                    icon = "🚀"
-                    postfix = f" ({n_cached}/{total})"
-                else:
-                    icon = "📹"
-                    postfix = ""
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                total = len(indices)
+                icon = "🚀" if n_cached > 0 else "📹"
+                postfix = f" ({n_cached}/{total})" if total > 1 else ""
                 button_text = f"{icon} {quality_key}{postfix}"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
@@ -4017,18 +4016,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 quality_key = f"{height}p"
                 size_val = quality_size_map.get(height)
                 if size_val is None:
-                    continue  # Don't add button if size is unknown
+                    continue
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
-                        cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
-                        n_cached = len(cached)
-                        total = len(indices)
-                        icon = "🚀"
-                        postfix = f" ({n_cached}/{total})"
-                    else:
-                        icon = "📹"
-                        postfix = ""
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                    total = len(indices)
+                    icon = "🚀" if n_cached > 0 else "📹"
+                    postfix = f" ({n_cached}/{total})" if total > 1 else ""
                     button_text = f"{icon} {quality_key}{postfix}"
                 else:
                     icon = "🚀" if quality_key in cached_qualities else "📹"
@@ -4038,15 +4032,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             quality_key = "best"
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
-                    cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
-                    n_cached = len(cached)
-                    total = len(indices)
-                    icon = "🚀"
-                    postfix = f" ({n_cached}/{total})"
-                else:
-                    icon = "📹"
-                    postfix = ""
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                total = len(indices)
+                icon = "🚀" if n_cached > 0 else "📹"
+                postfix = f" ({n_cached}/{total})" if total > 1 else ""
                 button_text = f"{icon} Best Quality{postfix}"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
@@ -4060,15 +4049,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         quality_key = "mp3"
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
-            if is_any_playlist_index_cached(get_clean_playlist_url(url), quality_key, indices):
-                cached = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
-                n_cached = len(cached)
-                total = len(indices)
-                icon = "🚀"
-                postfix = f" ({n_cached}/{total})"
-            else:
-                icon = "🎵"
-                postfix = ""
+            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+            total = len(indices)
+            icon = "🚀" if n_cached > 0 else "🎵"
+            postfix = f" ({n_cached}/{total})" if total > 1 else ""
             button_text = f"{icon} audio (mp3){postfix}"
         else:
             icon = "🚀" if quality_key in cached_qualities else "🎵"
@@ -4583,7 +4567,7 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.warning(f"get_cached_playlist_videos: quality_key is empty for playlist: {playlist_url}")
         return {}
     if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
-        logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty или invalid! Skipping cache read for playlist: {playlist_url}")
+        logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache read for playlist: {playlist_url}")
         return {}
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
@@ -4593,14 +4577,17 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
-            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").get().val()
-            if not data:
-                continue
-            cached_keys = set(map(int, data.keys()))
-            indices_set = set(requested_indices)
-            cached_videos = {idx: int(data[str(idx)]) for idx in (cached_keys & indices_set) if str(idx) in data}
+            cached_videos = {}
+            for index in requested_indices:
+                index_str = str(index)
+                val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{index_str}").get().val()
+                if val is not None:
+                    cached_videos[index] = int(val)
+                    logger.info(f"get_cached_playlist_videos: found cached video for index {index}: {val}")
+                else:
+                    logger.warning(f"get_cached_playlist_videos: index {index} not found in playlist data")
             if cached_videos:
-                logger.info(f"get_cached_playlist_videos (fast): returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
+                logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
                 return cached_videos
         logger.info(f"get_cached_playlist_videos: no cache found for any URL variant, returning empty dict")
         return {}
@@ -4651,6 +4638,24 @@ def ceil_to_popular(h):
             return p
     return popular[-1]
 
-
+# --- Быстрое получение количества кэшированных видео для качества ---
+def get_cached_playlist_count(playlist_url: str, quality_key: str) -> int:
+    """
+    Возвращает количество закэшированных видео для заданного качества (по количеству ключей в базе).
+    """
+    try:
+        urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
+        if is_youtube_url(playlist_url):
+            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
+            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
+        for u in set(urls):
+            url_hash = get_url_hash(u)
+            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").get().val()
+            if data:
+                return len(data)
+        return 0
+    except Exception as e:
+        logger.error(f"get_cached_playlist_count error: {e}")
+        return 0
 
 app.run()
