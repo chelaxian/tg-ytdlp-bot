@@ -4238,36 +4238,35 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         video_count = video_end_with - video_start_with + 1
         down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
-    is_best = False
+    
+    # Логика формирования формата с поддержкой привязки высот к качествам
     if data == "best":
         callback_query.answer("Downloading best quality...")
         fmt = "bestvideo+bestaudio/best"
         quality_key = "best"
-        is_best = True
     else:
         try:
-            quality_val = int(data.replace('p',''))
-            info = get_video_formats(url, user_id)
-            min_side = 'height'
-            min_val = None
-            for f in info.get('formats', []):
-                if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
-                    w = f['width']
-                    h = f['height']
-                    if min_val is None or min(w, h) < min_val:
-                        min_val = min(w, h)
-                        min_side = 'width' if w < h else 'height'
-            if min_side == 'width':
-                fmt = f"bestvideo[width<={quality_val}]+bestaudio/bestvideo[width<={quality_val}]+bestaudio/best[width<={quality_val}]"
-            else:
-                fmt = f"bestvideo[height<={quality_val}]+bestaudio/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]"
+            # Получаем список высот для выбранного качества
+            heights = get_height_by_quality(data)
+            if not heights:
+                callback_query.answer("Unknown quality.")
+                return
+            
+            # Формируем формат с поддержкой всех высот для данного качества
+            height_conditions = []
+            for height in heights:
+                height_conditions.append(f"bestvideo[height={height}][ext=mp4]")
+                height_conditions.append(f"bestvideo[height={height}]")
+                height_conditions.append(f"best[height={height}]")
+            
+            # Создаем fallback на best если ничего не найдено
+            fmt = "+".join(height_conditions) + "+bestaudio[ext=m4a]/" + "/".join(height_conditions) + "/best"
             quality_key = data
+            callback_query.answer(f"Downloading {data}...")
         except ValueError:
             callback_query.answer("Unknown quality.")
             return
-    callback_query.answer(f"Downloading {data}...")
-    # Сохраняем флаг best для дальнейшей логики (например, для эмодзи)
-    original_message.is_best_quality = is_best
+    
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
 
 # --- an auxiliary function for downloading with the format ---
@@ -4715,5 +4714,43 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
     except Exception as e:
         logger.error(f"get_cached_playlist_count error: {e}")
         return 0
+
+def get_quality_by_height(height: int) -> str:
+    """
+    Определяет качество по высоте видео, учитывая как вертикальные, так и горизонтальные форматы.
+    Возвращает строку качества (например, '720p') или None если не найдено.
+    """
+    quality_map = {
+        144: "144p", 256: "144p",
+        240: "240p", 426: "240p", 
+        480: "480p", 854: "480p",
+        540: "540p", 960: "540p",
+        576: "576p", 1024: "576p",
+        720: "720p", 1280: "720p",
+        1080: "1080p", 1920: "1080p",
+        1440: "1440p", 2560: "1440p",
+        2160: "2160p", 3840: "2160p",
+        4320: "4320p", 7680: "4320p"
+    }
+    return quality_map.get(height)
+
+def get_height_by_quality(quality: str) -> list:
+    """
+    Возвращает список высот для заданного качества.
+    Например, для '720p' возвращает [720, 1280].
+    """
+    height_map = {
+        "144p": [144, 256],
+        "240p": [240, 426],
+        "480p": [480, 854],
+        "540p": [540, 960],
+        "576p": [576, 1024],
+        "720p": [720, 1280],
+        "1080p": [1080, 1920],
+        "1440p": [1440, 2560],
+        "2160p": [2160, 3840],
+        "4320p": [4320, 7680]
+    }
+    return height_map.get(quality, [])
 
 app.run()
