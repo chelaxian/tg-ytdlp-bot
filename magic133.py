@@ -1,4 +1,4 @@
-#Version 2.2.3 
+#Version 2.2.5 
 import pyrebase
 import re
 import os
@@ -4017,6 +4017,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap already contains a hint and a table
+        cap = cap if 'cap' in locals() else ''
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
