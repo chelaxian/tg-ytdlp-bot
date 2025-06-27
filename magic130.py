@@ -1,4 +1,4 @@
-#Version 2.1.7 
+#Version 2.1.9 
 import pyrebase
 import re
 import os
@@ -3974,7 +3974,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 logger.info(f"[SPLIT] {quality_key}: split_size not set (no scissors)")
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
                 postfix = f" ({n_cached}/{total})"
                 is_cached = n_cached > 0
@@ -4002,7 +4002,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 continue
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -4019,7 +4019,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     continue
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                     total = len(indices)
                     icon = "🚀" if n_cached > 0 else "📹"
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -4032,7 +4032,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             quality_key = "best"
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -4049,7 +4049,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         quality_key = "mp3"
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
-            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key)
+            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
             total = len(indices)
             icon = "🚀" if n_cached > 0 else "🎵"
             postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -4574,7 +4574,6 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         if is_youtube_url(playlist_url):
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
-        # Пробуем искать по точному quality_key и по округлённому (ceil_to_popular)
         quality_keys = [quality_key]
         try:
             if quality_key.endswith('p'):
@@ -4584,19 +4583,19 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
                     quality_keys.append(rounded)
         except Exception:
             pass
+        found = {}
         for u in set(urls):
             url_hash = get_url_hash(u)
             for qk in quality_keys:
-                cached_videos = {}
                 for index in requested_indices:
                     index_str = str(index)
                     val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
                     if val is not None:
-                        cached_videos[index] = int(val)
+                        found[index] = int(val)
                         logger.info(f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {val}")
-                if cached_videos:
-                    logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
-                    return cached_videos
+        if found:
+            logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(found.keys())}: {found}")
+            return found
         logger.info(f"get_cached_playlist_videos: no cache found for any URL/quality variant, returning empty dict")
         return {}
     except Exception as e:
@@ -4647,10 +4646,11 @@ def ceil_to_popular(h):
     return popular[-1]
 
 # --- Быстрое получение количества кэшированных видео для качества ---
-def get_cached_playlist_count(playlist_url: str, quality_key: str) -> int:
+def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list = None) -> int:
     """
     Возвращает количество закэшированных видео для заданного качества (по количеству ключей в базе),
     учитывая и округлённый quality_key (ceil_to_popular).
+    Если передан список индексов, считает только их пересечение с кэшем.
     """
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
@@ -4671,6 +4671,10 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str) -> int:
             for qk in quality_keys:
                 data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
                 if data:
+                    if indices is not None:
+                        cached_keys = set(map(int, data.keys()))
+                        indices_set = set(indices)
+                        return len(cached_keys & indices_set)
                     return len(data)
         return 0
     except Exception as e:
