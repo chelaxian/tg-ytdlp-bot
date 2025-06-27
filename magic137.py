@@ -4677,6 +4677,9 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
             for qk in quality_keys:
                 data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
                 if data:
+                    if not isinstance(data, dict):
+                        logger.error(f"get_cached_playlist_count: cache data is not dict for url_hash={url_hash}, quality={qk}, type={type(data)}; data={data}")
+                        continue
                     if indices is not None:
                         cached_keys = set(map(int, data.keys()))
                         indices_set = set(indices)
