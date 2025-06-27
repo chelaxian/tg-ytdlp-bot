@@ -1,4 +1,4 @@
-#Version 2.1.9 
+#Version 2.2.2 
 import pyrebase
 import re
 import os
@@ -3934,12 +3934,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             except Exception:
                 thumb_path = None
         # --- Table with qualities and sizes ---
-        # quality_order = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]  # no longer needed
-        available_heights = sorted({f['height'] for f in info.get('formats', []) if f.get('vcodec', 'none') != 'none' and f.get('height')})
-        quality_size_map = {}
+        popular = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
+        # Собираем размеры для каждой min(width, height)
+        minside_size_dim_map = {}
         for f in info.get('formats', []):
-            if f.get('vcodec', 'none') != 'none' and f.get('height'):
+            if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
+                w = f['width']
                 h = f['height']
+                min_side = min(w, h)
+                pop_side = ceil_to_popular(min_side)
                 if f.get('filesize'):
                     size_mb = int(f['filesize']) // (1024*1024)
                 elif f.get('filesize_approx'):
@@ -3947,42 +3950,33 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 else:
                     size_mb = None
                 if size_mb:
-                    quality_size_map[h] = size_mb
+                    key = (pop_side, w, h)
+                    minside_size_dim_map[key] = size_mb
         table_lines = []
-        for height in available_heights:
-            quality_key = f"{height}p"
-            size_val = quality_size_map.get(height)
-            if size_val is None:
-                continue  # Don't add quality if size is unknown
-            size_str = ""
-            if size_val >= 1024:
-                size_str = f"{round(size_val/1024, 1)}GB"
-            else:
-                size_str = f"{size_val}MB"
-            logger.info(f"[QUALITY] {quality_key}: size found: {size_str}")
-            # Calculate number of parts if size exceeds split_size
-            scissors = ""
-            if get_user_split_size(user_id):
-                video_bytes = size_val * 1024 * 1024
-                if video_bytes > get_user_split_size(user_id):
-                    n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
-                    scissors = f" ✂️{n_parts}"
-                    logger.info(f"[SPLIT] {quality_key}: {size_str}, split_size={get_user_split_size(user_id)}B, n_parts={n_parts} (scissors added)")
+        for pop_side in popular:
+            for (side, w, h), size_val in sorted(minside_size_dim_map.items()):
+                if side != pop_side:
+                    continue
+                quality_key = f"{side}p"
+                size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
+                dim_str = f" ({w}×{h})"
+                scissors = ""
+                if get_user_split_size(user_id):
+                    video_bytes = size_val * 1024 * 1024
+                    if video_bytes > get_user_split_size(user_id):
+                        n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
+                        scissors = f" ✂️{n_parts}"
+                if is_playlist and playlist_range:
+                    indices = list(range(playlist_range[0], playlist_range[1]+1))
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    total = len(indices)
+                    postfix = f" ({n_cached}/{total})"
+                    is_cached = n_cached > 0
                 else:
-                    logger.info(f"[SPLIT] {quality_key}: {size_str}, split_size={get_user_split_size(user_id)}B, does not exceed split_size (no scissors)")
-            else:
-                logger.info(f"[SPLIT] {quality_key}: split_size not set (no scissors)")
-            if is_playlist and playlist_range:
-                indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                postfix = f" ({n_cached}/{total})"
-                is_cached = n_cached > 0
-            else:
-                is_cached = quality_key in cached_qualities
-                postfix = ""
-            emoji = "🚀" if is_cached else "📹"
-            table_lines.append(f"{emoji}  {quality_key}:  {size_str}{scissors}{postfix}")
+                    is_cached = quality_key in cached_qualities
+                    postfix = ""
+                emoji = "🚀" if is_cached else "📹"
+                table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -3995,9 +3989,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
         buttons = []
-        for height in available_heights:
-            quality_key = f"{height}p"
-            size_val = quality_size_map.get(height)
+        for height in popular:
+            size_val = minside_size_dim_map.get((pop_side, w, h))
             if size_val is None:
                 continue
             if is_playlist and playlist_range:
@@ -4011,10 +4004,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 button_text = f"{icon} {quality_key}"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        if not buttons and available_heights:
-            for height in available_heights:
-                quality_key = f"{height}p"
-                size_val = quality_size_map.get(height)
+        if not buttons and popular:
+            for height in popular:
+                size_val = minside_size_dim_map.get((pop_side, w, h))
                 if size_val is None:
                     continue
                 if is_playlist and playlist_range:
