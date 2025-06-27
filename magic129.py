@@ -1,4 +1,4 @@
-#Version 2.1.5 
+#Version 2.1.7 
 import pyrebase
 import re
 import os
@@ -4567,29 +4567,37 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         logger.warning(f"get_cached_playlist_videos: quality_key is empty for playlist: {playlist_url}")
         return {}
     if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
-        logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache read for playlist: {playlist_url}")
+        logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty или invalid! Skipping cache read for playlist: {playlist_url}")
         return {}
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
         if is_youtube_url(playlist_url):
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
-        logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
+        # Пробуем искать по точному quality_key и по округлённому (ceil_to_popular)
+        quality_keys = [quality_key]
+        try:
+            if quality_key.endswith('p'):
+                h = int(quality_key[:-1])
+                rounded = f"{ceil_to_popular(h)}p"
+                if rounded != quality_key:
+                    quality_keys.append(rounded)
+        except Exception:
+            pass
         for u in set(urls):
             url_hash = get_url_hash(u)
-            cached_videos = {}
-            for index in requested_indices:
-                index_str = str(index)
-                val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{index_str}").get().val()
-                if val is not None:
-                    cached_videos[index] = int(val)
-                    logger.info(f"get_cached_playlist_videos: found cached video for index {index}: {val}")
-                else:
-                    logger.warning(f"get_cached_playlist_videos: index {index} not found in playlist data")
-            if cached_videos:
-                logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
-                return cached_videos
-        logger.info(f"get_cached_playlist_videos: no cache found for any URL variant, returning empty dict")
+            for qk in quality_keys:
+                cached_videos = {}
+                for index in requested_indices:
+                    index_str = str(index)
+                    val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
+                    if val is not None:
+                        cached_videos[index] = int(val)
+                        logger.info(f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {val}")
+                if cached_videos:
+                    logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(cached_videos.keys())}: {cached_videos}")
+                    return cached_videos
+        logger.info(f"get_cached_playlist_videos: no cache found for any URL/quality variant, returning empty dict")
         return {}
     except Exception as e:
         logger.error(f"Failed to get from playlist cache: {e}")
@@ -4641,18 +4649,29 @@ def ceil_to_popular(h):
 # --- Быстрое получение количества кэшированных видео для качества ---
 def get_cached_playlist_count(playlist_url: str, quality_key: str) -> int:
     """
-    Возвращает количество закэшированных видео для заданного качества (по количеству ключей в базе).
+    Возвращает количество закэшированных видео для заданного качества (по количеству ключей в базе),
+    учитывая и округлённый quality_key (ceil_to_popular).
     """
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
         if is_youtube_url(playlist_url):
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
             urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
+        quality_keys = [quality_key]
+        try:
+            if quality_key.endswith('p'):
+                h = int(quality_key[:-1])
+                rounded = f"{ceil_to_popular(h)}p"
+                if rounded != quality_key:
+                    quality_keys.append(rounded)
+        except Exception:
+            pass
         for u in set(urls):
             url_hash = get_url_hash(u)
-            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").get().val()
-            if data:
-                return len(data)
+            for qk in quality_keys:
+                data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                if data:
+                    return len(data)
         return 0
     except Exception as e:
         logger.error(f"get_cached_playlist_count error: {e}")
