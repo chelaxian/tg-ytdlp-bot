@@ -4672,19 +4672,38 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                     quality_keys.append(rounded)
         except Exception:
             pass
+        
+        cached_count = 0
         for u in set(urls):
             url_hash = get_url_hash(u)
             for qk in quality_keys:
-                data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
-                if data:
-                    if not isinstance(data, dict):
-                        logger.error(f"get_cached_playlist_count: cache data is not dict for url_hash={url_hash}, quality={qk}, type={type(data)}; data={data}")
+                if indices is not None:
+                    # Проверяем каждый индекс отдельно
+                    for index in indices:
+                        index_str = str(index)
+                        val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
+                        if val is not None:
+                            cached_count += 1
+                else:
+                    # Получаем все данные качества и считаем непустые записи
+                    try:
+                        data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                        if data:
+                            if isinstance(data, dict):
+                                cached_count = len(data)
+                            elif isinstance(data, list):
+                                # Если данные в виде списка, считаем непустые элементы
+                                cached_count = sum(1 for item in data if item is not None)
+                            else:
+                                logger.warning(f"get_cached_playlist_count: unexpected data type for url_hash={url_hash}, quality={qk}, type={type(data)}")
+                                continue
+                    except Exception as e:
+                        logger.error(f"get_cached_playlist_count: error reading cache for url_hash={url_hash}, quality={qk}: {e}")
                         continue
-                    if indices is not None:
-                        cached_keys = set(map(int, data.keys()))
-                        indices_set = set(indices)
-                        return len(cached_keys & indices_set)
-                    return len(data)
+                
+                if cached_count > 0:
+                    return cached_count
+        
         return 0
     except Exception as e:
         logger.error(f"get_cached_playlist_count error: {e}")
