@@ -3988,7 +3988,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if table_block:
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         # Hint as a separate code block at the very bottom
-        hint = "<pre>📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
+        hint = "<pre language=\"text\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         for height in available_heights:
