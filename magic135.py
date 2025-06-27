@@ -1,4 +1,4 @@
-#Version 2.2.3 
+#Version 2.2.5 
 import pyrebase
 import re
 import os
@@ -4229,22 +4229,33 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
         video_count = video_end_with - video_start_with + 1
-        
         down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
-
     if data == "best":
         callback_query.answer("Downloading best quality...")
         fmt = "bestvideo+bestaudio/best"
     else:
-        quality_str = data.replace('p', '')
         try:
-            quality_val = int(quality_str)
-            fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+            quality_val = int(data.replace('p',''))
+            # Получаем info о видео, чтобы узнать размеры
+            info = get_video_formats(url, user_id)
+            # По умолчанию ограничиваем по высоте
+            min_side = 'height'
+            min_val = None
+            for f in info.get('formats', []):
+                if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
+                    w = f['width']
+                    h = f['height']
+                    if min_val is None or min(w, h) < min_val:
+                        min_val = min(w, h)
+                        min_side = 'width' if w < h else 'height'
+            if min_side == 'width':
+                fmt = f"bestvideo[width<={quality_val}]+bestaudio/bestvideo[width<={quality_val}]+bestaudio/best[width<={quality_val}]/best"
+            else:
+                fmt = f"bestvideo[height<={quality_val}]+bestaudio/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
         except ValueError:
             callback_query.answer("Unknown quality.")
             return
-
     callback_query.answer(f"Downloading {data}...")
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=data)
 
