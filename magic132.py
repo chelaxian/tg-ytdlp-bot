@@ -1,4 +1,4 @@
-#Version 2.2.2 
+#Version 2.2.3 
 import pyrebase
 import re
 import os
@@ -3934,7 +3934,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             except Exception:
                 thumb_path = None
         # --- Table with qualities and sizes ---
-        popular = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
+        popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
         # Собираем размеры для каждой min(width, height)
         minside_size_dim_map = {}
         for f in info.get('formats', []):
@@ -3942,7 +3942,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 w = f['width']
                 h = f['height']
                 min_side = min(w, h)
-                pop_side = ceil_to_popular(min_side)
+                pop_side = min(pop for pop in popular if min_side <= pop)
                 if f.get('filesize'):
                     size_mb = int(f['filesize']) // (1024*1024)
                 elif f.get('filesize_approx'):
@@ -3953,11 +3953,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     key = (pop_side, w, h)
                     minside_size_dim_map[key] = size_mb
         table_lines = []
+        quality_keys_present = set()
         for pop_side in popular:
             for (side, w, h), size_val in sorted(minside_size_dim_map.items()):
                 if side != pop_side:
                     continue
                 quality_key = f"{side}p"
+                quality_keys_present.add(quality_key)
                 size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
                 dim_str = f" ({w}×{h})"
                 scissors = ""
@@ -3978,20 +3980,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 emoji = "🚀" if is_cached else "📹"
                 table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
-        # --- Forming caption ---
-        cap = f"<b>{title}</b>\n"
-        if tags_text:
-            cap += f"{tags_text}\n"
-        # Block with qualities
-        if table_block:
-            cap += f"\n<blockquote>{table_block}</blockquote>\n"
-        # Hint as a separate code block at the very bottom
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
-        cap += f"\n{hint}\n"
+        # --- Кнопки для каждого качества, если есть хотя бы один вариант ---
         buttons = []
-        for height in popular:
-            size_val = minside_size_dim_map.get((pop_side, w, h))
-            if size_val is None:
+        for pop_side in popular:
+            quality_key = f"{pop_side}p"
+            if quality_key not in quality_keys_present:
                 continue
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -4003,35 +3996,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 button_text = f"{icon} {quality_key}"
-            buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        if not buttons and popular:
-            for height in popular:
-                size_val = minside_size_dim_map.get((pop_side, w, h))
-                if size_val is None:
-                    continue
-                if is_playlist and playlist_range:
-                    indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                    total = len(indices)
-                    icon = "🚀" if n_cached > 0 else "📹"
-                    postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                    button_text = f"{icon} {quality_key}{postfix}"
-                else:
-                    icon = "🚀" if quality_key in cached_qualities else "📹"
-                    button_text = f"{icon} {quality_key}"
-                buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        if not buttons:
-            quality_key = "best"
-            if is_playlist and playlist_range:
-                indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                icon = "🚀" if n_cached > 0 else "📹"
-                postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon} Best Quality{postfix}"
-            else:
-                icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} Best Quality"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         # --- Form rows of 3 buttons ---
         keyboard_rows = []
@@ -4631,7 +4595,7 @@ def db_child_by_path(db, path):
 # round height to popular quality for cache only
 # --- Round height to nearest higher popular quality ---
 def ceil_to_popular(h):
-    popular = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
+    popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
     for p in popular:
         if h <= p:
             return p
