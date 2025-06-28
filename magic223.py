@@ -2805,49 +2805,37 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         with YoutubeDL(ytdl_opts) as ydl:
                             ydl.download([url])
                 
-                # Обработка временных файлов после загрузки
-                try:
-                    allfiles = os.listdir(user_dir_name)
-                    # Ищем все возможные временные файлы yt-dlp
-                    temp_files = []
-                    for f in allfiles:
-                        if f.endswith('.temp.mp4') or f.endswith('.temp.mkv') or f.endswith('.temp.webm'):
-                            temp_files.append(f)
-                        # Также ищем файлы с .part расширением
-                        elif f.endswith('.part'):
-                            temp_files.append(f)
-                    
-					# —— Бережливая обработка временных файлов после загрузки ——
-					for temp_file in os.listdir(user_dir_name):
-					    # рассматриваем только *.temp.mp4, *.temp.mkv, *.temp.webm и *.part
-					    if not temp_file.endswith(('.temp.mp4', '.temp.mkv', '.temp.webm', '.part')):
-					        continue
+				# —— Бережливая обработка временных файлов после загрузки ——
+				for temp_file in os.listdir(user_dir_name):
+				    # рассматриваем только *.temp.mp4, *.temp.mkv, *.temp.webm и *.part
+				    if not temp_file.endswith(('.temp.mp4', '.temp.mkv', '.temp.webm', '.part')):
+				        continue
 
-					    temp_path = os.path.join(user_dir_name, temp_file)
-					    if temp_file.endswith('.temp.mp4'):
-					        final_name = temp_file[:-9] + '.mp4'
-					    elif temp_file.endswith('.temp.mkv'):
-					        final_name = temp_file[:-9] + '.mkv'
-					    elif temp_file.endswith('.temp.webm'):
-					        final_name = temp_file[:-10] + '.webm'
-					    else:  # .part
-					        final_name = temp_file[:-5] + '.mp4'
-					    final_path = os.path.join(user_dir_name, final_name)
+				    temp_path = os.path.join(user_dir_name, temp_file)
+				    if temp_file.endswith('.temp.mp4'):
+				        final_name = temp_file[:-9] + '.mp4'
+				    elif temp_file.endswith('.temp.mkv'):
+				        final_name = temp_file[:-9] + '.mkv'
+				    elif temp_file.endswith('.temp.webm'):
+				        final_name = temp_file[:-10] + '.webm'
+				    else:  # .part
+				        final_name = temp_file[:-5] + '.mp4'
+				    final_path = os.path.join(user_dir_name, final_name)
 
-					    # если итоговый файл уже есть, ничего не делаем
-					    if os.path.exists(final_path):
-					        continue
-					    # если temp-файла нет (уже удалён merger), пропускаем
-					    if not os.path.exists(temp_path):
-					        logger.warning(f"Temp file not found, skip rename: {temp_path}")
-					        continue
+				    # если итоговый файл уже есть, ничего не делаем
+				    if os.path.exists(final_path):
+				        continue
+				    # если temp-файла нет (уже удалён merger), пропускаем
+				    if not os.path.exists(temp_path):
+				        logger.warning(f"Temp file not found, skip rename: {temp_path}")
+				        continue
 
-					    try:
-					        os.rename(temp_path, final_path)
-					        logger.info(f"Renamed temp file after download: {temp_file} -> {final_name}")
-					    except Exception as e:
-					        logger.error(f"Error renaming temp file after download: {e}")
-					# —— конец бережливой обработки ——                
+				    try:
+				        os.rename(temp_path, final_path)
+				        logger.info(f"Renamed temp file after download: {temp_file} -> {final_name}")
+				    except Exception as e:
+				        logger.error(f"Error renaming temp file after download: {e}")
+				# —— конец бережливой обработки ——
                 try:
                     safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{full_bar}   100.0%")
                 except Exception as e:
