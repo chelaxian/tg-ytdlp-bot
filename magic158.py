@@ -5,13 +5,6 @@ import os
 import shutil
 import logging
 import threading
-import #Version 2.2.7 
-import pyrebase
-import re
-import os
-import shutil
-import logging
-import threading
 import hashlib
 import tldextract
 import json
