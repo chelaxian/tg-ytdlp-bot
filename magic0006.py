@@ -2078,6 +2078,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
+    msg = message
     playlist_indices = []
     playlist_msg_ids = []  
         
@@ -2495,6 +2496,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
+    msg = message
     playlist_indices = []
     playlist_msg_ids = []    
 
