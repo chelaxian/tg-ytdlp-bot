@@ -3256,53 +3256,76 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             thumb_dir = None
 
                     try:
-                        # --- TikTok: Don't Pass Title ---
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                       # --- TikTok: Don't Pass Title ---
+                        # формируем подпись: либо пустая (force_no_title), либо название видео
+                        caption = '' if force_no_title else video_title
+                        video_msg = send_videos(
+                            message,
+                            after_rename_abs_path,
+                            caption,
+                            duration,
+                            thumb_dir,
+                            info_text,
+                            proc_msg.id,
+                            full_video_title,
+                            tags_text_final
+                        )
                         try:
-                            forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
-                            logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
-                            if forwarded_msgs:
-                                logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
-                                if is_playlist:
-                                    # For playlists, save to playlist cache with video index
-                                    current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                    playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.extend([m.id for m in forwarded_msgs])
-                                else:
-                                    # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                            # пересылаем в лог-канал и собираем реальные ID
+                            forwarded = app.forward_messages(
+                                chat_id=Config.LOGS_ID,
+                                from_chat_id=user_id,
+                                message_ids=[video_msg.id]
+                            )
+                            if forwarded:
+                                fwd_ids = [m.id for m in forwarded]
                             else:
-                                logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
-                                if is_playlist:
-                                    # For playlists, save to playlist cache with video index
-                                    current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                    playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.append(video_msg.id)
-                                else:
-                                    # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                        except Exception as e:
-                            logger.error(f"Error forwarding video to logger: {e}")
-                            logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
+                                fwd_ids = [video_msg.id]
+                            # сохраняем в кеш
                             if is_playlist:
-                                # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
+                                save_to_playlist_cache(
+                                    get_clean_playlist_url(url),
+                                    quality_key,
+                                    [current_video_index],
+                                    fwd_ids,
+                                    original_text=message.text or message.caption or ""
+                                )
+                                playlist_indices.append(current_video_index)
+                                playlist_msg_ids.extend(fwd_ids)
+                            else:
+                                save_to_video_cache(
+                                    url,
+                                    quality_key,
+                                    fwd_ids,
+                                    original_text=message.text or message.caption or ""
+                                )
+                        except Exception as e:
+                            logger.error(f"Error forwarding to log: {e}")
+                            # даже при ошибке всё равно кешируем своё сообщение
+                            if is_playlist:
+                                current_video_index = x + video_start_with
+                                save_to_playlist_cache(
+                                    get_clean_playlist_url(url),
+                                    quality_key,
+                                    [current_video_index],
+                                    [video_msg.id],
+                                    original_text=message.text or message.caption or ""
+                                )
                                 playlist_indices.append(current_video_index)
                                 playlist_msg_ids.append(video_msg.id)
                             else:
-                                # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                        safe_edit_message_text(user_id, proc_msg_id,
-                            f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
+                                save_to_video_cache(
+                                    url,
+                                    quality_key,
+                                    [video_msg.id],
+                                    original_text=message.text or message.caption or ""
+                                )
+                        safe_edit_message_text(
+                            user_id,
+                            proc_msg_id,
+                            f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded."
+                        )
                         send_mediainfo_if_enabled(user_id, after_rename_abs_path, message)
                         os.remove(after_rename_abs_path)
                         if thumb_dir and os.path.exists(thumb_dir):
