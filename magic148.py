@@ -496,7 +496,7 @@ def browser_choice_callback(app, callback_query):
 def audio_command_handler(app, message):
     user_id = message.chat.id
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters=types.ReplyParameters(message_id=message.id))
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters={"message_id": msg.id})
         return
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
@@ -506,7 +506,7 @@ def audio_command_handler(app, message):
     url, _, _, _, tags, tags_text, tag_error = extract_url_range_tags(text)
     if tag_error:
         wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=types.ReplyParameters(message_id=message.id))
+        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": msg.id})
         return
     if not url:
         send_to_user(message, "Please, send valid URL.")
@@ -1402,7 +1402,7 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
             with open(mediainfo_path, "w", encoding="utf-8") as f:
                 f.write(mediainfo_text)
-            app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>", reply_parameters=types.ReplyParameters(message_id=message.id))
+            app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>", reply_parameters={"message_id": msg.id})
             app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
             if os.path.exists(mediainfo_path):
                 os.remove(mediainfo_path)
@@ -1544,7 +1544,7 @@ def video_url_extractor(app, message):
         # Add tag error check
         if tag_error:
             wrong, example = tag_error
-            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=types.ReplyParameters(message_id=message.id))
+            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": msg.id})
             return
         ask_quality_menu(app, message, url, tags, video_start_with)
         return
@@ -1556,7 +1556,7 @@ def video_url_extractor(app, message):
             del playlist_errors[key]
             
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters=types.ReplyParameters(message_id=message.id))
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters={"message_id": msg.id})
         return
         
     full_string = message.text
@@ -1564,7 +1564,7 @@ def video_url_extractor(app, message):
     url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(full_string)
     if tag_error:
         wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=types.ReplyParameters(message_id=message.id))
+        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": msg.id})
         return
     
     if url:
@@ -1807,7 +1807,7 @@ def send_videos(
                 msg_id,
                 f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
             ),
-            reply_parameters=types.ReplyParameters(message_id=message.id),
+            reply_parameters={"message_id": msg.id},
             parse_mode=enums.ParseMode.HTML
         )
         if was_truncated and full_video_title:
@@ -1819,7 +1819,7 @@ def send_videos(
                     chat_id=user_id,
                     document=temp_desc_path,
                     caption="<blockquote>📝 if you want to change video caption - reply to video with new text</blockquote>",
-                    reply_parameters=types.ReplyParameters(message_id=message.id),
+                    reply_parameters={"message_id": msg.id},
                     parse_mode=enums.ParseMode.HTML
                 )
                 safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
@@ -1847,7 +1847,7 @@ def send_videos(
                         msg_id,
                         f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
                     ),
-                    reply_parameters=types.ReplyParameters(message_id=message.id),
+                    reply_parameters={"message_id": msg.id},
                     parse_mode=enums.ParseMode.HTML
                 )
                 return video_msg
@@ -2102,11 +2102,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     except Exception as e:
                         logger.error(f"down_and_audio: error reposting cached audio index={index}: {e}")
             if len(uncached_indices) == 0:
-                app.send_message(user_id, f"✅ Playlist audio sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, f"✅ Playlist audio sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters={"message_id": msg.id})
                 send_to_logger(message, f"Playlist audio sent from cache (quality={quality_key}) to user{user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...", reply_parameters={"message_id": msg.id})
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2116,13 +2116,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     from_chat_id=Config.LOGS_ID,
                     message_ids=cached_ids
                 )
-                app.send_message(user_id, "✅ Audio sent from cache.", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, "✅ Audio sent from cache.", reply_parameters={"message_id": msg.id})
                 send_to_logger(message, f"Audio sent from cache (quality={quality_key}) to user{user_id}")
                 return
             except Exception as e:
                 logger.error(f"Error reposting audio from cache: {e}")
                 save_to_video_cache(url, quality_key, [], clear=True)
-                app.send_message(user_id, "⚠️ Failed to get audio from cache, starting new download...", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, "⚠️ Failed to get audio from cache, starting new download...", reply_parameters={"message_id": msg.id})
     else:
         logger.info(f"down_and_audio: quality_key is None, skipping cache check")
 
@@ -2148,9 +2148,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters=types.ReplyParameters(message_id=message.id))
+                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters=types.ReplyParameters(message_id=message.id))
+            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
 
         # We are trying to replace with "Download started"
         try:
@@ -2172,10 +2172,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             return
 
         # If there is no flood error, send a normal message (only once)
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters=types.ReplyParameters(message_id=message.id))
+        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters={"message_id": msg.id})
         proc_msg_id = proc_msg.id
-        status_msg = app.send_message(user_id, "🎧 Audio is processing...", reply_parameters=types.ReplyParameters(message_id=message.id))
-        hourglass_msg = app.send_message(user_id, "⏳ Please wait...", reply_parameters=types.ReplyParameters(message_id=message.id))
+        status_msg = app.send_message(user_id, "🎧 Audio is processing...", reply_parameters={"message_id": msg.id})
+        hourglass_msg = app.send_message(user_id, "⏳ Please wait...", reply_parameters={"message_id": msg.id})
         status_msg_id = status_msg.id
         hourglass_msg_id = hourglass_msg.id
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
@@ -2185,7 +2185,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         create_directory(user_folder)
 
         if not check_disk_space(user_folder, 500 * 1024 * 1024 * video_count):
-            send_to_user(message, "❌ Not enough disk space to download the audio files.", reply_parameters=types.ReplyParameters(message_id=message.id))
+            send_to_user(message, "❌ Not enough disk space to download the audio files.", reply_parameters={"message_id": msg.id})
             return
 
         check_user(message)
@@ -2321,7 +2321,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             f"❌ Failed to download audio: Check if your site is supported\n"
                             "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
                             "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie and after that send your audio link again.",
-                            reply_parameters=types.ReplyParameters(message_id=message.id)
+                            reply_parameters={"message_id": msg.id}
                         )
                 break
 
@@ -2339,7 +2339,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             files = [fname for fname in allfiles if fname.endswith('.mp3')]
             files.sort()
             if not files:
-                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}", reply_parameters=types.ReplyParameters(message_id=message.id))
+                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}", reply_parameters={"message_id": msg.id})
                 continue
 
             downloaded_file = files[0]
@@ -2370,7 +2370,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             audio_file = os.path.join(user_folder, final_name)
             if not os.path.exists(audio_file):
-                send_to_user(message, "Audio file not found after download.", reply_parameters=types.ReplyParameters(message_id=message.id))
+                send_to_user(message, "Audio file not found after download.", reply_parameters={"message_id": msg.id})
                 continue
 
             audio_files.append(audio_file)
@@ -2390,7 +2390,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             caption_with_link = f"{caption_name}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
             
             try:
-                audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_parameters=types.ReplyParameters(message_id=message.id))
+                audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_parameters={"message_id": msg.id})
                 forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
                 
                 # Save to cache after sending audio
@@ -2415,7 +2415,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         save_to_video_cache(url, quality_key, msg_ids, original_text=message.text or message.caption or "")
             except Exception as send_error:
                 logger.error(f"Error sending audio: {send_error}")
-                send_to_user(message, f"❌ Failed to send audio: {send_error}", reply_parameters=types.ReplyParameters(message_id=message.id))
+                send_to_user(message, f"❌ Failed to send audio: {send_error}", reply_parameters={"message_id": msg.id})
                 continue
 
             # Clean up the audio file after sending
@@ -2443,16 +2443,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
         if is_playlist and quality_key:
             total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅Playlist audio sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters=types.ReplyParameters(message_id=message.id))
+            app.send_message(user_id, f"✅Playlist audio sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters={"message_id": msg.id})
             send_to_logger(message, f"Playlist audio sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user{user_id}")
 
     except Exception as e:
         if "Download timeout exceeded" in str(e):
-            send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)", reply_parameters=types.ReplyParameters(message_id=message.id))
+            send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)", reply_parameters={"message_id": msg.id})
             send_to_logger(message, "Download cancelled due to timeout")
         else:
             logger.error(f"Error in audio download: {e}")
-            send_to_user(message, f"❌ Failed to download audio: {e}", reply_parameters=types.ReplyParameters(message_id=message.id))
+            send_to_user(message, f"❌ Failed to download audio: {e}", reply_parameters={"message_id": msg.id})
     finally:
         # Always clean up resources
         stop_anim.set()
@@ -2521,11 +2521,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     except Exception as e:
                         logger.error(f"down_and_up: error reposting cached video index={index}: {e}")
             if len(uncached_indices) == 0:
-                app.send_message(user_id, f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters={"message_id": msg.id})
                 send_to_logger(message, f"Playlist videos sent from cache (quality={quality_key}) to user {user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_parameters={"message_id": msg.id})
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2535,13 +2535,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     from_chat_id=Config.LOGS_ID,
                     message_ids=cached_ids
                 )
-                app.send_message(user_id, "✅ Video sent from cache.", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, "✅ Video sent from cache.", reply_parameters={"message_id": msg.id})
                 send_to_logger(message, f"Video sent from cache (quality={quality_key}) to user {user_id}")
                 return
             except Exception as e:
                 logger.error(f"Error reposting video from cache: {e}")
                 save_to_video_cache(url, quality_key, [], clear=True)
-                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_parameters=types.ReplyParameters(message_id=message.id))
+                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_parameters={"message_id": msg.id})
     else:
         logger.info(f"down_and_up: quality_key is None, skipping cache check")
 
@@ -2566,9 +2566,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters=types.ReplyParameters(message_id=message.id))
+                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters=types.ReplyParameters(message_id=message.id))
+            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
 
         # We are trying to replace with "Download started"
         try:
@@ -2592,7 +2592,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             return
 
         # If there is no flood error, send a normal message
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters=types.ReplyParameters(message_id=message.id))
+        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters={"message_id": msg.id})
         proc_msg_id = proc_msg.id
         error_message = ""
         status_msg = None
@@ -3325,7 +3325,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         if is_playlist and quality_key:
             total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters=types.ReplyParameters(message_id=message.id))
+            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters={"message_id": msg.id})
             send_to_logger(message, f"Playlist videos sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user {user_id}")
 
     except Exception as e:
@@ -3840,21 +3840,21 @@ def tags_command(app, message):
     tags_file = os.path.join(user_dir, "tags.txt")
     if not os.path.exists(tags_file):
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters=types.ReplyParameters(message_id=message.id))
+        app.send_message(user_id, reply_text, reply_parameters={"message_id": msg.id})
         send_to_logger(message, reply_text)
         return
     with open(tags_file, "r", encoding="utf-8") as f:
         tags = [line.strip() for line in f if line.strip()]
     if not tags:
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters=types.ReplyParameters(message_id=message.id))
+        app.send_message(user_id, reply_text, reply_parameters={"message_id": msg.id})
         send_to_logger(message, reply_text)
         return
     # We form posts by 4096 characters
     msg = ''
     for tag in tags:
         if len(msg) + len(tag) + 1 > 4096:
-            app.send_message(user_id, msg, reply_parameters=types.ReplyParameters(message_id=message.id))
+            app.send_message(user_id, msg, reply_parameters={"message_id": msg.id})
             send_to_logger(message, msg)
             msg = ''
         msg += tag + '\n'
@@ -4275,9 +4275,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
-            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters=types.ReplyParameters(message_id=message.id))
+            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": msg.id})
         else:
-            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters=types.ReplyParameters(message_id=message.id))
+            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": msg.id})
         send_to_logger(message, f"Always Ask menu sent for {url}")
     except FloodWait as e:
         wait_time = e.value
