@@ -628,25 +628,25 @@ def format_option_callback(app, callback_query):
         send_to_logger(callback_query.message, "Returned to main format menu.")
         return
 
-    # Mapping for the Rest of the Options - сохраняем качество вместо готового формата
+    # Mapping for the Rest of the Options
     if data == "bv144":
-        chosen_format = "144p"
+        chosen_format = "bv*[vcodec*=avc1][height<=144]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv240":
-        chosen_format = "240p"
+        chosen_format = "bv*[vcodec*=avc1][height<=240]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv360":
-        chosen_format = "360p"
+        chosen_format = "bv*[vcodec*=avc1][height<=360]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv480":
-        chosen_format = "480p"
+        chosen_format = "bv*[vcodec*=avc1][height<=480]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv720":
-        chosen_format = "720p"
+        chosen_format = "bv*[vcodec*=avc1][height<=720]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv1080":
-        chosen_format = "1080p"
+        chosen_format = "bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv1440":
-        chosen_format = "1440p"
+        chosen_format = "bv*[vcodec*=avc1][height<=1440]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv2160":
-        chosen_format = "2160p"
+        chosen_format = "bv*[vcodec*=avc1][height<=2160]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bv4320":
-        chosen_format = "4320p"
+        chosen_format = "bv*[vcodec*=avc1][height<=4320]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
     elif data == "bestvideo":
         chosen_format = "bestvideo+bestaudio/best"
     elif data == "best":
@@ -2600,9 +2600,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if custom_format.lower() == "best":
                         attempts = [{'format': custom_format, 'prefer_ffmpeg': False}]
                     else:
-                        # Используем динамическое формирование формата на основе качества
-                        dynamic_format = get_dynamic_format_from_file(custom_format, url, user_id)
-                        attempts = [{'format': dynamic_format, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
+                        attempts = [{'format': custom_format, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
                 else:
                     attempts = [
                         {'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best',
@@ -4385,7 +4383,10 @@ def generate_final_tags(url, user_tags, info_dict):
 
 # --- new functions for caching ---
 def get_url_hash(url: str) -> str:
-    """Creates MD5 URL hash for use as a Firebase key."""
+    """Returns a hash of the URL for use as a cache key."""
+    import hashlib
+    hash_result = hashlib.md5(url.encode()).hexdigest()
+    logger.info(f"get_url_hash: '{url}' -> '{hash_result}'")
     return hashlib.md5(url.encode()).hexdigest()
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None):
@@ -4473,6 +4474,7 @@ def normalize_url_for_cache(url: str) -> str:
     if not isinstance(url, str):
         return ''
 
+    original_url = url
     url = extract_real_url_if_google(url)
     clean_url = get_clean_url_for_tagging(url)
     parsed = urlparse(clean_url)
@@ -4489,18 +4491,26 @@ def normalize_url_for_cache(url: str) -> str:
     # Pornhub: keep full path and query parameters for unique video identification
     if domain.endswith('.pornhub.com'):
         base_domain = 'pornhub.com'
-        return urlunparse((parsed.scheme, base_domain, path, parsed.params, parsed.query, parsed.fragment))
+        result = urlunparse((parsed.scheme, base_domain, path, parsed.params, parsed.query, parsed.fragment))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (pornhub)")
+        return result
 
     # TikTok: always strip all params, keep only path
     if 'tiktok.com' in domain:
-        return urlunparse((parsed.scheme, domain, path, '', '', ''))
+        result = urlunparse((parsed.scheme, domain, path, '', '', ''))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (tiktok)")
+        return result
 
     # Shorts and youtu.be: always strip all params
     if ("youtube.com" in domain and path.startswith('/shorts/')):
-        return urlunparse((parsed.scheme, domain, path, '', '', ''))
+        result = urlunparse((parsed.scheme, domain, path, '', '', ''))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (shorts)")
+        return result
     if domain == 'youtu.be':
         # For youtu.be always remove query
-        return urlunparse((parsed.scheme, domain, path, '', '', ''))
+        result = urlunparse((parsed.scheme, domain, path, '', '', ''))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (youtu.be)")
+        return result
 
     # /watch: only v
     if 'youtube.com' in domain and path == '/watch':
@@ -4511,28 +4521,44 @@ def normalize_url_for_cache(url: str) -> str:
             v = v.split('?')[0].split('&')[0]
         if v:
             new_query = urlencode({'v': v}, doseq=True)
-            return urlunparse((parsed.scheme, domain, path, '', new_query, ''))
-        return urlunparse((parsed.scheme, domain, path, '', '', ''))
+            result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
+            logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (watch)")
+            return result
+        result = urlunparse((parsed.scheme, domain, path, '', '', ''))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (watch no v)")
+        return result
     # /playlist: list only
     if 'youtube.com' in domain and path == '/playlist':
         if 'list' in query_params:
             new_query = urlencode({'list': query_params['list']}, doseq=True)
-            return urlunparse((parsed.scheme, domain, path, '', new_query, ''))
-        return urlunparse((parsed.scheme, domain, path, '', '', ''))
+            result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
+            logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (playlist)")
+            return result
+        result = urlunparse((parsed.scheme, domain, path, '', '', ''))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (playlist no list)")
+        return result
     # /embed: playlist only
     if 'youtube.com' in domain and path.startswith('/embed/'):
         allowed_params = {k: v for k, v in query_params.items() if k == 'playlist'}
         new_query = urlencode(allowed_params, doseq=True)
-        return urlunparse((parsed.scheme, domain, path, '', new_query, ''))
+        result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (embed)")
+        return result
     # live: only way
     if 'youtube.com' in domain and (path.startswith('/live/') or path.endswith('/live')):
-        return urlunparse((parsed.scheme, domain, path, '', '', ''))
+        result = urlunparse((parsed.scheme, domain, path, '', '', ''))
+        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (live)")
+        return result
     # fallback for CLEAN_QUERY domains (suffix match)
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
         if domain == clean_domain or domain.endswith('.' + clean_domain):
-            return urlunparse((parsed.scheme, domain, parsed.path, '', '', ''))
+            result = urlunparse((parsed.scheme, domain, parsed.path, '', '', ''))
+            logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (clean domain)")
+            return result
     # For all other URLs, return them as they are
-    return urlunparse((parsed.scheme, domain, parsed.path, parsed.params, parsed.query, ''))
+    result = urlunparse((parsed.scheme, domain, parsed.path, parsed.params, parsed.query, ''))
+    logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (fallback)")
+    return result
 
 def extract_real_url_if_google(url: str) -> str:
     """
@@ -4599,6 +4625,7 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
         logger.info(f"save_to_playlist_cache: normalized URLs: {urls}")
         for u in set(urls):
             url_hash = get_url_hash(u)
+            logger.info(f"save_to_playlist_cache: using URL hash: {url_hash}")
             if clear:
                 # Delete the entire quality branch
                 db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").remove()
@@ -4608,10 +4635,14 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 logger.warning(f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
                 continue
             for i, msg_id in zip(video_indices, message_ids):
-                db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{str(i)}").set(str(msg_id))
+                cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{str(i)}"
+                logger.info(f"save_to_playlist_cache: saving to path: {cache_path}, msg_id: {msg_id}")
+                db_child_by_path(db, cache_path).set(str(msg_id))
             logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")    
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_indices: list) -> dict:
     logger.info(f"get_cached_playlist_videos called: playlist_url={playlist_url}, quality_key={quality_key}, requested_indices={requested_indices}")
@@ -4636,15 +4667,23 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         except Exception:
             pass
         found = {}
+        logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
+        logger.info(f"get_cached_playlist_videos: checking quality keys: {quality_keys}")
         for u in set(urls):
             url_hash = get_url_hash(u)
+            logger.info(f"get_cached_playlist_videos: checking URL hash: {url_hash}")
             for qk in quality_keys:
+                logger.info(f"get_cached_playlist_videos: checking quality: {qk}")
                 for index in requested_indices:
                     index_str = str(index)
-                    val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
+                    cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}"
+                    logger.info(f"get_cached_playlist_videos: checking path: {cache_path}")
+                    val = db_child_by_path(db, cache_path).get().val()
                     if val is not None:
                         found[index] = int(val)
                         logger.info(f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {val}")
+                    else:
+                        logger.info(f"get_cached_playlist_videos: no cache found for index {index} (quality={qk})")
         if found:
             logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(found.keys())}: {found}")
             return found
@@ -4652,6 +4691,8 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         return {}
     except Exception as e:
         logger.error(f"Failed to get from playlist cache: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return {}
 
 def get_cached_playlist_qualities(playlist_url: str) -> set:
@@ -4674,14 +4715,22 @@ def is_any_playlist_index_cached(playlist_url, quality_key, indices):
 
 def get_clean_playlist_url(url: str) -> str:
     """Returns the clean playlist URL for YouTube (https://www.youtube.com/playlist?list=...) or the original URL for other sites."""
+    original_url = url
     m = re.search(r'list=([A-Za-z0-9_-]+)', url)
     if m:
-        return f"https://www.youtube.com/playlist?list={m.group(1)}"
+        result = f"https://www.youtube.com/playlist?list={m.group(1)}"
+        logger.info(f"get_clean_playlist_url: '{original_url}' -> '{result}'")
+        return result
+    logger.info(f"get_clean_playlist_url: '{original_url}' -> '{original_url}' (no list parameter)")
     return url
 
 def strip_range_from_url(url: str) -> str:
     """Removes a range of the form *1*3 or *1*10000 from the end of the URL."""
-    return re.sub(r'\*\d+\*\d+$', '', url)
+    original_url = url
+    result = re.sub(r'\*\d+\*\d+$', '', url)
+    if original_url != result:
+        logger.info(f"strip_range_from_url: '{original_url}' -> '{result}'")
+    return result
 
 def db_child_by_path(db, path):
     for part in path.split("/"):
@@ -4730,6 +4779,7 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                         val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
                         if val is not None:
                             cached_count += 1
+                            logger.info(f"get_cached_playlist_count: found cached video for index {index} (quality={qk}): {val}")
                 else:
                     # Получаем все данные качества и считаем непустые записи
                     try:
@@ -4748,8 +4798,10 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                         continue
                 
                 if cached_count > 0:
+                    logger.info(f"get_cached_playlist_count: returning {cached_count} cached videos for quality {qk}")
                     return cached_count
         
+        logger.info(f"get_cached_playlist_count: no cached videos found, returning 0")
         return 0
     except Exception as e:
         logger.error(f"get_cached_playlist_count error: {e}")
@@ -4812,70 +4864,6 @@ def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
     except ValueError:
         return height
 
-# Версия 1.0.15: Добавлена функция get_dynamic_format_from_file для динамического формирования формата из format.txt
-# ... существующий code ...
 
-def get_dynamic_format_from_file(format_string: str, url: str, user_id: int) -> str:
-    """
-    Динамически формирует формат yt-dlp на основе строки из format.txt и информации о видео.
-    Определяет ориентацию видео и подставляет соответствующую высоту.
-    """
-    try:
-        # Если формат уже содержит динамические элементы или это не качество, возвращаем как есть
-        if any(keyword in format_string.lower() for keyword in ['best', 'bestvideo', 'bestaudio', 'height<=', 'width<=', 'height>=', 'width>=']):
-            return format_string
-        
-        # Проверяем, является ли формат качеством (например, "bv144", "bv720p", "720p")
-        quality_match = None
-        if format_string.startswith('bv'):
-            # Формат типа "bv144", "bv720"
-            quality_match = format_string[2:]
-        elif format_string.endswith('p'):
-            # Формат типа "144p", "720p"
-            quality_match = format_string[:-1]
-        
-        if not quality_match:
-            return format_string
-        
-        try:
-            quality_val = int(quality_match)
-        except ValueError:
-            return format_string
-        
-        # Получаем информацию о видео
-        info = get_video_formats(url, user_id)
-        formats = info.get('formats', [])
-        
-        # Ищем формат с максимальным качеством для определения размеров
-        max_width = 0
-        max_height = 0
-        for f in formats:
-            if f.get('width') and f.get('height'):
-                if f['width'] > max_width:
-                    max_width = f['width']
-                if f['height'] > max_height:
-                    max_height = f['height']
-        
-        # Если размеры не найдены, используем стандартную логику
-        if max_width == 0 or max_height == 0:
-            return f"bv*[vcodec*=avc1][height<={quality_val}]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
-        
-        # Определяем качество по меньшей стороне
-        min_side_quality = get_quality_by_min_side(max_width, max_height)
-        
-        # Если выбранное качество не соответствует меньшей стороне, используем стандартную логику
-        if f"{quality_val}p" != min_side_quality:
-            return f"bv*[vcodec*=avc1][height<={quality_val}]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
-        else:
-            # Используем реальную height для формирования формата
-            real_height = get_real_height_for_quality(f"{quality_val}p", max_width, max_height)
-            return f"bv*[vcodec*=avc1][height<={real_height}]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
-            
-    except Exception as e:
-        logger.warning(f"Failed to get dynamic format from file for {format_string}: {e}")
-        # Fallback на стандартную логику
-        return format_string
-
-# ... существующий code ...
 
 app.run()
