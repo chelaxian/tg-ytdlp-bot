@@ -47,31 +47,31 @@ def get_main_reply_keyboard():
     )
 
 # eternal reply-keyboard and reliable work with files
-reply_keyboard_msg_ids = {}  # user_id: message_id
+reply_keyboard_message_ids = {}  # user_id: message_id
 
 def send_reply_keyboard_always(user_id):
-    global reply_keyboard_msg_ids
+    global reply_keyboard_message_ids
     try:
-        msg_id = reply_keyboard_msg_ids.get(user_id)
-        if msg_id:
+        message_id = reply_keyboard_message_ids.get(user_id)
+        if message_id:
             try:
-                app.edit_message_text(user_id, msg_id, "\u2063", reply_markup=get_main_reply_keyboard())
+                app.edit_message_text(user_id, message_id, "\u2063", reply_markup=get_main_reply_keyboard())
                 return
             except Exception as e:
                 # Log only if the error is not MESSAGE_ID_INVALID
                 if 'MESSAGE_ID_INVALID' not in str(e):
                     logger.warning(f"Failed to edit persistent reply keyboard: {e}")
                 # If it didn't work, we delete the id to avoid getting stuck
-                reply_keyboard_msg_ids.pop(user_id, None)
+                reply_keyboard_message_ids.pop(user_id, None)
         # Always after failure or if there is no id - send a new one
-        msg = app.send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard())
-        # If there was another service msg_id (and it is not equal to the new one), we try to delete the old message
-        if msg_id and msg_id != msg.id:
+        message = app.send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard())
+        # If there was another service message_id (and it is not equal to the new one), we try to delete the old message
+        if message_id and message_id != message.id:
             try:
-                app.delete_messages(user_id, [msg_id])
+                app.delete_messages(user_id, [message_id])
             except Exception as e:
                 logger.warning(f"Failed to delete old reply keyboard message: {e}")
-        reply_keyboard_msg_ids[user_id] = msg.id
+        reply_keyboard_message_ids[user_id] = message.id
     except Exception as e:
         logger.warning(f"Failed to send persistent reply keyboard: {e}")
 
@@ -345,14 +345,14 @@ def command1(app, message):
     else:
         check_user(message)
         app.send_message(
-            message.chat.id, f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
+            message.chat.id, f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_message}")
         send_to_logger(message, f"{message.chat.id} - user started the bot")
 
 @app.on_message(filters.command("help"))
 @reply_with_keyboard
 
 def command2(app, message):
-    app.send_message(message.chat.id, (Config.HELP_MSG),
+    app.send_message(message.chat.id, (Config.HELP_message),
                      parse_mode=enums.ParseMode.HTML)
     send_to_logger(message, f"Send help txt to user")
 
@@ -498,7 +498,7 @@ def browser_choice_callback(app, callback_query):
 def audio_command_handler(app, message):
     user_id = message.chat.id
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters={"message_id": msg.id})
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters={"message_id": message.id})
         return
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
@@ -508,7 +508,7 @@ def audio_command_handler(app, message):
     url, _, _, _, tags, tags_text, tag_error = extract_url_range_tags(text)
     if tag_error:
         wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": msg.id})
+        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": message.id})
         return
     if not url:
         send_to_user(message, "Please, send valid URL.")
@@ -878,7 +878,7 @@ def is_user_in_channel(app, message):
 
     except:
 
-        text = f"{Config.TO_USE_MSG}\n \n{Config.CREDITS_MSG}"
+        text = f"{Config.TO_USE_message}\n \n{Config.CREDITS_message}"
         button = InlineKeyboardButton(
             "Join Channel", url=Config.SUBSCRIBE_CHANNEL_URL)
         keyboard = InlineKeyboardMarkup([[button]])
@@ -1404,7 +1404,7 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
             with open(mediainfo_path, "w", encoding="utf-8") as f:
                 f.write(mediainfo_text)
-            app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>", reply_parameters={"message_id": msg.id})
+            app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>", reply_parameters={"message_id": message.id})
             app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
             if os.path.exists(mediainfo_path):
                 os.remove(mediainfo_path)
@@ -1546,7 +1546,7 @@ def video_url_extractor(app, message):
         # Add tag error check
         if tag_error:
             wrong, example = tag_error
-            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": msg.id})
+            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": message.id})
             return
         ask_quality_menu(app, message, url, tags, video_start_with)
         return
@@ -1558,7 +1558,7 @@ def video_url_extractor(app, message):
             del playlist_errors[key]
             
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters={"message_id": msg.id})
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters={"message_id": message.id})
         return
         
     full_string = message.text
@@ -1566,7 +1566,7 @@ def video_url_extractor(app, message):
     url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(full_string)
     if tag_error:
         wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": msg.id})
+        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters={"message_id": message.id})
         return
     
     if url:
@@ -1633,35 +1633,35 @@ def video_url_extractor(app, message):
 
 # Send Message to Logger
 
-def send_to_logger(message, msg):
+def send_to_logger(message, message):
     user_id = message.chat.id
-    msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    # Print (user_id, "-", msg)
-    safe_send_message(Config.LOGS_ID, msg_with_id,
+    message_with_id = f"{message.chat.first_name} - {user_id}\n \n{message}"
+    # Print (user_id, "-", message)
+    safe_send_message(Config.LOGS_ID, message_with_id,
                      parse_mode=enums.ParseMode.MARKDOWN)
 
 # Send Message to User Only
 
-def send_to_user(message, msg):
+def send_to_user(message, message):
     user_id = message.chat.id
-    safe_send_message(user_id, msg, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
+    safe_send_message(user_id, message, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
 
 # Send Message to All ...
 
-def send_to_all(message, msg):
+def send_to_all(message, message):
     user_id = message.chat.id
-    msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    safe_send_message(Config.LOGS_ID, msg_with_id, parse_mode=enums.ParseMode.MARKDOWN)
-    safe_send_message(user_id, msg, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
+    message_with_id = f"{message.chat.first_name} - {user_id}\n \n{message}"
+    safe_send_message(Config.LOGS_ID, message_with_id, parse_mode=enums.ParseMode.MARKDOWN)
+    safe_send_message(user_id, message, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
 
 def progress_bar(*args):
     # It is expected that Pyrogram will cause Progress_BAR with five parameters:
-    # Current, Total, Speed, ETA, File_SIZE, and then additionally your Progress_args (User_id, Msg_id, Status_text)
+    # Current, Total, Speed, ETA, File_SIZE, and then additionally your Progress_args (User_id, message_id, Status_text)
     if len(args) < 8:
         return
-    current, total, speed, eta, file_size, user_id, msg_id, status_text = args[:8]
+    current, total, speed, eta, file_size, user_id, message_id, status_text = args[:8]
     try:
-        app.edit_message_text(user_id, msg_id, status_text)
+        app.edit_message_text(user_id, message_id, status_text)
     except Exception as e:
         logger.error(f"Error updating progress: {e}")
 
@@ -1754,7 +1754,7 @@ def send_videos(
     duration: int,
     thumb_file_path: str,
     info_text: str,
-    msg_id: int,
+    message_id: int,
     full_video_title: str,
     tags_text: str = '',
 ):
@@ -1794,7 +1794,7 @@ def send_videos(
         # Проверяем существование thumbnail файла
         thumb_to_use = thumb_file_path if os.path.exists(thumb_file_path) else None
         
-        video_msg = app.send_video(
+        video_message = app.send_video(
             chat_id=user_id,
             video=video_abs_path,
             caption=cap,
@@ -1806,10 +1806,10 @@ def send_videos(
             progress=progress_bar,
             progress_args=(
                 user_id,
-                msg_id,
+                message_id,
                 f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
             ),
-            reply_parameters={"message_id": msg.id},
+            reply_parameters={"message_id": message.id},
             parse_mode=enums.ParseMode.HTML
         )
         if was_truncated and full_video_title:
@@ -1817,24 +1817,24 @@ def send_videos(
                 f.write(full_video_title)
         if was_truncated and os.path.exists(temp_desc_path):
             try:
-                user_doc_msg = app.send_document(
+                user_doc_message = app.send_document(
                     chat_id=user_id,
                     document=temp_desc_path,
                     caption="<blockquote>📝 if you want to change video caption - reply to video with new text</blockquote>",
-                    reply_parameters={"message_id": msg.id},
+                    reply_parameters={"message_id": message.id},
                     parse_mode=enums.ParseMode.HTML
                 )
-                safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
+                safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_message.id])
             except Exception as e:
                 logger.error(f"Error sending full description file: {e}")
-        return video_msg
+        return video_message
     except Exception as e:
         if "MEDIA_CAPTION_TOO_LONG" in str(e):
             logger.error(f"Caption too long for video: {os.path.basename(video_abs_path)}")
             # Попробуем отправить с минимальной подписью
             try:
                 minimal_caption = f"<b>{caption}</b>\n\n<a href=\"{video_url}\">🔗 Video URL</a>"
-                video_msg = app.send_video(
+                video_message = app.send_video(
                     chat_id=user_id,
                     video=video_abs_path,
                     caption=minimal_caption,
@@ -1846,13 +1846,13 @@ def send_videos(
                     progress=progress_bar,
                     progress_args=(
                         user_id,
-                        msg_id,
+                        message_id,
                         f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
                     ),
-                    reply_parameters={"message_id": msg.id},
+                    reply_parameters={"message_id": message.id},
                     parse_mode=enums.ParseMode.HTML
                 )
-                return video_msg
+                return video_message
             except Exception as e2:
                 logger.error(f"Failed to send video with minimal caption: {e2}")
                 safe_send_message(user_id, f"❌ Error sending video: {e}")
@@ -2079,7 +2079,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
     playlist_indices = []
-    playlist_msg_ids = []  
+    playlist_message_ids = []  
         
     user_id = message.chat.id
     logger.info(f"down_and_audio called: url={url}, quality_key={quality_key}, video_count={video_count}, video_start_with={video_start_with}")
@@ -2104,11 +2104,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     except Exception as e:
                         logger.error(f"down_and_audio: error reposting cached audio index={index}: {e}")
             if len(uncached_indices) == 0:
-                app.send_message(user_id, f"✅ Playlist audio sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, f"✅ Playlist audio sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters={"message_id": message.id})
                 send_to_logger(message, f"Playlist audio sent from cache (quality={quality_key}) to user{user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...", reply_parameters={"message_id": message.id})
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2118,24 +2118,24 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     from_chat_id=Config.LOGS_ID,
                     message_ids=cached_ids
                 )
-                app.send_message(user_id, "✅ Audio sent from cache.", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, "✅ Audio sent from cache.", reply_parameters={"message_id": message.id})
                 send_to_logger(message, f"Audio sent from cache (quality={quality_key}) to user{user_id}")
                 return
             except Exception as e:
                 logger.error(f"Error reposting audio from cache: {e}")
                 save_to_video_cache(url, quality_key, [], clear=True)
-                app.send_message(user_id, "⚠️ Failed to get audio from cache, starting new download...", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, "⚠️ Failed to get audio from cache, starting new download...", reply_parameters={"message_id": message.id})
     else:
         logger.info(f"down_and_audio: quality_key is None, skipping cache check")
 
     anim_thread = None
     stop_anim = threading.Event()
-    proc_msg = None
-    proc_msg_id = None
-    status_msg = None
-    status_msg_id = None
-    hourglass_msg = None
-    hourglass_msg_id = None
+    proc_message = None
+    proc_message_id = None
+    status_message = None
+    status_message_id = None
+    hourglass_message = None
+    hourglass_message_id = None
     audio_files = []
     try:
         # Check if there is a saved waiting time
@@ -2150,15 +2150,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
+                proc_message = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": message.id})
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
+            proc_message = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": message.id})
 
         # We are trying to replace with "Download started"
         try:
             app.edit_message_text(
                 chat_id=user_id,
-                message_id=proc_msg.id,
+                message_id=proc_message.id,
                 text="Download started"
             )
             if os.path.exists(flood_time_file):
@@ -2174,20 +2174,20 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             return
 
         # If there is no flood error, send a normal message (only once)
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters={"message_id": msg.id})
-        proc_msg_id = proc_msg.id
-        status_msg = app.send_message(user_id, "🎧 Audio is processing...", reply_parameters={"message_id": msg.id})
-        hourglass_msg = app.send_message(user_id, "⏳ Please wait...", reply_parameters={"message_id": msg.id})
-        status_msg_id = status_msg.id
-        hourglass_msg_id = hourglass_msg.id
-        anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
+        proc_message = app.send_message(user_id, "Processing... ♻️", reply_parameters={"message_id": message.id})
+        proc_message_id = proc_message.id
+        status_message = app.send_message(user_id, "🎧 Audio is processing...", reply_parameters={"message_id": message.id})
+        hourglass_message = app.send_message(user_id, "⏳ Please wait...", reply_parameters={"message_id": message.id})
+        status_message_id = status_message.id
+        hourglass_message_id = hourglass_message.id
+        anim_thread = start_hourglass_animation(user_id, hourglass_message_id, stop_anim)
 
         # Check if there's enough disk space (estimate 500MB per audio file)
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_folder)
 
         if not check_disk_space(user_folder, 500 * 1024 * 1024 * video_count):
-            send_to_user(message, "❌ Not enough disk space to download the audio files.", reply_parameters={"message_id": msg.id})
+            send_to_user(message, "❌ Not enough disk space to download the audio files.", reply_parameters={"message_id": message.id})
             return
 
         check_user(message)
@@ -2219,21 +2219,21 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 blocks = int(percent // 10)
                 bar = "🟩" * blocks + "⬜️" * (10 - blocks)
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\nDownloading audio:\n{bar}   {percent:.1f}%")
+                    safe_edit_message_text(user_id, proc_message_id, f"{current_total_process}\nDownloading audio:\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
             elif d.get("status") == "finished":
                 try:
                     full_bar = "🟩" * 10
-                    safe_edit_message_text(user_id, proc_msg_id,
+                    safe_edit_message_text(user_id, proc_message_id,
                         f"{current_total_process}\nDownloading audio:\n{full_bar}   100.0%\nDownload finished, processing audio...")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
             elif d.get("status") == "error":
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id, "Error occurred during audio download.")
+                    safe_edit_message_text(user_id, proc_message_id, "Error occurred during audio download.")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
@@ -2272,7 +2272,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         info_dict = entries[0]  # Just take the first video
 
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id,
+                    safe_edit_message_text(user_id, proc_message_id,
                         f"{current_total_process}\n\n> __Downloading audio using format: ba...__ 📥")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
@@ -2282,7 +2282,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 try:
                     full_bar = "🟩" * 10
-                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{full_bar}   100.0%")
+                    safe_edit_message_text(user_id, proc_message_id, f"{current_total_process}\n{full_bar}   100.0%")
                 except Exception as e:
                     logger.error(f"Final progress update error: {e}")
                 return info_dict
@@ -2323,7 +2323,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             f"❌ Failed to download audio: Check if your site is supported\n"
                             "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
                             "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie and after that send your audio link again.",
-                            reply_parameters={"message_id": msg.id}
+                            reply_parameters={"message_id": message.id}
                         )
                 break
 
@@ -2341,7 +2341,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             files = [fname for fname in allfiles if fname.endswith('.mp3')]
             files.sort()
             if not files:
-                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}", reply_parameters={"message_id": msg.id})
+                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}", reply_parameters={"message_id": message.id})
                 continue
 
             downloaded_file = files[0]
@@ -2372,14 +2372,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             audio_file = os.path.join(user_folder, final_name)
             if not os.path.exists(audio_file):
-                send_to_user(message, "Audio file not found after download.", reply_parameters={"message_id": msg.id})
+                send_to_user(message, "Audio file not found after download.", reply_parameters={"message_id": message.id})
                 continue
 
             audio_files.append(audio_file)
 
             try:
                 full_bar = "🟩" * 10
-                safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\nUploading audio file...\n{full_bar}   100.0%")
+                safe_edit_message_text(user_id, proc_message_id, f"{current_total_process}\nUploading audio file...\n{full_bar}   100.0%")
             except Exception as e:
                 logger.error(f"Error updating upload status: {e}")
 
@@ -2392,32 +2392,32 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             caption_with_link = f"{caption_name}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
             
             try:
-                audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_parameters={"message_id": msg.id})
-                forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
+                audio_message = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_parameters={"message_id": message.id})
+                forwarded_message = safe_forward_messages(Config.LOGS_ID, user_id, [audio_message.id])
                 
                 # Save to cache after sending audio
-                if quality_key and forwarded_msg:
-                    if isinstance(forwarded_msg, list):
-                        msg_ids = [m.id for m in forwarded_msg]
+                if quality_key and forwarded_message:
+                    if isinstance(forwarded_message, list):
+                        message_ids = [m.id for m in forwarded_message]
                     else:
-                        msg_ids = [forwarded_msg.id]
+                        message_ids = [forwarded_message.id]
                     
                     if is_playlist:
                         # For playlists, save to playlist cache with index
                         current_video_index = idx + video_start_with
-                        logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
-                        save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], msg_ids, original_text=message.text or message.caption or "")
+                        logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, message_ids={message_ids}")
+                        save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], message_ids, original_text=message.text or message.caption or "")
                         cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                         logger.info(f"Checking the cache immediately after writing: {cached_check}")
                         playlist_indices.append(current_video_index)
-                        playlist_msg_ids.extend([m.id for m in forwarded_msgs])
+                        playlist_message_ids.extend([m.id for m in forwarded_messages])
                     else:
                         # For single audios, save to regular cache
-                        logger.info(f"down_and_audio: saving to video cache: msg_ids={msg_ids}")
-                        save_to_video_cache(url, quality_key, msg_ids, original_text=message.text or message.caption or "")
+                        logger.info(f"down_and_audio: saving to video cache: message_ids={message_ids}")
+                        save_to_video_cache(url, quality_key, message_ids, original_text=message.text or message.caption or "")
             except Exception as send_error:
                 logger.error(f"Error sending audio: {send_error}")
-                send_to_user(message, f"❌ Failed to send audio: {send_error}", reply_parameters={"message_id": msg.id})
+                send_to_user(message, f"❌ Failed to send audio: {send_error}", reply_parameters={"message_id": message.id})
                 continue
 
             # Clean up the audio file after sending
@@ -2432,29 +2432,29 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 threading.Event().wait(2)
 
         if successful_uploads == len(indices_to_download):
-            success_msg = f"✅ Audio successfully downloaded and sent - {len(indices_to_download)} files uploaded.\n\n{Config.CREDITS_MSG}"
+            success_message = f"✅ Audio successfully downloaded and sent - {len(indices_to_download)} files uploaded.\n\n{Config.CREDITS_message}"
         else:
-            success_msg = f"⚠️ Partially completed - {successful_uploads}/{len(indices_to_download)} audio files uploaded.\n\n{Config.CREDITS_MSG}"
+            success_message = f"⚠️ Partially completed - {successful_uploads}/{len(indices_to_download)} audio files uploaded.\n\n{Config.CREDITS_message}"
             
         try:
-            safe_edit_message_text(user_id, proc_msg_id, success_msg)
+            safe_edit_message_text(user_id, proc_message_id, success_message)
         except Exception as e:
             logger.error(f"Error updating final status: {e}")
 
-        send_to_logger(message, success_msg)
+        send_to_logger(message, success_message)
 
         if is_playlist and quality_key:
             total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅Playlist audio sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters={"message_id": msg.id})
+            app.send_message(user_id, f"✅Playlist audio sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters={"message_id": message.id})
             send_to_logger(message, f"Playlist audio sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user{user_id}")
 
     except Exception as e:
         if "Download timeout exceeded" in str(e):
-            send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)", reply_parameters={"message_id": msg.id})
+            send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)", reply_parameters={"message_id": message.id})
             send_to_logger(message, "Download cancelled due to timeout")
         else:
             logger.error(f"Error in audio download: {e}")
-            send_to_user(message, f"❌ Failed to download audio: {e}", reply_parameters={"message_id": msg.id})
+            send_to_user(message, f"❌ Failed to download audio: {e}", reply_parameters={"message_id": message.id})
     finally:
         # Always clean up resources
         stop_anim.set()
@@ -2462,10 +2462,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             anim_thread.join(timeout=1)  # Wait for animation thread with timeout
 
         try:
-            if status_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[status_msg_id], revoke=True)
-            if hourglass_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
+            if status_message_id:
+                safe_delete_messages(chat_id=user_id, message_ids=[status_message_id], revoke=True)
+            if hourglass_message_id:
+                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_message_id], revoke=True)
         except Exception as e:
             logger.error(f"Error deleting status messages: {e}")
 
@@ -2496,7 +2496,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
     playlist_indices = []
-    playlist_msg_ids = []    
+    playlist_message_ids = []    
 
     user_id = message.chat.id
     logger.info(f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
@@ -2523,11 +2523,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     except Exception as e:
                         logger.error(f"down_and_up: error reposting cached video index={index}: {e}")
             if len(uncached_indices) == 0:
-                app.send_message(user_id, f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters={"message_id": message.id})
                 send_to_logger(message, f"Playlist videos sent from cache (quality={quality_key}) to user {user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_parameters={"message_id": message.id})
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2537,24 +2537,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     from_chat_id=Config.LOGS_ID,
                     message_ids=cached_ids
                 )
-                app.send_message(user_id, "✅ Video sent from cache.", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, "✅ Video sent from cache.", reply_parameters={"message_id": message.id})
                 send_to_logger(message, f"Video sent from cache (quality={quality_key}) to user {user_id}")
                 return
             except Exception as e:
                 logger.error(f"Error reposting video from cache: {e}")
                 save_to_video_cache(url, quality_key, [], clear=True)
-                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_parameters={"message_id": msg.id})
+                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_parameters={"message_id": message.id})
     else:
         logger.info(f"down_and_up: quality_key is None, skipping cache check")
 
-    status_msg = None
-    status_msg_id = None
-    hourglass_msg = None
-    hourglass_msg_id = None
+    status_message = None
+    status_message_id = None
+    hourglass_message = None
+    hourglass_message_id = None
     anim_thread = None
     stop_anim = threading.Event()
-    proc_msg = None
-    proc_msg_id = None
+    proc_message = None
+    proc_message_id = None
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
@@ -2568,15 +2568,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
+                proc_message = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": message.id})
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
+            proc_message = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": message.id})
 
         # We are trying to replace with "Download started"
         try:
             app.edit_message_text(
                 chat_id=user_id,
-                message_id=proc_msg.id,
+                message_id=proc_message.id,
                 text="Download started"
             )
             # If you managed to replace, then there is no flood error
@@ -2594,14 +2594,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             return
 
         # If there is no flood error, send a normal message
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters={"message_id": msg.id})
-        proc_msg_id = proc_msg.id
+        proc_message = app.send_message(user_id, "Processing... ♻️", reply_parameters={"message_id": message.id})
+        proc_message_id = proc_message.id
         error_message = ""
-        status_msg = None
-        status_msg_id = None
-        hourglass_msg = None
-        hourglass_msg_id = None
-        anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
+        status_message = None
+        status_message_id = None
+        hourglass_message = None
+        hourglass_message_id = None
+        anim_thread = start_hourglass_animation(user_id, hourglass_message_id, stop_anim)
 
         # Check if there's enough disk space (estimate 2GB per video)
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
@@ -2672,13 +2672,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                     ]
 
-        status_msg = app.send_message(user_id, "📹 Video is processing...")
-        hourglass_msg = app.send_message(user_id, "⌛️")
+        status_message = app.send_message(user_id, "📹 Video is processing...")
+        hourglass_message = app.send_message(user_id, "⌛️")
         # We save ID status messages
-        status_msg_id = status_msg.id
-        hourglass_msg_id = hourglass_msg.id
+        status_message_id = status_message.id
+        hourglass_message_id = hourglass_message.id
 
-        anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
+        anim_thread = start_hourglass_animation(user_id, hourglass_message_id, stop_anim)
 
         current_total_process = ""
         last_update = 0
@@ -2707,11 +2707,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             messages = app.get_chat_history(user_id, limit=20)
                             processing_messages = []
                             download_started_messages = []
-                            for msg in messages:
-                                if msg.text == "Processing... ♻️":
-                                    processing_messages.append(msg.id)
-                                elif msg.text == "Download started":
-                                    download_started_messages.append(msg.id)
+                            for message in messages:
+                                if message.text == "Processing... ♻️":
+                                    processing_messages.append(message.id)
+                                elif message.text == "Download started":
+                                    download_started_messages.append(message.id)
                             # We delete the first 2 promission messages (if there are more than 1)
                             if len(processing_messages) >= 2:
                                 safe_delete_messages(chat_id=user_id, message_ids=processing_messages[-2:], revoke=True)
@@ -2722,7 +2722,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.error(f"Error deleting first processing messages: {e}")
                         first_progress_update = False
 
-                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{bar}   {percent:.1f}%")
+                    safe_edit_message_text(user_id, proc_message_id, f"{current_total_process}\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
             elif d.get("status") == "error":
@@ -2765,17 +2765,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     ytdl_opts["hls_use_mpegts"] = True
                 try:
                     if is_hls:
-                        safe_edit_message_text(user_id, proc_msg_id,
+                        safe_edit_message_text(user_id, proc_message_id,
                             f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥")
                     else:
-                        safe_edit_message_text(user_id, proc_msg_id,
+                        safe_edit_message_text(user_id, proc_message_id,
                             f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
                 with YoutubeDL(ytdl_opts) as ydl:
                     if is_hls:
                         cycle_stop = threading.Event()
-                        cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop)
+                        cycle_thread = start_cycle_progress(user_id, proc_message_id, current_total_process, user_dir_name, cycle_stop)
                         try:
                             with YoutubeDL(ytdl_opts) as ydl:
                                 ydl.download([url])
@@ -2836,7 +2836,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Error processing temp files after download: {e}")
                 
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{full_bar}   100.0%")
+                    safe_edit_message_text(user_id, proc_message_id, f"{current_total_process}\n{full_bar}   100.0%")
                 except Exception as e:
                     logger.error(f"Final progress update error: {e}")
                 return info_dict
@@ -2952,7 +2952,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 """
 
             try:
-                safe_edit_message_text(user_id, proc_msg_id,
+                safe_edit_message_text(user_id, proc_message_id,
                     f"{info_text}\n\n{full_bar}   100.0%\n\n__Downloaded video. Processing for upload...__ ♻️")
             except Exception as e:
                 logger.error(f"Status update error after download: {e}")
@@ -3064,7 +3064,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
             if final_name.lower().endswith((".webm", ".ts")):
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id,
+                    safe_edit_message_text(user_id, proc_message_id,
                         f"{info_text}\n\n{full_bar}   100.0%\nConverting video using ffmpeg... ⏳")
                 except Exception as e:
                     logger.error(f"Error updating status before conversion: {e}")
@@ -3159,7 +3159,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             video_size = humanbytes(int(video_size_in_bytes))
             max_size = get_user_split_size(user_id)  # 1.95 GB - close to Telegram's 2GB limit with 50MB safety margin
             if int(video_size_in_bytes) > max_size:
-                safe_edit_message_text(user_id, proc_msg_id,
+                safe_edit_message_text(user_id, proc_message_id,
                     f"{info_text}\n\n{full_bar}   100.0%\n__⚠️ Your video size ({video_size}) is too large.__\n__Splitting file...__ ✂️")
                 returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, duration)
                 caption_lst = returned.get("video")
@@ -3170,12 +3170,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                    video_message = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_message.id, full_video_title, tags_text_final)
                     try:
-                        forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
-                        logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
-                        if forwarded_msgs:
-                            logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
+                        forwarded_messages = safe_forward_messages(Config.LOGS_ID, user_id, [video_message.id])
+                        logger.info(f"down_and_up: forwarded_messages result: {forwarded_messages}")
+                        if forwarded_messages:
+                            logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_messages]}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with index
                                 current_video_index = x + video_start_with
@@ -3185,53 +3185,53 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         rounded_quality_key = f"{ceil_to_popular(int(quality_key[:-1]))}p"
                                 except Exception:
                                     pass
-                                save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_messages], original_text=message.text or message.caption or "")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), rounded_quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
-                                playlist_msg_ids.extend([m.id for m in forwarded_msgs])
+                                playlist_message_ids.extend([m.id for m in forwarded_messages])
                             else:
                                 # For single videos, save to regular cache
-                                logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
+                                logger.info(f"down_and_up: saving to cache with video_message.id: {video_message.id}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_message.id], original_text=message.text or message.caption or "")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.append(video_msg.id)
+                                    playlist_message_ids.append(video_message.id)
                                 else:
                                     # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                    save_to_video_cache(url, quality_key, [video_message.id], original_text=message.text or message.caption or "")
                         else:
-                            logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
+                            logger.info(f"down_and_up: saving to cache with video_message.id: {video_message.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_message.id], original_text=message.text or message.caption or "")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
-                                playlist_msg_ids.append(video_msg.id)
+                                playlist_message_ids.append(video_message.id)
                             else:
                                 # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                save_to_video_cache(url, quality_key, [video_message.id], original_text=message.text or message.caption or "")
                     except Exception as e:
                         logger.error(f"Error forwarding video to logger: {e}")
-                        logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
+                        logger.info(f"down_and_up: saving to cache with video_message.id after error: {video_message.id}")
                         if is_playlist:
                             # For playlists, save to playlist cache with video index
                             current_video_index = x + video_start_with
-                            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_message.id], original_text=message.text or message.caption or "")
                             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                             logger.info(f"Checking the cache immediately after writing: {cached_check}")
                             playlist_indices.append(current_video_index)
-                            playlist_msg_ids.append(video_msg.id)
+                            playlist_message_ids.append(video_message.id)
                         else:
                             # For single videos, save to regular cache
-                            save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                    safe_edit_message_text(user_id, proc_msg_id,
+                            save_to_video_cache(url, quality_key, [video_message.id], original_text=message.text or message.caption or "")
+                    safe_edit_message_text(user_id, proc_message_id,
                                           f"{info_text}\n\n{full_bar}   100.0%\n__Splitted part {p + 1} file uploaded__")
                     if p < len(caption_lst) - 1:
                         threading.Event().wait(2)
@@ -3240,8 +3240,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     os.remove(path_lst[p])
                 os.remove(thumb_dir)
                 os.remove(user_vid_path)
-                success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
-                safe_edit_message_text(user_id, proc_msg_id, success_msg)
+                success_message = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_message}"
+                safe_edit_message_text(user_id, proc_message_id, success_message)
                 send_to_logger(message, "Video upload completed with file splitting.")
                 break
             else:
@@ -3265,51 +3265,51 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     try:
                         # --- TikTok: Don't Pass Title ---
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                        video_message = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_message.id, full_video_title, tags_text_final)
                         try:
-                            forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
-                            logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
-                            if forwarded_msgs:
-                                logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
+                            forwarded_messages = safe_forward_messages(Config.LOGS_ID, user_id, [video_message.id])
+                            logger.info(f"down_and_up: forwarded_messages result: {forwarded_messages}")
+                            if forwarded_messages:
+                                logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_messages]}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_messages], original_text=message.text or message.caption or "")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.extend([m.id for m in forwarded_msgs])
+                                    playlist_message_ids.extend([m.id for m in forwarded_messages])
                                 else:
                                     # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    save_to_video_cache(url, quality_key, [m.id for m in forwarded_messages], original_text=message.text or message.caption or "")
                             else:
-                                logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
+                                logger.info(f"down_and_up: saving to cache with video_message.id: {video_message.id}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_message.id], original_text=message.text or message.caption or "")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.append(video_msg.id)
+                                    playlist_message_ids.append(video_message.id)
                                 else:
                                     # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                    save_to_video_cache(url, quality_key, [video_message.id], original_text=message.text or message.caption or "")
                         except Exception as e:
                             logger.error(f"Error forwarding video to logger: {e}")
-                            logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
+                            logger.info(f"down_and_up: saving to cache with video_message.id after error: {video_message.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_message.id], original_text=message.text or message.caption or "")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
-                                playlist_msg_ids.append(video_msg.id)
+                                playlist_message_ids.append(video_message.id)
                             else:
                                 # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                        safe_edit_message_text(user_id, proc_msg_id,
+                                save_to_video_cache(url, quality_key, [video_message.id], original_text=message.text or message.caption or "")
+                        safe_edit_message_text(user_id, proc_message_id,
                             f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
                         send_mediainfo_if_enabled(user_id, after_rename_abs_path, message)
                         os.remove(after_rename_abs_path)
@@ -3321,13 +3321,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         send_to_all(message, f"❌ Error sending video: {str(e)}")
                         continue
         if successful_uploads == len(indices_to_download):
-            success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
-            safe_edit_message_text(user_id, proc_msg_id, success_msg)
-            send_to_logger(message, success_msg)
+            success_message = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_message}"
+            safe_edit_message_text(user_id, proc_message_id, success_message)
+            send_to_logger(message, success_message)
 
         if is_playlist and quality_key:
             total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters={"message_id": msg.id})
+            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters={"message_id": message.id})
             send_to_logger(message, f"Playlist videos sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user {user_id}")
 
     except Exception as e:
@@ -3347,18 +3347,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     del playlist_errors[error_key]
 
         try:
-            if status_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[status_msg_id], revoke=True)
-            if hourglass_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
+            if status_message_id:
+                safe_delete_messages(chat_id=user_id, message_ids=[status_message_id], revoke=True)
+            if hourglass_message_id:
+                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_message_id], revoke=True)
         except Exception as e:
             logger.error(f"Error deleting status messages: {e}")
 
         # --- ADDED: summary of cache after cycle ---
-        if is_playlist and playlist_indices and playlist_msg_ids:
-            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
+        if is_playlist and playlist_indices and playlist_message_ids:
+            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_message_ids, original_text=message.text or message.caption or "")
             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, playlist_indices)
-            summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
+            summary = "\n".join([f"Index {idx}: message_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
             logger.info(f"[SUMMARY] Playlist cache (quality {quality_key}):\n{summary}")
 
 #########################################
@@ -3649,13 +3649,13 @@ def safe_delete_messages(chat_id, message_ids, **kwargs):
             return None
 
 # Helper function to start the hourglass animation
-def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
+def start_hourglass_animation(user_id, hourglass_message_id, stop_anim):
     """
     Start an hourglass animation in a separate thread
 
     Args:
         user_id: The user ID
-        hourglass_msg_id: The message ID to animate
+        hourglass_message_id: The message ID to animate
         stop_anim: An event to signal when to stop the animation
 
     Returns:
@@ -3672,7 +3672,7 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
             try:
                 emoji = emojis[counter % len(emojis)]
                 # Attempt to edit message but don't keep trying if message is invalid
-                result = safe_edit_message_text(user_id, hourglass_msg_id, f"{emoji} Please wait...")
+                result = safe_edit_message_text(user_id, hourglass_message_id, f"{emoji} Please wait...")
 
                 # If message edit returns None due to MESSAGE_ID_INVALID, stop animation
                 if result is None and counter > 0:  # Allow first attempt to fail
@@ -3687,7 +3687,7 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
                 active = False
                 break
 
-        logger.debug(f"Hourglass animation stopped for message {hourglass_msg_id}")
+        logger.debug(f"Hourglass animation stopped for message {hourglass_message_id}")
 
     # Start animation in a daemon thread so it will exit when the main thread exits
     hourglass_thread = threading.Thread(target=animate_hourglass, daemon=True)
@@ -3695,13 +3695,13 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
     return hourglass_thread
 
 # Helper function to start cycle progress animation
-def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop):
+def start_cycle_progress(user_id, proc_message_id, current_total_process, user_dir_name, cycle_stop):
     """
     Start a progress animation for HLS downloads
 
     Args:
         user_id: The user ID
-        proc_msg_id: The message ID to update with progress
+        proc_message_id: The message ID to update with progress
         current_total_process: String describing the current process
         user_dir_name: Directory name where fragments are saved
         cycle_stop: Event to signal animation stop
@@ -3735,7 +3735,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
                 bar = "🟩" * counter + "⬜️" * (10 - counter)
 
                 # Use safe_edit_message_text and check if message exists
-                result = safe_edit_message_text(user_id, proc_msg_id,
+                result = safe_edit_message_text(user_id, proc_message_id,
                     f"{current_total_process}\nDownloading HLS stream: {frag_text}\n{bar}")
 
                 # If message was deleted (returns None), stop animation
@@ -3753,7 +3753,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
             if cycle_stop.wait(3.0):
                 break
 
-        logger.debug(f"Cycle progress animation stopped for message {proc_msg_id}")
+        logger.debug(f"Cycle progress animation stopped for message {proc_message_id}")
 
     cycle_thread = threading.Thread(target=cycle_progress, daemon=True)
     cycle_thread.start()
@@ -3842,27 +3842,27 @@ def tags_command(app, message):
     tags_file = os.path.join(user_dir, "tags.txt")
     if not os.path.exists(tags_file):
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters={"message_id": msg.id})
+        app.send_message(user_id, reply_text, reply_parameters={"message_id": message.id})
         send_to_logger(message, reply_text)
         return
     with open(tags_file, "r", encoding="utf-8") as f:
         tags = [line.strip() for line in f if line.strip()]
     if not tags:
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters={"message_id": msg.id})
+        app.send_message(user_id, reply_text, reply_parameters={"message_id": message.id})
         send_to_logger(message, reply_text)
         return
     # We form posts by 4096 characters
-    msg = ''
+    message = ''
     for tag in tags:
-        if len(msg) + len(tag) + 1 > 4096:
-            app.send_message(user_id, msg, reply_parameters={"message_id": msg.id})
-            send_to_logger(message, msg)
-            msg = ''
-        msg += tag + '\n'
-    if msg:
-        app.send_message(user_id, msg, reply_to_message_id=message.id)
-        send_to_logger(message, msg)
+        if len(message) + len(tag) + 1 > 4096:
+            app.send_message(user_id, message, reply_parameters={"message_id": message.id})
+            send_to_logger(message, message)
+            message = ''
+        message += tag + '\n'
+    if message:
+        app.send_message(user_id, message, reply_to_message_id=message.id)
+        send_to_logger(message, message)
 
 def extract_youtube_id(url: str) -> str:
     """
@@ -4133,9 +4133,9 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
 # --- Always ask processing ---
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
-    proc_msg = None
+    proc_message = None
     try:
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
+        proc_message = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
@@ -4274,12 +4274,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap already contains a hint and a table
-        app.delete_messages(user_id, proc_msg.id)
-        proc_msg = None
+        app.delete_messages(user_id, proc_message.id)
+        proc_message = None
         if thumb_path and os.path.exists(thumb_path):
-            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": msg.id})
+            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": message.id})
         else:
-            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": msg.id})
+            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": message.id})
         send_to_logger(message, f"Always Ask menu sent for {url}")
     except FloodWait as e:
         wait_time = e.value
@@ -4292,22 +4292,22 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         minutes = (wait_time % 3600) // 60
         seconds = wait_time % 60
         time_str = f"{hours}h {minutes}m {seconds}s"
-        flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
-        if proc_msg:
+        flood_message = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
+        if proc_message:
             try:
-                app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+                app.edit_message_text(chat_id=user_id, message_id=proc_message.id, text=flood_message)
             except Exception as e:
                 if 'MESSAGE_ID_INVALID' not in str(e):
                     logger.warning(f"Failed to edit message: {e}")
-            proc_msg = None
+            proc_message = None
         else:
-            app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
+            app.send_message(user_id, flood_message, reply_to_message_id=message.id)
         return
     except Exception as e:
         error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
         try:
-            if proc_msg:
-                result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+            if proc_message:
+                result = app.edit_message_text(chat_id=user_id, message_id=proc_message.id, text=error_text)
                 if result is None:
                     app.send_message(user_id, error_text, reply_to_message_id=message.id)
             else:
@@ -4425,8 +4425,8 @@ def askq_callback(app, callback_query):
                 # Все видео были в кэше
                 app.send_message(user_id, f"✅ Sent from cache: {len(cached_videos)}/{len(requested_indices)} files.", reply_parameters=ReplyParameters(message_id=original_message.id))
                 media_type = "Audio" if data == "mp3" else "Video"
-                log_msg = f"{media_type} playlist sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
-                send_to_logger(original_message, log_msg)
+                log_message = f"{media_type} playlist sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
+                send_to_logger(original_message, log_message)
             return
         else:
             # Если кэша нет вообще - скачиваем всё заново
@@ -4459,8 +4459,8 @@ def askq_callback(app, callback_query):
             )
             app.send_message(user_id, "✅ Video successfully sent from cache.", reply_parameters=ReplyParameters(message_id=original_message.id))
             media_type = "Audio" if data == "mp3" else "Video"
-            log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
-            send_to_logger(original_message, log_msg)
+            log_message = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
+            send_to_logger(original_message, log_message)
             return
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
@@ -4644,7 +4644,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 continue
             ids_string = ",".join(map(str, message_ids))
             cache_ref.update({quality_key: ids_string})
-            logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string}")
+            logger.info(f"Saved to cache for URL hash {url_hash}, quality {quality_key}, message_ids {ids_string}")
     except Exception as e:
         logger.error(f"Failed to save to cache: {e}")
 
@@ -4665,7 +4665,7 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
             logger.info(f"get_cached_message_ids: checking hash {url_hash} for quality {quality_key}")
             ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
             if ids_string:
-                result = [int(msg_id) for msg_id in ids_string.split(',')]
+                result = [int(message_id) for message_id in ids_string.split(',')]
                 logger.info(f"get_cached_message_ids: found cached message_ids {result} for URL: {url}, quality: {quality_key}")
                 return result
             else:
@@ -4858,11 +4858,11 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
             if not message_ids or not video_indices:
                 logger.warning(f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
                 continue
-            for i, msg_id in zip(video_indices, message_ids):
+            for i, message_id in zip(video_indices, message_ids):
                 cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{str(i)}"
-                logger.info(f"save_to_playlist_cache: saving to path: {cache_path}, msg_id: {msg_id}")
-                db_child_by_path(db, cache_path).set(str(msg_id))
-            logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")    
+                logger.info(f"save_to_playlist_cache: saving to path: {cache_path}, message_id: {message_id}")
+                db_child_by_path(db, cache_path).set(str(message_id))
+            logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, message_ids: {message_ids}")    
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
         import traceback
