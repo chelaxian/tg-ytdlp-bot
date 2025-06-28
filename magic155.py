@@ -4132,12 +4132,18 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     return info
 
 # --- Always ask processing ---
-def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
-    user_id = message.chat.id
+# --- Always ask processing ---
+def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
+    user_id = incoming_msg.chat.id
     proc_msg = None
     try:
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
-        original_text = message.text or message.caption or ""
+        proc_msg = app.send_message(
+            user_id,
+            "Processing... ♻️",
+            reply_to_message_id=incoming_msg.id,
+            reply_markup=get_main_reply_keyboard()
+        )
+        original_text = incoming_msg.text or incoming_msg.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
         if is_playlist:
@@ -4161,15 +4167,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 thumb_path = None
         # --- Table with qualities and sizes ---
         popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
-        # popular_sizes = [[256,144],[426,240],[640,360],[854,480],[960,540],[1024,576],[1280,720],[1920,1080],[2560,1440],[3840,2160],[7680,4320]]
         minside_size_dim_map = {}
         for f in info.get('formats', []):
             if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
                 w = f['width']
                 h = f['height']
-                # Используем функцию get_quality_by_min_side для определения качества
                 quality_key = get_quality_by_min_side(w, h)
-                if quality_key != "best":  # Исключаем best из отображения
+                if quality_key != "best":
                     if f.get('filesize'):
                         size_mb = int(f['filesize']) // (1024*1024)
                     elif f.get('filesize_approx'):
@@ -4203,14 +4207,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             emoji = "🚀" if is_cached else "📹"
             table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
-        # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
-        # Block with qualities
         if table_block:
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
-        # Hint as a separate code block at the very bottom
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
         buttons = []
@@ -4228,7 +4229,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons and popular:
             for height in popular:
-                size_val = minside_size_dim_map.get((pop_side, w, h))
+                size_val = minside_size_dim_map.get((quality_key, w, h))
                 if size_val is None:
                     continue
                 if is_playlist and playlist_range:
@@ -4255,11 +4256,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 button_text = f"{icon} Best Quality"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        # --- Form rows of 3 buttons ---
         keyboard_rows = []
         for i in range(0, len(buttons), 3):
             keyboard_rows.append(buttons[i:i+3])
-        # --- button mp3 ---
         quality_key = "mp3"
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -4274,14 +4273,26 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
-        # cap already contains a hint and a table
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
-            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": msg.id})
+            app.send_photo(
+                user_id,
+                thumb_path,
+                caption=cap,
+                parse_mode=enums.ParseMode.HTML,
+                reply_markup=keyboard,
+                reply_parameters={"message_id": incoming_msg.id}
+            )
         else:
-            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters={"message_id": msg.id})
-        send_to_logger(message, f"Always Ask menu sent for {url}")
+            app.send_message(
+                user_id,
+                cap,
+                parse_mode=enums.ParseMode.HTML,
+                reply_markup=keyboard,
+                reply_parameters={"message_id": incoming_msg.id}
+            )
+        send_to_logger(incoming_msg, f"Always Ask menu sent for {url}")
     except FloodWait as e:
         wait_time = e.value
         user_dir = os.path.join("users", str(user_id))
@@ -4302,21 +4313,26 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     logger.warning(f"Failed to edit message: {e}")
             proc_msg = None
         else:
-            app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
+            app.send_message(user_id, flood_msg, reply_to_message_id=incoming_msg.id)
         return
     except Exception as e:
-        error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
+        error_text = (
+            f"❌ Error retrieving video information:\n{e}\n"
+            "> Try the /clean command and try again. If the error persists, "
+            "YouTube requires authorization. Update cookies.txt via /download_cookie "
+            "or /cookies_from_browser and try again."
+        )
         try:
             if proc_msg:
                 result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
                 if result is None:
-                    app.send_message(user_id, error_text, reply_to_message_id=message.id)
+                    app.send_message(user_id, error_text, reply_to_message_id=incoming_msg.id)
             else:
-                app.send_message(user_id, error_text, reply_to_message_id=message.id)
+                app.send_message(user_id, error_text, reply_to_message_id=incoming_msg.id)
         except Exception as e2:
             logger.error(f"Error sending error message: {e2}")
-            app.send_message(user_id, error_text, reply_to_message_id=message.id)
-        send_to_logger(message, f"Always Ask menu error for {url}: {e}")
+            app.send_message(user_id, error_text, reply_to_message_id=incoming_msg.id)
+        send_to_logger(incoming_msg, f"Always Ask menu error for {url}: {e}")
         return
 
 # --- Callback Processor ---
