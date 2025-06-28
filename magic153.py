@@ -21,7 +21,6 @@ from pyrogram.types import ReplyKeyboardMarkup
 from pyrogram.errors import FloodWait
 from pyrogram import Client, filters
 from pyrogram import enums
-from pyrogram import types
 from pyrogram.types import ReplyParameters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from pyrogram.enums import ChatMemberStatus
