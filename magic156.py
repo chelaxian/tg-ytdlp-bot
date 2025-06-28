@@ -4134,16 +4134,24 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
 # --- Always ask processing ---
 # --- Always ask processing ---
 def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
-    user_id = incoming_msg.chat.id
+    if isinstance(incoming_msg, dict):
+        user_id = incoming_msg["chat"]["id"]
+        msg_id = incoming_msg.get("message_id") or incoming_msg.get("id")
+        text_or_caption = incoming_msg.get("text") or incoming_msg.get("caption") or ""
+    else:
+        user_id = incoming_msg.chat.id
+        msg_id = incoming_msg.id
+        text_or_caption = incoming_msg.text or incoming_msg.caption or ""
+
     proc_msg = None
     try:
         proc_msg = app.send_message(
             user_id,
             "Processing... ♻️",
-            reply_to_message_id=incoming_msg.id,
+            reply_to_message_id=msg_id,
             reply_markup=get_main_reply_keyboard()
         )
-        original_text = incoming_msg.text or incoming_msg.caption or ""
+        original_text = text_or_caption
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
         if is_playlist:
@@ -4165,7 +4173,6 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
                 download_thumbnail(video_id, thumb_path)
             except Exception:
                 thumb_path = None
-        # --- Table with qualities and sizes ---
         popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
         minside_size_dim_map = {}
         for f in info.get('formats', []):
@@ -4175,9 +4182,9 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
                 quality_key = get_quality_by_min_side(w, h)
                 if quality_key != "best":
                     if f.get('filesize'):
-                        size_mb = int(f['filesize']) // (1024*1024)
+                        size_mb = int(f['filesize']) // (1024 * 1024)
                     elif f.get('filesize_approx'):
-                        size_mb = int(f['filesize_approx']) // (1024*1024)
+                        size_mb = int(f['filesize_approx']) // (1024 * 1024)
                     else:
                         size_mb = None
                     if size_mb:
@@ -4187,7 +4194,7 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
         found_quality_keys = set()
         for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items()):
             found_quality_keys.add(quality_key)
-            size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
+            size_str = f"{round(size_val / 1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
             dim_str = f" ({w}×{h})"
             scissors = ""
             if get_user_split_size(user_id):
@@ -4196,7 +4203,7 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
                     n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
                     scissors = f" ✂️{n_parts}"
             if is_playlist and playlist_range:
-                indices = list(range(playlist_range[0], playlist_range[1]+1))
+                indices = list(range(playlist_range[0], playlist_range[1] + 1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
                 postfix = f" ({n_cached}/{total})"
@@ -4215,9 +4222,9 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
         buttons = []
-        for quality_key in sorted(found_quality_keys, key=lambda x: int(x.replace('p',''))):
+        for quality_key in sorted(found_quality_keys, key=lambda x: int(x.replace('p', ''))):
             if is_playlist and playlist_range:
-                indices = list(range(playlist_range[0], playlist_range[1]+1))
+                indices = list(range(playlist_range[0], playlist_range[1] + 1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
@@ -4232,36 +4239,18 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
                 size_val = minside_size_dim_map.get((quality_key, w, h))
                 if size_val is None:
                     continue
-                if is_playlist and playlist_range:
-                    indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                    total = len(indices)
-                    icon = "🚀" if n_cached > 0 else "📹"
-                    postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                    button_text = f"{icon} {quality_key}{postfix}"
-                else:
-                    icon = "🚀" if quality_key in cached_qualities else "📹"
-                    button_text = f"{icon} {quality_key}"
+                icon = "📹"
+                button_text = f"{icon} {quality_key}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons:
             quality_key = "best"
-            if is_playlist and playlist_range:
-                indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                icon = "🚀" if n_cached > 0 else "📹"
-                postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon} Best Quality{postfix}"
-            else:
-                icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} Best Quality"
+            icon = "📹"
+            button_text = f"{icon} Best Quality"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        keyboard_rows = []
-        for i in range(0, len(buttons), 3):
-            keyboard_rows.append(buttons[i:i+3])
+        keyboard_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
         quality_key = "mp3"
         if is_playlist and playlist_range:
-            indices = list(range(playlist_range[0], playlist_range[1]+1))
+            indices = list(range(playlist_range[0], playlist_range[1] + 1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
             total = len(indices)
             icon = "🚀" if n_cached > 0 else "🎵"
@@ -4282,7 +4271,7 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
                 caption=cap,
                 parse_mode=enums.ParseMode.HTML,
                 reply_markup=keyboard,
-                reply_parameters={"message_id": incoming_msg.id}
+                reply_parameters={"message_id": msg_id}
             )
         else:
             app.send_message(
@@ -4290,7 +4279,7 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
                 cap,
                 parse_mode=enums.ParseMode.HTML,
                 reply_markup=keyboard,
-                reply_parameters={"message_id": incoming_msg.id}
+                reply_parameters={"message_id": msg_id}
             )
         send_to_logger(incoming_msg, f"Always Ask menu sent for {url}")
     except FloodWait as e:
@@ -4313,7 +4302,7 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
                     logger.warning(f"Failed to edit message: {e}")
             proc_msg = None
         else:
-            app.send_message(user_id, flood_msg, reply_to_message_id=incoming_msg.id)
+            app.send_message(user_id, flood_msg, reply_to_message_id=msg_id)
         return
     except Exception as e:
         error_text = (
@@ -4326,12 +4315,12 @@ def ask_quality_menu(app, incoming_msg, url, tags, playlist_start_index=1):
             if proc_msg:
                 result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
                 if result is None:
-                    app.send_message(user_id, error_text, reply_to_message_id=incoming_msg.id)
+                    app.send_message(user_id, error_text, reply_to_message_id=msg_id)
             else:
-                app.send_message(user_id, error_text, reply_to_message_id=incoming_msg.id)
+                app.send_message(user_id, error_text, reply_to_message_id=msg_id)
         except Exception as e2:
             logger.error(f"Error sending error message: {e2}")
-            app.send_message(user_id, error_text, reply_to_message_id=incoming_msg.id)
+            app.send_message(user_id, error_text, reply_to_message_id=msg_id)
         send_to_logger(incoming_msg, f"Always Ask menu error for {url}: {e}")
         return
 
