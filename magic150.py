@@ -1,5 +1,4 @@
-#Version 2.2.8
-
+#Version 2.2.7 
 import pyrebase
 import re
 import os
@@ -31,7 +30,7 @@ import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
 import json
 from pymediainfo import MediaInfo
-#import types
+import types
 import pyrogram.errors
 
 # --- Function for permanent reply-keyboard ---
@@ -3491,11 +3490,11 @@ def set_active_download(user_id, status):
 def safe_send_message(chat_id, text, **kwargs):
     # Add reply_parameters if message is passed
     if 'reply_parameters' not in kwargs and 'reply_to_message_id' not in kwargs and 'message' in kwargs:
-        kwargs['reply_parameters'] = {"message_id": kwargs["message"].id}
+        kwargs['reply_parameters'] = types.ReplyParameters(message_id=kwargs['message'].id)
         del kwargs['message']
     # Convert reply_to_message_id to reply_parameters if present
     elif 'reply_to_message_id' in kwargs:
-        kwargs['reply_parameters'] = {"message_id": kwargs['reply_to_message_id']}
+        kwargs['reply_parameters'] = types.ReplyParameters(message_id=kwargs['reply_to_message_id'])
         del kwargs['reply_to_message_id']
     
     max_retries = 3
@@ -4422,7 +4421,7 @@ def askq_callback(app, callback_query):
                     down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=format_override, quality_key=used_quality_key)
             else:
                 # Все видео были в кэше
-                app.send_message(user_id, f"✅ Sent from cache: {len(cached_videos)}/{len(requested_indices)} files.", reply_parameters={"message_id": original_message.id}
+                app.send_message(user_id, f"✅ Sent from cache: {len(cached_videos)}/{len(requested_indices)} files.", reply_parameters=types.ReplyParameters(message_id=original_message.id))
                 media_type = "Audio" if data == "mp3" else "Video"
                 log_msg = f"{media_type} playlist sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
                 send_to_logger(original_message, log_msg)
@@ -4456,7 +4455,7 @@ def askq_callback(app, callback_query):
                 from_chat_id=Config.LOGS_ID,
                 message_ids=message_ids
             )
-            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_parameters={"message_id": original_message.id}
+            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_parameters=types.ReplyParameters(message_id=original_message.id))
             media_type = "Audio" if data == "mp3" else "Video"
             log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
             send_to_logger(original_message, log_msg)
@@ -4464,7 +4463,7 @@ def askq_callback(app, callback_query):
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
             save_to_video_cache(url, data, [], clear=True)
-            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_parameters={"message_id": original_message.id}
+            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_parameters=types.ReplyParameters(message_id=original_message.id))
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
     askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
