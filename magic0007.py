@@ -2491,24 +2491,30 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 # ########################################
 # Download_and_up function
 # ########################################
-
 def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
-    """
-    Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
-    """
+    # Safe extraction of user_id and msg_id from message or dict
+    if isinstance(message, dict):
+        user_id = message["chat"]["id"]
+        msg_id  = message.get("message_id") or message.get("id")
+        original_text = message.get("text") or message.get("caption") or ""
+    else:
+        user_id = message.chat.id
+        msg_id  = message.id
+        original_text = message.text or message.caption or ""
+
     msg = message
     playlist_indices = []
-    playlist_msg_ids = []    
+    playlist_msg_ids = []
 
-    user_id = message.chat.id
     logger.info(f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
 
-    is_playlist = video_count > 1 or is_playlist_with_range(message.text or message.caption or "")
-    logger.info(f"down_and_up: is_playlist={is_playlist}, video_count={video_count}, original_text={message.text or message.caption or ''}")
-    logger.info(f"down_and_up: is_playlist_with_range result={is_playlist_with_range(message.text or message.caption or '')}")
+    is_playlist = video_count > 1 or is_playlist_with_range(original_text)
+    logger.info(f"down_and_up: is_playlist={is_playlist}, video_count={video_count}, original_text={original_text}")
+    logger.info(f"down_and_up: is_playlist_with_range result={is_playlist_with_range(original_text)}")
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
     cached_videos = {}
     uncached_indices = []
+
     if quality_key and is_playlist:
         cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, requested_indices)
         uncached_indices = [i for i in requested_indices if i not in cached_videos]
@@ -2525,11 +2531,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     except Exception as e:
                         logger.error(f"down_and_up: error reposting cached video index={index}: {e}")
             if len(uncached_indices) == 0:
-                app.send_message(user_id, f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters={"message_id": msg.id})
+                app.send_message(
+                    user_id,
+                    f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).",
+                    reply_parameters=ReplyParameters(message_id=msg_id)
+                )
                 send_to_logger(message, f"Playlist videos sent from cache (quality={quality_key}) to user {user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_parameters={"message_id": msg.id})
+                app.send_message(
+                    user_id,
+                    f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...",
+                    reply_parameters=ReplyParameters(message_id=msg_id)
+                )
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2539,13 +2553,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     from_chat_id=Config.LOGS_ID,
                     message_ids=cached_ids
                 )
-                app.send_message(user_id, "✅ Video sent from cache.", reply_parameters={"message_id": msg.id})
+                app.send_message(
+                    user_id,
+                    "✅ Video sent from cache.",
+                    reply_parameters=ReplyParameters(message_id=msg_id)
+                )
                 send_to_logger(message, f"Video sent from cache (quality={quality_key}) to user {user_id}")
                 return
             except Exception as e:
                 logger.error(f"Error reposting video from cache: {e}")
                 save_to_video_cache(url, quality_key, [], clear=True)
-                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_parameters={"message_id": msg.id})
+                app.send_message(
+                    user_id,
+                    "⚠️ Unable to get video from cache, starting new download...",
+                    reply_parameters=ReplyParameters(message_id=msg_id)
+                )
     else:
         logger.info(f"down_and_up: quality_key is None, skipping cache check")
 
@@ -2570,9 +2592,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
+                proc_msg = app.send_message(
+                    user_id,
+                    f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.",
+                    reply_parameters=ReplyParameters(message_id=msg_id)
+                )
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters={"message_id": msg.id})
+            proc_msg = app.send_message(
+                user_id,
+                "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.",
+                reply_parameters=ReplyParameters(message_id=msg_id)
+            )
 
         # We are trying to replace with "Download started"
         try:
@@ -2596,7 +2626,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             return
 
         # If there is no flood error, send a normal message
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters={"message_id": msg.id})
+        proc_msg = app.send_message(
+            user_id,
+            "Processing... ♻️",
+            reply_parameters=ReplyParameters(message_id=msg_id)
+        )
         proc_msg_id = proc_msg.id
         error_message = ""
         status_msg = None
@@ -2651,7 +2685,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         if format_override:
             attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
         else:
-            # if use_default_format is True, then do not take from format.txt, but use default ones
             if use_default_format:
                 attempts = [
                     {'format': 'bestvideo+bestaudio/best', 'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
@@ -2668,15 +2701,22 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 else:
                     attempts = [
                         {'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best',
-                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                         'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
                         {'format': 'bestvideo+bestaudio/best',
-                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                         'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
                         {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                     ]
 
-        status_msg = app.send_message(user_id, "📹 Video is processing...")
-        hourglass_msg = app.send_message(user_id, "⌛️")
-        # We save ID status messages
+        status_msg = app.send_message(
+            user_id,
+            "📹 Video is processing...",
+            reply_parameters=ReplyParameters(message_id=msg_id)
+        )
+        hourglass_msg = app.send_message(
+            user_id,
+            "⌛️",
+            reply_parameters=ReplyParameters(message_id=msg_id)
+        )
         status_msg_id = status_msg.id
         hourglass_msg_id = hourglass_msg.id
 
@@ -2689,7 +2729,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         def progress_func(d):
             nonlocal last_update, first_progress_update
-            # Check the timaut
+            # Check the timeout
             if check_download_timeout(user_id):
                 raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
             current_time = time.time()
@@ -2702,26 +2742,22 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 blocks = int(percent // 10)
                 bar = "🟩" * blocks + "⬜️" * (10 - blocks)
                 try:
-                    # With the first renewal of progress, we delete the first posts Processing
                     if first_progress_update:
                         try:
-                            # We get more messages to search for all Processing messages
                             messages = app.get_chat_history(user_id, limit=20)
-                            processing_messages = []
-                            download_started_messages = []
-                            for msg in messages:
-                                if msg.text == "Processing... ♻️":
-                                    processing_messages.append(msg.id)
-                                elif msg.text == "Download started":
-                                    download_started_messages.append(msg.id)
-                            # We delete the first 2 promission messages (if there are more than 1)
-                            if len(processing_messages) >= 2:
-                                safe_delete_messages(chat_id=user_id, message_ids=processing_messages[-2:], revoke=True)
-                            # We delete the first 2 Download Started Message (if there are more than 1)
-                            if len(download_started_messages) >= 2:
-                                safe_delete_messages(chat_id=user_id, message_ids=download_started_messages[-2:], revoke=True)
+                            processing_msgs = []
+                            download_started_msgs = []
+                            for m in messages:
+                                if m.text == "Processing... ♻️":
+                                    processing_msgs.append(m.id)
+                                elif m.text == "Download started":
+                                    download_started_msgs.append(m.id)
+                            if len(processing_msgs) >= 2:
+                                safe_delete_messages(chat_id=user_id, message_ids=processing_msgs[-2:], revoke=True)
+                            if len(download_started_msgs) >= 2:
+                                safe_delete_messages(chat_id=user_id, message_ids=download_started_msgs[-2:], revoke=True)
                         except Exception as e:
-                            logger.error(f"Error deleting first processing messages: {e}")
+                            logger.error(f"Error deleting old messages: {e}")
                         first_progress_update = False
 
                     safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{bar}   {percent:.1f}%")
@@ -2750,28 +2786,22 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     info_dict = ydl.extract_info(url, download=False)
                 if "entries" in info_dict:
                     entries = info_dict["entries"]
-                    if len(entries) > 1:  # If the video in the playlist is more than one
+                    if len(entries) > 1:
                         if current_index < len(entries):
                             info_dict = entries[current_index]
                         else:
                             raise Exception(f"Video index {current_index} out of range (total {len(entries)})")
                     else:
-                        # If there is only one video in the playlist, just download it
-                        info_dict = entries[0]  # Just take the first video
-
+                        info_dict = entries[0]
                 if ("m3u8" in url.lower()) or (info_dict.get("protocol") == "m3u8_native"):
                     is_hls = True
-                    # if "format" in ytdl_opts:
-                    # del ytdl_opts["format"]
                     ytdl_opts["downloader"] = "ffmpeg"
                     ytdl_opts["hls_use_mpegts"] = True
                 try:
                     if is_hls:
-                        safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥")
+                        safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥")
                     else:
-                        safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
+                        safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
                 with YoutubeDL(ytdl_opts) as ydl:
@@ -2779,124 +2809,77 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         cycle_stop = threading.Event()
                         cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop)
                         try:
-                            with YoutubeDL(ytdl_opts) as ydl:
-                                ydl.download([url])
+                            ydl.download([url])
                         finally:
                             cycle_stop.set()
                             cycle_thread.join(timeout=1)
                     else:
-                        with YoutubeDL(ytdl_opts) as ydl:
-                            ydl.download([url])
-                
+                        ydl.download([url])
                 # Обработка временных файлов после загрузки
                 try:
                     allfiles = os.listdir(user_dir_name)
-                    # Ищем все возможные временные файлы yt-dlp
                     temp_files = []
                     for f in allfiles:
-                        if f.endswith('.temp.mp4') or f.endswith('.temp.mkv') or f.endswith('.temp.webm'):
+                        if f.endswith('.temp.mp4') or f.endswith('.temp.mkv') or f.endswith('.temp.webm') or f.endswith('.part'):
                             temp_files.append(f)
-                        # Также ищем файлы с .part расширением
-                        elif f.endswith('.part'):
-                            temp_files.append(f)
-                    
                     for temp_file in temp_files:
-                        # Определяем финальное имя файла
                         if temp_file.endswith('.temp.mp4'):
                             final_name = temp_file.replace('.temp.mp4', '.mp4')
                         elif temp_file.endswith('.temp.mkv'):
                             final_name = temp_file.replace('.temp.mkv', '.mkv')
                         elif temp_file.endswith('.temp.webm'):
                             final_name = temp_file.replace('.temp.webm', '.webm')
-                        elif temp_file.endswith('.part'):
-                            # Для .part файлов убираем .part и добавляем .mp4
-                            base_name = temp_file.replace('.part', '')
-                            final_name = base_name + '.mp4'
-                        else:
-                            continue
-                        
+                        else:  # '.part'
+                            base = temp_file.replace('.part', '')
+                            final_name = base + '.mp4'
                         temp_path = os.path.join(user_dir_name, temp_file)
                         final_path = os.path.join(user_dir_name, final_name)
-                        
                         if os.path.exists(final_path):
                             os.remove(final_path)
-                        
                         try:
                             os.rename(temp_path, final_path)
-                            logger.info(f"Renamed temp file after download: {temp_file} -> {final_name}")
+                            logger.info(f"Renamed temp file: {temp_file} -> {final_name}")
                         except Exception as e:
-                            logger.error(f"Error renaming temp file after download: {e}")
-                            # Попробуем скопировать
-                            try:
-                                import shutil
-                                shutil.copy2(temp_path, final_path)
-                                os.remove(temp_path)
-                                logger.info(f"Copied temp file after download: {temp_file} -> {final_name}")
-                            except Exception as e2:
-                                logger.error(f"Error copying temp file after download: {e2}")
+                            logger.error(f"Error renaming temp file: {e}")
+                            import shutil
+                            shutil.copy2(temp_path, final_path)
+                            os.remove(temp_path)
+                            logger.info(f"Copied temp file: {temp_file} -> {final_name}")
                 except Exception as e:
                     logger.error(f"Error processing temp files after download: {e}")
-                
+
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{full_bar}   100.0%")
+                    safe_edit_message_text(user_id, proc_msg_id,
+                        f"{current_total_process}\n{full_bar}   100.0%")
                 except Exception as e:
                     logger.error(f"Final progress update error: {e}")
                 return info_dict
             except Exception as e:
                 nonlocal error_message
-                error_str = str(e)
-                error_message = error_str
-                
-                # Улучшенная обработка ошибок ffmpeg
-                if "ffmpeg exited with code 255" in error_str:
-                    logger.error(f"FFmpeg error (code 255) with format {ytdl_opts.get('format', 'default')}: {error_str}")
-                    # Попробуем другой формат или настройки
-                    if "format" in ytdl_opts and ytdl_opts["format"] != "best":
-                        logger.info(f"Retrying with 'best' format instead of {ytdl_opts['format']}")
-                        return None  # Позволим попробовать следующий формат
-                    else:
-                        logger.error("FFmpeg error with best format, this might be a server issue")
-                        return None
-                elif "ffmpeg exited with code" in error_str:
-                    logger.error(f"FFmpeg error with format {ytdl_opts.get('format', 'default')}: {error_str}")
-                    return None
-                elif "unable to open for writing" in error_str and "File name too long" in error_str:
-                    logger.error(f"Filename too long error: {error_str}")
-                    # Это уже обрабатывается в sanitize_filename, но на всякий случай
-                    return None
-                elif "Downloaded" in error_str and "expected" in error_str:
-                    logger.error(f"Download incomplete: {error_str}")
-                    return None
-                elif "No such file or directory" in error_str and "temp.mp4" in error_str:
-                    logger.error(f"Temp file rename error: {error_str}")
-                    # Это ошибка переименования временного файла, попробуем другой формат
-                    return None
-                elif "No such file or directory" in error_str:
-                    logger.error(f"File not found error: {error_str}")
+                error_message = str(e)
+                if "ffmpeg exited with code 255" in error_message or "ffmpeg exited with code" in error_message:
+                    logger.error(f"FFmpeg error: {error_message}")
                     return None
                 else:
-                    logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {error_str}")
+                    logger.error(f"Download error: {error_message}")
                     return None
 
+        # Основной цикл по индексам для скачивания
         if is_playlist and quality_key:
             indices_to_download = uncached_indices
         else:
-            indices_to_download = range(video_count)
+            indices_to_download = list(range(video_count))
         for idx, current_index in enumerate(indices_to_download):
-            x = current_index - video_start_with  # Don't add quality if size is unknown
-            total_process = f"""
-**📶 Total Progress**
-> **Video:** {idx + 1} / {len(indices_to_download)}
-"""
-
+            x = current_index - video_start_with
+            total_process = (
+                f"""**📶 Total Progress**\n"""
+                f"> **Video:** {idx+1} / {len(indices_to_download)}\n"
+            )
             current_total_process = total_process
 
-            # Determine rename_name based on the incoming playlist_name:
             if playlist_name and playlist_name.strip():
-                # A new name for the playlist is explicitly set - let's use it
                 rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {idx + video_start_with}")
             else:
-                # No new name set - extract name from metadata
                 rename_name = None
 
             info_dict = None
@@ -2907,462 +2890,125 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             if info_dict is None:
                 with playlist_errors_lock:
-                    error_key = f"{user_id}_{playlist_name}"
-                    if error_key not in playlist_errors:
-                        playlist_errors[error_key] = True
+                    key = f"{user_id}_{playlist_name}"
+                    if key not in playlist_errors:
+                        playlist_errors[key] = True
                         send_to_all(
                             message,
-                            f"❌ Failed to download video: {error_message}\n────────────────\n"
-                            "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
-                            "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                            "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
+                            f"❌ Failed to download video: {error_message}\n> See supportedsites.md, update cookies or use /clean"
                         )
                 break
 
             successful_uploads += 1
-
-            video_id = info_dict.get("id", None)
-            video_title = info_dict.get("title", None)
+            video_id = info_dict.get("id")
+            video_title = sanitize_filename(info_dict.get("title","video"))
             full_video_title = info_dict.get("description", video_title)
-            video_title = sanitize_filename(video_title) if video_title else "video"
-
-            # --- Use new centralized function for all tags ---
-            tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
-            save_user_tags(user_id, tags_text_final.split())
-
-           # If rename_name is not set, set it equal to video_title
+            tags_final = generate_final_tags(url, tags_text.split(), info_dict)
+            save_user_tags(user_id, tags_final.split())
             if rename_name is None:
                 rename_name = video_title
 
             dir_path = os.path.join("users", str(user_id))
+            with open(os.path.join(dir_path, "full_title.txt"), "w", encoding="utf-8") as f:
+                f.write(full_video_title or video_title)
 
-            # Save the full name to a file
-            full_title_path = os.path.join(dir_path, "full_title.txt")
-            try:
-                with open(full_title_path, "w", encoding="utf-8") as f:
-                    f.write(full_video_title if full_video_title else video_title)
-            except Exception as e:
-                logger.error(f"Error saving full title: {e}")
+            info_text = (
+                f"{total_process}\n\n"
+                f"**📋 Video Info**\n"
+                f"> **Number:** {idx + video_start_with}\n"
+                f"> **Title:** {video_title}\n"
+                f"> **ID:** {video_id}\n"
+            )
+            safe_edit_message_text(user_id, proc_msg_id,
+                f"{info_text}\n\n{full_bar}   100.0%\n\n__Downloaded, processing upload...__ ♻️"
+            )
 
-            info_text = f"""
-{total_process}
-
-**📋 Video Info**
-> **Number:** {idx + video_start_with}
-> **Title:** {video_title}
-> **ID:** {video_id}
-"""
-
-            try:
-                safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n\n{full_bar}   100.0%\n\n__Downloaded video. Processing for upload...__ ♻️")
-            except Exception as e:
-                logger.error(f"Status update error after download: {e}")
-
-            dir_path = os.path.join("users", str(user_id))
-            allfiles = os.listdir(dir_path)
-            files = [fname for fname in allfiles if fname.endswith(('.mp4', '.mkv', '.webm', '.ts'))]
+            files = [f for f in os.listdir(dir_path) if f.endswith(('.mp4','.mkv','.webm','.ts'))]
             files.sort()
             if not files:
-                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}")
+                send_to_all(message, f"Skipping unsupported file at index {idx + video_start_with}")
                 continue
-
             downloaded_file = files[0]
-            write_logs(message, url, downloaded_file)
+            downloaded_path = os.path.join(dir_path, downloaded_file)
 
-            # Проверяем существование скачанного файла
-            downloaded_file_path = os.path.join(dir_path, downloaded_file)
-            if not os.path.exists(downloaded_file_path):
-                logger.error(f"Downloaded file not found: {downloaded_file_path}")
-                send_to_all(message, f"❌ Downloaded file not found: {downloaded_file}")
-                continue
-
-            # Обработка временных файлов yt-dlp
-            if downloaded_file.endswith('.temp.mp4'):
-                # yt-dlp создал временный файл, нужно его переименовать
-                final_temp_name = downloaded_file.replace('.temp.mp4', '.mp4')
-                temp_old_path = os.path.join(dir_path, downloaded_file)
-                temp_new_path = os.path.join(dir_path, final_temp_name)
-                
-                try:
-                    if os.path.exists(temp_new_path):
-                        os.remove(temp_new_path)
-                    os.rename(temp_old_path, temp_new_path)
-                    downloaded_file = final_temp_name
-                    downloaded_file_path = temp_new_path
-                    logger.info(f"Renamed temp file: {downloaded_file} -> {final_temp_name}")
-                except Exception as e:
-                    logger.error(f"Error renaming temp file: {e}")
-                    # Если не удалось переименовать, попробуем скопировать
-                    try:
-                        import shutil
-                        shutil.copy2(temp_old_path, temp_new_path)
-                        os.remove(temp_old_path)
-                        downloaded_file = final_temp_name
-                        downloaded_file_path = temp_new_path
-                        logger.info(f"Copied temp file: {downloaded_file} -> {final_temp_name}")
-                    except Exception as e2:
-                        logger.error(f"Error copying temp file: {e2}")
-                        send_to_all(message, f"❌ Error processing downloaded file: {e}")
-                        continue
-            elif downloaded_file.endswith('.part'):
-                # Обработка .part файлов
-                base_name = downloaded_file.replace('.part', '')
-                final_temp_name = base_name + '.mp4'
-                temp_old_path = os.path.join(dir_path, downloaded_file)
-                temp_new_path = os.path.join(dir_path, final_temp_name)
-                
-                try:
-                    if os.path.exists(temp_new_path):
-                        os.remove(temp_new_path)
-                    os.rename(temp_old_path, temp_new_path)
-                    downloaded_file = final_temp_name
-                    downloaded_file_path = temp_new_path
-                    logger.info(f"Renamed part file: {downloaded_file} -> {final_temp_name}")
-                except Exception as e:
-                    logger.error(f"Error renaming part file: {e}")
-                    try:
-                        import shutil
-                        shutil.copy2(temp_old_path, temp_new_path)
-                        os.remove(temp_old_path)
-                        downloaded_file = final_temp_name
-                        downloaded_file_path = temp_new_path
-                        logger.info(f"Copied part file: {downloaded_file} -> {final_temp_name}")
-                    except Exception as e2:
-                        logger.error(f"Error copying part file: {e2}")
-                        send_to_all(message, f"❌ Error processing downloaded file: {e}")
-                        continue
-
-            if rename_name == video_title:
-                caption_name = video_title
-                final_name = downloaded_file
-            else:
-                ext = os.path.splitext(downloaded_file)[1]
-                final_name = rename_name + ext
-                caption_name = rename_name
-                old_path = os.path.join(dir_path, downloaded_file)
-                new_path = os.path.join(dir_path, final_name)
-
-                if os.path.exists(new_path):
-                    try:
-                        os.remove(new_path)
-                    except Exception as e:
-                        logger.error(f"Error removing existing file {new_path}: {e}")
-
-                try:
-                    os.rename(old_path, new_path)
-                except Exception as e:
-                    logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
-                    final_name = downloaded_file
-                    caption_name = video_title
-
-            user_vid_path = os.path.join(dir_path, final_name)
-            
-            # Проверяем существование файла после переименования
-            if not os.path.exists(user_vid_path):
-                logger.error(f"Video file not found after renaming: {user_vid_path}")
-                send_to_all(message, f"❌ Video file not found: {final_name}")
-                continue
-                
-            if final_name.lower().endswith((".webm", ".ts")):
-                try:
-                    safe_edit_message_text(user_id, proc_msg_id,
-                        f"{info_text}\n\n{full_bar}   100.0%\nConverting video using ffmpeg... ⏳")
-                except Exception as e:
-                    logger.error(f"Error updating status before conversion: {e}")
-
-                mp4_basename = sanitize_filename(os.path.splitext(final_name)[0]) + ".mp4"
-                mp4_file = os.path.join(dir_path, mp4_basename)
-
-                ffmpeg_cmd = [
-                    "ffmpeg",
-                    "-y",
-                    "-i", user_vid_path,
-                    "-c:v", "libx264",
-                    "-preset", "fast",
-                    "-crf", "23",
-                    "-c:a", "aac",
-                    "-b:a", "128k",
-                    mp4_file
-                ]
-                try:
-                    result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=300)
-                    if result.returncode != 0:
-                        logger.error(f"FFmpeg conversion failed: {result.stderr}")
-                        send_to_all(message, f"❌ Conversion to MP4 failed: {result.stderr}")
-                        break
-                    
-                    # Проверяем, что конвертированный файл существует
-                    if os.path.exists(mp4_file) and os.path.getsize(mp4_file) > 0:
-                        os.remove(user_vid_path)
-                        user_vid_path = mp4_file
-                        final_name = mp4_basename
-                    else:
-                        logger.error(f"Converted file not found or empty: {mp4_file}")
-                        send_to_all(message, f"❌ Conversion to MP4 failed: converted file not found")
-                        break
-                except subprocess.TimeoutExpired:
-                    logger.error("FFmpeg conversion timed out")
-                    send_to_all(message, f"❌ Conversion to MP4 failed: timeout")
-                    break
-                except Exception as e:
-                    logger.error(f"FFmpeg conversion error: {e}")
-                    send_to_all(message, f"❌ Conversion to MP4 failed: {e}")
+            if downloaded_file.lower().endswith((".webm", ".ts")):
+                mp4_name = sanitize_filename(os.path.splitext(downloaded_file)[0]) + ".mp4"
+                mp4_path = os.path.join(dir_path, mp4_name)
+                ffmpeg_cmd = ["ffmpeg","-y","-i", downloaded_path, "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k", mp4_path]
+                proc = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=300)
+                if proc.returncode == 0 and os.path.exists(mp4_path):
+                    os.remove(downloaded_path)
+                    downloaded_file = mp4_name
+                    downloaded_path = mp4_path
+                else:
+                    logger.error(f"FFmpeg conversion failed: {proc.stderr}")
+                    send_to_all(message, f"❌ Conversion failed")
                     break
 
-            after_rename_abs_path = os.path.abspath(user_vid_path)
-            
-            # Финальная проверка существования файла
-            if not os.path.exists(after_rename_abs_path):
-                logger.error(f"Final video file not found: {after_rename_abs_path}")
-                send_to_all(message, f"❌ Video file not found: {final_name}")
-                continue
-
-            # --- New block: if YouTube, download preview ---
-            youtube_thumb_path = None
-            thumb_dir = None
-            try:
-                if ("youtube.com" in url or "youtu.be" in url):
-                    yt_id = video_id or None
-                    if not yt_id:
-                        try:
-                            yt_id = extract_youtube_id(url)
-                        except Exception:
-                            yt_id = None
-                    if yt_id:
-                        youtube_thumb_path = os.path.join(dir_path, f"yt_thumb_{yt_id}.jpg")
-                        download_thumbnail(yt_id, youtube_thumb_path)
-                        thumb_dir = youtube_thumb_path
-            except Exception as e:
-                logger.warning(f"YouTube thumbnail error: {e}")
-            # --- End of block ---
-            # If thumb_dir is not defined - use ffmpeg preview
-
-            result = get_duration_thumb(message, dir_path, user_vid_path, sanitize_filename(caption_name))
-            if result is None:
-                logger.warning("Failed to get video duration and thumbnail, continuing without thumbnail")
-                duration = 0
-                if not youtube_thumb_path:
-                    thumb_dir = None
+            result = get_duration_thumb(message, dir_path, downloaded_path, rename_name)
+            if result:
+                duration, thumb = result
             else:
-                duration, thumb_dir_default = result
-                if not youtube_thumb_path:
-                    thumb_dir = thumb_dir_default
-            
-            # Check for the existence of a preview and create a default one if needed
-            if thumb_dir and not os.path.exists(thumb_dir):
-                logger.warning(f"Thumbnail not found at {thumb_dir}, creating default")
-                thumb_dir = create_default_thumbnail(os.path.join(dir_path, "default_thumb.jpg"))
-                if not thumb_dir:
-                    logger.warning("Failed to create default thumbnail, continuing without thumbnail")
-                    thumb_dir = None
+                duration, thumb = 0, None
 
-            video_size_in_bytes = os.path.getsize(user_vid_path)
-            video_size = humanbytes(int(video_size_in_bytes))
-            max_size = get_user_split_size(user_id)  # 1.95 GB - close to Telegram's 2GB limit with 50MB safety margin
-            if int(video_size_in_bytes) > max_size:
-                safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n\n{full_bar}   100.0%\n__⚠️ Your video size ({video_size}) is too large.__\n__Splitting file...__ ✂️")
-                returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, duration)
-                caption_lst = returned.get("video")
-                path_lst = returned.get("path")
-                for p in range(len(caption_lst)):
-                    part_result = get_duration_thumb(message, dir_path, path_lst[p], sanitize_filename(caption_lst[p]))
-                    if part_result is None:
-                        continue
-                    part_duration, splited_thumb_dir = part_result
-                    # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
-                    try:
-                        forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
-                        logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
-                        if forwarded_msgs:
-                            logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
-                            if is_playlist:
-                                # For playlists, save to playlist cache with index
-                                current_video_index = x + video_start_with
-                                rounded_quality_key = quality_key
-                                try:
-                                    if quality_key.endswith('p'):
-                                        rounded_quality_key = f"{ceil_to_popular(int(quality_key[:-1]))}p"
-                                except Exception:
-                                    pass
-                                save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
-                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), rounded_quality_key, [current_video_index])
-                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                playlist_indices.append(current_video_index)
-                                playlist_msg_ids.extend([m.id for m in forwarded_msgs])
-                            else:
-                                # For single videos, save to regular cache
-                                logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
-                                if is_playlist:
-                                    # For playlists, save to playlist cache with video index
-                                    current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                    playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.append(video_msg.id)
-                                else:
-                                    # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                        else:
-                            logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
-                            if is_playlist:
-                                # For playlists, save to playlist cache with video index
-                                current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                playlist_indices.append(current_video_index)
-                                playlist_msg_ids.append(video_msg.id)
-                            else:
-                                # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                    except Exception as e:
-                        logger.error(f"Error forwarding video to logger: {e}")
-                        logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
-                        if is_playlist:
-                            # For playlists, save to playlist cache with video index
-                            current_video_index = x + video_start_with
-                            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                            cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                            logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                            playlist_indices.append(current_video_index)
-                            playlist_msg_ids.append(video_msg.id)
-                        else:
-                            # For single videos, save to regular cache
-                            save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                    safe_edit_message_text(user_id, proc_msg_id,
-                                          f"{info_text}\n\n{full_bar}   100.0%\n__Splitted part {p + 1} file uploaded__")
-                    if p < len(caption_lst) - 1:
-                        threading.Event().wait(2)
-                    os.remove(splited_thumb_dir)
-                    send_mediainfo_if_enabled(user_id, path_lst[p], message)
-                    os.remove(path_lst[p])
-                os.remove(thumb_dir)
-                os.remove(user_vid_path)
-                success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
-                safe_edit_message_text(user_id, proc_msg_id, success_msg)
-                send_to_logger(message, "Video upload completed with file splitting.")
-                break
+            video_msg = send_videos(
+                message, downloaded_path,
+                '' if force_no_title else rename_name,
+                duration, thumb,
+                info_text, proc_msg_id,
+                full_video_title, tags_final
+            )
+            send_to_logger(message, f"Uploaded video {video_id}")
+
+            fwd = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
+            msg_ids = [m.id for m in fwd] if fwd else [video_msg.id]
+            if is_playlist:
+                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_index], msg_ids, original_text)
+                playlist_indices.append(current_index)
+                playlist_msg_ids.extend(msg_ids)
             else:
-                if final_name:
-                    # Read the full name from the file
-                    full_caption = caption_name
-                    try:
-                        if os.path.exists(full_title_path):
-                            with open(full_title_path, "r", encoding="utf-8") as f:
-                                full_caption = f.read().strip()
-                    except Exception as e:
-                        logger.error(f"Error reading full title: {e}")
+                save_to_video_cache(url, quality_key, msg_ids, original_text)
 
-                    # Check for preview existence before sending
-                    if thumb_dir and not os.path.exists(thumb_dir):
-                        logger.warning(f"Thumbnail not found before sending, creating default")
-                        thumb_dir = create_default_thumbnail(os.path.join(dir_path, "default_thumb.jpg"))
-                        if not thumb_dir:
-                            logger.warning("Failed to create default thumbnail before sending, continuing without thumbnail")
-                            thumb_dir = None
+            safe_edit_message_text(user_id, proc_msg_id,
+                f"{info_text}\n\n{full_bar}   100.0%\n__Upload complete__"
+            )
+            os.remove(downloaded_path)
+            if thumb and os.path.exists(thumb):
+                os.remove(thumb)
 
-                    try:
-                        # --- TikTok: Don't Pass Title ---
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
-                        try:
-                            forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
-                            logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
-                            if forwarded_msgs:
-                                logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
-                                if is_playlist:
-                                    # For playlists, save to playlist cache with video index
-                                    current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                    playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.extend([m.id for m in forwarded_msgs])
-                                else:
-                                    # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
-                            else:
-                                logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
-                                if is_playlist:
-                                    # For playlists, save to playlist cache with video index
-                                    current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                    playlist_indices.append(current_video_index)
-                                    playlist_msg_ids.append(video_msg.id)
-                                else:
-                                    # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                        except Exception as e:
-                            logger.error(f"Error forwarding video to logger: {e}")
-                            logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
-                            if is_playlist:
-                                # For playlists, save to playlist cache with video index
-                                current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                playlist_indices.append(current_video_index)
-                                playlist_msg_ids.append(video_msg.id)
-                            else:
-                                # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
-                        safe_edit_message_text(user_id, proc_msg_id,
-                            f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
-                        send_mediainfo_if_enabled(user_id, after_rename_abs_path, message)
-                        os.remove(after_rename_abs_path)
-                        if thumb_dir and os.path.exists(thumb_dir):
-                            os.remove(thumb_dir)
-                        threading.Event().wait(2)
-                    except Exception as e:
-                        logger.error(f"Error sending video: {e}")
-                        send_to_all(message, f"❌ Error sending video: {str(e)}")
-                        continue
         if successful_uploads == len(indices_to_download):
-            success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
-            safe_edit_message_text(user_id, proc_msg_id, success_msg)
-            send_to_logger(message, success_msg)
+            safe_edit_message_text(user_id, proc_msg_id,
+                f"**✅ Upload complete** - {successful_uploads} files uploaded."
+            )
+            send_to_logger(message, "Upload completed")
 
         if is_playlist and quality_key:
-            total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters={"message_id": msg.id})
-            send_to_logger(message, f"Playlist videos sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user {user_id}")
+            total = len(requested_indices)
+            app.send_message(
+                user_id,
+                f"✅ Playlist videos sent: {successful_uploads}/{total}.",
+                reply_parameters=ReplyParameters(message_id=msg_id)
+            )
+            send_to_logger(message, "Playlist summary sent")
 
     except Exception as e:
-        if "Download timeout exceeded" in str(e):
-            send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)")
-            send_to_logger(message, "Download cancelled due to timeout")
-        else:
-            logger.error(f"Error in video download: {e}")
-            send_to_user(message, f"❌ Failed to download video: {e}")
+        logger.error(f"Error in video download: {e}")
+        app.send_message(
+            user_id,
+            f"❌ Failed to download video: {e}",
+            reply_parameters=ReplyParameters(message_id=msg_id)
+        )
     finally:
         set_active_download(user_id, False)
-        clear_download_start_time(user_id)  # Clear the download start time
-        if playlist_name:
-            with playlist_errors_lock:
-                error_key = f"{user_id}_{playlist_name}"
-                if error_key in playlist_errors:
-                    del playlist_errors[error_key]
-
-        try:
-            if status_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[status_msg_id], revoke=True)
-            if hourglass_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
-        except Exception as e:
-            logger.error(f"Error deleting status messages: {e}")
-
-        # --- ADDED: summary of cache after cycle ---
-        if is_playlist and playlist_indices and playlist_msg_ids:
-            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
-            cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, playlist_indices)
-            summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
-            logger.info(f"[SUMMARY] Playlist cache (quality {quality_key}):\n{summary}")
-
+        clear_download_start_time(user_id)
+        stop_anim.set()
+        if proc_msg_id:
+            safe_delete_messages(chat_id=user_id, message_ids=[proc_msg_id], revoke=True)
+        if hourglass_msg_id:
+            safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
+        if is_playlist and playlist_indices:
+            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text)
+            
 #########################################
 
 # YT-DLP HOOK
