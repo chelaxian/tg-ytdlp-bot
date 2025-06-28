@@ -10,6 +10,7 @@ from typing import Tuple
 
 from pyrogram import Client, filters
 from pyrogram import enums
+from pyrogram import types
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from datetime import datetime
@@ -30,7 +31,6 @@ import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
 import json
 from pymediainfo import MediaInfo
-import types
 import pyrogram.errors
 
 # --- Function for permanent reply-keyboard ---
