@@ -2454,9 +2454,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
     user_id = message.chat.id
     logger.info(f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
-    
+
     is_playlist = video_count > 1 or is_playlist_with_range(message.text or message.caption or "")
     logger.info(f"down_and_up: is_playlist={is_playlist}, video_count={video_count}, original_text={message.text or message.caption or ''}")
+    logger.info(f"down_and_up: is_playlist_with_range result={is_playlist_with_range(message.text or message.caption or '')}")
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
     cached_videos = {}
     uncached_indices = []
@@ -4403,11 +4404,10 @@ def get_url_hash(url: str) -> str:
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None):
     """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
-    logger.info(f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}")
+    logger.info(f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
     if not quality_key:
         logger.warning(f"save_to_video_cache: quality_key is empty, skipping cache save for URL: {url}")
         return
-    
     # Check if this is a playlist with range - if so, skip cache
     if original_text and is_playlist_with_range(original_text):
         logger.info(f"Playlist with range detected, skipping cache save for URL: {url}")
