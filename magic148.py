@@ -2605,6 +2605,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_dir_name)
 
+        # Очистка любых оставшихся временных файлов перед началом загрузки
+        try:
+            allfiles = os.listdir(user_dir_name)
+            for f in allfiles:
+                if f.endswith(('.temp.mp4', '.temp.mkv', '.temp.webm', '.part')):
+                    temp_file_path = os.path.join(user_dir_name, f)
+                    try:
+                        os.remove(temp_file_path)
+                        logger.info(f"Cleaned up temp file before download: {f}")
+                    except Exception as e:
+                        logger.warning(f"Could not remove temp file {f}: {e}")
+        except Exception as e:
+            logger.error(f"Error cleaning temp files: {e}")
+
         # We only need disk space for one video at a time, since files are deleted after upload
         if not check_disk_space(user_dir_name, 2 * 1024 * 1024 * 1024):
             send_to_user(message, f"❌ Not enough disk space to download videos.")
@@ -2773,9 +2787,30 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Обработка временных файлов после загрузки
                 try:
                     allfiles = os.listdir(user_dir_name)
-                    temp_files = [f for f in allfiles if f.endswith('.temp.mp4')]
+                    # Ищем все возможные временные файлы yt-dlp
+                    temp_files = []
+                    for f in allfiles:
+                        if f.endswith('.temp.mp4') or f.endswith('.temp.mkv') or f.endswith('.temp.webm'):
+                            temp_files.append(f)
+                        # Также ищем файлы с .part расширением
+                        elif f.endswith('.part'):
+                            temp_files.append(f)
+                    
                     for temp_file in temp_files:
-                        final_name = temp_file.replace('.temp.mp4', '.mp4')
+                        # Определяем финальное имя файла
+                        if temp_file.endswith('.temp.mp4'):
+                            final_name = temp_file.replace('.temp.mp4', '.mp4')
+                        elif temp_file.endswith('.temp.mkv'):
+                            final_name = temp_file.replace('.temp.mkv', '.mkv')
+                        elif temp_file.endswith('.temp.webm'):
+                            final_name = temp_file.replace('.temp.webm', '.webm')
+                        elif temp_file.endswith('.part'):
+                            # Для .part файлов убираем .part и добавляем .mp4
+                            base_name = temp_file.replace('.part', '')
+                            final_name = base_name + '.mp4'
+                        else:
+                            continue
+                        
                         temp_path = os.path.join(user_dir_name, temp_file)
                         final_path = os.path.join(user_dir_name, final_name)
                         
@@ -2827,6 +2862,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return None
                 elif "Downloaded" in error_str and "expected" in error_str:
                     logger.error(f"Download incomplete: {error_str}")
+                    return None
+                elif "No such file or directory" in error_str and "temp.mp4" in error_str:
+                    logger.error(f"Temp file rename error: {error_str}")
+                    # Это ошибка переименования временного файла, попробуем другой формат
                     return None
                 elif "No such file or directory" in error_str:
                     logger.error(f"File not found error: {error_str}")
@@ -2960,6 +2999,33 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info(f"Copied temp file: {downloaded_file} -> {final_temp_name}")
                     except Exception as e2:
                         logger.error(f"Error copying temp file: {e2}")
+                        send_to_all(message, f"❌ Error processing downloaded file: {e}")
+                        continue
+            elif downloaded_file.endswith('.part'):
+                # Обработка .part файлов
+                base_name = downloaded_file.replace('.part', '')
+                final_temp_name = base_name + '.mp4'
+                temp_old_path = os.path.join(dir_path, downloaded_file)
+                temp_new_path = os.path.join(dir_path, final_temp_name)
+                
+                try:
+                    if os.path.exists(temp_new_path):
+                        os.remove(temp_new_path)
+                    os.rename(temp_old_path, temp_new_path)
+                    downloaded_file = final_temp_name
+                    downloaded_file_path = temp_new_path
+                    logger.info(f"Renamed part file: {downloaded_file} -> {final_temp_name}")
+                except Exception as e:
+                    logger.error(f"Error renaming part file: {e}")
+                    try:
+                        import shutil
+                        shutil.copy2(temp_old_path, temp_new_path)
+                        os.remove(temp_old_path)
+                        downloaded_file = final_temp_name
+                        downloaded_file_path = temp_new_path
+                        logger.info(f"Copied part file: {downloaded_file} -> {final_temp_name}")
+                    except Exception as e2:
+                        logger.error(f"Error copying part file: {e2}")
                         send_to_all(message, f"❌ Error processing downloaded file: {e}")
                         continue
 
@@ -3259,7 +3325,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         if is_playlist and quality_key:
             total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_to_message_id=message.id)
+            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters=types.ReplyParameters(message_id=message.id))
             send_to_logger(message, f"Playlist videos sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user {user_id}")
 
     except Exception as e:
@@ -3387,63 +3453,26 @@ def get_active_download(user_id):
         return active_downloads.get(user_id, False)
 
 # Helper function to sanitize and shorten filenames
-def sanitize_filename(filename, max_length=100):  # Уменьшено с 150 до 100
+def sanitize_filename(filename, max_length=60):
     """
-    Sanitize filename by removing invalid characters and shortening if needed
-
-    Args:
-        filename (str): Original filename
-        max_length (int): Maximum allowed length for filename (excluding extension)
-
-    Returns:
-        str: Sanitized and shortened filename
+    Оставляет только латинские буквы, цифры, дефис, подчёркивание и точку (для расширения).
+    Всё остальное удаляется. Если имя пустое — 'video'.
     """
-    # Exit early if None
+    import re
+    import os
     if filename is None:
-        return "untitled"
-
-    # Extract extension first
+        return "video"
     name, ext = os.path.splitext(filename)
-
-    # Remove invalid characters (Windows and Linux safe)
-    invalid_chars = r'[<>:"/\\|?*\x00-\x1f]'
-    name = re.sub(invalid_chars, '', name)
-
-    # Remove emoji characters to avoid issues with ffmpeg
-    emoji_pattern = re.compile("["
-                               "\U0001F600-\U0001F64F"  # emoticons
-                               "\U0001F300-\U0001F5FF"  # symbols & pictographs
-                               "\U0001F680-\U0001F6FF"  # transport & map symbols
-                               "\U0001F1E0-\U0001F1FF"  # flags
-                               "\U0001F900-\U0001F9FF"  # supplemental symbols and pictographs
-                               "\U0001FA70-\U0001FAFF"  # symbols and pictographs extended-a
-                               "]+", flags=re.UNICODE)
-    name = emoji_pattern.sub(r'', name)
-
-    # Replace multiple spaces with single space and strip
-    name = re.sub(r'\s+', ' ', name).strip()
-
-    # Shorten if too long - более агрессивное сокращение
-    full_name = name + ext
-    max_total = 80  # Уменьшено с 100 до 80
-    if len(full_name) > max_total:
-       allowed = max_total - len(ext)
-       if allowed > 3:
-          name = name[:allowed-3] + "..."
-       else:
-          name = name[:allowed]
-       full_name = name + ext
-    
-    # Дополнительная проверка на слишком длинные имена
-    if len(full_name) > 100:
-        # Если все еще слишком длинное, используем хеш
-        import hashlib
-        hash_name = hashlib.md5(filename.encode()).hexdigest()[:8]
-        name = f"video_{hash_name}"
-        full_name = name + ext
-    
-    return full_name
-
+    # Удаляем все не-ASCII символы (оставляем только латиницу, цифры, дефис, подчёркивание)
+    name = re.sub(r'[^A-Za-z0-9\-_]', '', name)
+    # Если имя пустое — fallback
+    if not name:
+        name = "video"
+    # Ограничиваем длину
+    name = name[:max_length]
+    # Если расширение не ascii — убираем
+    ext = ext if re.match(r'^\.[A-Za-z0-9]+$', ext) else ''
+    return name + ext
 
 # Helper function to safely set active download status
 def set_active_download(user_id, status):
@@ -3811,21 +3840,21 @@ def tags_command(app, message):
     tags_file = os.path.join(user_dir, "tags.txt")
     if not os.path.exists(tags_file):
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_to_message_id=message.id)
+        app.send_message(user_id, reply_text, reply_parameters=types.ReplyParameters(message_id=message.id))
         send_to_logger(message, reply_text)
         return
     with open(tags_file, "r", encoding="utf-8") as f:
         tags = [line.strip() for line in f if line.strip()]
     if not tags:
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_to_message_id=message.id)
+        app.send_message(user_id, reply_text, reply_parameters=types.ReplyParameters(message_id=message.id))
         send_to_logger(message, reply_text)
         return
     # We form posts by 4096 characters
     msg = ''
     for tag in tags:
         if len(msg) + len(tag) + 1 > 4096:
-            app.send_message(user_id, msg, reply_to_message_id=message.id)
+            app.send_message(user_id, msg, reply_parameters=types.ReplyParameters(message_id=message.id))
             send_to_logger(message, msg)
             msg = ''
         msg += tag + '\n'
