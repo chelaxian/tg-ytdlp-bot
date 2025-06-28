@@ -4131,7 +4131,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     return info
 
 # --- Always ask processing ---
-def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
+def ask_quality_menu(app, message, msg, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
     try:
