@@ -6,32 +6,34 @@ import shutil
 import logging
 import threading
 import hashlib
-from typing import Tuple
+import tldextract
+import json
+import requests
+import math
+import time
+import threading
+import subprocess
+import signal
+import sys
 
+import pyrogram.errors
+from pyrogram.types import ReplyKeyboardMarkup
+from pyrogram.errors import FloodWait
 from pyrogram import Client, filters
 from pyrogram import enums
 from pyrogram import types
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
+
+from typing import Tuple
 from datetime import datetime
-import requests
-import math
-import time
-import threading
 from yt_dlp import YoutubeDL
 from moviepy.editor import VideoFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-import subprocess
-import signal
-import sys
-from config import Config
 from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
-from pyrogram.errors import FloodWait
-import tldextract
-from pyrogram.types import ReplyKeyboardMarkup
-import json
 from pymediainfo import MediaInfo
-import pyrogram.errors
+
+from config import Config
 
 # --- Function for permanent reply-keyboard ---
 def get_main_reply_keyboard():
