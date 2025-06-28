@@ -2455,7 +2455,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     user_id = message.chat.id
     logger.info(f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
     
-    is_playlist = video_count > 1
+    is_playlist = video_count > 1 or is_playlist_with_range(message.text or message.caption or "")
+    logger.info(f"down_and_up: is_playlist={is_playlist}, video_count={video_count}, original_text={message.text or message.caption or ''}")
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
     cached_videos = {}
     uncached_indices = []
@@ -2957,7 +2958,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                             else:
                                 # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
+                                if is_playlist:
+                                    # For playlists, save to playlist cache with video index
+                                    current_video_index = x + video_start_with
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
+                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
+                                    playlist_indices.append(current_video_index)
+                                    playlist_msg_ids.append(video_msg.id)
+                                else:
+                                    # For single videos, save to regular cache
+                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
                         else:
                             logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
                             if is_playlist:
