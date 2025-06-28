@@ -31,7 +31,7 @@ import tldextract
 from pyrogram.types import ReplyKeyboardMarkup
 import json
 from pymediainfo import MediaInfo
-import types
+#import types
 import pyrogram.errors
 
 # --- Function for permanent reply-keyboard ---
