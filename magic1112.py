@@ -2835,22 +2835,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         temp_path = os.path.join(user_dir_name, temp_file)
                         final_path = os.path.join(user_dir_name, final_name)
                         
+                        # —— Замена обработки временных файлов после загрузки ——
+                        # Если итоговый файл уже есть (его создал merger yt-dlp), просто пропускаем
                         if os.path.exists(final_path):
-                            os.remove(final_path)
-                        
+                            continue
+
+                        # Если temp-файла нет (его уже удалил merger yt-dlp), тоже пропускаем
+                        if not os.path.exists(temp_path):
+                            logger.warning(f"Temp file {temp_file} not found, skipping rename")
+                            continue
+
                         try:
                             os.rename(temp_path, final_path)
                             logger.info(f"Renamed temp file after download: {temp_file} -> {final_name}")
                         except Exception as e:
                             logger.error(f"Error renaming temp file after download: {e}")
-                            # Попробуем скопировать
-                            try:
-                                import shutil
-                                shutil.copy2(temp_path, final_path)
-                                os.remove(temp_path)
-                                logger.info(f"Copied temp file after download: {temp_file} -> {final_name}")
-                            except Exception as e2:
-                                logger.error(f"Error copying temp file after download: {e2}")
+                        # —— конец замены ——
+                                
                 except Exception as e:
                     logger.error(f"Error processing temp files after download: {e}")
                 
