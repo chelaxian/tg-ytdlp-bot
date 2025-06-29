@@ -2123,6 +2123,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         
     logger.info(f"down_and_audio called: url={url}, quality_key={quality_key}, video_count={video_count}, video_start_with={video_start_with}")
     
+    has_range = is_playlist_with_range(original_text)
     is_playlist = video_count > 1
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
     cached_videos = {}
