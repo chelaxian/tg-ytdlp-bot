@@ -2025,7 +2025,8 @@ def send_videos(
 ):
     user_id = message.chat.id
     text = message.text or ""
-    m = re.search(r'https?://[^\s\*]+', text)
+    # Исправляем регулярное выражение: убираем * из исключений для корректной обработки ссылок с * в конце
+    m = re.search(r'https?://[^\s]+', text)
     video_url = m.group(0) if m else ""
     temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
     was_truncated = False
@@ -4029,7 +4030,8 @@ def extract_url_range_tags(text: str):
     # This function now always returns the full original download link
     if not isinstance(text, str):
         return None, 1, 1, None, [], '', None
-    url_match = re.search(r'https?://[^\s\*#]+', text)
+    # Исправляем регулярное выражение: убираем * из исключений, чтобы корректно обрабатывать ссылки с * в конце
+    url_match = re.search(r'https?://[^\s#]+', text)
     if not url_match:
         return None, 1, 1, None, [], '', None
     url = url_match.group(0)
@@ -4049,9 +4051,25 @@ def extract_url_range_tags(text: str):
             video_end_with = 9999  
             after_range = after_url[single_star_match.end():]
         else:
-            video_start_with = 1
-            video_end_with = 1
-            after_range = after_url
+            # Проверяем, есть ли символ * внутри URL
+            full_url = url_match.group(0)
+            range_in_url = re.search(r'\*([0-9]+)\*([0-9]+)$', full_url)
+            if range_in_url:
+                video_start_with = int(range_in_url.group(1))
+                video_end_with = int(range_in_url.group(2))
+                url = full_url[:range_in_url.start()]
+                after_range = after_url
+            else:
+                single_star_in_url = re.search(r'\*$', full_url)
+                if single_star_in_url:
+                    video_start_with = 1
+                    video_end_with = 9999
+                    url = full_url[:single_star_in_url.start()]
+                    after_range = after_url
+                else:
+                    video_start_with = 1
+                    video_end_with = 1
+                    after_range = after_url
     playlist_name = None
     playlist_match = re.match(r'\*([^\s\*#]+)', after_range)
     if playlist_match:
@@ -4631,7 +4649,8 @@ def askq_callback(app, callback_query):
                 url = entity.url
                 break
     if not url and callback_query.message.reply_to_message:
-        url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
+        # Исправляем регулярное выражение: убираем * из исключений для корректной обработки ссылок с * в конце
+        url_match = re.search(r'https?://[^\s#]+', callback_query.message.reply_to_message.text)
         if url_match:
             url = url_match.group(0)
     if not url:
