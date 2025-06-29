@@ -2524,7 +2524,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 }],
                 'prefer_ffmpeg': True,
                 'extractaudio': True,
-                'playlist_items': str(current_index + video_start_with),
+                'playlist_items': str(current_index + video_start_with),  # Используем правильный индекс плейлиста
                 'cookiefile': cookie_file,
                 'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
                 'progress_hooks': [progress_hook],
@@ -2573,12 +2573,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         logger.info(f"down_and_audio: indices_to_download={list(indices_to_download)}, video_start_with={video_start_with}")
         
         for idx, current_index in enumerate(indices_to_download):
-            # Для плейлистов используем правильный индекс
-            if is_playlist and video_count > 1:
-                actual_index = current_index  # current_index уже правильный для плейлистов
-            else:
-                actual_index = current_index - video_start_with  # для одиночных файлов
-            
+            current_index = current_index - video_start_with  # for numbering/display
             total_process = f"""
 **📶 Total Progress**
 > **Audio:** {idx + 1} / {len(indices_to_download)}
@@ -2589,12 +2584,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Determine rename_name based on the incoming playlist_name:
             if playlist_name and playlist_name.strip():
                 # A new name for the playlist is explicitly set - let's use it
-                rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {current_index + video_start_with}")
+                rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {idx + video_start_with}")
             else:
                 # No new name set - extract name from metadata
                 rename_name = None
 
-            info_dict = try_download_audio(url, actual_index)
+            info_dict = try_download_audio(url, current_index)
 
             if info_dict is None:
                 with playlist_errors_lock:
