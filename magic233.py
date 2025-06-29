@@ -2372,31 +2372,38 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             successful_uploads += 1
 
-            audio_title = info_dict.get("title", "audio")
-            audio_title = sanitize_filename(audio_title)
-            
-            # If rename_name is not set, set it equal to audio_title
+            # оригинальное название для подписи
+            original_audio_title = info_dict.get("title", "Audio")
+            # безопасное имя для файла
+            safe_audio_title = sanitize_filename(original_audio_title)
+
+            # Если rename_name не задан — используем безопасное имя
             if rename_name is None:
-                rename_name = audio_title
+                rename_name = safe_audio_title
 
             # Find the downloaded audio file
             allfiles = os.listdir(user_folder)
             files = [fname for fname in allfiles if fname.endswith('.mp3')]
             files.sort()
             if not files:
-                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}", reply_parameters=ReplyParameters(message_id=msg_id))
+                send_to_all(
+                    message,
+                    f"Skipping unsupported file type in playlist at index {idx + video_start_with}",
+                    reply_parameters=ReplyParameters(message_id=msg_id)
+                )
                 continue
 
             downloaded_file = files[0]
             write_logs(message, url, downloaded_file)
 
-            if rename_name == audio_title:
-                caption_name = audio_title
+            # в подписи всегда оригинальное название
+            if rename_name == safe_audio_title:
+                caption_name = original_audio_title
                 final_name = downloaded_file
             else:
                 ext = os.path.splitext(downloaded_file)[1]
                 final_name = rename_name + ext
-                caption_name = rename_name
+                caption_name = original_audio_title
                 old_path = os.path.join(user_folder, downloaded_file)
                 new_path = os.path.join(user_folder, final_name)
 
@@ -2411,11 +2418,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 except Exception as e:
                     logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
                     final_name = downloaded_file
-                    caption_name = audio_title
+                    caption_name = original_audio_title
 
             audio_file = os.path.join(user_folder, final_name)
             if not os.path.exists(audio_file):
-                send_to_user(message, "Audio file not found after download.", reply_parameters=ReplyParameters(message_id=msg_id))
+                send_to_user(
+                    message,
+                    "Audio file not found after download.",
+                    reply_parameters=ReplyParameters(message_id=msg_id)
+                )
                 continue
 
             audio_files.append(audio_file)
@@ -2960,17 +2971,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             successful_uploads += 1
 
             video_id = info_dict.get("id", None)
-            video_title = info_dict.get("title", None)
-            full_video_title = info_dict.get("description", video_title)
-            video_title = sanitize_filename(video_title) if video_title else "video"
+            # оригинальное название для подписи
+            original_title = info_dict.get("title", "Video")
+            full_video_title = info_dict.get("description", original_title)
+            # безопасное имя для файла
+            safe_title = sanitize_filename(original_title)
 
             # --- Use new centralized function for all tags ---
             tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
-           # If rename_name is not set, set it equal to video_title
+            # Если rename_name не задан — используем безопасное имя
             if rename_name is None:
-                rename_name = video_title
+                rename_name = safe_title
 
             dir_path = os.path.join("users", str(user_id))
 
@@ -2978,7 +2991,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             full_title_path = os.path.join(dir_path, "full_title.txt")
             try:
                 with open(full_title_path, "w", encoding="utf-8") as f:
-                    f.write(full_video_title if full_video_title else video_title)
+                    f.write(full_video_title)
             except Exception as e:
                 logger.error(f"Error saving full title: {e}")
 
