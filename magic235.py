@@ -2979,7 +2979,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             original_title = info_dict.get("title", "Video")
             full_video_title = info_dict.get("description", original_title)
             # безопасное имя для файла
-            safe_title = sanitize_filename(original_title)
+            video_title = sanitize_filename(original_title)
 
             # --- Use new centralized function for all tags ---
             tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
