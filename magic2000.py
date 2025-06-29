@@ -1,4 +1,4 @@
-#Version 2.2.8 
+#Version 2.2.9 
 import pyrebase
 import re
 import os
@@ -1178,57 +1178,54 @@ def uncache_command(app, message):
     Usage: /uncache <URL>
     """
     user_id = message.chat.id
-    if int(user_id) not in Config.ADMIN:
-        send_to_user(message, "❌ This command is only available for administrators.")
-        return
-    
     text = message.text.strip()
-    if text == "/uncache":
+    if len(text.split()) < 2:
         send_to_user(message, "❌ Please provide a URL to clear cache for.\nUsage: `/uncache <URL>`")
         return
-    
-    # Extract URL from command
-    url = text[8:].strip()  # Remove "/uncache " prefix
-    if not url or not (url.startswith("http://") or url.startswith("https://")):
+    url = text.split(maxsplit=1)[1].strip()
+    if not url.startswith("http://") and not url.startswith("https://"):
         send_to_user(message, "❌ Please provide a valid URL.\nUsage: `/uncache <URL>`")
         return
-    
+    removed_any = False
     try:
-        # Normalize URL for cache lookup
+        # Очищаем кэш по видео
         normalized_url = normalize_url_for_cache(url)
         url_hash = get_url_hash(normalized_url)
-        
-        # Clear video cache
         video_cache_path = f"{Config.VIDEO_CACHE_DB_PATH}/{url_hash}"
         db_child_by_path(db, video_cache_path).remove()
-        
-        # Clear playlist cache
-        playlist_cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}"
-        db_child_by_path(db, playlist_cache_path).remove()
-        
-        # Also try with different URL variants for YouTube
+        removed_any = True
+        # Очищаем кэш по плейлисту (если есть)
+        playlist_url = get_clean_playlist_url(url)
+        if playlist_url:
+            playlist_normalized = normalize_url_for_cache(playlist_url)
+            playlist_hash = get_url_hash(playlist_normalized)
+            playlist_cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}"
+            db_child_by_path(db, playlist_cache_path).remove()
+            removed_any = True
+            # Если есть диапазон (например, *1*5), очищаем кэш по каждому индексу
+            import re
+            m = re.search(r"\*(\d+)\*(\d+)", url)
+            if m:
+                start, end = int(m.group(1)), int(m.group(2))
+                for idx in range(start, end+1):
+                    idx_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}/{idx}"
+                    db_child_by_path(db, idx_path).remove()
+        # Очищаем кэш по short/long YouTube ссылкам
         if is_youtube_url(url):
-            # Try short URL
             short_url = youtube_to_short_url(url)
-            short_normalized = normalize_url_for_cache(short_url)
-            short_hash = get_url_hash(short_normalized)
-            db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{short_hash}").remove()
-            db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{short_hash}").remove()
-            
-            # Try long URL
             long_url = youtube_to_long_url(url)
-            long_normalized = normalize_url_for_cache(long_url)
-            long_hash = get_url_hash(long_normalized)
-            db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{long_hash}").remove()
-            db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{long_hash}").remove()
-        
-        send_to_user(message, f"✅ Cache cleared successfully for URL:\n`{url}`")
-        send_to_logger(message, f"Admin {user_id} cleared cache for URL: {url}")
-        
+            for variant in [short_url, long_url]:
+                norm = normalize_url_for_cache(variant)
+                h = get_url_hash(norm)
+                db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{h}").remove()
+                db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{h}").remove()
+        if removed_any:
+            send_to_user(message, f"✅ Cache cleared successfully for URL:\n`{url}`")
+            send_to_logger(message, f"Admin {user_id} cleared cache for URL: {url}")
+        else:
+            send_to_user(message, "ℹ️ No cache found for this link.")
     except Exception as e:
-        logger.error(f"Error clearing cache for URL {url}: {e}")
-        send_to_user(message, f"❌ Error clearing cache: {str(e)}")
-        send_to_logger(message, f"Failed to clear cache for URL {url}: {e}")
+        send_to_user(message, f"❌ Error clearing cache: {e}")
 
 # ===================== /settings =====================
 @app.on_message(filters.command("settings") & filters.private)
