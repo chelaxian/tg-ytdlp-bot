@@ -3229,18 +3229,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
 
-                     # для части плейлиста
-                     video_msg = send_videos(
-                         message,
-                         path_lst[p],
-                         '' if force_no_title else full_video_title,
-                         part_duration,
-                         splited_thumb_dir,
-                         info_text,
-                         proc_msg.id,
-                         full_video_title,
-                         tags_text_final
-                     )
+                    # для части плейлиста
+                    video_msg = send_videos(
+                        message,
+                        path_lst[p],
+                        '' if force_no_title else full_video_title,
+                        part_duration,
+                        splited_thumb_dir,
+                        info_text,
+                        proc_msg.id,
+                        full_video_title,
+                        tags_text_final
+                    )
                     # forward this same message into the log-channel and capture its new ID(s)
                     log_forwarded = app.forward_messages(
                         chat_id=Config.LOGS_ID,
@@ -3313,17 +3313,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # формируем подпись: либо пустая (force_no_title), либо название видео
                         caption = '' if force_no_title else video_title
                         # для одиночного видео
-                         video_msg = send_videos(
-                             message,
-                             after_rename_abs_path,
-                             full_video_title,
-                             duration,
-                             thumb_dir,
-                             info_text,
-                             proc_msg.id,
-                             full_video_title,
-                             tags_text_final
-                         )
+                        video_msg = send_videos(
+                            message,
+                            after_rename_abs_path,
+                            full_video_title,
+                            duration,
+                            thumb_dir,
+                            info_text,
+                            proc_msg.id,
+                            full_video_title,
+                            tags_text_final
+                        )
 
                         try:
                             # пересылаем в лог-канал и собираем реальные ID
