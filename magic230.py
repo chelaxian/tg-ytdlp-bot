@@ -1399,15 +1399,22 @@ def get_mediainfo_cli(file_path):
 def send_mediainfo_if_enabled(user_id, file_path, message):
     if is_mediainfo_enabled(user_id):
         try:
+            # Extract msg_id safely
+            msg_id = message.id if hasattr(message, "id") else message.get("message_id") or message.get("id")
+
             mediainfo_text = get_mediainfo_cli(file_path)
             mediainfo_text = mediainfo_text.replace(Config.USERS_ROOT, "")
             mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
+
             with open(mediainfo_path, "w", encoding="utf-8") as f:
                 f.write(mediainfo_text)
+
             app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>", reply_parameters=ReplyParameters(message_id=msg_id))
             app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
+
             if os.path.exists(mediainfo_path):
                 os.remove(mediainfo_path)
+
         except Exception as e:
             logger.error(f"Error MediaInfo: {e}")
 
