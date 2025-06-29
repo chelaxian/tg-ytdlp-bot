@@ -1,4 +1,4 @@
-#Version 2.3.3 
+#Version 2.3.6 
 import pyrebase
 import re
 import os
@@ -45,8 +45,8 @@ from config import Config
 def get_main_reply_keyboard():
     return ReplyKeyboardMarkup(
         [
-            ["/clean", "/download_cookie"],
-            ["/help", "/settings", "/playlist"]
+            ["/clean", "/download_cookie", "/settings"],
+            ["/playlist", "/tags", "/help"]
         ],
         resize_keyboard=True,
         one_time_keyboard=False
@@ -855,26 +855,17 @@ def url_distractor(app, message):
             
             removed_files = []
             allfiles = os.listdir(user_dir)
-            file_extensions = [
-                '.mp4', '.mkv', '.mp3', '.m4a', '.jpg', '.jpeg', '.part', '.ytdl',
-                '.txt', '.ts', '.m3u8', '.webm', '.wmv', '.avi', '.mpeg', '.wav'
-            ]
             
-            for extension in file_extensions:
-                if isinstance(extension, tuple):
-                    files = [fname for fname in allfiles if any(fname.endswith(ext) for ext in extension)]
-                else:
-                    files = [fname for fname in allfiles if fname.endswith(extension)]
-                for file in files:
-                    if extension == '.txt' and file in ['mediainfo.txt', 'logs.txt', 'format.txt', 'tags.txt', 'split.txt']:
-                        continue
-                    file_path = os.path.join(user_dir, file)
-                    try:
+            # Удаляем все файлы в папке пользователя
+            for file in allfiles:
+                file_path = os.path.join(user_dir, file)
+                try:
+                    if os.path.isfile(file_path):
                         os.remove(file_path)
                         removed_files.append(file)
                         logger.info(f"Removed file: {file_path}")
-                    except Exception as e:
-                        logger.error(f"Failed to remove file {file_path}: {e}")
+                except Exception as e:
+                    logger.error(f"Failed to remove file {file_path}: {e}")
             
             if removed_files:
                 files_list = "\n".join([f"• {file}" for file in removed_files])
@@ -883,8 +874,9 @@ def url_distractor(app, message):
                 send_to_all(message, "🗑 No files to remove.")
             return
         else:
+            # Обычная команда /clean - удаляем только медиа файлы с фильтрацией
             remove_media(message)
-            send_to_all(message, "🗑 All files are removed.")
+            send_to_all(message, "🗑 All media files are removed.")
             return
 
     # /USAGE Command
