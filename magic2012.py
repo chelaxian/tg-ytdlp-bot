@@ -2459,7 +2459,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_folder)
 
-        if not check_disk_space(user_folder, 500 * 1024 * 1024 * video_count):
+        # Убираем неправильную проверку места на диске для плейлистов
+        # Файлы удаляются после загрузки, поэтому достаточно места для одного файла
+        if not check_disk_space(user_folder, 500 * 1024 * 1024):  # 500MB для одного аудио файла
             send_to_user(message, "❌ Not enough disk space to download the audio files.", reply_parameters=ReplyParameters(message_id=msg_id))
             return
 
@@ -2887,7 +2889,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             logger.error(f"Error cleaning temp files: {e}")
 
         # We only need disk space for one video at a time, since files are deleted after upload
-        if not check_disk_space(user_dir_name, 2 * 1024 * 1024 * 1024):
+        if not check_disk_space(user_dir_name, 2 * 1024 * 1024 * 1024):  # 2GB для одного видео файла
             send_to_user(message, f"❌ Not enough disk space to download videos.")
             return
 
@@ -2963,7 +2965,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 total = d.get("total_bytes", 0)
                 percent = (downloaded / total * 100) if total else 0
                 blocks = int(percent // 10)
-                bar = "🟩" * blocks + "⬜️" * (10 - blocks)
+                bar = "��" * blocks + "⬜️" * (10 - blocks)
                 try:
                     # With the first renewal of progress, we delete the first posts Processing
                     if first_progress_update:
