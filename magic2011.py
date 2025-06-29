@@ -5253,24 +5253,32 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         found = {}
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         logger.info(f"get_cached_playlist_videos: checking quality keys: {quality_keys}")
+        
         for u in set(urls):
             url_hash = get_url_hash(u)
             logger.info(f"get_cached_playlist_videos: checking URL hash: {url_hash}")
             for qk in quality_keys:
                 logger.info(f"get_cached_playlist_videos: checking quality: {qk}")
-                for index in requested_indices:
-                    index_str = str(index)
-                    cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}"
-                    logger.info(f"get_cached_playlist_videos: checking path: {cache_path}")
-                    val = db_child_by_path(db, cache_path).get().val()
-                    if val is not None:
-                        found[index] = int(val)
-                        logger.info(f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {val}")
+                
+                # Получаем все данные для данного качества одним запросом
+                try:
+                    cache_data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                    if cache_data and isinstance(cache_data, dict):
+                        # Проверяем только запрошенные индексы
+                        for index in requested_indices:
+                            index_str = str(index)
+                            if index_str in cache_data and cache_data[index_str] is not None:
+                                found[index] = int(cache_data[index_str])
+                                logger.info(f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {cache_data[index_str]}")
+                        if found:
+                            logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(found.keys())}: {found}")
+                            return found
                     else:
-                        logger.info(f"get_cached_playlist_videos: no cache found for index {index} (quality={qk})")
-        if found:
-            logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(found.keys())}: {found}")
-            return found
+                        logger.info(f"get_cached_playlist_videos: no cache data found for url_hash={url_hash}, quality={qk}")
+                except Exception as e:
+                    logger.error(f"get_cached_playlist_videos: error reading cache for url_hash={url_hash}, quality={qk}: {e}")
+                    continue
+        
         logger.info(f"get_cached_playlist_videos: no cache found for any URL/quality variant, returning empty dict")
         return {}
     except Exception as e:
