@@ -4383,7 +4383,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             "or /cookies_from_browser and try again."
         )
         if proc_msg:
-            result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+            try:
+                app.edit_message_text(
+                    chat_id=user_id,
+                    message_id=proc_msg.id,
+                    text=error_text
+                )
+            except pyrogram.errors.MessageIdInvalid:
+                # если старое сообщение уже недоступно — просто шлём новое
+                app.send_message(
+                    chat_id=user_id,
+                    text=error_text
+                )
             if result is None:
                 app.send_message(
                     user_id,
