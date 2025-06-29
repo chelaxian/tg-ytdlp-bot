@@ -2483,7 +2483,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             nonlocal last_update
             # Check the timeout
             if check_download_timeout(user_id):
-                raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
+                return None
             current_time = time.time()
             if current_time - last_update < 0.2:
                 return
@@ -2541,6 +2541,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if actual_index < len(entries):
                             info_dict = entries[actual_index]
                         else:
+                            return None
                             raise Exception(f"Audio index {actual_index + 1} out of range (total {len(entries)})")
                     else:
                         # If there is only one video in the playlist, just download it
@@ -2603,7 +2604,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie and after that send your audio link again.",
                             reply_parameters=ReplyParameters(message_id=msg_id)
                         )
-                break
+                return None
 
             successful_uploads += 1
 
@@ -2678,7 +2679,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             except Exception as send_error:
                 logger.error(f"Error sending audio: {send_error}")
                 send_to_user(message, f"❌ Failed to send audio: {send_error}", reply_parameters=ReplyParameters(message_id=msg_id))
-                continue
+                return None
 
             # Clean up the audio file after sending
             try:
@@ -2715,6 +2716,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         else:
             logger.error(f"Error in audio download: {e}")
             send_to_user(message, f"❌ Failed to download audio: {e}", reply_parameters=ReplyParameters(message_id=msg_id))
+        return None
     finally:
         # Always clean up resources
         stop_anim.set()
@@ -2959,7 +2961,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             nonlocal last_update, first_progress_update
             # Check the timaut
             if check_download_timeout(user_id):
-                raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
+                return None
             current_time = time.time()
             if current_time - last_update < 1.5:
                 return
@@ -3022,6 +3024,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if current_index < len(entries):
                             info_dict = entries[current_index]
                         else:
+                            return None
                             raise Exception(f"Video index {current_index} out of range (total {len(entries)})")
                     else:
                         # If there is only one video in the playlist, just download it
@@ -3172,7 +3175,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
                             "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
                         )
-                break
+                return None
 
             successful_uploads += 1
 
@@ -4413,7 +4416,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
             
     except Exception as e:
         logger.error(f"get_video_formats: Exception occurred: {e}", exc_info=True)
-        raise
+        return None
 
 # --- Always ask processing ---
 # --- Always ask processing ---
