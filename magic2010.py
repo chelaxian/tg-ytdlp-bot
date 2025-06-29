@@ -4550,13 +4550,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             logger.info(f"ask_quality_menu: creating button for quality {quality_key}")
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1] + 1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                if is_full_playlist:
-                    postfix = f" ({n_cached})" if n_cached > 0 else ""
+                
+                # Пропускаем проверку кэша для больших диапазонов
+                if len(indices) > 100:
+                    logger.info(f"ask_quality_menu: skipping cache check for button {quality_key} (large range)")
+                    n_cached = 0
+                    if is_full_playlist:
+                        postfix = ""
+                    else:
+                        total = len(indices)
+                        postfix = f" (0/{total})" if total > 1 else ""
+                    icon = "📹"
                 else:
-                    total = len(indices)
-                    postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                icon = "🚀" if n_cached > 0 else "📹"
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    if is_full_playlist:
+                        postfix = f" ({n_cached})" if n_cached > 0 else ""
+                    else:
+                        total = len(indices)
+                        postfix = f" ({n_cached}/{total})" if total > 1 else ""
+                    icon = "🚀" if n_cached > 0 else "📹"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 postfix = ""
@@ -5324,6 +5336,7 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
     Возвращает количество закэшированных видео для заданного качества (по количеству ключей в базе),
     учитывая и округлённый quality_key (ceil_to_popular).
     Если передан список индексов, считает только их пересечение с кэшем.
+    Для больших диапазонов (>100) использует быстрый подсчет.
     """
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
@@ -5345,13 +5358,26 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
             url_hash = get_url_hash(u)
             for qk in quality_keys:
                 if indices is not None:
-                    # Проверяем каждый индекс отдельно
-                    for index in indices:
-                        index_str = str(index)
-                        val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
-                        if val is not None:
-                            cached_count += 1
-                            logger.info(f"get_cached_playlist_count: found cached video for index {index} (quality={qk}): {val}")
+                    # Для больших диапазонов используем быстрый подсчет
+                    if len(indices) > 100:
+                        try:
+                            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                            if data and isinstance(data, dict):
+                                # Считаем только индексы из запрошенного диапазона
+                                cached_count = sum(1 for index in indices if str(index) in data and data[str(index)] is not None)
+                                logger.info(f"get_cached_playlist_count: fast count for large range: {cached_count} cached videos")
+                                return cached_count
+                        except Exception as e:
+                            logger.error(f"get_cached_playlist_count: error in fast count: {e}")
+                            continue
+                    else:
+                        # Для небольших диапазонов проверяем каждый индекс отдельно
+                        for index in indices:
+                            index_str = str(index)
+                            val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
+                            if val is not None:
+                                cached_count += 1
+                                logger.info(f"get_cached_playlist_count: found cached video for index {index} (quality={qk}): {val}")
                 else:
                     # Получаем все данные качества и считаем непустые записи
                     try:
