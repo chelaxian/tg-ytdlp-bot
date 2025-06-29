@@ -4647,7 +4647,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             except Exception as ex:
                 if 'MESSAGE_ID_INVALID' not in str(ex):
                     logger.warning(f"Failed to edit message: {ex}")
-                # Если не можем отредактировать, отправляем новое сообщение
+                # Если не можем отредактировать, удаляем старое сообщение и отправляем новое
+                try:
+                    safe_delete_messages(chat_id=user_id, message_ids=[proc_msg.id], revoke=True)
+                except Exception as del_ex:
+                    logger.warning(f"Failed to delete old message: {del_ex}")
                 app.send_message(
                     user_id,
                     flood_msg,
@@ -4675,7 +4679,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 safe_edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
             except Exception as ex:
                 logger.warning(f"Failed to edit error message: {ex}")
-                # Если не можем отредактировать, отправляем новое сообщение
+                # Если не можем отредактировать, удаляем старое сообщение и отправляем новое
+                try:
+                    safe_delete_messages(chat_id=user_id, message_ids=[proc_msg.id], revoke=True)
+                except Exception as del_ex:
+                    logger.warning(f"Failed to delete old message: {del_ex}")
                 app.send_message(
                     user_id,
                     error_text,
