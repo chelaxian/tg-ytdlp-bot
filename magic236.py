@@ -2987,7 +2987,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             # Если rename_name не задан — используем безопасное имя
             if rename_name is None:
-                rename_name = safe_title
+                rename_name = video_title
 
             dir_path = os.path.join("users", str(user_id))
 
