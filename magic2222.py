@@ -1,4 +1,4 @@
-#Version 2.2.7 
+#Version 2.2.8 
 import pyrebase
 import re
 import os
@@ -819,6 +819,14 @@ def url_distractor(app, message):
         split_command(app, message)
         return
 
+    # /uncache Command - Clear cache for URL (for admins only)
+    if text.startswith(Config.UNCACHE_COMMAND):
+        if is_admin:
+            uncache_command(app, message)
+        else:
+            send_to_user(message, "❌ This command is only available for administrators.")
+        return
+
     # If the Message Contains a URL, Launch The Video Download Function.
     if ("https://" in text) or ("http://" in text):
         if not is_user_blocked(message):
@@ -855,6 +863,11 @@ def url_distractor(app, message):
         # /log Command for User Logs
         if Config.GET_USER_LOGS_COMMAND in text:
             get_user_log(app, message)
+            return
+
+        # /uncache Command - Clear cache for URL
+        if Config.UNCACHE_COMMAND in text:
+            uncache_command(app, message)
             return
 
     # Reframed processing for all users (admins and ordinary users)
@@ -1158,6 +1171,64 @@ def check_runtime(message):
         now = TimeFormatter(now)
         send_to_user(message, f"⏳ __Bot running time -__ **{now}**")
     pass
+
+def uncache_command(app, message):
+    """
+    Admin command to clear cache for a specific URL
+    Usage: /uncache <URL>
+    """
+    user_id = message.chat.id
+    if int(user_id) not in Config.ADMIN:
+        send_to_user(message, "❌ This command is only available for administrators.")
+        return
+    
+    text = message.text.strip()
+    if text == "/uncache":
+        send_to_user(message, "❌ Please provide a URL to clear cache for.\nUsage: `/uncache <URL>`")
+        return
+    
+    # Extract URL from command
+    url = text[8:].strip()  # Remove "/uncache " prefix
+    if not url or not (url.startswith("http://") or url.startswith("https://")):
+        send_to_user(message, "❌ Please provide a valid URL.\nUsage: `/uncache <URL>`")
+        return
+    
+    try:
+        # Normalize URL for cache lookup
+        normalized_url = normalize_url_for_cache(url)
+        url_hash = get_url_hash(normalized_url)
+        
+        # Clear video cache
+        video_cache_path = f"{Config.VIDEO_CACHE_DB_PATH}/{url_hash}"
+        db_child_by_path(db, video_cache_path).remove()
+        
+        # Clear playlist cache
+        playlist_cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}"
+        db_child_by_path(db, playlist_cache_path).remove()
+        
+        # Also try with different URL variants for YouTube
+        if is_youtube_url(url):
+            # Try short URL
+            short_url = youtube_to_short_url(url)
+            short_normalized = normalize_url_for_cache(short_url)
+            short_hash = get_url_hash(short_normalized)
+            db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{short_hash}").remove()
+            db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{short_hash}").remove()
+            
+            # Try long URL
+            long_url = youtube_to_long_url(url)
+            long_normalized = normalize_url_for_cache(long_url)
+            long_hash = get_url_hash(long_normalized)
+            db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{long_hash}").remove()
+            db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{long_hash}").remove()
+        
+        send_to_user(message, f"✅ Cache cleared successfully for URL:\n`{url}`")
+        send_to_logger(message, f"Admin {user_id} cleared cache for URL: {url}")
+        
+    except Exception as e:
+        logger.error(f"Error clearing cache for URL {url}: {e}")
+        send_to_user(message, f"❌ Error clearing cache: {str(e)}")
+        send_to_logger(message, f"Failed to clear cache for URL {url}: {e}")
 
 # ===================== /settings =====================
 @app.on_message(filters.command("settings") & filters.private)
