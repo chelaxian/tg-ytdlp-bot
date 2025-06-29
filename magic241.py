@@ -2814,55 +2814,66 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             try:
                 with YoutubeDL(ytdl_opts) as ydl:
                     info_dict = ydl.extract_info(url, download=False)
+
+                # Разбор плейлиста, если нужно
                 if "entries" in info_dict:
                     entries = info_dict["entries"]
-                    if len(entries) > 1:  # If the video in the playlist is more than one
+                    if len(entries) > 1:
                         if current_index < len(entries):
                             info_dict = entries[current_index]
                         else:
                             raise Exception(f"Video index {current_index} out of range (total {len(entries)})")
                     else:
-                        # If there is only one video in the playlist, just download it
-                        info_dict = entries[0]  # Just take the first video
+                        info_dict = entries[0]
 
+                # HLS-поток?
                 if ("m3u8" in url.lower()) or (info_dict.get("protocol") == "m3u8_native"):
                     is_hls = True
-                    # if "format" in ytdl_opts:
-                    # del ytdl_opts["format"]
                     ytdl_opts["downloader"] = "ffmpeg"
                     ytdl_opts["hls_use_mpegts"] = True
+
+                # Статус в чате
                 try:
                     if is_hls:
-                        safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥")
+                        safe_edit_message_text(
+                            user_id, proc_msg_id,
+                            f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥"
+                        )
                     else:
-                        safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
+                        safe_edit_message_text(
+                            user_id, proc_msg_id,
+                            f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥"
+                        )
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
+
+                # Само скачивание
                 with YoutubeDL(ytdl_opts) as ydl:
                     if is_hls:
                         cycle_stop = threading.Event()
-                        cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop)
+                        cycle_thread = start_cycle_progress(
+                            user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop
+                        )
                         try:
-                            with YoutubeDL(ytdl_opts) as ydl:
-                                ydl.download([url])
+                            ydl.download([url])
                         finally:
                             cycle_stop.set()
                             cycle_thread.join(timeout=1)
                     else:
-                        with YoutubeDL(ytdl_opts) as ydl:
-                            ydl.download([url])
-                
+                        ydl.download([url])
+
             except Exception as e:
                 nonlocal error_message
                 error_message = str(e)
                 return None
+
             else:
+                # Переименование временных файлов после yt-dlp
                 try:
                     for temp_file in os.listdir(user_dir_name):
                         if not temp_file.endswith(('.temp.mp4', '.temp.mkv', '.temp.webm', '.part')):
                             continue
+
                         temp_path = os.path.join(user_dir_name, temp_file)
                         if temp_file.endswith('.temp.mp4'):
                             final_name = temp_file[:-9] + '.mp4'
@@ -2872,10 +2883,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             final_name = temp_file[:-10] + '.webm'
                         else:  # .part
                             final_name = temp_file[:-5] + '.mp4'
+
                         final_path = os.path.join(user_dir_name, final_name)
 
+                        # если итоговый файл уже есть — пропускаем
                         if os.path.exists(final_path):
                             continue
+                        # если temp-файла нет — пропускаем
                         if not os.path.exists(temp_path):
                             logger.warning(f"Temp file not found, skip rename: {temp_path}")
                             continue
@@ -2885,10 +2899,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"Renamed temp file after download: {temp_file} -> {final_name}")
                         except Exception as e2:
                             logger.error(f"Error renaming temp file after download: {e2}")
-                            
+
                 except Exception as e3:
                     logger.error(f"Error processing temp files after download: {e3}")
 
+                # Финальный прогресс 100%
                 try:
                     safe_edit_message_text(
                         user_id,
@@ -2897,39 +2912,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     )
                 except Exception as e4:
                     logger.error(f"Final progress update error: {e4}")
+
                 return info_dict
-                    
-                
-                # Улучшенная обработка ошибок ffmpeg
-                if "ffmpeg exited with code 255" in error_str:
-                    logger.error(f"FFmpeg error (code 255) with format {ytdl_opts.get('format', 'default')}: {error_str}")
-                    # Попробуем другой формат или настройки
-                    if "format" in ytdl_opts and ytdl_opts["format"] != "best":
-                        logger.info(f"Retrying with 'best' format instead of {ytdl_opts['format']}")
-                        return None  # Позволим попробовать следующий формат
-                    else:
-                        logger.error("FFmpeg error with best format, this might be a server issue")
-                        return None
-                elif "ffmpeg exited with code" in error_str:
-                    logger.error(f"FFmpeg error with format {ytdl_opts.get('format', 'default')}: {error_str}")
-                    return None
-                elif "unable to open for writing" in error_str and "File name too long" in error_str:
-                    logger.error(f"Filename too long error: {error_str}")
-                    # Это уже обрабатывается в sanitize_filename, но на всякий случай
-                    return None
-                elif "Downloaded" in error_str and "expected" in error_str:
-                    logger.error(f"Download incomplete: {error_str}")
-                    return None
-                elif "No such file or directory" in error_str and "temp.mp4" in error_str:
-                    logger.error(f"Temp file rename error: {error_str}")
-                    # Это ошибка переименования временного файла, попробуем другой формат
-                    return None
-                elif "No such file or directory" in error_str:
-                    logger.error(f"File not found error: {error_str}")
-                    return None
-                else:
-                    logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {error_str}")
-                    return None
 
         if is_playlist and quality_key:
             indices_to_download = uncached_indices
@@ -3310,7 +3294,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             thumb_dir = None
 
                     try:
-                       # --- TikTok: Don't Pass Title ---
+                        # --- TikTok: Don't Pass Title ---
                         # формируем подпись: либо пустая (force_no_title), либо название видео
                         caption = '' if force_no_title else original_title
                         # для одиночного видео
