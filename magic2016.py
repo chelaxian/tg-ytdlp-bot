@@ -2483,7 +2483,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             nonlocal last_update
             # Check the timeout
             if check_download_timeout(user_id):
-                raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
+                return None
             current_time = time.time()
             if current_time - last_update < 0.2:
                 return
@@ -2541,7 +2541,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if actual_index < len(entries):
                             info_dict = entries[actual_index]
                         else:
-                            raise Exception(f"Audio index {actual_index + 1} out of range (total {len(entries)})")
+                            return None
                     else:
                         # If there is only one video in the playlist, just download it
                         info_dict = entries[0]  # Just take the first video
@@ -2959,7 +2959,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             nonlocal last_update, first_progress_update
             # Check the timaut
             if check_download_timeout(user_id):
-                raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
+                return None
             current_time = time.time()
             if current_time - last_update < 1.5:
                 return
@@ -3022,7 +3022,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if current_index < len(entries):
                             info_dict = entries[current_index]
                         else:
-                            raise Exception(f"Video index {current_index} out of range (total {len(entries)})")
+                            return None
                     else:
                         # If there is only one video in the playlist, just download it
                         info_dict = entries[0]  # Just take the first video
@@ -4413,7 +4413,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
             
     except Exception as e:
         logger.error(f"get_video_formats: Exception occurred: {e}", exc_info=True)
-        raise
+        return None
 
 # --- Always ask processing ---
 # --- Always ask processing ---
@@ -5321,178 +5321,3 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
     except Exception as e:
         logger.error(f"Failed to get cached playlist qualities: {e}")
         return set()
-
-def is_any_playlist_index_cached(playlist_url, quality_key, indices):
-    """Checks if at least one index from the range is in the playlist cache."""
-    cached = get_cached_playlist_videos(playlist_url, quality_key, indices)
-    return bool(cached)
-
-def get_clean_playlist_url(url: str) -> str:
-    """Returns the clean playlist URL for YouTube (https://www.youtube.com/playlist?list=...) or the original URL for other sites."""
-    original_url = url
-    m = re.search(r'list=([A-Za-z0-9_-]+)', url)
-    if m:
-        result = f"https://www.youtube.com/playlist?list={m.group(1)}"
-        logger.info(f"get_clean_playlist_url: '{original_url}' -> '{result}'")
-        return result
-    logger.info(f"get_clean_playlist_url: '{original_url}' -> '{original_url}' (no list parameter)")
-    return url
-
-def strip_range_from_url(url: str) -> str:
-    """Removes a range of the form *1*3 or *1*10000 from the end of the URL."""
-    original_url = url
-    result = re.sub(r'\*\d+\*\d+$', '', url)
-    if original_url != result:
-        logger.info(f"strip_range_from_url: '{original_url}' -> '{result}'")
-    return result
-
-def db_child_by_path(db, path):
-    for part in path.split("/"):
-        db = db.child(part)
-    return db
-
-# round height to popular quality for cache only
-# --- Round height to nearest higher popular quality ---
-def ceil_to_popular(h):
-    popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
-    for p in popular:
-        if h <= p:
-            return p
-    return popular[-1]
-
-# --- Быстрое получение количества кэшированных видео для качества ---
-def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list = None) -> int:
-    """
-    Возвращает количество закэшированных видео для заданного качества (по количеству ключей в базе),
-    учитывая и округлённый quality_key (ceil_to_popular).
-    Если передан список индексов, считает только их пересечение с кэшем.
-    Для больших диапазонов (>100) использует быстрый подсчет.
-    """
-    try:
-        urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
-        if is_youtube_url(playlist_url):
-            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
-            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
-        quality_keys = [quality_key]
-        try:
-            if quality_key.endswith('p'):
-                h = int(quality_key[:-1])
-                rounded = f"{ceil_to_popular(h)}p"
-                if rounded != quality_key:
-                    quality_keys.append(rounded)
-        except Exception:
-            pass
-        
-        cached_count = 0
-        for u in set(urls):
-            url_hash = get_url_hash(u)
-            for qk in quality_keys:
-                if indices is not None:
-                    # Для больших диапазонов используем быстрый подсчет
-                    if len(indices) > 100:
-                        try:
-                            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
-                            if data and isinstance(data, dict):
-                                # Считаем только индексы из запрошенного диапазона
-                                cached_count = sum(1 for index in indices if str(index) in data and data[str(index)] is not None)
-                                logger.info(f"get_cached_playlist_count: fast count for large range: {cached_count} cached videos")
-                                return cached_count
-                        except Exception as e:
-                            logger.error(f"get_cached_playlist_count: error in fast count: {e}")
-                            continue
-                    else:
-                        # Для небольших диапазонов проверяем каждый индекс отдельно
-                        for index in indices:
-                            index_str = str(index)
-                            val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
-                            if val is not None:
-                                cached_count += 1
-                                logger.info(f"get_cached_playlist_count: found cached video for index {index} (quality={qk}): {val}")
-                else:
-                    # Получаем все данные качества и считаем непустые записи
-                    try:
-                        data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
-                        if data:
-                            if isinstance(data, dict):
-                                cached_count = len(data)
-                            elif isinstance(data, list):
-                                # Если данные в виде списка, считаем непустые элементы
-                                cached_count = sum(1 for item in data if item is not None)
-                            else:
-                                logger.warning(f"get_cached_playlist_count: unexpected data type for url_hash={url_hash}, quality={qk}, type={type(data)}")
-                                continue
-                    except Exception as e:
-                        logger.error(f"get_cached_playlist_count: error reading cache for url_hash={url_hash}, quality={qk}: {e}")
-                        continue
-                
-                if cached_count > 0:
-                    logger.info(f"get_cached_playlist_count: returning {cached_count} cached videos for quality {qk}")
-                    return cached_count
-        
-        logger.info(f"get_cached_playlist_count: no cached videos found, returning 0")
-        return 0
-    except Exception as e:
-        logger.error(f"get_cached_playlist_count error: {e}")
-        return 0
-
-
-
-
-def get_quality_by_min_side(width: int, height: int) -> str:
-    """
-    Определяет качество по меньшей стороне видео.
-    Работает как для горизонтальных, так и для вертикальных видео.
-    Например, для 1280×720 возвращает '720p', для 720×1280 тоже '720p'.
-    """
-    min_side = min(width, height)
-    quality_map = {
-        144: "144p", 256: "144p",
-        240: "240p", 426: "240p", 
-        480: "480p", 854: "480p",
-        540: "540p", 960: "540p",
-        576: "576p", 1024: "576p",
-        720: "720p", 1280: "720p",
-        1080: "1080p", 1920: "1080p",
-        1440: "1440p", 2560: "1440p",
-        2160: "2160p", 3840: "2160p",
-        4320: "4320p", 7680: "4320p"
-    }
-    return quality_map.get(min_side, "best")
-
-def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
-    """
-    Возвращает реальную высоту для заданного качества, учитывая ориентацию видео.
-    Например, для качества '720p' и видео 1280×720 вернет 720, для 720×1280 вернет 1280.
-    """
-    if quality == "best":
-        return height  # Для best используем реальную высоту
-    
-    try:
-        quality_val = int(quality.replace('p', ''))
-        # Определяем, какая сторона соответствует выбранному качеству
-        if min(width, height) == quality_val:
-            # Если меньшая сторона равна качеству, используем реальную высоту
-            return height
-        else:
-            # Иначе ищем соответствующую высоту
-            quality_map = {
-                144: [144, 256],
-                240: [240, 426],
-                480: [480, 854],
-                540: [540, 960],
-                576: [576, 1024],
-                720: [720, 1280],
-                1080: [1080, 1920],
-                1440: [1440, 2560],
-                2160: [2160, 3840],
-                4320: [4320, 7680]
-            }
-            heights = quality_map.get(quality_val, [quality_val])
-            # Выбираем высоту, которая ближе к реальной высоте видео
-            return min(heights, key=lambda h: abs(h - height))
-    except ValueError:
-        return height
-
-
-
-app.run()
