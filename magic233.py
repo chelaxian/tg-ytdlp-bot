@@ -2446,7 +2446,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             caption_with_link = f"{caption_name}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
             
             try:
-                audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_parameters=ReplyParameters(message_id=msg_id))
+                audio_msg = app.send_audio(
+                    chat_id=user_id,
+                    audio=audio_file,
+                    caption=caption_with_link  # где caption_with_link включает caption_name
+                 )
                 forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
                 
                 # Save to cache after sending audio
@@ -3224,17 +3228,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(
-                        message,
-                        path_lst[p],
-                        '' if force_no_title else caption_lst[p],
-                        part_duration,
-                        splited_thumb_dir,
-                        info_text,
-                        proc_msg.id,
-                        full_video_title,
-                        tags_text_final
-                    )
+
+                     # для части плейлиста
+                     video_msg = send_videos(
+                         message,
+                         path_lst[p],
+                         '' if force_no_title else full_video_title,
+                         part_duration,
+                         splited_thumb_dir,
+                         info_text,
+                         proc_msg.id,
+                         full_video_title,
+                         tags_text_final
+                     )
                     # forward this same message into the log-channel and capture its new ID(s)
                     log_forwarded = app.forward_messages(
                         chat_id=Config.LOGS_ID,
@@ -3306,17 +3312,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                        # --- TikTok: Don't Pass Title ---
                         # формируем подпись: либо пустая (force_no_title), либо название видео
                         caption = '' if force_no_title else video_title
-                        video_msg = send_videos(
-                            message,
-                            after_rename_abs_path,
-                            caption,
-                            duration,
-                            thumb_dir,
-                            info_text,
-                            proc_msg.id,
-                            full_video_title,
-                            tags_text_final
-                        )
+                        # для одиночного видео
+                         video_msg = send_videos(
+                             message,
+                             after_rename_abs_path,
+                             full_video_title,
+                             duration,
+                             thumb_dir,
+                             info_text,
+                             proc_msg.id,
+                             full_video_title,
+                             tags_text_final
+                         )
+
                         try:
                             # пересылаем в лог-канал и собираем реальные ID
                             forwarded = app.forward_messages(
