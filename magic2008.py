@@ -2448,8 +2448,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         # If there is no flood error, send a normal message (only once)
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters=ReplyParameters(message_id=msg_id))
         proc_msg_id = proc_msg.id
-        status_msg = app.send_message(user_id, "🎧 Audio is processing...", reply_parameters=ReplyParameters(message_id=msg_id))
-        hourglass_msg = app.send_message(user_id, "⏳ Please wait...", reply_parameters=ReplyParameters(message_id=msg_id))
+        status_msg = app.send_message(user_id, "🎧 Audio is processing...")
+        hourglass_msg = app.send_message(user_id, "⏳ Please wait...")
         status_msg_id = status_msg.id
         hourglass_msg_id = hourglass_msg.id
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
@@ -2604,7 +2604,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             audio_title = info_dict.get("title", None)
             safe_title = sanitize_filename(audio_title)
             
-            # If rename_name is not set, set it equal to audio_title
+            # If rename_name is not set, set it equal to safe_title (sanitized)
             if rename_name is None:
                 rename_name = safe_title
 
@@ -2613,19 +2613,20 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             files = [fname for fname in allfiles if fname.endswith('.mp3')]
             files.sort()
             if not files:
-                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}", reply_parameters=ReplyParameters(message_id=msg_id))
+                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}")
                 continue
 
             downloaded_file = files[0]
             write_logs(message, url, downloaded_file)
 
+            # Файл должен сохраняться с sanitized именем, а в caption должно быть оригинальное имя
             if rename_name == safe_title:
-                caption_name = safe_title
-                final_name = downloaded_file
+                caption_name = audio_title  # Оригинальное имя для caption
+                final_name = rename_name + os.path.splitext(downloaded_file)[1]  # Sanitized имя для файла
             else:
                 ext = os.path.splitext(downloaded_file)[1]
-                final_name = rename_name + ext
-                caption_name = rename_name
+                final_name = rename_name + ext  # Sanitized имя для файла
+                caption_name = audio_title  # Оригинальное имя для caption
                 old_path = os.path.join(user_folder, downloaded_file)
                 new_path = os.path.join(user_folder, final_name)
 
