@@ -24,6 +24,13 @@ from pyrogram import enums
 from pyrogram.types import ReplyParameters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from pyrogram.enums import ChatMemberStatus
+from types import SimpleNamespace
+from pyrogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyParameters
+)
 
 from typing import Tuple
 from datetime import datetime
@@ -1254,8 +1261,8 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
     # Mapping commands to handlers
     # For commands that are processed only via url_distractor, create a temporary Message
     def fake_message(text, command=None):
-        m = types.SimpleNamespace()
-        m.chat = types.SimpleNamespace()
+        m = SimpleNamespace()
+        m.chat = SimpleNamespace()
         m.chat.id = user_id
         m.chat.first_name = getattr(callback_query.from_user, 'first_name', 'User')
         m.text = text
@@ -1648,19 +1655,35 @@ def send_to_logger(message, msg):
                      parse_mode=enums.ParseMode.MARKDOWN)
 
 # Send Message to User Only
-
-def send_to_user(message, msg):
+def send_to_user(message, msg, **kwargs):
+    """
+    Отправляет пользователю сообщение. Все дополнительные параметры
+    (reply_to_message_id, parse_mode, reply_parameters и т.п.)
+    прокидываются в safe_send_message.
+    """
     user_id = message.chat.id
-    safe_send_message(user_id, msg, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
+    # По умолчанию используем Markdown
+    kwargs.setdefault('parse_mode', enums.ParseMode.MARKDOWN)
+    # Если не передали reply_to_message_id, отвечаем на исходное
+    kwargs.setdefault('reply_to_message_id', message.id)
+    safe_send_message(user_id, msg, **kwargs)
 
-# Send Message to All ...
-
-def send_to_all(message, msg):
+# Send Message to User and to Log-Channel
+def send_to_all(message, msg, **kwargs):
+    """
+    Сначала отправляет в лог-канал, потом пользователю.
+    Все kwargs (reply_to_message_id, parse_mode и т.п.) передаются обоим вызовам.
+    """
     user_id = message.chat.id
-    msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    safe_send_message(Config.LOGS_ID, msg_with_id, parse_mode=enums.ParseMode.MARKDOWN)
-    safe_send_message(user_id, msg, parse_mode=enums.ParseMode.MARKDOWN, reply_to_message_id=message.id)
-
+    # По умолчанию Markdown
+    kwargs.setdefault('parse_mode', enums.ParseMode.MARKDOWN)
+    # Формируем версию для лога с указанием имени и user_id
+    msg_with_id = f"{message.chat.first_name} - {user_id}\n\n{msg}"
+    safe_send_message(Config.LOGS_ID, msg_with_id, **kwargs)
+    # Если лог-каналу ответили на конкретное сообщение, то и пользователю тоже
+    kwargs.setdefault('reply_to_message_id', message.id)
+    safe_send_message(user_id, msg, **kwargs)
+    
 def progress_bar(*args):
     # It is expected that Pyrogram will cause Progress_BAR with five parameters:
     # Current, Total, Speed, ETA, File_SIZE, and then additionally your Progress_args (User_id, Msg_id, Status_text)
