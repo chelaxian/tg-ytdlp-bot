@@ -2369,7 +2369,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             successful_uploads += 1
 
-            audio_title = info_dict.get("title", "audio")
+            audio_title = info_dict.get("title", None)
             safe_title = sanitize_filename(audio_title)
             
             # If rename_name is not set, set it equal to audio_title
@@ -2959,7 +2959,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             video_id = info_dict.get("id", None)
             video_title = info_dict.get("title", None)
             video_description = info_dict.get("description", video_title)
-            safe_title = sanitize_filename(video_title) if video_title else "video"
+            safe_title = sanitize_filename(video_title) if video_title else None
 
             # --- Use new centralized function for all tags ---
             tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
@@ -3486,13 +3486,13 @@ def sanitize_filename(filename, max_length=60):
     import re
     import os
     if filename is None:
-        return "video"
+        return "media_file"
     name, ext = os.path.splitext(filename)
     # Удаляем все не-ASCII символы (оставляем только латиницу, цифры, дефис, подчёркивание)
     name = re.sub(r'[^A-Za-z0-9\-_]', '', name)
     # Если имя пустое — fallback
     if not name:
-        name = "video"
+        name = "media_file"
     # Ограничиваем длину
     name = name[:max_length]
     # Если расширение не ascii — убираем
