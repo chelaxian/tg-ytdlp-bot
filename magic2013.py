@@ -2569,8 +2569,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             indices_to_download = uncached_indices
         else:
             indices_to_download = range(video_count)
+        
+        logger.info(f"down_and_audio: indices_to_download={list(indices_to_download)}, video_start_with={video_start_with}")
+        
         for idx, current_index in enumerate(indices_to_download):
-            current_index = current_index - video_start_with  # for numbering/display
+            # Для плейлистов используем правильный индекс
+            if is_playlist and video_count > 1:
+                actual_index = current_index  # current_index уже правильный для плейлистов
+            else:
+                actual_index = current_index - video_start_with  # для одиночных файлов
+            
             total_process = f"""
 **📶 Total Progress**
 > **Audio:** {idx + 1} / {len(indices_to_download)}
@@ -2581,12 +2589,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Determine rename_name based on the incoming playlist_name:
             if playlist_name and playlist_name.strip():
                 # A new name for the playlist is explicitly set - let's use it
-                rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {idx + video_start_with}")
+                rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {current_index + video_start_with}")
             else:
                 # No new name set - extract name from metadata
                 rename_name = None
 
-            info_dict = try_download_audio(url, current_index)
+            info_dict = try_download_audio(url, actual_index)
 
             if info_dict is None:
                 with playlist_errors_lock:
@@ -2667,7 +2675,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                         logger.info(f"Checking the cache immediately after writing: {cached_check}")
                         playlist_indices.append(current_video_index)
-                        playlist_msg_ids.extend([m.id for m in forwarded_msgs])
+                        playlist_msg_ids.extend(msg_ids)
                     else:
                         # For single audios, save to regular cache
                         logger.info(f"down_and_audio: saving to video cache: msg_ids={msg_ids}")
@@ -4640,10 +4648,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
         if proc_msg:
             try:
-                app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+                safe_edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
             except Exception as ex:
                 if 'MESSAGE_ID_INVALID' not in str(ex):
                     logger.warning(f"Failed to edit message: {ex}")
+                # Если не можем отредактировать, отправляем новое сообщение
+                app.send_message(
+                    user_id,
+                    flood_msg,
+                    reply_parameters=ReplyParameters(message_id=message.id)
+                )
             proc_msg = None
         else:
             app.send_message(
@@ -4662,8 +4676,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             "or /cookies_from_browser and try again."
         )
         if proc_msg:
-            result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
-            if result is None:
+            try:
+                safe_edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+            except Exception as ex:
+                logger.warning(f"Failed to edit error message: {ex}")
+                # Если не можем отредактировать, отправляем новое сообщение
                 app.send_message(
                     user_id,
                     error_text,
