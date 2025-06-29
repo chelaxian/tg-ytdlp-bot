@@ -3238,7 +3238,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         splited_thumb_dir,
                         info_text,
                         proc_msg.id,
-                        original_title,
+                        #original_title,
                         full_video_description,
                         tags_text_final
                     )
@@ -3322,7 +3322,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             thumb_dir,
                             info_text,
                             proc_msg.id,
-                            original_title,
+                            #original_title,
                             full_video_description,
                             tags_text_final
                         )
