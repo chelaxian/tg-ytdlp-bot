@@ -2339,11 +2339,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             successful_uploads += 1
 
             audio_title = info_dict.get("title", "audio")
-            audio_title = sanitize_filename(audio_title)
+            safe_title = sanitize_filename(audio_title)
             
             # If rename_name is not set, set it equal to audio_title
             if rename_name is None:
-                rename_name = audio_title
+                rename_name = safe_title
 
             # Find the downloaded audio file
             allfiles = os.listdir(user_folder)
@@ -2356,8 +2356,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             downloaded_file = files[0]
             write_logs(message, url, downloaded_file)
 
-            if rename_name == audio_title:
-                caption_name = audio_title
+            if rename_name == safe_title:
+                caption_name = safe_title
                 final_name = downloaded_file
             else:
                 ext = os.path.splitext(downloaded_file)[1]
