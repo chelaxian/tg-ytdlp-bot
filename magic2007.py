@@ -4411,17 +4411,33 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     logger.info(f"get_video_formats: ytdl_opts={ytdl_opts}")
     
     try:
-        with YoutubeDL(ytdl_opts) as ydl:
-            logger.info(f"get_video_formats: extracting info from URL")
-            info = ydl.extract_info(url, download=False)
-            logger.info(f"get_video_formats: successfully extracted info, has entries: {'entries' in info}")
+        import signal
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError("get_video_formats timed out")
+        
+        # Устанавливаем таймаут в 30 секунд
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(30)
+        
+        try:
+            with YoutubeDL(ytdl_opts) as ydl:
+                logger.info(f"get_video_formats: extracting info from URL")
+                info = ydl.extract_info(url, download=False)
+                logger.info(f"get_video_formats: successfully extracted info, has entries: {'entries' in info}")
+                
+                if 'entries' in info and info.get('entries'):
+                    logger.info(f"get_video_formats: returning first entry from playlist")
+                    return info['entries'][0]
+                else:
+                    logger.info(f"get_video_formats: returning single video info")
+                    return info
+        finally:
+            signal.alarm(0)  # Отменяем таймаут
             
-            if 'entries' in info and info.get('entries'):
-                logger.info(f"get_video_formats: returning first entry from playlist")
-                return info['entries'][0]
-            else:
-                logger.info(f"get_video_formats: returning single video info")
-                return info
+    except TimeoutError as e:
+        logger.error(f"get_video_formats: Timeout error: {e}")
+        raise
     except Exception as e:
         logger.error(f"get_video_formats: Exception occurred: {e}", exc_info=True)
         raise
@@ -4504,7 +4520,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
         table_lines = []
         found_quality_keys = set()
+        logger.info(f"ask_quality_menu: starting to process quality options")
         for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(), key=lambda x: int(x[0][0].replace('p',''))):
+            logger.info(f"ask_quality_menu: processing quality {quality_key} ({w}×{h})")
             found_quality_keys.add(quality_key)
             size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
             dim_str = f" ({w}×{h})"
@@ -4516,21 +4534,37 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     n_parts = (video_bytes + split_size - 1) // split_size
                     scissors = f" ✂️{n_parts}"
             if is_playlist and playlist_range:
+                logger.info(f"ask_quality_menu: checking cache for playlist quality {quality_key}")
                 indices = list(range(playlist_range[0], playlist_range[1] + 1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                postfix = f" ({n_cached}/{total})"
-                is_cached = n_cached > 0
+                
+                # Временно отключаем проверку кэша для больших диапазонов
+                if len(indices) > 100:
+                    logger.info(f"ask_quality_menu: skipping cache check for button {quality_key} (large range)")
+                    n_cached = 0
+                    if is_full_playlist:
+                        postfix = ""
+                    else:
+                        total = len(indices)
+                        postfix = f" (0/{total})" if total > 1 else ""
+                    icon = "📹"
+                else:
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    if is_full_playlist:
+                        postfix = f" ({n_cached})" if n_cached > 0 else ""
+                    else:
+                        total = len(indices)
+                        postfix = f" ({n_cached}/{total})" if total > 1 else ""
+                    icon = "🚀" if n_cached > 0 else "📹"
             else:
-                is_cached = quality_key in cached_qualities
+                icon = "🚀" if quality_key in cached_qualities else "📹"
                 postfix = ""
-            emoji = "🚀" if is_cached else "📹"
-            table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
+            table_lines.append(f"{icon}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
 
         table_block = "\n".join(table_lines)
         logger.info(f"ask_quality_menu: created table with {len(table_lines)} lines")
 
         # --- Forming caption ---
+        logger.info(f"ask_quality_menu: forming caption")
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
@@ -4538,11 +4572,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
+        logger.info(f"ask_quality_menu: caption formed, length: {len(cap)}")
 
         # --- Building buttons ---
         logger.info(f"ask_quality_menu: building buttons")
         buttons = []
+        logger.info(f"ask_quality_menu: found_quality_keys={found_quality_keys}")
         for quality_key in sorted(found_quality_keys, key=lambda x: int(x.replace('p',''))):
+            logger.info(f"ask_quality_menu: creating button for quality {quality_key}")
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1] + 1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
@@ -4556,15 +4593,19 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 postfix = ""
             buttons.append(InlineKeyboardButton(f"{icon} {quality_key}{postfix}", callback_data=f"askq|{quality_key}"))
+            logger.info(f"ask_quality_menu: created button for {quality_key}")
 
         if not buttons:
+            logger.info(f"ask_quality_menu: no buttons created, adding default best quality button")
             default_icon = "🚀" if "best" in cached_qualities else "📹"
             buttons.append(InlineKeyboardButton(f"{default_icon} Best Quality", callback_data="askq|best"))
 
         # rows of 3
         keyboard_rows = [buttons[i:i+3] for i in range(0, len(buttons), 3)]
+        logger.info(f"ask_quality_menu: created {len(keyboard_rows)} keyboard rows")
 
         # add mp3 and cancel
+        logger.info(f"ask_quality_menu: adding mp3 and cancel buttons")
         mp3_icon = "🚀" if "mp3" in cached_qualities else "🎵"
         keyboard_rows.append([InlineKeyboardButton(f"{mp3_icon} audio (mp3)", callback_data="askq|mp3")])
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
@@ -4580,6 +4621,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         # send result
         logger.info(f"ask_quality_menu: sending result message")
         if thumb_path and os.path.exists(thumb_path):
+            logger.info(f"ask_quality_menu: sending with thumbnail {thumb_path}")
             app.send_photo(
                 user_id,
                 thumb_path,
@@ -4589,6 +4631,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 reply_parameters=ReplyParameters(message_id=message.id)
             )
         else:
+            logger.info(f"ask_quality_menu: sending without thumbnail")
             app.send_message(
                 user_id,
                 cap,
