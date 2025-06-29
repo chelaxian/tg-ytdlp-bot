@@ -15,6 +15,7 @@ import threading
 import subprocess
 import signal
 import sys
+import asyncio
 
 import pyrogram.errors
 from pyrogram import Client, filters
@@ -2620,28 +2621,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             write_logs(message, url, downloaded_file)
 
             # Файл должен сохраняться с sanitized именем, а в caption должно быть оригинальное имя
-            if rename_name == safe_title:
-                caption_name = audio_title  # Оригинальное имя для caption
-                final_name = rename_name + os.path.splitext(downloaded_file)[1]  # Sanitized имя для файла
-            else:
-                ext = os.path.splitext(downloaded_file)[1]
-                final_name = rename_name + ext  # Sanitized имя для файла
-                caption_name = audio_title  # Оригинальное имя для caption
-                old_path = os.path.join(user_folder, downloaded_file)
-                new_path = os.path.join(user_folder, final_name)
-
-                if os.path.exists(new_path):
-                    try:
-                        os.remove(new_path)
-                    except Exception as e:
-                        logger.error(f"Error removing existing file {new_path}: {e}")
-
-                try:
-                    os.rename(old_path, new_path)
-                except Exception as e:
-                    logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
-                    final_name = downloaded_file
-                    caption_name = audio_title
+            # Используем скачанный файл как есть, не переименовываем
+            final_name = downloaded_file
+            caption_name = audio_title  # Оригинальное имя для caption
 
             audio_file = os.path.join(user_folder, final_name)
             if not os.path.exists(audio_file):
@@ -3302,7 +3284,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
 
             if rename_name == safe_title:
-                caption_name = safe_title
+                caption_name = video_title  # Оригинальное имя для caption
                 final_name = downloaded_file
             else:
                 ext = os.path.splitext(downloaded_file)[1]
@@ -3322,7 +3304,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 except Exception as e:
                     logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
                     final_name = downloaded_file
-                    caption_name = safe_title
+                    caption_name = video_title  # Оригинальное имя для caption
 
             user_vid_path = os.path.join(dir_path, final_name)
             
@@ -4412,33 +4394,18 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     logger.info(f"get_video_formats: ytdl_opts={ytdl_opts}")
     
     try:
-        import signal
-        
-        def timeout_handler(signum, frame):
-            raise TimeoutError("get_video_formats timed out")
-        
-        # Устанавливаем таймаут в 30 секунд
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(30)
-        
-        try:
-            with YoutubeDL(ytdl_opts) as ydl:
-                logger.info(f"get_video_formats: extracting info from URL")
-                info = ydl.extract_info(url, download=False)
-                logger.info(f"get_video_formats: successfully extracted info, has entries: {'entries' in info}")
-                
-                if 'entries' in info and info.get('entries'):
-                    logger.info(f"get_video_formats: returning first entry from playlist")
-                    return info['entries'][0]
-                else:
-                    logger.info(f"get_video_formats: returning single video info")
-                    return info
-        finally:
-            signal.alarm(0)  # Отменяем таймаут
+        with YoutubeDL(ytdl_opts) as ydl:
+            logger.info(f"get_video_formats: extracting info from URL")
+            info = ydl.extract_info(url, download=False)
+            logger.info(f"get_video_formats: successfully extracted info, has entries: {'entries' in info}")
             
-    except TimeoutError as e:
-        logger.error(f"get_video_formats: Timeout error: {e}")
-        raise
+            if 'entries' in info and info.get('entries'):
+                logger.info(f"get_video_formats: returning first entry from playlist")
+                return info['entries'][0]
+            else:
+                logger.info(f"get_video_formats: returning single video info")
+                return info
+            
     except Exception as e:
         logger.error(f"get_video_formats: Exception occurred: {e}", exc_info=True)
         raise
