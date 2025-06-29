@@ -1779,7 +1779,7 @@ def send_videos(
     thumb_file_path: str,
     info_text: str,
     msg_id: int,
-    full_video_title: str,
+    full_video_description: str,
     tags_text: str = '',
 ):
     user_id = message.chat.id
@@ -1798,8 +1798,8 @@ def send_videos(
     try:
         # Logic simplified: use tags that were already generated in down_and_up.
         title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
-            title=caption,
-            description=full_video_title,
+            title=original_title,
+            description=full_video_description,
             url=video_url,
             tags_text=tags_text, # Use final tags for calculation
             max_length=1000  # Уменьшено для безопасности
@@ -1836,9 +1836,9 @@ def send_videos(
             reply_parameters=ReplyParameters(message_id=msg_id),
             parse_mode=enums.ParseMode.HTML
         )
-        if was_truncated and full_video_title:
+        if was_truncated and full_video_description:
             with open(temp_desc_path, "w", encoding="utf-8") as f:
-                f.write(full_video_title)
+                f.write(full_video_description)
         if was_truncated and os.path.exists(temp_desc_path):
             try:
                 user_doc_msg = app.send_document(
@@ -2085,10 +2085,10 @@ def create_default_thumbnail(thumb_path):
     except Exception as e:
         logger.error(f"Failed to create default thumbnail: {e}")
 
-def write_logs(message, video_url, video_title):
+def write_logs(message, video_url, original_title):
     ts = str(math.floor(time.time()))
     data = {"ID": str(message.chat.id), "timestamp": ts,
-            "name": message.chat.first_name, "urls": str(video_url), "title": video_title}
+            "name": message.chat.first_name, "urls": str(video_url), "title": original_title}
     db.child("bot").child("tgytdlp_bot").child("logs").child(str(message.chat.id)).child(str(ts)).set(data)
     logger.info("Log for user added")
 # ####################################################################################
@@ -2977,7 +2977,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             video_id = info_dict.get("id", None)
             # оригинальное название для подписи
             original_title = info_dict.get("title", "Video")
-            full_video_title = info_dict.get("description", original_title)
+            full_video_description = info_dict.get("description", None)
             # безопасное имя для файла
             video_title = sanitize_filename(original_title)
 
@@ -2995,7 +2995,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             full_title_path = os.path.join(dir_path, "full_title.txt")
             try:
                 with open(full_title_path, "w", encoding="utf-8") as f:
-                    f.write(full_video_title)
+                    f.write(full_video_description)
             except Exception as e:
                 logger.error(f"Error saving full title: {e}")
 
@@ -3004,7 +3004,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
 **📋 Video Info**
 > **Number:** {idx + video_start_with}
-> **Title:** {video_title}
+> **Title:** {original_title}
 > **ID:** {video_id}
 """
 
@@ -3109,7 +3109,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 except Exception as e:
                     logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
                     final_name = downloaded_file
-                    caption_name = video_title
+                    caption_name = original_title
 
             user_vid_path = os.path.join(dir_path, final_name)
             
@@ -3233,12 +3233,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     video_msg = send_videos(
                         message,
                         path_lst[p],
-                        '' if force_no_title else full_video_title,
+                        '' if force_no_title else caption,
                         part_duration,
                         splited_thumb_dir,
                         info_text,
                         proc_msg.id,
-                        full_video_title,
+                        original_title,
+                        full_video_description,
                         tags_text_final
                     )
                     # forward this same message into the log-channel and capture its new ID(s)
@@ -3311,17 +3312,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     try:
                        # --- TikTok: Don't Pass Title ---
                         # формируем подпись: либо пустая (force_no_title), либо название видео
-                        caption = '' if force_no_title else video_title
+                        caption = '' if force_no_title else original_title
                         # для одиночного видео
                         video_msg = send_videos(
                             message,
                             after_rename_abs_path,
-                            full_video_title,
+                            caption,
                             duration,
                             thumb_dir,
                             info_text,
                             proc_msg.id,
-                            full_video_title,
+                            original_title,
+                            full_video_description,
                             tags_text_final
                         )
 
