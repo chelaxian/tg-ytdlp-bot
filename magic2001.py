@@ -1,4 +1,4 @@
-#Version 2.2.9 
+#Version 2.3.2 
 import pyrebase
 import re
 import os
@@ -47,7 +47,7 @@ def get_main_reply_keyboard():
     return ReplyKeyboardMarkup(
         [
             ["/clean", "/download_cookie"],
-            ["/help", "/settings"]
+            ["/help", "/settings", "/playlist"]
         ],
         resize_keyboard=True,
         one_time_keyboard=False
@@ -145,14 +145,14 @@ def extract_tiktok_profile(url: str) -> str:
 # --- New function to check if URL contains playlist range ---
 def is_playlist_with_range(text: str) -> bool:
     """
-    Checks if the text contains a playlist range pattern like *1*3, 1*1000, etc.
+    Checks if the text contains a playlist range pattern like *1*3, 1*1000, *5*10, or just * for full playlist.
     Returns True if a range is detected, False otherwise.
     """
     if not isinstance(text, str):
         return False
     
-    # Look for patterns like *1*3, 1*1000, *5*10, etc.
-    range_pattern = r'\*[0-9]+\*[0-9]+|[0-9]+\*[0-9]+'
+    # Look for patterns like *1*3, 1*1000, *5*10, or just * for full playlist
+    range_pattern = r'\*[0-9]+\*[0-9]+|[0-9]+\*[0-9]+|\*'
     return bool(re.search(range_pattern, text))
 
 # Configure logging
@@ -529,6 +529,46 @@ def audio_command_handler(app, message):
     
     down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
 
+# /Playlist Command
+@app.on_message(filters.command("playlist") & filters.private)
+@reply_with_keyboard
+
+def playlist_command(app, message):
+    user_id = message.chat.id
+    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+        return
+    
+    playlist_help = """
+📋 <b>How to download playlists:</b>
+
+To download playlists send its URL with * in the end.
+Also you can set *start*end ranges:
+
+🎯 <b>Full playlist:</b>
+<code>https://youtu.be/playlist?list=PL...*</code>
+
+🎯 <b>Video range from playlist:</b>
+<code>https://youtu.be/playlist?list=PL...*1*5</code>
+(downloads videos from 1 to 5 inclusive)
+
+🎯 <b>Single video from playlist:</b>
+<code>https://youtu.be/playlist?list=PL...*3*3</code>
+(downloads only the 3rd video)
+
+🎯 <b>TikTok profile:</b>
+<code>https://www.tiktok.com/@username*</code>
+(downloads all videos from user profile)
+
+💡 <b>Examples:</b>
+• <code>https://youtu.be/playlist?list=PL123*</code> - full playlist
+• <code>https://youtu.be/playlist?list=PL123*3*3</code> - only 3rd video
+• <code>https://youtu.be/playlist?list=PL123*5*10</code> - videos 5 to 10
+• <code>https://www.tiktok.com/@username*</code> - all user videos
+"""
+    
+    app.send_message(user_id, playlist_help, parse_mode=enums.ParseMode.HTML)
+    send_to_logger(message, "User requested playlist help.")
+
 # Command /Format Handler
 @app.on_message(filters.command("format") & filters.private)
 @reply_with_keyboard
@@ -540,7 +580,6 @@ def set_format(app, message):
         return
 
     send_to_logger(message, "User requested format change.")
-
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)  # Ensure The User's Folder Exists
 
@@ -775,7 +814,12 @@ def url_distractor(app, message):
     if text.startswith(Config.SETTINGS_COMMAND):
         settings_command(app, message)
         return  
-    
+
+    # /Playlist Command
+    if text.startswith(Config.PLAYLIST_COMMAND):
+        settings_command(app, message)
+        return 
+
     # /Clean Command
     if text.startswith(Config.CLEAN_COMMAND):
         clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
@@ -798,6 +842,46 @@ def url_distractor(app, message):
         elif clean_args == "split":
             remove_media(message, only=["split.txt"])
             send_to_all(message, "🗑 Split file removed.")
+            return
+        elif clean_args == "mediainfo":
+            remove_media(message, only=["mediainfo.txt"])
+            send_to_all(message, "🗑 Mediainfo file removed.")
+            return
+        elif clean_args == "all":
+            # Удаляем все файлы и выводим список удаленных
+            user_dir = f'./users/{str(message.chat.id)}'
+            if not os.path.exists(user_dir):
+                send_to_all(message, "🗑 No files to remove.")
+                return
+            
+            removed_files = []
+            allfiles = os.listdir(user_dir)
+            file_extensions = [
+                '.mp4', '.mkv', '.mp3', '.m4a', '.jpg', '.jpeg', '.part', '.ytdl',
+                '.txt', '.ts', '.m3u8', '.webm', '.wmv', '.avi', '.mpeg', '.wav'
+            ]
+            
+            for extension in file_extensions:
+                if isinstance(extension, tuple):
+                    files = [fname for fname in allfiles if any(fname.endswith(ext) for ext in extension)]
+                else:
+                    files = [fname for fname in allfiles if fname.endswith(extension)]
+                for file in files:
+                    if extension == '.txt' and file in ['mediainfo.txt', 'logs.txt', 'format.txt', 'tags.txt', 'split.txt']:
+                        continue
+                    file_path = os.path.join(user_dir, file)
+                    try:
+                        os.remove(file_path)
+                        removed_files.append(file)
+                        logger.info(f"Removed file: {file_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to remove file {file_path}: {e}")
+            
+            if removed_files:
+                files_list = "\n".join([f"• {file}" for file in removed_files])
+                send_to_all(message, f"🗑 All files removed successfully!\n\nRemoved files:\n{files_list}")
+            else:
+                send_to_all(message, "🗑 No files to remove.")
             return
         else:
             remove_media(message)
@@ -1237,7 +1321,7 @@ def settings_command(app, message):
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
         [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
-        [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
+        [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
         [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
     ])
     app.send_message(
@@ -1281,6 +1365,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("📊 /mediainfo - Turn ON / OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
             [InlineKeyboardButton("✂️ /split - Change split video part size", callback_data="settings__cmd__split")],
             [InlineKeyboardButton("🎧 /audio - Download video as audio", callback_data="settings__cmd__audio")],
+            [InlineKeyboardButton("📋 /playlist - How to download playlists", callback_data="settings__cmd__playlist")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1298,7 +1383,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
-            "<b>📖 LOGS</b>\n\nChoose an action:",
+            "<b>📖 INFO</b>\n\nChoose an action:",
             reply_markup=keyboard,
             parse_mode=enums.ParseMode.HTML
         )
@@ -1309,7 +1394,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
             [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
-            [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
+            [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
             [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
         ])
         callback_query.edit_message_text(
@@ -1341,8 +1426,18 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             m.command = command
         return m
     if data == "clean":
-        url_distractor(app, fake_message("/clean cookie"))
-        callback_query.answer("Command executed.")
+        # Показываем меню очистки вместо прямого выполнения
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🍪 Cookies only", callback_data="clean_option|cookies")],
+            [InlineKeyboardButton("🗑 All files", callback_data="clean_option|all")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🧹 Clean Options</b>\n\nChoose what to clean:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
         return
     if data == "download_cookie":
         url_distractor(app, fake_message("/download_cookie"))
@@ -1390,8 +1485,77 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         url_distractor(app, fake_message("/usage"))
         callback_query.answer("Command executed.")
         return
+    if data == "playlist":
+        playlist_command(app, fake_message("/playlist"))
+        callback_query.answer("Command executed.")
+        return
     callback_query.answer("Unknown command.", show_alert=True)
 
+@app.on_callback_query(filters.regex(r"^clean_option\|"))
+@reply_with_keyboard
+
+def clean_option_callback(app, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+    
+    if data == "cookies":
+        url_distractor(app, fake_message("/clean cookie"))
+        callback_query.answer("Cookies cleaned.")
+        return
+    elif data == "logs":
+        url_distractor(app, fake_message("/clean logs"))
+        callback_query.answer("logs cleaned.")
+        return
+    elif data == "tags":
+        url_distractor(app, fake_message("/clean tags"))
+        callback_query.answer("tags cleaned.")
+        return
+    elif data == "format":
+        url_distractor(app, fake_message("/clean format"))
+        callback_query.answer("format cleaned.")
+        return
+    elif data == "split":
+        url_distractor(app, fake_message("/clean split"))
+        callback_query.answer("split cleaned.")
+        return
+    elif data == "mediainfo":
+        url_distractor(app, fake_message("/clean mediainfo"))
+        callback_query.answer("mediainfo cleaned.")
+        return
+    elif data == "all":
+        url_distractor(app, fake_message("/clean all"))
+        callback_query.answer("All files cleaned.")
+        return                    
+    elif data == "back":
+        # Возвращаемся к меню cookies
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🧹 /clean - Delete cookies & broken media files", callback_data="settings__cmd__clean")],
+            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie", callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
+            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder", callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie", callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🍪 COOKIES</b>\n\nChoose an action:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
+
+def fake_message(text, command=None):
+    m = SimpleNamespace()
+    m.chat = SimpleNamespace()
+    m.chat.id = user_id
+    m.chat.first_name = getattr(callback_query.from_user, 'first_name', 'User')
+    m.text = text
+    m.first_name = m.chat.first_name
+    m.reply_to_message = None
+    m.id = getattr(callback_query.message, 'id', 0)
+    if command is not None:
+        m.command = command
+    return m
 
 # /Mediainfo Command
 @app.on_message(filters.command("mediainfo") & filters.private)
@@ -1999,7 +2163,7 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
 
     Args:
         dir: Directory path
-        video_name: Name for the video
+        video_name: Name for the video (original title, not sanitized)
         video_path: Path to the video file
         video_size: Size of the video in bytes
         max_size: Maximum size for each part
@@ -2024,10 +2188,13 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
             # Ensure end_time doesn't exceed duration
             end_time = min(end_time, duration)
 
+            # Используем оригинальное название видео для частей
             cap_name = video_name + " - Part " + str(x + 1)
-            target_name = os.path.join(dir, cap_name + ".mp4")
+            # Для записи файла используем sanitize_filename
+            safe_cap_name = sanitize_filename(cap_name)
+            target_name = os.path.join(dir, safe_cap_name + ".mp4")
 
-            caption_lst.append(cap_name)
+            caption_lst.append(cap_name)  # Оригинальное название для сообщений
             path_lst.append(target_name)
 
             try:
@@ -2059,7 +2226,7 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
         split_vid_dict = {
             "video": caption_lst,
             "path": path_lst,
-            "duration": video_duration
+            "duration": duration
         }
         return split_vid_dict
 
@@ -3271,7 +3438,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 path_lst = returned.get("path")
                 split_msg_ids = []
                 for p in range(len(caption_lst)):
-                    part_result = get_duration_thumb(message, dir_path, path_lst[p], sanitize_filename(caption_lst[p]))
+                    part_result = get_duration_thumb(message, dir_path, path_lst[p], caption_lst[p])
                     if part_result is None:
                         continue
                     part_duration, splited_thumb_dir = part_result
@@ -3548,8 +3715,8 @@ def get_active_download(user_id):
 # Helper function to sanitize and shorten filenames
 def sanitize_filename(filename, max_length=60):
     """
-    Оставляет только латинские буквы, цифры, дефис, подчёркивание и точку (для расширения).
-    Всё остальное удаляется. Если имя пустое — 'video'.
+    Очищает и сокращает название файла для безопасной записи на диск.
+    Используется ТОЛЬКО для записи файлов на сервер, НЕ для сообщений пользователю.
     """
     import re
     import os
@@ -3872,9 +4039,16 @@ def extract_url_range_tags(text: str):
         video_end_with = int(range_match.group(2))
         after_range = after_url[range_match.end():]
     else:
-        video_start_with = 1
-        video_end_with = 1
-        after_range = after_url
+        # Check if there's just a single * for full playlist
+        single_star_match = re.match(r'\*', after_url)
+        if single_star_match:
+            video_start_with = 1
+            video_end_with = 9999  # Default to 50 videos for full playlist
+            after_range = after_url[single_star_match.end():]
+        else:
+            video_start_with = 1
+            video_end_with = 1
+            after_range = after_url
     playlist_name = None
     playlist_match = re.match(r'\*([^\s\*#]+)', after_range)
     if playlist_match:
@@ -4280,7 +4454,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
         table_lines = []
         found_quality_keys = set()
-        for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items()):
+        for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(), key=lambda x: int(x[0][0].replace('p',''))):
             found_quality_keys.add(quality_key)
             size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
             dim_str = f" ({w}×{h})"
@@ -5138,6 +5312,7 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
 def get_quality_by_min_side(width: int, height: int) -> str:
     """
     Определяет качество по меньшей стороне видео.
+    Работает как для горизонтальных, так и для вертикальных видео.
     Например, для 1280×720 возвращает '720p', для 720×1280 тоже '720p'.
     """
     min_side = min(width, height)
@@ -5188,5 +5363,7 @@ def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
             return min(heights, key=lambda h: abs(h - height))
     except ValueError:
         return height
+
+
 
 app.run()
