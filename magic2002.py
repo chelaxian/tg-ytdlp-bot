@@ -1,4 +1,4 @@
-#Version 2.3.2 
+#Version 2.3.3 
 import pyrebase
 import re
 import os
@@ -17,15 +17,14 @@ import signal
 import sys
 
 import pyrogram.errors
-from pyrogram.types import ReplyKeyboardMarkup
-from pyrogram.errors import FloodWait
 from pyrogram import Client, filters
 from pyrogram import enums
-from pyrogram.types import ReplyParameters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
+from pyrogram.errors import FloodWait
 from pyrogram.enums import ChatMemberStatus
-from types import SimpleNamespace
+#from types import SimpleNamespace
 from pyrogram.types import (
+    CallbackQuery,
+    Message,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     ReplyKeyboardMarkup,
@@ -1410,26 +1409,19 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
 
 def settings_cmd_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    data = callback_query.data.split("__")[-1]
-    # Mapping commands to handlers
+    data = callback_query.data.split("__")[2]
+    
     # For commands that are processed only via url_distractor, create a temporary Message
-    def fake_message(text, command=None):
-        m = SimpleNamespace()
-        m.chat = SimpleNamespace()
-        m.chat.id = user_id
-        m.chat.first_name = getattr(callback_query.from_user, 'first_name', 'User')
-        m.text = text
-        m.first_name = m.chat.first_name  # for compatibility with message.first_name
-        m.reply_to_message = None
-        m.id = getattr(callback_query.message, 'id', 0)
-        if command is not None:
-            m.command = command
-        return m
     if data == "clean":
         # Показываем меню очистки вместо прямого выполнения
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🍪 Cookies only", callback_data="clean_option|cookies")],
-            [InlineKeyboardButton("🗑 All files", callback_data="clean_option|all")],
+            [InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs")],
+            [InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags")],
+            [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
+            [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
+            [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],                                                            
+            [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
         ])
         callback_query.edit_message_text(
@@ -1440,15 +1432,15 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         callback_query.answer()
         return
     if data == "download_cookie":
-        url_distractor(app, fake_message("/download_cookie"))
+        url_distractor(app, fake_message("/download_cookie", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "cookies_from_browser":
-        cookies_from_browser(app, fake_message("/cookies_from_browser"))
+        cookies_from_browser(app, fake_message("/cookies_from_browser", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "check_cookie":
-        url_distractor(app, fake_message("/check_cookie"))
+        url_distractor(app, fake_message("/check_cookie", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "save_as_cookie":
@@ -1457,15 +1449,15 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         return
     if data == "format":
         # Add the command attribute for set_format to work correctly
-        set_format(app, fake_message("/format", command=["format"]))
+        set_format(app, fake_message("/format", user_id, command=["format"]))
         callback_query.answer("Command executed.")
         return
     if data == "mediainfo":
-        mediainfo_command(app, fake_message("/mediainfo"))
+        mediainfo_command(app, fake_message("/mediainfo", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "split":
-        split_command(app, fake_message("/split"))
+        split_command(app, fake_message("/split", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "audio":
@@ -1474,19 +1466,19 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         callback_query.answer("Hint sent.")
         return
     if data == "tags":
-        tags_command(app, fake_message("/tags"))
+        tags_command(app, fake_message("/tags", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "help":
-        command2(app, fake_message("/help"))
+        command2(app, fake_message("/help", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "usage":
-        url_distractor(app, fake_message("/usage"))
+        url_distractor(app, fake_message("/usage", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "playlist":
-        playlist_command(app, fake_message("/playlist"))
+        playlist_command(app, fake_message("/playlist", user_id))
         callback_query.answer("Command executed.")
         return
     callback_query.answer("Unknown command.", show_alert=True)
@@ -1499,31 +1491,31 @@ def clean_option_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
     
     if data == "cookies":
-        url_distractor(app, fake_message("/clean cookie"))
+        url_distractor(app, fake_message("/clean cookie", user_id))
         callback_query.answer("Cookies cleaned.")
         return
     elif data == "logs":
-        url_distractor(app, fake_message("/clean logs"))
+        url_distractor(app, fake_message("/clean logs", user_id))
         callback_query.answer("logs cleaned.")
         return
     elif data == "tags":
-        url_distractor(app, fake_message("/clean tags"))
+        url_distractor(app, fake_message("/clean tags", user_id))
         callback_query.answer("tags cleaned.")
         return
     elif data == "format":
-        url_distractor(app, fake_message("/clean format"))
+        url_distractor(app, fake_message("/clean format", user_id))
         callback_query.answer("format cleaned.")
         return
     elif data == "split":
-        url_distractor(app, fake_message("/clean split"))
+        url_distractor(app, fake_message("/clean split", user_id))
         callback_query.answer("split cleaned.")
         return
     elif data == "mediainfo":
-        url_distractor(app, fake_message("/clean mediainfo"))
+        url_distractor(app, fake_message("/clean mediainfo", user_id))
         callback_query.answer("mediainfo cleaned.")
         return
     elif data == "all":
-        url_distractor(app, fake_message("/clean all"))
+        url_distractor(app, fake_message("/clean all", user_id))
         callback_query.answer("All files cleaned.")
         return                    
     elif data == "back":
@@ -1544,15 +1536,15 @@ def clean_option_callback(app, callback_query):
         callback_query.answer()
         return
 
-def fake_message(text, command=None):
+def fake_message(text, user_id, command=None):
     m = SimpleNamespace()
     m.chat = SimpleNamespace()
     m.chat.id = user_id
-    m.chat.first_name = getattr(callback_query.from_user, 'first_name', 'User')
+    m.chat.first_name = "User"
     m.text = text
     m.first_name = m.chat.first_name
     m.reply_to_message = None
-    m.id = getattr(callback_query.message, 'id', 0)
+    m.id = 0
     if command is not None:
         m.command = command
     return m
@@ -4043,7 +4035,7 @@ def extract_url_range_tags(text: str):
         single_star_match = re.match(r'\*', after_url)
         if single_star_match:
             video_start_with = 1
-            video_end_with = 9999  # Default to 50 videos for full playlist
+            video_end_with = 9999  
             after_range = after_url[single_star_match.end():]
         else:
             video_start_with = 1
@@ -4317,8 +4309,8 @@ def split_command(app, message):
     sizes = [
         ("250 MB", 250 * 1024 * 1024),
         ("500 MB", 500 * 1024 * 1024),
-        ("1 GB", 1024 * 1024 * 1024),
-        ("1.5 GB", 1536 * 1024 * 1024),
+        ("1 GB", 1000 * 1024 * 1024),
+        ("1.5 GB", 1500 * 1024 * 1024),
         ("2 GB (default)", 1950 * 1024 * 1024)
     ]
     buttons = []
@@ -4412,9 +4404,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
+        is_full_playlist = False  # Флаг для определения полного плейлиста (одна *)
+        
         if is_playlist:
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
             playlist_range = (video_start_with, video_end_with)
+            # Проверяем, является ли это полным плейлистом (одна *)
+            if video_start_with == 1 and video_end_with == 9999:
+                is_full_playlist = True
             cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
         else:
             cached_qualities = get_cached_qualities(url)
@@ -4494,9 +4491,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1] + 1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
+                if is_full_playlist:
+                    postfix = f" ({n_cached})" if n_cached > 0 else ""
+                else:
+                    total = len(indices)
+                    postfix = f" ({n_cached}/{total})" if total > 1 else ""
                 icon = "🚀" if n_cached > 0 else "📹"
-                postfix = f" ({n_cached}/{total})" if total > 1 else ""
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 postfix = ""
