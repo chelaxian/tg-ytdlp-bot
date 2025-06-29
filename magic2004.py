@@ -1,4 +1,4 @@
-#Version 2.3.6 
+#Version 2.3.8 
 import pyrebase
 import re
 import os
@@ -1013,7 +1013,7 @@ def remove_media(message, only=None):
         else:
             files = [fname for fname in allfiles if fname.endswith(extension)]
         for file in files:
-            if extension == '.txt' and file in ['mediainfo.txt', 'logs.txt', 'format.txt', 'tags.txt', 'split.txt']:
+            if extension == '.txt' and file in ['logs.txt', 'tags.txt']:
                 continue
             file_path = os.path.join(dir, file)
             try:
@@ -1310,6 +1310,7 @@ def settings_command(app, message):
     user_id = message.chat.id
     # Main settings menu
     keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean")],
         [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
         [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
         [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
@@ -1334,9 +1335,27 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         callback_query.message.delete()
         callback_query.answer("Menu closed.")
         return
+    if data == "clean":
+        # Показываем меню очистки
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🍪 Cookies", callback_data="clean_option|cookies")],
+            [InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs")],
+            [InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags")],
+            [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
+            [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
+            [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],                                                            
+            [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🧹 Clean Options</b>\n\nChoose what to clean:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🧹 /clean - Delete cookies & broken media files", callback_data="settings__cmd__clean")],
             [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie", callback_data="settings__cmd__download_cookie")],
             [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
             [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder", callback_data="settings__cmd__check_cookie")],
@@ -1383,6 +1402,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
     if data == "back":
         # Return to main menu
         keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean")],
             [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
             [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
             [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
@@ -1513,7 +1533,6 @@ def clean_option_callback(app, callback_query):
     elif data == "back":
         # Возвращаемся к меню cookies
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🧹 /clean - Delete cookies & broken media files", callback_data="settings__cmd__clean")],
             [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie", callback_data="settings__cmd__download_cookie")],
             [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
             [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder", callback_data="settings__cmd__check_cookie")],
@@ -4091,26 +4110,26 @@ def tags_command(app, message):
     tags_file = os.path.join(user_dir, "tags.txt")
     if not os.path.exists(tags_file):
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=message.id))
         send_to_logger(message, reply_text)
         return
     with open(tags_file, "r", encoding="utf-8") as f:
         tags = [line.strip() for line in f if line.strip()]
     if not tags:
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=message.id))
         send_to_logger(message, reply_text)
         return
     # We form posts by 4096 characters
     msg = ''
     for tag in tags:
         if len(msg) + len(tag) + 1 > 4096:
-            app.send_message(user_id, msg, reply_parameters=ReplyParameters(message_id=msg_id))
+            app.send_message(user_id, msg, reply_parameters=ReplyParameters(message_id=message.id))
             send_to_logger(message, msg)
             msg = ''
         msg += tag + '\n'
     if msg:
-        app.send_message(user_id, msg, reply_to_message_id=message.id)
+        app.send_message(user_id, msg, reply_parameters=ReplyParameters(message_id=message.id))
         send_to_logger(message, msg)
 
 def extract_youtube_id(url: str) -> str:
