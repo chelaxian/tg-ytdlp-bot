@@ -16,6 +16,14 @@ import subprocess
 import signal
 import sys
 
+from types import SimpleNamespace
+from pyrogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyParameters
+)
+
 import pyrogram.errors
 from pyrogram.types import ReplyKeyboardMarkup
 from pyrogram.errors import FloodWait
@@ -1254,8 +1262,8 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
     # Mapping commands to handlers
     # For commands that are processed only via url_distractor, create a temporary Message
     def fake_message(text, command=None):
-        m = types.SimpleNamespace()
-        m.chat = types.SimpleNamespace()
+        m = SimpleNamespace()
+        m.chat = SimpleNamespace()
         m.chat.id = user_id
         m.chat.first_name = getattr(callback_query.from_user, 'first_name', 'User')
         m.text = text
