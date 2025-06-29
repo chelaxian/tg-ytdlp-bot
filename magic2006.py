@@ -45,8 +45,8 @@ from config import Config
 def get_main_reply_keyboard():
     return ReplyKeyboardMarkup(
         [
-            ["/clean", "/download_cookie", "/settings"],
-            ["/playlist", "/tags", "/help"]
+            ["/clean", "/download_cookie"],
+            ["/playlist", "/settings", "/help"]
         ],
         resize_keyboard=True,
         one_time_keyboard=False
@@ -1779,6 +1779,8 @@ def video_url_extractor(app, message):
     user_dir = os.path.join("users", str(user_id))
     format_file = os.path.join(user_dir, "format.txt")
 
+    logger.info(f"video_url_extractor: starting for user {user_id}")
+
     # By default, ask for quality if a specific format is not selected
     should_ask = True
     saved_format = None
@@ -1789,16 +1791,22 @@ def video_url_extractor(app, message):
         if fmt != "ALWAYS_ASK":
             should_ask = False
             saved_format = fmt
+        logger.info(f"video_url_extractor: format file exists, should_ask={should_ask}, saved_format={saved_format}")
+    else:
+        logger.info(f"video_url_extractor: no format file, should_ask={should_ask}")
 
     if should_ask:
+        logger.info(f"video_url_extractor: calling ask_quality_menu")
         url, video_start_with, _, _, tags, _, tag_error = extract_url_range_tags(message.text)
         # Add tag error check
         if tag_error:
             wrong, example = tag_error
-            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=ReplyParameters(message_id=msg_id))
+            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=ReplyParameters(message_id=message.id))
             return
         ask_quality_menu(app, message, url, tags, video_start_with)
         return
+
+    logger.info(f"video_url_extractor: proceeding with saved format {saved_format}")
 
     # This code is executed only if the user has selected a specific format
     with playlist_errors_lock:
@@ -1807,7 +1815,7 @@ def video_url_extractor(app, message):
             del playlist_errors[key]
             
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters=ReplyParameters(message_id=message.id))
         return
         
     full_string = message.text
@@ -1815,7 +1823,7 @@ def video_url_extractor(app, message):
     url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(full_string)
     if tag_error:
         wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=ReplyParameters(message_id=message.id))
         return
     
     if url:
@@ -1840,43 +1848,28 @@ def video_url_extractor(app, message):
         
         # Create quality_key based on saved format for caching
         quality_key = None
-        if saved_format:
-            # Convert format to quality_key for caching
-            if "height<=144" in saved_format:
-                quality_key = "144p"
-            elif "height<=240" in saved_format:
-                quality_key = "240p"
-            elif "height<=360" in saved_format:
-                quality_key = "360p"
-            elif "height<=480" in saved_format:
-                quality_key = "480p"
-            elif "height<=720" in saved_format:
-                quality_key = "720p"
-            elif "height<=1080" in saved_format:
-                quality_key = "1080p"
-            elif "height<=1440" in saved_format:
-                quality_key = "1440p"
-            elif "height<=2160" in saved_format:
-                quality_key = "2160p"
-            elif "height<=4320" in saved_format:
-                quality_key = "4320p"
-            elif "bestvideo+bestaudio" in saved_format:
-                quality_key = "bestvideo"
-            elif saved_format == "best":
-                quality_key = "best"
-            else:
-                # For custom formats, we use the format hash as quality_key
-                quality_key = f"custom_{hashlib.md5(saved_format.encode()).hexdigest()[:8]}"
-        
-        logger.info(f"video_url_extractor: using saved format '{saved_format}', quality_key='{quality_key}'")
-        
-        # --- Pass title='' for TikTok, otherwise as usual ---
-        if is_tiktok:
-            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, force_no_title=True, format_override=saved_format, quality_key=quality_key)
+        if saved_format == "best":
+            quality_key = "best"
+        elif saved_format == "mp3":
+            quality_key = "mp3"
         else:
-            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, format_override=saved_format, quality_key=quality_key)
+            # Extract quality from format string like "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best"
+            quality_match = re.search(r'height<=(\d+)', saved_format)
+            if quality_match:
+                quality_key = f"{quality_match.group(1)}p"
+            else:
+                quality_key = "best"
+        
+        logger.info(f"video_url_extractor: starting download with quality_key={quality_key}")
+        
+        # Check if there's a link to Tiktok
+        is_tiktok = is_tiktok_url(url)
+
+        # We call the main function of loading with the correct parameters of the playlist
+        down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, force_no_title=is_tiktok, format_override=saved_format, quality_key=quality_key)
     else:
-        send_to_all(message, f"**User entered like this:** {full_string}\n{Config.ERROR1}")
+        logger.warning(f"video_url_extractor: no URL found in message")
+        logger.info(f"{user_id} No matching command processed.")
 
 # ############################################################################################
 
@@ -4396,6 +4389,7 @@ def get_user_split_size(user_id):
 
 # --- receiving formats and metadata via yt-dlp ---
 def get_video_formats(url, user_id=None, playlist_start_index=1):
+    logger.info(f"get_video_formats: starting for URL {url}, user_id={user_id}, playlist_start_index={playlist_start_index}")
     ytdl_opts = {
         'quiet': True,
         'skip_download': True,
@@ -4410,11 +4404,27 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         cookie_file = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
         if os.path.exists(cookie_file):
             ytdl_opts['cookiefile'] = cookie_file
-    with YoutubeDL(ytdl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-    if 'entries' in info and info.get('entries'):
-        return info['entries'][0]
-    return info
+            logger.info(f"get_video_formats: using cookie file {cookie_file}")
+        else:
+            logger.info(f"get_video_formats: no cookie file found at {cookie_file}")
+    
+    logger.info(f"get_video_formats: ytdl_opts={ytdl_opts}")
+    
+    try:
+        with YoutubeDL(ytdl_opts) as ydl:
+            logger.info(f"get_video_formats: extracting info from URL")
+            info = ydl.extract_info(url, download=False)
+            logger.info(f"get_video_formats: successfully extracted info, has entries: {'entries' in info}")
+            
+            if 'entries' in info and info.get('entries'):
+                logger.info(f"get_video_formats: returning first entry from playlist")
+                return info['entries'][0]
+            else:
+                logger.info(f"get_video_formats: returning single video info")
+                return info
+    except Exception as e:
+        logger.error(f"get_video_formats: Exception occurred: {e}", exc_info=True)
+        raise
 
 # --- Always ask processing ---
 # --- Always ask processing ---
@@ -4422,6 +4432,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
     try:
+        logger.info(f"ask_quality_menu: starting for URL {url}, user {user_id}")
+        
         # отправляем «Processing...»
         proc_msg = app.send_message(
             user_id,
@@ -4429,11 +4441,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             reply_markup=get_main_reply_keyboard(),
             reply_parameters=ReplyParameters(message_id=message.id)
         )
+        logger.info(f"ask_quality_menu: sent processing message")
 
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
         is_full_playlist = False  # Флаг для определения полного плейлиста (одна *)
+        
+        logger.info(f"ask_quality_menu: is_playlist={is_playlist}, original_text='{original_text}'")
         
         if is_playlist:
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
@@ -4442,13 +4457,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             if video_start_with == 1 and video_end_with == 9999:
                 is_full_playlist = True
             cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
+            logger.info(f"ask_quality_menu: playlist range {playlist_range}, cached_qualities={cached_qualities}")
         else:
             cached_qualities = get_cached_qualities(url)
+            logger.info(f"ask_quality_menu: single video, cached_qualities={cached_qualities}")
 
+        logger.info(f"ask_quality_menu: getting video formats for URL {url}")
         info = get_video_formats(url, user_id, playlist_start_index)
         title = info.get('title', 'Video')
         video_id = info.get('id')
         tags_text = generate_final_tags(url, tags, info)
+        logger.info(f"ask_quality_menu: got video info - title='{title}', video_id={video_id}")
 
         thumb_path = None
         user_dir = os.path.join("users", str(user_id))
@@ -4457,10 +4476,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             thumb_path = os.path.join(user_dir, f"yt_thumb_{video_id}.jpg")
             try:
                 download_thumbnail(video_id, thumb_path)
-            except Exception:
+                logger.info(f"ask_quality_menu: downloaded thumbnail to {thumb_path}")
+            except Exception as e:
+                logger.warning(f"ask_quality_menu: failed to download thumbnail: {e}")
                 thumb_path = None
 
         # --- Table with qualities and sizes ---
+        logger.info(f"ask_quality_menu: processing formats")
         popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
         minside_size_dim_map = {}
         for f in info.get('formats', []):
@@ -4477,6 +4499,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         size_mb = None
                     if size_mb:
                         minside_size_dim_map[(quality_key, w, h)] = size_mb
+
+        logger.info(f"ask_quality_menu: found {len(minside_size_dim_map)} quality options")
 
         table_lines = []
         found_quality_keys = set()
@@ -4504,6 +4528,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
 
         table_block = "\n".join(table_lines)
+        logger.info(f"ask_quality_menu: created table with {len(table_lines)} lines")
 
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -4515,6 +4540,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         cap += f"\n{hint}\n"
 
         # --- Building buttons ---
+        logger.info(f"ask_quality_menu: building buttons")
         buttons = []
         for quality_key in sorted(found_quality_keys, key=lambda x: int(x.replace('p',''))):
             if is_playlist and playlist_range:
@@ -4544,12 +4570,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
 
         keyboard = InlineKeyboardMarkup(keyboard_rows)
+        logger.info(f"ask_quality_menu: created keyboard with {len(buttons)} buttons")
 
         # delete processing message
+        logger.info(f"ask_quality_menu: deleting processing message")
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
 
         # send result
+        logger.info(f"ask_quality_menu: sending result message")
         if thumb_path and os.path.exists(thumb_path):
             app.send_photo(
                 user_id,
@@ -4568,9 +4597,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 reply_parameters=ReplyParameters(message_id=message.id)
             )
 
+        logger.info(f"ask_quality_menu: successfully sent menu for {url}")
         send_to_logger(message, f"Always Ask menu sent for {url}")
 
     except FloodWait as e:
+        logger.error(f"ask_quality_menu: FloodWait error: {e}")
         wait_time = e.value
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
@@ -4598,6 +4629,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         return
 
     except Exception as e:
+        logger.error(f"ask_quality_menu: Exception occurred: {e}", exc_info=True)
         error_text = (
             f"❌ Error retrieving video information:\n{e}\n"
             "> Try the /clean command and try again. If the error persists, "
