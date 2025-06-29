@@ -1755,7 +1755,7 @@ def send_videos(
     thumb_file_path: str,
     info_text: str,
     msg_id: int,
-    full_video_title: str,
+    full_video_description: str,
     tags_text: str = '',
 ):
     user_id = message.chat.id
@@ -1775,7 +1775,7 @@ def send_videos(
         # Logic simplified: use tags that were already generated in down_and_up.
         title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
             title=caption,
-            description=full_video_title,
+            description=full_video_description,
             url=video_url,
             tags_text=tags_text, # Use final tags for calculation
             max_length=1000  # Уменьшено для безопасности
@@ -1812,9 +1812,9 @@ def send_videos(
             reply_parameters=ReplyParameters(message_id=msg_id),
             parse_mode=enums.ParseMode.HTML
         )
-        if was_truncated and full_video_title:
+        if was_truncated and full_video_description:
             with open(temp_desc_path, "w", encoding="utf-8") as f:
-                f.write(full_video_title)
+                f.write(full_video_description)
         if was_truncated and os.path.exists(temp_desc_path):
             try:
                 user_doc_msg = app.send_document(
@@ -2927,7 +2927,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             video_id = info_dict.get("id", None)
             video_title = info_dict.get("title", None)
-            full_video_title = info_dict.get("description", video_title)
+            full_video_description = info_dict.get("description", video_title)
             video_title = sanitize_filename(video_title) if video_title else "video"
 
             # --- Use new centralized function for all tags ---
@@ -2944,7 +2944,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             full_title_path = os.path.join(dir_path, "full_title.txt")
             try:
                 with open(full_title_path, "w", encoding="utf-8") as f:
-                    f.write(full_video_title if full_video_title else video_title)
+                    f.write(full_video_description if full_video_description else video_title)
             except Exception as e:
                 logger.error(f"Error saving full title: {e}")
 
@@ -3185,7 +3185,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         splited_thumb_dir,
                         info_text,
                         proc_msg.id,
-                        full_video_title,
+                        full_video_description,
                         tags_text_final
                     )
                     # forward this same message into the log-channel and capture its new ID(s)
@@ -3257,7 +3257,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     try:
                         # --- TikTok: Don't Pass Title ---
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_description, tags_text_final)
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
