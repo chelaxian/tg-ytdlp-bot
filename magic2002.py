@@ -21,7 +21,7 @@ from pyrogram import Client, filters
 from pyrogram import enums
 from pyrogram.errors import FloodWait
 from pyrogram.enums import ChatMemberStatus
-#from types import SimpleNamespace
+from types import SimpleNamespace
 from pyrogram.types import (
     CallbackQuery,
     Message,
