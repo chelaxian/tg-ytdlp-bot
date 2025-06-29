@@ -2117,7 +2117,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         
     logger.info(f"down_and_audio called: url={url}, quality_key={quality_key}, video_count={video_count}, video_start_with={video_start_with}")
     
-    is_playlist = video_count > 1
+    # считаем плейлистом только когда в сообщении указан диапазон *start*end
+    has_range = is_playlist_with_range(original_text)
+    is_playlist = has_range
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
     cached_videos = {}
     uncached_indices = []
@@ -2273,6 +2275,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
         def try_download_audio(url, current_index):
             nonlocal current_total_process
+            # определяем, качать ли как плейлист (только при явном диапазоне в тексте)
+            has_range = is_playlist_with_range(original_text)
             ytdl_opts = {
                 'format': 'ba',
                 'postprocessors': [{
@@ -2282,11 +2286,17 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 }],
                 'prefer_ffmpeg': True,
                 'extractaudio': True,
-                'playlist_items': str(current_index + video_start_with),
                 'cookiefile': cookie_file,
                 'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
                 'progress_hooks': [progress_hook],
             }
+            if has_range:
+                # скачиваем диапазон из плейлиста
+                _, start_i, end_i, _, _, _, _ = extract_url_range_tags(original_text)
+                ytdl_opts['playlist_items'] = f"{start_i}-{end_i}"
+            else:
+                # по умолчанию — только этот ролик, даже если есть list=
+                ytdl_opts['noplaylist'] = True
             
             try:
                 with YoutubeDL(ytdl_opts) as ydl:
