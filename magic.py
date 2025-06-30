@@ -1,60 +1,54 @@
-#Version 2.2.9 
-import pyrebase
-import re
-import os
-import shutil
+# Version 2.3.8
 import logging
-import threading
-import hashlib
-import tldextract
-import json
-import requests
 import math
-import time
-import threading
+import os
+import re
+import shutil
 import subprocess
-import signal
 import sys
+import threading
+import time
+from datetime import datetime
+from types import SimpleNamespace
+from typing import Tuple
+from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
 
-import pyrogram.errors
-from pyrogram.types import ReplyKeyboardMarkup
-from pyrogram.errors import FloodWait
+import pyrebase
+import requests
+import tldextract
+from moviepy.editor import VideoFileClip
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from pyrogram import Client, filters
 from pyrogram import enums
-from pyrogram.types import ReplyParameters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from pyrogram.enums import ChatMemberStatus
-from types import SimpleNamespace
+from pyrogram.errors import FloodWait
 from pyrogram.types import (
+    CallbackQuery,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     ReplyKeyboardMarkup,
     ReplyParameters
 )
-
-from typing import Tuple
-from datetime import datetime
 from yt_dlp import YoutubeDL
-from moviepy.editor import VideoFileClip
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
-from pymediainfo import MediaInfo
 
 from config import Config
+
 
 # --- Function for permanent reply-keyboard ---
 def get_main_reply_keyboard():
     return ReplyKeyboardMarkup(
         [
             ["/clean", "/download_cookie"],
-            ["/help", "/settings"]
+            ["/playlist", "/settings", "/help"]
         ],
         resize_keyboard=True,
         one_time_keyboard=False
     )
 
+
 # eternal reply-keyboard and reliable work with files
 reply_keyboard_msg_ids = {}  # user_id: message_id
+
 
 def send_reply_keyboard_always(user_id):
     global reply_keyboard_msg_ids
@@ -82,6 +76,7 @@ def send_reply_keyboard_always(user_id):
     except Exception as e:
         logger.warning(f"Failed to send persistent reply keyboard: {e}")
 
+
 # --- Wrapper for any custom action ---
 def reply_with_keyboard(func):
     def wrapper(*args, **kwargs):
@@ -97,7 +92,10 @@ def reply_with_keyboard(func):
         if user_id:
             send_reply_keyboard_always(user_id)
         return result
+
     return wrapper
+
+
 # --- Example of using wrapper for any handler ---
 # @reply_with_keyboard
 # def your_handler(...):
@@ -121,6 +119,7 @@ def get_clean_url_for_tagging(url: str) -> str:
         return url[start_of_real_url_pos:]
     return url
 
+
 def is_tiktok_url(url: str) -> bool:
     """
     Checks if URL is a TikTok link
@@ -132,6 +131,7 @@ def is_tiktok_url(url: str) -> bool:
     except:
         return False
 
+
 # --- Extracting TikTok profile name from URL ---
 def extract_tiktok_profile(url: str) -> str:
     # Looking for @username after the domain
@@ -142,18 +142,20 @@ def extract_tiktok_profile(url: str) -> str:
         return m.group(1)
     return ''
 
+
 # --- New function to check if URL contains playlist range ---
 def is_playlist_with_range(text: str) -> bool:
     """
-    Checks if the text contains a playlist range pattern like *1*3, 1*1000, etc.
+    Checks if the text contains a playlist range pattern like *1*3, 1*1000, *5*10, or just * for full playlist.
     Returns True if a range is detected, False otherwise.
     """
     if not isinstance(text, str):
         return False
-    
-    # Look for patterns like *1*3, 1*1000, *5*10, etc.
-    range_pattern = r'\*[0-9]+\*[0-9]+|[0-9]+\*[0-9]+'
+
+    # Look for patterns like *1*3, 1*1000, *5*10, or just * for full playlist
+    range_pattern = r'\*[0-9]+\*[0-9]+|[0-9]+\*[0-9]+|\*'
     return bool(re.search(range_pattern, text))
+
 
 # Configure logging
 logging.basicConfig(
@@ -182,12 +184,14 @@ playlist_errors_lock = threading.Lock()
 download_start_times = {}
 download_start_times_lock = threading.Lock()
 
+
 def set_download_start_time(user_id):
     """
     Sets the download start time for a user
     """
     with download_start_times_lock:
         download_start_times[user_id] = time.time()
+
 
 def clear_download_start_time(user_id):
     """
@@ -196,6 +200,7 @@ def clear_download_start_time(user_id):
     with download_start_times_lock:
         if user_id in download_start_times:
             del download_start_times[user_id]
+
 
 def check_download_timeout(user_id):
     """
@@ -212,6 +217,7 @@ def check_download_timeout(user_id):
                 return True
     return False
 
+
 # Helper function to check available disk space
 def check_disk_space(path, required_bytes):
     """
@@ -227,13 +233,15 @@ def check_disk_space(path, required_bytes):
     try:
         total, used, free = shutil.disk_usage(path)
         if free < required_bytes:
-            logger.warning(f"Not enough disk space. Required: {humanbytes(required_bytes)}, Available: {humanbytes(free)}")
+            logger.warning(
+                f"Not enough disk space. Required: {humanbytes(required_bytes)}, Available: {humanbytes(free)}")
             return False
         return True
     except Exception as e:
         logger.error(f"Error checking disk space: {e}")
         # If we can't check, assume there's enough space
         return True
+
 
 # Firebase Initialization with Authentication
 firebase = pyrebase.initialize_app(Config.FIREBASE_CONF)
@@ -275,6 +283,7 @@ try:
 except Exception as e:
     logger.error("Test GET operation failed:", e)
 
+
 # Define a wrapper class to automatically pass the idToken for all database operations
 class AuthedDB:
     def __init__(self, db, token):
@@ -299,6 +308,7 @@ class AuthedDB:
     def remove(self, *args, **kwargs):
         return self.db.remove(self.token, *args, **kwargs)
 
+
 # Let's use the rstrip() method directly in the f-string to form the correct path
 db = AuthedDB(base_db, user["idToken"])
 db_path = Config.BOT_DB_PATH.rstrip("/")
@@ -310,6 +320,7 @@ try:
 except Exception as e:
     logger.error("Error writing data to Firebase:", e)
     raise
+
 
 # Function to periodically refresh the idToken using the refreshToken
 def token_refresher():
@@ -326,6 +337,7 @@ def token_refresher():
         except Exception as e:
             logger.error("Error refreshing Firebase idToken:", e)
 
+
 # Start the token refresher thread as a daemon
 token_thread = threading.Thread(target=token_refresher, daemon=True)
 token_thread.start()
@@ -340,38 +352,40 @@ app = Client(
     bot_token=Config.BOT_TOKEN
 )
 
+
 # #############################################################################################################################
 # #############################################################################################################################
 
 @app.on_message(filters.command("start") & filters.private)
 @reply_with_keyboard
-
 def command1(app, message):
     if int(message.chat.id) in Config.ADMIN:
         send_to_user(message, "Welcome Master 🥷")
     else:
         check_user(message)
         app.send_message(
-            message.chat.id, f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
+            message.chat.id,
+            f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
         send_to_logger(message, f"{message.chat.id} - user started the bot")
+
 
 @app.on_message(filters.command("help"))
 @reply_with_keyboard
-
 def command2(app, message):
     app.send_message(message.chat.id, (Config.HELP_MSG),
                      parse_mode=enums.ParseMode.HTML)
     send_to_logger(message, f"Send help txt to user")
+
 
 def create_directory(path):
     # Create The Directory (And All Intermediate Directories) IF Its Not Exist.
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
 
+
 # Command to Set Browser Cooks
 @app.on_message(filters.command("cookies_from_browser") & filters.private)
 @reply_with_keyboard
-
 def cookies_from_browser(app, message):
     user_id = message.chat.id
     # For non-admins, we check the subscription
@@ -437,6 +451,7 @@ def cookies_from_browser(app, message):
     )
     send_to_logger(message, "Browser selection keyboard sent with installed browsers only.")
 
+
 # Callback Handler for Browser Selection
 @app.on_callback_query(filters.regex(r"^browser_choice\|"))
 @reply_with_keyboard
@@ -474,14 +489,14 @@ def browser_choice_callback(app, callback_query):
     path = browsers.get(browser_option)
     # If the browser is not installed, we inform the user and do not execute the command
     if (browser_option == "safari") or (
-        isinstance(path, list) and not any(os.path.exists(os.path.expanduser(p)) for p in path)
+            isinstance(path, list) and not any(os.path.exists(os.path.expanduser(p)) for p in path)
     ) or (isinstance(path, str) and not os.path.exists(os.path.expanduser(path))):
         callback_query.edit_message_text(f"⚠️ {browser_option.capitalize()} browser not installed.")
         callback_query.answer("⚠️ Browser not installed.")
         send_to_logger(callback_query.message, f"Browser {browser_option} not installed.")
         return
 
-   # Build the command for cookie extraction: yt-dlp --cookies "cookie.txt" --cookies-from-browser <browser_option>
+    # Build the command for cookie extraction: yt-dlp --cookies "cookie.txt" --cookies-from-browser <browser_option>
     cmd = f'yt-dlp --cookies "{cookie_file}" --cookies-from-browser {browser_option}'
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
@@ -491,21 +506,23 @@ def browser_choice_callback(app, callback_query):
             send_to_logger(callback_query.message, f"Cookies saved using browser: {browser_option}")
         else:
             callback_query.edit_message_text(f"❌ Failed to save cookies: {result.stderr}")
-            send_to_logger(callback_query.message, f"Failed to save cookies using browser {browser_option}: {result.stderr}")
+            send_to_logger(callback_query.message,
+                           f"Failed to save cookies using browser {browser_option}: {result.stderr}")
     else:
         callback_query.edit_message_text(f"✅ Cookies saved using browser: {browser_option}")
         send_to_logger(callback_query.message, f"Cookies saved using browser: {browser_option}")
 
     callback_query.answer("✅ Browser choice updated.")
 
+
 # Command to Download Audio from a Video url
 @app.on_message(filters.command("audio") & filters.private)
 @reply_with_keyboard
-
 def audio_command_handler(app, message):
     user_id = message.chat.id
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED",
+                         reply_parameters=ReplyParameters(message_id=msg_id))
         return
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
@@ -515,24 +532,68 @@ def audio_command_handler(app, message):
     url, _, _, _, tags, tags_text, tag_error = extract_url_range_tags(text)
     if tag_error:
         wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id,
+                         f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}",
+                         reply_parameters=ReplyParameters(message_id=msg_id))
         return
     if not url:
         send_to_user(message, "Please, send valid URL.")
         return
     save_user_tags(user_id, tags)
-    
+
     # Extract playlist parameters from the message
     full_string = message.text or message.caption or ""
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
     video_count = video_end_with - video_start_with + 1
-    
-    down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+
+    clean_url = strip_range_from_url(url)
+    down_and_audio(app, message, clean_url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count,
+                   video_start_with=video_start_with)
+
+
+# /Playlist Command
+@app.on_message(filters.command("playlist") & filters.private)
+@reply_with_keyboard
+def playlist_command(app, message):
+    user_id = message.chat.id
+    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+        return
+
+    playlist_help = """
+📋 <b>How to download playlists:</b>
+
+To download playlists send its URL with * in the end.
+Also you can set *start*end ranges:
+
+🎯 <b>Full playlist:</b>
+<code>https://youtu.be/playlist?list=PL...*</code>
+
+🎯 <b>Video range from playlist:</b>
+<code>https://youtu.be/playlist?list=PL...*1*5</code>
+(downloads videos from 1 to 5 inclusive)
+
+🎯 <b>Single video from playlist:</b>
+<code>https://youtu.be/playlist?list=PL...*3*3</code>
+(downloads only the 3rd video)
+
+🎯 <b>TikTok profile:</b>
+<code>https://www.tiktok.com/@username*</code>
+(downloads all videos from user profile)
+
+💡 <b>Examples:</b>
+• <code>https://youtu.be/playlist?list=PL123*</code> - full playlist
+• <code>https://youtu.be/playlist?list=PL123*3*3</code> - only 3rd video
+• <code>https://youtu.be/playlist?list=PL123*5*10</code> - videos 5 to 10
+• <code>https://www.tiktok.com/@username*</code> - all user videos
+"""
+
+    app.send_message(user_id, playlist_help, parse_mode=enums.ParseMode.HTML)
+    send_to_logger(message, "User requested playlist help.")
+
 
 # Command /Format Handler
 @app.on_message(filters.command("format") & filters.private)
 @reply_with_keyboard
-
 def set_format(app, message):
     user_id = message.chat.id
     # For non-admins, we check the subscription
@@ -540,7 +601,6 @@ def set_format(app, message):
         return
 
     send_to_logger(message, "User requested format change.")
-
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)  # Ensure The User's Folder Exists
 
@@ -570,10 +630,10 @@ def set_format(app, message):
         )
         send_to_logger(message, "Format menu sent.")
 
+
 # Callbackquery Handler for /Format Menu Selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
 @reply_with_keyboard
-
 def format_option_callback(app, callback_query):
     logger.info(f"[FORMAT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -632,7 +692,8 @@ def format_option_callback(app, callback_query):
             [InlineKeyboardButton("🎚 Custom (enter your own)", callback_data="format_option|custom")],
             [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
         ])
-        callback_query.edit_message_text("Select a format option or send a custom one using `/format <format_string>`:", reply_markup=main_keyboard)
+        callback_query.edit_message_text("Select a format option or send a custom one using `/format <format_string>`:",
+                                         reply_markup=main_keyboard)
         callback_query.answer()
         send_to_logger(callback_query.message, "Returned to main format menu.")
         return
@@ -677,9 +738,11 @@ def format_option_callback(app, callback_query):
         create_directory(user_dir)
         with open(os.path.join(user_dir, "format.txt"), "w", encoding="utf-8") as f:
             f.write("ALWAYS_ASK")
-        callback_query.edit_message_text("✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL.")
+        callback_query.edit_message_text(
+            "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL.")
         send_to_logger(callback_query.message, "Format set to ALWAYS_ASK.")
         return
+
 
 # ####################################################################################
 
@@ -689,10 +752,11 @@ def is_user_blocked(message):
     blocked = db.child("bot").child("tgytdlp_bot").child("blocked_users").get().each()
     blocked_users = [int(b_user.key()) for b_user in blocked]
     if int(message.chat.id) in blocked_users:
-        send_to_user(message, "🚫 You are banned from the bot!")
+        send_to_all(message, "🚫 You are banned from the bot!")
         return True
     else:
         return False
+
 
 # Cheking Users are in Main User Directory in DB
 
@@ -719,13 +783,13 @@ def check_user(message):
         data = {"ID": message.chat.id, "timestamp": math.floor(time.time())}
         db.child("bot").child("tgytdlp_bot").child("users").child(user_id_str).set(data)
 
+
 # ####################################################################################
 
 # Checking Actions
 # Text Message Handler for General Commands
 @app.on_message(filters.text & filters.private)
 @reply_with_keyboard
-
 def url_distractor(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
@@ -770,13 +834,18 @@ def url_distractor(app, message):
     if text.startswith(Config.MEDIINFO_COMMAND):
         mediainfo_command(app, message)
         return
-    
+
     # /Settings Command
     if text.startswith(Config.SETTINGS_COMMAND):
         settings_command(app, message)
-        return  
-    
-    # /Clean Command
+        return
+
+        # /Playlist Command
+    if text.startswith(Config.PLAYLIST_COMMAND):
+        settings_command(app, message)
+        return
+
+        # /Clean Command
     if text.startswith(Config.CLEAN_COMMAND):
         clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
         if clean_args in ["cookie", "cookies"]:
@@ -799,9 +868,41 @@ def url_distractor(app, message):
             remove_media(message, only=["split.txt"])
             send_to_all(message, "🗑 Split file removed.")
             return
+        elif clean_args == "mediainfo":
+            remove_media(message, only=["mediainfo.txt"])
+            send_to_all(message, "🗑 Mediainfo file removed.")
+            return
+        elif clean_args == "all":
+            # Удаляем все файлы и выводим список удаленных
+            user_dir = f'./users/{str(message.chat.id)}'
+            if not os.path.exists(user_dir):
+                send_to_all(message, "🗑 No files to remove.")
+                return
+
+            removed_files = []
+            allfiles = os.listdir(user_dir)
+
+            # Удаляем все файлы в папке пользователя
+            for file in allfiles:
+                file_path = os.path.join(user_dir, file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        removed_files.append(file)
+                        logger.info(f"Removed file: {file_path}")
+                except Exception as e:
+                    logger.error(f"Failed to remove file {file_path}: {e}")
+
+            if removed_files:
+                files_list = "\n".join([f"• {file}" for file in removed_files])
+                send_to_all(message, f"🗑 All files removed successfully!\n\nRemoved files:\n{files_list}")
+            else:
+                send_to_all(message, "🗑 No files to remove.")
+            return
         else:
+            # Обычная команда /clean - удаляем только медиа файлы с фильтрацией
             remove_media(message)
-            send_to_all(message, "🗑 All files are removed.")
+            send_to_all(message, "🗑 All media files are removed.")
             return
 
     # /USAGE Command
@@ -824,7 +925,7 @@ def url_distractor(app, message):
         if is_admin:
             uncache_command(app, message)
         else:
-            send_to_user(message, "❌ This command is only available for administrators.")
+            send_to_all(message, "❌ This command is only available for administrators.")
         return
 
     # If the Message Contains a URL, Launch The Video Download Function.
@@ -910,6 +1011,7 @@ def is_user_in_channel(app, message):
         )
         return False
 
+
 # Remove All User Media Files
 
 def remove_media(message, only=None):
@@ -938,7 +1040,7 @@ def remove_media(message, only=None):
         else:
             files = [fname for fname in allfiles if fname.endswith(extension)]
         for file in files:
-            if extension == '.txt' and file in ['mediainfo.txt', 'logs.txt', 'format.txt', 'tags.txt', 'split.txt']:
+            if extension == '.txt' and file in ['logs.txt', 'tags.txt']:
                 continue
             file_path = os.path.join(dir, file)
             try:
@@ -947,6 +1049,7 @@ def remove_media(message, only=None):
             except Exception as e:
                 logger.error(f"Failed to remove file {file_path}: {e}")
     logger.info(f"Media cleanup completed for user {message.chat.id}")
+
 
 # SEND BRODCAST Message to All Users
 
@@ -1003,6 +1106,7 @@ def send_promo_message(app, message):
         send_to_all(message, "**❌ Cannot send the promo message. Try replying to a message\nOr some error occurred**")
         send_to_logger(message, f"Failed to broadcast message: {e}")
 
+
 # Getting the User Logs
 
 def get_user_log(app, message):
@@ -1037,8 +1141,8 @@ def get_user_log(app, message):
             format_str = '\n \n'.join(data_tg)
         data.sort(key=str.lower)
         now = datetime.fromtimestamp(math.floor(time.time()))
-        txt_format = f"Logs of {Config.BOT_NAME_FOR_USERS}\nUser: {user_id}\nTotal logs: {total}\nCurrent time: {now}\n \n" +\
-            '\n'.join(data)
+        txt_format = f"Logs of {Config.BOT_NAME_FOR_USERS}\nUser: {user_id}\nTotal logs: {total}\nCurrent time: {now}\n \n" + \
+                     '\n'.join(data)
 
         user_dir = os.path.join("users", str(message.chat.id))
         create_directory(user_dir)
@@ -1054,9 +1158,11 @@ def get_user_log(app, message):
     except:
         send_to_all(message, "**❌ User did not download any content yet...** Not exist in logs")
 
+
 # Get All Kinds of Users (Users/ Blocked/ Unblocked)
 
 def get_user_details(app, message):
+    global path
     command = message.text.split(Config.GET_USER_DETAILS_COMMAND)[1]
     if command == "_blocked":
         path = "blocked_users"
@@ -1082,18 +1188,18 @@ def get_user_details(app, message):
     txt_lst.sort(key=str.lower)
     no_of_users_to_display = 20
     if len(modified_lst) <= no_of_users_to_display:
-        mod = f"__Total Users: {len(modified_lst)}__\nLast {str(no_of_users_to_display)} " +\
-            path +\
-            f":\n \n" +\
-            '\n'.join(modified_lst)
+        mod = f"__Total Users: {len(modified_lst)}__\nLast {str(no_of_users_to_display)} " + \
+              path + \
+              f":\n \n" + \
+              '\n'.join(modified_lst)
     else:
         temp = []
         for j in range(no_of_users_to_display):
-            temp.append(modified_lst[((j+1) * -1)])
+            temp.append(modified_lst[((j + 1) * -1)])
         temp.sort(key=str.lower)
-        mod = f"__Total Users: {len(modified_lst)}__\nLast {str(no_of_users_to_display)} " +\
-            path +\
-            f":\n \n" + '\n'.join(temp)
+        mod = f"__Total Users: {len(modified_lst)}__\nLast {str(no_of_users_to_display)} " + \
+              path + \
+              f":\n \n" + '\n'.join(temp)
 
     now = datetime.fromtimestamp(math.floor(time.time()))
     txt_format = f"{Config.BOT_NAME} {path}\nTotal {path}: {len(modified_lst)}\nCurrent time: {now}\n \n" + '\n'.join(
@@ -1109,6 +1215,7 @@ def get_user_details(app, message):
 
     logger.info(mod)
 
+
 # Block User
 
 def block_user(app, message):
@@ -1118,7 +1225,7 @@ def block_user(app, message):
             Config.BLOCK_USER_COMMAND + " ")[1])
 
         if int(b_user_id) in Config.ADMIN:
-            send_to_user(message, "🚫 Admin cannot delete an admin")
+            send_to_all(message, "🚫 Admin cannot delete an admin")
         else:
             all_blocked_users = db.child(
                 f"{Config.BOT_DB_PATH}/blocked_users").get().each()
@@ -1134,7 +1241,8 @@ def block_user(app, message):
             else:
                 send_to_user(message, f"`{b_user_id}` is already blocked ❌😐")
     else:
-        send_to_user(message, "🚫 Sorry! You are not an admin")
+        send_to_all(message, "🚫 Sorry! You are not an admin")
+
 
 # Unblock User
 
@@ -1160,7 +1268,8 @@ def unblock_user(app, message):
         else:
             send_to_user(message, f"`{ub_user_id}` is already unblocked ✅😐")
     else:
-        send_to_user(message, "🚫 Sorry! You are not an admin")
+        send_to_all(message, "🚫 Sorry! You are not an admin")
+
 
 # Check Runtime
 
@@ -1171,6 +1280,7 @@ def check_runtime(message):
         now = TimeFormatter(now)
         send_to_user(message, f"⏳ __Bot running time -__ **{now}**")
     pass
+
 
 def uncache_command(app, message):
     """
@@ -1207,7 +1317,7 @@ def uncache_command(app, message):
             m = re.search(r"\*(\d+)\*(\d+)", url)
             if m:
                 start, end = int(m.group(1)), int(m.group(2))
-                for idx in range(start, end+1):
+                for idx in range(start, end + 1):
                     idx_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}/{idx}"
                     db_child_by_path(db, idx_path).remove()
         # Очищаем кэш по short/long YouTube ссылкам
@@ -1225,19 +1335,20 @@ def uncache_command(app, message):
         else:
             send_to_user(message, "ℹ️ No cache found for this link.")
     except Exception as e:
-        send_to_user(message, f"❌ Error clearing cache: {e}")
+        send_to_all(message, f"❌ Error clearing cache: {e}")
+
 
 # ===================== /settings =====================
 @app.on_message(filters.command("settings") & filters.private)
 @reply_with_keyboard
-
 def settings_command(app, message):
     user_id = message.chat.id
     # Main settings menu
     keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean")],
         [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
         [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
-        [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
+        [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
         [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
     ])
     app.send_message(
@@ -1249,9 +1360,9 @@ def settings_command(app, message):
     )
     send_to_logger(message, "Opened /settings menu")
 
+
 @app.on_callback_query(filters.regex(r"^settings__menu__"))
 @reply_with_keyboard
-
 def settings_menu_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("__")[-1]
@@ -1259,13 +1370,35 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         callback_query.message.delete()
         callback_query.answer("Menu closed.")
         return
+    if data == "clean":
+        # Показываем меню очистки
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🍪 Cookies", callback_data="clean_option|cookies")],
+            [InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs")],
+            [InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags")],
+            [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
+            [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
+            [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],
+            [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🧹 Clean Options</b>\n\nChoose what to clean:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🧹 /clean - Delete cookies & broken media files", callback_data="settings__cmd__clean")],
-            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie", callback_data="settings__cmd__download_cookie")],
-            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser", callback_data="settings__cmd__cookies_from_browser")],
-            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder", callback_data="settings__cmd__check_cookie")],
-            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie", callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie",
+                                  callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser",
+                                  callback_data="settings__cmd__cookies_from_browser")],
+            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder",
+                                  callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie",
+                                  callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1281,6 +1414,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("📊 /mediainfo - Turn ON / OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
             [InlineKeyboardButton("✂️ /split - Change split video part size", callback_data="settings__cmd__split")],
             [InlineKeyboardButton("🎧 /audio - Download video as audio", callback_data="settings__cmd__audio")],
+            [InlineKeyboardButton("📋 /playlist - How to download playlists", callback_data="settings__cmd__playlist")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
@@ -1298,7 +1432,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
-            "<b>📖 LOGS</b>\n\nChoose an action:",
+            "<b>📖 INFO</b>\n\nChoose an action:",
             reply_markup=keyboard,
             parse_mode=enums.ParseMode.HTML
         )
@@ -1307,9 +1441,10 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
     if data == "back":
         # Return to main menu
         keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean")],
             [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
             [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
-            [InlineKeyboardButton("📖 LOGS", callback_data="settings__menu__logs")],
+            [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
             [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
         ])
         callback_query.edit_message_text(
@@ -1320,83 +1455,162 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         callback_query.answer()
         return
 
+
 @app.on_callback_query(filters.regex(r"^settings__cmd__"))
 @reply_with_keyboard
-
 def settings_cmd_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    data = callback_query.data.split("__")[-1]
-    # Mapping commands to handlers
+    data = callback_query.data.split("__")[2]
+
     # For commands that are processed only via url_distractor, create a temporary Message
-    def fake_message(text, command=None):
-        m = SimpleNamespace()
-        m.chat = SimpleNamespace()
-        m.chat.id = user_id
-        m.chat.first_name = getattr(callback_query.from_user, 'first_name', 'User')
-        m.text = text
-        m.first_name = m.chat.first_name  # for compatibility with message.first_name
-        m.reply_to_message = None
-        m.id = getattr(callback_query.message, 'id', 0)
-        if command is not None:
-            m.command = command
-        return m
     if data == "clean":
-        url_distractor(app, fake_message("/clean cookie"))
-        callback_query.answer("Command executed.")
+        # Показываем меню очистки вместо прямого выполнения
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🍪 Cookies only", callback_data="clean_option|cookies")],
+            [InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs")],
+            [InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags")],
+            [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
+            [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
+            [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],
+            [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🧹 Clean Options</b>\n\nChoose what to clean:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
         return
     if data == "download_cookie":
-        url_distractor(app, fake_message("/download_cookie"))
+        url_distractor(app, fake_message("/download_cookie", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "cookies_from_browser":
-        cookies_from_browser(app, fake_message("/cookies_from_browser"))
+        cookies_from_browser(app, fake_message("/cookies_from_browser", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "check_cookie":
-        url_distractor(app, fake_message("/check_cookie"))
+        url_distractor(app, fake_message("/check_cookie", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "save_as_cookie":
-        app.send_message(user_id, Config.SAVE_AS_COOKIE_HINT, reply_to_message_id=callback_query.message.id, parse_mode=enums.ParseMode.HTML)
+        app.send_message(user_id, Config.SAVE_AS_COOKIE_HINT, reply_to_message_id=callback_query.message.id,
+                         parse_mode=enums.ParseMode.HTML)
         callback_query.answer("Hint sent.")
         return
     if data == "format":
         # Add the command attribute for set_format to work correctly
-        set_format(app, fake_message("/format", command=["format"]))
+        set_format(app, fake_message("/format", user_id, command=["format"]))
         callback_query.answer("Command executed.")
         return
     if data == "mediainfo":
-        mediainfo_command(app, fake_message("/mediainfo"))
+        mediainfo_command(app, fake_message("/mediainfo", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "split":
-        split_command(app, fake_message("/split"))
+        split_command(app, fake_message("/split", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "audio":
         # We just send a hint on how to use it
-        app.send_message(user_id, "Download only audio from video source.\nUsage: /audio + URL (ex. /audio https://youtu.be/abc123)", reply_to_message_id=callback_query.message.id)
+        app.send_message(user_id,
+                         "Download only audio from video source.\nUsage: /audio + URL (ex. /audio https://youtu.be/abc123)",
+                         reply_to_message_id=callback_query.message.id)
         callback_query.answer("Hint sent.")
         return
     if data == "tags":
-        tags_command(app, fake_message("/tags"))
+        tags_command(app, fake_message("/tags", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "help":
-        command2(app, fake_message("/help"))
+        command2(app, fake_message("/help", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "usage":
-        url_distractor(app, fake_message("/usage"))
+        url_distractor(app, fake_message("/usage", user_id))
+        callback_query.answer("Command executed.")
+        return
+    if data == "playlist":
+        playlist_command(app, fake_message("/playlist", user_id))
         callback_query.answer("Command executed.")
         return
     callback_query.answer("Unknown command.", show_alert=True)
 
 
+@app.on_callback_query(filters.regex(r"^clean_option\|"))
+@reply_with_keyboard
+def clean_option_callback(app, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+
+    if data == "cookies":
+        url_distractor(app, fake_message("/clean cookie", user_id))
+        callback_query.answer("Cookies cleaned.")
+        return
+    elif data == "logs":
+        url_distractor(app, fake_message("/clean logs", user_id))
+        callback_query.answer("logs cleaned.")
+        return
+    elif data == "tags":
+        url_distractor(app, fake_message("/clean tags", user_id))
+        callback_query.answer("tags cleaned.")
+        return
+    elif data == "format":
+        url_distractor(app, fake_message("/clean format", user_id))
+        callback_query.answer("format cleaned.")
+        return
+    elif data == "split":
+        url_distractor(app, fake_message("/clean split", user_id))
+        callback_query.answer("split cleaned.")
+        return
+    elif data == "mediainfo":
+        url_distractor(app, fake_message("/clean mediainfo", user_id))
+        callback_query.answer("mediainfo cleaned.")
+        return
+    elif data == "all":
+        url_distractor(app, fake_message("/clean all", user_id))
+        callback_query.answer("All files cleaned.")
+        return
+    elif data == "back":
+        # Возвращаемся к меню cookies
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie",
+                                  callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser",
+                                  callback_data="settings__cmd__cookies_from_browser")],
+            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder",
+                                  callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie",
+                                  callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🍪 COOKIES</b>\n\nChoose an action:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
+
+
+def fake_message(text, user_id, command=None):
+    m = SimpleNamespace()
+    m.chat = SimpleNamespace()
+    m.chat.id = user_id
+    m.chat.first_name = "User"
+    m.text = text
+    m.first_name = m.chat.first_name
+    m.reply_to_message = None
+    m.id = 0
+    if command is not None:
+        m.command = command
+    return m
+
+
 # /Mediainfo Command
 @app.on_message(filters.command("mediainfo") & filters.private)
 @reply_with_keyboard
-
 def mediainfo_command(app, message):
     user_id = message.chat.id
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
@@ -1416,9 +1630,9 @@ def mediainfo_command(app, message):
     )
     send_to_logger(message, "User opened /mediainfo menu.")
 
+
 @app.on_callback_query(filters.regex(r"^mediainfo_option\|"))
 @reply_with_keyboard
-
 def mediainfo_option_callback(app, callback_query):
     logger.info(f"[MEDIAINFO] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -1446,6 +1660,7 @@ def mediainfo_option_callback(app, callback_query):
         callback_query.answer("MediaInfo disabled.")
         return
 
+
 def is_mediainfo_enabled(user_id):
     user_dir = os.path.join("users", str(user_id))
     mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
@@ -1456,6 +1671,7 @@ def is_mediainfo_enabled(user_id):
             return f.read().strip().upper() == "ON"
     except Exception:
         return False
+
 
 def get_mediainfo_cli(file_path):
     try:
@@ -1471,6 +1687,7 @@ def get_mediainfo_cli(file_path):
         logger.error(f"mediainfo CLI error: {e}")
         return "MediaInfo CLI error: " + str(e)
 
+
 def send_mediainfo_if_enabled(user_id, file_path, message):
     if is_mediainfo_enabled(user_id):
         try:
@@ -1484,19 +1701,22 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
             with open(mediainfo_path, "w", encoding="utf-8") as f:
                 f.write(mediainfo_text)
 
-            app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>", reply_parameters=ReplyParameters(message_id=msg_id))
-            app.send_document(Config.LOGS_ID, mediainfo_path, caption=f"<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
+            app.send_document(user_id, mediainfo_path, caption="<blockquote>📊 MediaInfo</blockquote>",
+                              reply_parameters=ReplyParameters(message_id=msg_id))
+            app.send_document(Config.LOGS_ID, mediainfo_path,
+                              caption=f"<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
 
             if os.path.exists(mediainfo_path):
                 os.remove(mediainfo_path)
 
         except Exception as e:
             logger.error(f"Error MediaInfo: {e}")
+            send_to_all(message, f"❌ Error sending MediaInfo: {e}")
+
 
 # SEND COOKIE VIA Document
 @app.on_message(filters.document & filters.private)
 @reply_with_keyboard
-
 def save_my_cookie(app, message):
     user_id = str(message.chat.id)
     # We determine the path to the user folder (for example, "./users/1234567)
@@ -1508,6 +1728,7 @@ def save_my_cookie(app, message):
     send_to_user(message, "✅ Cookie file saved")
     send_to_logger(message, f"Cookie file saved for user {user_id}.")
 
+
 def download_cookie(app, message):
     user_id = str(message.chat.id)
     response = requests.get(Config.COOKIE_URL)
@@ -1518,16 +1739,16 @@ def download_cookie(app, message):
         file_path = os.path.join(user_dir, cookie_filename)
         with open(file_path, "wb") as cf:
             cf.write(response.content)
-        send_to_all(message, "**✅ Cookie file downloaded and saved in your folder.**")
+        send_to_user(message, "**✅ Cookie file downloaded and saved in your folder.**")
         send_to_logger(message, f"Cookie file downloaded for user {user_id}.")
     else:
-        send_to_all(message, "❌ Cookie URL is not available!")
+        send_to_user(message, "❌ Cookie URL is not available!")
         send_to_logger(message, f"Failed to download cookie file for user {user_id}.")
+
 
 # Caption Editor for Videos
 @app.on_message(filters.text & filters.private)
 @reply_with_keyboard
-
 def caption_editor(app, message):
     users_name = message.chat.first_name
     user_id = message.chat.id
@@ -1539,9 +1760,9 @@ def caption_editor(app, message):
     app.send_video(user_id, video_file_id, caption=caption)
     app.send_video(Config.LOGS_ID, video_file_id, caption=caption)
 
+
 @app.on_message(filters.text & filters.private)
 @reply_with_keyboard
-
 def checking_cookie_file(app, message):
     user_id = str(message.chat.id)
     cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
@@ -1551,14 +1772,15 @@ def checking_cookie_file(app, message):
         with open(file_path, "r", encoding="utf-8") as cookie:
             cookie_content = cookie.read()
         if cookie_content.startswith("# Netscape HTTP Cookie File"):
-            send_to_all(message, "✅ Cookie file exists and has correct format")
+            send_to_user(message, "✅ Cookie file exists and has correct format")
             send_to_logger(message, "Cookie file exists and has correct format.")
         else:
-            send_to_all(message, "⚠️ Cookie file exists but has incorrect format")
+            send_to_user(message, "⚠️ Cookie file exists but has incorrect format")
             send_to_logger(message, "Cookie file exists but has incorrect format.")
     else:
-        send_to_all(message, "❌ Cookie file is not found.")
+        send_to_user(message, "❌ Cookie file is not found.")
         send_to_logger(message, "Cookie file not found.")
+
 
 # Updating The Cookie File.
 
@@ -1595,22 +1817,24 @@ def save_as_cookie_file(app, message):
         file_path = os.path.join(user_dir, cookie_filename)
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(final_cookie)
-        send_to_all(message, f"**✅ Cookie successfully updated:**\n`{final_cookie}`")
+        send_to_user(message, f"**✅ Cookie successfully updated:**\n`{final_cookie}`")
         send_to_logger(message, f"Cookie file updated for user {user_id}.")
     else:
-        send_to_all(message, "**❌ Not a valid cookie.**")
+        send_to_user(message, "**❌ Not a valid cookie.**")
         send_to_logger(message, f"Invalid cookie content provided by user {user_id}.")
+
 
 # URL Extractor
 @app.on_message(filters.text & filters.private)
 @reply_with_keyboard
-
 def video_url_extractor(app, message):
     global active_downloads
     check_user(message)
     user_id = message.chat.id
     user_dir = os.path.join("users", str(user_id))
     format_file = os.path.join(user_dir, "format.txt")
+
+    logger.info(f"video_url_extractor: starting for user {user_id}")
 
     # By default, ask for quality if a specific format is not selected
     should_ask = True
@@ -1622,35 +1846,47 @@ def video_url_extractor(app, message):
         if fmt != "ALWAYS_ASK":
             should_ask = False
             saved_format = fmt
+        logger.info(f"video_url_extractor: format file exists, should_ask={should_ask}, saved_format={saved_format}")
+    else:
+        logger.info(f"video_url_extractor: no format file, should_ask={should_ask}")
 
     if should_ask:
+        logger.info(f"video_url_extractor: calling ask_quality_menu")
         url, video_start_with, _, _, tags, _, tag_error = extract_url_range_tags(message.text)
         # Add tag error check
         if tag_error:
             wrong, example = tag_error
-            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=ReplyParameters(message_id=msg_id))
+            app.send_message(user_id,
+                             f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}",
+                             reply_parameters=ReplyParameters(message_id=message.id))
             return
         ask_quality_menu(app, message, url, tags, video_start_with)
         return
+
+    logger.info(f"video_url_extractor: proceeding with saved format {saved_format}")
 
     # This code is executed only if the user has selected a specific format
     with playlist_errors_lock:
         keys_to_remove = [k for k in playlist_errors if k.startswith(f"{user_id}_")]
         for key in keys_to_remove:
             del playlist_errors[key]
-            
+
     if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED",
+                         reply_parameters=ReplyParameters(message_id=message.id))
         return
-        
+
     full_string = message.text
     # Also add tag error check here
-    url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(full_string)
+    url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(
+        full_string)
     if tag_error:
         wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id,
+                         f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}",
+                         reply_parameters=ReplyParameters(message_id=message.id))
         return
-    
+
     if url:
         users_first_name = message.chat.first_name
         send_to_logger(message, f"User entered a **url**\n **user's name:** {users_first_name}\nURL: {full_string}")
@@ -1670,46 +1906,34 @@ def video_url_extractor(app, message):
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
         save_user_tags(user_id, all_tags)
-        
+
         # Create quality_key based on saved format for caching
         quality_key = None
-        if saved_format:
-            # Convert format to quality_key for caching
-            if "height<=144" in saved_format:
-                quality_key = "144p"
-            elif "height<=240" in saved_format:
-                quality_key = "240p"
-            elif "height<=360" in saved_format:
-                quality_key = "360p"
-            elif "height<=480" in saved_format:
-                quality_key = "480p"
-            elif "height<=720" in saved_format:
-                quality_key = "720p"
-            elif "height<=1080" in saved_format:
-                quality_key = "1080p"
-            elif "height<=1440" in saved_format:
-                quality_key = "1440p"
-            elif "height<=2160" in saved_format:
-                quality_key = "2160p"
-            elif "height<=4320" in saved_format:
-                quality_key = "4320p"
-            elif "bestvideo+bestaudio" in saved_format:
-                quality_key = "bestvideo"
-            elif saved_format == "best":
-                quality_key = "best"
-            else:
-                # For custom formats, we use the format hash as quality_key
-                quality_key = f"custom_{hashlib.md5(saved_format.encode()).hexdigest()[:8]}"
-        
-        logger.info(f"video_url_extractor: using saved format '{saved_format}', quality_key='{quality_key}'")
-        
-        # --- Pass title='' for TikTok, otherwise as usual ---
-        if is_tiktok:
-            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, force_no_title=True, format_override=saved_format, quality_key=quality_key)
+        if saved_format == "best":
+            quality_key = "best"
+        elif saved_format == "mp3":
+            quality_key = "mp3"
         else:
-            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, format_override=saved_format, quality_key=quality_key)
+            # Extract quality from format string like "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best"
+            quality_match = re.search(r'height<=(\d+)', saved_format)
+            if quality_match:
+                quality_key = f"{quality_match.group(1)}p"
+            else:
+                quality_key = "best"
+
+        logger.info(f"video_url_extractor: starting download with quality_key={quality_key}")
+
+        # Check if there's a link to Tiktok
+        is_tiktok = is_tiktok_url(url)
+
+        # We call the main function of loading with the correct parameters of the playlist
+        clean_url = strip_range_from_url(url)
+        down_and_up(app, message, clean_url, playlist_name, video_count, video_start_with, tags_text_full,
+                    force_no_title=is_tiktok, format_override=saved_format, quality_key=quality_key)
     else:
-        send_to_all(message, f"**User entered like this:** {full_string}\n{Config.ERROR1}")
+        logger.warning(f"video_url_extractor: no URL found in message")
+        logger.info(f"{user_id} No matching command processed.")
+
 
 # ############################################################################################
 
@@ -1720,7 +1944,8 @@ def send_to_logger(message, msg):
     msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
     # Print (user_id, "-", msg)
     safe_send_message(Config.LOGS_ID, msg_with_id,
-                     parse_mode=enums.ParseMode.MARKDOWN)
+                      parse_mode=enums.ParseMode.MARKDOWN)
+
 
 # Send Message to User Only
 def send_to_user(message, msg, **kwargs):
@@ -1735,6 +1960,7 @@ def send_to_user(message, msg, **kwargs):
     # Если не передали reply_to_message_id, отвечаем на исходное
     kwargs.setdefault('reply_to_message_id', message.id)
     safe_send_message(user_id, msg, **kwargs)
+
 
 # Send Message to User and to Log-Channel
 def send_to_all(message, msg, **kwargs):
@@ -1751,7 +1977,8 @@ def send_to_all(message, msg, **kwargs):
     # Если лог-каналу ответили на конкретное сообщение, то и пользователю тоже
     kwargs.setdefault('reply_to_message_id', message.id)
     safe_send_message(user_id, msg, **kwargs)
-    
+
+
 def progress_bar(*args):
     # It is expected that Pyrogram will cause Progress_BAR with five parameters:
     # Current, Total, Speed, ETA, File_SIZE, and then additionally your Progress_args (User_id, Msg_id, Status_text)
@@ -1765,11 +1992,11 @@ def progress_bar(*args):
 
 
 def truncate_caption(
-    title: str,
-    description: str,
-    url: str,
-    tags_text: str = '',
-    max_length: int = 1000  # Уменьшено с 1024 до 1000 для безопасности
+        title: str,
+        description: str,
+        url: str,
+        tags_text: str = '',
+        max_length: int = 1000  # Уменьшено с 1024 до 1000 для безопасности
 ) -> Tuple[str, str, str, str, str, bool]:
     """
     Returns: (title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated)
@@ -1788,7 +2015,7 @@ def truncate_caption(
             pre_block_lines.append(line)
         else:
             post_block_lines.append(line)
-    
+
     pre_block_str = '\n'.join(pre_block_lines)
     post_block_str = '\n'.join(post_block_lines).strip()
 
@@ -1797,20 +2024,20 @@ def truncate_caption(
     bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
     bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
     link_block = f'<a href="{url}">🔗 Video URL</a>{bot_mention}'
-    
+
     was_truncated = False
-    
+
     # Calculate constant overhead
     overhead = len(tags_block) + len(link_block)
     if title_html:
-        overhead += len(title_html) + 2 # for '\n\n'
+        overhead += len(title_html) + 2  # for '\n\n'
     if pre_block_str:
-        overhead += len(pre_block_str) + 1 # for '\n'
-    
+        overhead += len(pre_block_str) + 1  # for '\n'
+
     # Calculate limit for blockquote (taking into account <blockquote> tags)
-    blockquote_overhead = len('<blockquote expandable></blockquote>') + 1 # for '\n'
+    blockquote_overhead = len('<blockquote expandable></blockquote>') + 1  # for '\n'
     blockquote_limit = max_length - overhead - blockquote_overhead
-    
+
     blockquote_content = post_block_str
     if len(blockquote_content) > blockquote_limit:
         blockquote_content = blockquote_content[:blockquote_limit - 4] + '...'
@@ -1818,12 +2045,13 @@ def truncate_caption(
 
     # Final check and possible truncation of pre_block
     if overhead + len(blockquote_content) + blockquote_overhead > max_length:
-        pre_block_limit = max_length - (overhead - len(pre_block_str) -1) - len(blockquote_content) - blockquote_overhead
+        pre_block_limit = max_length - (overhead - len(pre_block_str) - 1) - len(
+            blockquote_content) - blockquote_overhead
         if pre_block_limit < len(pre_block_str):
-            pre_block_str = pre_block_str[:pre_block_limit-4] + '...'
+            pre_block_str = pre_block_str[:pre_block_limit - 4] + '...'
             was_truncated = True
-        else: # if even with truncated pre_block it does not fit, truncate everything
-             pre_block_str = ''
+        else:  # if even with truncated pre_block it does not fit, truncate everything
+            pre_block_str = ''
 
     if pre_block_str:
         pre_block_str += '\n'
@@ -1841,41 +2069,45 @@ def truncate_caption(
     # Final trimming taking into account HTML
     was_truncated_final = False
     if len(cap) > max_length:
-        cap = cap[:max_length-3] + '...'
+        cap = cap[:max_length - 3] + '...'
         was_truncated_final = True
     return title_html, pre_block_str, blockquote_content, tags_block, link_block, was_truncated or was_truncated_final
 
+
 def send_videos(
-    message,
-    video_abs_path: str,
-    caption: str,
-    duration: int,
-    thumb_file_path: str,
-    info_text: str,
-    msg_id: int,
-    video_description: str,
-    tags_text: str = '',
+        message,
+        video_abs_path: str,
+        caption: str,
+        duration: int,
+        thumb_file_path: str,
+        info_text: str,
+        msg_id: int,
+        video_description: str,
+        tags_text: str = '',
 ):
+    global thumb_to_use
     user_id = message.chat.id
     text = message.text or ""
-    m = re.search(r'https?://[^\s\*]+', text)
+    # Исправляем регулярное выражение: убираем * из исключений для корректной обработки ссылок с * в конце
+    m = re.search(r'https?://[^\s]+', text)
     video_url = m.group(0) if m else ""
     temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
     was_truncated = False
-    
+
     # Проверяем существование файла перед отправкой
     if not os.path.exists(video_abs_path):
         logger.error(f"Video file not found: {video_abs_path}")
-        safe_send_message(user_id, f"❌ Video file not found: {os.path.basename(video_abs_path)}")
+        send_to_all(message, f"❌ Video file not found: {os.path.basename(video_abs_path)}",
+                    reply_parameters=ReplyParameters(message_id=msg_id))
         return None
-    
+
     try:
         # Logic simplified: use tags that were already generated in down_and_up.
         title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
             title=caption,
             description=video_description,
             url=video_url,
-            tags_text=tags_text, # Use final tags for calculation
+            tags_text=tags_text,  # Use final tags for calculation
             max_length=1000  # Уменьшено для безопасности
         )
         # Form HTML caption: title outside the quote, timecodes outside the quote, description in the quote, tags and link outside the quote
@@ -1888,10 +2120,10 @@ def send_videos(
         if tags_block:
             cap += tags_block
         cap += link_block
-        
+
         # Проверяем существование thumbnail файла
         thumb_to_use = thumb_file_path if os.path.exists(thumb_file_path) else None
-        
+
         video_msg = app.send_video(
             chat_id=user_id,
             video=video_abs_path,
@@ -1905,7 +2137,7 @@ def send_videos(
             progress_args=(
                 user_id,
                 msg_id,
-                f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                f"{info_text}\n**Video duration:** __{TimeFormatter(duration * 1000)}__\n\n__Uploading Video... 📤__"
             ),
             reply_parameters=ReplyParameters(message_id=msg_id),
             parse_mode=enums.ParseMode.HTML
@@ -1925,6 +2157,8 @@ def send_videos(
                 safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
             except Exception as e:
                 logger.error(f"Error sending full description file: {e}")
+                send_to_all(message, f"❌ Error sending full description file: {e}",
+                            reply_parameters=ReplyParameters(message_id=msg_id))
         return video_msg
     except Exception as e:
         if "MEDIA_CAPTION_TOO_LONG" in str(e):
@@ -1945,7 +2179,7 @@ def send_videos(
                     progress_args=(
                         user_id,
                         msg_id,
-                        f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                        f"{info_text}\n**Video duration:** __{TimeFormatter(duration * 1000)}__\n\n__Uploading Video... 📤__"
                     ),
                     reply_parameters=ReplyParameters(message_id=msg_id),
                     parse_mode=enums.ParseMode.HTML
@@ -1953,11 +2187,12 @@ def send_videos(
                 return video_msg
             except Exception as e2:
                 logger.error(f"Failed to send video with minimal caption: {e2}")
-                safe_send_message(user_id, f"❌ Error sending video: {e}")
+                send_to_all(message, f"❌ Error sending video: {e2}",
+                            reply_parameters=ReplyParameters(message_id=msg_id))
                 return None
         else:
             logger.error(f"Error sending video: {e}")
-            safe_send_message(user_id, f"❌ Error sending video: {e}")
+            send_to_all(message, f"❌ Error sending video: {e}", reply_parameters=ReplyParameters(message_id=msg_id))
             return None
     finally:
         if os.path.exists(temp_desc_path):
@@ -1966,6 +2201,7 @@ def send_videos(
             except Exception as e:
                 logger.error(f"Error removing temporary description file: {e}")
 
+
 #####################################################################################
 
 def humanbytes(size):
@@ -1973,7 +2209,7 @@ def humanbytes(size):
     # 2 ** 10 = 1024
     if not size:
         return ""
-    power = 2**10
+    power = 2 ** 10
     n = 0
     Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
     while size > power:
@@ -1981,17 +2217,19 @@ def humanbytes(size):
         n += 1
     return str(round(size, 2)) + " " + Dic_powerN[n] + 'B'
 
+
 def TimeFormatter(milliseconds: int) -> str:
     seconds, milliseconds = divmod(int(milliseconds), 1000)
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
     days, hours = divmod(hours, 24)
-    tmp = ((str(days) + "d, ") if days else "") +\
-        ((str(hours) + "h, ") if hours else "") +\
-        ((str(minutes) + "m, ") if minutes else "") +\
-        ((str(seconds) + "s, ") if seconds else "") +\
-        ((str(milliseconds) + "ms, ") if milliseconds else "")
+    tmp = ((str(days) + "d, ") if days else "") + \
+          ((str(hours) + "h, ") if hours else "") + \
+          ((str(minutes) + "m, ") if minutes else "") + \
+          ((str(seconds) + "s, ") if seconds else "") + \
+          ((str(milliseconds) + "ms, ") if milliseconds else "")
     return tmp[:-2]
+
 
 def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
     """
@@ -1999,7 +2237,7 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
 
     Args:
         dir: Directory path
-        video_name: Name for the video
+        video_name: Name for the video (original title, not sanitized)
         video_path: Path to the video file
         video_size: Size of the video in bytes
         max_size: Maximum size for each part
@@ -2024,25 +2262,29 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
             # Ensure end_time doesn't exceed duration
             end_time = min(end_time, duration)
 
+            # Используем оригинальное название видео для частей
             cap_name = video_name + " - Part " + str(x + 1)
-            target_name = os.path.join(dir, cap_name + ".mp4")
+            # Для записи файла используем sanitize_filename
+            safe_cap_name = sanitize_filename(cap_name)
+            target_name = os.path.join(dir, safe_cap_name + ".mp4")
 
-            caption_lst.append(cap_name)
+            caption_lst.append(cap_name)  # Оригинальное название для сообщений
             path_lst.append(target_name)
 
             try:
                 # Use progress logging
-                logger.info(f"Splitting video part {x+1}/{rounds}: {start_time:.2f}s to {end_time:.2f}s")
+                logger.info(f"Splitting video part {x + 1}/{rounds}: {start_time:.2f}s to {end_time:.2f}s")
                 ffmpeg_extract_subclip(video_path, start_time, end_time, targetname=target_name)
 
                 # Verify the split was successful
                 if not os.path.exists(target_name) or os.path.getsize(target_name) == 0:
-                    logger.error(f"Failed to create split part {x+1}: {target_name}")
+                    logger.error(f"Failed to create split part {x + 1}: {target_name}")
                 else:
-                    logger.info(f"Successfully created split part {x+1}: {target_name} ({os.path.getsize(target_name)} bytes)")
+                    logger.info(
+                        f"Successfully created split part {x + 1}: {target_name} ({os.path.getsize(target_name)} bytes)")
 
             except Exception as e:
-                logger.error(f"Error splitting video part {x+1}: {e}")
+                logger.error(f"Error splitting video part {x + 1}: {e}")
                 # If a part fails, we continue with the others
 
         split_vid_dict = {
@@ -2059,9 +2301,10 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
         split_vid_dict = {
             "video": caption_lst,
             "path": path_lst,
-            "duration": video_duration
+            "duration": duration
         }
         return split_vid_dict
+
 
 def get_duration_thumb_(dir, video_path, thumb_name):
     thumb_dir = os.path.abspath(dir + "/" + thumb_name + ".jpg")
@@ -2070,6 +2313,7 @@ def get_duration_thumb_(dir, video_path, thumb_name):
     clip.save_frame(thumb_dir, t=2)
     clip.close()
     return duration, thumb_dir
+
 
 def get_duration_thumb(message, dir_path, video_path, thumb_name):
     """
@@ -2108,17 +2352,17 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
             "ffprobe", "-v", "quiet", "-show_entries", "format=duration",
             "-of", "csv=p=0", video_path
         ]
-        
+
         duration_result = subprocess.run(duration_cmd, capture_output=True, text=True, timeout=30)
         if duration_result.returncode != 0:
             logger.error(f"Failed to get video duration: {duration_result.stderr}")
             return None, None
-            
+
         duration = int(float(duration_result.stdout.strip()))
-        
+
         # Generate thumbnail
         result = subprocess.run(ffmpeg_command, capture_output=True, text=True, timeout=60)
-        
+
         if result.returncode != 0:
             logger.error(f"FFmpeg thumbnail generation failed: {result.stderr}")
             # Попробуем создать пустой thumbnail
@@ -2128,20 +2372,21 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
             except Exception as e:
                 logger.error(f"Failed to create default thumbnail: {e}")
                 return duration, None
-        
+
         # Verify thumbnail was created
         if os.path.exists(thumb_dir) and os.path.getsize(thumb_dir) > 0:
             return duration, thumb_dir
         else:
             logger.warning(f"Thumbnail file not created or empty: {thumb_dir}")
             return duration, None
-            
+
     except subprocess.TimeoutExpired:
         logger.error(f"FFmpeg thumbnail generation timed out for: {video_path}")
         return None, None
     except Exception as e:
         logger.error(f"Error in get_duration_thumb: {e}")
         return None, None
+
 
 def create_default_thumbnail(thumb_path):
     """Create a default thumbnail when normal thumbnail creation fails"""
@@ -2159,12 +2404,15 @@ def create_default_thumbnail(thumb_path):
     except Exception as e:
         logger.error(f"Failed to create default thumbnail: {e}")
 
+
 def write_logs(message, video_url, video_title):
     ts = str(math.floor(time.time()))
     data = {"ID": str(message.chat.id), "timestamp": ts,
             "name": message.chat.first_name, "urls": str(video_url), "title": video_title}
     db.child("bot").child("tgytdlp_bot").child("logs").child(str(message.chat.id)).child(str(ts)).set(data)
     logger.info("Log for user added")
+
+
 # ####################################################################################
 # ####################################################################################
 
@@ -2179,18 +2427,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     # Safe extraction of user_id and msg_id from message or dict
     if isinstance(message, dict):
         user_id = message["chat"]["id"]
-        msg_id   = message.get("message_id") or message.get("id")
+        msg_id = message.get("message_id") or message.get("id")
         original_text = message.get("text") or message.get("caption") or ""
     else:
         user_id = message.chat.id
-        msg_id   = message.id
+        msg_id = message.id
         original_text = message.text or message.caption or ""
     msg = message
     playlist_indices = []
-    playlist_msg_ids = []  
-        
-    logger.info(f"down_and_audio called: url={url}, quality_key={quality_key}, video_count={video_count}, video_start_with={video_start_with}")
-    
+    playlist_msg_ids = []
+
+    logger.info(
+        f"down_and_audio called: url={url}, quality_key={quality_key}, video_count={video_count}, video_start_with={video_start_with}")
+
     has_range = is_playlist_with_range(original_text)
     is_playlist = video_count > 1
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
@@ -2212,11 +2461,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     except Exception as e:
                         logger.error(f"down_and_audio: error reposting cached audio index={index}: {e}")
             if len(uncached_indices) == 0:
-                app.send_message(user_id, f"✅ Playlist audio sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id,
+                                 f"✅ Playlist audio sent from cache ({len(cached_videos)}/{len(requested_indices)} files).",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
                 send_to_logger(message, f"Playlist audio sent from cache (quality={quality_key}) to user{user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id,
+                                 f"♻️ {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
+
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2226,13 +2480,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     from_chat_id=Config.LOGS_ID,
                     message_ids=cached_ids
                 )
-                app.send_message(user_id, "✅ Audio sent from cache.", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id, "✅ Audio sent from cache.",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
                 send_to_logger(message, f"Audio sent from cache (quality={quality_key}) to user{user_id}")
                 return
             except Exception as e:
                 logger.error(f"Error reposting audio from cache: {e}")
                 save_to_video_cache(url, quality_key, [], clear=True)
-                app.send_message(user_id, "⚠️ Failed to get audio from cache, starting new download...", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id, "⚠️ Failed to get audio from cache, starting new download...",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
     else:
         logger.info(f"down_and_audio: quality_key is None, skipping cache check")
 
@@ -2258,9 +2514,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters=ReplyParameters(message_id=msg_id))
+                proc_msg = app.send_message(user_id,
+                                            f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.",
+                                            reply_parameters=ReplyParameters(message_id=msg_id))
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters=ReplyParameters(message_id=msg_id))
+            proc_msg = app.send_message(user_id,
+                                        "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.",
+                                        reply_parameters=ReplyParameters(message_id=msg_id))
 
         # We are trying to replace with "Download started"
         try:
@@ -2284,8 +2544,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         # If there is no flood error, send a normal message (only once)
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_parameters=ReplyParameters(message_id=msg_id))
         proc_msg_id = proc_msg.id
-        status_msg = app.send_message(user_id, "🎧 Audio is processing...", reply_parameters=ReplyParameters(message_id=msg_id))
-        hourglass_msg = app.send_message(user_id, "⏳ Please wait...", reply_parameters=ReplyParameters(message_id=msg_id))
+        status_msg = app.send_message(user_id, "🎧 Audio is processing...")
+        hourglass_msg = app.send_message(user_id, "⏳ Please wait...")
         status_msg_id = status_msg.id
         hourglass_msg_id = hourglass_msg.id
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
@@ -2294,8 +2554,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_folder)
 
-        if not check_disk_space(user_folder, 500 * 1024 * 1024 * video_count):
-            send_to_user(message, "❌ Not enough disk space to download the audio files.", reply_parameters=ReplyParameters(message_id=msg_id))
+        # Убираем неправильную проверку места на диске для плейлистов
+        # Файлы удаляются после загрузки, поэтому достаточно места для одного файла
+        if not check_disk_space(user_folder, 500 * 1024 * 1024):  # 500MB для одного аудио файла
+            send_to_all(message, "❌ Not enough disk space to download the audio files.",
+                        reply_parameters=ReplyParameters(message_id=msg_id))
             return
 
         check_user(message)
@@ -2316,7 +2579,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             nonlocal last_update
             # Check the timeout
             if check_download_timeout(user_id):
-                raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
+                return None
             current_time = time.time()
             if current_time - last_update < 0.2:
                 return
@@ -2327,7 +2590,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 blocks = int(percent // 10)
                 bar = "🟩" * blocks + "⬜️" * (10 - blocks)
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\nDownloading audio:\n{bar}   {percent:.1f}%")
+                    safe_edit_message_text(user_id, proc_msg_id,
+                                           f"{current_total_process}\nDownloading audio:\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
@@ -2335,7 +2599,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 try:
                     full_bar = "🟩" * 10
                     safe_edit_message_text(user_id, proc_msg_id,
-                        f"{current_total_process}\nDownloading audio:\n{full_bar}   100.0%\nDownload finished, processing audio...")
+                                           f"{current_total_process}\nDownloading audio:\n{full_bar}   100.0%\nDownload finished, processing audio...")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
@@ -2357,12 +2621,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 }],
                 'prefer_ffmpeg': True,
                 'extractaudio': True,
-                'playlist_items': str(current_index + video_start_with),
+                'playlist_items': str(current_index + video_start_with),  # Используем правильный индекс плейлиста
                 'cookiefile': cookie_file,
                 'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
                 'progress_hooks': [progress_hook],
             }
-            
+
             try:
                 with YoutubeDL(ytdl_opts) as ydl:
                     info_dict = ydl.extract_info(url, download=False)
@@ -2374,6 +2638,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if actual_index < len(entries):
                             info_dict = entries[actual_index]
                         else:
+                            return None
                             raise Exception(f"Audio index {actual_index + 1} out of range (total {len(entries)})")
                     else:
                         # If there is only one video in the playlist, just download it
@@ -2381,13 +2646,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
                 try:
                     safe_edit_message_text(user_id, proc_msg_id,
-                        f"{current_total_process}\n\n> __Downloading audio using format: ba...__ 📥")
+                                           f"{current_total_process}\n\n> __Downloading audio using format: ba...__ 📥")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
-                
+
                 with YoutubeDL(ytdl_opts) as ydl:
                     ydl.download([url])
-                
+
                 try:
                     full_bar = "🟩" * 10
                     safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{full_bar}   100.0%")
@@ -2402,6 +2667,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             indices_to_download = uncached_indices
         else:
             indices_to_download = range(video_count)
+
+        logger.info(
+            f"down_and_audio: indices_to_download={list(indices_to_download)}, video_start_with={video_start_with}")
+
         for idx, current_index in enumerate(indices_to_download):
             current_index = current_index - video_start_with  # for numbering/display
             total_process = f"""
@@ -2433,14 +2702,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie and after that send your audio link again.",
                             reply_parameters=ReplyParameters(message_id=msg_id)
                         )
-                break
+                return None
 
             successful_uploads += 1
 
             audio_title = info_dict.get("title", None)
             safe_title = sanitize_filename(audio_title)
-            
-            # If rename_name is not set, set it equal to audio_title
+
+            # If rename_name is not set, set it equal to safe_title (sanitized)
             if rename_name is None:
                 rename_name = safe_title
 
@@ -2449,45 +2718,29 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             files = [fname for fname in allfiles if fname.endswith('.mp3')]
             files.sort()
             if not files:
-                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}", reply_parameters=ReplyParameters(message_id=msg_id))
+                send_to_all(message, f"Skipping unsupported file type in playlist at index {idx + video_start_with}")
                 continue
 
             downloaded_file = files[0]
             write_logs(message, url, downloaded_file)
 
-            if rename_name == safe_title:
-                caption_name = safe_title
-                final_name = downloaded_file
-            else:
-                ext = os.path.splitext(downloaded_file)[1]
-                final_name = rename_name + ext
-                caption_name = rename_name
-                old_path = os.path.join(user_folder, downloaded_file)
-                new_path = os.path.join(user_folder, final_name)
-
-                if os.path.exists(new_path):
-                    try:
-                        os.remove(new_path)
-                    except Exception as e:
-                        logger.error(f"Error removing existing file {new_path}: {e}")
-
-                try:
-                    os.rename(old_path, new_path)
-                except Exception as e:
-                    logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
-                    final_name = downloaded_file
-                    caption_name = audio_title
+            # Файл должен сохраняться с sanitized именем, а в caption должно быть оригинальное имя
+            # Используем скачанный файл как есть, не переименовываем
+            final_name = downloaded_file
+            caption_name = audio_title  # Оригинальное имя для caption
 
             audio_file = os.path.join(user_folder, final_name)
             if not os.path.exists(audio_file):
-                send_to_user(message, "Audio file not found after download.", reply_parameters=ReplyParameters(message_id=msg_id))
+                send_to_all(message, "❌ Audio file not found after download.",
+                            reply_parameters=ReplyParameters(message_id=msg_id))
                 continue
 
             audio_files.append(audio_file)
 
             try:
                 full_bar = "🟩" * 10
-                safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\nUploading audio file...\n{full_bar}   100.0%")
+                safe_edit_message_text(user_id, proc_msg_id,
+                                       f"{current_total_process}\nUploading audio file...\n{full_bar}   100.0%")
             except Exception as e:
                 logger.error(f"Error updating upload status: {e}")
 
@@ -2498,35 +2751,41 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
             bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
             caption_with_link = f"{caption_name}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
-            
+
             try:
-                audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_parameters=ReplyParameters(message_id=msg_id))
+                audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link,
+                                           reply_parameters=ReplyParameters(message_id=msg_id))
                 forwarded_msg = safe_forward_messages(Config.LOGS_ID, user_id, [audio_msg.id])
-                
+
                 # Save to cache after sending audio
                 if quality_key and forwarded_msg:
                     if isinstance(forwarded_msg, list):
                         msg_ids = [m.id for m in forwarded_msg]
                     else:
                         msg_ids = [forwarded_msg.id]
-                    
+
                     if is_playlist:
                         # For playlists, save to playlist cache with index
                         current_video_index = idx + video_start_with
-                        logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
-                        save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], msg_ids, original_text=message.text or message.caption or "")
-                        cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
+                        logger.info(
+                            f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
+                        save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], msg_ids,
+                                               original_text=message.text or message.caption or "")
+                        cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key,
+                                                                  [current_video_index])
                         logger.info(f"Checking the cache immediately after writing: {cached_check}")
                         playlist_indices.append(current_video_index)
-                        playlist_msg_ids.extend([m.id for m in forwarded_msgs])
+                        playlist_msg_ids.extend(msg_ids)
                     else:
                         # For single audios, save to regular cache
                         logger.info(f"down_and_audio: saving to video cache: msg_ids={msg_ids}")
-                        save_to_video_cache(url, quality_key, msg_ids, original_text=message.text or message.caption or "")
+                        save_to_video_cache(url, quality_key, msg_ids,
+                                            original_text=message.text or message.caption or "")
             except Exception as send_error:
                 logger.error(f"Error sending audio: {send_error}")
-                send_to_user(message, f"❌ Failed to send audio: {send_error}", reply_parameters=ReplyParameters(message_id=msg_id))
-                continue
+                send_to_all(message, f"❌ Failed to send audio: {send_error}",
+                            reply_parameters=ReplyParameters(message_id=msg_id))
+                return None
 
             # Clean up the audio file after sending
             try:
@@ -2543,7 +2802,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             success_msg = f"✅ Audio successfully downloaded and sent - {len(indices_to_download)} files uploaded.\n\n{Config.CREDITS_MSG}"
         else:
             success_msg = f"⚠️ Partially completed - {successful_uploads}/{len(indices_to_download)} audio files uploaded.\n\n{Config.CREDITS_MSG}"
-            
+
         try:
             safe_edit_message_text(user_id, proc_msg_id, success_msg)
         except Exception as e:
@@ -2553,16 +2812,22 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
         if is_playlist and quality_key:
             total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅Playlist audio sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters=ReplyParameters(message_id=msg_id))
-            send_to_logger(message, f"Playlist audio sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user{user_id}")
+            app.send_message(user_id,
+                             f"✅Playlist audio sent: {total_sent}/{len(requested_indices)} files (cache + new).",
+                             reply_parameters=ReplyParameters(message_id=msg_id))
+            send_to_logger(message,
+                           f"Playlist audio sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user{user_id}")
 
     except Exception as e:
         if "Download timeout exceeded" in str(e):
-            send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)", reply_parameters=ReplyParameters(message_id=msg_id))
-            send_to_logger(message, "Download cancelled due to timeout")
+            send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)",
+                         reply_parameters=ReplyParameters(message_id=msg_id))
+            send_to_logger(message, "⏰ Download cancelled due to timeout")
         else:
             logger.error(f"Error in audio download: {e}")
-            send_to_user(message, f"❌ Failed to download audio: {e}", reply_parameters=ReplyParameters(message_id=msg_id))
+            send_to_all(message, f"❌ Failed to download audio: {e}",
+                        reply_parameters=ReplyParameters(message_id=msg_id))
+        return None
     finally:
         # Always clean up resources
         stop_anim.set()
@@ -2595,33 +2860,34 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
 
+
 # ########################################
 # Download_and_up function
 # ########################################
 
-def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
+def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False,
+                format_override=None, quality_key=None):
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
     # Safe extraction of user_id and msg_id from message or dict
     if isinstance(message, dict):
         user_id = message["chat"]["id"]
-        msg_id   = message.get("message_id") or message.get("id")
+        msg_id = message.get("message_id") or message.get("id")
         original_text = message.get("text") or message.get("caption") or ""
     else:
         user_id = message.chat.id
-        msg_id   = message.id
+        msg_id = message.id
         original_text = message.text or message.caption or ""
-    
+
     msg = message
     playlist_indices = []
-    playlist_msg_ids = []    
+    playlist_msg_ids = []
 
-    logger.info(f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
+    logger.info(
+        f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
 
-    is_playlist = video_count > 1 or is_playlist_with_range(message.text or message.caption or "")
-    logger.info(f"down_and_up: is_playlist={is_playlist}, video_count={video_count}, original_text={message.text or message.caption or ''}")
-    logger.info(f"down_and_up: is_playlist_with_range result={is_playlist_with_range(message.text or message.caption or '')}")
+    is_playlist = video_count > 1 or is_playlist_with_range(original_text)
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
     cached_videos = {}
     uncached_indices = []
@@ -2641,11 +2907,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     except Exception as e:
                         logger.error(f"down_and_up: error reposting cached video index={index}: {e}")
             if len(uncached_indices) == 0:
-                app.send_message(user_id, f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id,
+                                 f"✅ Playlist videos sent from cache ({len(cached_videos)}/{len(requested_indices)} files).",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
                 send_to_logger(message, f"Playlist videos sent from cache (quality={quality_key}) to user {user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id,
+                                 f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
+
+                send_to_logger(message, f"Playlist videos sent from cache (quality={quality_key}) to user {user_id}")
+                return
+
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -2655,13 +2929,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     from_chat_id=Config.LOGS_ID,
                     message_ids=cached_ids
                 )
-                app.send_message(user_id, "✅ Video sent from cache.", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id, "✅ Video sent from cache.",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
                 send_to_logger(message, f"Video sent from cache (quality={quality_key}) to user {user_id}")
                 return
             except Exception as e:
                 logger.error(f"Error reposting video from cache: {e}")
                 save_to_video_cache(url, quality_key, [], clear=True)
-                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_parameters=ReplyParameters(message_id=msg_id))
+                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...",
+                                 reply_parameters=ReplyParameters(message_id=msg_id))
     else:
         logger.info(f"down_and_up: quality_key is None, skipping cache check")
 
@@ -2686,9 +2962,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.", reply_parameters=ReplyParameters(message_id=msg_id))
+                proc_msg = app.send_message(user_id,
+                                            f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.",
+                                            reply_parameters=ReplyParameters(message_id=msg_id))
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.", reply_parameters=ReplyParameters(message_id=msg_id))
+            proc_msg = app.send_message(user_id,
+                                        "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.",
+                                        reply_parameters=ReplyParameters(message_id=msg_id))
 
         # We are trying to replace with "Download started"
         try:
@@ -2740,8 +3020,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             logger.error(f"Error cleaning temp files: {e}")
 
         # We only need disk space for one video at a time, since files are deleted after upload
-        if not check_disk_space(user_dir_name, 2 * 1024 * 1024 * 1024):
-            send_to_user(message, f"❌ Not enough disk space to download videos.")
+        if not check_disk_space(user_dir_name, 2 * 1024 * 1024 * 1024):  # 2GB для одного видео файла
+            send_to_all(message, f"❌ Not enough disk space to download videos.")
             return
 
         check_user(message)
@@ -2770,7 +3050,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # if use_default_format is True, then do not take from format.txt, but use default ones
             if use_default_format:
                 attempts = [
-                    {'format': 'bestvideo+bestaudio/best', 'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                    {'format': 'bestvideo+bestaudio/best', 'prefer_ffmpeg': True, 'merge_output_format': 'mp4',
+                     'extract_flat': False},
                     {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                 ]
             else:
@@ -2784,9 +3065,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 else:
                     attempts = [
                         {'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best',
-                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                         'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
                         {'format': 'bestvideo+bestaudio/best',
-                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                         'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
                         {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                     ]
 
@@ -2807,7 +3088,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             nonlocal last_update, first_progress_update
             # Check the timaut
             if check_download_timeout(user_id):
-                raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
+                return None
             current_time = time.time()
             if current_time - last_update < 1.5:
                 return
@@ -2816,7 +3097,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 total = d.get("total_bytes", 0)
                 percent = (downloaded / total * 100) if total else 0
                 blocks = int(percent // 10)
-                bar = "🟩" * blocks + "⬜️" * (10 - blocks)
+                bar = "��" * blocks + "⬜️" * (10 - blocks)
                 try:
                     # With the first renewal of progress, we delete the first posts Processing
                     if first_progress_update:
@@ -2835,7 +3116,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 safe_delete_messages(chat_id=user_id, message_ids=processing_messages[-2:], revoke=True)
                             # We delete the first 2 Download Started Message (if there are more than 1)
                             if len(download_started_messages) >= 2:
-                                safe_delete_messages(chat_id=user_id, message_ids=download_started_messages[-2:], revoke=True)
+                                safe_delete_messages(chat_id=user_id, message_ids=download_started_messages[-2:],
+                                                     revoke=True)
                         except Exception as e:
                             logger.error(f"Error deleting first processing messages: {e}")
                         first_progress_update = False
@@ -2870,6 +3152,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if current_index < len(entries):
                             info_dict = entries[current_index]
                         else:
+                            return None
                             raise Exception(f"Video index {current_index} out of range (total {len(entries)})")
                     else:
                         # If there is only one video in the playlist, just download it
@@ -2884,16 +3167,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥")
+                                               f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥")
                     else:
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
+                                               f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
                 with YoutubeDL(ytdl_opts) as ydl:
                     if is_hls:
                         cycle_stop = threading.Event()
-                        cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop)
+                        cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name,
+                                                            cycle_stop)
                         try:
                             with YoutubeDL(ytdl_opts) as ydl:
                                 ydl.download([url])
@@ -2903,7 +3187,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     else:
                         with YoutubeDL(ytdl_opts) as ydl:
                             ydl.download([url])
-                
+
             except Exception as e:
                 nonlocal error_message
                 error_message = str(e)
@@ -2935,7 +3219,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"Renamed temp file after download: {temp_file} -> {final_name}")
                         except Exception as e2:
                             logger.error(f"Error renaming temp file after download: {e2}")
-                            
+
                 except Exception as e3:
                     logger.error(f"Error processing temp files after download: {e3}")
 
@@ -2948,11 +3232,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 except Exception as e4:
                     logger.error(f"Final progress update error: {e4}")
                 return info_dict
-                    
-                
+
                 # Улучшенная обработка ошибок ffmpeg
                 if "ffmpeg exited with code 255" in error_str:
-                    logger.error(f"FFmpeg error (code 255) with format {ytdl_opts.get('format', 'default')}: {error_str}")
+                    logger.error(
+                        f"FFmpeg error (code 255) with format {ytdl_opts.get('format', 'default')}: {error_str}")
                     # Попробуем другой формат или настройки
                     if "format" in ytdl_opts and ytdl_opts["format"] != "best":
                         logger.info(f"Retrying with 'best' format instead of {ytdl_opts['format']}")
@@ -3020,7 +3304,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
                             "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
                         )
-                break
+                return None
 
             successful_uploads += 1
 
@@ -3033,7 +3317,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
-           # If rename_name is not set, set it equal to video_title
+            # If rename_name is not set, set it equal to video_title
             if rename_name is None:
                 rename_name = safe_title
 
@@ -3058,7 +3342,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             try:
                 safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n\n{full_bar}   100.0%\n\n__Downloaded video. Processing for upload...__ ♻️")
+                                       f"{info_text}\n\n{full_bar}   100.0%\n\n__Downloaded video. Processing for upload...__ ♻️")
             except Exception as e:
                 logger.error(f"Status update error after download: {e}")
 
@@ -3086,7 +3370,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 final_temp_name = downloaded_file.replace('.temp.mp4', '.mp4')
                 temp_old_path = os.path.join(dir_path, downloaded_file)
                 temp_new_path = os.path.join(dir_path, final_temp_name)
-                
+
                 try:
                     if os.path.exists(temp_new_path):
                         os.remove(temp_new_path)
@@ -3114,7 +3398,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 final_temp_name = base_name + '.mp4'
                 temp_old_path = os.path.join(dir_path, downloaded_file)
                 temp_new_path = os.path.join(dir_path, final_temp_name)
-                
+
                 try:
                     if os.path.exists(temp_new_path):
                         os.remove(temp_new_path)
@@ -3137,7 +3421,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
 
             if rename_name == safe_title:
-                caption_name = safe_title
+                caption_name = video_title  # Оригинальное имя для caption
                 final_name = downloaded_file
             else:
                 ext = os.path.splitext(downloaded_file)[1]
@@ -3157,20 +3441,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 except Exception as e:
                     logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
                     final_name = downloaded_file
-                    caption_name = safe_title
+                    caption_name = video_title  # Оригинальное имя для caption
 
             user_vid_path = os.path.join(dir_path, final_name)
-            
+
             # Проверяем существование файла после переименования
             if not os.path.exists(user_vid_path):
                 logger.error(f"Video file not found after renaming: {user_vid_path}")
                 send_to_all(message, f"❌ Video file not found: {final_name}")
                 continue
-                
+
             if final_name.lower().endswith((".webm", ".ts")):
                 try:
                     safe_edit_message_text(user_id, proc_msg_id,
-                        f"{info_text}\n\n{full_bar}   100.0%\nConverting video using ffmpeg... ⏳")
+                                           f"{info_text}\n\n{full_bar}   100.0%\nConverting video using ffmpeg... ⏳")
                 except Exception as e:
                     logger.error(f"Error updating status before conversion: {e}")
 
@@ -3194,7 +3478,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"FFmpeg conversion failed: {result.stderr}")
                         send_to_all(message, f"❌ Conversion to MP4 failed: {result.stderr}")
                         break
-                    
+
                     # Проверяем, что конвертированный файл существует
                     if os.path.exists(mp4_file) and os.path.getsize(mp4_file) > 0:
                         os.remove(user_vid_path)
@@ -3214,7 +3498,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     break
 
             after_rename_abs_path = os.path.abspath(user_vid_path)
-            
+
             # Финальная проверка существования файла
             if not os.path.exists(after_rename_abs_path):
                 logger.error(f"Final video file not found: {after_rename_abs_path}")
@@ -3251,7 +3535,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 duration, thumb_dir_default = result
                 if not youtube_thumb_path:
                     thumb_dir = thumb_dir_default
-            
+
             # Check for the existence of a preview and create a default one if needed
             if thumb_dir and not os.path.exists(thumb_dir):
                 logger.warning(f"Thumbnail not found at {thumb_dir}, creating default")
@@ -3265,13 +3549,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             max_size = get_user_split_size(user_id)  # 1.95 GB - close to Telegram's 2GB limit with 50MB safety margin
             if int(video_size_in_bytes) > max_size:
                 safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n\n{full_bar}   100.0%\n__⚠️ Your video size ({video_size}) is too large.__\n__Splitting file...__ ✂️")
-                returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, duration)
+                                       f"{info_text}\n\n{full_bar}   100.0%\n__⚠️ Your video size ({video_size}) is too large.__\n__Splitting file...__ ✂️")
+                returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path,
+                                         int(video_size_in_bytes), max_size, duration)
                 caption_lst = returned.get("video")
                 path_lst = returned.get("path")
                 split_msg_ids = []
                 for p in range(len(caption_lst)):
-                    part_result = get_duration_thumb(message, dir_path, path_lst[p], sanitize_filename(caption_lst[p]))
+                    part_result = get_duration_thumb(message, dir_path, path_lst[p], caption_lst[p])
                     if part_result is None:
                         continue
                     part_duration, splited_thumb_dir = part_result
@@ -3351,57 +3636,73 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.warning(f"Thumbnail not found before sending, creating default")
                         thumb_dir = create_default_thumbnail(os.path.join(dir_path, "default_thumb.jpg"))
                         if not thumb_dir:
-                            logger.warning("Failed to create default thumbnail before sending, continuing without thumbnail")
+                            logger.warning(
+                                "Failed to create default thumbnail before sending, continuing without thumbnail")
                             thumb_dir = None
 
                     try:
                         # --- TikTok: Don't Pass Title ---
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title, duration, thumb_dir, info_text, proc_msg.id, video_description, tags_text_final)
+                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else video_title,
+                                                duration, thumb_dir, info_text, proc_msg.id, video_description,
+                                                tags_text_final)
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
                             if forwarded_msgs:
-                                logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
+                                logger.info(
+                                    f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key,
+                                                           [current_video_index], [m.id for m in forwarded_msgs],
+                                                           original_text=message.text or message.caption or "")
+                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key,
+                                                                              [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                 else:
                                     # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs],
+                                                        original_text=message.text or message.caption or "")
                             else:
                                 logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key,
+                                                           [current_video_index], [video_msg.id],
+                                                           original_text=message.text or message.caption or "")
+                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key,
+                                                                              [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.append(video_msg.id)
                                 else:
                                     # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                    save_to_video_cache(url, quality_key, [video_msg.id],
+                                                        original_text=message.text or message.caption or "")
                         except Exception as e:
                             logger.error(f"Error forwarding video to logger: {e}")
                             logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
-                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
+                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index],
+                                                       [video_msg.id],
+                                                       original_text=message.text or message.caption or "")
+                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key,
+                                                                          [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
                                 playlist_msg_ids.append(video_msg.id)
                             else:
                                 # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                save_to_video_cache(url, quality_key, [video_msg.id],
+                                                    original_text=message.text or message.caption or "")
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
+                                               f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
                         send_mediainfo_if_enabled(user_id, after_rename_abs_path, message)
                         os.remove(after_rename_abs_path)
                         if thumb_dir and os.path.exists(thumb_dir):
@@ -3418,16 +3719,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         if is_playlist and quality_key:
             total_sent = len(cached_videos) + successful_uploads
-            app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).", reply_parameters=ReplyParameters(message_id=msg_id))
-            send_to_logger(message, f"Playlist videos sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user {user_id}")
+            app.send_message(user_id,
+                             f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files (cache + new).",
+                             reply_parameters=ReplyParameters(message_id=msg_id))
+            send_to_logger(message,
+                           f"Playlist videos sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user {user_id}")
 
     except Exception as e:
         if "Download timeout exceeded" in str(e):
             send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)")
-            send_to_logger(message, "Download cancelled due to timeout")
+            send_to_logger(message, "⏰ Download cancelled due to timeout")
         else:
             logger.error(f"Error in video download: {e}")
-            send_to_user(message, f"❌ Failed to download video: {e}")
+            send_to_all(message, f"❌ Failed to download video: {e}")
     finally:
         set_active_download(user_id, False)
         clear_download_start_time(user_id)  # Clear the download start time
@@ -3447,10 +3751,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         # --- ADDED: summary of cache after cycle ---
         if is_playlist and playlist_indices and playlist_msg_ids:
-            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
+            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids,
+                                   original_text=message.text or message.caption or "")
             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, playlist_indices)
             summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
             logger.info(f"[SUMMARY] Playlist cache (quality {quality_key}):\n{summary}")
+
 
 #########################################
 
@@ -3458,6 +3764,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
 def ytdlp_hook(d):
     logger.info(d['status'])
+
 
 #####################################################################################
 _format = {"ID": '0', "timestamp": math.floor(time.time())}
@@ -3471,6 +3778,7 @@ logger.info("Bot started")
 # Add signal processing for correct termination
 import signal
 
+
 def signal_handler(sig, frame):
     """
     Handler for system signals to ensure graceful shutdown
@@ -3483,7 +3791,7 @@ def signal_handler(sig, frame):
 
     # Stop all active animations and threads
     active_threads = [t for t in threading.enumerate()
-                     if t != threading.current_thread() and not t.daemon]
+                      if t != threading.current_thread() and not t.daemon]
 
     if active_threads:
         logger.info(f"Waiting for {len(active_threads)} active threads to finish")
@@ -3508,6 +3816,7 @@ def signal_handler(sig, frame):
     logger.info("Shutdown complete.")
     sys.exit(0)
 
+
 def cleanup_temp_files():
     """Clean up temporary files across all user directories"""
     if not os.path.exists("users"):
@@ -3527,9 +3836,11 @@ def cleanup_temp_files():
         except Exception as e:
             logger.error(f"Error cleaning user directory {user_dir}: {e}")
 
+
 # Register handlers for the most common termination signals
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
+
 
 # Helper function to safely get active download status
 def get_active_download(user_id):
@@ -3545,11 +3856,12 @@ def get_active_download(user_id):
     with active_downloads_lock:
         return active_downloads.get(user_id, False)
 
+
 # Helper function to sanitize and shorten filenames
 def sanitize_filename(filename, max_length=60):
     """
-    Оставляет только латинские буквы, цифры, дефис, подчёркивание и точку (для расширения).
-    Всё остальное удаляется. Если имя пустое — 'video'.
+    Очищает и сокращает название файла для безопасной записи на диск.
+    Используется ТОЛЬКО для записи файлов на сервер, НЕ для сообщений пользователю.
     """
     import re
     import os
@@ -3567,6 +3879,7 @@ def sanitize_filename(filename, max_length=60):
     ext = ext if re.match(r'^\.[A-Za-z0-9]+$', ext) else ''
     return name + ext
 
+
 # Helper function to safely set active download status
 def set_active_download(user_id, status):
     """
@@ -3579,6 +3892,7 @@ def set_active_download(user_id, status):
     with active_downloads_lock:
         active_downloads[user_id] = status
 
+
 # Helper function for safe message sending with flood wait handling
 def safe_send_message(chat_id, text, **kwargs):
     # Add reply_parameters if message is passed
@@ -3589,7 +3903,7 @@ def safe_send_message(chat_id, text, **kwargs):
     elif 'reply_to_message_id' in kwargs:
         kwargs['reply_parameters'] = ReplyParameters(message_id=kwargs['reply_to_message_id'])
         del kwargs['reply_to_message_id']
-    
+
     max_retries = 3
     retry_delay = 5
     for attempt in range(max_retries):
@@ -3610,6 +3924,7 @@ def safe_send_message(chat_id, text, **kwargs):
                     continue
             logger.error(f"Failed to send message after {max_retries} attempts: {e}")
             return None
+
 
 # Helper function for safe message forwarding with flood wait handling
 def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
@@ -3648,6 +3963,7 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
 
             logger.error(f"Failed to forward messages after {max_retries} attempts: {e}")
             return None
+
 
 # Helper function for safely editing message text with flood wait handling
 def safe_edit_message_text(chat_id, message_id, text, **kwargs):
@@ -3702,6 +4018,7 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
                 logger.error(f"Failed to edit message after {max_retries} attempts: {e}")
             return None
 
+
 # Helper function for safely deleting messages with flood wait handling
 def safe_delete_messages(chat_id, message_ids, **kwargs):
     """
@@ -3738,6 +4055,7 @@ def safe_delete_messages(chat_id, message_ids, **kwargs):
 
             logger.error(f"Failed to delete messages after {max_retries} attempts: {e}")
             return None
+
 
 # Helper function to start the hourglass animation
 def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
@@ -3785,6 +4103,7 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
     hourglass_thread.start()
     return hourglass_thread
 
+
 # Helper function to start cycle progress animation
 def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop):
     """
@@ -3827,7 +4146,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
 
                 # Use safe_edit_message_text and check if message exists
                 result = safe_edit_message_text(user_id, proc_msg_id,
-                    f"{current_total_process}\nDownloading HLS stream: {frag_text}\n{bar}")
+                                                f"{current_total_process}\nDownloading HLS stream: {frag_text}\n{bar}")
 
                 # If message was deleted (returns None), stop animation
                 if result is None and counter > 2:  # Allow first few attempts to fail
@@ -3850,16 +4169,19 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
     cycle_thread.start()
     return cycle_thread
 
+
 # --- Function for cleaning tags for Telegram ---
 def clean_telegram_tag(tag: str) -> str:
     return '#' + re.sub(r'[^\w]', '', tag.lstrip('#'))
+
 
 # --- a function for extracting the URL, the range and tags from the text ---
 def extract_url_range_tags(text: str):
     # This function now always returns the full original download link
     if not isinstance(text, str):
         return None, 1, 1, None, [], '', None
-    url_match = re.search(r'https?://[^\s\*#]+', text)
+    # Исправляем регулярное выражение: убираем * из исключений, чтобы корректно обрабатывать ссылки с * в конце
+    url_match = re.search(r'https?://[^\s#]+', text)
     if not url_match:
         return None, 1, 1, None, [], '', None
     url = url_match.group(0)
@@ -3872,9 +4194,32 @@ def extract_url_range_tags(text: str):
         video_end_with = int(range_match.group(2))
         after_range = after_url[range_match.end():]
     else:
-        video_start_with = 1
-        video_end_with = 1
-        after_range = after_url
+        # Check if there's just a single * for full playlist
+        single_star_match = re.match(r'\*', after_url)
+        if single_star_match:
+            video_start_with = 1
+            video_end_with = 9999
+            after_range = after_url[single_star_match.end():]
+        else:
+            # Проверяем, есть ли символ * внутри URL
+            full_url = url_match.group(0)
+            range_in_url = re.search(r'\*([0-9]+)\*([0-9]+)$', full_url)
+            if range_in_url:
+                video_start_with = int(range_in_url.group(1))
+                video_end_with = int(range_in_url.group(2))
+                url = full_url[:range_in_url.start()]
+                after_range = after_url
+            else:
+                single_star_in_url = re.search(r'\*$', full_url)
+                if single_star_in_url:
+                    video_start_with = 1
+                    video_end_with = 9999
+                    url = full_url[:single_star_in_url.start()]
+                    after_range = after_url
+                else:
+                    video_start_with = 1
+                    video_end_with = 1
+                    after_range = after_url
     playlist_name = None
     playlist_match = re.match(r'\*([^\s\*#]+)', after_range)
     if playlist_match:
@@ -3901,7 +4246,9 @@ def extract_url_range_tags(text: str):
         # We form Tags_text with spaces between tags
         tags_text = ' '.join(tags)
     # Return the motorcade with an error if it was found
-    return url, video_start_with, video_end_with, playlist_name, tags, tags_text, (error_tag, error_tag_example) if error_tag else None
+    return url, video_start_with, video_end_with, playlist_name, tags, tags_text, (
+        error_tag, error_tag_example) if error_tag else None
+
 
 def save_user_tags(user_id, tags):
     if not tags:
@@ -3924,36 +4271,37 @@ def save_user_tags(user_id, tags):
             for tag in new_tags:
                 f.write(tag + "\n")
 
+
 @app.on_message(filters.command("tags") & filters.private)
 @reply_with_keyboard
-
 def tags_command(app, message):
     user_id = message.chat.id
     user_dir = os.path.join("users", str(user_id))
     tags_file = os.path.join(user_dir, "tags.txt")
     if not os.path.exists(tags_file):
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=message.id))
         send_to_logger(message, reply_text)
         return
     with open(tags_file, "r", encoding="utf-8") as f:
         tags = [line.strip() for line in f if line.strip()]
     if not tags:
         reply_text = "You have no tags yet."
-        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=msg_id))
+        app.send_message(user_id, reply_text, reply_parameters=ReplyParameters(message_id=message.id))
         send_to_logger(message, reply_text)
         return
     # We form posts by 4096 characters
     msg = ''
     for tag in tags:
         if len(msg) + len(tag) + 1 > 4096:
-            app.send_message(user_id, msg, reply_parameters=ReplyParameters(message_id=msg_id))
+            app.send_message(user_id, msg, reply_parameters=ReplyParameters(message_id=message.id))
             send_to_logger(message, msg)
             msg = ''
         msg += tag + '\n'
     if msg:
-        app.send_message(user_id, msg, reply_to_message_id=message.id)
+        app.send_message(user_id, msg, reply_parameters=ReplyParameters(message_id=message.id))
         send_to_logger(message, msg)
+
 
 def extract_youtube_id(url: str) -> str:
     """
@@ -3971,6 +4319,7 @@ def extract_youtube_id(url: str) -> str:
             return m.group(1)
     raise ValueError("Failed to extract YouTube ID")
 
+
 def download_thumbnail(video_id: str, dest: str) -> None:
     """
     Trying to download maxressdefault.jpg, then hqdefault.jpg.
@@ -3984,10 +4333,12 @@ def download_thumbnail(video_id: str, dest: str) -> None:
             return
     raise RuntimeError("Failed to download thumbnail or it is too big")
 
+
 # --- global lists of domains and keywords ---
 PORN_DOMAINS = set()
 SUPPORTED_SITES = set()
 PORN_KEYWORDS = set()
+
 
 # --- loading lists at start ---
 def load_domain_lists():
@@ -3995,26 +4346,31 @@ def load_domain_lists():
     try:
         with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
-        logger.info(f"Loaded {len(PORN_DOMAINS)} domains from {Config.PORN_DOMAINS_FILE}. Example: {list(PORN_DOMAINS)[:5]}")
+        logger.info(
+            f"Loaded {len(PORN_DOMAINS)} domains from {Config.PORN_DOMAINS_FILE}. Example: {list(PORN_DOMAINS)[:5]}")
     except Exception as e:
         logger.error(f"Failed to load {Config.PORN_DOMAINS_FILE}: {e}")
         PORN_DOMAINS = set()
     try:
         with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
-        logger.info(f"Loaded {len(PORN_KEYWORDS)} keywords from {Config.PORN_KEYWORDS_FILE}. Example: {list(PORN_KEYWORDS)[:5]}")
+        logger.info(
+            f"Loaded {len(PORN_KEYWORDS)} keywords from {Config.PORN_KEYWORDS_FILE}. Example: {list(PORN_KEYWORDS)[:5]}")
     except Exception as e:
         logger.error(f"Failed to load {Config.PORN_KEYWORDS_FILE}: {e}")
         PORN_KEYWORDS = set()
     try:
         with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
             SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
-        logger.info(f"Loaded {len(SUPPORTED_SITES)} supported sites from {Config.SUPPORTED_SITES_FILE}. Example: {list(SUPPORTED_SITES)[:5]}")
+        logger.info(
+            f"Loaded {len(SUPPORTED_SITES)} supported sites from {Config.SUPPORTED_SITES_FILE}. Example: {list(SUPPORTED_SITES)[:5]}")
     except Exception as e:
         logger.error(f"Failed to load {Config.SUPPORTED_SITES_FILE}: {e}")
         SUPPORTED_SITES = set()
 
+
 load_domain_lists()
+
 
 # --- an auxiliary function for extracting a domain ---
 def extract_domain_parts(url):
@@ -4039,8 +4395,9 @@ def extract_domain_parts(url):
         # Fallback for URLs without a clear domain, e.g., "localhost"
         parsed = urlparse(url)
         if parsed.netloc:
-             return [parsed.netloc.lower()], parsed.netloc.lower()
+            return [parsed.netloc.lower()], parsed.netloc.lower()
         return [url.lower()], url.lower()
+
 
 # --- an auxiliary function for searching for car tues ---
 def get_auto_tags(url, user_tags):
@@ -4079,6 +4436,7 @@ def get_auto_tags(url, user_tags):
     auto_tags = [t for t in auto_tags if t.lower() not in user_tags_lower]
     return auto_tags
 
+
 # --- White list of domains that are not considered porn ---
 # Now we take from config.py
 
@@ -4093,6 +4451,7 @@ def is_porn_domain(domain_parts):
             return True
     return False
 
+
 # --- a new function for checking for porn ---
 def is_porn(url, title, description, caption=None):
     """
@@ -4101,7 +4460,7 @@ def is_porn(url, title, description, caption=None):
     """
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
-    #First, check WHITELIST
+    # First, check WHITELIST
     for dom in domain_parts:
         if dom in Config.WHITELIST:
             logger.info(f"is_porn: domain in WHITELIST: {dom}")
@@ -4129,9 +4488,9 @@ def is_porn(url, title, description, caption=None):
     logger.info("is_porn: no matches found")
     return False
 
+
 @app.on_message(filters.command("split") & filters.private)
 @reply_with_keyboard
-
 def split_command(app, message):
     user_id = message.chat.id
     # Subscription check for non-admines
@@ -4143,8 +4502,8 @@ def split_command(app, message):
     sizes = [
         ("250 MB", 250 * 1024 * 1024),
         ("500 MB", 500 * 1024 * 1024),
-        ("1 GB", 1024 * 1024 * 1024),
-        ("1.5 GB", 1536 * 1024 * 1024),
+        ("1 GB", 1000 * 1024 * 1024),
+        ("1.5 GB", 1500 * 1024 * 1024),
         ("2 GB (default)", 1950 * 1024 * 1024)
     ]
     buttons = []
@@ -4161,9 +4520,9 @@ def split_command(app, message):
     app.send_message(user_id, "Choose max part size for video splitting:", reply_markup=keyboard)
     send_to_logger(message, "User opened /split menu.")
 
+
 @app.on_callback_query(filters.regex(r"^split_size\|"))
 @reply_with_keyboard
-
 def split_size_callback(app, callback_query):
     logger.info(f"[SPLIT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -4186,6 +4545,7 @@ def split_size_callback(app, callback_query):
     callback_query.edit_message_text(f"✅ Split part size set to: {humanbytes(size)}")
     send_to_logger(callback_query.message, f"Split size set to {size} bytes.")
 
+
 # --- Function for reading split.txt ---
 def get_user_split_size(user_id):
     user_dir = os.path.join("users", str(user_id))
@@ -4199,8 +4559,11 @@ def get_user_split_size(user_id):
             pass
     return 1950 * 1024 * 1024  # default 1.95GB
 
+
 # --- receiving formats and metadata via yt-dlp ---
 def get_video_formats(url, user_id=None, playlist_start_index=1):
+    logger.info(
+        f"get_video_formats: starting for URL {url}, user_id={user_id}, playlist_start_index={playlist_start_index}")
     ytdl_opts = {
         'quiet': True,
         'skip_download': True,
@@ -4215,11 +4578,29 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         cookie_file = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
         if os.path.exists(cookie_file):
             ytdl_opts['cookiefile'] = cookie_file
-    with YoutubeDL(ytdl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-    if 'entries' in info and info.get('entries'):
-        return info['entries'][0]
-    return info
+            logger.info(f"get_video_formats: using cookie file {cookie_file}")
+        else:
+            logger.info(f"get_video_formats: no cookie file found at {cookie_file}")
+
+    logger.info(f"get_video_formats: ytdl_opts={ytdl_opts}")
+
+    try:
+        with YoutubeDL(ytdl_opts) as ydl:
+            logger.info(f"get_video_formats: extracting info from URL")
+            info = ydl.extract_info(url, download=False)
+            logger.info(f"get_video_formats: successfully extracted info, has entries: {'entries' in info}")
+
+            if 'entries' in info and info.get('entries'):
+                logger.info(f"get_video_formats: returning first entry from playlist")
+                return info['entries'][0]
+            else:
+                logger.info(f"get_video_formats: returning single video info")
+                return info
+
+    except Exception as e:
+        logger.error(f"get_video_formats: Exception occurred: {e}", exc_info=True)
+        return None
+
 
 # --- Always ask processing ---
 # --- Always ask processing ---
@@ -4227,6 +4608,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
     try:
+        logger.info(f"ask_quality_menu: starting for URL {url}, user {user_id}")
+
         # отправляем «Processing...»
         proc_msg = app.send_message(
             user_id,
@@ -4234,22 +4617,44 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             reply_markup=get_main_reply_keyboard(),
             reply_parameters=ReplyParameters(message_id=message.id)
         )
+        logger.info(f"ask_quality_menu: sent processing message")
 
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
+        is_full_playlist = False  # Флаг для определения полного плейлиста (одна *)
+
+        logger.info(f"ask_quality_menu: is_playlist={is_playlist}, original_text='{original_text}'")
+
         if is_playlist:
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
             playlist_range = (video_start_with, video_end_with)
+            # Проверяем, является ли это полным плейлистом (одна *)
+            if video_start_with == 1 and video_end_with == 9999:
+                is_full_playlist = True
             cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
+            logger.info(f"ask_quality_menu: playlist range {playlist_range}, cached_qualities={cached_qualities}")
         else:
             cached_qualities = get_cached_qualities(url)
+            logger.info(f"ask_quality_menu: single video, cached_qualities={cached_qualities}")
 
+        logger.info(f"ask_quality_menu: getting video formats for URL {url}")
         info = get_video_formats(url, user_id, playlist_start_index)
+
+        if info is None:
+            error_text = (
+                "❌ Unable to retrieve video information.\n"
+                "> Try the /clean command and try again.\n"
+                "If the error persists, YouTube requires authorization.\n"
+                "Please refresh cookies.txt via /download_cookie or /cookies_from_browser and try again."
+            )
+            send_to_all(message, error_text, reply_parameters=ReplyParameters(message_id=message.id))
+            return
+
         title = info.get('title', 'Video')
         video_id = info.get('id')
         tags_text = generate_final_tags(url, tags, info)
-
+        logger.info(f"ask_quality_menu: got video info - title='{title}', video_id={video_id}")
         thumb_path = None
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
@@ -4257,10 +4662,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             thumb_path = os.path.join(user_dir, f"yt_thumb_{video_id}.jpg")
             try:
                 download_thumbnail(video_id, thumb_path)
-            except Exception:
+                logger.info(f"ask_quality_menu: downloaded thumbnail to {thumb_path}")
+            except Exception as e:
+                logger.warning(f"ask_quality_menu: failed to download thumbnail: {e}")
                 thumb_path = None
 
         # --- Table with qualities and sizes ---
+        logger.info(f"ask_quality_menu: processing formats")
         popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
         minside_size_dim_map = {}
         for f in info.get('formats', []):
@@ -4270,19 +4678,24 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 quality_key = get_quality_by_min_side(w, h)
                 if quality_key != "best":
                     if f.get('filesize'):
-                        size_mb = int(f['filesize']) // (1024*1024)
+                        size_mb = int(f['filesize']) // (1024 * 1024)
                     elif f.get('filesize_approx'):
-                        size_mb = int(f['filesize_approx']) // (1024*1024)
+                        size_mb = int(f['filesize_approx']) // (1024 * 1024)
                     else:
                         size_mb = None
                     if size_mb:
                         minside_size_dim_map[(quality_key, w, h)] = size_mb
 
+        logger.info(f"ask_quality_menu: found {len(minside_size_dim_map)} quality options")
+
         table_lines = []
         found_quality_keys = set()
-        for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items()):
+        logger.info(f"ask_quality_menu: starting to process quality options")
+        for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(),
+                                                    key=lambda x: int(x[0][0].replace('p', ''))):
+            logger.info(f"ask_quality_menu: processing quality {quality_key} ({w}×{h})")
             found_quality_keys.add(quality_key)
-            size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
+            size_str = f"{round(size_val / 1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
             dim_str = f" ({w}×{h})"
             scissors = ""
             split_size = get_user_split_size(user_id)
@@ -4292,20 +4705,37 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     n_parts = (video_bytes + split_size - 1) // split_size
                     scissors = f" ✂️{n_parts}"
             if is_playlist and playlist_range:
+                logger.info(f"ask_quality_menu: checking cache for playlist quality {quality_key}")
                 indices = list(range(playlist_range[0], playlist_range[1] + 1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                postfix = f" ({n_cached}/{total})"
-                is_cached = n_cached > 0
+
+                # Временно отключаем проверку кэша для больших диапазонов
+                if len(indices) > 100:
+                    logger.info(f"ask_quality_menu: skipping cache check for button {quality_key} (large range)")
+                    n_cached = 0
+                    if is_full_playlist:
+                        postfix = ""
+                    else:
+                        total = len(indices)
+                        postfix = f" (0/{total})" if total > 1 else ""
+                    icon = "📹"
+                else:
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    if is_full_playlist:
+                        postfix = f" ({n_cached})" if n_cached > 0 else ""
+                    else:
+                        total = len(indices)
+                        postfix = f" ({n_cached}/{total})" if total > 1 else ""
+                    icon = "🚀" if n_cached > 0 else "📹"
             else:
-                is_cached = quality_key in cached_qualities
+                icon = "🚀" if quality_key in cached_qualities else "📹"
                 postfix = ""
-            emoji = "🚀" if is_cached else "📹"
-            table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
+            table_lines.append(f"{icon}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
 
         table_block = "\n".join(table_lines)
+        logger.info(f"ask_quality_menu: created table with {len(table_lines)} lines")
 
         # --- Forming caption ---
+        logger.info(f"ask_quality_menu: forming caption")
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
@@ -4313,41 +4743,68 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
+        logger.info(f"ask_quality_menu: caption formed, length: {len(cap)}")
 
         # --- Building buttons ---
+        logger.info(f"ask_quality_menu: building buttons")
         buttons = []
-        for quality_key in sorted(found_quality_keys, key=lambda x: int(x.replace('p',''))):
+        logger.info(f"ask_quality_menu: found_quality_keys={found_quality_keys}")
+        for quality_key in sorted(found_quality_keys, key=lambda x: int(x.replace('p', ''))):
+            logger.info(f"ask_quality_menu: creating button for quality {quality_key}")
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1] + 1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                icon = "🚀" if n_cached > 0 else "📹"
-                postfix = f" ({n_cached}/{total})" if total > 1 else ""
+
+                # Пропускаем проверку кэша для больших диапазонов
+                if len(indices) > 100:
+                    logger.info(f"ask_quality_menu: skipping cache check for button {quality_key} (large range)")
+                    n_cached = 0
+                    if is_full_playlist:
+                        postfix = ""
+                    else:
+                        total = len(indices)
+                        postfix = f" (0/{total})" if total > 1 else ""
+                    icon = "📹"
+                else:
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    if is_full_playlist:
+                        postfix = f" ({n_cached})" if n_cached > 0 else ""
+                    else:
+                        total = len(indices)
+                        postfix = f" ({n_cached}/{total})" if total > 1 else ""
+                    icon = "🚀" if n_cached > 0 else "📹"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
                 postfix = ""
             buttons.append(InlineKeyboardButton(f"{icon} {quality_key}{postfix}", callback_data=f"askq|{quality_key}"))
+            logger.info(f"ask_quality_menu: created button for {quality_key}")
 
         if not buttons:
+            logger.info(f"ask_quality_menu: no buttons created, adding default best quality button")
             default_icon = "🚀" if "best" in cached_qualities else "📹"
             buttons.append(InlineKeyboardButton(f"{default_icon} Best Quality", callback_data="askq|best"))
 
         # rows of 3
-        keyboard_rows = [buttons[i:i+3] for i in range(0, len(buttons), 3)]
+        keyboard_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
+        logger.info(f"ask_quality_menu: created {len(keyboard_rows)} keyboard rows")
 
         # add mp3 and cancel
+        logger.info(f"ask_quality_menu: adding mp3 and cancel buttons")
         mp3_icon = "🚀" if "mp3" in cached_qualities else "🎵"
         keyboard_rows.append([InlineKeyboardButton(f"{mp3_icon} audio (mp3)", callback_data="askq|mp3")])
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
 
         keyboard = InlineKeyboardMarkup(keyboard_rows)
+        logger.info(f"ask_quality_menu: created keyboard with {len(buttons)} buttons")
 
         # delete processing message
+        logger.info(f"ask_quality_menu: deleting processing message")
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
 
         # send result
+        logger.info(f"ask_quality_menu: sending result message")
         if thumb_path and os.path.exists(thumb_path):
+            logger.info(f"ask_quality_menu: sending with thumbnail {thumb_path}")
             app.send_photo(
                 user_id,
                 thumb_path,
@@ -4357,6 +4814,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 reply_parameters=ReplyParameters(message_id=message.id)
             )
         else:
+            logger.info(f"ask_quality_menu: sending without thumbnail")
             app.send_message(
                 user_id,
                 cap,
@@ -4365,6 +4823,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 reply_parameters=ReplyParameters(message_id=message.id)
             )
 
+        logger.info(f"ask_quality_menu: successfully sent menu for {url}")
         send_to_logger(message, f"Always Ask menu sent for {url}")
 
     except FloodWait as e:
@@ -4378,7 +4837,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         minutes = (wait_time % 3600) // 60
         seconds = wait_time % 60
         time_str = f"{hours}h {minutes}m {seconds}s"
-        flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
+        flood_msg = f"⚠️ Telegram ограничил отправку сообщений.\n\n⏳ Подождите: {time_str}\n\nЧтобы обновить таймер, отправьте ссылку ещё 2 раза."
         if proc_msg:
             try:
                 app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
@@ -4397,32 +4856,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     except Exception as e:
         error_text = (
             f"❌ Error retrieving video information:\n{e}\n"
-            "> Try the /clean command and try again. If the error persists, "
-            "YouTube requires authorization. Update cookies.txt via /download_cookie "
-            "or /cookies_from_browser and try again."
+            "> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
         )
-        if proc_msg:
-            result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
-            if result is None:
-                app.send_message(
-                    user_id,
-                    error_text,
-                    reply_parameters=ReplyParameters(message_id=message.id)
-                )
-        else:
-            app.send_message(
-                user_id,
-                error_text,
-                reply_parameters=ReplyParameters(message_id=message.id)
-            )
-        send_to_logger(message, f"Always Ask menu error for {url}: {e}")
+        send_to_all(message, error_text, reply_parameters=ReplyParameters(message_id=message.id))
         return
 
 
 # --- Callback Processor ---
 @app.on_callback_query(filters.regex(r"^askq\|"))
 @reply_with_keyboard
-
 def askq_callback(app, callback_query):
     logger.info(f"[ASKQ] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -4435,7 +4877,9 @@ def askq_callback(app, callback_query):
 
     original_message = callback_query.message.reply_to_message
     if not original_message:
-        callback_query.answer("❌ Error: Original message not found. It might have been deleted. Please send the link again.", show_alert=True)
+        callback_query.answer(
+            "❌ Error: Original message not found. It might have been deleted. Please send the link again.",
+            show_alert=True)
         callback_query.message.delete()
         return
 
@@ -4446,7 +4890,8 @@ def askq_callback(app, callback_query):
                 url = entity.url
                 break
     if not url and callback_query.message.reply_to_message:
-        url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
+        # Исправляем регулярное выражение: убираем * из исключений для корректной обработки ссылок с * в конце
+        url_match = re.search(r'https?://[^\s#]+', callback_query.message.reply_to_message.text)
         if url_match:
             url = url_match.group(0)
     if not url:
@@ -4470,12 +4915,12 @@ def askq_callback(app, callback_query):
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
         video_count = video_end_with - video_start_with + 1
         requested_indices = list(range(video_start_with, video_start_with + video_count))
-        
+
         # Проверяем кэш для выбранного качества
         cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), data, requested_indices)
         uncached_indices = [i for i in requested_indices if i not in cached_videos]
         used_quality_key = data
-        
+
         # Если кэша для выбранного качества нет, пробуем fallback на best
         if not cached_videos and data != "best":
             logger.info(f"askq_callback: no cache for quality_key={data}, trying fallback to best")
@@ -4484,8 +4929,9 @@ def askq_callback(app, callback_query):
                 cached_videos = best_cached
                 used_quality_key = "best"
                 uncached_indices = [i for i in requested_indices if i not in cached_videos]
-                logger.info(f"askq_callback: found cache with best quality, cached: {list(cached_videos.keys())}, uncached: {uncached_indices}")
-        
+                logger.info(
+                    f"askq_callback: found cache with best quality, cached: {list(cached_videos.keys())}, uncached: {uncached_indices}")
+
         if cached_videos:
             # Пересылаем закэшированные видео
             callback_query.answer("🚀 Found in cache! Reposting...", show_alert=False)
@@ -4499,16 +4945,18 @@ def askq_callback(app, callback_query):
                         )
                     except Exception as e:
                         logger.warning(f"askq_callback: cached video for index {index} not found: {e}")
-            
+
             # Если есть недостающие видео - скачиваем их
             if uncached_indices:
                 logger.info(f"askq_callback: we start downloading the missing indexes: {uncached_indices}")
                 new_start = uncached_indices[0]
                 new_end = uncached_indices[-1]
                 new_count = new_end - new_start + 1
-                
+
                 if data == "mp3":
-                    down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
+                    clean_url = strip_range_from_url(url)
+                    down_and_audio(app, original_message, clean_url, tags, quality_key=used_quality_key,
+                                   playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
                 else:
                     # Формируем правильный формат для недостающих видео
                     if used_quality_key == "best":
@@ -4520,11 +4968,14 @@ def askq_callback(app, callback_query):
                             format_override = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
                         except ValueError:
                             format_override = "bestvideo+bestaudio/best"
-                    
-                    down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=format_override, quality_key=used_quality_key)
+
+                    clean_url = strip_range_from_url(url)
+                    down_and_up(app, original_message, clean_url, playlist_name, new_count, new_start, tags_text,
+                                force_no_title=False, format_override=format_override, quality_key=used_quality_key)
             else:
                 # Все видео были в кэше
-                app.send_message(user_id, f"✅ Sent from cache: {len(cached_videos)}/{len(requested_indices)} files.", reply_parameters=ReplyParameters(message_id=original_message.id))
+                app.send_message(user_id, f"✅ Sent from cache: {len(cached_videos)}/{len(requested_indices)} files.",
+                                 reply_parameters=ReplyParameters(message_id=original_message.id))
                 media_type = "Audio" if data == "mp3" else "Video"
                 log_msg = f"{media_type} playlist sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
                 send_to_logger(original_message, log_msg)
@@ -4533,7 +4984,9 @@ def askq_callback(app, callback_query):
             # Если кэша нет вообще - скачиваем всё заново
             logger.info(f"askq_callback: no cache found for any quality, starting new download")
             if data == "mp3":
-                down_and_audio(app, original_message, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+                clean_url = strip_range_from_url(url)
+                down_and_audio(app, original_message, clean_url, tags, quality_key=data, playlist_name=playlist_name,
+                               video_count=video_count, video_start_with=video_start_with)
             else:
                 # Формируем правильный формат для нового скачивания
                 if data == "best":
@@ -4545,8 +4998,10 @@ def askq_callback(app, callback_query):
                         format_override = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
                     except ValueError:
                         format_override = "bestvideo+bestaudio/best"
-                
-                down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
+
+                clean_url = strip_range_from_url(url)
+                down_and_up(app, original_message, clean_url, playlist_name, video_count, video_start_with, tags_text,
+                            force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
     message_ids = get_cached_message_ids(url, data)
@@ -4558,7 +5013,8 @@ def askq_callback(app, callback_query):
                 from_chat_id=Config.LOGS_ID,
                 message_ids=message_ids
             )
-            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_parameters=ReplyParameters(message_id=original_message.id))
+            app.send_message(user_id, "✅ Video successfully sent from cache.",
+                             reply_parameters=ReplyParameters(message_id=original_message.id))
             media_type = "Audio" if data == "mp3" else "Video"
             log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
             send_to_logger(original_message, log_msg)
@@ -4566,7 +5022,8 @@ def askq_callback(app, callback_query):
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
             save_to_video_cache(url, data, [], clear=True)
-            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_parameters=ReplyParameters(message_id=original_message.id))
+            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...",
+                             reply_parameters=ReplyParameters(message_id=original_message.id))
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
     askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
@@ -4581,9 +5038,11 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
         video_count = video_end_with - video_start_with + 1
-        down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+        clean_url = strip_range_from_url(url)
+        down_and_audio(app, original_message, clean_url, tags, quality_key="mp3", playlist_name=playlist_name,
+                       video_count=video_count, video_start_with=video_start_with)
         return
-    
+
     # Логика формирования формата с учетом реальной height
     if data == "best":
         callback_query.answer("Downloading best quality...")
@@ -4594,7 +5053,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             # Получаем информацию о видео для определения размеров
             info = get_video_formats(url, user_id)
             formats = info.get('formats', [])
-            
+
             # Ищем формат с максимальным качеством для определения размеров
             max_width = 0
             max_height = 0
@@ -4604,7 +5063,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         max_width = f['width']
                     if f['height'] > max_height:
                         max_height = f['height']
-            
+
             # Если размеры не найдены, используем стандартную логику
             if max_width == 0 or max_height == 0:
                 quality_str = data.replace('p', '')
@@ -4613,7 +5072,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             else:
                 # Определяем качество по меньшей стороне
                 min_side_quality = get_quality_by_min_side(max_width, max_height)
-                
+
                 # Если выбранное качество не соответствует меньшей стороне, используем стандартную логику
                 if data != min_side_quality:
                     quality_str = data.replace('p', '')
@@ -4623,19 +5082,20 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                     # Используем реальную height для формирования формата
                     real_height = get_real_height_for_quality(data, max_width, max_height)
                     fmt = f"bestvideo[height<={real_height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={real_height}]+bestaudio/best[height<={real_height}]/best"
-            
+
             quality_key = data
             callback_query.answer(f"Downloading {data}...")
         except ValueError:
             callback_query.answer("Unknown quality.")
             return
-    
-    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
+
+    clean_url = strip_range_from_url(url)
+    down_and_up_with_format(app, original_message, clean_url, fmt, tags_text, quality_key=quality_key)
+
 
 # ... существующий code ...
 # --- an auxiliary function for downloading with the format ---
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
-
     # We extract the range and other parameters from the original user message
     full_string = message.text or message.caption or ""
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
@@ -4643,21 +5103,26 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None)
     # This mistake should have already been caught earlier, but for safety
     if tag_error:
         wrong, example = tag_error
-        app.send_message(message.chat.id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
+        app.send_message(message.chat.id,
+                         f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}",
+                         reply_to_message_id=message.id)
         return
 
     video_count = video_end_with - video_start_with + 1
-    
+
     # Check if there is a link to Tiktok
     is_tiktok = is_tiktok_url(url)
 
     # We call the main function of loading with the correct parameters of the playlist
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
+    clean_url = strip_range_from_url(url)
+    down_and_up(app, message, clean_url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok,
+                format_override=fmt, quality_key=quality_key)
 
 
 def sanitize_autotag(tag: str) -> str:
     # Leave only letters (any language), numbers and _
     return '#' + re.sub(r'[^\w\d_]', '_', tag.lstrip('#'), flags=re.UNICODE)
+
 
 def generate_final_tags(url, user_tags, info_dict):
     """Tags now include #porn if found by title, description or caption."""
@@ -4707,6 +5172,7 @@ def generate_final_tags(url, user_tags, info_dict):
     logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
     return result
 
+
 # --- new functions for caching ---
 def get_url_hash(url: str) -> str:
     """Returns a hash of the URL for use as a cache key."""
@@ -4715,9 +5181,11 @@ def get_url_hash(url: str) -> str:
     logger.info(f"get_url_hash: '{url}' -> '{hash_result}'")
     return hashlib.md5(url.encode()).hexdigest()
 
+
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None):
     """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
-    logger.info(f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
+    logger.info(
+        f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
     if not quality_key:
         logger.warning(f"save_to_video_cache: quality_key is empty, skipping cache save for URL: {url}")
         return
@@ -4725,7 +5193,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
     if original_text and is_playlist_with_range(original_text):
         logger.info(f"Playlist with range detected, skipping cache save for URL: {url}")
         return
-        
+
     try:
         urls = [normalize_url_for_cache(url)]
         # If it's YouTube, add both options
@@ -4749,6 +5217,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
     except Exception as e:
         logger.error(f"Failed to save to cache: {e}")
 
+
 def get_cached_message_ids(url: str, quality_key: str) -> list:
     """Searches cache for both versions of YouTube link (long/short)."""
     logger.info(f"get_cached_message_ids called: url={url}, quality_key={quality_key}")
@@ -4767,7 +5236,8 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
             ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
             if ids_string:
                 result = [int(msg_id) for msg_id in ids_string.split(',')]
-                logger.info(f"get_cached_message_ids: found cached message_ids {result} for URL: {url}, quality: {quality_key}")
+                logger.info(
+                    f"get_cached_message_ids: found cached message_ids {result} for URL: {url}, quality: {quality_key}")
                 return result
             else:
                 logger.info(f"get_cached_message_ids: no cache found for hash {url_hash}, quality {quality_key}")
@@ -4776,6 +5246,7 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
     except Exception as e:
         logger.error(f"Failed to get from cache: {e}")
         return None
+
 
 def get_cached_qualities(url: str) -> set:
     """He gets all the castle qualities for the URL."""
@@ -4885,6 +5356,7 @@ def normalize_url_for_cache(url: str) -> str:
     logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (fallback)")
     return result
 
+
 def extract_real_url_if_google(url: str) -> str:
     """
     If the link is a redirect via Google, returns the target link.
@@ -4899,6 +5371,7 @@ def extract_real_url_if_google(url: str) -> str:
             # Take the first variant, decode if needed
             return unquote(real_url[0])
     return url
+
 
 def youtube_to_short_url(url: str) -> str:
     """Converts youtube.com/watch?v=... to youtu.be/... while preserving query parameters."""
@@ -4916,6 +5389,7 @@ def youtube_to_short_url(url: str) -> str:
             return base
     return url
 
+
 def youtube_to_long_url(url: str) -> str:
     """Converts youtu.be/... to youtube.com/watch?v=... while preserving query parameters."""
     parsed = urlparse(url)
@@ -4929,18 +5403,26 @@ def youtube_to_long_url(url: str) -> str:
             return base
     return url
 
+
 def is_youtube_url(url: str) -> bool:
     parsed = urlparse(url)
     return 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc
 
+
 # Added playlist caching - separate functions for saving and retrieving playlist cache
-def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: list, message_ids: list, clear: bool = False, original_text: str = None):
-    logger.info(f"save_to_playlist_cache called: playlist_url={playlist_url}, quality_key={quality_key}, video_indices={video_indices}, message_ids={message_ids}, clear={clear}")
+def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: list, message_ids: list,
+                           clear: bool = False, original_text: str = None):
+    logger.info(
+        f"save_to_playlist_cache called: playlist_url={playlist_url}, quality_key={quality_key}, video_indices={video_indices}, message_ids={message_ids}, clear={clear}")
     if not quality_key:
-        logger.warning(f"save_to_playlist_cache: quality_key is empty, skipping cache save for playlist: {playlist_url}")
+        logger.warning(
+            f"save_to_playlist_cache: quality_key is empty, skipping cache save for playlist: {playlist_url}")
         return
-    if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
-        logger.error(f"save_to_playlist_cache: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache write for playlist: {playlist_url}")
+    if not hasattr(Config,
+                   'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in (
+            '', '/', '.'):
+        logger.error(
+            f"save_to_playlist_cache: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache write for playlist: {playlist_url}")
         return
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
@@ -4957,25 +5439,32 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 logger.info(f"Playlist cache cleared for URL hash {url_hash}, quality {quality_key}")
                 continue
             if not message_ids or not video_indices:
-                logger.warning(f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
+                logger.warning(
+                    f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
                 continue
             for i, msg_id in zip(video_indices, message_ids):
                 cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{str(i)}"
                 logger.info(f"save_to_playlist_cache: saving to path: {cache_path}, msg_id: {msg_id}")
                 db_child_by_path(db, cache_path).set(str(msg_id))
-            logger.info(f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")    
+            logger.info(
+                f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
 
+
 def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_indices: list) -> dict:
-    logger.info(f"get_cached_playlist_videos called: playlist_url={playlist_url}, quality_key={quality_key}, requested_indices={requested_indices}")
+    logger.info(
+        f"get_cached_playlist_videos called: playlist_url={playlist_url}, quality_key={quality_key}, requested_indices={requested_indices}")
     if not quality_key:
         logger.warning(f"get_cached_playlist_videos: quality_key is empty for playlist: {playlist_url}")
         return {}
-    if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
-        logger.error(f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty или invalid! Skipping cache read for playlist: {playlist_url}")
+    if not hasattr(Config,
+                   'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in (
+            '', '/', '.'):
+        logger.error(
+            f"get_cached_playlist_videos: PLAYLIST_CACHE_DB_PATH is empty или invalid! Skipping cache read for playlist: {playlist_url}")
         return {}
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
@@ -4994,24 +5483,36 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         found = {}
         logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
         logger.info(f"get_cached_playlist_videos: checking quality keys: {quality_keys}")
+
         for u in set(urls):
             url_hash = get_url_hash(u)
             logger.info(f"get_cached_playlist_videos: checking URL hash: {url_hash}")
             for qk in quality_keys:
                 logger.info(f"get_cached_playlist_videos: checking quality: {qk}")
-                for index in requested_indices:
-                    index_str = str(index)
-                    cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}"
-                    logger.info(f"get_cached_playlist_videos: checking path: {cache_path}")
-                    val = db_child_by_path(db, cache_path).get().val()
-                    if val is not None:
-                        found[index] = int(val)
-                        logger.info(f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {val}")
+
+                # Получаем все данные для данного качества одним запросом
+                try:
+                    cache_data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                    if cache_data and isinstance(cache_data, dict):
+                        # Проверяем только запрошенные индексы
+                        for index in requested_indices:
+                            index_str = str(index)
+                            if index_str in cache_data and cache_data[index_str] is not None:
+                                found[index] = int(cache_data[index_str])
+                                logger.info(
+                                    f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {cache_data[index_str]}")
+                        if found:
+                            logger.info(
+                                f"get_cached_playlist_videos: returning cached videos for indices {list(found.keys())}: {found}")
+                            return found
                     else:
-                        logger.info(f"get_cached_playlist_videos: no cache found for index {index} (quality={qk})")
-        if found:
-            logger.info(f"get_cached_playlist_videos: returning cached videos for indices {list(found.keys())}: {found}")
-            return found
+                        logger.info(
+                            f"get_cached_playlist_videos: no cache data found for url_hash={url_hash}, quality={qk}")
+                except Exception as e:
+                    logger.error(
+                        f"get_cached_playlist_videos: error reading cache for url_hash={url_hash}, quality={qk}: {e}")
+                    continue
+
         logger.info(f"get_cached_playlist_videos: no cache found for any URL/quality variant, returning empty dict")
         return {}
     except Exception as e:
@@ -5019,6 +5520,7 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return {}
+
 
 def get_cached_playlist_qualities(playlist_url: str) -> set:
     """Gets all available qualities for a cached playlist."""
@@ -5033,10 +5535,12 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
         logger.error(f"Failed to get cached playlist qualities: {e}")
         return set()
 
+
 def is_any_playlist_index_cached(playlist_url, quality_key, indices):
     """Checks if at least one index from the range is in the playlist cache."""
     cached = get_cached_playlist_videos(playlist_url, quality_key, indices)
     return bool(cached)
+
 
 def get_clean_playlist_url(url: str) -> str:
     """Returns the clean playlist URL for YouTube (https://www.youtube.com/playlist?list=...) or the original URL for other sites."""
@@ -5049,6 +5553,7 @@ def get_clean_playlist_url(url: str) -> str:
     logger.info(f"get_clean_playlist_url: '{original_url}' -> '{original_url}' (no list parameter)")
     return url
 
+
 def strip_range_from_url(url: str) -> str:
     """Removes a range of the form *1*3 or *1*10000 from the end of the URL."""
     original_url = url
@@ -5057,10 +5562,12 @@ def strip_range_from_url(url: str) -> str:
         logger.info(f"strip_range_from_url: '{original_url}' -> '{result}'")
     return result
 
+
 def db_child_by_path(db, path):
     for part in path.split("/"):
         db = db.child(part)
     return db
+
 
 # round height to popular quality for cache only
 # --- Round height to nearest higher popular quality ---
@@ -5071,12 +5578,14 @@ def ceil_to_popular(h):
             return p
     return popular[-1]
 
+
 # --- Быстрое получение количества кэшированных видео для качества ---
 def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list = None) -> int:
     """
     Возвращает количество закэшированных видео для заданного качества (по количеству ключей в базе),
     учитывая и округлённый quality_key (ceil_to_popular).
     Если передан список индексов, считает только их пересечение с кэшем.
+    Для больших диапазонов (>100) использует быстрый подсчет.
     """
     try:
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
@@ -5092,19 +5601,36 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                     quality_keys.append(rounded)
         except Exception:
             pass
-        
+
         cached_count = 0
         for u in set(urls):
             url_hash = get_url_hash(u)
             for qk in quality_keys:
                 if indices is not None:
-                    # Проверяем каждый индекс отдельно
-                    for index in indices:
-                        index_str = str(index)
-                        val = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
-                        if val is not None:
-                            cached_count += 1
-                            logger.info(f"get_cached_playlist_count: found cached video for index {index} (quality={qk}): {val}")
+                    # Для больших диапазонов используем быстрый подсчет
+                    if len(indices) > 100:
+                        try:
+                            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                            if data and isinstance(data, dict):
+                                # Считаем только индексы из запрошенного диапазона
+                                cached_count = sum(
+                                    1 for index in indices if str(index) in data and data[str(index)] is not None)
+                                logger.info(
+                                    f"get_cached_playlist_count: fast count for large range: {cached_count} cached videos")
+                                return cached_count
+                        except Exception as e:
+                            logger.error(f"get_cached_playlist_count: error in fast count: {e}")
+                            continue
+                    else:
+                        # Для небольших диапазонов проверяем каждый индекс отдельно
+                        for index in indices:
+                            index_str = str(index)
+                            val = db_child_by_path(db,
+                                                   f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
+                            if val is not None:
+                                cached_count += 1
+                                logger.info(
+                                    f"get_cached_playlist_count: found cached video for index {index} (quality={qk}): {val}")
                 else:
                     # Получаем все данные качества и считаем непустые записи
                     try:
@@ -5116,16 +5642,18 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                                 # Если данные в виде списка, считаем непустые элементы
                                 cached_count = sum(1 for item in data if item is not None)
                             else:
-                                logger.warning(f"get_cached_playlist_count: unexpected data type for url_hash={url_hash}, quality={qk}, type={type(data)}")
+                                logger.warning(
+                                    f"get_cached_playlist_count: unexpected data type for url_hash={url_hash}, quality={qk}, type={type(data)}")
                                 continue
                     except Exception as e:
-                        logger.error(f"get_cached_playlist_count: error reading cache for url_hash={url_hash}, quality={qk}: {e}")
+                        logger.error(
+                            f"get_cached_playlist_count: error reading cache for url_hash={url_hash}, quality={qk}: {e}")
                         continue
-                
+
                 if cached_count > 0:
                     logger.info(f"get_cached_playlist_count: returning {cached_count} cached videos for quality {qk}")
                     return cached_count
-        
+
         logger.info(f"get_cached_playlist_count: no cached videos found, returning 0")
         return 0
     except Exception as e:
@@ -5133,17 +5661,16 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
         return 0
 
 
-
-
 def get_quality_by_min_side(width: int, height: int) -> str:
     """
     Определяет качество по меньшей стороне видео.
+    Работает как для горизонтальных, так и для вертикальных видео.
     Например, для 1280×720 возвращает '720p', для 720×1280 тоже '720p'.
     """
     min_side = min(width, height)
     quality_map = {
         144: "144p", 256: "144p",
-        240: "240p", 426: "240p", 
+        240: "240p", 426: "240p",
         480: "480p", 854: "480p",
         540: "540p", 960: "540p",
         576: "576p", 1024: "576p",
@@ -5155,6 +5682,7 @@ def get_quality_by_min_side(width: int, height: int) -> str:
     }
     return quality_map.get(min_side, "best")
 
+
 def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
     """
     Возвращает реальную высоту для заданного качества, учитывая ориентацию видео.
@@ -5162,7 +5690,7 @@ def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
     """
     if quality == "best":
         return height  # Для best используем реальную высоту
-    
+
     try:
         quality_val = int(quality.replace('p', ''))
         # Определяем, какая сторона соответствует выбранному качеству
@@ -5188,5 +5716,6 @@ def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
             return min(heights, key=lambda h: abs(h - height))
     except ValueError:
         return height
+
 
 app.run()
