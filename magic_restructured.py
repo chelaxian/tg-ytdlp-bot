@@ -56,8 +56,6 @@ from magic.user.settings import (
     toggle_mediainfo, get_user_quality_preference
 )
 from magic.handlers.commands import register_command_handlers, get_main_reply_keyboard
-from magic.handlers.settings import register_settings_handlers
-from magic.handlers.quality import register_quality_handlers
 
 # Initialize Pyrogram client
 app = Client(
@@ -99,10 +97,8 @@ refresh_thread = threading.Thread(target=token_refresher)
 refresh_thread.daemon = True
 refresh_thread.start()
 
-# Register all handlers
+# Register command handlers
 register_command_handlers(app)
-register_settings_handlers(app)
-register_quality_handlers(app)
 
 # Decorator for adding reply keyboard
 def reply_with_keyboard(func):
