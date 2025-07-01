@@ -1,13 +1,26 @@
-#pyrogram is outdated so we'll use last fork
+# Core Telegram Bot Framework (using updated fork)
 git+https://github.com/KurimuzonAkuma/pyrogram.git#egg=kurigram
+
+# HTTP and Networking
 urllib3==1.26.20
 requests<3,>=2.8.1
+
+# Firebase Integration
 Pyrebase4==4.8.0
+
+# Telegram Crypto
 TgCrypto>=1.2.5
+
+# Video Download and Processing
 yt-dlp>=2023.10.13
 ffmpeg
 ffmpeg-python>=0.2.0
 moviepy==1.0.3
+
+# Utilities
 python-dotenv>=1.0.0
 tldextract
 pymediainfo
+
+# Note: This requirements.txt is compatible with the new modular architecture
+# All dependencies support the refactored codebase structure
