@@ -1,6 +1,13 @@
 """Caching functions"""
 import logging
 import hashlib
+from config import Config
+from magic.processing.url_parser import (
+    normalize_url_for_cache, is_youtube_url, youtube_to_short_url, youtube_to_long_url,
+    strip_range_from_url, is_playlist_with_range
+)
+from magic.download.quality import ceil_to_popular
+from magic.database.firebase import db, db_child_by_path
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +18,7 @@ def get_url_hash(url: str) -> str:
     hash_result = hashlib.md5(url.encode()).hexdigest()
     logger.info(f"get_url_hash: '{url}' -> '{hash_result}'")
     return hashlib.md5(url.encode()).hexdigest()
+
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None):
     """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
@@ -55,7 +63,6 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
     except Exception as e:
         logger.error(f"Failed to save to cache: {e}")
 
-
 def get_cached_message_ids(url: str, quality_key: str) -> list:
     """Searches cache for both versions of YouTube link (long/short)."""
     logger.info(f"get_cached_message_ids called: url={url}, quality_key={quality_key}")
@@ -88,8 +95,6 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
     except Exception as e:
         logger.error(f"Failed to get from cache: {e}")
         return None
-
-
 
 def get_cached_qualities(url: str) -> set:
     """He gets all the castle qualities for the URL."""

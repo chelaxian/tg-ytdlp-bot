@@ -3,6 +3,8 @@ import logging
 import time
 import threading
 import math
+import os
+import shutil
 from types import SimpleNamespace
 from config import Config
 import pyrebase
@@ -39,6 +41,17 @@ else:
     logger.error("No idToken received!")
     raise Exception("idToken is empty.")
 
+# Get the base database object
+base_db = firebase.database()
+
+# Additional check: Execute a test GET request to the root node
+try:
+    test_data = base_db.get(idToken)
+    logger.info("Test GET operation succeeded. Data:", test_data.val())
+except Exception as e:
+    logger.error("Test GET operation failed:", e)
+
+# Define a wrapper class to automatically pass the idToken for all database operations
 class AuthedDB:
     def __init__(self, db, token):
         self.db = db
@@ -63,22 +76,8 @@ class AuthedDB:
         return self.db.remove(self.token, *args, **kwargs)
 
 
-# Create authenticated database instance  
-db = AuthedDB(firebase.database(), idToken)
-
-# Initialize database with test data
-db_path = Config.BOT_DB_PATH.rstrip("/") if hasattr(Config, 'BOT_DB_PATH') else "bot/tgytdlp_bot"
-_format = {"ID": "0", "timestamp": math.floor(time.time())}
-try:
-    # Try writing data to the path: bot/tgytdlp_bot/users/0
-    result = db.child(f"{db_path}/users/0").set(_format)
-    logger.info("Data written successfully. Result:", result)
-except Exception as e:
-    logger.error("Error writing data to Firebase:", e)
-
-
+# Function to periodically refresh the idToken using the refreshToken
 def token_refresher():
-    """Function to periodically refresh the idToken using the refreshToken"""
     global db, user
     while True:
         # Sleep for 50 minutes (3000 seconds)
@@ -97,69 +96,82 @@ def token_refresher():
 token_thread = threading.Thread(target=token_refresher, daemon=True)
 token_thread.start()
 
+# Create authenticated database instance  
+db = AuthedDB(base_db, user["idToken"])
+
+# Initialize database with test data
+try:
+    db_path = Config.BOT_DB_PATH.rstrip("/")
+    _format = {"ID": "0", "timestamp": math.floor(time.time())}
+    # Try writing data to the path: bot/tgytdlp_bot/users/0
+    result = db.child(f"{db_path}/users/0").set(_format)
+    logger.info("Data written successfully. Result:", result)
+except Exception as e:
+    logger.error("Error writing data to Firebase:", e)
+    raise
+
 
 def write_logs(message, video_url, video_title):
-    """Write logs to Firebase"""
-    try:
-        user_id = message.chat.id
-        current_time = time.time()
-        data = {
-            "user_id": user_id,
-            "video_url": video_url,
-            "video_title": video_title,
-            "timestamp": current_time
-        }
-        db.child("logs").push(data)
-    except Exception as e:
-        logger.error(f"Error writing logs: {e}")
+    ts = str(math.floor(time.time()))
+    data = {"ID": str(message.chat.id), "timestamp": ts,
+            "name": message.chat.first_name, "urls": str(video_url), "title": video_title}
+    db.child("bot").child("tgytdlp_bot").child("logs").child(str(message.chat.id)).child(str(ts)).set(data)
+    logger.info("Log for user added")
 
 def fake_message(text, user_id, command=None):
-    """Create fake message object"""
-    class FakeMessage:
-        def __init__(self, text, user_id):
-            self.text = text
-            self.chat = SimpleNamespace(id=user_id, first_name=f"User{user_id}")
-            self.from_user = SimpleNamespace(first_name=f"User{user_id}")
-            self.id = int(time.time())
-    
-    return FakeMessage(text, user_id)
-
-def is_user_blocked(message):
-    """Check if user is blocked"""
-    try:
-        user_id = message.chat.id
-        blocked_users = db.child("blocked_users").get().val() or {}
-        return str(user_id) in blocked_users
-    except:
-        return False
+    m = SimpleNamespace()
+    m.chat = SimpleNamespace()
+    m.chat.id = user_id
+    m.chat.first_name = "User"
+    m.text = text
+    m.first_name = m.chat.first_name
+    m.reply_to_message = None
+    m.id = 0
+    if command is not None:
+        m.command = command
+    return m
 
 def check_user(message):
-    """Check user in database"""
-    try:
-        user_id = message.chat.id
-        user_data = {
-            "user_id": user_id,
-            "first_name": message.chat.first_name,
-            "last_seen": time.time()
-        }
-        db.child("users").child(str(user_id)).set(user_data)
-        return True
-    except Exception as e:
-        logger.error(f"Error checking user: {e}")
-        return False
+    """Checking Users are in Main User Directory in DB"""
+    user_id_str = str(message.chat.id)
 
-def is_user_in_channel(app, message):
-    """Check if user is in channel"""
+    # Create The User Folder Inside The "Users" Directory
+    from magic.utils.filesystem import create_directory
+    user_dir = os.path.join("users", user_id_str)
+    create_directory(user_dir)
+
+    # Updated path for cookie.txt
+    cookie_src = os.path.join(os.getcwd(), "TXT", "cookie.txt")
+    cookie_dest = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
+
+    # Copy Cookie.txt to the User's Folder if Not Already Present
+    if os.path.exists(cookie_src) and not os.path.exists(cookie_dest):
+        shutil.copy(cookie_src, cookie_dest)
+
+    # Register the User in the Database if Not Already Registered
     try:
-        if not hasattr(Config, 'CHANNEL_ID') or not Config.CHANNEL_ID:
-            return True
-        
-        user_id = message.chat.id
-        member = app.get_chat_member(Config.CHANNEL_ID, user_id)
-        return member.status in [ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
-    except:
-        return False
+        user_db = db.child("bot").child("tgytdlp_bot").child("users").get().each()
+        users = [user.key() for user in user_db] if user_db else []
+        if user_id_str not in users:
+            data = {"ID": message.chat.id, "timestamp": math.floor(time.time())}
+            db.child("bot").child("tgytdlp_bot").child("users").child(user_id_str).set(data)
+    except Exception as e:
+        logger.error(f"Error registering user in database: {e}")
 
 def db_child_by_path(db, path):
-    """Get database child by path"""
-    return db.child(path)
+    for part in path.split("/"):
+        db = db.child(part)
+    return db
+
+
+# Initialize database structure
+try:
+    _format = {"ID": '0', "timestamp": math.floor(time.time())}
+    db.child("bot").child("tgytdlp_bot").child("users").child("0").set(_format)
+    db.child("bot").child("tgytdlp_bot").child("blocked_users").child("0").set(_format)
+    db.child("bot").child("tgytdlp_bot").child("unblocked_users").child("0").set(_format)
+    logger.info("Database initialized successfully")
+except Exception as e:
+    logger.error(f"Error initializing database structure: {e}")
+
+logger.info("Firebase module loaded")

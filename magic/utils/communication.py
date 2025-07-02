@@ -3,6 +3,7 @@ import logging
 import time
 import re
 import threading
+from pyrogram import enums
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -34,12 +35,14 @@ def progress_bar(*args):
         return
     current, total, speed, eta, file_size, user_id, msg_id, status_text = args[:8]
     try:
+        from magic.handlers.commands import app
         app.edit_message_text(user_id, msg_id, status_text)
     except Exception as e:
         logger.error(f"Error updating progress: {e}")
 
 # Helper function for safe message sending with flood wait handling
 def safe_send_message(chat_id, text, **kwargs):
+    from magic.handlers.commands import app
     # Add reply_to_message_id if message is passed
     if 'reply_to_message_id' not in kwargs and 'message' in kwargs:
         kwargs['reply_to_message_id'] = kwargs['message'].id
@@ -79,6 +82,7 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
     Returns:
         The message objects or None if forwarding failed
     """
+    from magic.handlers.commands import app
     max_retries = 3
     retry_delay = 5
 
@@ -117,6 +121,7 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
     Returns:
         The message object or None if editing failed
     """
+    from magic.handlers.commands import app
     max_retries = 3
     retry_delay = 5
 
@@ -169,6 +174,7 @@ def safe_delete_messages(chat_id, message_ids, **kwargs):
     Returns:
         True on success or None if deletion failed
     """
+    from magic.handlers.commands import app
     max_retries = 3
     retry_delay = 5
 
@@ -305,6 +311,11 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
     return cycle_thread
 
 def send_mediainfo_if_enabled(user_id, file_path, message):
+    from magic.user.settings import is_mediainfo_enabled
+    from magic.handlers.commands import app, get_mediainfo_cli
+    from pyrogram.types import ReplyParameters
+    import os
+    
     if is_mediainfo_enabled(user_id):
         try:
             # Extract msg_id safely
@@ -329,113 +340,4 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
             logger.error(f"Error MediaInfo: {e}")
             send_to_all(message, f"❌ Error sending MediaInfo: {e}")
 
-def truncate_caption(
-    title: str,
-    description: str,
-    url: str,
-    tags_text: str = '',
-    max_length: int = 1000  # Reduced from 1024 to be safe with encoding issues
-) -> Tuple[str, str, str, str, str, bool]:
-    """
-    Returns: (title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated)
-    """
-    title_html = f'<b>{title}</b>' if title else ''
-    # Pattern for finding timestamps at the beginning of a line (00:00, 0:00:00, 0.00, etc.)
-    timestamp_pattern = r'^\s*(\d{1,2}:\d{2}(?::\d{2})?|\d{1,2}\.\d{2}(?:\.\d{2})?)\s+.*'
 
-    lines = description.split('\n') if description else []
-    pre_block_lines = []
-    post_block_lines = []
-
-    # Split lines into timestamps and main text
-    for line in lines:
-        if re.match(timestamp_pattern, line):
-            pre_block_lines.append(line)
-        else:
-            post_block_lines.append(line)
-    
-    pre_block_str = '\n'.join(pre_block_lines)
-    post_block_str = '\n'.join(post_block_lines).strip()
-
-    tags_block = (tags_text.strip() + '\n') if tags_text and tags_text.strip() else ''
-    # --- Add bot name next to the link ---
-    bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
-    bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
-    link_block = f'<a href="{url}">🔗 Video URL</a>{bot_mention}'
-    
-    was_truncated = False
-    
-    # Calculate constant overhead more accurately
-    overhead = len(tags_block) + len(link_block)
-    if title_html:
-        overhead += len(title_html) + 2 # for '\n\n'
-    if pre_block_str:
-        overhead += len(pre_block_str) + 1 # for '\n'
-    
-    # Calculate limit for blockquote (taking into account <blockquote> tags)
-    blockquote_overhead = len('<blockquote expandable></blockquote>') + 1 # for '\n'
-    blockquote_limit = max_length - overhead - blockquote_overhead
-    
-    # Ensure we have some space for content
-    if blockquote_limit <= 0:
-        # If no space for blockquote, truncate everything except essential parts
-        if title_html:
-            title_html = title_html[:max_length-10] + '...'
-        pre_block_str = ''
-        blockquote_content = ''
-        was_truncated = True
-    else:
-        blockquote_content = post_block_str
-        if len(blockquote_content) > blockquote_limit:
-            blockquote_content = blockquote_content[:blockquote_limit - 4] + '...'
-            was_truncated = True
-
-    # Final check and possible truncation of pre_block
-    current_length = overhead + len(blockquote_content) + blockquote_overhead
-    if current_length > max_length:
-        # Calculate how much space we can give to pre_block
-        pre_block_limit = max_length - (overhead - len(pre_block_str) - 1) - len(blockquote_content) - blockquote_overhead
-        if pre_block_limit > 0 and pre_block_limit < len(pre_block_str):
-            pre_block_str = pre_block_str[:pre_block_limit-4] + '...'
-            was_truncated = True
-        else: # if even with truncated pre_block it does not fit, truncate everything
-             pre_block_str = ''
-
-    if pre_block_str:
-        pre_block_str += '\n'
-
-    # Assembly caption
-    cap = ''
-    if title_html:
-        cap += title_html + '\n\n'
-    if pre_block_str:
-        cap += pre_block_str + '\n'
-    cap += f'<blockquote expandable>{blockquote_content}</blockquote>\n'
-    if tags_block:
-        cap += tags_block
-    cap += link_block
-    
-    # Final safety check - ensure we never exceed max_length
-    if len(cap) > max_length:
-        # Emergency truncation - keep only essential parts
-        essential_parts = []
-        if title_html:
-            essential_parts.append(title_html)
-        if tags_block:
-            essential_parts.append(tags_block.strip())
-        if link_block:
-            essential_parts.append(link_block)
-        
-        cap = '\n\n'.join(essential_parts)
-        if len(cap) > max_length:
-            # More aggressive truncation - remove HTML tags for calculation
-            plain_text = re.sub(r'<[^>]+>', '', cap)
-            if len(plain_text) > max_length:
-                # Truncate plain text and rebuild HTML
-                truncated_text = plain_text[:max_length-10] + '...'
-                cap = truncated_text
-            else:
-                cap = cap[:max_length-3] + '...'
-        was_truncated = True
-    
-    return title_html, pre_block_str, blockquote_content, tags_block, link_block, was_truncated

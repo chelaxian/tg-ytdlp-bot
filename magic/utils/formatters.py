@@ -2,7 +2,9 @@
 Formatting utilities
 """
 import logging
+import re
 from typing import Tuple
+from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +45,6 @@ def truncate_caption(
     """
     Returns: (title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated)
     """
-    import re
-    from config import Config
-    
     title_html = f'<b>{title}</b>' if title else ''
     # Pattern for finding timestamps at the beginning of a line (00:00, 0:00:00, 0.00, etc.)
     timestamp_pattern = r'^\s*(\d{1,2}:\d{2}(?::\d{2})?|\d{1,2}\.\d{2}(?:\.\d{2})?)\s+.*'

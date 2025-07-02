@@ -26,7 +26,7 @@ class Config(object):
     # EX: "https://path/to/your/cookie-file.txt"
     COOKIE_URL = ""
     # Do not chanege this
-    COOKIE_FILE_PATH = "cookies.txt"
+    COOKIE_FILE_PATH = "TXT/cookies.txt"
     # Do not chanege this
     PIC_FILE_PATH = "pic.jpg"
     #######################################################
@@ -222,9 +222,9 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
     BLACK_LIST = []
     #BLACK_LIST = ["pornhub", "phncdn.com", "xvideos", "xhcdn.com", "xhamster"]
     # Paths to domain and keyword lists
-    PORN_DOMAINS_FILE = "porn_domains.txt"
-    PORN_KEYWORDS_FILE = "porn_keywords.txt"
-    SUPPORTED_SITES_FILE = "supported_sites.txt"
+    PORN_DOMAINS_FILE = "TXT/porn_domains.txt"
+    PORN_KEYWORDS_FILE = "TXT/porn_keywords.txt"
+    SUPPORTED_SITES_FILE = "TXT/supported_sites.txt"
     # --- Whitelist of domains that are not considered porn ---
     WHITELIST = [
         'dailymotion.com', 'sky.com', 'xbox.com', 'youtube.com', 'youtu.be', '1tv.ru', 'x.ai'

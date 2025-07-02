@@ -1,7 +1,28 @@
 """Admin handlers"""
 import logging
+import os
+import time
+import math
+from datetime import datetime
+from pyrogram import filters
+from magic.database.firebase import db
+from magic.utils.helpers import reply_with_keyboard
+from magic.utils.communication import send_to_all, send_to_user, send_to_logger
+from magic.utils.filesystem import create_directory
+from magic.download.cache import normalize_url_for_cache, get_url_hash
+from magic.processing.url_parser import get_clean_playlist_url, is_youtube_url, youtube_to_short_url, youtube_to_long_url
+from magic.database.firebase import db_child_by_path
+from magic.utils.formatters import TimeFormatter
+from config import Config
 
 logger = logging.getLogger(__name__)
+
+# Global variable for starting point
+from magic.utils.filesystem import starting_point
+
+# Import app reference
+from magic.handlers.commands import app
+
 
 # Getting the User Logs
 @app.on_message(filters.command("log") & filters.private)
@@ -54,6 +75,7 @@ def get_user_log(app, message):
                           caption=f"{user_id} - all logs")
     except:
         send_to_all(message, "**❌ User did not download any content yet...** Not exist in logs")
+
 
 @app.on_message(filters.command("uncache") & filters.private)
 @reply_with_keyboard
@@ -112,6 +134,7 @@ def uncache_command(app, message):
     except Exception as e:
         send_to_all(message, f"❌ Error clearing cache: {e}")
 
+
 # SEND BRODCAST Message to All Users
 @app.on_message(filters.command("broadcast") & filters.private)
 @reply_with_keyboard
@@ -168,6 +191,7 @@ def send_promo_message(app, message):
         send_to_all(message, "**❌ Cannot send the promo message. Try replying to a message\nOr some error occurred**")
         send_to_logger(message, f"Failed to broadcast message: {e}")
 
+
 # Block User
 @app.on_message(filters.command("block_user") & filters.private)
 @reply_with_keyboard
@@ -196,6 +220,7 @@ def block_user(app, message):
     else:
         send_to_all(message, "🚫 Sorry! You are not an admin")
 
+
 # Unblock User
 @app.on_message(filters.command("unblock_user") & filters.private)
 @reply_with_keyboard
@@ -223,16 +248,18 @@ def unblock_user(app, message):
     else:
         send_to_all(message, "🚫 Sorry! You are not an admin")
 
+
 # Check Runtime
 @app.on_message(filters.command("runtime") & filters.private)
 @reply_with_keyboard
-def check_runtime(message):
+def check_runtime(app, message):
     if int(message.chat.id) in Config.ADMIN:
         now = time.time()
         now = math.floor((now - starting_point[0]) * 1000)
         now = TimeFormatter(now)
         send_to_user(message, f"⏳ __Bot running time -__ **{now}**")
     pass
+
 
 # Get All Kinds of Users (Users/ Blocked/ Unblocked)
 @app.on_message(filters.command("all_blocked", "all_unblocked", "all_users") & filters.private)
@@ -290,3 +317,14 @@ def get_user_details(app, message):
                       caption=f"{Config.BOT_NAME} - all {path}")
 
     logger.info(mod)
+
+
+# Checking user is Blocked or not
+def is_user_blocked(message):
+    blocked = db.child("bot").child("tgytdlp_bot").child("blocked_users").get().each()
+    blocked_users = [int(b_user.key()) for b_user in blocked]
+    if int(message.chat.id) in blocked_users:
+        send_to_all(message, "🚫 You are banned from the bot!")
+        return True
+    else:
+        return False

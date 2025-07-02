@@ -6,6 +6,7 @@ import requests
 import tldextract
 from urllib.parse import urlparse
 from config import Config
+from magic.utils.filesystem import create_directory
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,33 @@ logger = logging.getLogger(__name__)
 PORN_DOMAINS = set()
 SUPPORTED_SITES = set()
 PORN_KEYWORDS = set()
+
+# --- loading lists at start ---
+def load_domain_lists():
+    global PORN_DOMAINS, SUPPORTED_SITES, PORN_KEYWORDS
+    try:
+        with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_DOMAINS)} domains from {Config.PORN_DOMAINS_FILE}. Example: {list(PORN_DOMAINS)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.PORN_DOMAINS_FILE}: {e}")
+        PORN_DOMAINS = set()
+    try:
+        with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_KEYWORDS)} keywords from {Config.PORN_KEYWORDS_FILE}. Example: {list(PORN_KEYWORDS)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.PORN_KEYWORDS_FILE}: {e}")
+        PORN_KEYWORDS = set()
+    try:
+        with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(SUPPORTED_SITES)} supported sites from {Config.SUPPORTED_SITES_FILE}. Example: {list(SUPPORTED_SITES)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.SUPPORTED_SITES_FILE}: {e}")
+        SUPPORTED_SITES = set()
+
+load_domain_lists()
 
 # --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
@@ -106,6 +134,34 @@ def save_user_tags(user_id, tags):
             for tag in new_tags:
                 f.write(tag + "\n")
 
+
+
+
+
+
+    global PORN_DOMAINS, SUPPORTED_SITES, PORN_KEYWORDS
+    try:
+        with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_DOMAINS)} domains from {Config.PORN_DOMAINS_FILE}. Example: {list(PORN_DOMAINS)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.PORN_DOMAINS_FILE}: {e}")
+        PORN_DOMAINS = set()
+    try:
+        with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_KEYWORDS)} keywords from {Config.PORN_KEYWORDS_FILE}. Example: {list(PORN_KEYWORDS)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.PORN_KEYWORDS_FILE}: {e}")
+        PORN_KEYWORDS = set()
+    try:
+        with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(SUPPORTED_SITES)} supported sites from {Config.SUPPORTED_SITES_FILE}. Example: {list(SUPPORTED_SITES)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.SUPPORTED_SITES_FILE}: {e}")
+        SUPPORTED_SITES = set()
+
 def extract_youtube_id(url: str) -> str:
     """
     It extracts YouTube Video ID from different link formats.
@@ -135,38 +191,6 @@ def download_thumbnail(video_id: str, dest: str) -> None:
             return
     raise RuntimeError("Failed to download thumbnail or it is too big")
 
-# --- global lists of domains and keywords ---
-PORN_DOMAINS = set()
-SUPPORTED_SITES = set()
-PORN_KEYWORDS = set()
-
-# --- loading lists at start ---
-def load_domain_lists():
-    global PORN_DOMAINS, SUPPORTED_SITES, PORN_KEYWORDS
-    try:
-        with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
-            PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
-        logger.info(f"Loaded {len(PORN_DOMAINS)} domains from {Config.PORN_DOMAINS_FILE}. Example: {list(PORN_DOMAINS)[:5]}")
-    except Exception as e:
-        logger.error(f"Failed to load {Config.PORN_DOMAINS_FILE}: {e}")
-        PORN_DOMAINS = set()
-    try:
-        with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
-            PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
-        logger.info(f"Loaded {len(PORN_KEYWORDS)} keywords from {Config.PORN_KEYWORDS_FILE}. Example: {list(PORN_KEYWORDS)[:5]}")
-    except Exception as e:
-        logger.error(f"Failed to load {Config.PORN_KEYWORDS_FILE}: {e}")
-        PORN_KEYWORDS = set()
-    try:
-        with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
-            SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
-        logger.info(f"Loaded {len(SUPPORTED_SITES)} supported sites from {Config.SUPPORTED_SITES_FILE}. Example: {list(SUPPORTED_SITES)[:5]}")
-    except Exception as e:
-        logger.error(f"Failed to load {Config.SUPPORTED_SITES_FILE}: {e}")
-        SUPPORTED_SITES = set()
-
-load_domain_lists()
-
 # --- an auxiliary function for extracting a domain ---
 def extract_domain_parts(url):
     try:
@@ -193,13 +217,8 @@ def extract_domain_parts(url):
              return [parsed.netloc.lower()], parsed.netloc.lower()
         return [url.lower()], url.lower()
 
-
-    auto_tags = [t for t in auto_tags if t.lower() not in user_tags_lower]
-    return auto_tags
-
 # --- White list of domains that are not considered porn ---
 # Now we take from config.py
-
 def is_porn_domain(domain_parts):
     # If any suffix domain on a white list is not porn
     for dom in domain_parts:
@@ -214,12 +233,12 @@ def is_porn_domain(domain_parts):
 # --- a new function for checking for porn ---
 def is_porn(url, title, description, caption=None):
     """
-    Checks content for pornography by domain and keywords (substring search) in title, description and caption.
-    If the domain or subdomain is found in WHITELIST, it immediately returns False.
+    Checks content for pornography by domain and keywords (word-boundary regex search)
+    in title, description and caption. Domain whitelist has highest priority.
     """
+    # 1. Проверка домена
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
-    #First, check WHITELIST
     for dom in domain_parts:
         if dom in Config.WHITELIST:
             logger.info(f"is_porn: domain in WHITELIST: {dom}")
@@ -227,29 +246,35 @@ def is_porn(url, title, description, caption=None):
     if is_porn_domain(domain_parts):
         logger.info(f"is_porn: domain match: {domain_parts}")
         return True
-    title_lower = title.lower() if title else ""
+
+    # 2. Подготовка текста
+    title_lower       = title.lower()       if title       else ""
     description_lower = description.lower() if description else ""
-    caption_lower = caption.lower() if caption else ""
-    logger.debug(f"is_porn check for url: {url}")
-    logger.debug(f"is_porn title: '{title_lower}'")
-    logger.debug(f"is_porn description: '{description_lower}'")
-    logger.debug(f"is_porn caption: '{caption_lower}'")
-    logger.debug(f"is_porn keywords being checked: {PORN_KEYWORDS}")
-    if not title_lower and not description_lower and not caption_lower:
-        logger.info("is_porn: all fields empty")
+    caption_lower     = caption.lower()     if caption     else ""
+    if not (title_lower or description_lower or caption_lower):
+        logger.info("is_porn: all text fields empty")
         return False
-    for keyword in PORN_KEYWORDS:
-        if not keyword:
-            continue
-        # Split text into words and check for exact word matches
-        title_words = title_lower.split()
-        description_words = description_lower.split()
-        caption_words = caption_lower.split()
-        
-        if (keyword in title_words or keyword in description_words or keyword in caption_words):
-            logger.info(f"is_porn: found match: {keyword}")
-            return True
-    logger.info("is_porn: no matches found")
+
+    # 3. Собираем единый текст для поиска
+    combined = " ".join([title_lower, description_lower, caption_lower])
+    logger.debug(f"is_porn combined text: '{combined}'")
+    logger.debug(f"is_porn keywords: {PORN_KEYWORDS}")
+
+    # 4. Готовим regex-паттерн со списком ключевых слов
+    kws = [re.escape(kw.lower()) for kw in PORN_KEYWORDS if kw.strip()]
+    if not kws:
+        # нет ни одного валидного ключа
+        return False
+
+    # границы слов (\b) + флаг IGNORECASE
+    pattern = re.compile(r"\b(" + "|".join(kws) + r")\b", flags=re.IGNORECASE)
+
+    # 5. Ищем совпадение
+    if pattern.search(combined):
+        logger.info(f"is_porn: keyword match (regex): {pattern.pattern}")
+        return True
+
+    logger.info("is_porn: no keyword matches found")
     return False
 
 def sanitize_autotag(tag: str) -> str:
@@ -303,5 +328,42 @@ def generate_final_tags(url, user_tags, info_dict):
     result = ' '.join(final_tags)
     logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
     return result
+
+# --- an auxiliary function for searching for car tues ---
+def get_auto_tags(url, user_tags):
+    auto_tags = set()
+    clean_url = get_clean_url_for_tagging(url)
+    url_l = clean_url.lower()
+    domain_parts, main_domain = extract_domain_parts(url_l)
+    parsed = urlparse(clean_url)
+    ext = tldextract.extract(clean_url)
+    second_level = ext.domain.lower() if ext.domain else ''
+    full_domain = f"{ext.domain}.{ext.suffix}".lower() if ext.domain and ext.suffix else ''
+    # 1. Porn Check (for all the suffixes of the domain, but taking into account the whitelist)
+    if is_porn_domain(domain_parts):
+        auto_tags.add(sanitize_autotag('porn'))
+    # 2. YouTube Check (including YouTu.be)
+    if ("youtube.com" in url_l or "youtu.be" in url_l):
+        auto_tags.add("#youtube")
+    # 3. Twitter/X check (exact domain match)
+    twitter_domains = {"twitter.com", "x.com", "t.co"}
+    domain = parsed.netloc.lower()
+    if domain in twitter_domains:
+        auto_tags.add("#twitter")
+    # 4. Boosty check (boosty.to, boosty.com)
+    if ("boosty.to" in url_l or "boosty.com" in url_l):
+        auto_tags.add("#boosty")
+        auto_tags.add("#porn")
+    # 5. Service tag for supported sites (by full domain or 2nd level)
+    for site in SUPPORTED_SITES:
+        site_l = site.lower()
+        if second_level == site_l or full_domain == site_l:
+            service_tag = '#' + re.sub(r'[^\w\d_]', '', site_l)
+            auto_tags.add(service_tag)
+            break
+    # Do not duplicate user tags
+    user_tags_lower = set(t.lower() for t in user_tags)
+    auto_tags = [t for t in auto_tags if t.lower() not in user_tags_lower]
+    return auto_tags
 
 

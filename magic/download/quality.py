@@ -1,5 +1,14 @@
 """Quality management functions"""
 import logging
+import os
+import yt_dlp
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from config import Config
+from magic.processing.url_parser import is_playlist_with_range, extract_url_range_tags, get_clean_playlist_url
+from magic.download.cache import get_cached_playlist_qualities, get_cached_qualities, get_cached_playlist_count
+from magic.utils.helpers import get_main_reply_keyboard, get_user_split_size
+from magic.utils.filesystem import create_directory
+from magic.processing.tags import generate_final_tags, download_thumbnail
 
 logger = logging.getLogger(__name__)
 
@@ -243,6 +252,66 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         send_to_logger(message, f"Always Ask menu error for {url}: {e}")
         return
 
+def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
+    user_id = callback_query.from_user.id
+    tags = tags_text.split() if tags_text else []
+    if data == "mp3":
+        callback_query.answer("Downloading audio...")
+        # Extract playlist parameters from the original message
+        full_string = original_message.text or original_message.caption or ""
+        _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
+        video_count = video_end_with - video_start_with + 1
+        down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+        return
+    
+    # Logic for forming the format with the real height
+    if data == "best":
+        callback_query.answer("Downloading best quality...")
+        fmt = "bestvideo+bestaudio/best"
+        quality_key = "best"
+    else:
+        try:
+            # Get information about the video to determine the sizes
+            info = get_video_formats(url, user_id)
+            formats = info.get('formats', [])
+            
+            # Find the format with the highest quality to determine the sizes
+            max_width = 0
+            max_height = 0
+            for f in formats:
+                if f.get('width') and f.get('height'):
+                    if f['width'] > max_width:
+                        max_width = f['width']
+                    if f['height'] > max_height:
+                        max_height = f['height']
+            
+            # If the sizes are not found, use the standard logic
+            if max_width == 0 or max_height == 0:
+                quality_str = data.replace('p', '')
+                quality_val = int(quality_str)
+                fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+            else:
+                # Determine the quality by the smaller side
+                min_side_quality = get_quality_by_min_side(max_width, max_height)
+                
+                # If the selected quality does not match the smaller side, use the standard logic
+                if data != min_side_quality:
+                    quality_str = data.replace('p', '')
+                    quality_val = int(quality_str)
+                    fmt = f"bestvideo[height<={quality_val}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
+                else:
+                    # Use the real height to form the format
+                    real_height = get_real_height_for_quality(data, max_width, max_height)
+                    fmt = f"bestvideo[height<={real_height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={real_height}]+bestaudio/best[height<={real_height}]/best"
+            
+            quality_key = data
+            callback_query.answer(f"Downloading {data}...")
+        except ValueError:
+            callback_query.answer("Unknown quality.")
+            return
+    
+    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
+
 
 def get_quality_by_min_side(width: int, height: int) -> str:
     """
@@ -264,7 +333,6 @@ def get_quality_by_min_side(width: int, height: int) -> str:
         4320: "4320p", 7680: "4320p"
     }
     return quality_map.get(min_side, "best")
-
 
 def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
     """
@@ -299,7 +367,6 @@ def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
             return min(heights, key=lambda h: abs(h - height))
     except ValueError:
         return height
-
 
 # round height to popular quality for cache only
 # --- Round height to nearest higher popular quality ---

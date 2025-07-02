@@ -12,6 +12,7 @@ from pyrogram import enums
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from moviepy.editor import VideoFileClip
 from config import Config
+from magic.utils.formatters import humanbytes
 
 logger = logging.getLogger(__name__)
 
@@ -26,76 +27,92 @@ def send_videos(
     full_video_title: str,
     tags_text: str = '',
 ):
-    """Send video with proper caption formatting"""
-    # Import needed functions
-    from magic.utils.communication import safe_forward_messages, progress_bar
-    from magic.utils.formatters import truncate_caption, TimeFormatter
-    
-    user_id = message.chat.id
-    text = message.text or ""
-    m = re.search(r'https?://[^\s\*]+', text)
-    video_url = m.group(0) if m else ""
-    temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
-    was_truncated = False
+    """
+    Function to send video with all necessary parameters
+    """
     try:
-        # Logic simplified: use tags that were already generated in down_and_up.
-        # Use original title for caption, but truncated description
-        title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
-            title=caption,  # Original title for caption
-            description=full_video_title,  # Full description to be truncated
-            url=video_url,
-            tags_text=tags_text, # Use final tags for calculation
-            max_length=1000  # Reduced for safety
-        )
-        # Form HTML caption: title outside the quote, timecodes outside the quote, description in the quote, tags and link outside the quote
-        cap = ''
-        if title_html:
-            cap += title_html + '\n\n'
-        if pre_block:
-            cap += pre_block + '\n'
-        cap += f'<blockquote expandable>{blockquote_content}</blockquote>\n'
-        if tags_block:
-            cap += tags_block
-        cap += link_block
-        
-        # Import app from main
+        # Import here to avoid circular import
+        from magic.utils.communication import send_to_all, send_to_logger
+
+        # First check if the video file actually exists and is valid
+        if not os.path.exists(video_abs_path):
+            logger.error(f"Video file does not exist: {video_abs_path}")
+            send_to_all(message, f"❌ Video file not found: {os.path.basename(video_abs_path)}")
+            return False
+
+        # Check if file size is reasonable (not 0 bytes)
+        file_size = os.path.getsize(video_abs_path)
+        if file_size == 0:
+            logger.error(f"Video file is empty (0 bytes): {video_abs_path}")
+            send_to_all(message, f"❌ Video file is empty: {os.path.basename(video_abs_path)}")
+            return False
+
+        # Import app here to avoid circular import
         from magic.handlers.commands import app
         
-        video_msg = app.send_video(
-            chat_id=user_id,
-            video=video_abs_path,
-            caption=cap,
-            duration=duration,
-            width=640,
-            height=360,
-            supports_streaming=True,
-            thumb=thumb_file_path,
-            progress=progress_bar,
-            progress_args=(
-                user_id,
-                msg_id,
-                f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
-            ),
-            reply_to_message_id=message.id,
-            parse_mode=enums.ParseMode.HTML
-        )
-        if was_truncated and full_video_title:
-            with open(temp_desc_path, "w", encoding="utf-8") as f:
-                f.write(full_video_title)
-        if was_truncated and os.path.exists(temp_desc_path):
-            try:
-                user_doc_msg = app.send_document(
-                    chat_id=user_id,
-                    document=temp_desc_path,
-                    caption="<blockquote>📝 if you want to change video caption - reply to video with new text</blockquote>",
-                    reply_to_message_id=message.id,
-                    parse_mode=enums.ParseMode.HTML
-                )
-                safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
-            except Exception as e:
-                logger.error(f"Error sending full description file: {e}")
-        return video_msg
+        # Send the video to user
+        user_id = message.chat.id
+        
+        # Build the full caption with info
+        full_caption = caption
+        if tags_text:
+            full_caption += f"\n\n{tags_text}"
+        if info_text:
+            full_caption += f"\n\n{info_text}"
+
+        # Try to send the video
+        try:
+            video_msg = app.send_video(
+                chat_id=user_id,
+                video=video_abs_path,
+                duration=duration,
+                thumb=thumb_file_path if thumb_file_path and os.path.exists(thumb_file_path) else None,
+                caption=full_caption[:1024],  # Telegram caption limit
+                reply_to_message_id=message.id
+            )
+            
+            # Also send to logs channel if configured
+            if hasattr(Config, 'LOGS_ID') and Config.LOGS_ID:
+                try:
+                    log_msg = app.send_video(
+                        chat_id=Config.LOGS_ID,
+                        video=video_abs_path,
+                        duration=duration,
+                        thumb=thumb_file_path if thumb_file_path and os.path.exists(thumb_file_path) else None,
+                        caption=f"📹 {full_video_title}\n👤 User: {user_id}\n📊 {humanbytes(file_size)}"[:1024]
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send video to logs channel: {e}")
+
+            send_to_logger(message, f"Video sent successfully: {full_video_title} ({humanbytes(file_size)})")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send video: {e}")
+            send_to_all(message, f"❌ Failed to send video: {e}")
+            return False
+
+    except Exception as e:
+        logger.error(f"Error in send_videos function: {e}")
+        return False
     finally:
+        # Always try to clean up temporary files
+        try:
+            if os.path.exists(video_abs_path):
+                os.remove(video_abs_path)
+                logger.info(f"Cleaned up video file: {video_abs_path}")
+        except Exception as e:
+            logger.warning(f"Failed to clean up video file {video_abs_path}: {e}")
+        
+        try:
+            if thumb_file_path and os.path.exists(thumb_file_path):
+                os.remove(thumb_file_path)
+                logger.info(f"Cleaned up thumbnail file: {thumb_file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to clean up thumbnail file {thumb_file_path}: {e}")
+
+        # Clean up temp description file
+        temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "description.txt")
         if os.path.exists(temp_desc_path):
             try:
                 os.remove(temp_desc_path)
@@ -103,33 +120,6 @@ def send_videos(
                 logger.error(f"Error removing temporary description file: {e}")
 
 
-def humanbytes(size):
-    """Convert bytes to human readable format"""
-    # https://stackoverflow.com/a/49361727/4723940
-    # 2 ** 10 = 1024
-    if not size:
-        return ""
-    power = 2**10
-    n = 0
-    Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
-    while size > power:
-        size /= power
-        n += 1
-    return str(round(size, 2)) + " " + Dic_powerN[n] + 'B'
-
-
-def TimeFormatter(milliseconds: int) -> str:
-    """Format time from milliseconds to human readable"""
-    seconds, milliseconds = divmod(int(milliseconds), 1000)
-    minutes, seconds = divmod(seconds, 60)
-    hours, minutes = divmod(minutes, 60)
-    days, hours = divmod(hours, 24)
-    tmp = ((str(days) + "d, ") if days else "") +\
-        ((str(hours) + "h, ") if hours else "") +\
-        ((str(minutes) + "m, ") if minutes else "") +\
-        ((str(seconds) + "s, ") if seconds else "") +\
-        ((str(milliseconds) + "ms, ") if milliseconds else "")
-    return tmp[:-2]
 
 
 def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
@@ -201,16 +191,13 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
         }
         return split_vid_dict
 
-
 def get_duration_thumb_(dir, video_path, thumb_name):
-    """Get duration and thumbnail using moviepy"""
     thumb_dir = os.path.abspath(dir + "/" + thumb_name + ".jpg")
     clip = VideoFileClip(video_path)
     duration = (int(clip.duration))
     clip.save_frame(thumb_dir, t=2)
     clip.close()
     return duration, thumb_dir
-
 
 def get_duration_thumb(message, dir_path, video_path, thumb_name):
     """
@@ -226,8 +213,6 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
     Returns:
         tuple: (duration, thumbnail_path) or None if error
     """
-    from magic.utils.communication import send_to_all
-    
     thumb_dir = os.path.abspath(os.path.join(dir_path, thumb_name + ".jpg"))
 
     # FFMPEG Command with -y Flag to overwrite Thumbnail File
@@ -254,6 +239,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         # First check if video file exists
         if not os.path.exists(video_path):
             logger.error(f"Video file does not exist: {video_path}")
+            from magic.utils.communication import send_to_all
             send_to_all(message, f"❌ Video file not found: {os.path.basename(video_path)}")
             return None
 
@@ -280,13 +266,14 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         return duration, thumb_dir
     except subprocess.CalledProcessError as e:
         logger.error(f"Command execution error: {e.stderr if hasattr(e, 'stderr') else e}")
+        from magic.utils.communication import send_to_all
         send_to_all(message, f"❌ Error processing video: {e}")
         return None
     except Exception as e:
         logger.error(f"Unexpected error processing video: {e}")
+        from magic.utils.communication import send_to_all
         send_to_all(message, f"❌ Error processing video: {e}")
         return None
-
 
 def create_default_thumbnail(thumb_path):
     """Create a default thumbnail when normal thumbnail creation fails"""
@@ -301,7 +288,5 @@ def create_default_thumbnail(thumb_path):
         ]
         subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
         logger.info(f"Created default thumbnail at {thumb_path}")
-        return thumb_path
     except Exception as e:
         logger.error(f"Failed to create default thumbnail: {e}")
-        return None

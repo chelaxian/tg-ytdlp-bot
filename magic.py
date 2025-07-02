@@ -5,14 +5,14 @@ import os
 import re
 import shutil
 import subprocess
+#import sys
 import threading
 import time
-import signal
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Tuple
 from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
-
+import signal
 import pyrebase
 import requests
 import tldextract
@@ -61,6 +61,12 @@ from magic.processing.video import *
 from magic.utils.communication import *
 from magic.download.downloader import *
 from magic.user.settings import *
+
+
+
+# Register handlers for the most common termination signals
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 # Pyrogram App Initialization
 app = Client(
