@@ -54,15 +54,12 @@ from magic.database.firebase import *
 from magic.processing.tags import *
 from magic.download.cache import *
 from magic.download.quality import *
-from magic.handlers.commands import *
-from magic.handlers.admin import *
+from magic.handlers.admin_cmd import *
 from magic.handlers.settings import *
+from magic.handlers.user_cmd import *
 from magic.processing.video import *
 from magic.utils.communication import *
 from magic.download.downloader import *
-from magic.user.settings import *
-
-
 
 # Register handlers for the most common termination signals
 signal.signal(signal.SIGINT, signal_handler)

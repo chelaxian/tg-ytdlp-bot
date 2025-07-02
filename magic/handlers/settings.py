@@ -6,9 +6,8 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from config import Config
 from magic.utils.helpers import reply_with_keyboard
 from magic.database.firebase import fake_message
-from magic.user.settings import get_user_split_size, is_mediainfo_enabled, set_user_split_size, set_user_mediainfo
 from magic.utils.communication import send_to_logger
-from magic.handlers.commands import app, url_distractor, cookies_from_browser, set_format, tags_command, command2, playlist_command
+from magic.handlers.user_cmd import app, url_distractor, cookies_from_browser, set_format, tags_command, command2, playlist_command
 from magic.download.quality import askq_callback_logic
 
 logger = logging.getLogger(__name__)
@@ -522,3 +521,55 @@ def askq_callback(app, callback_query):
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
     askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+
+# --- Function for reading split.txt ---
+def get_user_split_size(user_id):
+    user_dir = os.path.join("users", str(user_id))
+    split_file = os.path.join(user_dir, "split.txt")
+    if os.path.exists(split_file):
+        try:
+            with open(split_file, "r", encoding="utf-8") as f:
+                size = int(f.read().strip())
+                return size
+        except Exception:
+            pass
+    return 1950 * 1024 * 1024  # default 1.95GB
+
+def set_user_split_size(user_id, size):
+    """Set user's split size preference"""
+    user_dir = os.path.join("users", str(user_id))
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir, exist_ok=True)
+    split_file = os.path.join(user_dir, "split.txt")
+    try:
+        with open(split_file, "w", encoding="utf-8") as f:
+            f.write(str(size))
+        return True
+    except Exception as e:
+        logger.error(f"Error setting split size for user {user_id}: {e}")
+        return False
+
+def is_mediainfo_enabled(user_id):
+    user_dir = os.path.join("users", str(user_id))
+    mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
+    if not os.path.exists(mediainfo_file):
+        return False
+    try:
+        with open(mediainfo_file, "r", encoding="utf-8") as f:
+            return f.read().strip().upper() == "ON"
+    except Exception:
+        return False
+
+def set_user_mediainfo(user_id, enabled):
+    """Set user's mediainfo preference"""
+    user_dir = os.path.join("users", str(user_id))
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir, exist_ok=True)
+    mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
+    try:
+        with open(mediainfo_file, "w", encoding="utf-8") as f:
+            f.write("ON" if enabled else "OFF")
+        return True
+    except Exception as e:
+        logger.error(f"Error setting mediainfo for user {user_id}: {e}")
+        return False

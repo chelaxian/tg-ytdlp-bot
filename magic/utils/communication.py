@@ -311,8 +311,8 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
     return cycle_thread
 
 def send_mediainfo_if_enabled(user_id, file_path, message):
-    from magic.user.settings import is_mediainfo_enabled
-    from magic.handlers.commands import app, get_mediainfo_cli
+    from magic.handlers.settings import is_mediainfo_enabled
+    from magic.handlers.user_cmd import app, get_mediainfo_cli
     from pyrogram.types import ReplyParameters
     import os
     

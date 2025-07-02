@@ -6,6 +6,8 @@ import math
 import os
 import shutil
 from types import SimpleNamespace
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.enums import ChatMemberStatus
 from config import Config
 import pyrebase
 
@@ -163,6 +165,27 @@ def db_child_by_path(db, path):
         db = db.child(part)
     return db
 
+# Check the USAGE of the BOT
+def is_user_in_channel(app, message):
+    try:
+        cht_member = app.get_chat_member(
+            Config.SUBSCRIBE_CHANNEL, message.chat.id)
+        if cht_member.status == ChatMemberStatus.MEMBER or cht_member.status == ChatMemberStatus.OWNER or cht_member.status == ChatMemberStatus.ADMINISTRATOR:
+            return True
+
+    except:
+
+        text = f"{Config.TO_USE_MSG}\n \n{Config.CREDITS_MSG}"
+        button = InlineKeyboardButton(
+            "Join Channel", url=Config.SUBSCRIBE_CHANNEL_URL)
+        keyboard = InlineKeyboardMarkup([[button]])
+        # Use the send_message () Method to send the message with the button
+        app.send_message(
+            chat_id=message.chat.id,
+            text=text,
+            reply_markup=keyboard
+        )
+        return False
 
 # Initialize database structure
 try:
