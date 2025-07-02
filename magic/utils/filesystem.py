@@ -1,228 +1,174 @@
 """
-Filesystem utilities for the bot
+Filesystem utilities and operations
 """
 import os
-import threading
-import tempfile
+import shutil
 import time
-from typing import Optional
+import threading
+import logging
+from config import Config
+
+logger = logging.getLogger(__name__)
+
+# Global dictionary to track active downloads and lock for thread-safe access
+active_downloads = {}
+active_downloads_lock = threading.Lock()
+
+# Add a global dictionary to track download start times
+download_start_times = {}
+download_start_times_lock = threading.Lock()
 
 
 def create_directory(path):
-    """
-    Create The Directory (And All Intermediate Directories) IF Its Not Exist.
-    """
+    # Create The Directory (And All Intermediate Directories) IF Its Not Exist.
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
+
+def set_download_start_time(user_id):
+    """
+    Sets the download start time for a user
+    """
+    with download_start_times_lock:
+        download_start_times[user_id] = time.time()
+
+
+def clear_download_start_time(user_id):
+    """
+    Clears the download start time for a user
+    """
+    with download_start_times_lock:
+        if user_id in download_start_times:
+            del download_start_times[user_id]
+
+
+def check_download_timeout(user_id):
+    """
+    Checks if the download timeout has been exceeded. For admins, timeout does not apply.
+    """
+    # If the user is an admin, timeout does not apply
+    if hasattr(Config, 'ADMIN') and int(user_id) in Config.ADMIN:
+        return False
+    with download_start_times_lock:
+        if user_id in download_start_times:
+            start_time = download_start_times[user_id]
+            current_time = time.time()
+            if current_time - start_time > Config.DOWNLOAD_TIMEOUT:
+                return True
+    return False
 
 
 def check_disk_space(path, required_bytes):
     """
-    Check if there's enough disk space for download
+    Checks if there's enough disk space available at the specified path.
+
+    Args:
+        path (str): Path to check
+        required_bytes (int): Required bytes of free space
+
+    Returns:
+        bool: True if enough space is available, False otherwise
     """
     try:
-        # Get available disk space
-        statvfs = os.statvfs(path)
-        available_bytes = statvfs.f_frsize * statvfs.f_available
-        
-        # Add 10% buffer to required space
-        required_with_buffer = required_bytes * 1.1
-        
-        return available_bytes >= required_with_buffer
+        from ..utils.formatters import humanbytes
+        total, used, free = shutil.disk_usage(path)
+        if free < required_bytes:
+            logger.warning(
+                f"Not enough disk space. Required: {humanbytes(required_bytes)}, Available: {humanbytes(free)}")
+            return False
+        return True
     except Exception as e:
-        # If we can't check disk space, assume we have enough
+        logger.error(f"Error checking disk space: {e}")
+        # If we can't check, assume there's enough space
         return True
 
 
-def cleanup_temp_files():
-    """Clean up temporary files across all user directories"""
-    if not os.path.exists("users"):
-        return
-
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    logger.info("Cleaning up temporary files")
-    for user_dir in os.listdir("users"):
-        try:
-            user_path = os.path.join("users", user_dir)
-            if os.path.isdir(user_path):
-                for filename in os.listdir(user_path):
-                    if filename.endswith(('.part', '.ytdl', '.temp', '.tmp')):
-                        try:
-                            os.remove(os.path.join(user_path, filename))
-                        except Exception as e:
-                            logger.error(f"Error removing temp file {filename}: {e}")
-        except Exception as e:
-            logger.error(f"Error cleaning up user directory {user_dir}: {e}")
-
-
-def cleanup_user_temp_files(user_id):
-    """Clean up temporary files for a specific user"""
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    user_dir = os.path.join("users", str(user_id))
-    if not os.path.exists(user_dir):
-        return
-
-    try:
-        for filename in os.listdir(user_dir):
-            file_path = os.path.join(user_dir, filename)
-            try:
-                # Remove temporary files
-                if filename.endswith(('.part', '.ytdl', '.temp', '.tmp')):
-                    os.remove(file_path)
-                    logger.info(f"Removed temp file: {filename}")
-                # Remove old files (older than 1 hour)
-                elif os.path.isfile(file_path):
-                    file_age = time.time() - os.path.getmtime(file_path)
-                    if file_age > 3600:  # 1 hour
-                        os.remove(file_path)
-                        logger.info(f"Removed old file: {filename}")
-            except Exception as e:
-                logger.error(f"Error removing file {filename}: {e}")
-    except Exception as e:
-        logger.error(f"Error cleaning up user {user_id} temp files: {e}")
-
-
-def remove_media(message, only=None):
-    """
-    Remove media files for a user
-    
-    Args:
-        message: Telegram message object
-        only: Optional filter ('cookies', 'logs', 'tags', 'format', 'split', 'mediainfo')
-    """
-    from config import Config
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    user_id = message.chat.id
-    user_dir = os.path.join("users", str(user_id))
-    
-    if not os.path.exists(user_dir):
-        return "No files found to remove."
-    
-    removed_files = []
-    errors = []
-    
-    try:
-        for filename in os.listdir(user_dir):
-            file_path = os.path.join(user_dir, filename)
-            should_remove = False
-            
-            if only == "cookies" and filename == Config.COOKIE_FILE_PATH:
-                should_remove = True
-            elif only == "logs" and filename == "logs.txt":
-                should_remove = True
-            elif only == "tags" and filename == "tags.txt":
-                should_remove = True
-            elif only == "format" and filename == "format.txt":
-                should_remove = True
-            elif only == "split" and filename == "split_size.txt":
-                should_remove = True
-            elif only == "mediainfo" and filename == "mediainfo.txt":
-                should_remove = True
-            elif only is None and not filename.endswith(('.txt')):
-                # Remove media files only (not settings)
-                should_remove = True
-            elif only == "all":
-                should_remove = True
-            
-            if should_remove:
-                try:
-                    os.remove(file_path)
-                    removed_files.append(filename)
-                except Exception as e:
-                    errors.append(f"{filename}: {str(e)}")
-    
-    except Exception as e:
-        logger.error(f"Error listing directory {user_dir}: {e}")
-        return f"Error accessing user files: {str(e)}"
-    
-    result = ""
-    if removed_files:
-        result += f"✅ Removed {len(removed_files)} files:\n"
-        result += "\n".join(f"• {file}" for file in removed_files[:10])  # Show max 10
-        if len(removed_files) > 10:
-            result += f"\n• ... and {len(removed_files) - 10} more"
-    
-    if errors:
-        result += f"\n\n❌ Failed to remove {len(errors)} files:\n"
-        result += "\n".join(f"• {error}" for error in errors[:5])  # Show max 5 errors
-        if len(errors) > 5:
-            result += f"\n• ... and {len(errors) - 5} more errors"
-    
-    if not removed_files and not errors:
-        if only:
-            result = f"No {only} files found to remove."
-        else:
-            result = "No files found to remove."
-    
-    return result
-
-
-def create_default_thumbnail(thumb_path):
-    """
-    Create a default thumbnail if none exists
-    """
-    try:
-        # Try to create a simple default thumbnail
-        # This is a placeholder - in real implementation you might want to
-        # create an actual image or copy from a default template
-        with open(thumb_path, 'w') as f:
-            f.write("default_thumb")
-        return thumb_path
-    except Exception:
-        return None
-
-
-# Active downloads tracking
-_active_downloads = {}
-_downloads_lock = threading.Lock()
-
-
 def get_active_download(user_id):
-    """Get active download status for user"""
-    with _downloads_lock:
-        return _active_downloads.get(user_id, False)
+    """
+    Get active download status for user
+    """
+    with active_downloads_lock:
+        return active_downloads.get(user_id, None)
 
 
 def set_active_download(user_id, status):
-    """Set active download status for user"""
-    with _downloads_lock:
-        if status:
-            _active_downloads[user_id] = True
+    """
+    Set active download status for user
+    """
+    with active_downloads_lock:
+        if status is None:
+            active_downloads.pop(user_id, None)
         else:
-            _active_downloads.pop(user_id, None)
+            active_downloads[user_id] = status
 
 
-# Download timing tracking
-_download_start_times = {}
-_timing_lock = threading.Lock()
+def cleanup_temp_files():
+    """
+    Clean up temporary files
+    """
+    try:
+        # Clean up temporary files in downloads directory
+        downloads_dir = "downloads"
+        if os.path.exists(downloads_dir):
+            for filename in os.listdir(downloads_dir):
+                if filename.startswith("temp_") or filename.endswith(".tmp"):
+                    file_path = os.path.join(downloads_dir, filename)
+                    try:
+                        os.remove(file_path)
+                        logger.info(f"Removed temp file: {file_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to remove temp file {file_path}: {e}")
+    except Exception as e:
+        logger.error(f"Error during cleanup: {e}")
 
 
-def set_download_start_time(user_id):
-    """Record when a download started"""
-    with _timing_lock:
-        _download_start_times[user_id] = time.time()
+def cleanup_user_temp_files(user_id):
+    """
+    Clean up temporary files for specific user
+    """
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        if os.path.exists(user_dir):
+            for filename in os.listdir(user_dir):
+                if filename.startswith("temp_") or filename.endswith(".tmp"):
+                    file_path = os.path.join(user_dir, filename)
+                    try:
+                        os.remove(file_path)
+                        logger.info(f"Removed user temp file: {file_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to remove user temp file {file_path}: {e}")
+    except Exception as e:
+        logger.error(f"Error during user cleanup: {e}")
 
 
-def clear_download_start_time(user_id):
-    """Clear download start time"""
-    with _timing_lock:
-        _download_start_times.pop(user_id, None)
-
-
-def check_download_timeout(user_id):
-    """Check if download has exceeded timeout"""
-    from config import Config
+def sanitize_filename(filename, max_length=150):
+    """
+    Sanitize filename to remove invalid characters
+    """
+    if not filename:
+        return "untitled"
+        
+    # Remove or replace invalid characters
+    invalid_chars = '<>:"/\\|?*'
+    for char in invalid_chars:
+        filename = filename.replace(char, '_')
     
-    with _timing_lock:
-        start_time = _download_start_times.get(user_id)
-        if start_time:
-            elapsed = time.time() - start_time
-            if elapsed > Config.DOWNLOAD_TIMEOUT:
-                return True
-    return False 
+    # Remove multiple consecutive underscores
+    while '__' in filename:
+        filename = filename.replace('__', '_')
+    
+    # Remove leading/trailing dots and spaces
+    filename = filename.strip('. ')
+    
+    # Truncate if too long
+    if len(filename) > max_length:
+        name, ext = os.path.splitext(filename)
+        filename = name[:max_length-len(ext)] + ext
+    
+    return filename if filename else "untitled"
+
+# Global dictionary to track playlist errors and lock for thread-safe access
+playlist_errors = {}
+playlist_errors_lock = threading.Lock()
+
+# Global starting point list (do not modify)
+starting_point = []

@@ -1,27 +1,12 @@
-"""
-Settings command handlers and menus
-"""
-import os
-from pyrogram import filters, enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from config import Config
-from ..utils.communication import send_to_logger
-from ..database.firebase import logger, is_user_in_channel, fake_message
-from ..utils.filesystem import create_directory
-from ..user.settings import is_mediainfo_enabled, toggle_mediainfo, set_user_split_size, get_user_split_size
-from ..utils.formatters import humanbytes
+"""Settings handlers"""
+import logging
 
+logger = logging.getLogger(__name__)
 
-def reply_with_keyboard(func):
-    """Decorator to add main keyboard to responses"""
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
-
-
+# ===================== /settings =====================
+@app.on_message(filters.command("settings") & filters.private)
 @reply_with_keyboard
 def settings_command(app, message):
-    """Main settings menu command"""
     user_id = message.chat.id
     # Main settings menu
     keyboard = InlineKeyboardMarkup([
@@ -40,10 +25,9 @@ def settings_command(app, message):
     )
     send_to_logger(message, "Opened /settings menu")
 
-
+@app.on_callback_query(filters.regex(r"^settings__menu__"))
 @reply_with_keyboard
 def settings_menu_callback(app, callback_query: CallbackQuery):
-    """Handle settings menu callbacks"""
     user_id = callback_query.from_user.id
     data = callback_query.data.split("__")[-1]
     if data == "close":
@@ -135,19 +119,13 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         callback_query.answer()
         return
 
-
+@app.on_callback_query(filters.regex(r"^settings__cmd__"))
 @reply_with_keyboard
 def settings_cmd_callback(app, callback_query: CallbackQuery):
-    """Handle settings command callbacks"""
     user_id = callback_query.from_user.id
     data = callback_query.data.split("__")[2]
 
-    # Import required modules
-    from ..handlers.commands import cookies_from_browser, set_format, audio_command_handler, playlist_command
-    from ..handlers.admin import tags_command
-    from ..handlers.url_handler import url_distractor
-    from .commands import command2
-
+    # For commands that are processed only via url_distractor, create a temporary Message
     if data == "clean":
         # Show the cleaning menu instead of direct execution
         keyboard = InlineKeyboardMarkup([
@@ -180,8 +158,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         callback_query.answer("Command executed.")
         return
     if data == "save_as_cookie":
-        app.send_message(user_id, "Send text to save as cookie file", 
-                         reply_to_message_id=callback_query.message.id,
+        app.send_message(user_id, Config.SAVE_AS_COOKIE_HINT, reply_to_message_id=callback_query.message.id,
                          parse_mode=enums.ParseMode.HTML)
         callback_query.answer("Hint sent.")
         return
@@ -223,66 +200,65 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         return
     callback_query.answer("Unknown command.", show_alert=True)
 
-
+@app.on_callback_query(filters.regex(r"^clean_option\|"))
 @reply_with_keyboard
 def clean_option_callback(app, callback_query):
-    """Handle clean option callbacks"""
     user_id = callback_query.from_user.id
-    option = callback_query.data.split("|")[1]
-    
-    user_dir = os.path.join("users", str(user_id))
-    create_directory(user_dir)
-    
-    if option == "cookies":
-        # Clean cookies
-        cookie_file = os.path.join(user_dir, "cookies.txt")
-        if os.path.exists(cookie_file):
-            os.remove(cookie_file)
-        callback_query.edit_message_text("✅ Cookies cleaned")
-    elif option == "logs":
-        # Clean logs
-        log_files = [f for f in os.listdir(user_dir) if f.endswith('.log')]
-        for log_file in log_files:
-            os.remove(os.path.join(user_dir, log_file))
-        callback_query.edit_message_text("✅ Logs cleaned")
-    elif option == "tags":
-        # Clean tags
-        tags_file = os.path.join(user_dir, "tags.txt")
-        if os.path.exists(tags_file):
-            os.remove(tags_file)
-        callback_query.edit_message_text("✅ Tags cleaned")
-    elif option == "format":
-        # Clean format
-        format_file = os.path.join(user_dir, "format.txt")
-        if os.path.exists(format_file):
-            os.remove(format_file)
-        callback_query.edit_message_text("✅ Format settings cleaned")
-    elif option == "split":
-        # Clean split settings
-        split_file = os.path.join(user_dir, "split.txt")
-        if os.path.exists(split_file):
-            os.remove(split_file)
-        callback_query.edit_message_text("✅ Split settings cleaned")
-    elif option == "mediainfo":
-        # Clean mediainfo settings
-        mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
-        if os.path.exists(mediainfo_file):
-            os.remove(mediainfo_file)
-        callback_query.edit_message_text("✅ Mediainfo settings cleaned")
-    elif option == "all":
-        # Clean all files
-        from ..utils.filesystem import cleanup_user_temp_files
-        cleanup_user_temp_files(user_id)
-        callback_query.edit_message_text("✅ All files cleaned")
-    else:
-        callback_query.edit_message_text("❌ Unknown option")
-    
-    callback_query.answer()
+    data = callback_query.data.split("|")[1]
 
+    if data == "cookies":
+        url_distractor(app, fake_message("/clean cookie", user_id))
+        callback_query.answer("Cookies cleaned.")
+        return
+    elif data == "logs":
+        url_distractor(app, fake_message("/clean logs", user_id))
+        callback_query.answer("logs cleaned.")
+        return
+    elif data == "tags":
+        url_distractor(app, fake_message("/clean tags", user_id))
+        callback_query.answer("tags cleaned.")
+        return
+    elif data == "format":
+        url_distractor(app, fake_message("/clean format", user_id))
+        callback_query.answer("format cleaned.")
+        return
+    elif data == "split":
+        url_distractor(app, fake_message("/clean split", user_id))
+        callback_query.answer("split cleaned.")
+        return
+    elif data == "mediainfo":
+        url_distractor(app, fake_message("/clean mediainfo", user_id))
+        callback_query.answer("mediainfo cleaned.")
+        return
+    elif data == "all":
+        url_distractor(app, fake_message("/clean all", user_id))
+        callback_query.answer("All files cleaned.")
+        return
+    elif data == "back":
+        # Back to the cookies menu
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie",
+                                  callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser",
+                                  callback_data="settings__cmd__cookies_from_browser")],
+            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder",
+                                  callback_data="settings__cmd__check_cookie")],
+            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie",
+                                  callback_data="settings__cmd__save_as_cookie")],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
+        ])
+        callback_query.edit_message_text(
+            "<b>🍪 COOKIES</b>\n\nChoose an action:",
+            reply_markup=keyboard,
+            parse_mode=enums.ParseMode.HTML
+        )
+        callback_query.answer()
+        return
 
+# /Mediainfo Command
+@app.on_message(filters.command("mediainfo") & filters.private)
 @reply_with_keyboard
 def mediainfo_command(app, message):
-    """Command to enable/disable mediainfo"""
     user_id = message.chat.id
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
@@ -301,10 +277,9 @@ def mediainfo_command(app, message):
     )
     send_to_logger(message, "User opened /mediainfo menu.")
 
-
+@app.on_callback_query(filters.regex(r"^mediainfo_option\|"))
 @reply_with_keyboard
 def mediainfo_option_callback(app, callback_query):
-    """Handle mediainfo option callbacks"""
     logger.info(f"[MEDIAINFO] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
@@ -331,12 +306,11 @@ def mediainfo_option_callback(app, callback_query):
         callback_query.answer("MediaInfo disabled.")
         return
 
-
+@app.on_message(filters.command("split") & filters.private)
 @reply_with_keyboard
 def split_command(app, message):
-    """Command to set video split size"""
     user_id = message.chat.id
-    # Subscription check for non-admins
+    # Subscription check for non-admines
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
     user_dir = os.path.join("users", str(user_id))
@@ -363,10 +337,9 @@ def split_command(app, message):
     app.send_message(user_id, "Choose max part size for video splitting:", reply_markup=keyboard)
     send_to_logger(message, "User opened /split menu.")
 
-
+@app.on_callback_query(filters.regex(r"^split_size\|"))
 @reply_with_keyboard
 def split_size_callback(app, callback_query):
-    """Handle split size selection"""
     logger.info(f"[SPLIT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
@@ -388,40 +361,3 @@ def split_size_callback(app, callback_query):
     callback_query.edit_message_text(f"✅ Split part size set to: {humanbytes(size)}")
     send_to_logger(callback_query.message, f"Split size set to {size} bytes.")
 
-
-def register_settings_handlers(app):
-    """Register all settings handlers with the app"""
-    
-    @app.on_message(filters.command("settings") & filters.private)
-    def settings_handler(app, message):
-        settings_command(app, message)
-        
-    @app.on_callback_query(filters.regex(r"^settings__menu__"))
-    def settings_menu_handler(app, callback_query):
-        settings_menu_callback(app, callback_query)
-        
-    @app.on_callback_query(filters.regex(r"^settings__cmd__"))
-    def settings_cmd_handler(app, callback_query):
-        settings_cmd_callback(app, callback_query)
-        
-    @app.on_callback_query(filters.regex(r"^clean_option\|"))
-    def clean_option_handler(app, callback_query):
-        clean_option_callback(app, callback_query)
-        
-    @app.on_message(filters.command("mediainfo") & filters.private)
-    def mediainfo_handler(app, message):
-        mediainfo_command(app, message)
-        
-    @app.on_callback_query(filters.regex(r"^mediainfo_option\|"))
-    def mediainfo_callback_handler(app, callback_query):
-        mediainfo_option_callback(app, callback_query)
-        
-    @app.on_message(filters.command("split") & filters.private)
-    def split_handler(app, message):
-        split_command(app, message)
-        
-    @app.on_callback_query(filters.regex(r"^split_size\|"))
-    def split_callback_handler(app, callback_query):
-        split_size_callback(app, callback_query)
-        
- 

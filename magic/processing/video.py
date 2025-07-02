@@ -1,13 +1,135 @@
 """
-Video processing module for video splitting, thumbnail creation, and video sending
+Video processing functions
 """
 import os
+import re
 import math
+import time
 import subprocess
+import logging
+from typing import Tuple
+from pyrogram import enums
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from moviepy.editor import VideoFileClip
 from config import Config
-from pyrogram import enums
+
+logger = logging.getLogger(__name__)
+
+def send_videos(
+    message,
+    video_abs_path: str,
+    caption: str,
+    duration: int,
+    thumb_file_path: str,
+    info_text: str,
+    msg_id: int,
+    full_video_title: str,
+    tags_text: str = '',
+):
+    """Send video with proper caption formatting"""
+    # Import needed functions
+    from magic.utils.communication import safe_forward_messages, progress_bar
+    from magic.utils.formatters import truncate_caption, TimeFormatter
+    
+    user_id = message.chat.id
+    text = message.text or ""
+    m = re.search(r'https?://[^\s\*]+', text)
+    video_url = m.group(0) if m else ""
+    temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
+    was_truncated = False
+    try:
+        # Logic simplified: use tags that were already generated in down_and_up.
+        # Use original title for caption, but truncated description
+        title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
+            title=caption,  # Original title for caption
+            description=full_video_title,  # Full description to be truncated
+            url=video_url,
+            tags_text=tags_text, # Use final tags for calculation
+            max_length=1000  # Reduced for safety
+        )
+        # Form HTML caption: title outside the quote, timecodes outside the quote, description in the quote, tags and link outside the quote
+        cap = ''
+        if title_html:
+            cap += title_html + '\n\n'
+        if pre_block:
+            cap += pre_block + '\n'
+        cap += f'<blockquote expandable>{blockquote_content}</blockquote>\n'
+        if tags_block:
+            cap += tags_block
+        cap += link_block
+        
+        # Import app from main
+        from magic.handlers.commands import app
+        
+        video_msg = app.send_video(
+            chat_id=user_id,
+            video=video_abs_path,
+            caption=cap,
+            duration=duration,
+            width=640,
+            height=360,
+            supports_streaming=True,
+            thumb=thumb_file_path,
+            progress=progress_bar,
+            progress_args=(
+                user_id,
+                msg_id,
+                f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+            ),
+            reply_to_message_id=message.id,
+            parse_mode=enums.ParseMode.HTML
+        )
+        if was_truncated and full_video_title:
+            with open(temp_desc_path, "w", encoding="utf-8") as f:
+                f.write(full_video_title)
+        if was_truncated and os.path.exists(temp_desc_path):
+            try:
+                user_doc_msg = app.send_document(
+                    chat_id=user_id,
+                    document=temp_desc_path,
+                    caption="<blockquote>📝 if you want to change video caption - reply to video with new text</blockquote>",
+                    reply_to_message_id=message.id,
+                    parse_mode=enums.ParseMode.HTML
+                )
+                safe_forward_messages(Config.LOGS_ID, user_id, [user_doc_msg.id])
+            except Exception as e:
+                logger.error(f"Error sending full description file: {e}")
+        return video_msg
+    finally:
+        if os.path.exists(temp_desc_path):
+            try:
+                os.remove(temp_desc_path)
+            except Exception as e:
+                logger.error(f"Error removing temporary description file: {e}")
+
+
+def humanbytes(size):
+    """Convert bytes to human readable format"""
+    # https://stackoverflow.com/a/49361727/4723940
+    # 2 ** 10 = 1024
+    if not size:
+        return ""
+    power = 2**10
+    n = 0
+    Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
+    while size > power:
+        size /= power
+        n += 1
+    return str(round(size, 2)) + " " + Dic_powerN[n] + 'B'
+
+
+def TimeFormatter(milliseconds: int) -> str:
+    """Format time from milliseconds to human readable"""
+    seconds, milliseconds = divmod(int(milliseconds), 1000)
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    tmp = ((str(days) + "d, ") if days else "") +\
+        ((str(hours) + "h, ") if hours else "") +\
+        ((str(minutes) + "m, ") if minutes else "") +\
+        ((str(seconds) + "s, ") if seconds else "") +\
+        ((str(milliseconds) + "ms, ") if milliseconds else "")
+    return tmp[:-2]
 
 
 def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
@@ -25,8 +147,6 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
     Returns:
         dict: Dictionary with video parts information
     """
-    from ..database.firebase import logger
-    
     rounds = (math.floor(video_size / max_size)) + 1
     n = duration / rounds
     caption_lst = []
@@ -83,7 +203,7 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
 
 
 def get_duration_thumb_(dir, video_path, thumb_name):
-    """Legacy function for getting duration and thumbnail"""
+    """Get duration and thumbnail using moviepy"""
     thumb_dir = os.path.abspath(dir + "/" + thumb_name + ".jpg")
     clip = VideoFileClip(video_path)
     duration = (int(clip.duration))
@@ -106,9 +226,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
     Returns:
         tuple: (duration, thumbnail_path) or None if error
     """
-    from ..database.firebase import logger
-    from ..utils.communication import send_to_all
-    from ..utils.filesystem import create_directory
+    from magic.utils.communication import send_to_all
     
     thumb_dir = os.path.abspath(os.path.join(dir_path, thumb_name + ".jpg"))
 
@@ -172,8 +290,6 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
 
 def create_default_thumbnail(thumb_path):
     """Create a default thumbnail when normal thumbnail creation fails"""
-    from ..database.firebase import logger
-    
     try:
         # Create a 640x360 black image
         ffmpeg_cmd = [
@@ -185,67 +301,7 @@ def create_default_thumbnail(thumb_path):
         ]
         subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
         logger.info(f"Created default thumbnail at {thumb_path}")
+        return thumb_path
     except Exception as e:
         logger.error(f"Failed to create default thumbnail: {e}")
-
-
-def send_videos(
-    message,
-    video_abs_path: str,
-    caption: str,
-    duration: int,
-    thumb_file_path: str,
-    info_text: str,
-    msg_id: int,
-    full_video_title: str,
-    tags_text: str = '',
-):
-    """Send video to user with proper formatting and information"""
-    from ..database.firebase import logger
-    from ..utils.formatters import humanbytes, TimeFormatter
-    from ..user.settings import is_mediainfo_enabled
-    from ..utils.communication import send_mediainfo_if_enabled
-    
-    try:
-        # Get file size
-        file_size = os.path.getsize(video_abs_path)
-        file_size_str = humanbytes(file_size)
-        
-        # Format duration
-        duration_str = TimeFormatter(duration * 1000)  # Convert to milliseconds
-        
-        # Create final caption with video info
-        video_info = f"📁 {file_size_str} | ⏱ {duration_str}"
-        final_caption = f"{caption}\n\n{video_info}"
-        
-        if info_text:
-            final_caption += f"\n\n{info_text}"
-            
-        # Truncate if too long
-        if len(final_caption) > 1024:
-            final_caption = final_caption[:1021] + "..."
-        
-        # Send video
-        app = message._client  # Get the pyrogram client
-        sent_message = app.send_video(
-            chat_id=message.chat.id,
-            video=video_abs_path,
-            caption=final_caption,
-            duration=duration,
-            thumb=thumb_file_path if thumb_file_path and os.path.exists(thumb_file_path) else None,
-            parse_mode=enums.ParseMode.HTML,
-            reply_to_message_id=message.id
-        )
-        
-        # Send mediainfo if enabled
-        if is_mediainfo_enabled(message.chat.id):
-            send_mediainfo_if_enabled(message.chat.id, video_abs_path, message)
-        
-        logger.info(f"Video sent successfully: {full_video_title}")
-        return sent_message
-        
-    except Exception as e:
-        logger.error(f"Error sending video: {e}")
-        from ..utils.communication import send_to_all
-        send_to_all(message, f"❌ Error sending video: {e}")
-        return None 
+        return None

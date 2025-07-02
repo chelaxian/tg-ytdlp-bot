@@ -1,210 +1,158 @@
 """
-Helper utilities for bot operations
+Helper functions for keyboard management and decorators
 """
 import logging
-import asyncio
+import threading
 import time
-from pyrogram.types import ReplyKeyboardMarkup, KeyboardButton
-from typing import Optional, List, Any
-
+import shutil
+from pyrogram.types import ReplyKeyboardMarkup
+from config import Config
 
 logger = logging.getLogger(__name__)
 
-
 def get_main_reply_keyboard():
-    """Get main reply keyboard for the bot"""
-    keyboard = ReplyKeyboardMarkup([
-        [KeyboardButton("📺 Download Video")],
-        [KeyboardButton("🎵 Audio Only"), KeyboardButton("📋 Playlist")],
-        [KeyboardButton("⚙️ Settings"), KeyboardButton("❓ Help")]
-    ], resize_keyboard=True)
-    return keyboard
+    """Get the main reply keyboard layout"""
+    return ReplyKeyboardMarkup(
+        [
+            ["/clean", "/download_cookie"],
+            ["/playlist", "/settings", "/help"]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
+
+
+# eternal reply-keyboard and reliable work with files
+reply_keyboard_msg_ids = {}  # user_id: message_id
 
 
 def send_reply_keyboard_always(user_id):
-    """Always send reply keyboard to user"""
+    """Send persistent reply keyboard to user"""
+    global reply_keyboard_msg_ids
+    from magic.handlers.commands import app
+    
     try:
-        from magic import app
-        keyboard = get_main_reply_keyboard()
-        app.send_message(user_id, "🤖 Choose an option:", reply_markup=keyboard)
+        msg_id = reply_keyboard_msg_ids.get(user_id)
+        if msg_id:
+            try:
+                app.edit_message_text(user_id, msg_id, "\u2063", reply_markup=get_main_reply_keyboard())
+                return
+            except Exception as e:
+                # Log only if the error is not MESSAGE_ID_INVALID
+                if 'MESSAGE_ID_INVALID' not in str(e):
+                    logger.warning(f"Failed to edit persistent reply keyboard: {e}")
+                # If it didn't work, we delete the id to avoid getting stuck
+                reply_keyboard_msg_ids.pop(user_id, None)
+        # Always after failure or if there is no id - send a new one
+        msg = app.send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard())
+        # If there was another service msg_id (and it is not equal to the new one), we try to delete the old message
+        if msg_id and msg_id != msg.id:
+            try:
+                app.delete_messages(user_id, [msg_id])
+            except Exception as e:
+                logger.warning(f"Failed to delete old reply keyboard message: {e}")
+        reply_keyboard_msg_ids[user_id] = msg.id
     except Exception as e:
-        logger.error(f"Error sending reply keyboard: {e}")
+        logger.warning(f"Failed to send persistent reply keyboard: {e}")
 
 
+# --- Wrapper for any custom action ---
 def reply_with_keyboard(func):
-    """Decorator to add reply keyboard to responses"""
+    """Decorator to add reply keyboard after function execution"""
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
-        
-        # Try to get user_id from message
-        try:
-            if len(args) >= 2:
-                message = args[1]  # Usually second argument is message
-                if hasattr(message, 'chat') and hasattr(message.chat, 'id'):
-                    user_id = message.chat.id
-                    send_reply_keyboard_always(user_id)
-        except Exception:
-            pass
-        
+        # Determine user_id from arguments (Pyrogram message/chat)
+        user_id = None
+        if 'message' in kwargs:
+            user_id = getattr(kwargs['message'].chat, 'id', None)
+        elif len(args) > 0 and hasattr(args[0], 'chat'):
+            user_id = getattr(args[0].chat, 'id', None)
+        elif len(args) > 1 and hasattr(args[1], 'chat'):
+            user_id = getattr(args[1].chat, 'id', None)
+        if user_id:
+            send_reply_keyboard_always(user_id)
         return result
+
     return wrapper
 
 
-def safe_send_message(chat_id, text, **kwargs):
-    """Safely send message with error handling"""
+# Global starting point list (do not modify)
+starting_point = []
+
+# Global dictionary to track active downloads and lock for thread-safe access
+active_downloads = {}
+active_downloads_lock = threading.Lock()
+
+# Global dictionary to track playlist errors and lock for thread-safe access
+playlist_errors = {}
+playlist_errors_lock = threading.Lock()
+
+# Add a global dictionary to track download start times
+download_start_times = {}
+download_start_times_lock = threading.Lock()
+
+
+def set_download_start_time(user_id):
+    """Sets the download start time for a user"""
+    with download_start_times_lock:
+        download_start_times[user_id] = time.time()
+
+
+def clear_download_start_time(user_id):
+    """Clears the download start time for a user"""
+    with download_start_times_lock:
+        if user_id in download_start_times:
+            del download_start_times[user_id]
+
+
+def check_download_timeout(user_id):
+    """Checks if the download timeout has been exceeded. For admins, timeout does not apply."""
+    # If the user is an admin, timeout does not apply
+    if hasattr(Config, 'ADMIN') and int(user_id) in Config.ADMIN:
+        return False
+    with download_start_times_lock:
+        if user_id in download_start_times:
+            start_time = download_start_times[user_id]
+            current_time = time.time()
+            if current_time - start_time > Config.DOWNLOAD_TIMEOUT:
+                return True
+    return False
+
+
+def check_disk_space(path, required_bytes):
+    """
+    Checks if there's enough disk space available at the specified path.
+
+    Args:
+        path (str): Path to check
+        required_bytes (int): Required bytes of free space
+
+    Returns:
+        bool: True if enough space is available, False otherwise
+    """
     try:
-        from magic import app
-        
-        # Add reply_to_message_id if message is passed
-        if 'message' in kwargs:
-            message = kwargs.pop('message')
-            if hasattr(message, 'id'):
-                kwargs['reply_to_message_id'] = message.id
-        
-        return app.send_message(chat_id, text, **kwargs)
-    
+        total, used, free = shutil.disk_usage(path)
+        if free < required_bytes:
+            from magic.utils.formatters import humanbytes
+            logger.warning(
+                f"Not enough disk space. Required: {humanbytes(required_bytes)}, Available: {humanbytes(free)}")
+            return False
+        return True
     except Exception as e:
-        logger.error(f"Error sending message to {chat_id}: {e}")
-        return None
+        logger.error(f"Error checking disk space: {e}")
+        return False
 
 
-def safe_edit_message_text(chat_id, message_id, text, **kwargs):
-    """Safely edit message text with error handling"""
-    try:
-        from magic import app
-        return app.edit_message_text(chat_id, message_id, text, **kwargs)
-    
-    except Exception as e:
-        logger.error(f"Error editing message {message_id} in {chat_id}: {e}")
-        return None
+def get_active_download(user_id):
+    """Get active download status for user"""
+    with active_downloads_lock:
+        return active_downloads.get(user_id, None)
 
 
-def safe_delete_messages(chat_id, message_ids, **kwargs):
-    """Safely delete messages with error handling"""
-    try:
-        from magic import app
-        
-        # Handle single message ID
-        if isinstance(message_ids, int):
-            message_ids = [message_ids]
-        
-        return app.delete_messages(chat_id, message_ids, **kwargs)
-    
-    except Exception as e:
-        logger.error(f"Error deleting messages {message_ids} in {chat_id}: {e}")
-        return None
-
-
-def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
-    """Safely forward messages with error handling"""
-    try:
-        from magic import app
-        
-        # Handle single message ID
-        if isinstance(message_ids, int):
-            message_ids = [message_ids]
-        
-        return app.forward_messages(chat_id, from_chat_id, message_ids, **kwargs)
-    
-    except Exception as e:
-        logger.error(f"Error forwarding messages {message_ids} from {from_chat_id} to {chat_id}: {e}")
-        return None
-
-
-def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
-    """Start hourglass animation for long operations"""
-    import threading
-    
-    def animate_hourglass():
-        hourglass_frames = ["⏳", "⌛"]
-        frame_index = 0
-        
-        while not stop_anim[0]:
-            try:
-                frame = hourglass_frames[frame_index % len(hourglass_frames)]
-                safe_edit_message_text(
-                    user_id, 
-                    hourglass_msg_id, 
-                    f"{frame} Processing..."
-                )
-                frame_index += 1
-                time.sleep(1)
-            except Exception as e:
-                logger.error(f"Error in hourglass animation: {e}")
-                break
-    
-    # Start animation in separate thread
-    thread = threading.Thread(target=animate_hourglass)
-    thread.daemon = True
-    thread.start()
-    
-    return thread
-
-
-def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop):
-    """Start cycle progress animation"""
-    import threading
-    import os
-    
-    def cycle_progress():
-        cycle_frames = ["🔄", "🔃", "🔁", "🔄"]
-        frame_index = 0
-        
-        while not cycle_stop[0]:
-            try:
-                frame = cycle_frames[frame_index % len(cycle_frames)]
-                
-                # Get current process info
-                process_text = ""
-                if current_total_process[0] > 0:
-                    process_text = f" ({current_total_process[0]} processed)"
-                
-                # Check if user directory exists
-                user_path = os.path.join("users", user_dir_name)
-                status = "Active" if os.path.exists(user_path) else "Waiting"
-                
-                safe_edit_message_text(
-                    user_id,
-                    proc_msg_id,
-                    f"{frame} {status}{process_text}..."
-                )
-                
-                frame_index += 1
-                time.sleep(2)
-                
-            except Exception as e:
-                logger.error(f"Error in cycle progress: {e}")
-                break
-    
-    # Start animation in separate thread
-    thread = threading.Thread(target=cycle_progress)
-    thread.daemon = True
-    thread.start()
-    
-    return thread
-
-
-def format_progress_bar(current: int, total: int, width: int = 20) -> str:
-    """Format progress bar for display"""
-    if total == 0:
-        return "█" * width
-    
-    progress = current / total
-    filled = int(width * progress)
-    bar = "█" * filled + "░" * (width - filled)
-    percentage = progress * 100
-    
-    return f"{bar} {percentage:.1f}%"
-
-
-def extract_user_command(message) -> Optional[str]:
-    """Extract command from message"""
-    try:
-        if hasattr(message, 'command') and message.command:
-            return message.command[0]
-        elif hasattr(message, 'text') and message.text:
-            if message.text.startswith('/'):
-                return message.text.split()[0][1:]  # Remove '/' prefix
-        return None
-    except Exception:
-        return None 
+def set_active_download(user_id, status):
+    """Set active download status for user"""
+    with active_downloads_lock:
+        if status is None and user_id in active_downloads:
+            del active_downloads[user_id]
+        else:
+            active_downloads[user_id] = status

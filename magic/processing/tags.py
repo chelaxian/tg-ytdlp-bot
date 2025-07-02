@@ -1,396 +1,307 @@
-"""
-Tags processing system
-"""
-import os
+"""Tags processing functions"""
+import logging
 import re
-from typing import List, Set, Tuple
+import os
+import requests
+import tldextract
+from urllib.parse import urlparse
+from config import Config
 
+logger = logging.getLogger(__name__)
 
-def clean_telegram_tag(tag: str) -> str:
-    """Clean tag for Telegram compatibility"""
-    return re.sub(r'[^\w]', '', tag)
+# --- global lists of domains and keywords ---
+PORN_DOMAINS = set()
+SUPPORTED_SITES = set()
+PORN_KEYWORDS = set()
 
-
-def extract_url_range_tags(text: str):
-    """
-    Extract URL, range, and tags from user input text
-    
-    This function now always returns the full original download link
-    without modifying playlist ranges, ensuring compatibility with yt-dlp
-    """
-    if not text:
-        return None, None, None, None, None, None, None
-    
-    text = text.strip()
-    
-    # Look for range pattern *start*end or *start*end*playlist_name
-    range_pattern = r'\*(\d+)\*(\d+)(?:\*([^#\s]+))?'
-    range_match = re.search(range_pattern, text)
-    
-    if range_match:
-        start_index = int(range_match.group(1))
-        end_index = int(range_match.group(2))
-        playlist_name = range_match.group(3) if range_match.group(3) else None
-        
-        # Extract URL (everything before the range pattern)
-        url = text[:range_match.start()].strip()
-        
-        # Extract tags (everything after the range pattern)
-        remaining_text = text[range_match.end():].strip()
-        
-        # Look for tags starting with #
-        tag_pattern = r'#([^#\s]+)'
-        tags = re.findall(tag_pattern, remaining_text)
-        
-        # The original download URL includes the range
-        original_download_url = url + range_match.group(0)
-        
-        return (url, start_index, end_index, playlist_name, tags, original_download_url, range_match.group(0))
-    else:
-        # No range found, look for tags
-        tag_pattern = r'#([^#\s]+)'
-        tags = re.findall(tag_pattern, text)
-        
-        if tags:
-            # Remove tags from URL
-            url = re.sub(r'#[^#\s]+', '', text).strip()
-        else:
-            url = text
-        
-        return (url, None, None, None, tags, url, None)
-
-
+# --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
     """
-    Clean URL for tagging by removing tracking parameters but keeping essential ones
+    Extracts the last (deepest nested) link from URL-wrappers.
+    Used ONLY for generating tags.
     """
-    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-    
-    if not url:
-        return url
-    
-    try:
-        parsed = urlparse(url)
-        
-        # For YouTube, keep only essential parameters
-        if 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc:
-            query_params = parse_qs(parsed.query)
-            
-            # Keep only essential YouTube parameters
-            essential_params = {}
-            for param in ['v', 'list', 'index', 't', 'start']:
-                if param in query_params:
-                    essential_params[param] = query_params[param]
-            
-            new_query = urlencode(essential_params, doseq=True)
-            return urlunparse((parsed.scheme, parsed.netloc, parsed.path, 
-                             parsed.params, new_query, ''))
-        
-        # For other sites, return as is
-        return url
-        
-    except Exception:
-        return url
+    if not isinstance(url, str):
+        return ''
+    last_http_pos = url.rfind('http://')
+    last_https_pos = url.rfind('https://')
 
+    start_of_real_url_pos = max(last_http_pos, last_https_pos)
 
-def load_domain_lists():
-    """Load domain and keyword lists for auto-tagging"""
-    porn_domains = set()
-    porn_keywords = set()
-    
-    try:
-        # Load porn domains
-        if os.path.exists("porn_domains.txt"):
-            with open("porn_domains.txt", "r", encoding="utf-8") as f:
-                porn_domains = {line.strip().lower() for line in f if line.strip()}
-        
-        # Load porn keywords  
-        if os.path.exists("porn_keywords.txt"):
-            with open("porn_keywords.txt", "r", encoding="utf-8") as f:
-                porn_keywords = {line.strip().lower() for line in f if line.strip()}
-                
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error loading domain/keyword lists: {e}")
-    
-    return porn_domains, porn_keywords
+    # If another http/https is found (not at the very beginning), this is the real link
+    if start_of_real_url_pos > 0:
+        return url[start_of_real_url_pos:]
+    return url
 
+# --- Function for cleaning tags for Telegram ---
+def clean_telegram_tag(tag: str) -> str:
+    return '#' + re.sub(r'[^\w]', '', tag.lstrip('#'))
 
-def extract_domain_parts(url):
-    """
-    Extract domain parts from URL for classification
-    """
-    from urllib.parse import urlparse
-    
-    try:
-        parsed = urlparse(url)
-        domain = parsed.netloc.lower()
-        
-        # Remove www. prefix
-        if domain.startswith('www.'):
-            domain = domain[4:]
-        
-        # Split by dots to get parts
-        parts = domain.split('.')
-        
-        return parts, domain
-        
-    except Exception:
-        return [], ""
+# --- a function for extracting the URL, the range and tags from the text ---
+def extract_url_range_tags(text: str):
+    # This function now always returns the full original download link
+    if not isinstance(text, str):
+        return None, 1, 1, None, [], '', None
+    url_match = re.search(r'https?://[^\s\*#]+', text)
+    if not url_match:
+        return None, 1, 1, None, [], '', None
+    url = url_match.group(0)
 
-
-def is_porn_domain(domain_parts):
-    """
-    Check if domain parts indicate adult content
-    
-    Args:
-        domain_parts: List of domain parts from URL
-        
-    Returns:
-        bool: True if any suffix domain on a whitelist is not porn
-    """
-    from config import Config
-    
-    porn_domains, _ = load_domain_lists()
-    
-    # Check against whitelist first
-    for suffix_len in range(1, min(4, len(domain_parts) + 1)):
-        suffix_domain = '.'.join(domain_parts[-suffix_len:])
-        if suffix_domain in Config.WHITELIST:
-            return False
-    
-    # Check against porn domains
-    for suffix_len in range(1, min(4, len(domain_parts) + 1)):
-        suffix_domain = '.'.join(domain_parts[-suffix_len:])
-        if suffix_domain in porn_domains:
-            return True
-    
-    return False
-
-
-def is_porn(url, title, description, caption=None):
-    """
-    Determine if content is adult/porn based on URL, title, and description
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    try:
-        domain_parts, domain = extract_domain_parts(url)
-        
-        # Check domain
-        if is_porn_domain(domain_parts):
-            logger.info(f"Classified as porn due to domain: {domain}")
-            return True
-        
-        # Check keywords in title, description, and caption
-        _, porn_keywords = load_domain_lists()
-        
-        text_to_check = []
-        if title:
-            text_to_check.append(title.lower())
-        if description:
-            text_to_check.append(description.lower())
-        if caption:
-            text_to_check.append(caption.lower())
-        
-        combined_text = ' '.join(text_to_check)
-        
-        for keyword in porn_keywords:
-            if keyword in combined_text:
-                logger.info(f"Classified as porn due to keyword: {keyword}")
-                return True
-        
-        return False
-        
-    except Exception as e:
-        logger.error(f"Error in porn detection: {e}")
-        return False
-
-
-def get_auto_tags(url, user_tags):
-    """
-    Generate automatic tags based on URL and content
-    """
-    from urllib.parse import urlparse
-    
-    auto_tags = []
-    
-    try:
-        parsed = urlparse(url)
-        domain = parsed.netloc.lower()
-        
-        # Remove www. prefix
-        if domain.startswith('www.'):
-            domain = domain[4:]
-        
-        # Platform-specific tags
-        if 'youtube.com' in domain or 'youtu.be' in domain:
-            auto_tags.append('youtube')
-        elif 'tiktok.com' in domain:
-            auto_tags.append('tiktok')
-        elif 'instagram.com' in domain:
-            auto_tags.append('instagram')
-        elif 'twitter.com' in domain or 'x.com' in domain:
-            auto_tags.append('twitter')
-        elif 'pornhub.com' in domain:
-            auto_tags.append('adult')
-        elif 'vk.com' in domain or 'vkvideo.ru' in domain:
-            auto_tags.append('vk')
-        elif 'twitch.tv' in domain:
-            auto_tags.append('twitch')
-        elif 'vimeo.com' in domain:
-            auto_tags.append('vimeo')
-        
-        # Add domain as tag if not already covered
-        domain_tag = domain.split('.')[0]
-        if domain_tag not in auto_tags and len(domain_tag) > 2:
-            auto_tags.append(domain_tag)
-        
-    except Exception:
-        pass
-    
-    # Combine with user tags
-    all_tags = list(user_tags) + auto_tags
-    
-    # Remove duplicates while preserving order
-    seen = set()
-    final_tags = []
-    for tag in all_tags:
-        tag_clean = clean_telegram_tag(tag)
-        if tag_clean and tag_clean not in seen:
-            seen.add(tag_clean)
-            final_tags.append(tag_clean)
-    
-    return final_tags
-
-
-def sanitize_autotag(tag: str) -> str:
-    """
-    Sanitize autotag to contain only safe characters
-    Leave only letters (any language), numbers and _
-    """
-    import re
-    return re.sub(r'[^\w_]', '', tag, flags=re.UNICODE)
-
-
-def generate_final_tags(url, user_tags, info_dict):
-    """
-    Generate final tags combining user tags, auto tags, and metadata
-    
-    Args:
-        url: Video URL
-        user_tags: User-provided tags
-        info_dict: Video metadata from yt-dlp
-        
-    Returns:
-        Formatted tags string for caption
-    """
-    # Get base auto tags
-    auto_tags = get_auto_tags(url, user_tags)
-    
-    # Add metadata-based tags
-    metadata_tags = []
-    
-    try:
-        # Add uploader tag if available
-        uploader = info_dict.get('uploader') or info_dict.get('channel')
-        if uploader:
-            uploader_tag = sanitize_autotag(uploader)
-            if len(uploader_tag) > 2 and len(uploader_tag) < 20:
-                metadata_tags.append(uploader_tag)
-        
-        # Add duration-based tag
-        duration = info_dict.get('duration')
-        if duration:
-            if duration < 60:
-                metadata_tags.append('short')
-            elif duration > 3600:
-                metadata_tags.append('long')
-        
-        # Add quality tag
-        height = info_dict.get('height')
-        if height:
-            if height >= 2160:
-                metadata_tags.append('4k')
-            elif height >= 1080:
-                metadata_tags.append('hd')
-            elif height >= 720:
-                metadata_tags.append('720p')
-    
-    except Exception:
-        pass
-    
-    # Combine all tags
-    all_tags = auto_tags + metadata_tags
-    
-    # Remove duplicates and format
-    final_tags = []
-    seen = set()
-    
-    for tag in all_tags:
-        tag_clean = clean_telegram_tag(tag.lower())
-        if tag_clean and tag_clean not in seen and len(tag_clean) > 1:
-            seen.add(tag_clean)
-            final_tags.append(f"#{tag_clean}")
-    
-    # Limit to reasonable number of tags
-    final_tags = final_tags[:10]
-    
-    return ' '.join(final_tags) if final_tags else ''
-
+    after_url = text[url_match.end():]
+    # Range
+    range_match = re.match(r'\*([0-9]+)\*([0-9]+)', after_url)
+    if range_match:
+        video_start_with = int(range_match.group(1))
+        video_end_with = int(range_match.group(2))
+        after_range = after_url[range_match.end():]
+    else:
+        video_start_with = 1
+        video_end_with = 1
+        after_range = after_url
+    playlist_name = None
+    playlist_match = re.match(r'\*([^\s\*#]+)', after_range)
+    if playlist_match:
+        playlist_name = playlist_match.group(1)
+        after_playlist = after_range[playlist_match.end():]
+    else:
+        after_playlist = after_range
+    tags = []
+    tags_text = ''
+    error_tag = None
+    error_tag_example = None
+    tag_part = after_playlist.strip()
+    if tag_part:
+        for raw in re.finditer(r'#([^#\s]+)', tag_part):
+            tag = raw.group(1)
+            # We check that the tag consists only of the permitted characters
+            if not re.fullmatch(r'[\w\d_]+', tag, re.UNICODE):
+                error_tag = tag
+                # For example, show the user how the corrected tag would look like
+                example = re.sub(r'[^\w\d_]', '_', tag, flags=re.UNICODE)
+                error_tag_example = f'#{example}'
+                break  # Interrupt the check after the first error
+            tags.append(f'#{tag}')
+        # We form Tags_text with spaces between tags
+        tags_text = ' '.join(tags)
+    # Return the motorcade with an error if it was found
+    return url, video_start_with, video_end_with, playlist_name, tags, tags_text, (error_tag, error_tag_example) if error_tag else None
 
 def save_user_tags(user_id, tags):
+    if not tags:
+        return
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    tags_file = os.path.join(user_dir, "tags.txt")
+    # We read already saved tags
+    existing = set()
+    if os.path.exists(tags_file):
+        with open(tags_file, "r", encoding="utf-8") as f:
+            for line in f:
+                tag = line.strip()
+                if tag:
+                    existing.add(tag.lower())
+    # Add new tags (without registering and without repetitions)
+    new_tags = [t for t in tags if t and t.lower() not in existing]
+    if new_tags:
+        with open(tags_file, "a", encoding="utf-8") as f:
+            for tag in new_tags:
+                f.write(tag + "\n")
+
+def extract_youtube_id(url: str) -> str:
     """
-    Save user tags to file
+    It extracts YouTube Video ID from different link formats.
     """
-    import os
-    from magic.utils.filesystem import create_directory
-    
+    patterns = [
+        r"youtu\.be/([^?&/]+)",
+        r"v=([^?&/]+)",
+        r"embed/([^?&/]+)",
+        r"youtube\.com/watch\?[^ ]*v=([^?&/]+)"
+    ]
+    for pat in patterns:
+        m = re.search(pat, url)
+        if m:
+            return m.group(1)
+    raise ValueError("Failed to extract YouTube ID")
+
+def download_thumbnail(video_id: str, dest: str) -> None:
+    """
+    Trying to download maxressdefault.jpg, then hqdefault.jpg.
+    """
+    base = f"https://img.youtube.com/vi/{video_id}"
+    for name in ("maxresdefault.jpg", "hqdefault.jpg"):
+        r = requests.get(f"{base}/{name}", timeout=10)
+        if r.status_code == 200 and len(r.content) <= 200 * 1024:
+            with open(dest, "wb") as f:
+                f.write(r.content)
+            return
+    raise RuntimeError("Failed to download thumbnail or it is too big")
+
+# --- global lists of domains and keywords ---
+PORN_DOMAINS = set()
+SUPPORTED_SITES = set()
+PORN_KEYWORDS = set()
+
+# --- loading lists at start ---
+def load_domain_lists():
+    global PORN_DOMAINS, SUPPORTED_SITES, PORN_KEYWORDS
     try:
-        user_dir = os.path.join("users", str(user_id))
-        create_directory(user_dir)
-        
-        tags_file = os.path.join(user_dir, "tags.txt")
-        
-        # Load existing tags
-        existing_tags = set()
-        if os.path.exists(tags_file):
-            with open(tags_file, "r", encoding="utf-8") as f:
-                existing_tags = {line.strip() for line in f if line.strip()}
-        
-        # Add new tags
-        for tag in tags:
-            if tag and len(tag) > 1:
-                existing_tags.add(clean_telegram_tag(tag))
-        
-        # Save updated tags
-        with open(tags_file, "w", encoding="utf-8") as f:
-            for tag in sorted(existing_tags):
-                f.write(f"{tag}\n")
-                
+        with open(Config.PORN_DOMAINS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            PORN_DOMAINS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_DOMAINS)} domains from {Config.PORN_DOMAINS_FILE}. Example: {list(PORN_DOMAINS)[:5]}")
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error saving user tags: {e}")
-
-
-def get_user_tags(user_id):
-    """
-    Get user's saved tags
-    """
-    import os
-    
+        logger.error(f"Failed to load {Config.PORN_DOMAINS_FILE}: {e}")
+        PORN_DOMAINS = set()
     try:
-        user_dir = os.path.join("users", str(user_id))
-        tags_file = os.path.join(user_dir, "tags.txt")
-        
-        if os.path.exists(tags_file):
-            with open(tags_file, "r", encoding="utf-8") as f:
-                return [line.strip() for line in f if line.strip()]
-        
-        return []
-        
+        with open(Config.PORN_KEYWORDS_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            PORN_KEYWORDS = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(PORN_KEYWORDS)} keywords from {Config.PORN_KEYWORDS_FILE}. Example: {list(PORN_KEYWORDS)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.PORN_KEYWORDS_FILE}: {e}")
+        PORN_KEYWORDS = set()
+    try:
+        with open(Config.SUPPORTED_SITES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            SUPPORTED_SITES = set(line.strip().lower() for line in f if line.strip())
+        logger.info(f"Loaded {len(SUPPORTED_SITES)} supported sites from {Config.SUPPORTED_SITES_FILE}. Example: {list(SUPPORTED_SITES)[:5]}")
+    except Exception as e:
+        logger.error(f"Failed to load {Config.SUPPORTED_SITES_FILE}: {e}")
+        SUPPORTED_SITES = set()
+
+load_domain_lists()
+
+# --- an auxiliary function for extracting a domain ---
+def extract_domain_parts(url):
+    try:
+        ext = tldextract.extract(url)
+        # We collect the domain: Domain.suffix (for example, xvideos.com)
+        if ext.domain and ext.suffix:
+            full_domain = f"{ext.domain}.{ext.suffix}".lower()
+            subdomain = ext.subdomain.lower() if ext.subdomain else ''
+            # We get all the suffixes: xvideos.com, b.xvideos.com, a.b.xvideos.com
+            parts = [full_domain]
+            if subdomain:
+                sub_parts = subdomain.split('.')
+                for i in range(len(sub_parts)):
+                    parts.append('.'.join(sub_parts[i:] + [full_domain]))
+            return parts, ext.domain.lower()
+        elif ext.domain:
+            return [ext.domain.lower()], ext.domain.lower()
+        else:
+            return [url.lower()], url.lower()
     except Exception:
-        return [] 
+        # Fallback for URLs without a clear domain, e.g., "localhost"
+        parsed = urlparse(url)
+        if parsed.netloc:
+             return [parsed.netloc.lower()], parsed.netloc.lower()
+        return [url.lower()], url.lower()
+
+
+    auto_tags = [t for t in auto_tags if t.lower() not in user_tags_lower]
+    return auto_tags
+
+# --- White list of domains that are not considered porn ---
+# Now we take from config.py
+
+def is_porn_domain(domain_parts):
+    # If any suffix domain on a white list is not porn
+    for dom in domain_parts:
+        if dom in Config.WHITELIST:
+            return False
+    # If any suffix domain in the list of porn is porn
+    for dom in domain_parts:
+        if dom in PORN_DOMAINS:
+            return True
+    return False
+
+# --- a new function for checking for porn ---
+def is_porn(url, title, description, caption=None):
+    """
+    Checks content for pornography by domain and keywords (substring search) in title, description and caption.
+    If the domain or subdomain is found in WHITELIST, it immediately returns False.
+    """
+    clean_url = get_clean_url_for_tagging(url)
+    domain_parts, _ = extract_domain_parts(clean_url)
+    #First, check WHITELIST
+    for dom in domain_parts:
+        if dom in Config.WHITELIST:
+            logger.info(f"is_porn: domain in WHITELIST: {dom}")
+            return False
+    if is_porn_domain(domain_parts):
+        logger.info(f"is_porn: domain match: {domain_parts}")
+        return True
+    title_lower = title.lower() if title else ""
+    description_lower = description.lower() if description else ""
+    caption_lower = caption.lower() if caption else ""
+    logger.debug(f"is_porn check for url: {url}")
+    logger.debug(f"is_porn title: '{title_lower}'")
+    logger.debug(f"is_porn description: '{description_lower}'")
+    logger.debug(f"is_porn caption: '{caption_lower}'")
+    logger.debug(f"is_porn keywords being checked: {PORN_KEYWORDS}")
+    if not title_lower and not description_lower and not caption_lower:
+        logger.info("is_porn: all fields empty")
+        return False
+    for keyword in PORN_KEYWORDS:
+        if not keyword:
+            continue
+        # Split text into words and check for exact word matches
+        title_words = title_lower.split()
+        description_words = description_lower.split()
+        caption_words = caption_lower.split()
+        
+        if (keyword in title_words or keyword in description_words or keyword in caption_words):
+            logger.info(f"is_porn: found match: {keyword}")
+            return True
+    logger.info("is_porn: no matches found")
+    return False
+
+def sanitize_autotag(tag: str) -> str:
+    # Leave only letters (any language), numbers and _
+    return '#' + re.sub(r'[^\w\d_]', '_', tag.lstrip('#'), flags=re.UNICODE)
+
+def generate_final_tags(url, user_tags, info_dict):
+    """Tags now include #porn if found by title, description or caption."""
+    final_tags = []
+    seen = set()
+    # 1. Custom tags
+    for tag in user_tags:
+        tag_l = tag.lower()
+        if tag_l not in seen:
+            final_tags.append(tag)
+            seen.add(tag_l)
+    # 2. Auto-tags (no duplicates)
+    auto_tags = get_auto_tags(url, final_tags)
+    for tag in auto_tags:
+        tag_l = tag.lower()
+        if tag_l not in seen:
+            final_tags.append(tag)
+            seen.add(tag_l)
+    # 3. Profile/channel tags (tiktok/youtube)
+    if is_tiktok_url(url):
+        tiktok_profile = extract_tiktok_profile(url)
+        if tiktok_profile:
+            tiktok_tag = sanitize_autotag(tiktok_profile)
+            if tiktok_tag.lower() not in seen:
+                final_tags.append(tiktok_tag)
+                seen.add(tiktok_tag.lower())
+        if '#tiktok' not in seen:
+            final_tags.append('#tiktok')
+            seen.add('#tiktok')
+    clean_url_for_check = get_clean_url_for_tagging(url)
+    if ("youtube.com" in clean_url_for_check or "youtu.be" in clean_url_for_check) and info_dict:
+        channel_name = info_dict.get("channel") or info_dict.get("uploader")
+        if channel_name:
+            channel_tag = sanitize_autotag(channel_name)
+            if channel_tag.lower() not in seen:
+                final_tags.append(channel_tag)
+                seen.add(channel_tag.lower())
+    # 4. #porn if defined by title, description or caption
+    video_title = info_dict.get("title")
+    video_description = info_dict.get("description")
+    video_caption = info_dict.get("caption") if info_dict else None
+    if is_porn(url, video_title, video_description, video_caption):
+        if '#porn' not in seen:
+            final_tags.append('#porn')
+            seen.add('#porn')
+    result = ' '.join(final_tags)
+    logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
+    return result
+
+

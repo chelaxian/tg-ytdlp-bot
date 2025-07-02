@@ -1,39 +1,14 @@
-"""
-Bot command handlers - COMPLETE VERSION with all missing functions
-"""
+"""Command handlers"""
+import logging
 import os
-import subprocess
-from pyrogram import filters, enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup
+from pyrogram import filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram import enums
 from config import Config
-from ..utils.communication import send_to_all, send_to_logger, send_to_user
-from ..database.firebase import logger, check_user, is_user_in_channel
-from ..user.settings import get_user_split_size, set_user_split_size, is_mediainfo_enabled, toggle_mediainfo
-from ..utils.filesystem import cleanup_user_temp_files, get_active_download, create_directory
-from ..processing.tags import extract_url_range_tags, save_user_tags
-from ..download.downloader import down_and_audio
 
+logger = logging.getLogger(__name__)
 
-def reply_with_keyboard(func):
-    """Decorator to add main keyboard to responses"""
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
-
-
-def get_main_reply_keyboard():
-    """Get the main reply keyboard"""
-    return ReplyKeyboardMarkup(
-        [
-            ["/clean", "/download_cookie"],
-            ["/playlist", "/settings", "/help"]
-        ],
-        resize_keyboard=True,
-        one_time_keyboard=False
-    )
-
-
-# Original command1 (start)
+@app.on_message(filters.command("start") & filters.private)
 @reply_with_keyboard
 def command1(app, message):
     if int(message.chat.id) in Config.ADMIN:
@@ -45,16 +20,15 @@ def command1(app, message):
             f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
         send_to_logger(message, f"{message.chat.id} - user started the bot")
 
-
-# Original command2 (help)
-@reply_with_keyboard  
+@app.on_message(filters.command("help"))
+@reply_with_keyboard
 def command2(app, message):
     app.send_message(message.chat.id, (Config.HELP_MSG),
                      parse_mode=enums.ParseMode.HTML)
     send_to_logger(message, f"Send help txt to user")
 
-
-# Cookies from browser command
+# Command to Set Browser Cooks
+@app.on_message(filters.command("cookies_from_browser") & filters.private)
 @reply_with_keyboard
 def cookies_from_browser(app, message):
     user_id = message.chat.id
@@ -121,11 +95,12 @@ def cookies_from_browser(app, message):
     )
     send_to_logger(message, "Browser selection keyboard sent with installed browsers only.")
 
-
-# Browser choice callback
+# Callback Handler for Browser Selection
+@app.on_callback_query(filters.regex(r"^browser_choice\|"))
 @reply_with_keyboard
 def browser_choice_callback(app, callback_query):
     logger.info(f"[BROWSER] callback: {callback_query.data}")
+    import subprocess
 
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]  # E.G. "Chromium", "Firefox", or "Cancel"
@@ -182,8 +157,8 @@ def browser_choice_callback(app, callback_query):
 
     callback_query.answer("✅ Browser choice updated.")
 
-
-# Audio command handler
+# Command to Download Audio from a Video url
+@app.on_message(filters.command("audio") & filters.private)
 @reply_with_keyboard
 def audio_command_handler(app, message):
     user_id = message.chat.id
@@ -212,8 +187,8 @@ def audio_command_handler(app, message):
     
     down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
 
-
-# Playlist command
+# /Playlist Command
+@app.on_message(filters.command("playlist") & filters.private)
 @reply_with_keyboard
 def playlist_command(app, message):
     user_id = message.chat.id
@@ -223,8 +198,8 @@ def playlist_command(app, message):
     app.send_message(user_id, Config.PLAYLIST_HELP_MSG, parse_mode=enums.ParseMode.HTML)
     send_to_logger(message, "User requested playlist help.")
 
-
-# Format command
+# Command /Format Handler
+@app.on_message(filters.command("format") & filters.private)
 @reply_with_keyboard
 def set_format(app, message):
     user_id = message.chat.id
@@ -250,101 +225,611 @@ def set_format(app, message):
             [InlineKeyboardButton("🎛 Others (144p - 4320p)", callback_data="format_option|others")],
             [InlineKeyboardButton("💻4k (best for PC/Mac Telegram)", callback_data="format_option|bv2160")],
             [InlineKeyboardButton("📱FullHD (best for mobile Telegram)", callback_data="format_option|bv1080")],
-            [InlineKeyboardButton("📺HD (720p)", callback_data="format_option|bv720")],
-            [InlineKeyboardButton("📱SD (480p)", callback_data="format_option|bv480")],
-            [InlineKeyboardButton("📱Low (360p)", callback_data="format_option|bv360")],
-            [InlineKeyboardButton("🎵 Audio Only", callback_data="format_option|bestaudio")],
-            [InlineKeyboardButton("🔄 Reset to Default", callback_data="format_option|reset")]
+            [InlineKeyboardButton("📈Bestvideo+Bestaudio (MAX quality)", callback_data="format_option|bestvideo")],
+            # [InlineKeyboardButton("📉best (no ffmpeg) (bad)", callback_data="format_option|best")],
+            [InlineKeyboardButton("🎚 Custom (enter your own)", callback_data="format_option|custom")],
+            [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
         ])
-        app.send_message(user_id, "Choose download format:", reply_markup=main_keyboard)
+        app.send_message(
+            user_id,
+            "Select a format option or send a custom one using `/format <format_string>`:",
+            reply_markup=main_keyboard
+        )
+        send_to_logger(message, "Format menu sent.")
 
+@app.on_message(filters.command("tags") & filters.private)
+@reply_with_keyboard
+def tags_command(app, message):
+    user_id = message.chat.id
+    user_dir = os.path.join("users", str(user_id))
+    tags_file = os.path.join(user_dir, "tags.txt")
+    if not os.path.exists(tags_file):
+        reply_text = "You have no tags yet."
+        app.send_message(user_id, reply_text, reply_to_message_id=message.id)
+        send_to_logger(message, reply_text)
+        return
+    with open(tags_file, "r", encoding="utf-8") as f:
+        tags = [line.strip() for line in f if line.strip()]
+    if not tags:
+        reply_text = "You have no tags yet."
+        app.send_message(user_id, reply_text, reply_to_message_id=message.id)
+        send_to_logger(message, reply_text)
+        return
+    # We form posts by 4096 characters
+    msg = ''
+    for tag in tags:
+        if len(msg) + len(tag) + 1 > 4096:
+            app.send_message(user_id, msg, reply_to_message_id=message.id)
+            send_to_logger(message, msg)
+            msg = ''
+        msg += tag + '\n'
+    if msg:
+        app.send_message(user_id, msg, reply_to_message_id=message.id)
+        send_to_logger(message, msg)
 
-# Format option callback
+# Callbackquery Handler for /Format Menu Selection
+@app.on_callback_query(filters.regex(r"^format_option\|"))
 @reply_with_keyboard
 def format_option_callback(app, callback_query):
+    logger.info(f"[FORMAT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
-    option = callback_query.data.split("|")[1]
-    user_dir = os.path.join("users", str(user_id))
-    create_directory(user_dir)
-    format_file = os.path.join(user_dir, "format.txt")
+    data = callback_query.data.split("|")[1]
 
-    format_map = {
-        "alwaysask": "always_ask",
-        "bv2160": "best[height<=2160]",
-        "bv1080": "best[height<=1080]", 
-        "bv720": "best[height<=720]",
-        "bv480": "best[height<=480]",
-        "bv360": "best[height<=360]",
-        "bestaudio": "bestaudio",
-        "reset": ""
-    }
+    # If you press the Cancel button
+    if data == "cancel":
+        callback_query.edit_message_text("🔚 Format selection canceled.")
+        callback_query.answer("✅ Format choice updated.")
+        send_to_logger(callback_query.message, "Format selection canceled.")
+        return
 
-    if option == "reset":
-        if os.path.exists(format_file):
-            os.remove(format_file)
-        callback_query.edit_message_text("✅ Format reset to default")
-    elif option == "others":
-        # Show detailed quality menu
-        others_keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📱 144p", callback_data="format_option|bv144"),
-             InlineKeyboardButton("📱 240p", callback_data="format_option|bv240")],
-            [InlineKeyboardButton("📱 360p", callback_data="format_option|bv360"),
-             InlineKeyboardButton("📱 480p", callback_data="format_option|bv480")],
-            [InlineKeyboardButton("📺 720p", callback_data="format_option|bv720"),
-             InlineKeyboardButton("📱 1080p", callback_data="format_option|bv1080")],
-            [InlineKeyboardButton("💻 1440p", callback_data="format_option|bv1440"),
-             InlineKeyboardButton("💻 2160p", callback_data="format_option|bv2160")],
-            [InlineKeyboardButton("💻 4320p", callback_data="format_option|bv4320")],
+    # If the Custom button is pressed
+    if data == "custom":
+        callback_query.edit_message_text(
+            "To use a custom format, send the command in the following form:\n\n`/format bestvideo+bestaudio/best`\n\nReplace `bestvideo+bestaudio/best` with your desired format string."
+        )
+        callback_query.answer("Hint sent.")
+        send_to_logger(callback_query.message, "Custom format hint sent.")
+        return
+
+    # If the Others button is pressed - we display the second set of options
+    if data == "others":
+        full_res_keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"),
+                InlineKeyboardButton("240p (426×240)", callback_data="format_option|bv240"),
+                InlineKeyboardButton("360p (640×360)", callback_data="format_option|bv360")
+            ],
+            [
+                InlineKeyboardButton("480p (854×480)", callback_data="format_option|bv480"),
+                InlineKeyboardButton("720p (1280×720)", callback_data="format_option|bv720"),
+                InlineKeyboardButton("1080p (1920×1080)", callback_data="format_option|bv1080")
+            ],
+            [
+                InlineKeyboardButton("1440p (2560×1440)", callback_data="format_option|bv1440"),
+                InlineKeyboardButton("2160p (3840×2160)", callback_data="format_option|bv2160"),
+                InlineKeyboardButton("4320p (7680×4320)", callback_data="format_option|bv4320")
+            ],
             [InlineKeyboardButton("🔙 Back", callback_data="format_option|back")]
         ])
-        callback_query.edit_message_text("Select quality:", reply_markup=others_keyboard)
+        callback_query.edit_message_text("Select your desired resolution:", reply_markup=full_res_keyboard)
+        callback_query.answer()
+        send_to_logger(callback_query.message, "Format resolution menu sent.")
         return
-    elif option.startswith("bv"):
-        height = option[2:]
-        format_str = f"best[height<={height}]"
-        with open(format_file, "w", encoding="utf-8") as f:
-            f.write(format_str)
-        callback_query.edit_message_text(f"✅ Format set to {height}p quality")
+
+    # If the Back button is pressed - we return to the main menu
+    if data == "back":
+        main_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("❓ Always Ask (menu + buttons)", callback_data="format_option|alwaysask")],
+            [InlineKeyboardButton("🎛 Others (144p - 4320p)", callback_data="format_option|others")],
+            [InlineKeyboardButton("💻4k (best for PC/Mac Telegram)", callback_data="format_option|bv2160")],
+            [InlineKeyboardButton("📱FullHD (best for mobile Telegram)", callback_data="format_option|bv1080")],
+            [InlineKeyboardButton("📈Bestvideo+Bestaudio (MAX quality)", callback_data="format_option|bestvideo")],
+            # [InlineKeyboardButton("📉best (no ffmpeg) (bad)", callback_data="format_option|best")],
+            [InlineKeyboardButton("🎚 Custom (enter your own)", callback_data="format_option|custom")],
+            [InlineKeyboardButton("🔙 Cancel", callback_data="format_option|cancel")]
+        ])
+        callback_query.edit_message_text("Select a format option or send a custom one using `/format <format_string>`:",
+                                         reply_markup=main_keyboard)
+        callback_query.answer()
+        send_to_logger(callback_query.message, "Returned to main format menu.")
+        return
+
+    # Mapping for the Rest of the Options
+    if data == "bv144":
+        chosen_format = "bv*[vcodec*=avc1][height<=144]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv240":
+        chosen_format = "bv*[vcodec*=avc1][height<=240]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv360":
+        chosen_format = "bv*[vcodec*=avc1][height<=360]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv480":
+        chosen_format = "bv*[vcodec*=avc1][height<=480]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv720":
+        chosen_format = "bv*[vcodec*=avc1][height<=720]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv1080":
+        chosen_format = "bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv1440":
+        chosen_format = "bv*[vcodec*=avc1][height<=1440]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv2160":
+        chosen_format = "bv*[vcodec*=avc1][height<=2160]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bv4320":
+        chosen_format = "bv*[vcodec*=avc1][height<=4320]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best"
+    elif data == "bestvideo":
+        chosen_format = "bestvideo+bestaudio/best"
+    elif data == "best":
+        chosen_format = "best"
     else:
-        format_str = format_map.get(option, "")
-        with open(format_file, "w", encoding="utf-8") as f:
-            f.write(format_str)
-        callback_query.edit_message_text(f"✅ Format updated")
+        chosen_format = data
 
-    callback_query.answer()
+    # Save The Selected Format
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    with open(os.path.join(user_dir, "format.txt"), "w", encoding="utf-8") as f:
+        f.write(chosen_format)
+    callback_query.edit_message_text(f"✅ Format updated to:\n{chosen_format}")
+    callback_query.answer("✅ Format saved.")
+    send_to_logger(callback_query.message, f"Format updated to: {chosen_format}")
 
+    if data == "alwaysask":
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        with open(os.path.join(user_dir, "format.txt"), "w", encoding="utf-8") as f:
+            f.write("ALWAYS_ASK")
+        callback_query.edit_message_text(
+            "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL.")
+        send_to_logger(callback_query.message, "Format set to ALWAYS_ASK.")
+        return
 
-def register_command_handlers(app):
-    """Register all command handlers with the app"""
-    
-    @app.on_message(filters.command("start") & filters.private)
-    def start_handler(app, message):
-        command1(app, message)
-        
-    @app.on_message(filters.command("help"))
-    def help_handler(app, message):
-        command2(app, message)
-        
-    @app.on_message(filters.command("cookies_from_browser") & filters.private)
-    def cookies_handler(app, message):
+# Checking Actions
+# Text Message Handler for General Commands
+@app.on_message(filters.text & filters.private)
+@reply_with_keyboard
+def url_distractor(app, message):
+    user_id = message.chat.id
+    is_admin = int(user_id) in Config.ADMIN
+    text = message.text.strip()
+
+    # For non-admin users, if they haven't Joined the Channel, Exit ImmediaTely.
+    if not is_admin and not is_user_in_channel(app, message):
+        return
+
+    # ----- User Commands -----
+    # /Save_as_cookie Command
+    if text.startswith(Config.SAVE_AS_COOKIE_COMMAND):
+        save_as_cookie_file(app, message)
+        return
+
+    # /Download_cookie Command
+    if text == Config.DOWNLOAD_COOKIE_COMMAND:
+        download_cookie(app, message)
+        return
+
+    # /Check_cookie Command
+    if text == Config.CHECK_COOKIE_COMMAND:
+        checking_cookie_file(app, message)
+        return
+
+    # /cookies_from_browser Command
+    if text.startswith(Config.COOKIES_FROM_BROWSER_COMMAND):
         cookies_from_browser(app, message)
-        
-    @app.on_message(filters.command("audio") & filters.private)
-    def audio_handler(app, message):
+        return
+
+    # /Audio Command
+    if text.startswith(Config.AUDIO_COMMAND):
         audio_command_handler(app, message)
-        
-    @app.on_message(filters.command("playlist") & filters.private)
-    def playlist_handler(app, message):
-        playlist_command(app, message)
-        
-    @app.on_message(filters.command("format") & filters.private) 
-    def format_handler(app, message):
+        return
+
+    # /Format Command
+    if text.startswith(Config.FORMAT_COMMAND):
         set_format(app, message)
+        return
+
+    # /Mediainfo Command
+    if text.startswith(Config.MEDIINFO_COMMAND):
+        mediainfo_command(app, message)
+        return
+
+    # /Settings Command
+    if text.startswith(Config.SETTINGS_COMMAND):
+        settings_command(app, message)
+        return
+
+        # /Playlist Command
+    if text.startswith(Config.PLAYLIST_COMMAND):
+        settings_command(app, message)
+        return
+
+        # /Clean Command
+    if text.startswith(Config.CLEAN_COMMAND):
+        clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
+        if clean_args in ["cookie", "cookies"]:
+            remove_media(message, only=["cookie.txt"])
+            send_to_all(message, "🗑 Cookie file removed.")
+            return
+        elif clean_args in ["log", "logs"]:
+            remove_media(message, only=["logs.txt"])
+            send_to_all(message, "🗑 Logs file removed.")
+            return
+        elif clean_args in ["tag", "tags"]:
+            remove_media(message, only=["tags.txt"])
+            send_to_all(message, "🗑 Tags file removed.")
+            return
+        elif clean_args == "format":
+            remove_media(message, only=["format.txt"])
+            send_to_all(message, "🗑 Format file removed.")
+            return
+        elif clean_args == "split":
+            remove_media(message, only=["split.txt"])
+            send_to_all(message, "🗑 Split file removed.")
+            return
+        elif clean_args == "mediainfo":
+            remove_media(message, only=["mediainfo.txt"])
+            send_to_all(message, "🗑 Mediainfo file removed.")
+            return
+        elif clean_args == "all":
+            # Delete all files and display the list of deleted ones
+            user_dir = f'./users/{str(message.chat.id)}'
+            if not os.path.exists(user_dir):
+                send_to_all(message, "🗑 No files to remove.")
+                return
+
+            removed_files = []
+            allfiles = os.listdir(user_dir)
+
+            # Delete all files in the user folder
+            for file in allfiles:
+                file_path = os.path.join(user_dir, file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        removed_files.append(file)
+                        logger.info(f"Removed file: {file_path}")
+                except Exception as e:
+                    logger.error(f"Failed to remove file {file_path}: {e}")
+
+            if removed_files:
+                files_list = "\n".join([f"• {file}" for file in removed_files])
+                send_to_all(message, f"🗑 All files removed successfully!\n\nRemoved files:\n{files_list}")
+            else:
+                send_to_all(message, "🗑 No files to remove.")
+            return
+        else:
+            # Regular command /clean - delete only media files with filtering
+            remove_media(message)
+            send_to_all(message, "🗑 All media files are removed.")
+            return
+
+    # /USAGE Command
+    if Config.USAGE_COMMAND in text:
+        get_user_log(app, message)
+        return
+
+    # /tags Command
+    if Config.TAGS_COMMAND in text:
+        tags_command(app, message)
+        return
+
+    # /Split Command
+    if text.startswith(Config.SPLIT_COMMAND):
+        split_command(app, message)
+        return
+
+    # /uncache Command - Clear cache for URL (for admins only)
+    if text.startswith(Config.UNCACHE_COMMAND):
+        if is_admin:
+            uncache_command(app, message)
+        else:
+            send_to_all(message, "❌ This command is only available for administrators.")
+        return
+
+    # If the Message Contains a URL, Launch The Video Download Function.
+    if ("https://" in text) or ("http://" in text):
+        if not is_user_blocked(message):
+            video_url_extractor(app, message)
+        return
+
+    # ----- Admin Commands -----
+    if is_admin:
+        # If the message begins with /BroadCast, we process it as BroadCast, regardless
+        if text.startswith(Config.BROADCAST_MESSAGE):
+            send_promo_message(app, message)
+            return
+
+        # /Block_user Command
+        if Config.BLOCK_USER_COMMAND in text:
+            block_user(app, message)
+            return
+
+        # /unblock_user Command
+        if Config.UNBLOCK_USER_COMMAND in text:
+            unblock_user(app, message)
+            return
+
+        # /Run_Time Command
+        if Config.RUN_TIME in text:
+            check_runtime(message)
+            return
+
+        # /All Command for User Details
+        if Config.GET_USER_DETAILS_COMMAND in text:
+            get_user_details(app, message)
+            return
+
+        # /log Command for User Logs
+        if Config.GET_USER_LOGS_COMMAND in text:
+            get_user_log(app, message)
+            return
+
+        # /uncache Command - Clear cache for URL
+        if Config.UNCACHE_COMMAND in text:
+            uncache_command(app, message)
+            return
+
+    # Reframed processing for all users (admins and ordinary users)
+    if message.reply_to_message:
+        # If the reference text begins with /broadcast, then:
+        if text.startswith(Config.BROADCAST_MESSAGE):
+            # Only for admins we call send_promo_message
+            if is_admin:
+                send_promo_message(app, message)
+        else:
+            # Otherwise, if the reform contains video, we call Caption_EDITOR
+            if not is_user_blocked(message):
+                if message.reply_to_message.video:
+                    caption_editor(app, message)
+        return
+
+    logger.info(f"{user_id} No matching command processed.")
+
+# URL Extractor
+@app.on_message(filters.text & filters.private)
+@reply_with_keyboard
+def video_url_extractor(app, message):
+    global active_downloads
+    check_user(message)
+    user_id = message.chat.id
+    user_dir = os.path.join("users", str(user_id))
+    format_file = os.path.join(user_dir, "format.txt")
+
+    # By default, ask for quality if a specific format is not selected
+    should_ask = True
+    saved_format = None
+    if os.path.exists(format_file):
+        with open(format_file, "r", encoding="utf-8") as f:
+            fmt = f.read().strip()
+        # Do not ask only if the format is set and it is NOT "ALWAYS_ASK"
+        if fmt != "ALWAYS_ASK":
+            should_ask = False
+            saved_format = fmt
+
+    if should_ask:
+        url, video_start_with, _, _, tags, _, tag_error = extract_url_range_tags(message.text)
+        # Add tag error check
+        if tag_error:
+            wrong, example = tag_error
+            app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
+            return
+        ask_quality_menu(app, message, url, tags, video_start_with)
+        return
+
+    # This code is executed only if the user has selected a specific format
+    with playlist_errors_lock:
+        keys_to_remove = [k for k in playlist_errors if k.startswith(f"{user_id}_")]
+        for key in keys_to_remove:
+            del playlist_errors[key]
+            
+    if get_active_download(user_id):
+        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_to_message_id=message.id)
+        return
         
-    @app.on_callback_query(filters.regex(r"^browser_choice\|"))
-    def browser_callback_handler(app, callback_query):
-        browser_choice_callback(app, callback_query)
+    full_string = message.text
+    # Also add tag error check here
+    url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(full_string)
+    if tag_error:
+        wrong, example = tag_error
+        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
+        return
+    
+    if url:
+        users_first_name = message.chat.first_name
+        send_to_logger(message, f"User entered a **url**\n **user's name:** {users_first_name}\nURL: {full_string}")
+        for j in range(len(Config.BLACK_LIST)):
+            if Config.BLACK_LIST[j] in full_string:
+                send_to_all(message, "User entered a porn content. Cannot be downloaded.")
+                return
+        # --- TikTok: auto-tag profile and no title ---
+        is_tiktok = is_tiktok_url(url)
+        auto_tags = get_auto_tags(url, tags)
+        all_tags = tags + auto_tags
+        tags_text_full = ' '.join(all_tags)
+        video_count = video_end_with - video_start_with + 1
+        if playlist_name:
+            with playlist_errors_lock:
+                error_key = f"{user_id}_{playlist_name}"
+                if error_key in playlist_errors:
+                    del playlist_errors[error_key]
+        save_user_tags(user_id, all_tags)
         
-    @app.on_callback_query(filters.regex(r"^format_option\|"))
-    def format_callback_handler(app, callback_query):
-        format_option_callback(app, callback_query) 
+        # Create quality_key based on saved format for caching
+        quality_key = None
+        if saved_format:
+            # Convert format to quality_key for caching
+            if "height<=144" in saved_format:
+                quality_key = "144p"
+            elif "height<=240" in saved_format:
+                quality_key = "240p"
+            elif "height<=360" in saved_format:
+                quality_key = "360p"
+            elif "height<=480" in saved_format:
+                quality_key = "480p"
+            elif "height<=720" in saved_format:
+                quality_key = "720p"
+            elif "height<=1080" in saved_format:
+                quality_key = "1080p"
+            elif "height<=1440" in saved_format:
+                quality_key = "1440p"
+            elif "height<=2160" in saved_format:
+                quality_key = "2160p"
+            elif "height<=4320" in saved_format:
+                quality_key = "4320p"
+            elif "bestvideo+bestaudio" in saved_format:
+                quality_key = "bestvideo"
+            elif saved_format == "best":
+                quality_key = "best"
+            else:
+                # For custom formats, we use the format hash as quality_key
+                quality_key = f"custom_{hashlib.md5(saved_format.encode()).hexdigest()[:8]}"
+        
+        logger.info(f"video_url_extractor: using saved format '{saved_format}', quality_key='{quality_key}'")
+        
+        # --- Pass title='' for TikTok, otherwise as usual ---
+        if is_tiktok:
+            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, force_no_title=True, format_override=saved_format, quality_key=quality_key)
+        else:
+            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, format_override=saved_format, quality_key=quality_key)
+    else:
+        send_to_all(message, f"**User entered like this:** {full_string}\n{Config.ERROR1}")
+
+# Updating The Cookie File.
+@app.on_message(filters.text & filters.private)
+@reply_with_keyboard
+def save_as_cookie_file(app, message):
+    user_id = str(message.chat.id)
+    content = message.text[len(Config.SAVE_AS_COOKIE_COMMAND):].strip()
+    new_cookie = ""
+
+    if content.startswith("```"):
+        lines = content.splitlines()
+        if lines[0].startswith("```"):
+            if lines[-1].strip() == "```":
+                lines = lines[1:-1]
+            else:
+                lines = lines[1:]
+            new_cookie = "\n".join(lines).strip()
+        else:
+            new_cookie = content
+    else:
+        new_cookie = content
+
+    processed_lines = []
+    for line in new_cookie.splitlines():
+        if "\t" not in line:
+            line = re.sub(r' {2,}', '\t', line)
+        processed_lines.append(line)
+    final_cookie = "\n".join(processed_lines)
+
+    if final_cookie:
+        send_to_all(message, "**✅ User provided a new cookie file.**")
+        user_dir = os.path.join("users", user_id)
+        create_directory(user_dir)
+        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+        file_path = os.path.join(user_dir, cookie_filename)
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(final_cookie)
+        send_to_user(message, f"**✅ Cookie successfully updated:**\n`{final_cookie}`")
+        send_to_logger(message, f"Cookie file updated for user {user_id}.")
+    else:
+        send_to_user(message, "**❌ Not a valid cookie.**")
+        send_to_logger(message, f"Invalid cookie content provided by user {user_id}.")
+
+@app.on_message(filters.document & filters.private)
+@reply_with_keyboard
+def download_cookie(app, message):
+    user_id = str(message.chat.id)
+    response = requests.get(Config.COOKIE_URL)
+    if response.status_code == 200:
+        user_dir = os.path.join("users", user_id)
+        create_directory(user_dir)
+        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+        file_path = os.path.join(user_dir, cookie_filename)
+        with open(file_path, "wb") as cf:
+            cf.write(response.content)
+        send_to_user(message, "**✅ Cookie file downloaded and saved in your folder.**")
+        send_to_logger(message, f"Cookie file downloaded for user {user_id}.")
+    else:
+        send_to_user(message, "❌ Cookie URL is not available!")
+        send_to_logger(message, f"Failed to download cookie file for user {user_id}.")
+
+@app.on_message(filters.text & filters.private)
+@reply_with_keyboard
+def checking_cookie_file(app, message):
+    user_id = str(message.chat.id)
+    cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+    file_path = os.path.join("users", user_id, cookie_filename)
+
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as cookie:
+            cookie_content = cookie.read()
+        if cookie_content.startswith("# Netscape HTTP Cookie File"):
+            send_to_user(message, "✅ Cookie file exists and has correct format")
+            send_to_logger(message, "Cookie file exists and has correct format.")
+        else:
+            send_to_user(message, "⚠️ Cookie file exists but has incorrect format")
+            send_to_logger(message, "Cookie file exists but has incorrect format.")
+    else:
+        send_to_user(message, "❌ Cookie file is not found.")
+        send_to_logger(message, "Cookie file not found.")
+
+# SEND COOKIE VIA Document
+@app.on_message(filters.document & filters.private)
+@reply_with_keyboard
+def save_my_cookie(app, message):
+    user_id = str(message.chat.id)
+    # We determine the path to the user folder (for example, "./users/1234567)
+    user_folder = f"./users/{user_id}"
+    create_directory(user_folder)
+    cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+    cookie_file_path = os.path.join(user_folder, cookie_filename)
+    app.download_media(message, file_name=cookie_file_path)
+    send_to_user(message, "✅ Cookie file saved")
+    send_to_logger(message, f"Cookie file saved for user {user_id}.")
+
+# Caption Editor for Videos
+@app.on_message(filters.text & filters.private)
+@reply_with_keyboard
+def caption_editor(app, message):
+    users_name = message.chat.first_name
+    user_id = message.chat.id
+    caption = message.text
+    video_file_id = message.reply_to_message.video.file_id
+    info_of_video = f"\n**Caption:** `{caption}`\n**User id:** `{user_id}`\n**User first name:** `{users_name}`\n**Video file id:** `{video_file_id}`"
+    # Sending to logs
+    send_to_logger(message, info_of_video)
+    app.send_video(user_id, video_file_id, caption=caption)
+    app.send_video(Config.LOGS_ID, video_file_id, caption=caption)
+
+# Remove All User Media Files
+def remove_media(message, only=None):
+    dir = f'./users/{str(message.chat.id)}'
+    if not os.path.exists(dir):
+        logger.warning(f"Directory {dir} does not exist, nothing to remove")
+        return
+    if only:
+        for fname in only:
+            file_path = os.path.join(dir, fname)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    logger.info(f"Removed file: {file_path}")
+                except Exception as e:
+                    logger.error(f"Failed to remove file {file_path}: {e}")
+        return
+    allfiles = os.listdir(dir)
+    file_extensions = [
+        '.mp4', '.mkv', '.mp3', '.m4a', '.jpg', '.jpeg', '.part', '.ytdl',
+        '.txt', '.ts', '.m3u8', '.webm', '.wmv', '.avi', '.mpeg', '.wav'
+    ]
+    for extension in file_extensions:
+        if isinstance(extension, tuple):
+            files = [fname for fname in allfiles if any(fname.endswith(ext) for ext in extension)]
+        else:
+            files = [fname for fname in allfiles if fname.endswith(extension)]
+        for file in files:
+            if extension == '.txt' and file in ['logs.txt', 'tags.txt']:
+                continue
+            file_path = os.path.join(dir, file)
+            try:
+                os.remove(file_path)
+                logger.info(f"Removed file: {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to remove file {file_path}: {e}")
+    logger.info(f"Media cleanup completed for user {message.chat.id}")
