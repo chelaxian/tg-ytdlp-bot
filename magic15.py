@@ -2632,7 +2632,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'cookiefile': cookie_file,
                'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
                'progress_hooks': [progress_hook],
-               #'impersonate': 'chrome',
+               'extractor_args': {
+                  'generic': ['impersonate=chrome']
+               },
                'referer': url,
                'geo_bypass': True,
                'check_certificate': False,
@@ -3140,7 +3142,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                    'key': 'FFmpegMetadata'   # эквивалент --add-metadata
                 }                  
                 ],                
-                #'impersonate': 'chrome',
+                'extractor_args': {
+                   'generic': ['impersonate=chrome']
+                },
                 'referer': url,
                 'geo_bypass': True,
                 'check_certificate': False,
@@ -4512,7 +4516,9 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         'extract_flat': False,
         'simulate': True,
         'playlist_items': str(playlist_start_index),    
-        #'impersonate': 'chrome',
+        'extractor_args': {
+            'generic': ['impersonate=chrome']
+        },
         'referer': url,
         'geo_bypass': True,
         'check_certificate': False,
