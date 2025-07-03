@@ -1,3 +1,42 @@
+# Version 2.4.3
+import logging
+import math
+import os
+import re
+import shutil
+import subprocess
+#import sys
+import threading
+import time
+from datetime import datetime
+from types import SimpleNamespace
+from typing import Tuple
+from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
+
+import pyrebase
+import tldextract
+from moviepy.editor import VideoFileClip
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from pyrogram import Client, filters
+from pyrogram import enums
+from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors import FloodWait
+from pyrogram.types import (
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyParameters
+)
+from yt_dlp import YoutubeDL
+import yt_dlp
+
+from config import Config
+
+import io
+from PIL import Image
+import requests
+
 # Словарь с эмодзи флагами для языков
 LANGUAGE_FLAGS = {
     "en": "🇬🇧",  # Английский
@@ -57,45 +96,6 @@ def get_language_with_flag(lang_code):
     if lang_code in LANGUAGE_FLAGS:
         return f"{LANGUAGE_FLAGS[lang_code]} {lang_code}"
     return lang_code
-# Version 2.4.3
-import logging
-import math
-import os
-import re
-import shutil
-import subprocess
-#import sys
-import threading
-import time
-from datetime import datetime
-from types import SimpleNamespace
-from typing import Tuple
-from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
-
-import pyrebase
-import tldextract
-from moviepy.editor import VideoFileClip
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-from pyrogram import Client, filters
-from pyrogram import enums
-from pyrogram.enums import ChatMemberStatus
-from pyrogram.errors import FloodWait
-from pyrogram.types import (
-    CallbackQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    ReplyKeyboardMarkup,
-    ReplyParameters
-)
-from yt_dlp import YoutubeDL
-import yt_dlp
-
-from config import Config
-
-import io
-from PIL import Image
-import requests
-
 
 # --- Function for permanent reply-keyboard ---
 def get_main_reply_keyboard():
