@@ -2618,7 +2618,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                   'key': 'FFmpegExtractAudio',
                   'preferredcodec': 'mp3',
                   'preferredquality': '192',
-               }],
+               },
+               {
+                  'key': 'EmbedThumbnail'   # эквивалент --embed-thumbnail
+               },
+               {
+                  'key': 'FFmpegMetadata'   # эквивалент --add-metadata
+               }                  
+                ],
                'prefer_ffmpeg': True,
                'extractaudio': True,
                'playlist_items': str(current_index + video_start_with),
@@ -2626,9 +2633,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
                'progress_hooks': [progress_hook],
                #'impersonate': 'chrome',
-               #'referer': url,
-               #'geo_bypass': True,
-               #'check_certificate': False,
+               'referer': url,
+               'geo_bypass': True,
+               'check_certificate': False,
                'live_from_start': True,
             }   
             try:
@@ -3125,10 +3132,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'cookiefile': os.path.join("users", str(user_id), os.path.basename(Config.COOKIE_FILE_PATH)),
                 'playlist_items': str(current_index),  # We use only current_index for playlists
                 'outtmpl': os.path.join(user_dir_name, "%(title)s.%(ext)s"),
+                'postprocessors': [
+                {
+                   'key': 'EmbedThumbnail'   # эквивалент --embed-thumbnail
+                },
+                {
+                   'key': 'FFmpegMetadata'   # эквивалент --add-metadata
+                }                  
+                ],                
                 #'impersonate': 'chrome',
-                #'referer': url,
-                #'geo_bypass': True,
-                #'check_certificate': False,
+                'referer': url,
+                'geo_bypass': True,
+                'check_certificate': False,
                 'live_from_start': True
             }
             
@@ -4496,11 +4511,11 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         'no_warnings': True,
         'extract_flat': False,
         'simulate': True,
-        'playlist_items': str(playlist_start_index),
+        'playlist_items': str(playlist_start_index),    
         #'impersonate': 'chrome',
-        #'referer': url,
-        #'geo_bypass': True,
-        #'check_certificate': False,
+        'referer': url,
+        'geo_bypass': True,
+        'check_certificate': False,
         'live_from_start': True
     }
     if user_id is not None:
