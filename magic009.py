@@ -22,6 +22,32 @@ LANGUAGE_FLAGS = {
     "uk": "🇺🇦",  # Украинский
 }
 
+def extract_url_from_message(message):
+    """Extract URL from message, first trying to find it in hidden [Video URL] link, then in other entities, and finally in text."""
+    url = None
+    # First try to get URL from hidden link
+    if message.caption_entities:
+        for entity in message.caption_entities:
+            if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url and "[Video URL]" in message.caption[entity.offset:entity.offset + entity.length]:
+                url = entity.url
+                break
+    # If not found, try other entities
+    if not url and message.caption_entities:
+        for entity in message.caption_entities:
+            if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
+                url = entity.url
+                break
+    # As a last resort, try to find URL in text
+    if not url:
+        message_text = message.text or message.caption or ''
+        url_match = re.search(r'https?://[^\s\*#]+', message_text)
+        if url_match:
+            url = url_match.group(0)
+    # If still not found and message is a reply, try the original message
+    if not url and message.reply_to_message:
+        url = extract_url_from_message(message.reply_to_message)
+    return url
+
 def has_language_flag(lang_code):
     """Проверяет, есть ли эмодзи флаг для данного языка"""
     return lang_code in LANGUAGE_FLAGS
@@ -3194,7 +3220,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'writeautomaticsub': True,
                 'subtitleslangs': ['all'] if not subtitle_lang else [subtitle_lang],
                 'postprocessor_args': [
-                    '-map', '0:s',  # Keep all subtitles
+                    '-map', '0',  # Map all streams
+                    '-map', '-0:s',  # Remove all subtitles from original
                     '-c:s', 'mov_text'  # Convert subtitles to MP4-compatible format
                 ]
             }
@@ -3934,10 +3961,20 @@ def set_active_download(user_id, status):
 
 # Helper function for safe message sending with flood wait handling
 def safe_send_message(chat_id, text, **kwargs):
-    # Add reply_to_message_id if message is passed
+    # Convert reply_to_message_id and message to reply_parameters
     if 'reply_to_message_id' not in kwargs and 'message' in kwargs:
-        kwargs['reply_to_message_id'] = kwargs['message'].id
-        del kwargs['message']
+        message = kwargs.pop('message')
+        kwargs['reply_parameters'] = enums.ReplyParameters(
+            message_id=message.id,
+            chat_id=chat_id
+        )
+    elif 'reply_to_message_id' in kwargs:
+        reply_to_id = kwargs.pop('reply_to_message_id')
+        kwargs['reply_parameters'] = enums.ReplyParameters(
+            message_id=reply_to_id,
+            chat_id=chat_id
+        )
+    
     max_retries = 3
     retry_delay = 5
     for attempt in range(max_retries):
@@ -4744,6 +4781,15 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
     page_info = f" (Page {page + 1}/{total_pages})" if total_pages > 1 else ""
     
     try:
+        # Удаляем предыдущее сообщение с меню
+        try:
+            app.delete_messages(
+                chat_id=message.chat.id,
+                message_ids=message.id
+            )
+        except Exception:
+            pass
+
         # Сохраняем оригинальный caption из сообщения
         original_caption = message.caption or ""
         # Извлекаем теги из оригинального caption
@@ -4753,25 +4799,41 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
         caption_without_tags = original_caption.replace(tags, "").strip() if tags else original_caption
         
         # Формируем новый caption
-        new_caption = f"{caption_without_tags}\n\n📝 Choose subtitle language{page_info}:\n\n{tags}"
-        
-        logger.info(f"Updating message with new caption and keyboard. Message ID: {message.id}")
-        app.edit_message_caption(
+        new_caption = f"{caption_without_tags}\n\n📝 Choose subtitle language{page_info}:\n\n<a href='{url}'>[Video URL]</a>\n\n{tags}"
+
+        # Отправляем новое сообщение
+        reply_parameters = None
+        if message.reply_to_message:
+            reply_parameters = enums.ReplyParameters(
+                message_id=message.reply_to_message.id,
+                chat_id=message.chat.id
+            )
+
+        new_message = app.send_photo(
             chat_id=message.chat.id,
-            message_id=message.id,
+            photo=message.photo.file_id if message.photo else "thumb.jpg",
             caption=new_caption,
             reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
+            parse_mode=enums.ParseMode.HTML,
+            reply_parameters=reply_parameters
         )
+        return new_message
     except Exception as e:
-        logger.error(f"Error updating message caption: {e}")
+        logger.error(f"Error sending subtitle menu: {e}")
         try:
-            # Если не удалось обновить caption, пробуем отправить новое сообщение
+            # В случае ошибки отправляем простое текстовое сообщение
+            reply_parameters = None
+            if message.reply_to_message:
+                reply_parameters = enums.ReplyParameters(
+                    message_id=message.reply_to_message.id,
+                    chat_id=message.chat.id
+                )
+            
             app.send_message(
                 chat_id=message.chat.id,
                 text=f"📝 Choose subtitle language{page_info}:",
                 reply_markup=reply_markup,
-                reply_to_message_id=message.id
+                reply_parameters=reply_parameters
             )
         except Exception as e2:
             logger.error(f"Error sending new message: {e2}")
@@ -4797,38 +4859,89 @@ def subtitles_callback(app, callback_query):
         # Return to quality menu
         video_info = get_video_formats(url, user_id)
         if 'error' in video_info:
-            safe_edit_message_text(
-                message.chat.id,
-                message.id,
-                f"❌ Error getting video info: {video_info['error']}"
+            # Отправляем новое сообщение с ошибкой
+            reply_parameters = None
+            if message.reply_to_message:
+                reply_parameters = enums.ReplyParameters(
+                    message_id=message.reply_to_message.id,
+                    chat_id=message.chat.id
+                )
+            app.send_message(
+                chat_id=message.chat.id,
+                text=f"❌ Error getting video info: {video_info['error']}",
+                reply_parameters=reply_parameters
             )
             return
         
+        # Удаляем старое сообщение
+        try:
+            app.delete_messages(
+                chat_id=message.chat.id,
+                message_ids=message.id
+            )
+        except Exception as e:
+            logger.error(f"Error deleting old message: {e}")
+        
+        # Показываем новое меню качества
         ask_quality_menu(app, message, url, [], 1)
         
     except Exception as e:
-        safe_edit_message_text(
-            callback_query.message.chat.id,
-            callback_query.message.id,
-            f"❌ Error: {str(e)}"
-        )
+        logger.error(f"Error in subtitles_callback: {e}")
+        try:
+            # Отправляем новое сообщение с ошибкой
+            reply_parameters = None
+            if callback_query.message.reply_to_message:
+                reply_parameters = enums.ReplyParameters(
+                    message_id=callback_query.message.reply_to_message.id,
+                    chat_id=callback_query.message.chat.id
+                )
+            app.send_message(
+                chat_id=callback_query.message.chat.id,
+                text=f"❌ Error: {str(e)}",
+                reply_parameters=reply_parameters
+            )
+        except Exception as e2:
+            logger.error(f"Error sending error message: {e2}")
 
 @app.on_callback_query(filters.regex(r"^back_to_quality\|"))
 def back_to_quality_callback(app, callback_query):
     """Handle back button to quality menu"""
     try:
         _, short_url = callback_query.data.split('|')
+        message = callback_query.message
         
         # Преобразуем короткий URL в полный
         url = youtube_to_long_url(short_url)
-            
-        ask_quality_menu(app, callback_query.message, url, [], 1)
+        
+        # Удаляем старое сообщение
+        try:
+            app.delete_messages(
+                chat_id=message.chat.id,
+                message_ids=message.id
+            )
+        except Exception as e:
+            logger.error(f"Error deleting old message: {e}")
+        
+        # Показываем новое меню качества
+        ask_quality_menu(app, message, url, [], 1)
+        
     except Exception as e:
-        safe_edit_message_text(
-            callback_query.message.chat.id,
-            callback_query.message.id,
-            f"❌ Error: {str(e)}"
-        )
+        logger.error(f"Error in back_to_quality_callback: {e}")
+        try:
+            # Отправляем новое сообщение с ошибкой
+            reply_parameters = None
+            if callback_query.message.reply_to_message:
+                reply_parameters = enums.ReplyParameters(
+                    message_id=callback_query.message.reply_to_message.id,
+                    chat_id=callback_query.message.chat.id
+                )
+            app.send_message(
+                chat_id=callback_query.message.chat.id,
+                text=f"❌ Error: {str(e)}",
+                reply_parameters=reply_parameters
+            )
+        except Exception as e2:
+            logger.error(f"Error sending error message: {e2}")
 
 # --- Always ask processing ---
 def sort_quality_key(quality_key):
@@ -4916,14 +5029,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 postfix = ""
             emoji = "🚀" if is_cached else "📹"
             table_lines.append(f"{emoji}  {quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
-        table_block = "\n".join(table_lines)
-        # --- Forming caption ---
-        cap = f"<b>{title}</b>\n"
+            table_block = "\n".join(table_lines)
+            # --- Forming caption ---
+            cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}\n"
         # Block with qualities
         if table_block:
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
+        # Add hidden URL
+        cap += f"\n<a href='{url}'>[Video URL]</a>\n"
         # Hint as a separate code block at the very bottom
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
@@ -5145,17 +5260,7 @@ def askq_callback(app, callback_query):
             callback_query.message.delete()
             return
         
-        url = None
-        if callback_query.message.caption_entities:
-            for entity in callback_query.message.caption_entities:
-                if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
-                    url = entity.url
-                    break
-        if not url and callback_query.message.reply_to_message:
-            message_text = callback_query.message.reply_to_message.text or callback_query.message.reply_to_message.caption or ''
-            url_match = re.search(r'https?://[^\s\*#]+', message_text)
-            if url_match:
-                url = url_match.group(0)
+        url = extract_url_from_message(callback_query.message)
         
         if url:
             tags = []
@@ -5182,17 +5287,7 @@ def askq_callback(app, callback_query):
             callback_query.message.delete()
             return
         
-        url = None
-        if callback_query.message.caption_entities:
-            for entity in callback_query.message.caption_entities:
-                if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
-                    url = entity.url
-                    break
-        if not url and callback_query.message.reply_to_message:
-            message_text = callback_query.message.reply_to_message.text or callback_query.message.reply_to_message.caption or ''
-            url_match = re.search(r'https?://[^\s\*#]+', message_text)
-            if url_match:
-                url = url_match.group(0)
+        url = extract_url_from_message(callback_query.message)
         
         if not url:
             callback_query.answer("❌ Error: URL not found.", show_alert=True)
@@ -5239,17 +5334,7 @@ def askq_callback(app, callback_query):
         callback_query.message.delete()
         return
 
-    url = None
-    if callback_query.message.caption_entities:
-        for entity in callback_query.message.caption_entities:
-            if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
-                url = entity.url
-                break
-    if not url and callback_query.message.reply_to_message:
-        message_text = callback_query.message.reply_to_message.text or callback_query.message.reply_to_message.caption or ''
-        url_match = re.search(r'https?://[^\s\*#]+', message_text)
-        if url_match:
-            url = url_match.group(0)
+    url = extract_url_from_message(callback_query.message)
     if not url:
         callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
         callback_query.message.delete()
