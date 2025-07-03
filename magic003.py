@@ -4637,11 +4637,14 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
     
     if not subtitles:
         logger.warning("No subtitles found for video")
-        safe_edit_message_text(
-            message.chat.id,
-            message.id,
-            "❌ No subtitles available for this video."
-        )
+        try:
+            app.edit_message_caption(
+                chat_id=message.chat.id,
+                message_id=message.id,
+                caption="❌ No subtitles available for this video."
+            )
+        except Exception as e:
+            logger.error(f"Error updating message: {e}")
         return
     
     # Сортируем языки и разбиваем на страницы по 8 языков
@@ -4700,12 +4703,39 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
     
     reply_markup = InlineKeyboardMarkup(keyboard_rows)
     page_info = f" (Page {page + 1}/{total_pages})" if total_pages > 1 else ""
-    safe_edit_message_text(
-        message.chat.id,
-        message.id,
-        f"📝 Choose subtitle language{page_info}:",
-        reply_markup=reply_markup
-    )
+    
+    try:
+        # Сохраняем оригинальный caption из сообщения
+        original_caption = message.caption or ""
+        # Извлекаем теги из оригинального caption
+        tags_match = re.search(r'(#\w+\s*)+$', original_caption)
+        tags = tags_match.group(0) if tags_match else ""
+        # Удаляем теги из оригинального caption для создания нового
+        caption_without_tags = original_caption.replace(tags, "").strip() if tags else original_caption
+        
+        # Формируем новый caption
+        new_caption = f"{caption_without_tags}\n\n📝 Choose subtitle language{page_info}:\n\n{tags}"
+        
+        logger.info(f"Updating message with new caption and keyboard. Message ID: {message.id}")
+        app.edit_message_caption(
+            chat_id=message.chat.id,
+            message_id=message.id,
+            caption=new_caption,
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception as e:
+        logger.error(f"Error updating message caption: {e}")
+        try:
+            # Если не удалось обновить caption, пробуем отправить новое сообщение
+            app.send_message(
+                chat_id=message.chat.id,
+                text=f"📝 Choose subtitle language{page_info}:",
+                reply_markup=reply_markup,
+                reply_to_message_id=message.id
+            )
+        except Exception as e2:
+            logger.error(f"Error sending new message: {e2}")
 
 @app.on_callback_query(filters.regex(r"^sub\|"))
 def subtitles_callback(app, callback_query):
