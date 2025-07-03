@@ -2628,7 +2628,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'impersonate': 'chrome',
                #'referer': url,
                #'geo_bypass': True,
-               'check_certificate': False,
+               #'check_certificate': False,
                'live_from_start': True,
             }   
             try:
@@ -3128,7 +3128,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'impersonate': 'chrome',
                 #'referer': url,
                 #'geo_bypass': True,
-                'check_certificate': False,
+                #'check_certificate': False,
                 'live_from_start': True
             }
             
@@ -4500,7 +4500,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         'impersonate': 'chrome',
         #'referer': url,
         #'geo_bypass': True,
-        'check_certificate': False,
+        #'check_certificate': False,
         'live_from_start': True
     }
     if user_id is not None:
