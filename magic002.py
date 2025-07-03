@@ -4631,9 +4631,12 @@ def get_language_name(lang_code):
 
 def show_subtitles_menu(app, message, url, video_info, page=0):
     """Show available subtitle languages menu with pagination"""
+    logger.info(f"Showing subtitles menu for URL: {url}, page: {page}")
     subtitles = get_available_subtitles(video_info)
+    logger.info(f"Available subtitles: {list(subtitles.keys())}")
     
     if not subtitles:
+        logger.warning("No subtitles found for video")
         safe_edit_message_text(
             message.chat.id,
             message.id,
@@ -4926,7 +4929,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         
         # Add subtitles button for YouTube videos
         if ("youtube.com" in url or "youtu.be" in url):
-            keyboard_rows.append([InlineKeyboardButton("💬 Add subtitles", callback_data="subs|menu")])
+            logger.info(f"Adding subtitles button for URL: {url}")
+            keyboard_rows.append([InlineKeyboardButton("💬 Add subtitles", callback_data=f"subs|menu|{url}")])
             
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
@@ -4979,30 +4983,21 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 @app.on_callback_query(filters.regex(r"^subs\|"))
 def subs_callback(app, callback_query):
     """Handle subtitle menu button click"""
+    logger.info(f"[SUBS] callback: {callback_query.data}")
     try:
         parts = callback_query.data.split("|")
         action = parts[1]
         message = callback_query.message
         
         if action == "menu" or action == "page":
-            # Get original URL from message
-            url = None
-            if action == "page":
-                url = parts[2]
-                page = int(parts[3])
-            else:
-                if message.caption_entities:
-                    for entity in message.caption_entities:
-                        if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
-                            url = entity.url
-                            break
-                if not url and message.reply_to_message:
-                    url_match = re.search(r'https?://[^\s\*#]+', message.reply_to_message.text)
-                    if url_match:
-                        url = url_match.group(0)
-                page = 0
+            # Get URL from callback data
+            url = parts[2] if len(parts) > 2 else None
+            page = int(parts[3]) if len(parts) > 3 and action == "page" else 0
+            
+            logger.info(f"Processing subtitles menu for URL: {url}, page: {page}")
             
             if not url:
+                logger.error("No URL found in callback data")
                 safe_edit_message_text(
                     message.chat.id,
                     message.id,
@@ -5013,6 +5008,7 @@ def subs_callback(app, callback_query):
             # Get video info to show available subtitles
             video_info = get_video_formats(url, callback_query.from_user.id)
             if 'error' in video_info:
+                logger.error(f"Error getting video info: {video_info['error']}")
                 safe_edit_message_text(
                     message.chat.id,
                     message.id,
@@ -5020,7 +5016,23 @@ def subs_callback(app, callback_query):
                 )
                 return
             
+            # Answer callback query to remove loading state
+            try:
+                callback_query.answer()
+            except Exception as e:
+                logger.error(f"Error answering callback query: {e}")
+            
             show_subtitles_menu(app, message, url, video_info, page)
+    except Exception as e:
+        logger.error(f"Error in subs_callback: {str(e)}")
+        try:
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                f"❌ Error: {str(e)}"
+            )
+        except Exception as e2:
+            logger.error(f"Error sending error message: {e2}")
     except Exception as e:
         safe_edit_message_text(
             callback_query.message.chat.id,
