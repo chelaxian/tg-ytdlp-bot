@@ -4582,7 +4582,15 @@ def get_available_subtitles(info_dict):
             else:
                 subtitles[f"{lang}_auto"] = subs
     
-    return subtitles
+    # Filter subtitles to keep only:
+    # 1. Single language codes (e.g. 'en', 'ru')
+    # 2. Languages with '-orig' suffix
+    filtered_subtitles = {}
+    for lang, subs in subtitles.items():
+        if len(lang.split('-')) == 1 or lang.endswith('-orig'):
+            filtered_subtitles[lang] = subs
+    
+    return filtered_subtitles
 
 def get_language_name(lang_code):
     """Convert language code to readable name with flag emoji"""
@@ -5106,7 +5114,8 @@ def askq_callback(app, callback_query):
                     url = entity.url
                     break
         if not url and callback_query.message.reply_to_message:
-            url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
+            message_text = callback_query.message.reply_to_message.text or callback_query.message.reply_to_message.caption or ''
+            url_match = re.search(r'https?://[^\s\*#]+', message_text)
             if url_match:
                 url = url_match.group(0)
         
@@ -5142,7 +5151,8 @@ def askq_callback(app, callback_query):
                     url = entity.url
                     break
         if not url and callback_query.message.reply_to_message:
-            url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
+            message_text = callback_query.message.reply_to_message.text or callback_query.message.reply_to_message.caption or ''
+            url_match = re.search(r'https?://[^\s\*#]+', message_text)
             if url_match:
                 url = url_match.group(0)
         
@@ -5198,7 +5208,8 @@ def askq_callback(app, callback_query):
                 url = entity.url
                 break
     if not url and callback_query.message.reply_to_message:
-        url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
+        message_text = callback_query.message.reply_to_message.text or callback_query.message.reply_to_message.caption or ''
+        url_match = re.search(r'https?://[^\s\*#]+', message_text)
         if url_match:
             url = url_match.group(0)
     if not url:
@@ -5405,16 +5416,17 @@ def show_manual_quality_menu(app, callback_query):
             if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
                 url = entity.url
                 break
-    if not url and callback_query.message.reply_to_message:
-        url_match = re.search(r'https?://[^\s\*#]+', callback_query.message.reply_to_message.text)
-        if url_match:
-            url = url_match.group(0)
-    
+        if not url and callback_query.message.reply_to_message:
+            message_text = callback_query.message.reply_to_message.text or callback_query.message.reply_to_message.caption or ''
+            url_match = re.search(r'https?://[^\s\*#]+', message_text)
+            if url_match:
+                url = url_match.group(0)
+
     if not url:
         callback_query.answer("❌ Error: URL not found.", show_alert=True)
         callback_query.message.delete()
         return
-    
+
     tags = []
     caption_text = callback_query.message.caption
     if caption_text:
