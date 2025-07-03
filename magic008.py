@@ -1,3 +1,36 @@
+# Словарь с эмодзи флагами для языков
+LANGUAGE_FLAGS = {
+    "en": "🇬🇧",  # Английский
+    "ru": "🇷🇺",  # Русский
+    "es": "🇪🇸",  # Испанский
+    "fr": "🇫🇷",  # Французский
+    "de": "🇩🇪",  # Немецкий
+    "it": "��🇹",  # Итальянский
+    "pt": "🇵🇹",  # Португальский
+    "ja": "🇯🇵",  # Японский
+    "ko": "🇰��",  # Корейский
+    "zh": "🇨🇳",  # Китайский
+    "ar": "🇸🇦",  # Арабский
+    "hi": "🇮🇳",  # Хинди
+    "id": "🇮🇩",  # Индонезийский
+    "tr": "🇹🇷",  # Турецкий
+    "pl": "🇵🇱",  # Польский
+    "nl": "🇳🇱",  # Нидерландский
+    "vi": "🇻🇳",  # Вьетнамский
+    "th": "🇹🇭",  # Тайский
+    "cs": "🇨🇿",  # Чешский
+    "uk": "🇺🇦",  # Украинский
+}
+
+def has_language_flag(lang_code):
+    """Проверяет, есть ли эмодзи флаг для данного языка"""
+    return lang_code in LANGUAGE_FLAGS
+
+def get_language_with_flag(lang_code):
+    """Возвращает код языка с эмодзи флагом, если он доступен"""
+    if lang_code in LANGUAGE_FLAGS:
+        return f"{LANGUAGE_FLAGS[lang_code]} {lang_code}"
+    return lang_code
 # Version 2.4.3
 import logging
 import math
@@ -4585,57 +4618,52 @@ def get_available_subtitles(info_dict):
     # Filter subtitles to keep only:
     # 1. Single language codes (e.g. 'en', 'ru')
     # 2. Languages with '-orig' suffix
+    # 3. Languages that have emoji flags
     filtered_subtitles = {}
     for lang, subs in subtitles.items():
-        if len(lang.split('-')) == 1 or lang.endswith('-orig'):
+        base_lang = lang.split('-')[0]  # Get base language code
+        if (len(lang.split('-')) == 1 or lang.endswith('-orig')) and has_language_flag(base_lang):
             filtered_subtitles[lang] = subs
     
     return filtered_subtitles
 
+
+LANGUAGE_NAMES = {
+    'en': 'English',
+    'ru': 'Русский',
+    'es': 'Español',
+    'fr': 'Français',
+    'de': 'Deutsch',
+    'it': 'Italiano',
+    'pt': 'Português',
+    'ja': '日本語',
+    'ko': '한국어',
+    'zh': '中文',
+    'ar': 'العربية',
+    'hi': 'हिन्दी',
+    'id': 'Bahasa Indonesia',
+    'tr': 'Türkçe',
+    'pl': 'Polski',
+    'nl': 'Nederlands',
+    'vi': 'Tiếng Việt',
+    'th': 'ไทย',
+    'cs': 'Čeština',
+    'uk': 'Українська'
+}
+
 def get_language_name(lang_code):
     """Convert language code to readable name with flag emoji"""
-    language_names = {
-        'en': '🇬🇧 English',
-        'es': '🇪🇸 Spanish',
-        'fr': '🇫🇷 French',
-        'de': '🇩🇪 German',
-        'it': '🇮🇹 Italian',
-        'pt': '🇵🇹 Portuguese',
-        'ru': '🇷🇺 Russian',
-        'ja': '🇯🇵 Japanese',
-        'ko': '🇰🇷 Korean',
-        'zh': '🇨🇳 Chinese',
-        'ar': '🇸🇦 Arabic',
-        'hi': '🇮🇳 Hindi',
-        'tr': '🇹🇷 Turkish',
-        'vi': '🇻🇳 Vietnamese',
-        'th': '🇹🇭 Thai',
-        'nl': '🇳🇱 Dutch',
-        'pl': '🇵🇱 Polish',
-        'id': '🇮🇩 Indonesian',
-        'he': '🇮🇱 Hebrew',
-        'sv': '🇸🇪 Swedish',
-        'da': '🇩🇰 Danish',
-        'fi': '🇫🇮 Finnish',
-        'no': '🇳🇴 Norwegian',
-        'cs': '🇨🇿 Czech',
-        'el': '🇬🇷 Greek',
-        'hu': '🇭🇺 Hungarian',
-        'ro': '🇷🇴 Romanian',
-        'sk': '🇸🇰 Slovak',
-        'uk': '🇺🇦 Ukrainian',
-        'bg': '🇧🇬 Bulgarian',
-        'hr': '🇭🇷 Croatian'
-    }
-    
     base_lang = lang_code.split('_')[0]
     is_auto = '_auto' in lang_code
     
-    name = language_names.get(base_lang, f'🌐 {lang_code}')
-    if is_auto:
-        name += ' (Auto)'
+    # Используем словарь LANGUAGE_FLAGS для получения эмодзи флага
+    if base_lang in LANGUAGE_FLAGS:
+        name = f"{LANGUAGE_FLAGS[base_lang]} {base_lang}"
+        if is_auto:
+            name += ' (Auto)'
+        return name
     
-    return name
+    return f'🌐 {lang_code}'
 
 def show_subtitles_menu(app, message, url, video_info, page=0):
     """Show available subtitle languages menu with pagination"""
@@ -4647,12 +4675,12 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
     short_url = youtube_to_short_url(url)
     
     if not subtitles:
-        logger.warning("No subtitles found for video")
+        logger.warning("No subtitles with language flags found for video")
         try:
             app.edit_message_caption(
                 chat_id=message.chat.id,
                 message_id=message.id,
-                caption="❌ No subtitles available for this video."
+                caption="❌ No subtitles with language flags available for this video."
             )
         except Exception as e:
             logger.error(f"Error updating message: {e}")
@@ -5064,6 +5092,16 @@ def subs_callback(app, callback_query):
             except Exception as e:
                 logger.error(f"Error answering callback query: {e}")
             
+            # Удаляем старое сообщение
+            try:
+                app.delete_messages(
+                    chat_id=message.chat.id,
+                    message_ids=message.id
+                )
+            except Exception as e:
+                logger.error(f"Error deleting old message: {e}")
+            
+            # Показываем новое меню
             show_subtitles_menu(app, message, url, video_info, page)
     except Exception as e:
         logger.error(f"Error in subs_callback: {str(e)}")
