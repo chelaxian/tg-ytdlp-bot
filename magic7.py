@@ -2613,19 +2613,26 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         def try_download_audio(url, current_index):
             nonlocal current_total_process
             ytdl_opts = {
-                'format': 'ba',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-                'prefer_ffmpeg': True,
-                'extractaudio': True,
-                'playlist_items': str(current_index + video_start_with),
-                'cookiefile': cookie_file,
-                'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
-                'progress_hooks': [progress_hook],
-            }
+               'format': 'ba',
+               'postprocessors': [{
+                  'key': 'FFmpegExtractAudio',
+                  'preferredcodec': 'mp3',
+                  'preferredquality': '192',
+               }],
+               'prefer_ffmpeg': True,
+               'extractaudio': True,
+               'playlist_items': str(current_index + video_start_with),
+               'cookiefile': cookie_file,
+               'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
+               'progress_hooks': [progress_hook],
+               'impersonate': 'chrome',
+               'referer': url,
+               'embedthumbnail': True,
+               'addmetadata': True,
+               'geo_bypass': True,
+               'nocheckcertificate': True,
+               'live_from_start': True,
+            }   
             try:
                 with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
                     info_dict = ydl.extract_info(url, download=False)
@@ -3119,7 +3126,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             common_opts = {
                 'cookiefile': os.path.join("users", str(user_id), os.path.basename(Config.COOKIE_FILE_PATH)),
                 'playlist_items': str(current_index),  # We use only current_index for playlists
-                'outtmpl': os.path.join(user_dir_name, "%(title)s.%(ext)s")
+                'outtmpl': os.path.join(user_dir_name, "%(title)s.%(ext)s"),
+                'impersonate': 'chrome',
+                'referer': url,
+                'embedthumbnail': True,
+                'addmetadata': True,
+                'geo_bypass': True,
+                'nocheckcertificate': True,
+                'live_from_start': True
             }
             
             # If this is not a playlist with a range, add --no-playlist to the URL with the list parameter
@@ -4487,6 +4501,13 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         'extract_flat': False,
         'simulate': True,
         'playlist_items': str(playlist_start_index),
+        'impersonate': 'chrome',
+        'referer': url,
+        'embedthumbnail': True,
+        'addmetadata': True,
+        'geo_bypass': True,
+        'nocheckcertificate': True,
+        'live_from_start': True
     }
     if user_id is not None:
         user_dir = os.path.join("users", str(user_id))
