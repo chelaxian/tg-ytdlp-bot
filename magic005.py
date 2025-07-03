@@ -4635,23 +4635,8 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
     subtitles = get_available_subtitles(video_info)
     logger.info(f"Available subtitles: {list(subtitles.keys())}")
     
-    # Хешируем URL для использования в callback_data
-    url_hash = get_url_hash(url)
-    # Сохраняем соответствие хеша и URL
-    user_dir = os.path.join("users", str(message.chat.id))
-    create_directory(user_dir)
-    url_map_file = os.path.join(user_dir, "url_map.json")
-    try:
-        if os.path.exists(url_map_file):
-            with open(url_map_file, "r") as f:
-                url_map = json.load(f)
-        else:
-            url_map = {}
-        url_map[url_hash] = url
-        with open(url_map_file, "w") as f:
-            json.dump(url_map, f)
-    except Exception as e:
-        logger.error(f"Error saving URL map: {e}")
+    # Преобразуем URL в короткий формат для callback_data
+    short_url = youtube_to_short_url(url)
     
     if not subtitles:
         logger.warning("No subtitles found for video")
@@ -4684,7 +4669,7 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
         button_text = get_language_name(lang_code)
         row.append(InlineKeyboardButton(
             button_text,
-            callback_data=f"sub|{url_hash}|{lang_code}"
+            callback_data=f"sub|{short_url}|{lang_code}"
         ))
         
         # Вторая кнопка в ряду (если есть)
@@ -4693,7 +4678,7 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
             button_text = get_language_name(lang_code)
             row.append(InlineKeyboardButton(
                 button_text,
-                callback_data=f"sub|{url_hash}|{lang_code}"
+                callback_data=f"sub|{short_url}|{lang_code}"
             ))
         keyboard_rows.append(row)
     
@@ -4702,13 +4687,13 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
     if page > 0:
         nav_row.append(InlineKeyboardButton(
             "⬅️ Prev",
-            callback_data=f"subs|page|{url_hash}|{page-1}"
+            callback_data=f"subs|page|{short_url}|{page-1}"
         ))
     
     if page < total_pages - 1:
         nav_row.append(InlineKeyboardButton(
             "Next ➡️",
-            callback_data=f"subs|page|{url_hash}|{page+1}"
+            callback_data=f"subs|page|{short_url}|{page+1}"
         ))
     
     if nav_row:
@@ -4716,7 +4701,7 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
     
     # Add back button
     keyboard_rows.append([
-        InlineKeyboardButton("⬅️ Back to quality menu", callback_data=f"back_to_quality|{url_hash}")
+        InlineKeyboardButton("⬅️ Back to quality menu", callback_data=f"back_to_quality|{short_url}")
     ])
     
     reply_markup = InlineKeyboardMarkup(keyboard_rows)
@@ -4759,7 +4744,7 @@ def show_subtitles_menu(app, message, url, video_info, page=0):
 def subtitles_callback(app, callback_query):
     """Handle subtitle language selection"""
     try:
-        _, url_hash, lang_code = callback_query.data.split('|')
+        _, short_url, lang_code = callback_query.data.split('|')
         message = callback_query.message
         
         # Store selected subtitle language in user data
@@ -4767,22 +4752,8 @@ def subtitles_callback(app, callback_query):
         user_dir = os.path.join("users", user_id)
         create_directory(user_dir)
         
-        # Получаем URL из хеша
-        url_map_file = os.path.join(user_dir, "url_map.json")
-        try:
-            with open(url_map_file, "r") as f:
-                url_map = json.load(f)
-            url = url_map.get(url_hash)
-            if not url:
-                raise ValueError(f"URL not found for hash {url_hash}")
-        except Exception as e:
-            logger.error(f"Error getting URL from hash: {e}")
-            safe_edit_message_text(
-                message.chat.id,
-                message.id,
-                "❌ Error: Could not find video URL"
-            )
-            return
+        # Преобразуем короткий URL в полный
+        url = youtube_to_long_url(short_url)
         
         with open(os.path.join(user_dir, "subtitle_lang.txt"), "w") as f:
             f.write(lang_code)
@@ -4810,25 +4781,10 @@ def subtitles_callback(app, callback_query):
 def back_to_quality_callback(app, callback_query):
     """Handle back button to quality menu"""
     try:
-        _, url_hash = callback_query.data.split('|')
+        _, short_url = callback_query.data.split('|')
         
-        # Получаем URL из хеша
-        user_dir = os.path.join("users", str(callback_query.message.chat.id))
-        url_map_file = os.path.join(user_dir, "url_map.json")
-        try:
-            with open(url_map_file, "r") as f:
-                url_map = json.load(f)
-            url = url_map.get(url_hash)
-            if not url:
-                raise ValueError(f"URL not found for hash {url_hash}")
-        except Exception as e:
-            logger.error(f"Error getting URL from hash: {e}")
-            safe_edit_message_text(
-                callback_query.message.chat.id,
-                callback_query.message.id,
-                "❌ Error: Could not find video URL"
-            )
-            return
+        # Преобразуем короткий URL в полный
+        url = youtube_to_long_url(short_url)
             
         ask_quality_menu(app, callback_query.message, url, [], 1)
     except Exception as e:
@@ -5074,27 +5030,12 @@ def subs_callback(app, callback_query):
         message = callback_query.message
         
         if action == "menu" or action == "page":
-            # Get URL hash from callback data
-            url_hash = parts[2] if len(parts) > 2 else None
+            # Get URL from callback data
+            short_url = parts[2] if len(parts) > 2 else None
             page = int(parts[3]) if len(parts) > 3 and action == "page" else 0
             
-            # Получаем URL из хеша
-            user_dir = os.path.join("users", str(callback_query.message.chat.id))
-            url_map_file = os.path.join(user_dir, "url_map.json")
-            try:
-                with open(url_map_file, "r") as f:
-                    url_map = json.load(f)
-                url = url_map.get(url_hash)
-                if not url:
-                    raise ValueError(f"URL not found for hash {url_hash}")
-            except Exception as e:
-                logger.error(f"Error getting URL from hash: {e}")
-                safe_edit_message_text(
-                    message.chat.id,
-                    message.id,
-                    "❌ Error: Could not find video URL"
-                )
-                return
+            # Преобразуем короткий URL в полный
+            url = youtube_to_long_url(short_url)
             
             logger.info(f"Processing subtitles menu for URL: {url}, page: {page}")
             
