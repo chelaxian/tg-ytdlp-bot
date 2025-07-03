@@ -3961,19 +3961,10 @@ def set_active_download(user_id, status):
 
 # Helper function for safe message sending with flood wait handling
 def safe_send_message(chat_id, text, **kwargs):
-    # Convert reply_to_message_id and message to reply_parameters
-    if 'reply_to_message_id' not in kwargs and 'message' in kwargs:
+    # Convert message to reply_to_message_id if present
+    if 'message' in kwargs:
         message = kwargs.pop('message')
-        kwargs['reply_parameters'] = enums.ReplyParameters(
-            message_id=message.id,
-            chat_id=chat_id
-        )
-    elif 'reply_to_message_id' in kwargs:
-        reply_to_id = kwargs.pop('reply_to_message_id')
-        kwargs['reply_parameters'] = enums.ReplyParameters(
-            message_id=reply_to_id,
-            chat_id=chat_id
-        )
+        kwargs['reply_to_message_id'] = message.id
     
     max_retries = 3
     retry_delay = 5
