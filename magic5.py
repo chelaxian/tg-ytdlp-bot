@@ -458,7 +458,7 @@ def cookies_from_browser(app, message):
 
 # Callback Handler for Browser Selection
 @app.on_callback_query(filters.regex(r"^browser_choice\|"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def browser_choice_callback(app, callback_query):
     logger.info(f"[BROWSER] callback: {callback_query.data}")
     import subprocess
@@ -603,7 +603,7 @@ def set_format(app, message):
 
 # Callbackquery Handler for /Format Menu Selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def format_option_callback(app, callback_query):
     logger.info(f"[FORMAT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -1332,7 +1332,7 @@ def settings_command(app, message):
 
 
 @app.on_callback_query(filters.regex(r"^settings__menu__"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def settings_menu_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("__")[-1]
@@ -1428,7 +1428,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
 
 
 @app.on_callback_query(filters.regex(r"^settings__cmd__"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def settings_cmd_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("__")[2]
@@ -1510,7 +1510,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
 
 
 @app.on_callback_query(filters.regex(r"^clean_option\|"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def clean_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
@@ -1603,7 +1603,7 @@ def mediainfo_command(app, message):
 
 
 @app.on_callback_query(filters.regex(r"^mediainfo_option\|"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def mediainfo_option_callback(app, callback_query):
     logger.info(f"[MEDIAINFO] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -2051,7 +2051,7 @@ def truncate_caption(
     
     return title_html, pre_block_str, blockquote_content, tags_block, link_block, was_truncated
 
-@reply_with_keyboard
+#@reply_with_keyboard
 def send_videos(
     message,
     video_abs_path: str,
@@ -4441,7 +4441,7 @@ def split_command(app, message):
     send_to_logger(message, "User opened /split menu.")
 
 @app.on_callback_query(filters.regex(r"^split_size\|"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def split_size_callback(app, callback_query):
     logger.info(f"[SPLIT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -4519,7 +4519,7 @@ def sort_quality_key(quality_key):
         except ValueError:
             return 0  # for unknown formats
 
-@reply_with_keyboard
+#@reply_with_keyboard
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
@@ -4726,7 +4726,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
 # --- Callback Processor ---
 @app.on_callback_query(filters.regex(r"^askq\|"))
-@reply_with_keyboard
+#@reply_with_keyboard
 def askq_callback(app, callback_query):
     logger.info(f"[ASKQ] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -5038,7 +5038,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
 
-@reply_with_keyboard
+#@reply_with_keyboard
 def show_manual_quality_menu(app, callback_query):
     """Show manual quality selection menu when automatic detection fails"""
     user_id = callback_query.from_user.id
