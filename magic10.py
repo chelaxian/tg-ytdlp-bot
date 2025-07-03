@@ -2627,7 +2627,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'progress_hooks': [progress_hook],
                'impersonate': 'chrome',
                #'referer': url,
-               'geo_bypass': True,
+               #'geo_bypass': True,
                'check_certificate': False,
                'live_from_start': True,
             }   
@@ -3127,7 +3127,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'outtmpl': os.path.join(user_dir_name, "%(title)s.%(ext)s"),
                 'impersonate': 'chrome',
                 #'referer': url,
-                'geo_bypass': True,
+                #'geo_bypass': True,
                 'check_certificate': False,
                 'live_from_start': True
             }
@@ -4499,7 +4499,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
         'playlist_items': str(playlist_start_index),
         'impersonate': 'chrome',
         #'referer': url,
-        'geo_bypass': True,
+        #'geo_bypass': True,
         'check_certificate': False,
         'live_from_start': True
     }
