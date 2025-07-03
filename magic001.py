@@ -4629,27 +4629,66 @@ def get_language_name(lang_code):
     
     return name
 
-def show_subtitles_menu(app, message, url, video_info):
-    """Show available subtitle languages menu"""
+def show_subtitles_menu(app, message, url, video_info, page=0):
+    """Show available subtitle languages menu with pagination"""
     subtitles = get_available_subtitles(video_info)
     
     if not subtitles:
-        safe_send_message(
+        safe_edit_message_text(
             message.chat.id,
-            "❌ No subtitles available for this video.",
-            reply_to_message_id=message.id
+            message.id,
+            "❌ No subtitles available for this video."
         )
         return
     
+    # Сортируем языки и разбиваем на страницы по 8 языков
+    sorted_langs = sorted(subtitles.keys())
+    langs_per_page = 8
+    total_pages = (len(sorted_langs) + langs_per_page - 1) // langs_per_page
+    
+    # Получаем языки для текущей страницы
+    start_idx = page * langs_per_page
+    end_idx = min(start_idx + langs_per_page, len(sorted_langs))
+    current_page_langs = sorted_langs[start_idx:end_idx]
+    
     keyboard_rows = []
-    for lang_code in sorted(subtitles.keys()):
+    # Добавляем кнопки языков (по 2 в ряд)
+    for i in range(0, len(current_page_langs), 2):
+        row = []
+        # Первая кнопка в ряду
+        lang_code = current_page_langs[i]
         button_text = get_language_name(lang_code)
-        keyboard_rows.append([
-            InlineKeyboardButton(
+        row.append(InlineKeyboardButton(
+            button_text,
+            callback_data=f"sub|{url}|{lang_code}"
+        ))
+        
+        # Вторая кнопка в ряду (если есть)
+        if i + 1 < len(current_page_langs):
+            lang_code = current_page_langs[i + 1]
+            button_text = get_language_name(lang_code)
+            row.append(InlineKeyboardButton(
                 button_text,
                 callback_data=f"sub|{url}|{lang_code}"
-            )
-        ])
+            ))
+        keyboard_rows.append(row)
+    
+    # Добавляем навигационные кнопки
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton(
+            "⬅️ Prev",
+            callback_data=f"subs|page|{url}|{page-1}"
+        ))
+    
+    if page < total_pages - 1:
+        nav_row.append(InlineKeyboardButton(
+            "Next ➡️",
+            callback_data=f"subs|page|{url}|{page+1}"
+        ))
+    
+    if nav_row:
+        keyboard_rows.append(nav_row)
     
     # Add back button
     keyboard_rows.append([
@@ -4657,11 +4696,12 @@ def show_subtitles_menu(app, message, url, video_info):
     ])
     
     reply_markup = InlineKeyboardMarkup(keyboard_rows)
-    safe_send_message(
+    page_info = f" (Page {page + 1}/{total_pages})" if total_pages > 1 else ""
+    safe_edit_message_text(
         message.chat.id,
-        "📝 Choose subtitle language:",
-        reply_markup=reply_markup,
-        reply_to_message_id=message.id
+        message.id,
+        f"📝 Choose subtitle language{page_info}:",
+        reply_markup=reply_markup
     )
 
 @app.on_callback_query(filters.regex(r"^sub\|"))
@@ -4940,21 +4980,27 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 def subs_callback(app, callback_query):
     """Handle subtitle menu button click"""
     try:
-        _, action = callback_query.data.split("|")
+        parts = callback_query.data.split("|")
+        action = parts[1]
         message = callback_query.message
         
-        if action == "menu":
+        if action == "menu" or action == "page":
             # Get original URL from message
             url = None
-            if message.caption_entities:
-                for entity in message.caption_entities:
-                    if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
-                        url = entity.url
-                        break
-            if not url and message.reply_to_message:
-                url_match = re.search(r'https?://[^\s\*#]+', message.reply_to_message.text)
-                if url_match:
-                    url = url_match.group(0)
+            if action == "page":
+                url = parts[2]
+                page = int(parts[3])
+            else:
+                if message.caption_entities:
+                    for entity in message.caption_entities:
+                        if entity.type == enums.MessageEntityType.TEXT_LINK and entity.url:
+                            url = entity.url
+                            break
+                if not url and message.reply_to_message:
+                    url_match = re.search(r'https?://[^\s\*#]+', message.reply_to_message.text)
+                    if url_match:
+                        url = url_match.group(0)
+                page = 0
             
             if not url:
                 safe_edit_message_text(
@@ -4974,7 +5020,7 @@ def subs_callback(app, callback_query):
                 )
                 return
             
-            show_subtitles_menu(app, message, url, video_info)
+            show_subtitles_menu(app, message, url, video_info, page)
     except Exception as e:
         safe_edit_message_text(
             callback_query.message.chat.id,
