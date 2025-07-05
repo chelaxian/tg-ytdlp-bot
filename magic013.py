@@ -2251,7 +2251,9 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
         return split_vid_dict
 
 def get_duration_thumb_(dir, video_path, thumb_name):
-    thumb_dir = os.path.abspath(dir + "/" + thumb_name + ".jpg")
+    # Generate a short unique name for the thumbnail
+    thumb_hash = hashlib.md5(thumb_name.encode()).hexdigest()[:10]
+    thumb_dir = os.path.abspath(os.path.join(dir, thumb_hash + ".jpg"))
     clip = VideoFileClip(video_path)
     duration = (int(clip.duration))
     
@@ -2309,7 +2311,9 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
     Returns:
         tuple: (duration, thumbnail_path) or None if error
     """
-    thumb_dir = os.path.abspath(os.path.join(dir_path, thumb_name + ".jpg"))
+    # Generate a short unique name for the thumbnail
+    thumb_hash = hashlib.md5(thumb_name.encode()).hexdigest()[:10]
+    thumb_dir = os.path.abspath(os.path.join(dir_path, thumb_hash + ".jpg"))
 
     # FFPROBE COMMAND to GET Video Dimensions and Duration
     ffprobe_size_command = [
