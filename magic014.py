@@ -1,4 +1,5 @@
 # Version 2.4.3
+import hashlib
 import logging
 import math
 import os
