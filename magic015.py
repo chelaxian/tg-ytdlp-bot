@@ -2113,24 +2113,85 @@ def send_videos(
             cap += tags_block
         cap += link_block
 
-        video_msg = app.send_video(
-            chat_id=user_id,
-            video=video_abs_path,
-            caption=cap,
-            duration=duration,
-            width=width,
-            height=height,
-            supports_streaming=True,
-            thumb=thumb_file_path,
-            progress=progress_bar,
-            progress_args=(
-                user_id,
-                msg_id,
-                f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
-            ),
-            reply_to_message_id=message.id,
-            parse_mode=enums.ParseMode.HTML
-        )
+        try:
+            video_msg = app.send_video(
+                chat_id=user_id,
+                video=video_abs_path,
+                caption=cap,
+                duration=duration,
+                width=width,
+                height=height,
+                supports_streaming=True,
+                thumb=thumb_file_path,
+                progress=progress_bar,
+                progress_args=(
+                    user_id,
+                    msg_id,
+                    f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                ),
+                reply_to_message_id=message.id,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception as e:
+            if "MEDIA_CAPTION_TOO_LONG" in str(e):
+                # Если caption слишком длинный, пробуем отправить только с основной информацией
+                try:
+                    minimal_cap = ''
+                    if title_html:
+                        minimal_cap += title_html + '\n\n'
+                    minimal_cap += link_block
+                    
+                    video_msg = app.send_video(
+                        chat_id=user_id,
+                        video=video_abs_path,
+                        caption=minimal_cap,
+                        duration=duration,
+                        width=width,
+                        height=height,
+                        supports_streaming=True,
+                        thumb=thumb_file_path,
+                        progress=progress_bar,
+                        progress_args=(
+                            user_id,
+                            msg_id,
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                        ),
+                        reply_to_message_id=message.id,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                    
+                    # Отправляем полное описание отдельным сообщением
+                    try:
+                        app.send_message(
+                            chat_id=user_id,
+                            text=cap,
+                            reply_to_message_id=video_msg.id,
+                            parse_mode=enums.ParseMode.HTML
+                        )
+                    except Exception as e:
+                        logger.error(f"Error sending full caption as separate message: {e}")
+                        
+                except Exception as e:
+                    # Если даже минимальный caption не работает, отправляем без caption
+                    video_msg = app.send_video(
+                        chat_id=user_id,
+                        video=video_abs_path,
+                        duration=duration,
+                        width=width,
+                        height=height,
+                        supports_streaming=True,
+                        thumb=thumb_file_path,
+                        progress=progress_bar,
+                        progress_args=(
+                            user_id,
+                            msg_id,
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                        ),
+                        reply_to_message_id=message.id,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+            else:
+                raise e
         if was_truncated and full_video_title:
             with open(temp_desc_path, "w", encoding="utf-8") as f:
                 f.write(full_video_title)
