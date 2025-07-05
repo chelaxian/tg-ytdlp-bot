@@ -2113,8 +2113,8 @@ def send_videos(
             cap += tags_block
         cap += link_block
 
-        caption_sent = False
         try:
+            # Сначала пробуем отправить с полным caption
             video_msg = app.send_video(
                 chat_id=user_id,
                 video=video_abs_path,
@@ -2133,16 +2133,17 @@ def send_videos(
                 reply_to_message_id=message.id,
                 parse_mode=enums.ParseMode.HTML
             )
-            caption_sent = True
         except Exception as e:
             if "MEDIA_CAPTION_TOO_LONG" in str(e):
+                logger.info("Caption too long, trying with minimal caption")
                 # Если caption слишком длинный, пробуем отправить только с основной информацией
+                minimal_cap = ''
+                if title_html:
+                    minimal_cap += title_html + '\n\n'
+                minimal_cap += link_block
+                
                 try:
-                    minimal_cap = ''
-                    if title_html:
-                        minimal_cap += title_html + '\n\n'
-                    minimal_cap += link_block
-                    
+                    # Пробуем отправить с минимальным caption
                     video_msg = app.send_video(
                         chat_id=user_id,
                         video=video_abs_path,
@@ -2161,21 +2162,8 @@ def send_videos(
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
-                    
-                    # Отправляем полное описание отдельным сообщением только если оно еще не было отправлено
-                    if not caption_sent:
-                        try:
-                            app.send_message(
-                                chat_id=user_id,
-                                text=cap,
-                                reply_to_message_id=video_msg.id,
-                                parse_mode=enums.ParseMode.HTML
-                            )
-                            caption_sent = True
-                        except Exception as e:
-                            logger.error(f"Error sending full caption as separate message: {e}")
-                        
                 except Exception as e:
+                    logger.error(f"Error sending video with minimal caption: {e}")
                     # Если даже минимальный caption не работает, отправляем без caption
                     video_msg = app.send_video(
                         chat_id=user_id,
@@ -2194,19 +2182,8 @@ def send_videos(
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
-                    
-                    # Отправляем полное описание отдельным сообщением только если оно еще не было отправлено
-                    if not caption_sent:
-                        try:
-                            app.send_message(
-                                chat_id=user_id,
-                                text=cap,
-                                reply_to_message_id=video_msg.id,
-                                parse_mode=enums.ParseMode.HTML
-                            )
-                        except Exception as e:
-                            logger.error(f"Error sending full caption as separate message: {e}")
             else:
+                # Если ошибка не связана с длиной caption, пробрасываем её дальше
                 raise e
         if was_truncated and full_video_title:
             with open(temp_desc_path, "w", encoding="utf-8") as f:
