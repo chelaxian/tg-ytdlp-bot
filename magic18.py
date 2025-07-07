@@ -1,4 +1,5 @@
-# Version 2.4.2
+# Version 3
+import hashlib
 import logging
 import math
 import os
@@ -1701,23 +1702,73 @@ def save_my_cookie(app, message):
 
 #@reply_with_keyboard
 def download_cookie(app, message):
+    """
+    Показывает меню с кнопками для скачивания cookie файлов разных сервисов (без custom).
+    """
     user_id = str(message.chat.id)
-    response = requests.get(Config.COOKIE_URL)
+    
+    # Кнопки только для сервисов
+    buttons = [
+        [InlineKeyboardButton("📺 YouTube", callback_data="download_cookie|youtube")],
+        [InlineKeyboardButton("📷 Instagram", callback_data="download_cookie|instagram")],
+        [InlineKeyboardButton("🐦 Twitter/X", callback_data="download_cookie|twitter")],
+        [InlineKeyboardButton("🎵 TikTok", callback_data="download_cookie|tiktok")],
+        [InlineKeyboardButton("📘 Facebook", callback_data="download_cookie|facebook")]
+    ]
+    keyboard = InlineKeyboardMarkup(buttons)
+    text = """
+🍪 **Download Cookie Files**
+
+Выберите сервис для скачивания cookie файла:
+
+• **YouTube** - для youtube.com и youtu.be
+• **Instagram** - для instagram.com
+• **Twitter/X** - для twitter.com и x.com
+• **TikTok** - для tiktok.com
+• **Facebook** - для facebook.com и fb.com
+
+Cookie файлы будут сохранены в соответствующих папках.
+"""
+    app.send_message(
+        chat_id=user_id,
+        text=text,
+        reply_markup=keyboard,
+        reply_to_message_id=message.id
+    )
+
+@app.on_callback_query(filters.regex(r"^download_cookie\|"))
+#@reply_with_keyboard
+def download_cookie_callback(app, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+
+    if data == "youtube":
+        download_and_save_cookie(app, callback_query, Config.YOUTUBE_COOKIE_URL, "youtube")
+    elif data == "instagram":
+        download_and_save_cookie(app, callback_query, Config.INSTAGRAM_COOKIE_URL, "instagram")
+    elif data == "twitter":
+        download_and_save_cookie(app, callback_query, Config.TWITTER_COOKIE_URL, "twitter")
+    elif data == "tiktok":
+        download_and_save_cookie(app, callback_query, Config.TIKTOK_COOKIE_URL, "tiktok")
+    elif data == "facebook":
+        download_and_save_cookie(app, callback_query, Config.FACEBOOK_COOKIE_URL, "facebook")
+
+def download_and_save_cookie(app, callback_query, url, service):
+    user_id = callback_query.from_user.id
+    response = requests.get(url)
     if response.status_code == 200:
-        user_dir = os.path.join("users", user_id)
+        user_dir = os.path.join("users", str(user_id), "cookies", service)
         create_directory(user_dir)
-        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+        cookie_filename = f"{service}_cookie.txt"
         file_path = os.path.join(user_dir, cookie_filename)
         with open(file_path, "wb") as cf:
             cf.write(response.content)
-        send_to_user(message, "**✅ YouTube cookie file downloaded and saved in your folder.**")
-        send_to_logger(message, f"YouTube cookie file downloaded for user {user_id}.")
+        send_to_user(callback_query.message, f"**✅ {service.capitalize()} cookie file downloaded and saved in your folder.**")
+        send_to_logger(callback_query.message, f"{service.capitalize()} cookie file downloaded for user {user_id}.")
     else:
-        send_to_user(message, "❌ Cookie URL is not available!")
-        send_to_logger(message, f"Failed to download cookie file for user {user_id}.")
+        send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL is not available!")
+        send_to_logger(callback_query.message, f"Failed to download {service.capitalize()} cookie file for user {user_id}.")
 
-
-# Caption Editor for Videos
 @app.on_message(filters.text & filters.private)
 #@reply_with_keyboard
 def caption_editor(app, message):
@@ -2112,24 +2163,78 @@ def send_videos(
             cap += tags_block
         cap += link_block
 
-        video_msg = app.send_video(
-            chat_id=user_id,
-            video=video_abs_path,
-            caption=cap,
-            duration=duration,
-            width=width,
-            height=height,
-            supports_streaming=True,
-            thumb=thumb_file_path,
-            progress=progress_bar,
-            progress_args=(
-                user_id,
-                msg_id,
-                f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
-            ),
-            reply_to_message_id=message.id,
-            parse_mode=enums.ParseMode.HTML
-        )
+        try:
+            # Сначала пробуем отправить с полным caption
+            video_msg = app.send_video(
+                chat_id=user_id,
+                video=video_abs_path,
+                caption=cap,
+                duration=duration,
+                width=width,
+                height=height,
+                supports_streaming=True,
+                thumb=thumb_file_path,
+                progress=progress_bar,
+                progress_args=(
+                    user_id,
+                    msg_id,
+                    f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                ),
+                reply_to_message_id=message.id,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception as e:
+            if "MEDIA_CAPTION_TOO_LONG" in str(e):
+                logger.info("Caption too long, trying with minimal caption")
+                # Если caption слишком длинный, пробуем отправить только с основной информацией
+                minimal_cap = ''
+                if title_html:
+                    minimal_cap += title_html + '\n\n'
+                minimal_cap += link_block
+                
+                try:
+                    # Пробуем отправить с минимальным caption
+                    video_msg = app.send_video(
+                        chat_id=user_id,
+                        video=video_abs_path,
+                        caption=minimal_cap,
+                        duration=duration,
+                        width=width,
+                        height=height,
+                        supports_streaming=True,
+                        thumb=thumb_file_path,
+                        progress=progress_bar,
+                        progress_args=(
+                            user_id,
+                            msg_id,
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                        ),
+                        reply_to_message_id=message.id,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending video with minimal caption: {e}")
+                    # Если даже минимальный caption не работает, отправляем без caption
+                    video_msg = app.send_video(
+                        chat_id=user_id,
+                        video=video_abs_path,
+                        duration=duration,
+                        width=width,
+                        height=height,
+                        supports_streaming=True,
+                        thumb=thumb_file_path,
+                        progress=progress_bar,
+                        progress_args=(
+                            user_id,
+                            msg_id,
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                        ),
+                        reply_to_message_id=message.id,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+            else:
+                # Если ошибка не связана с длиной caption, пробрасываем её дальше
+                raise e
         if was_truncated and full_video_title:
             with open(temp_desc_path, "w", encoding="utf-8") as f:
                 f.write(full_video_title)
@@ -2251,7 +2356,9 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
         return split_vid_dict
 
 def get_duration_thumb_(dir, video_path, thumb_name):
-    thumb_dir = os.path.abspath(dir + "/" + thumb_name + ".jpg")
+    # Generate a short unique name for the thumbnail
+    thumb_hash = hashlib.md5(thumb_name.encode()).hexdigest()[:10]
+    thumb_dir = os.path.abspath(os.path.join(dir, thumb_hash + ".jpg"))
     clip = VideoFileClip(video_path)
     duration = (int(clip.duration))
     
@@ -2309,7 +2416,9 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
     Returns:
         tuple: (duration, thumbnail_path) or None if error
     """
-    thumb_dir = os.path.abspath(os.path.join(dir_path, thumb_name + ".jpg"))
+    # Generate a short unique name for the thumbnail
+    thumb_hash = hashlib.md5(thumb_name.encode()).hexdigest()[:10]
+    thumb_dir = os.path.abspath(os.path.join(dir_path, thumb_hash + ".jpg"))
 
     # FFPROBE COMMAND to GET Video Dimensions and Duration
     ffprobe_size_command = [
@@ -2629,8 +2738,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'prefer_ffmpeg': True,
                'extractaudio': True,
                'playlist_items': str(current_index + video_start_with),
-               'cookiefile': cookie_file,
-               'outtmpl': os.path.join(user_folder, "%(title)s.%(ext)s"),
+               'outtmpl': os.path.join(user_folder, "%(title).50s.%(ext)s"),
                'progress_hooks': [progress_hook],
                'extractor_args': {
                   'generic': ['impersonate=chrome']
@@ -2639,7 +2747,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'geo_bypass': True,
                'check_certificate': False,
                'live_from_start': True,
-            }   
+            }
+            
+            # Проверяем, нужно ли использовать --no-cookies для данного домена
+            if is_no_cookie_domain(url):
+                ytdl_opts['cookiefile'] = None  # Эквивалент --no-cookies
+                logger.info(f"Using --no-cookies for domain: {url}")
+            else:
+                ytdl_opts['cookiefile'] = cookie_file   
             try:
                 with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
                     info_dict = ydl.extract_info(url, download=False)
@@ -3131,9 +3246,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         def try_download(url, attempt_opts):
             nonlocal current_total_process, error_message
             common_opts = {
-                'cookiefile': os.path.join("users", str(user_id), os.path.basename(Config.COOKIE_FILE_PATH)),
                 'playlist_items': str(current_index),  # We use only current_index for playlists
-                'outtmpl': os.path.join(user_dir_name, "%(title)s.%(ext)s"),
+                'outtmpl': os.path.join(user_dir_name, "%(title).50s.%(ext)s"),
                 'postprocessors': [
                 {
                    'key': 'EmbedThumbnail'   # эквивалент --embed-thumbnail
@@ -3150,6 +3264,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'check_certificate': False,
                 'live_from_start': True
             }
+            
+            # Проверяем, нужно ли использовать --no-cookies для данного домена
+            if is_no_cookie_domain(url):
+                common_opts['cookiefile'] = None  # Эквивалент --no-cookies
+                logger.info(f"Using --no-cookies for domain: {url}")
+            else:
+                common_opts['cookiefile'] = os.path.join("users", str(user_id), os.path.basename(Config.COOKIE_FILE_PATH))
             
             # If this is not a playlist with a range, add --no-playlist to the URL with the list parameter
             if not is_playlist and 'list=' in url:
@@ -4527,7 +4648,11 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     if user_id is not None:
         user_dir = os.path.join("users", str(user_id))
         cookie_file = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
-        if os.path.exists(cookie_file):
+        # Проверяем, нужно ли использовать --no-cookies для данного домена
+        if is_no_cookie_domain(url):
+            ytdl_opts['cookiefile'] = None  # Эквивалент --no-cookies
+            logger.info(f"Using --no-cookies for domain in get_video_formats: {url}")
+        elif os.path.exists(cookie_file):
             ytdl_opts['cookiefile'] = cookie_file
     try:
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
@@ -5842,6 +5967,31 @@ def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
             return min(heights, key=lambda h: abs(h - height))
     except ValueError:
         return height
+
+
+def is_no_cookie_domain(url: str) -> bool:
+    """
+    Проверяет, является ли домен из списка NO_COOKIE_DOMAINS.
+    Для таких доменов нужно использовать --no-cookies вместо --cookies.
+    """
+    try:
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.lower()
+        
+        # Убираем www. если есть
+        if domain.startswith('www.'):
+            domain = domain[4:]
+            
+        # Проверяем домен и его поддомены
+        for no_cookie_domain in Config.NO_COOKIE_DOMAINS:
+            if domain == no_cookie_domain or domain.endswith('.' + no_cookie_domain):
+                logger.info(f"URL {url} matches NO_COOKIE_DOMAINS pattern: {no_cookie_domain}")
+                return True
+                
+        return False
+    except Exception as e:
+        logger.error(f"Error checking NO_COOKIE_DOMAINS for URL {url}: {e}")
+        return False
 
 
 app.run()
