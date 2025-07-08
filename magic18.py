@@ -1,4 +1,4 @@
-# Version 3
+# Version 2.4.3
 import hashlib
 import logging
 import math
@@ -1703,11 +1703,11 @@ def save_my_cookie(app, message):
 #@reply_with_keyboard
 def download_cookie(app, message):
     """
-    Показывает меню с кнопками для скачивания cookie файлов разных сервисов (без custom).
+    Shows a menu with buttons to download cookie files from different services.
     """
     user_id = str(message.chat.id)
     
-    # Кнопки только для сервисов
+    # Buttons for services
     buttons = [
         [InlineKeyboardButton("📺 YouTube", callback_data="download_cookie|youtube")],
         [InlineKeyboardButton("📷 Instagram", callback_data="download_cookie|instagram")],
@@ -1719,15 +1719,15 @@ def download_cookie(app, message):
     text = """
 🍪 **Download Cookie Files**
 
-Выберите сервис для скачивания cookie файла:
+Choose a service to download the cookie file:
 
-• **YouTube** - для youtube.com и youtu.be
-• **Instagram** - для instagram.com
-• **Twitter/X** - для twitter.com и x.com
-• **TikTok** - для tiktok.com
-• **Facebook** - для facebook.com и fb.com
+• **YouTube** - for youtube.com and youtu.be
+• **Instagram** - for instagram.com
+• **Twitter/X** - for twitter.com and x.com
+• **TikTok** - for tiktok.com
+• **Facebook** - for facebook.com and fb.com
 
-Cookie файлы будут сохранены в соответствующих папках.
+Cookie files will be saved as cookie.txt in your folder.
 """
     app.send_message(
         chat_id=user_id,
@@ -1755,20 +1755,46 @@ def download_cookie_callback(app, callback_query):
 
 def download_and_save_cookie(app, callback_query, url, service):
     user_id = callback_query.from_user.id
-    response = requests.get(url)
-    if response.status_code == 200:
-        user_dir = os.path.join("users", str(user_id), "cookies", service)
-        create_directory(user_dir)
-        cookie_filename = f"{service}_cookie.txt"
-        file_path = os.path.join(user_dir, cookie_filename)
-        with open(file_path, "wb") as cf:
-            cf.write(response.content)
-        send_to_user(callback_query.message, f"**✅ {service.capitalize()} cookie file downloaded and saved in your folder.**")
-        send_to_logger(callback_query.message, f"{service.capitalize()} cookie file downloaded for user {user_id}.")
-    else:
-        send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL is not available!")
-        send_to_logger(callback_query.message, f"Failed to download {service.capitalize()} cookie file for user {user_id}.")
+    
+    # Check if URL is not empty
+    if not url:
+        send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL is not configured!")
+        send_to_logger(callback_query.message, f"{service.capitalize()} Cookie URL not configured for user {user_id}.")
+        return
+    
+    try:
+        response = requests.get(url, timeout=30)
+        if response.status_code == 200:
+            # Check if the file extension is .txt
+            if not url.lower().endswith('.txt'):
+                send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL must point to a .txt file!")
+                send_to_logger(callback_query.message, f"{service.capitalize()} Cookie URL is not a .txt file for user {user_id}.")
+                return
+            
+            # Check the file size (maximum 100KB)
+            content_size = len(response.content)
+            if content_size > 100 * 1024:  # 100KB in bytes
+                send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie file is too large! Maximum size is 100KB, got {content_size // 1024}KB.")
+                send_to_logger(callback_query.message, f"{service.capitalize()} Cookie file too large ({content_size} bytes) for user {user_id}.")
+                return
+            
+            # Save the file in the user's folder as cookie.txt
+            user_dir = os.path.join("users", str(user_id))
+            create_directory(user_dir)
+            file_path = os.path.join(user_dir, "cookie.txt")
+            with open(file_path, "wb") as cf:
+                cf.write(response.content)
+            send_to_user(callback_query.message, f"**✅ {service.capitalize()} cookie file downloaded and saved as cookie.txt in your folder.**")
+            send_to_logger(callback_query.message, f"{service.capitalize()} cookie file downloaded for user {user_id}.")
+        else:
+            send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL is not available! (Status: {response.status_code})")
+            send_to_logger(callback_query.message, f"Failed to download {service.capitalize()} cookie file for user {user_id}. Status: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        send_to_user(callback_query.message, f"❌ Error downloading {service.capitalize()} cookie file: {str(e)}")
+        send_to_logger(callback_query.message, f"Error downloading {service.capitalize()} cookie file for user {user_id}: {str(e)}")
 
+
+# Caption Editor for Videos
 @app.on_message(filters.text & filters.private)
 #@reply_with_keyboard
 def caption_editor(app, message):
