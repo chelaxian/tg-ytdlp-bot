@@ -1731,6 +1731,9 @@ def fake_message(text, user_id, command=None):
     m.first_name = m.chat.first_name
     m.reply_to_message = None
     m.id = 0
+    m.from_user = SimpleNamespace()
+    m.from_user.id = user_id
+    m.from_user.first_name = m.chat.first_name
     if command is not None:
         m.command = command
     return m
