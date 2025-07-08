@@ -2853,6 +2853,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     send_to_all(message, error_message)
                     logger.info(f"Skipping playlist item at index {current_index} (no video found)")
                     return "SKIP"
+                elif "Story might have expired" in error_text:
+                    error_message = f"❌ Story at index {current_index + video_start_with} has expired or is not available."
+                    send_to_all(message, error_message)
+                    logger.info(f"Skipping expired story at index {current_index}")
+                    return "SKIP"
                 else:
                     send_to_user(message, f"❌ Unknown error: {e}")
                 return None
@@ -3465,6 +3470,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     break
 
             if skip_item:
+                # Send error message about skipped item
+                error_message = f"❌ No videos found in playlist at index {current_index + 1}. Story might have expired or is not available."
+                send_to_all(message, error_message)
                 logger.info(f"Skipping item at index {current_index} (no video content)")
                 continue
 
