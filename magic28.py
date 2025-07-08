@@ -3424,7 +3424,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Check if this is a "No videos found in playlist" error
                 if "No videos found in playlist" in str(e):
-                    error_message = f"❌ No videos found in playlist at index {current_index + 1}. Story might have expired or is not available."
+                    error_message = f"❌ No videos found in playlist at index {current_index + 1}."
                     send_to_all(message, error_message)
                     logger.info(f"Skipping playlist item at index {current_index} (no video found)")
                     return "SKIP"  # Special return value to indicate skip
