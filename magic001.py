@@ -1,4 +1,4 @@
-# Version 2.4.3
+# Version 2.5.0
 import hashlib
 import logging
 import math
@@ -37,6 +37,139 @@ from config import Config
 import io
 from PIL import Image
 import requests
+
+# Dictionary of languages with their emoji flags and native names
+LANGUAGES = {
+    "ar": {"flag": "🇸🇦", "name": "العربية"},
+    "bg": {"flag": "🇧🇬", "name": "Български"},
+    "bn": {"flag": "🇧🇩", "name": "বাংলা"},
+    "cs": {"flag": "🇨🇿", "name": "Čeština"},
+    "da": {"flag": "🇩🇰", "name": "Dansk"},
+    "de": {"flag": "🇩🇪", "name": "Deutsch"},
+    "el": {"flag": "🇬🇷", "name": "Ελληνικά"},
+    "en": {"flag": "🇬🇧", "name": "English"},
+    "es": {"flag": "🇪🇸", "name": "Español"},
+    "et": {"flag": "🇪🇪", "name": "Eesti"},
+    "fa": {"flag": "🇮🇷", "name": "فارسی"},
+    "fi": {"flag": "🇫🇮", "name": "Suomi"},
+    "fr": {"flag": "🇫🇷", "name": "Français"},
+    "he": {"flag": "🇮🇱", "name": "עברית"},
+    "hi": {"flag": "🇮🇳", "name": "हिन्दी"},
+    "hr": {"flag": "🇭🇷", "name": "Hrvatski"},
+    "hu": {"flag": "🇭🇺", "name": "Magyar"},
+    "id": {"flag": "🇮🇩", "name": "Bahasa Indonesia"},
+    "it": {"flag": "🇮🇹", "name": "Italiano"},
+    "ja": {"flag": "🇯🇵", "name": "日本語"},
+    "ko": {"flag": "🇰🇷", "name": "한국어"},
+    "lt": {"flag": "🇱🇹", "name": "Lietuvių"},
+    "lv": {"flag": "🇱🇻", "name": "Latviešu"},
+    "nl": {"flag": "🇳🇱", "name": "Nederlands"},
+    "no": {"flag": "🇳🇴", "name": "Norsk"},
+    "pl": {"flag": "🇵🇱", "name": "Polski"},
+    "pt": {"flag": "🇵🇹", "name": "Português"},
+    "ro": {"flag": "🇷🇴", "name": "Română"},
+    "ru": {"flag": "🇷🇺", "name": "Русский"},
+    "sk": {"flag": "🇸🇰", "name": "Slovenčina"},
+    "sl": {"flag": "🇸🇮", "name": "Slovenščina"},
+    "sr": {"flag": "🇷🇸", "name": "Српски"},
+    "sv": {"flag": "🇸🇪", "name": "Svenska"},
+    "th": {"flag": "🇹🇭", "name": "ไทย"},
+    "tr": {"flag": "🇹🇷", "name": "Türkçe"},
+    "uk": {"flag": "🇺🇦", "name": "Українська"},
+    "vi": {"flag": "🇻🇳", "name": "Tiếng Việt"},
+    "zh": {"flag": "🇨🇳", "name": "中文"}
+}
+
+ITEMS_PER_PAGE = 10  # Number of languages per page
+
+def get_user_subs_language(user_id):
+    """Get user's preferred subtitle language"""
+    user_dir = os.path.join("users", str(user_id))
+    subs_file = os.path.join(user_dir, "subs.txt")
+    if os.path.exists(subs_file):
+        with open(subs_file, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    return None
+
+def save_user_subs_language(user_id, lang_code):
+    """Save user's subtitle language preference"""
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    subs_file = os.path.join(user_dir, "subs.txt")
+    if lang_code in ["OFF", None]:
+        if os.path.exists(subs_file):
+            os.remove(subs_file)
+    else:
+        with open(subs_file, "w", encoding="utf-8") as f:
+            f.write(lang_code)
+
+def get_available_subs_languages(url, user_id=None):
+    """Get available subtitle languages for a video"""
+    try:
+        ytdl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': True,
+            'writesubtitles': True,
+            'listsubtitles': True
+        }
+        
+        if user_id:
+            user_dir = os.path.join("users", str(user_id))
+            cookie_file = os.path.join(user_dir, "cookie.txt")
+            if os.path.exists(cookie_file):
+                ytdl_opts['cookiefile'] = cookie_file
+
+        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            available_langs = []
+            if 'subtitles' in info:
+                available_langs.extend(list(info['subtitles'].keys()))
+            if 'automatic_captions' in info:
+                available_langs.extend(list(info['automatic_captions'].keys()))
+            return list(set(available_langs))  # Remove duplicates
+    except Exception as e:
+        logger.error(f"Error getting available subtitles: {e}")
+    return []
+
+def get_language_keyboard(page=0):
+    """Generate keyboard with language buttons"""
+    keyboard = []
+    
+    # Calculate total pages
+    total_languages = len(LANGUAGES)
+    total_pages = math.ceil(total_languages / ITEMS_PER_PAGE)
+    
+    # Get languages for current page
+    start_idx = page * ITEMS_PER_PAGE
+    end_idx = start_idx + ITEMS_PER_PAGE
+    current_page_langs = list(LANGUAGES.items())[start_idx:end_idx]
+    
+    # Add language buttons
+    for lang_code, lang_info in current_page_langs:
+        button_text = f"{lang_info['flag']} {lang_info['name']}"
+        keyboard.append([InlineKeyboardButton(
+            button_text,
+            callback_data=f"subs_lang|{lang_code}"
+        )])
+    
+    # Navigation row
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"subs_page|{page-1}"))
+    if page < total_pages - 1:
+        nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"subs_page|{page+1}"))
+    if nav_row:
+        keyboard.append(nav_row)
+    
+    # Special options row (always at bottom)
+    keyboard.append([
+        InlineKeyboardButton("🚫 OFF", callback_data="subs_lang|OFF"),
+        InlineKeyboardButton("🤖 AUTO", callback_data="subs_lang|AUTO")
+    ])
+    
+    return InlineKeyboardMarkup(keyboard)
+
 
 
 # --- Function for permanent reply-keyboard ---
@@ -776,6 +909,11 @@ def url_distractor(app, message):
         save_as_cookie_file(app, message)
         return
 
+    # /Subs Command
+    if text.startswith(Config.SUBTITLES_COMMAND):
+        subs_command(app, message)
+        return
+
     # /Download_cookie Command
     if text == Config.DOWNLOAD_COOKIE_COMMAND:
         download_cookie(app, message)
@@ -842,6 +980,10 @@ def url_distractor(app, message):
         elif clean_args == "mediainfo":
             remove_media(message, only=["mediainfo.txt"])
             send_to_all(message, "🗑 Mediainfo file removed.")
+            return
+        elif clean_args == "subs":
+            remove_media(message, only=["subs.txt"])
+            send_to_all(message, "🗑 Subtitle settings removed.")
             return
         elif clean_args == "all":
             # Delete all files and display the list of deleted ones
@@ -1349,6 +1491,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags")],
             [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
             [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
+            [InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs")],
             [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],
             [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
@@ -1385,6 +1528,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("📊 /mediainfo - Turn ON / OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
             [InlineKeyboardButton("✂️ /split - Change split video part size", callback_data="settings__cmd__split")],
             [InlineKeyboardButton("🎧 /audio - Download video as audio", callback_data="settings__cmd__audio")],
+            [InlineKeyboardButton("💬 /subs - Subtitles settings", callback_data="settings__cmd__subs")],
             [InlineKeyboardButton("📋 /playlist - How to download playlists", callback_data="settings__cmd__playlist")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
@@ -1444,6 +1588,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
             [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
             [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],
+            [InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs")],
             [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
         ])
@@ -1476,6 +1621,13 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         set_format(app, fake_message("/format", user_id, command=["format"]))
         callback_query.answer("Command executed.")
         return
+        
+    # /Subs Command
+    if data == "subs":
+        subs_command(app, fake_message("/subs", user_id))
+        callback_query.answer("Command executed.")
+        return
+
     if data == "mediainfo":
         mediainfo_command(app, fake_message("/mediainfo", user_id))
         callback_query.answer("Command executed.")
@@ -1539,6 +1691,10 @@ def clean_option_callback(app, callback_query):
     elif data == "mediainfo":
         url_distractor(app, fake_message("/clean mediainfo", user_id))
         callback_query.answer("mediainfo cleaned.")
+        return
+    elif data == "subs":
+        url_distractor(app, fake_message("/clean subs", user_id))
+        callback_query.answer("Subtitle settings cleaned.")
         return
     elif data == "all":
         url_distractor(app, fake_message("/clean all", user_id))
@@ -1702,20 +1858,98 @@ def save_my_cookie(app, message):
 
 #@reply_with_keyboard
 def download_cookie(app, message):
+    """
+    Shows a menu with buttons to download cookie files from different services.
+    """
     user_id = str(message.chat.id)
-    response = requests.get(Config.COOKIE_URL)
-    if response.status_code == 200:
-        user_dir = os.path.join("users", user_id)
-        create_directory(user_dir)
-        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
-        file_path = os.path.join(user_dir, cookie_filename)
-        with open(file_path, "wb") as cf:
-            cf.write(response.content)
-        send_to_user(message, "**✅ YouTube cookie file downloaded and saved in your folder.**")
-        send_to_logger(message, f"YouTube cookie file downloaded for user {user_id}.")
-    else:
-        send_to_user(message, "❌ Cookie URL is not available!")
-        send_to_logger(message, f"Failed to download cookie file for user {user_id}.")
+    
+    # Buttons for services
+    buttons = [
+        [InlineKeyboardButton("📺 YouTube", callback_data="download_cookie|youtube")],
+        [InlineKeyboardButton("📷 Instagram", callback_data="download_cookie|instagram")],
+        [InlineKeyboardButton("🐦 Twitter/X", callback_data="download_cookie|twitter")],
+        [InlineKeyboardButton("🎵 TikTok", callback_data="download_cookie|tiktok")],
+        [InlineKeyboardButton("📘 Facebook", callback_data="download_cookie|facebook")]
+    ]
+    keyboard = InlineKeyboardMarkup(buttons)
+    text = """
+🍪 **Download Cookie Files**
+
+Choose a service to download the cookie file:
+
+• **YouTube** - for youtube.com and youtu.be
+• **Instagram** - for instagram.com
+• **Twitter/X** - for twitter.com and x.com
+• **TikTok** - for tiktok.com
+• **Facebook** - for facebook.com and fb.com
+
+Cookie files will be saved as cookie.txt in your folder.
+"""
+    app.send_message(
+        chat_id=user_id,
+        text=text,
+        reply_markup=keyboard,
+        reply_to_message_id=message.id
+    )
+
+@app.on_callback_query(filters.regex(r"^download_cookie\|"))
+#@reply_with_keyboard
+def download_cookie_callback(app, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data.split("|")[1]
+
+    if data == "youtube":
+        download_and_save_cookie(app, callback_query, Config.YOUTUBE_COOKIE_URL, "youtube")
+    elif data == "instagram":
+        download_and_save_cookie(app, callback_query, Config.INSTAGRAM_COOKIE_URL, "instagram")
+    elif data == "twitter":
+        download_and_save_cookie(app, callback_query, Config.TWITTER_COOKIE_URL, "twitter")
+    elif data == "tiktok":
+        download_and_save_cookie(app, callback_query, Config.TIKTOK_COOKIE_URL, "tiktok")
+    elif data == "facebook":
+        download_and_save_cookie(app, callback_query, Config.FACEBOOK_COOKIE_URL, "facebook")
+
+def download_and_save_cookie(app, callback_query, url, service):
+    user_id = str(callback_query.from_user.id)
+    
+    # Check if URL is not empty
+    if not url:
+        send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL is not configured!")
+        send_to_logger(callback_query.message, f"{service.capitalize()} Cookie URL not configured for user {user_id}.")
+        return
+    
+    try:
+        response = requests.get(url, timeout=30)
+        if response.status_code == 200:
+            # Check if the file extension is .txt
+            if not url.lower().endswith('.txt'):
+                send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL must point to a .txt file!")
+                send_to_logger(callback_query.message, f"{service.capitalize()} Cookie URL is not a .txt file for user {user_id}.")
+                return
+            
+            # Check the file size (maximum 100KB)
+            content_size = len(response.content)
+            if content_size > 100 * 1024:  # 100KB in bytes
+                send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie file is too large! Maximum size is 100KB, got {content_size // 1024}KB.")
+                send_to_logger(callback_query.message, f"{service.capitalize()} Cookie file too large ({content_size} bytes) for user {user_id}.")
+                return
+            
+            # Save the file in the user's folder as cookie.txt
+            user_dir = os.path.join("users", user_id)
+            create_directory(user_dir)
+            cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+            file_path = os.path.join(user_dir, cookie_filename)
+            with open(file_path, "wb") as cf:
+                cf.write(response.content)
+                
+            send_to_user(callback_query.message, f"**✅ {service.capitalize()} cookie file downloaded and saved as cookie.txt in your folder.**")
+            send_to_logger(callback_query.message, f"{service.capitalize()} cookie file downloaded for user {user_id}.")
+        else:
+            send_to_user(callback_query.message, f"❌ {service.capitalize()} Cookie URL is not available! (Status: {response.status_code})")
+            send_to_logger(callback_query.message, f"Failed to download {service.capitalize()} cookie file for user {user_id}. Status: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        send_to_user(callback_query.message, f"❌ Error downloading {service.capitalize()} cookie file: {str(e)}")
+        send_to_logger(callback_query.message, f"Error downloading {service.capitalize()} cookie file for user {user_id}: {str(e)}")
 
 
 # Caption Editor for Videos
@@ -2630,7 +2864,25 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
 
-        cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
+        # Проверяем наличие cookie.txt в папке пользователя
+        user_cookie_path = os.path.join(user_folder, "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            cookie_file = user_cookie_path
+        else:
+            # Если нет в папке пользователя, копируем из глобальной папки
+            global_cookie_path = Config.COOKIE_FILE_PATH
+            if os.path.exists(global_cookie_path):
+                try:
+                    create_directory(user_folder)
+                    import shutil
+                    shutil.copy2(global_cookie_path, user_cookie_path)
+                    logger.info(f"Copied global cookie file to user {user_id} folder for audio download")
+                    cookie_file = user_cookie_path
+                except Exception as e:
+                    logger.error(f"Failed to copy global cookie file for user {user_id}: {e}")
+                    cookie_file = None
+            else:
+                cookie_file = None
         last_update = 0
         current_total_process = ""
         successful_uploads = 0
@@ -2737,12 +2989,28 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
                 error_text = str(e)
-                send_to_user(message, f"❌ Error downloading: {error_text}\n\nPerhaps cookie authorization is required. More information: https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp")
                 logger.error(f"DownloadError: {error_text}")
+                # Send full error message with instructions immediately
+                send_to_all(
+                    message,
+                    f"❌ Error downloading: {error_text}\n────────────────\n"
+                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again."
+                )
                 return None
             except Exception as e:
+                error_text = str(e)
                 logger.error(f"Audio download attempt failed: {e}")
-                send_to_user(message, f"❌ Unknown error: {e}")
+                
+                # Check if this is a "No videos found in playlist" error
+                if "No videos found in playlist" in error_text or "Story might have expired" in error_text:
+                    error_message = f"❌ No content found at index {current_index + video_start_with}"
+                    send_to_all(message, error_message)
+                    logger.info(f"Skipping item at index {current_index} (no content found)")
+                    return "SKIP"
+                else:
+                    send_to_user(message, f"❌ Unknown error: {e}")
                 return None
 
         if is_playlist and quality_key:
@@ -2773,12 +3041,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     error_key = f"{user_id}_{playlist_name}"
                     if error_key not in playlist_errors:
                         playlist_errors[error_key] = True
-                        send_to_all(
-                            message,
-                            f"❌ Failed to download audio: Check if your site is supported\n"
-                            "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
-                            "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie and after that send your audio link again."
-                        )
+
                 break
 
             successful_uploads += 1
@@ -3215,12 +3478,45 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'live_from_start': True
             }
             
+            # Add subtitle options if it's a YouTube video
+            if is_youtube_url(url):
+                common_opts = modify_yt_dlp_opts_for_subs(common_opts, user_id)
+                # Check if subtitles are available in the selected language
+                subs_lang = get_user_subs_language(user_id)
+                if subs_lang and subs_lang not in ["OFF", "AUTO"]:
+                    available_langs = get_available_subs_languages(url, user_id)
+                    if subs_lang not in available_langs:
+                        app.send_message(
+                            user_id,
+                            f"⚠️ Subtitles in {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} are not available for this video. Downloading without subtitles.",
+                            reply_to_message_id=message.id
+                        )
+            
             # Проверяем, нужно ли использовать --no-cookies для данного домена
             if is_no_cookie_domain(url):
                 common_opts['cookiefile'] = None  # Эквивалент --no-cookies
                 logger.info(f"Using --no-cookies for domain: {url}")
             else:
-                common_opts['cookiefile'] = os.path.join("users", str(user_id), os.path.basename(Config.COOKIE_FILE_PATH))
+                # Проверяем наличие cookie.txt в папке пользователя
+                user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+                if os.path.exists(user_cookie_path):
+                    common_opts['cookiefile'] = user_cookie_path
+                else:
+                    # Если нет в папке пользователя, копируем из глобальной папки
+                    global_cookie_path = Config.COOKIE_FILE_PATH
+                    if os.path.exists(global_cookie_path):
+                        try:
+                            user_dir = os.path.join("users", str(user_id))
+                            create_directory(user_dir)
+                            import shutil
+                            shutil.copy2(global_cookie_path, user_cookie_path)
+                            logger.info(f"Copied global cookie file to user {user_id} folder")
+                            common_opts['cookiefile'] = user_cookie_path
+                        except Exception as e:
+                            logger.error(f"Failed to copy global cookie file for user {user_id}: {e}")
+                            common_opts['cookiefile'] = None
+                    else:
+                        common_opts['cookiefile'] = None
             
             # If this is not a playlist with a range, add --no-playlist to the URL with the list parameter
             if not is_playlist and 'list=' in url:
@@ -3282,15 +3578,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             except yt_dlp.utils.DownloadError as e:
                 nonlocal error_message
                 error_message = str(e)
-                send_to_user(message, f"❌ Error downloading: {error_message}\n\nPerhaps cookie authorization is required. More information: https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp")
                 logger.error(f"DownloadError: {error_message}")
+                # Send full error message with instructions immediately
+                send_to_all(
+                    message,
+                    f"❌ Error downloading: {error_message}\n────────────────\n"
+                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
+                )
                 return None
             except Exception as e:
                 error_message = str(e)
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}")
                 
-                # Check if this is a "No videos found in playlist" error - skip it
+                # Check if this is a "No videos found in playlist" error
                 if "No videos found in playlist" in str(e):
+                    error_message = f"❌ No videos found in playlist at index {current_index + 1}."
+                    send_to_all(message, error_message)
                     logger.info(f"Skipping playlist item at index {current_index} (no video found)")
                     return "SKIP"  # Special return value to indicate skip
                 
@@ -3338,13 +3643,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     error_key = f"{user_id}_{playlist_name}"
                     if error_key not in playlist_errors:
                         playlist_errors[error_key] = True
-                        send_to_all(
-                            message,
-                            f"❌ Failed to download video: {error_message}\n────────────────\n"
-                            "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
-                            "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                            "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
-                        )
+
                 break
 
             successful_uploads += 1
@@ -4597,12 +4896,31 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     }
     if user_id is not None:
         user_dir = os.path.join("users", str(user_id))
-        cookie_file = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
+        # Проверяем наличие cookie.txt в папке пользователя
+        user_cookie_path = os.path.join(user_dir, "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            cookie_file = user_cookie_path
+        else:
+            # Если нет в папке пользователя, копируем из глобальной папки
+            global_cookie_path = Config.COOKIE_FILE_PATH
+            if os.path.exists(global_cookie_path):
+                try:
+                    create_directory(user_dir)
+                    import shutil
+                    shutil.copy2(global_cookie_path, user_cookie_path)
+                    logger.info(f"Copied global cookie file to user {user_id} folder for format detection")
+                    cookie_file = user_cookie_path
+                except Exception as e:
+                    logger.error(f"Failed to copy global cookie file for user {user_id}: {e}")
+                    cookie_file = None
+            else:
+                cookie_file = None
+        
         # Проверяем, нужно ли использовать --no-cookies для данного домена
         if is_no_cookie_domain(url):
             ytdl_opts['cookiefile'] = None  # Эквивалент --no-cookies
             logger.info(f"Using --no-cookies for domain in get_video_formats: {url}")
-        elif os.path.exists(cookie_file):
+        elif cookie_file:
             ytdl_opts['cookiefile'] = cookie_file
     try:
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
@@ -4773,6 +5091,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"\n{autodiscovery_note}\n"
         # --- Form rows of 3 buttons ---
         keyboard_rows = []
+        
+        # Add Quick Embed button for supported services at the top
+        if is_instagram_url(url) or is_twitter_url(url) or is_reddit_url(url):
+            keyboard_rows.append([InlineKeyboardButton("🚀 Quick Embed", callback_data="askq|quick_embed")])
         for i in range(0, len(buttons), 3):
             keyboard_rows.append(buttons[i:i+3])
         # --- button mp3 ---
@@ -4846,6 +5168,33 @@ def askq_callback(app, callback_query):
     if data == "cancel":
         callback_query.message.delete()
         callback_query.answer("Menu closed.")
+        return
+        
+    if data == "quick_embed":
+        # Get original URL from the reply message
+        original_message = callback_query.message.reply_to_message
+        if not original_message:
+            callback_query.answer("❌ Error: Original message not found.", show_alert=True)
+            return
+            
+        url = original_message.text
+        if not url:
+            callback_query.answer("❌ Error: URL not found.", show_alert=True)
+            return
+            
+        # Transform URL
+        embed_url = transform_to_embed_url(url)
+        if embed_url == url:
+            callback_query.answer("❌ This URL cannot be embedded.", show_alert=True)
+            return
+            
+        # Send transformed URL
+        app.send_message(
+            callback_query.message.chat.id,
+            embed_url,
+            reply_to_message_id=original_message.id
+        )
+        callback_query.message.delete()
         return
     
     # Handle manual quality selection menu
@@ -5942,6 +6291,126 @@ def is_no_cookie_domain(url: str) -> bool:
     except Exception as e:
         logger.error(f"Error checking NO_COOKIE_DOMAINS for URL {url}: {e}")
         return False
+
+
+def is_instagram_url(url: str) -> bool:
+    """Check if URL is from Instagram"""
+    return any(domain in url.lower() for domain in ['instagram.com', 'www.instagram.com'])
+
+
+def is_twitter_url(url: str) -> bool:
+    """Check if URL is from Twitter/X"""
+    return any(domain in url.lower() for domain in ['twitter.com', 'www.twitter.com', 'x.com', 'www.x.com'])
+
+
+def is_reddit_url(url: str) -> bool:
+    """Check if URL is from Reddit"""
+    return any(domain in url.lower() for domain in ['reddit.com', 'www.reddit.com'])
+
+
+def transform_to_embed_url(url: str) -> str:
+    """Transform URL to embeddable format"""
+    if is_instagram_url(url):
+        # Replace instagram.com with ddinstagram.com
+        return url.replace('instagram.com', 'instagramez.com').replace('www.instagramez.com', 'instagramez.com')
+    elif is_twitter_url(url):
+        # Replace twitter.com/x.com with fxtwitter.com
+        return url.replace('twitter.com', 'fxtwitter.com').replace('x.com', 'fxtwitter.com').replace('www.fxtwitter.com', 'fxtwitter.com')
+    elif is_reddit_url(url):
+        # Replace reddit.com with rxddit.com
+        return url.replace('reddit.com', 'rxddit.com').replace('www.rxddit.com', 'rxddit.com')
+    return url
+
+
+@app.on_message(filters.command("subs") & filters.private)
+@reply_with_keyboard
+def subs_command(app, message):
+    """Handle /subs command - show language selection menu"""
+    user_id = message.from_user.id
+    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+        return
+    
+    current_lang = get_user_subs_language(user_id)
+    
+    if current_lang:
+        status = f"Current: {LANGUAGES[current_lang]['flag']} {LANGUAGES[current_lang]['name']}" if current_lang in LANGUAGES else \
+                "Current: 🤖 AUTO" if current_lang == "AUTO" else \
+                "Current: 🚫 OFF"
+    else:
+        status = "Current: 🚫 OFF"
+    
+    app.send_message(
+        message.chat.id,
+        f"Select subtitle language for YouTube videos\n\n{status}",
+        reply_markup=get_language_keyboard()
+    )
+    send_to_logger(message, "User opened /subs menu.")
+
+
+@app.on_callback_query(filters.regex(r"^subs_page\|"))
+def subs_page_callback(app, callback_query):
+    """Handle page navigation in subtitle language selection menu"""
+    page = int(callback_query.data.split("|")[1])
+    user_id = callback_query.from_user.id
+    current_lang = get_user_subs_language(user_id)
+    
+    if current_lang:
+        status = f"Current: {LANGUAGES[current_lang]['flag']} {LANGUAGES[current_lang]['name']}" if current_lang in LANGUAGES else \
+                "Current: 🤖 AUTO" if current_lang == "AUTO" else \
+                "Current: 🚫 OFF"
+    else:
+        status = "Current: 🚫 OFF"
+    
+    callback_query.edit_message_text(
+        f"Select subtitle language for YouTube videos\n\n{status}",
+        reply_markup=get_language_keyboard(page)
+    )
+    callback_query.answer()
+
+
+@app.on_callback_query(filters.regex(r"^subs_lang\|"))
+def subs_lang_callback(app, callback_query):
+    """Handle language selection in subtitle language menu"""
+    lang_code = callback_query.data.split("|")[1]
+    user_id = callback_query.from_user.id
+    
+    save_user_subs_language(user_id, lang_code)
+    
+    if lang_code == "OFF":
+        status = "🚫 Subtitles disabled"
+    elif lang_code == "AUTO":
+        status = "🤖 Auto-generated subtitles enabled"
+    else:
+        status = f"✅ Subtitle language set to: {LANGUAGES[lang_code]['flag']} {LANGUAGES[lang_code]['name']}"
+    
+    callback_query.edit_message_text(status)
+    callback_query.answer("Language settings updated.")
+    send_to_logger(callback_query.message, f"User set subtitle language to: {lang_code}")
+
+
+def modify_yt_dlp_opts_for_subs(opts, user_id):
+    """Modify yt-dlp options to handle subtitles based on user preferences"""
+    subs_lang = get_user_subs_language(user_id)
+    
+    if not subs_lang or subs_lang == "OFF":
+        return opts
+    
+    opts['embedsubtitles'] = True
+    
+    if subs_lang == "AUTO":
+        opts.update({
+            'writesubtitles': False,  # явно отключаем авторские
+            'writeautomaticsub': True,
+            'subtitleslangs': ['en'],  # English или любой другой предпочитаемый язык
+        })
+    else:
+        opts.update({
+            'writesubtitles': True,
+            'writeautomaticsub': False,  # явное отключение автосубтитров
+            'subtitleslangs': [subs_lang],
+        })
+    
+    return opts
 
 
 app.run()
