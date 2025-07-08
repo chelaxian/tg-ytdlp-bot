@@ -3397,7 +3397,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             except yt_dlp.utils.DownloadError as e:
                 nonlocal error_message
                 error_message = str(e)
-                send_to_user(message, f"❌ Error downloading: {error_message}\n\nPerhaps cookie authorization is required. More information: https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp")
                 logger.error(f"DownloadError: {error_message}")
                 return None
             except Exception as e:
