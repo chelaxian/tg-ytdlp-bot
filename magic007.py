@@ -6405,36 +6405,38 @@ def modify_yt_dlp_opts_for_subs(opts, user_id):
     # Configure subtitle options
     if subs_lang == "AUTO":
         opts.update({
-            'writesubtitles': False,  # явно отключаем авторские
+            'writesubtitles': False,
             'writeautomaticsub': True,
-            'subtitleslangs': ['en'],  # English для автосубтитров
-            'embedsubtitles': False,  # Не встраиваем субтитры как отдельный поток
-            'convert_subs': 'srt',  # Конвертируем в SRT для лучшей совместимости с FFmpeg
+            'subtitleslangs': ['en'],
+            'embedsubtitles': False,
+            'postprocessor_args': [
+                ('FFmpegEmbedSubtitle', '-vf'),
+                ('FFmpegEmbedSubtitle', 'subtitles=%(subtitle_path)s:force_style=\'Fontname=Arial,FontSize=24,PrimaryColour=&HFFFFFF,BorderStyle=3,Outline=1,OutlineColour=&H000000,MarginV=20\'')
+            ]
         })
     else:
         opts.update({
             'writesubtitles': True,
-            'writeautomaticsub': False,  # явное отключение автосубтитров
+            'writeautomaticsub': False,
             'subtitleslangs': [subs_lang],
-            'embedsubtitles': False,  # Не встраиваем субтитры как отдельный поток
-            'convert_subs': 'srt',  # Конвертируем в SRT для лучшей совместимости с FFmpeg
+            'embedsubtitles': False,
+            'postprocessor_args': [
+                ('FFmpegEmbedSubtitle', '-vf'),
+                ('FFmpegEmbedSubtitle', 'subtitles=%(subtitle_path)s:force_style=\'Fontname=Arial,FontSize=24,PrimaryColour=&HFFFFFF,BorderStyle=3,Outline=1,OutlineColour=&H000000,MarginV=20\'')
+            ]
         })
     
-    # Сначала конвертируем субтитры в SRT формат
+    # Конвертируем субтитры в SRT формат
     opts['postprocessors'].append({
         'key': 'FFmpegSubtitlesConvertor',
         'format': 'srt',
         'when': 'before_dl'
     })
     
-    # Затем добавляем субтитры через FFmpeg фильтр
+    # Встраиваем субтитры в видео
     opts['postprocessors'].append({
-        'key': 'FFmpegFixup',
-        'when': 'before_dl',
-        'args': [
-            '-vf',
-            'subtitles=%(subtitle_path)s:force_style=\'Fontname=Arial,FontSize=24,PrimaryColour=&HFFFFFF,BorderStyle=3,Outline=1,OutlineColour=&H000000,MarginV=20\''
-        ]
+        'key': 'FFmpegEmbedSubtitle',
+        'already_have_subtitle': True
     })
     
     # В конце ремуксируем в MP4
