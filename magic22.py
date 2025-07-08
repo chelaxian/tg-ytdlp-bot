@@ -1754,7 +1754,7 @@ def download_cookie_callback(app, callback_query):
         download_and_save_cookie(app, callback_query, Config.FACEBOOK_COOKIE_URL, "facebook")
 
 def download_and_save_cookie(app, callback_query, url, service):
-    user_id = callback_query.from_user.id
+    user_id = str(callback_query.from_user.id)
     
     # Check if URL is not empty
     if not url:
