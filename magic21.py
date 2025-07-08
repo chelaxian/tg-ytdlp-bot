@@ -1779,11 +1779,13 @@ def download_and_save_cookie(app, callback_query, url, service):
                 return
             
             # Save the file in the user's folder as cookie.txt
-            user_dir = os.path.join("users", str(user_id))
+            user_dir = os.path.join("users", user_id)
             create_directory(user_dir)
-            file_path = os.path.join(user_dir, "cookie.txt")
+            cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+            file_path = os.path.join(user_dir, cookie_filename)
             with open(file_path, "wb") as cf:
                 cf.write(response.content)
+                
             send_to_user(callback_query.message, f"**✅ {service.capitalize()} cookie file downloaded and saved as cookie.txt in your folder.**")
             send_to_logger(callback_query.message, f"{service.capitalize()} cookie file downloaded for user {user_id}.")
         else:
