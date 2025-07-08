@@ -2706,7 +2706,25 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
 
-        cookie_file = os.path.join(user_folder, os.path.basename(Config.COOKIE_FILE_PATH))
+        # Проверяем наличие cookie.txt в папке пользователя
+        user_cookie_path = os.path.join(user_folder, "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            cookie_file = user_cookie_path
+        else:
+            # Если нет в папке пользователя, копируем из глобальной папки
+            global_cookie_path = Config.COOKIE_FILE_PATH
+            if os.path.exists(global_cookie_path):
+                try:
+                    create_directory(user_folder)
+                    import shutil
+                    shutil.copy2(global_cookie_path, user_cookie_path)
+                    logger.info(f"Copied global cookie file to user {user_id} folder for audio download")
+                    cookie_file = user_cookie_path
+                except Exception as e:
+                    logger.error(f"Failed to copy global cookie file for user {user_id}: {e}")
+                    cookie_file = None
+            else:
+                cookie_file = None
         last_update = 0
         current_total_process = ""
         successful_uploads = 0
@@ -3296,7 +3314,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 common_opts['cookiefile'] = None  # Эквивалент --no-cookies
                 logger.info(f"Using --no-cookies for domain: {url}")
             else:
-                common_opts['cookiefile'] = os.path.join("users", str(user_id), os.path.basename(Config.COOKIE_FILE_PATH))
+                # Проверяем наличие cookie.txt в папке пользователя
+                user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+                if os.path.exists(user_cookie_path):
+                    common_opts['cookiefile'] = user_cookie_path
+                else:
+                    # Если нет в папке пользователя, копируем из глобальной папки
+                    global_cookie_path = Config.COOKIE_FILE_PATH
+                    if os.path.exists(global_cookie_path):
+                        try:
+                            user_dir = os.path.join("users", str(user_id))
+                            create_directory(user_dir)
+                            import shutil
+                            shutil.copy2(global_cookie_path, user_cookie_path)
+                            logger.info(f"Copied global cookie file to user {user_id} folder")
+                            common_opts['cookiefile'] = user_cookie_path
+                        except Exception as e:
+                            logger.error(f"Failed to copy global cookie file for user {user_id}: {e}")
+                            common_opts['cookiefile'] = None
+                    else:
+                        common_opts['cookiefile'] = None
             
             # If this is not a playlist with a range, add --no-playlist to the URL with the list parameter
             if not is_playlist and 'list=' in url:
@@ -4673,12 +4710,31 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     }
     if user_id is not None:
         user_dir = os.path.join("users", str(user_id))
-        cookie_file = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
+        # Проверяем наличие cookie.txt в папке пользователя
+        user_cookie_path = os.path.join(user_dir, "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            cookie_file = user_cookie_path
+        else:
+            # Если нет в папке пользователя, копируем из глобальной папки
+            global_cookie_path = Config.COOKIE_FILE_PATH
+            if os.path.exists(global_cookie_path):
+                try:
+                    create_directory(user_dir)
+                    import shutil
+                    shutil.copy2(global_cookie_path, user_cookie_path)
+                    logger.info(f"Copied global cookie file to user {user_id} folder for format detection")
+                    cookie_file = user_cookie_path
+                except Exception as e:
+                    logger.error(f"Failed to copy global cookie file for user {user_id}: {e}")
+                    cookie_file = None
+            else:
+                cookie_file = None
+        
         # Проверяем, нужно ли использовать --no-cookies для данного домена
         if is_no_cookie_domain(url):
             ytdl_opts['cookiefile'] = None  # Эквивалент --no-cookies
             logger.info(f"Using --no-cookies for domain in get_video_formats: {url}")
-        elif os.path.exists(cookie_file):
+        elif cookie_file:
             ytdl_opts['cookiefile'] = cookie_file
     try:
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
