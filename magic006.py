@@ -6420,28 +6420,27 @@ def modify_yt_dlp_opts_for_subs(opts, user_id):
             'convert_subs': 'srt',  # Конвертируем в SRT для лучшей совместимости с FFmpeg
         })
     
-    # Add FFmpeg video filter to burn subtitles into the video stream
+    # Сначала конвертируем субтитры в SRT формат
     opts['postprocessors'].append({
-        'key': 'FFmpegVideoRemuxer',  # Сначала ремукс в mp4
-        'preferedformat': 'mp4'
+        'key': 'FFmpegSubtitlesConvertor',
+        'format': 'srt',
+        'when': 'before_dl'
     })
     
     # Затем добавляем субтитры через FFmpeg фильтр
     opts['postprocessors'].append({
-        'key': 'FFmpegVideoFixup',
-        'when': 'before_dl',  # Применяем до загрузки
+        'key': 'FFmpegFixup',
+        'when': 'before_dl',
         'args': [
             '-vf',
-            # force_style задает стиль субтитров:
-            # - Fontname=Arial: шрифт
-            # - FontSize=24: размер
-            # - PrimaryColour=&HFFFFFF: цвет текста (белый)
-            # - BorderStyle=3: стиль обводки (тень)
-            # - Outline=1: толщина обводки
-            # - OutlineColour=&H000000: цвет обводки (черный)
-            # - MarginV=20: отступ снизу
-            "subtitles='%(subtitle_path)s':force_style='Fontname=Arial,FontSize=24,PrimaryColour=&HFFFFFF,BorderStyle=3,Outline=1,OutlineColour=&H000000,MarginV=20'"
+            'subtitles=%(subtitle_path)s:force_style=\'Fontname=Arial,FontSize=24,PrimaryColour=&HFFFFFF,BorderStyle=3,Outline=1,OutlineColour=&H000000,MarginV=20\''
         ]
+    })
+    
+    # В конце ремуксируем в MP4
+    opts['postprocessors'].append({
+        'key': 'FFmpegVideoRemuxer',
+        'preferedformat': 'mp4'
     })
     
     return opts
