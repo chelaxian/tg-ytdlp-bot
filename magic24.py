@@ -2833,8 +2833,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
                 error_text = str(e)
-                send_to_user(message, f"❌ Error downloading: {error_text}\n\nPerhaps cookie authorization is required. More information: https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp")
                 logger.error(f"DownloadError: {error_text}")
+                # Send full error message with instructions immediately
+                send_to_all(
+                    message,
+                    f"❌ Error downloading: {error_text}\n────────────────\n"
+                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again."
+                )
                 return None
             except Exception as e:
                 logger.error(f"Audio download attempt failed: {e}")
@@ -2869,12 +2876,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     error_key = f"{user_id}_{playlist_name}"
                     if error_key not in playlist_errors:
                         playlist_errors[error_key] = True
-                        send_to_all(
-                            message,
-                            f"❌ Failed to download audio: Check if your site is supported\n"
-                            "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
-                            "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie and after that send your audio link again."
-                        )
+
                 break
 
             successful_uploads += 1
@@ -3398,6 +3400,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 nonlocal error_message
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
+                # Send full error message with instructions immediately
+                send_to_all(
+                    message,
+                    f"❌ Error downloading: {error_message}\n────────────────\n"
+                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
+                )
                 return None
             except Exception as e:
                 error_message = str(e)
@@ -3452,13 +3462,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     error_key = f"{user_id}_{playlist_name}"
                     if error_key not in playlist_errors:
                         playlist_errors[error_key] = True
-                        send_to_all(
-                            message,
-                            f"❌ Failed to download video: {error_message}\n────────────────\n"
-                            "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
-                            "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                            "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
-                        )
+
                 break
 
             successful_uploads += 1
