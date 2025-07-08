@@ -6398,19 +6398,30 @@ def modify_yt_dlp_opts_for_subs(opts, user_id):
     if not subs_lang or subs_lang == "OFF":
         return opts
     
-    opts['embedsubtitles'] = True
+    # Make sure postprocessors list exists
+    if 'postprocessors' not in opts:
+        opts['postprocessors'] = []
     
+    # Add FFmpeg subtitle embedder
+    opts['postprocessors'].append({
+        'key': 'FFmpegEmbedSubtitle',
+        'already_have_subtitle': False
+    })
+    
+    # Configure subtitle options
     if subs_lang == "AUTO":
         opts.update({
             'writesubtitles': False,  # явно отключаем авторские
             'writeautomaticsub': True,
-            'subtitleslangs': ['en'],  # English или любой другой предпочитаемый язык
+            'subtitleslangs': ['en'],  # English для автосубтитров
+            'embedsubtitles': True
         })
     else:
         opts.update({
             'writesubtitles': True,
             'writeautomaticsub': False,  # явное отключение автосубтитров
             'subtitleslangs': [subs_lang],
+            'embedsubtitles': True
         })
     
     return opts
