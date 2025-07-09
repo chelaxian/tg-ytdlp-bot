@@ -6406,20 +6406,15 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
             'writeautomaticsub': True,
             'writesubtitles': False,
             'subtitleslangs': ['en'],  # Автосубтитры обычно доступны только на английском
+            'subtitlesformat': 'srt',  # Формат субтитров
         })
     else:
         ydl_opts.update({
             'writeautomaticsub': False,
             'writesubtitles': True,
             'subtitleslangs': [subs_lang],  # Используем язык, выбранный пользователем
+            'subtitlesformat': 'srt',  # Формат субтитров
         })
-    
-    # Общие настройки для субтитров
-    ydl_opts.update({
-        'writesubtitles': True,      # Скачивать субтитры
-        'subtitlesformat': 'srt',    # Формат субтитров
-        'merge_output_format': 'mkv' # Сначала сохраняем в MKV для совместимости
-    })
     
     # Постпроцессоры
     if 'postprocessors' not in ydl_opts:
@@ -6463,7 +6458,9 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
                 
             subs_path = subs_files[0]  # Берем первый найденный файл субтитров
             # Создаем путь для выходного файла
-            output_path = video_path.replace('.mp4', '_with_subs.mp4')  # Используем временное имя
+            video_dir = os.path.dirname(video_path)
+            video_name = os.path.splitext(os.path.basename(video_path))[0]
+            output_path = os.path.join(video_dir, f"{video_name}_with_subs.mp4")
             
             logger.info(f"Embedding subtitles from {subs_path} into {video_path}")
             logger.info(f"Output will be saved to {output_path}")
@@ -6475,6 +6472,8 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
                 '-c:v', 'copy',
                 '-c:a', 'copy',
                 '-c:s', 'mov_text',
+                '-map', '0',
+                '-map', '1',
                 output_path
             ]
             logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
