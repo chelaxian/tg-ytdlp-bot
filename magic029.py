@@ -5526,9 +5526,12 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             # Найти формат, соответствующий выбранному качеству
             selected_fmt = None
             for f in formats:
-                if get_quality_by_min_side(f.get('width',0), f.get('height',0)) == data:
-                    selected_fmt = f
-                    break
+                width = f.get('width')
+                height = f.get('height')
+                if width is not None and height is not None:
+                    if get_quality_by_min_side(width, height) == data:
+                        selected_fmt = f
+                        break
 
             if selected_fmt:
                 h = selected_fmt.get('height', 0)
