@@ -6424,7 +6424,7 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
 
 def embed_subs_to_video(video_path, user_id):
     """
-    Встраивает субтитры в видео-файл, если есть подходящий .srt-файл и subs.txt
+    Прожигает (hardcode) субтитры в видео-файл, если есть подходящий .srt-файл и subs.txt
     """
     try:
         if not video_path or not os.path.exists(video_path):
@@ -6452,17 +6452,13 @@ def embed_subs_to_video(video_path, user_id):
             logger.error(f"Subtitle file not found: {subs_path}")
             return False
         output_path = os.path.join(video_dir, f"{video_name}_with_subs_temp.mp4")
+        # Прожиг субтитров
         cmd = [
             'ffmpeg',
             '-y',
             '-i', video_path,
-            '-i', subs_path,
-            '-c:v', 'copy',
+            '-vf', f"subtitles={subs_path}",
             '-c:a', 'copy',
-            '-c:s', 'mov_text',
-            '-map', '0:v',
-            '-map', '0:a',
-            '-map', '1:s',
             output_path
         ]
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
@@ -6481,7 +6477,7 @@ def embed_subs_to_video(video_path, user_id):
         os.rename(output_path, video_path)
         if os.path.exists(subs_path):
             os.remove(subs_path)
-        logger.info("Successfully embedded subtitles")
+        logger.info("Successfully burned-in subtitles")
         return True
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
