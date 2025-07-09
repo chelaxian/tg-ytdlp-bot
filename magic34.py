@@ -5025,7 +5025,7 @@ def askq_callback(app, callback_query):
             reply_to_message_id=original_message.id,
             parse_mode=enums.ParseMode.MARKDOWN
         )
-        send_to_logger(original_message, f"Quick Embed: {embed_url}")
+        send_to_logger(original_message, f"Quick Embed: [Embedded media]({embed_url})")
         callback_query.message.delete()
         return
     
