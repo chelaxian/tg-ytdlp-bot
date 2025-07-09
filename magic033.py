@@ -103,7 +103,28 @@ def save_user_subs_language(user_id, lang_code):
         with open(subs_file, "w", encoding="utf-8") as f:
             f.write(lang_code)
 
-def get_available_subs_languages(url, user_id=None):
+def get_user_subs_auto_mode(user_id):
+    """Get user's AUTO mode setting for subtitles"""
+    user_dir = os.path.join("users", str(user_id))
+    auto_file = os.path.join(user_dir, "subs_auto.txt")
+    if os.path.exists(auto_file):
+        with open(auto_file, "r", encoding="utf-8") as f:
+            return f.read().strip() == "ON"
+    return False
+
+def save_user_subs_auto_mode(user_id, auto_enabled):
+    """Save user's AUTO mode setting for subtitles"""
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    auto_file = os.path.join(user_dir, "subs_auto.txt")
+    if auto_enabled:
+        with open(auto_file, "w", encoding="utf-8") as f:
+            f.write("ON")
+    else:
+        if os.path.exists(auto_file):
+            os.remove(auto_file)
+
+def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Get available subtitle languages for a video"""
     try:
         ytdl_opts = {
@@ -123,17 +144,23 @@ def get_available_subs_languages(url, user_id=None):
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             available_langs = []
-            if 'subtitles' in info:
-                available_langs.extend(list(info['subtitles'].keys()))
-            if 'automatic_captions' in info:
-                available_langs.extend(list(info['automatic_captions'].keys()))
+            
+            if auto_only:
+                # Только автосубтитры
+                if 'automatic_captions' in info:
+                    available_langs.extend(list(info['automatic_captions'].keys()))
+            else:
+                # Только обычные субтитры
+                if 'subtitles' in info:
+                    available_langs.extend(list(info['subtitles'].keys()))
+            
             return list(set(available_langs))  # Remove duplicates
     except Exception as e:
         logger.error(f"Error getting available subtitles: {e}")
     return []
 
-def get_language_keyboard(page=0):
-    """Generate keyboard with language buttons"""
+def get_language_keyboard(page=0, user_id=None):
+    """Generate keyboard with language buttons in 2 columns"""
     keyboard = []
     
     # Calculate total pages
@@ -145,13 +172,24 @@ def get_language_keyboard(page=0):
     end_idx = start_idx + ITEMS_PER_PAGE
     current_page_langs = list(LANGUAGES.items())[start_idx:end_idx]
     
-    # Add language buttons
-    for lang_code, lang_info in current_page_langs:
-        button_text = f"{lang_info['flag']} {lang_info['name']}"
-        keyboard.append([InlineKeyboardButton(
-            button_text,
-            callback_data=f"subs_lang|{lang_code}"
-        )])
+    # Get current language and auto mode
+    current_lang = get_user_subs_language(user_id) if user_id else None
+    auto_mode = get_user_subs_auto_mode(user_id) if user_id else False
+    
+    # Add language buttons in 2 columns
+    for i in range(0, len(current_page_langs), 2):
+        row = []
+        for j in range(2):
+            if i + j < len(current_page_langs):
+                lang_code, lang_info = current_page_langs[i + j]
+                # Add checkmark if this is the selected language
+                checkmark = "✅ " if lang_code == current_lang else ""
+                button_text = f"{checkmark}{lang_info['flag']} {lang_info['name']}"
+                row.append(InlineKeyboardButton(
+                    button_text,
+                    callback_data=f"subs_lang|{lang_code}"
+                ))
+        keyboard.append(row)
     
     # Navigation row
     nav_row = []
@@ -163,9 +201,10 @@ def get_language_keyboard(page=0):
         keyboard.append(nav_row)
     
     # Special options row (always at bottom)
+    auto_emoji = "✅" if auto_mode else "☑️"
     keyboard.append([
         InlineKeyboardButton("🚫 OFF", callback_data="subs_lang|OFF"),
-        InlineKeyboardButton("🤖 AUTO", callback_data="subs_lang|AUTO")
+        InlineKeyboardButton(f"{auto_emoji} AUTO", callback_data="subs_auto|toggle")
     ])
     
     return InlineKeyboardMarkup(keyboard)
@@ -6473,18 +6512,20 @@ def subs_command(app, message):
         return
     
     current_lang = get_user_subs_language(user_id)
+    auto_mode = get_user_subs_auto_mode(user_id)
     
-    if current_lang:
-        status = f"Current: {LANGUAGES[current_lang]['flag']} {LANGUAGES[current_lang]['name']}" if current_lang in LANGUAGES else \
-                "Current: 🤖 AUTO" if current_lang == "AUTO" else \
-                "Current: 🚫 OFF"
+    # Create status text
+    if current_lang == "OFF" or current_lang is None:
+        status_text = "🚫 Субтитры отключены"
     else:
-        status = "Current: 🚫 OFF"
+        lang_info = LANGUAGES.get(current_lang, {"name": current_lang, "flag": "🌐"})
+        auto_text = " (автосубтитры)" if auto_mode else ""
+        status_text = f"{lang_info['flag']} Выбран язык: {lang_info['name']}{auto_text}"
     
     app.send_message(
         message.chat.id,
-        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\nSelect subtitle language for YouTube videos\n\n{status}",
-        reply_markup=get_language_keyboard()
+        f"**🎬 Настройки субтитров**\n\n{status_text}\n\nВыберите язык субтитров:",
+        reply_markup=get_language_keyboard(page=0, user_id=user_id)
     )
     send_to_logger(message, "User opened /subs menu.")
 
@@ -6495,17 +6536,19 @@ def subs_page_callback(app, callback_query):
     page = int(callback_query.data.split("|")[1])
     user_id = callback_query.from_user.id
     current_lang = get_user_subs_language(user_id)
+    auto_mode = get_user_subs_auto_mode(user_id)
     
-    if current_lang:
-        status = f"Current: {LANGUAGES[current_lang]['flag']} {LANGUAGES[current_lang]['name']}" if current_lang in LANGUAGES else \
-                "Current: 🤖 AUTO" if current_lang == "AUTO" else \
-                "Current: 🚫 OFF"
+    # Create status text
+    if current_lang == "OFF" or current_lang is None:
+        status_text = "🚫 Субтитры отключены"
     else:
-        status = "Current: 🚫 OFF"
+        lang_info = LANGUAGES.get(current_lang, {"name": current_lang, "flag": "🌐"})
+        auto_text = " (автосубтитры)" if auto_mode else ""
+        status_text = f"{lang_info['flag']} Выбран язык: {lang_info['name']}{auto_text}"
     
     callback_query.edit_message_text(
-        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\nSelect subtitle language for YouTube videos\n\n{status}",
-        reply_markup=get_language_keyboard(page)
+        f"**🎬 Настройки субтитров**\n\n{status_text}\n\nВыберите язык субтитров:",
+        reply_markup=get_language_keyboard(page, user_id=user_id)
     )
     callback_query.answer()
 
@@ -6519,15 +6562,31 @@ def subs_lang_callback(app, callback_query):
     save_user_subs_language(user_id, lang_code)
     
     if lang_code == "OFF":
-        status = "🚫 Subtitles disabled"
-    elif lang_code == "AUTO":
-        status = "🤖 Auto-generated subtitles enabled"
+        status = "🚫 Субтитры отключены"
     else:
-        status = f"✅ Subtitle language set to: {LANGUAGES[lang_code]['flag']} {LANGUAGES[lang_code]['name']}"
+        status = f"✅ Язык субтитров установлен: {LANGUAGES[lang_code]['flag']} {LANGUAGES[lang_code]['name']}"
     
     callback_query.edit_message_text(status)
-    callback_query.answer("Language settings updated.")
+    callback_query.answer("Настройки языка обновлены.")
     send_to_logger(callback_query.message, f"User set subtitle language to: {lang_code}")
+
+@app.on_callback_query(filters.regex(r"^subs_auto\|"))
+def subs_auto_callback(app, callback_query):
+    """Handle AUTO mode toggle in subtitle language menu"""
+    action = callback_query.data.split("|")[1]
+    user_id = callback_query.from_user.id
+    
+    if action == "toggle":
+        current_auto = get_user_subs_auto_mode(user_id)
+        new_auto = not current_auto
+        save_user_subs_auto_mode(user_id, new_auto)
+        
+        auto_text = "включен" if new_auto else "выключен"
+        status = f"✅ Режим автосубтитров {auto_text}"
+        
+        callback_query.edit_message_text(status)
+        callback_query.answer(f"Режим автосубтитров {auto_text}")
+        send_to_logger(callback_query.message, f"User toggled AUTO mode to: {new_auto}")
 
 
 def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
@@ -6535,19 +6594,22 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     Модифицирует параметры yt-dlp для работы с субтитрами с учетом пользовательских настроек
     """
     subs_lang = get_user_subs_language(user_id)
+    auto_mode = get_user_subs_auto_mode(user_id)
     
     if not subs_lang or subs_lang == "OFF":
         return ydl_opts
     
     # Настройки для субтитров в зависимости от выбора пользователя
-    if subs_lang == "AUTO":
+    if auto_mode:
+        # Режим автосубтитров - ищем выбранный язык только в автосубтитрах
         ydl_opts.update({
             'writeautomaticsub': True,
             'writesubtitles': False,
-            'subtitleslangs': ['all'],  # Скачиваем все доступные автосубтитры
+            'subtitleslangs': [subs_lang],  # Ищем конкретный язык в автосубтитрах
             'subtitlesformat': 'srt',  # Формат субтитров
         })
     else:
+        # Обычный режим - ищем выбранный язык в обычных субтитрах
         ydl_opts.update({
             'writeautomaticsub': False,
             'writesubtitles': True,
@@ -6579,23 +6641,20 @@ def check_subs_availability(url, user_id, quality_key=None):
         if cache_key in _subs_check_cache:
             return _subs_check_cache[cache_key]
         
-        # Получаем выбранный пользователем язык субтитров
+        # Получаем выбранный пользователем язык субтитров и режим AUTO
         subs_lang = get_user_subs_language(user_id)
+        auto_mode = get_user_subs_auto_mode(user_id)
+        
         if not subs_lang or subs_lang == "OFF":
             _subs_check_cache[cache_key] = False
             return False
         
         # Получаем список доступных языков для этого видео
-        available_langs = get_available_subs_languages(url, user_id)
+        # Если включен AUTO режим, ищем только в автосубтитрах
+        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
         
-        # Проверяем доступность
-        result = False
-        if subs_lang == "AUTO":
-            # Для автосубтитров проверяем наличие любых автосубтитров
-            result = len(available_langs) > 0
-        else:
-            # Для конкретного языка проверяем его наличие
-            result = subs_lang in available_langs
+        # Проверяем доступность выбранного языка
+        result = subs_lang in available_langs
         
         # Сохраняем в кэш
         _subs_check_cache[cache_key] = result
