@@ -3481,19 +3481,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'live_from_start': True
             }
             
-            # Add subtitle options if it's a YouTube video
-            if is_youtube_url(url):
-                common_opts = modify_yt_dlp_opts_for_subs(common_opts, user_id)
-                # Check if subtitles are available in the selected language
-                subs_lang = get_user_subs_language(user_id)
-                if subs_lang and subs_lang not in ["OFF", "AUTO"]:
-                    available_langs = get_available_subs_languages(url, user_id)
-                    if subs_lang not in available_langs:
-                        app.send_message(
-                            user_id,
-                            f"⚠️ Subtitles in {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} are not available for this video. Downloading without subtitles.",
-                            reply_to_message_id=message.id
-                        )
             
             # Проверяем, нужно ли использовать --no-cookies для данного домена
             if is_no_cookie_domain(url):
@@ -3528,7 +3515,31 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             is_hls = ("m3u8" in url.lower())
             if not is_hls:
                 common_opts['progress_hooks'] = [progress_func]
+
+            # Сохраняем постпроцессоры из common_opts
+            common_postprocessors = common_opts.get('postprocessors', [])
+
+            # Объединяем опции
             ytdl_opts = {**common_opts, **attempt_opts}
+
+            # Восстанавливаем и объединяем постпроцессоры
+            attempt_postprocessors = attempt_opts.get('postprocessors', [])
+            ytdl_opts['postprocessors'] = common_postprocessors + attempt_postprocessors
+
+            # Add subtitle options if it's a YouTube video (after merging options)
+            if is_youtube_url(url):
+                ytdl_opts = modify_yt_dlp_opts_for_subs(ytdl_opts, user_id)
+                # Check if subtitles are available in the selected language
+                subs_lang = get_user_subs_language(user_id)
+                if subs_lang and subs_lang not in ["OFF", "AUTO"]:
+                    available_langs = get_available_subs_languages(url, user_id)
+                    if subs_lang not in available_langs:
+                        app.send_message(
+                            user_id,
+                            f"⚠️ Subtitles in {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} are not available for this video. Downloading without subtitles.",
+                            reply_to_message_id=message.id
+                        )
+
             try:
                 with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
                     info_dict = ydl.extract_info(url, download=False)
@@ -6513,8 +6524,14 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
             logger.error(f"Error in embed_subs_postprocess: {str(e)}")
             return info
     
-    # Добавляем наш постпроцессор для встраивания субтитров
-    ydl_opts['post_hooks'] = [embed_subs_postprocess]
+    # Добавляем постпроцессор для встраивания субтитров
+    if 'postprocessors' not in ydl_opts:
+        ydl_opts['postprocessors'] = []
+
+    ydl_opts['postprocessors'].append({
+        'key': 'FFmpegEmbedSubtitle',
+        'already_have_subtitle': False,
+    })
     
     return ydl_opts
 
