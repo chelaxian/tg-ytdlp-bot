@@ -6433,22 +6433,34 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     
     # После скачивания видео и субтитров, используем отдельный вызов ffmpeg для встраивания субтитров
     def embed_subs_postprocess(info):
-        video_path = info['filepath']
-        video_dir = os.path.dirname(video_path)
-        video_name = os.path.splitext(os.path.basename(video_path))[0]
-        
-        # Ищем файл субтитров (учитываем разные варианты, например .en.srt или .en-US.srt)
-        subs_pattern = os.path.join(video_dir, f"{video_name}*.srt")
-        subs_files = glob.glob(subs_pattern)
-        
-        if not subs_files:
-            logger.error(f"Subtitles not found for {video_path}")
-            return info
-            
-        subs_path = subs_files[0]  # Берем первый найденный файл субтитров
-        output_path = video_path.replace('.mkv', '.mp4')
-        
         try:
+            # Получаем путь к видео из info
+            if isinstance(info, dict):
+                video_path = info.get('requested_downloads', [{}])[0].get('filepath', '')
+                if not video_path:
+                    video_path = info.get('filepath', '')
+            else:
+                logger.error(f"Unexpected info type: {type(info)}")
+                return info
+            
+            if not video_path:
+                logger.error("Could not find video path in info")
+                return info
+                
+            video_dir = os.path.dirname(video_path)
+            video_name = os.path.splitext(os.path.basename(video_path))[0]
+            
+            # Ищем файл субтитров (учитываем разные варианты, например .en.srt или .en-US.srt)
+            subs_pattern = os.path.join(video_dir, f"{video_name}*.srt")
+            subs_files = glob.glob(subs_pattern)
+            
+            if not subs_files:
+                logger.error(f"Subtitles not found for {video_path}")
+                return info
+                
+            subs_path = subs_files[0]  # Берем первый найденный файл субтитров
+            output_path = video_path.replace('.mp4', '_with_subs.mp4')  # Используем временное имя
+            
             # Запускаем ffmpeg для встраивания субтитров
             cmd = [
                 'ffmpeg', '-i', video_path,
@@ -6458,16 +6470,19 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
             ]
             subprocess.run(cmd, check=True)
             
-            # Удаляем временные файлы только после успешной конвертации
-            os.remove(video_path)  # Удаляем MKV
+            # После успешной конвертации
+            os.remove(video_path)  # Удаляем оригинал
             os.remove(subs_path)   # Удаляем SRT
+            os.rename(output_path, video_path)  # Переименовываем обратно
             
             # Обновляем путь к файлу в информации
-            info['filepath'] = output_path
+            if isinstance(info, dict):
+                if 'requested_downloads' in info:
+                    info['requested_downloads'][0]['filepath'] = video_path
+                info['filepath'] = video_path
             
         except subprocess.CalledProcessError as e:
             logger.error(f"Error embedding subtitles: {e}")
-            # В случае ошибки оставляем оригинальный файл
             if os.path.exists(output_path):
                 os.remove(output_path)
                 
