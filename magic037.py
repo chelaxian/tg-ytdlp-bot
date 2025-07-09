@@ -4029,7 +4029,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 app.edit_message_text(
                                                     chat_id=user_id,
                                                     message_id=status_msg.id,
-                                                    text="❌ Ошибка вшивания субтитров"
+                                                    text="⚠️ Субтитры не вшиты: превышены ограничения размера/длительности"
                                                 )
                                         except Exception as e:
                                             logger.error(f"Failed to update subtitle progress (final): {e}")
@@ -6717,15 +6717,15 @@ def check_subs_limits(info_dict, quality_key=None):
         max_duration = Config.MAX_SUB_DURATION
         max_size = Config.MAX_SUB_SIZE
         
-        # Проверяем качество видео
-        if quality_key and quality_key != "best" and quality_key != "mp3":
-            try:
-                quality_height = int(quality_key.replace('p', ''))
-                if quality_height > max_quality:
-                    logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
-                    return False
-            except ValueError:
-                pass  # Если не удается извлечь высоту, пропускаем проверку качества
+        # Проверяем качество видео (закомментировано - проверяем только длительность и размер)
+        # if quality_key and quality_key != "best" and quality_key != "mp3":
+        #     try:
+        #         quality_height = int(quality_key.replace('p', ''))
+        #         if quality_height > max_quality:
+        #             logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
+        #             return False
+        #     except ValueError:
+        #         pass  # Если не удается извлечь высоту, пропускаем проверку качества
         
         # Проверяем длительность
         duration = info_dict.get('duration')
