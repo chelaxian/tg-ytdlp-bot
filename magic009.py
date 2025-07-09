@@ -6429,17 +6429,23 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     if 'postprocessors' not in ydl_opts:
         ydl_opts['postprocessors'] = []
     
-    # Конвертация субтитров в SRT
+    # 1. Конвертация субтитров в SRT
     ydl_opts['postprocessors'].append({
         'key': 'FFmpegSubtitlesConvertor',
         'format': 'srt',
     })
     
-    # Встраивание субтитров с настройками стиля
+    # 2. Встраивание субтитров
     ydl_opts['postprocessors'].append({
-        'key': 'FFmpegVideoConvertor',
+        'key': 'FFmpegEmbedSubtitle',
+        'already_have_subtitle': True,
+        'args': ['-vf', 'subtitles=%(subtitle_path)s:force_style=\'FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2\''],
+    })
+    
+    # 3. Конвертация в MP4
+    ydl_opts['postprocessors'].append({
+        'key': 'FFmpegVideoRemuxer',
         'preferedformat': 'mp4',
-        'videofilter': 'subtitles=%(subtitle_path)s:force_style=\'FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2\'',
     })
     
     return ydl_opts
