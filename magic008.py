@@ -4129,7 +4129,7 @@ def cleanup_user_temp_files(user_id):
         for filename in os.listdir(user_dir):
             file_path = os.path.join(user_dir, filename)
             # Remove temporary files
-            if (filename.endswith(('.part', '.ytdl', '.temp', '.tmp')) or
+            if (filename.endswith(('.part', '.ytdl', '.temp', '.tmp', '.srt')) or  # Added .srt for subtitles
                 filename.startswith('yt_thumb_') or  # YouTube thumbnails
                 filename.endswith('.jpg') or  # Thumbnails
                 filename == 'full_title.txt' or  # Full title file
@@ -6391,61 +6391,58 @@ def subs_lang_callback(app, callback_query):
     send_to_logger(callback_query.message, f"User set subtitle language to: {lang_code}")
 
 
-def modify_yt_dlp_opts_for_subs(opts, user_id):
-    """Modify yt-dlp options to handle subtitles based on user preferences"""
+def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
+    """
+    Модифицирует параметры yt-dlp для работы с субтитрами с учетом пользовательских настроек
+    """
     subs_lang = get_user_subs_language(user_id)
     
     if not subs_lang or subs_lang == "OFF":
-        return opts
+        return ydl_opts
+        
+    # Не перезаписываем формат видео, используем тот, который уже установлен
+    # в соответствии с пользовательскими настройками через /format или Always Ask Menu
+    if 'merge_output_format' not in ydl_opts:
+        ydl_opts['merge_output_format'] = 'mkv'
     
-    # Make sure postprocessors list exists
-    if 'postprocessors' not in opts:
-        opts['postprocessors'] = []
-    
-    # Configure subtitle options
+    # Настройки для субтитров в зависимости от выбора пользователя
     if subs_lang == "AUTO":
-        opts.update({
-            'writesubtitles': False,
+        ydl_opts.update({
             'writeautomaticsub': True,
-            'subtitleslangs': ['en'],
-            'embedsubtitles': False,
-            'postprocessor_args': [
-                ('FFmpegEmbedSubtitle', '-vf'),
-                ('FFmpegEmbedSubtitle', 'subtitles=%(subtitle_path)s:force_style=\'Fontname=Arial,FontSize=24,PrimaryColour=&HFFFFFF,BorderStyle=3,Outline=1,OutlineColour=&H000000,MarginV=20\'')
-            ]
+            'writesubtitles': False,
+            'subtitleslangs': ['en'],  # Автосубтитры обычно доступны только на английском
         })
     else:
-        opts.update({
-            'writesubtitles': True,
+        ydl_opts.update({
             'writeautomaticsub': False,
-            'subtitleslangs': [subs_lang],
-            'embedsubtitles': False,
-            'postprocessor_args': [
-                ('FFmpegEmbedSubtitle', '-vf'),
-                ('FFmpegEmbedSubtitle', 'subtitles=%(subtitle_path)s:force_style=\'Fontname=Arial,FontSize=24,PrimaryColour=&HFFFFFF,BorderStyle=3,Outline=1,OutlineColour=&H000000,MarginV=20\'')
-            ]
+            'writesubtitles': True,
+            'subtitleslangs': [subs_lang],  # Используем язык, выбранный пользователем
         })
     
-    # Конвертируем субтитры в SRT формат
-    opts['postprocessors'].append({
+    # Общие настройки для субтитров
+    ydl_opts.update({
+        'subtitlesformat': 'srt',
+        'convertsubtitles': 'srt',
+    })
+    
+    # Постпроцессоры
+    if 'postprocessors' not in ydl_opts:
+        ydl_opts['postprocessors'] = []
+    
+    # Конвертация субтитров в SRT
+    ydl_opts['postprocessors'].append({
         'key': 'FFmpegSubtitlesConvertor',
         'format': 'srt',
-        'when': 'before_dl'
     })
     
-    # Встраиваем субтитры в видео
-    opts['postprocessors'].append({
-        'key': 'FFmpegEmbedSubtitle',
-        'already_have_subtitle': True
+    # Встраивание субтитров с настройками стиля
+    ydl_opts['postprocessors'].append({
+        'key': 'FFmpegVideoConvertor',
+        'preferedformat': 'mp4',
+        'videofilter': 'subtitles=%(subtitle_path)s:force_style=\'FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2\'',
     })
     
-    # В конце ремуксируем в MP4
-    opts['postprocessors'].append({
-        'key': 'FFmpegVideoRemuxer',
-        'preferedformat': 'mp4'
-    })
-    
-    return opts
+    return ydl_opts
 
 
 app.run()
