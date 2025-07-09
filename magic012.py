@@ -6435,14 +6435,16 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
         'format': 'srt',
     })
     
-    # 2. Встраивание субтитров с применением стилей
+    # 2. Встраивание субтитров
     ydl_opts['postprocessors'].append({
-        'key': 'FFmpegVideoConvertor',
-        'preferedformat': 'mp4',
-        'postprocessor_args': [
-            '-vf', f'subtitles=%(subtitle_path)s:force_style=\'FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2\'',
-            '-c:a', 'copy'
-        ],
+        'key': 'EmbedSubtitle',
+        'when': 'before_dl'
+    })
+    
+    # 3. Конвертация в MP4
+    ydl_opts['postprocessors'].append({
+        'key': 'FFmpegVideoRemuxer',
+        'preferedformat': 'mp4'
     })
     
     return ydl_opts
