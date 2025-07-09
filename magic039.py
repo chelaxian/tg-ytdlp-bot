@@ -6789,6 +6789,15 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         all_srt_files = glob.glob(os.path.join(video_dir, "*.srt"))
         logger.info(f"All .srt files in directory: {all_srt_files}")
         
+        # Если не нашли по шаблону, ищем файлы, которые начинаются с имени видео
+        if not subs_files and all_srt_files:
+            for srt_file in all_srt_files:
+                srt_basename = os.path.basename(srt_file)
+                if srt_basename.startswith(video_name):
+                    subs_files = [srt_file]
+                    logger.info(f"Found subtitle file by basename match: {srt_file}")
+                    break
+        
         if not subs_files:
             logger.info(f"No subtitles found for {video_name}")
             logger.info(f"Available .srt files: {all_srt_files}")
