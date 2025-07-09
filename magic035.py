@@ -204,7 +204,7 @@ def get_language_keyboard(page=0, user_id=None):
     auto_emoji = "✅" if auto_mode else "☑️"
     keyboard.append([
         InlineKeyboardButton("🚫 OFF", callback_data="subs_lang|OFF"),
-        InlineKeyboardButton(f"{auto_emoji} AUTO", callback_data="subs_auto|toggle")
+        InlineKeyboardButton(f"{auto_emoji} AUTO-GEN", callback_data="subs_auto|toggle")
     ])
     
     return InlineKeyboardMarkup(keyboard)
@@ -6572,7 +6572,7 @@ def subs_lang_callback(app, callback_query):
 
 @app.on_callback_query(filters.regex(r"^subs_auto\|"))
 def subs_auto_callback(app, callback_query):
-    """Handle AUTO mode toggle in subtitle language menu"""
+    """Handle AUTO-GEN mode toggle in subtitle language menu"""
     action = callback_query.data.split("|")[1]
     user_id = callback_query.from_user.id
     
@@ -6581,12 +6581,32 @@ def subs_auto_callback(app, callback_query):
         new_auto = not current_auto
         save_user_subs_auto_mode(user_id, new_auto)
         
+        # Показываем уведомление пользователю
         auto_text = "включен" if new_auto else "выключен"
-        status = f"✅ Режим автосубтитров {auto_text}"
+        notification = f"✅ Режим автосубтитров {auto_text}"
         
-        callback_query.edit_message_text(status)
-        callback_query.answer(f"Режим автосубтитров {auto_text}")
-        send_to_logger(callback_query.message, f"User toggled AUTO mode to: {new_auto}")
+        # Отвечаем только уведомлением, не закрываем меню
+        callback_query.answer(notification, show_alert=False)
+        
+        # Обновляем меню с новым состоянием AUTO
+        current_lang = get_user_subs_language(user_id)
+        auto_mode = get_user_subs_auto_mode(user_id)
+        
+        # Create status text
+        if current_lang == "OFF" or current_lang is None:
+            status_text = "🚫 Субтитры отключены"
+        else:
+            lang_info = LANGUAGES.get(current_lang, {"name": current_lang, "flag": "🌐"})
+            auto_text = " (автосубтитры)" if auto_mode else ""
+            status_text = f"{lang_info['flag']} Выбран язык: {lang_info['name']}{auto_text}"
+        
+        # Обновляем сообщение с новым меню
+        callback_query.edit_message_text(
+            f"**🎬 Настройки субтитров**\n\n{status_text}\n\nВыберите язык субтитров:",
+            reply_markup=get_language_keyboard(page=0, user_id=user_id)
+        )
+        
+        send_to_logger(callback_query.message, f"User toggled AUTO-GEN mode to: {new_auto}")
 
 
 def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
