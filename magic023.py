@@ -3935,6 +3935,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     try:
                         # --- TikTok: Don't Pass Title ---
+                        # ВСТАВКА: Встраиваем субтитры, если нужно
+                        embed_subs_to_video(after_rename_abs_path, user_id)
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
@@ -6417,107 +6419,73 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
             'subtitlesformat': 'srt',  # Формат субтитров
         })
     
-    # После скачивания видео и субтитров, используем отдельный вызов ffmpeg для встраивания субтитров
-    def embed_subs_postprocess(info):
-        try:
-            # Получаем путь к видео из info
-            if isinstance(info, dict):
-                if 'requested_downloads' in info and info['requested_downloads']:
-                    video_path = info['requested_downloads'][0].get('filepath', '')
-                else:
-                    video_path = info.get('filepath', '')
-            elif isinstance(info, str):
-                video_path = info
-            else:
-                logger.error(f"Unexpected info type: {type(info)}")
-                return info
-            
-            if not video_path or not os.path.exists(video_path):
-                logger.error(f"Video file not found: {video_path}")
-                return info
-            
-            # Получаем путь к субтитрам
-            video_dir = os.path.dirname(video_path)
-            video_name = os.path.splitext(os.path.basename(video_path))[0]
-            subs_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
-            
-            if not subs_files:
-                logger.error(f"No subtitles found for {video_name}")
-                return info
-            
-            subs_path = subs_files[0]
-            if not os.path.exists(subs_path):
-                logger.error(f"Subtitle file not found: {subs_path}")
-                return info
-            
-            # Создаем временный файл для выходного видео
-            output_path = os.path.join(video_dir, f"{video_name}_with_subs_temp.mp4")
-            
-            try:
-                # Запускаем ffmpeg для встраивания субтитров
-                cmd = [
-                    'ffmpeg',
-                    '-y',  # Перезаписывать файл если существует
-                    '-i', video_path,
-                    '-i', subs_path,
-                    '-c:v', 'copy',     # Копируем видео без перекодирования
-                    '-c:a', 'copy',     # Копируем аудио без перекодирования
-                    '-c:s', 'mov_text', # Используем mov_text для субтитров
-                    '-map', '0:v',      # Берем видео из первого файла
-                    '-map', '0:a',      # Берем аудио из первого файла
-                    '-map', '1:s',      # Берем субтитры из второго файла
-                    output_path
-                ]
-                
-                logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                
-                if result.returncode != 0:
-                    logger.error(f"FFmpeg error: {result.stderr}")
-                    if os.path.exists(output_path):
-                        os.remove(output_path)
-                    return info
-                
-                # Проверяем, что выходной файл существует и имеет размер
-                if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-                    logger.error("Output file is missing or empty")
-                    if os.path.exists(output_path):
-                        os.remove(output_path)
-                    return info
-                
-                # Заменяем оригинальный файл
-                os.remove(video_path)
-                os.rename(output_path, video_path)
-                
-                # Удаляем файл субтитров
-                if os.path.exists(subs_path):
-                    os.remove(subs_path)
-                
-                # Обновляем пути в info
-                if isinstance(info, dict):
-                    if 'requested_downloads' in info and info['requested_downloads']:
-                        info['requested_downloads'][0]['filepath'] = video_path
-                    info['filepath'] = video_path
-                else:
-                    info = video_path
-                
-                logger.info("Successfully embedded subtitles")
-                return info
-                
-            except Exception as e:
-                logger.error(f"Error during ffmpeg execution: {str(e)}")
-                if os.path.exists(output_path):
-                    os.remove(output_path)
-                return info
-                
-        except Exception as e:
-            logger.error(f"Error in embed_subs_postprocess: {str(e)}")
-            return info
-    
-    # Добавляем наш постпроцессор для встраивания субтитров
-    ydl_opts['post_hooks'] = [embed_subs_postprocess]
-    
     return ydl_opts
+
+
+def embed_subs_to_video(video_path, user_id):
+    """
+    Встраивает субтитры в видео-файл, если есть подходящий .srt-файл и subs.txt
+    """
+    try:
+        if not video_path or not os.path.exists(video_path):
+            logger.error(f"Video file not found: {video_path}")
+            return False
+        user_dir = os.path.join("users", str(user_id))
+        subs_file = os.path.join(user_dir, "subs.txt")
+        if not os.path.exists(subs_file):
+            logger.info(f"No subs.txt for user {user_id}, skipping embed_subs_to_video")
+            return False
+        with open(subs_file, "r", encoding="utf-8") as f:
+            subs_lang = f.read().strip()
+        if not subs_lang or subs_lang == "OFF":
+            logger.info(f"Subtitles disabled for user {user_id}")
+            return False
+        video_dir = os.path.dirname(video_path)
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        # Ищем .srt-файл для этого видео
+        subs_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
+        if not subs_files:
+            logger.info(f"No subtitles found for {video_name}")
+            return False
+        subs_path = subs_files[0]
+        if not os.path.exists(subs_path):
+            logger.error(f"Subtitle file not found: {subs_path}")
+            return False
+        output_path = os.path.join(video_dir, f"{video_name}_with_subs_temp.mp4")
+        cmd = [
+            'ffmpeg',
+            '-y',
+            '-i', video_path,
+            '-i', subs_path,
+            '-c:v', 'copy',
+            '-c:a', 'copy',
+            '-c:s', 'mov_text',
+            '-map', '0:v',
+            '-map', '0:a',
+            '-map', '1:s',
+            output_path
+        ]
+        logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            logger.error(f"FFmpeg error: {result.stderr}")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            logger.error("Output file is missing or empty")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+        os.remove(video_path)
+        os.rename(output_path, video_path)
+        if os.path.exists(subs_path):
+            os.remove(subs_path)
+        logger.info("Successfully embedded subtitles")
+        return True
+    except Exception as e:
+        logger.error(f"Error in embed_subs_to_video: {str(e)}")
+        return False
 
 
 app.run()
