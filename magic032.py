@@ -3941,10 +3941,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Проверяем ограничения для субтитров
                             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
                             if subs_enabled:
-                                # Получаем информацию о видео для проверки ограничений
-                                try:
-                                    video_info = get_video_formats(url, user_id)
-                                    if check_subs_limits(video_info, quality_key):
+                                # Проверяем доступность субтитров
+                                if check_subs_availability(url, user_id, quality_key):
+                                    # Получаем реальный размер файла после скачивания
+                                    real_file_size = os.path.getsize(after_rename_abs_path) if os.path.exists(after_rename_abs_path) else 0
+                                    
+                                    # Создаем info_dict с реальными данными
+                                    real_info = {
+                                        'duration': duration,  # Реальная длительность
+                                        'filesize': real_file_size,  # Реальный размер файла
+                                        'filesize_approx': real_file_size
+                                    }
+                                    
+                                    if check_subs_limits(real_info, quality_key):
                                         status_msg = app.send_message(user_id, "⚠️ Вшивание субтитров может занять много времени (до 1 мин на 1 мин видео)!\n\nВшиваем субтитры... ⏳")
                                         def tg_update_callback(progress, eta):
                                             blocks = int(progress * 10)
@@ -3969,31 +3978,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             logger.error(f"Failed to update subtitle progress (final): {e}")
                                     else:
                                         app.send_message(user_id, "ℹ️ Субтитры не встраиваются из-за ограничений (качество/длительность/размер)", reply_to_message_id=message.id)
-                                except Exception as e:
-                                    logger.error(f"Error checking subtitle limits: {e}")
-                                    # В случае ошибки проверки, все равно пытаемся встроить субтитры
-                                    status_msg = app.send_message(user_id, "⚠️ Вшивание субтитров может занять много времени (до 1 мин на 1 мин видео)!\n\nВшиваем субтитры... ⏳")
-                                    def tg_update_callback(progress, eta):
-                                        blocks = int(progress * 10)
-                                        bar = '🟩' * blocks + '⬜️' * (10 - blocks)
-                                        percent = int(progress * 100)
-                                        try:
-                                            app.edit_message_text(
-                                                chat_id=user_id,
-                                                message_id=status_msg.id,
-                                                text=f"Вшиваем субтитры...\n{bar} {percent}%\nETA: {eta} мин"
-                                            )
-                                        except Exception as e:
-                                            logger.error(f"Failed to update subtitle progress: {e}")
-                                    embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback)
-                                    try:
-                                        app.edit_message_text(
-                                            chat_id=user_id,
-                                            message_id=status_msg.id,
-                                            text="Субтитры успешно вшиты! ✅"
-                                        )
-                                    except Exception as e:
-                                        logger.error(f"Failed to update subtitle progress (final): {e}")
+                                else:
+                                    app.send_message(user_id, "ℹ️ Субтитры недоступны для выбранного языка", reply_to_message_id=message.id)
+                            # Очищаем кэш проверок субтитров после использования
+                            clear_subs_check_cache()
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         # ... остальной код ...
                         try:
@@ -6556,7 +6544,7 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
         ydl_opts.update({
             'writeautomaticsub': True,
             'writesubtitles': False,
-            'subtitleslangs': ['en'],  # Автосубтитры обычно доступны только на английском
+            'subtitleslangs': ['all'],  # Скачиваем все доступные автосубтитры
             'subtitlesformat': 'srt',  # Формат субтитров
         })
     else:
@@ -6570,27 +6558,48 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     return ydl_opts
 
 
+# Кэш для проверок субтитров
+_subs_check_cache = {}
+
+def clear_subs_check_cache():
+    """Очищает кэш проверок субтитров"""
+    global _subs_check_cache
+    _subs_check_cache.clear()
+
 def check_subs_availability(url, user_id, quality_key=None):
     """
     Проверяет доступность субтитров для выбранного пользователем языка
     Возвращает True если субтитры доступны, False если нет
     """
     try:
+        # Создаем ключ кэша
+        cache_key = f"{url}_{user_id}"
+        
+        # Проверяем кэш
+        if cache_key in _subs_check_cache:
+            return _subs_check_cache[cache_key]
+        
         # Получаем выбранный пользователем язык субтитров
         subs_lang = get_user_subs_language(user_id)
         if not subs_lang or subs_lang == "OFF":
+            _subs_check_cache[cache_key] = False
             return False
         
         # Получаем список доступных языков для этого видео
         available_langs = get_available_subs_languages(url, user_id)
         
         # Проверяем доступность
+        result = False
         if subs_lang == "AUTO":
             # Для автосубтитров проверяем наличие любых автосубтитров
-            return len(available_langs) > 0
+            result = len(available_langs) > 0
         else:
             # Для конкретного языка проверяем его наличие
-            return subs_lang in available_langs
+            result = subs_lang in available_langs
+        
+        # Сохраняем в кэш
+        _subs_check_cache[cache_key] = result
+        return result
             
     except Exception as e:
         logger.error(f"Error checking subtitle availability: {e}")
@@ -6624,9 +6633,9 @@ def check_subs_limits(info_dict, quality_key=None):
             logger.info(f"Subtitle embedding skipped: duration {duration}s exceeds limit {max_duration}s")
             return False
         
-        # Проверяем размер файла
+        # Проверяем размер файла (только если он точно известен)
         filesize = info_dict.get('filesize') or info_dict.get('filesize_approx')
-        if filesize:
+        if filesize and filesize > 0:  # Проверяем что размер больше 0
             size_mb = filesize // (1024 * 1024)
             if size_mb > max_size:
                 logger.info(f"Subtitle embedding skipped: size {size_mb}MB exceeds limit {max_size}MB")
