@@ -4026,11 +4026,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                     text="Субтитры успешно вшиты! ✅"
                                                 )
                                             else:
-                                                app.edit_message_text(
-                                                    chat_id=user_id,
-                                                    message_id=status_msg.id,
-                                                    text="⚠️ Субтитры не вшиты: превышены ограничения размера/длительности"
-                                                )
+                                                # Проверяем, есть ли файлы субтитров
+                                                video_dir = os.path.dirname(after_rename_abs_path)
+                                                video_name = os.path.splitext(os.path.basename(after_rename_abs_path))[0]
+                                                subs_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
+                                                
+                                                if not subs_files:
+                                                    app.edit_message_text(
+                                                        chat_id=user_id,
+                                                        message_id=status_msg.id,
+                                                        text="⚠️ Субтитры не найдены для этого видео"
+                                                    )
+                                                else:
+                                                    app.edit_message_text(
+                                                        chat_id=user_id,
+                                                        message_id=status_msg.id,
+                                                        text="⚠️ Субтитры не вшиты: превышены ограничения размера/длительности"
+                                                    )
                                         except Exception as e:
                                             logger.error(f"Failed to update subtitle progress (final): {e}")
                                     else:
@@ -6772,8 +6784,14 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         subs_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
         logger.info(f"Looking for subtitle files: {video_name}*.srt in {video_dir}")
         logger.info(f"Found subtitle files: {subs_files}")
+        
+        # Также ищем файлы с другими возможными именами
+        all_srt_files = glob.glob(os.path.join(video_dir, "*.srt"))
+        logger.info(f"All .srt files in directory: {all_srt_files}")
+        
         if not subs_files:
             logger.info(f"No subtitles found for {video_name}")
+            logger.info(f"Available .srt files: {all_srt_files}")
             return False
         subs_path = subs_files[0]
         if not os.path.exists(subs_path):
