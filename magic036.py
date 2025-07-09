@@ -149,12 +149,20 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
                 # Только автосубтитры
                 if 'automatic_captions' in info:
                     available_langs.extend(list(info['automatic_captions'].keys()))
+                    logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
+                else:
+                    logger.info("No automatic captions found")
             else:
                 # Только обычные субтитры
                 if 'subtitles' in info:
                     available_langs.extend(list(info['subtitles'].keys()))
+                    logger.info(f"Found subtitles: {list(info['subtitles'].keys())}")
+                else:
+                    logger.info("No subtitles found")
             
-            return list(set(available_langs))  # Remove duplicates
+            result = list(set(available_langs))  # Remove duplicates
+            logger.info(f"get_available_subs_languages: auto_only={auto_only}, result={result}")
+            return result
     except Exception as e:
         logger.error(f"Error getting available subtitles: {e}")
     return []
@@ -3525,8 +3533,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 common_opts = modify_yt_dlp_opts_for_subs(common_opts, user_id)
                 # Check if subtitles are available in the selected language
                 subs_lang = get_user_subs_language(user_id)
-                if subs_lang and subs_lang not in ["OFF", "AUTO"]:
-                    available_langs = get_available_subs_languages(url, user_id)
+                auto_mode = get_user_subs_auto_mode(user_id)
+                if subs_lang and subs_lang not in ["OFF"]:
+                    # Проверяем доступность с учетом AUTO режима
+                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
                     if subs_lang not in available_langs:
                         app.send_message(
                             user_id,
@@ -4006,13 +4016,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 )
                                             except Exception as e:
                                                 logger.error(f"Failed to update subtitle progress: {e}")
-                                        embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback)
+                                        # Вшиваем субтитры и получаем результат
+                                        embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback)
                                         try:
-                                            app.edit_message_text(
-                                                chat_id=user_id,
-                                                message_id=status_msg.id,
-                                                text="Субтитры успешно вшиты! ✅"
-                                            )
+                                            if embed_result:
+                                                app.edit_message_text(
+                                                    chat_id=user_id,
+                                                    message_id=status_msg.id,
+                                                    text="Субтитры успешно вшиты! ✅"
+                                                )
+                                            else:
+                                                app.edit_message_text(
+                                                    chat_id=user_id,
+                                                    message_id=status_msg.id,
+                                                    text="❌ Ошибка вшивания субтитров"
+                                                )
                                         except Exception as e:
                                             logger.error(f"Failed to update subtitle progress (final): {e}")
                                     else:
@@ -6676,6 +6694,9 @@ def check_subs_availability(url, user_id, quality_key=None):
         # Проверяем доступность выбранного языка
         result = subs_lang in available_langs
         
+        # Логируем для отладки
+        logger.info(f"check_subs_availability: lang={subs_lang}, auto_mode={auto_mode}, available_langs={available_langs}, result={result}")
+        
         # Сохраняем в кэш
         _subs_check_cache[cache_key] = result
         return result
@@ -6749,6 +6770,8 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         # Ищем .srt-файл для этого видео
         subs_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
+        logger.info(f"Looking for subtitle files: {video_name}*.srt in {video_dir}")
+        logger.info(f"Found subtitle files: {subs_files}")
         if not subs_files:
             logger.info(f"No subtitles found for {video_name}")
             return False
