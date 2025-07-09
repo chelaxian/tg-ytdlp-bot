@@ -3964,6 +3964,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Если нет — можно получить через ffprobe или оставить 0
 
                             # Для простоты (если нет info_dict), можно не прожигать если size=0
+                            duration = info_dict.get('duration', 0)
                             can_subs = can_burn_subs(quality, duration, size)
                             if can_subs:
                                 status_msg = app.send_message(user_id, "⚠️ Вшивание субтитров может занять много времени (до 1 мин на 1 мин видео)!\n\nВшиваем субтитры... ⏳")
@@ -5078,6 +5079,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 is_cached = quality_key in cached_qualities
                 postfix = ""
             emoji = "🚀" if is_cached else "📹"
+            duration = info.get('duration', 0)
             can_subs = can_burn_subs(h, duration, size_val)
             subs_emoji = "📝" if can_subs else ""
             table_lines.append(f"{emoji}  {quality_key}{subs_emoji}:  {size_str}{dim_str}{scissors}{postfix}")
@@ -5535,6 +5537,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                 h = 0
                 size_val = 0
 
+            duration = info.get('duration', 0)
             can_subs = can_burn_subs(h, duration, size_val)
 
             # --- твоя логика формирования fmt (оставь как есть) ---
@@ -6414,7 +6417,7 @@ def subs_command(app, message):
     
     app.send_message(
         message.chat.id,
-        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\nSelect subtitle language for YouTube videos\n\n{status}",
+        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\n\nSelect subtitle language for YouTube videos\n\n{status}",
         reply_markup=get_language_keyboard()
     )
     send_to_logger(message, "User opened /subs menu.")
@@ -6435,7 +6438,7 @@ def subs_page_callback(app, callback_query):
         status = "Current: 🚫 OFF"
     
     callback_query.edit_message_text(
-        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\nSelect subtitle language for YouTube videos\n\n{status}",
+        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\n\nSelect subtitle language for YouTube videos\n\n{status}",
         reply_markup=get_language_keyboard(page)
     )
     callback_query.answer()
