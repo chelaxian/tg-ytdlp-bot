@@ -82,14 +82,6 @@ LANGUAGES = {
 
 ITEMS_PER_PAGE = 10  # Number of languages per page
 
-def can_burn_subs(quality, duration, size):
-    from config import Config
-    return (
-        quality <= Config.MAX_SUB_QUALITY and
-        duration <= Config.MAX_SUB_DURATION and
-        size <= Config.MAX_SUB_SIZE
-    )
-
 def get_user_subs_language(user_id):
     """Get user's preferred subtitle language"""
     user_dir = os.path.join("users", str(user_id))
@@ -918,7 +910,7 @@ def url_distractor(app, message):
         return
 
     # /Subs Command
-    if text.startswith(Config.SUBTITLES_COMMAND):
+    if text.startswith(Config.SUBS_COMMAND):
         subs_command(app, message)
         return
 
@@ -3240,7 +3232,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 # Download_and_up function
 # ########################################
 #@reply_with_keyboard
-def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None, can_burn_subs=True):
+def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
@@ -3946,55 +3938,62 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # Вшиваем субтитры, если нужно (только для одиночных видео, не плейлистов)
                         is_playlist_mode = video_count > 1 or is_playlist_with_range(original_text)
                         if not is_playlist_mode:
-                            # Получаем параметры видео
-                            # Пример: если у вас есть info_dict или аналогичный объект:
-                            # quality = info_dict.get('height', 0)
-                            # duration = info_dict.get('duration', 0)
-                            # size = os.path.getsize(after_rename_abs_path) // (1024*1024)
-                            # Если нет — получите их любым способом, который уже используется в коде
-
-                            # Пример для получения размера файла:
-                            try:
-                                size = os.path.getsize(after_rename_abs_path) // (1024*1024)
-                            except Exception:
-                                size = 0
-                            # Пример для высоты и длительности — если есть info_dict:
-                            # quality = info_dict.get('height', 0)
-                            # duration = info_dict.get('duration', 0)
-                            # Если нет — можно получить через ffprobe или оставить 0
-
-                            # Для простоты (если нет info_dict), можно не прожигать если size=0
-                            # Получить quality, duration, size
-                            quality = selected_fmt.get('height', 0) if selected_fmt else 0
-                            duration = info.get('duration', 0)
-                            size = int(selected_fmt.get('filesize', 0) or selected_fmt.get('filesize_approx', 0)) // (1024*1024) if selected_fmt else 0
-
-                            can_subs = can_burn_subs(quality, duration, size)
-                            if can_subs:
-                                status_msg = app.send_message(user_id, "⚠️ Вшивание субтитров может занять много времени (до 1 мин на 1 мин видео)!\n\nВшиваем субтитры... ⏳")
-                                def tg_update_callback(progress, eta):
-                                    blocks = int(progress * 10)
-                                    bar = '🟩' * blocks + '⬜️' * (10 - blocks)
-                                    percent = int(progress * 100)
+                            # Проверяем ограничения для субтитров
+                            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+                            if subs_enabled:
+                                # Получаем информацию о видео для проверки ограничений
+                                try:
+                                    video_info = get_video_formats(url, user_id)
+                                    if check_subs_limits(video_info, quality_key):
+                                        status_msg = app.send_message(user_id, "⚠️ Вшивание субтитров может занять много времени (до 1 мин на 1 мин видео)!\n\nВшиваем субтитры... ⏳")
+                                        def tg_update_callback(progress, eta):
+                                            blocks = int(progress * 10)
+                                            bar = '🟩' * blocks + '⬜️' * (10 - blocks)
+                                            percent = int(progress * 100)
+                                            try:
+                                                app.edit_message_text(
+                                                    chat_id=user_id,
+                                                    message_id=status_msg.id,
+                                                    text=f"Вшиваем субтитры...\n{bar} {percent}%\nETA: {eta} мин"
+                                                )
+                                            except Exception as e:
+                                                logger.error(f"Failed to update subtitle progress: {e}")
+                                        embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback)
+                                        try:
+                                            app.edit_message_text(
+                                                chat_id=user_id,
+                                                message_id=status_msg.id,
+                                                text="Субтитры успешно вшиты! ✅"
+                                            )
+                                        except Exception as e:
+                                            logger.error(f"Failed to update subtitle progress (final): {e}")
+                                    else:
+                                        app.send_message(user_id, "ℹ️ Субтитры не встраиваются из-за ограничений (качество/длительность/размер)", reply_to_message_id=message.id)
+                                except Exception as e:
+                                    logger.error(f"Error checking subtitle limits: {e}")
+                                    # В случае ошибки проверки, все равно пытаемся встроить субтитры
+                                    status_msg = app.send_message(user_id, "⚠️ Вшивание субтитров может занять много времени (до 1 мин на 1 мин видео)!\n\nВшиваем субтитры... ⏳")
+                                    def tg_update_callback(progress, eta):
+                                        blocks = int(progress * 10)
+                                        bar = '🟩' * blocks + '⬜️' * (10 - blocks)
+                                        percent = int(progress * 100)
+                                        try:
+                                            app.edit_message_text(
+                                                chat_id=user_id,
+                                                message_id=status_msg.id,
+                                                text=f"Вшиваем субтитры...\n{bar} {percent}%\nETA: {eta} мин"
+                                            )
+                                        except Exception as e:
+                                            logger.error(f"Failed to update subtitle progress: {e}")
+                                    embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback)
                                     try:
                                         app.edit_message_text(
                                             chat_id=user_id,
                                             message_id=status_msg.id,
-                                            text=f"Вшиваем субтитры...\n{bar} {percent}%\nETA: {eta} мин"
+                                            text="Субтитры успешно вшиты! ✅"
                                         )
                                     except Exception as e:
-                                        logger.error(f"Failed to update subtitle progress: {e}")
-                                embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback)
-                                try:
-                                    app.edit_message_text(
-                                        chat_id=user_id,
-                                        message_id=status_msg.id,
-                                        text="Субтитры успешно вшиты! ✅"
-                                    )
-                                except Exception as e:
-                                    logger.error(f"Failed to update subtitle progress (final): {e}")
-                            else:
-                                logger.info("Ограничения превышены — субтитры не будут прожигаться.")
+                                        logger.error(f"Failed to update subtitle progress (final): {e}")
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         # ... остальной код ...
                         try:
@@ -5073,6 +5072,21 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 if video_bytes > get_user_split_size(user_id):
                     n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
                     scissors = f" ✂️{n_parts}"
+            
+            # Проверяем доступность субтитров для этого качества
+            subs_available = ""
+            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+            if subs_enabled:
+                # Создаем временный info_dict для проверки ограничений
+                temp_info = {
+                    'duration': info.get('duration'),
+                    'filesize': size_val * 1024 * 1024 if size_val else None,
+                    'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                }
+                # Проверяем и ограничения, и доступность субтитров
+                if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
+                    subs_available = "📝"
+            
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
@@ -5083,11 +5097,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 is_cached = quality_key in cached_qualities
                 postfix = ""
             emoji = "🚀" if is_cached else "📹"
-            duration = info.get('duration', 0)
-            # ВАЖНО: используем h (или height_val) как quality!
-            can_subs = can_burn_subs(h, duration, size_val)
-            subs_emoji = "📝" if can_subs else ""
-            table_lines.append(f"{emoji}  {quality_key}{subs_emoji}:  {size_str}{dim_str}{scissors}{postfix}")
+            table_lines.append(f"{emoji}  {quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -5097,21 +5107,40 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if table_block:
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         # Hint as a separate code block at the very bottom
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n📝 — Subtitles can be burned-in for this quality (if available).</pre>"
+        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
         for quality_key in sorted(found_quality_keys, key=sort_quality_key):
+            # Проверяем доступность субтитров для этого качества
+            subs_available = ""
+            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+            if subs_enabled:
+                # Создаем временный info_dict для проверки ограничений
+                size_val = None
+                for (qk, w, h), size in minside_size_dim_map.items():
+                    if qk == quality_key:
+                        size_val = size
+                        break
+                temp_info = {
+                    'duration': info.get('duration'),
+                    'filesize': size_val * 1024 * 1024 if size_val else None,
+                    'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                }
+                # Проверяем и ограничения, и доступность субтитров
+                if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
+                    subs_available = "📝"
+            
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon} {quality_key}{postfix}"
+                button_text = f"{icon} {quality_key}{subs_available}{postfix}"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} {quality_key}{subs_emoji}"
+                button_text = f"{icon} {quality_key}{subs_available}"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons and popular:
             for height in popular:
@@ -5126,29 +5155,57 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 if size_val is None:
                     continue
                     
+                # Проверяем доступность субтитров для этого качества
+                subs_available = ""
+                subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+                if subs_enabled:
+                    # Создаем временный info_dict для проверки ограничений
+                    temp_info = {
+                        'duration': info.get('duration'),
+                        'filesize': size_val * 1024 * 1024 if size_val else None,
+                        'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                    }
+                    # Проверяем и ограничения, и доступность субтитров
+                    if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
+                        subs_available = "📝"
+                
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
                     n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                     total = len(indices)
                     icon = "🚀" if n_cached > 0 else "📹"
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                    button_text = f"{icon} {quality_key}{postfix}"
+                    button_text = f"{icon} {quality_key}{subs_available}{postfix}"
                 else:
                     icon = "🚀" if quality_key in cached_qualities else "📹"
-                    button_text = f"{icon} {quality_key}{subs_emoji}"
+                    button_text = f"{icon} {quality_key}{subs_available}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons:
             quality_key = "best"
+            # Проверяем доступность субтитров для Best Quality
+            subs_available = ""
+            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+            if subs_enabled:
+                # Для Best Quality проверяем только длительность и размер
+                temp_info = {
+                    'duration': info.get('duration'),
+                    'filesize': None,  # Для Best Quality размер неизвестен заранее
+                    'filesize_approx': None
+                }
+                # Проверяем и ограничения, и доступность субтитров
+                if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
+                    subs_available = "📝"
+            
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon} Best Quality{postfix}"
+                button_text = f"{icon} Best Quality{subs_available}{postfix}"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} Best Quality"
+                button_text = f"{icon} Best Quality{subs_available}"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
             
             # Add "Try Another Qualities" button when no automatic qualities detected
@@ -5358,11 +5415,11 @@ def askq_callback(app, callback_query):
         # Handle playlists
         original_text = original_message.text or original_message.caption or ""
         if is_playlist_with_range(original_text):
-            _, video_start_with, video_end_with, playlist_name, _, _, _ = extract_url_range_tags(original_text)
+            _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
             video_count = video_end_with - video_start_with + 1
             down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=quality)
         else:
-            down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key, can_burn_subs=can_subs)
+            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=quality)
         return
 
     original_message = callback_query.message.reply_to_message
@@ -5524,31 +5581,11 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         quality_key = "best"
     else:
         try:
+            # Get information about the video to determine the sizes
             info = get_video_formats(url, user_id)
             formats = info.get('formats', [])
-            duration = info.get('duration', 0)
-
-            # Найти формат, соответствующий выбранному качеству
-            selected_fmt = None
-            for f in formats:
-                width = f.get('width')
-                height = f.get('height')
-                if width is not None and height is not None:
-                    if get_quality_by_min_side(width, height) == data:
-                        selected_fmt = f
-                        break
-
-            if selected_fmt:
-                h = selected_fmt.get('height', 0)
-                size_val = int(selected_fmt.get('filesize', 0) or selected_fmt.get('filesize_approx', 0)) // (1024*1024)
-            else:
-                h = 0
-                size_val = 0
-
-            duration = info.get('duration', 0)
-            can_subs = can_burn_subs(h, duration, size_val)
-
-            # --- твоя логика формирования fmt (оставь как есть) ---
+            
+            # Find the format with the highest quality to determine the sizes
             max_width = 0
             max_height = 0
             for f in formats:
@@ -5557,30 +5594,35 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         max_width = f['width']
                     if f['height'] > max_height:
                         max_height = f['height']
-
+            
+            # If the sizes are not found, use the standard logic
             if max_width == 0 or max_height == 0:
                 quality_str = data.replace('p', '')
                 quality_val = int(quality_str)
                 fmt = f"bv*[vcodec*=avc1][height<={quality_val}]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
             else:
+                # Determine the quality by the smaller side
                 min_side_quality = get_quality_by_min_side(max_width, max_height)
+                
+                # If the selected quality does not match the smaller side, use the standard logic
                 if data != min_side_quality:
                     quality_str = data.replace('p', '')
                     quality_val = int(quality_str)
                     fmt = f"bv*[vcodec*=avc1][height<={quality_val}]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
                 else:
+                    # Use the real height to form the format
                     real_height = get_real_height_for_quality(data, max_width, max_height)
                     quality_str = data.replace('p', '')
                     quality_val = int(quality_str)
                     fmt = f"bv*[vcodec*=avc1][height<={real_height}]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
-
+            
             quality_key = data
             callback_query.answer(f"Downloading {data}...")
         except ValueError:
             callback_query.answer("Unknown quality.")
             return
-
-        down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key, can_burn_subs=can_subs)
+    
+    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
 
 #@reply_with_keyboard
 def show_manual_quality_menu(app, callback_query):
@@ -5634,29 +5676,57 @@ def show_manual_quality_menu(app, callback_query):
     buttons = []
     
     for quality in manual_qualities:
+        # Проверяем доступность субтитров для этого качества
+        subs_available = ""
+        subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+        if subs_enabled:
+            # Создаем временный info_dict для проверки ограничений
+            temp_info = {
+                'duration': None,  # Для ручного меню длительность неизвестна
+                'filesize': None,  # Для ручного меню размер неизвестен
+                'filesize_approx': None
+            }
+            # Проверяем и ограничения, и доступность субтитров
+            if check_subs_limits(temp_info, quality) and check_subs_availability(url, user_id, quality):
+                subs_available = "📝"
+        
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality, indices)
             total = len(indices)
             icon = "🚀" if n_cached > 0 else "📹"
             postfix = f" ({n_cached}/{total})" if total > 1 else ""
-            button_text = f"{icon} {quality}{postfix}"
+            button_text = f"{icon} {quality}{subs_available}{postfix}"
         else:
             icon = "🚀" if quality in cached_qualities else "📹"
-            button_text = f"{icon} {quality}"
+            button_text = f"{icon} {quality}{subs_available}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality}"))
     
     # Add Best Quality button
+    # Проверяем доступность субтитров для Best Quality
+    subs_available = ""
+    subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+    if subs_enabled:
+        # Для Best Quality проверяем только длительность
+        temp_info = {
+            'duration': None,  # Для ручного меню длительность неизвестна
+            'filesize': None,
+            'filesize_approx': None
+        }
+        # Проверяем и ограничения, и доступность субтитров
+        if check_subs_limits(temp_info, "best") and check_subs_availability(url, user_id, "best"):
+            subs_available = "📝"
+    
     if is_playlist and playlist_range:
         indices = list(range(playlist_range[0], playlist_range[1]+1))
         n_cached = get_cached_playlist_count(get_clean_playlist_url(url), "best", indices)
         total = len(indices)
         icon = "🚀" if n_cached > 0 else "📹"
         postfix = f" ({n_cached}/{total})" if total > 1 else ""
-        button_text = f"{icon} Best Quality{postfix}"
+        button_text = f"{icon} Best Quality{subs_available}{postfix}"
     else:
         icon = "🚀" if "best" in cached_qualities else "📹"
-        button_text = f"{icon} Best Quality"
+        button_text = f"{icon} Best Quality{subs_available}"
     buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_best"))
     
     # Form rows of 3 buttons
@@ -5715,7 +5785,7 @@ def show_manual_quality_menu(app, callback_query):
 
 # --- an auxiliary function for downloading with the format ---
 #@reply_with_keyboard
-def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None, can_burn_subs=True):
+def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
 
     # We extract the range and other parameters from the original user message
     full_string = message.text or message.caption or ""
@@ -5733,7 +5803,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
     is_tiktok = is_tiktok_url(url)
 
     # We call the main function of loading with the correct parameters of the playlist
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key, can_burn_subs=can_burn_subs)
+    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
 
 
 def sanitize_autotag(tag: str) -> str:
@@ -6425,7 +6495,7 @@ def subs_command(app, message):
     
     app.send_message(
         message.chat.id,
-        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\n\nSelect subtitle language for YouTube videos\n\n{status}",
+        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\nSelect subtitle language for YouTube videos\n\n{status}",
         reply_markup=get_language_keyboard()
     )
     send_to_logger(message, "User opened /subs menu.")
@@ -6446,7 +6516,7 @@ def subs_page_callback(app, callback_query):
         status = "Current: 🚫 OFF"
     
     callback_query.edit_message_text(
-        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\n\nSelect subtitle language for YouTube videos\n\n{status}",
+        f"❗️WARNING: This feature is catastrophically slow! Therefore, it can't be enabled for playlists!\nSelect subtitle language for YouTube videos\n\n{status}",
         reply_markup=get_language_keyboard(page)
     )
     callback_query.answer()
@@ -6498,6 +6568,74 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
         })
     
     return ydl_opts
+
+
+def check_subs_availability(url, user_id, quality_key=None):
+    """
+    Проверяет доступность субтитров для выбранного пользователем языка
+    Возвращает True если субтитры доступны, False если нет
+    """
+    try:
+        # Получаем выбранный пользователем язык субтитров
+        subs_lang = get_user_subs_language(user_id)
+        if not subs_lang or subs_lang == "OFF":
+            return False
+        
+        # Получаем список доступных языков для этого видео
+        available_langs = get_available_subs_languages(url, user_id)
+        
+        # Проверяем доступность
+        if subs_lang == "AUTO":
+            # Для автосубтитров проверяем наличие любых автосубтитров
+            return len(available_langs) > 0
+        else:
+            # Для конкретного языка проверяем его наличие
+            return subs_lang in available_langs
+            
+    except Exception as e:
+        logger.error(f"Error checking subtitle availability: {e}")
+        return False
+
+
+def check_subs_limits(info_dict, quality_key=None):
+    """
+    Проверяет ограничения для встраивания субтитров
+    Возвращает True если субтитры можно встраивать, False если превышены лимиты
+    """
+    try:
+        # Получаем параметры из конфига
+        max_quality = Config.MAX_SUB_QUALITY
+        max_duration = Config.MAX_SUB_DURATION
+        max_size = Config.MAX_SUB_SIZE
+        
+        # Проверяем качество видео
+        if quality_key and quality_key != "best" and quality_key != "mp3":
+            try:
+                quality_height = int(quality_key.replace('p', ''))
+                if quality_height > max_quality:
+                    logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
+                    return False
+            except ValueError:
+                pass  # Если не удается извлечь высоту, пропускаем проверку качества
+        
+        # Проверяем длительность
+        duration = info_dict.get('duration')
+        if duration and duration > max_duration:
+            logger.info(f"Subtitle embedding skipped: duration {duration}s exceeds limit {max_duration}s")
+            return False
+        
+        # Проверяем размер файла
+        filesize = info_dict.get('filesize') or info_dict.get('filesize_approx')
+        if filesize:
+            size_mb = filesize // (1024 * 1024)
+            if size_mb > max_size:
+                logger.info(f"Subtitle embedding skipped: size {size_mb}MB exceeds limit {max_size}MB")
+                return False
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error checking subtitle limits: {e}")
+        return False
 
 
 def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
