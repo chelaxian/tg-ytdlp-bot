@@ -6468,50 +6468,49 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
             logger.info(f"Embedding subtitles from {subs_path} into {video_path}")
             logger.info(f"Output will be saved to {output_path}")
             
-            try:
-                # Запускаем ffmpeg для встраивания субтитров
-                cmd = [
-                    'ffmpeg', '-i', video_path,
-                    '-i', subs_path,
-                    '-c:v', 'copy',
-                    '-c:a', 'copy',
-                    '-c:s', 'mov_text',
-                    output_path
-                ]
-                logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
-                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-                logger.info("FFmpeg command completed successfully")
+            # Запускаем ffmpeg для встраивания субтитров
+            cmd = [
+                'ffmpeg', '-i', video_path,
+                '-i', subs_path,
+                '-c:v', 'copy',
+                '-c:a', 'copy',
+                '-c:s', 'mov_text',
+                output_path
+            ]
+            logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            logger.info("FFmpeg command completed successfully")
+            
+            if result.stderr:
+                logger.info(f"FFmpeg stderr output: {result.stderr}")
+            
+            # После успешной конвертации
+            logger.info(f"Removing original video: {video_path}")
+            os.remove(video_path)  # Удаляем оригинал
+            
+            logger.info(f"Removing subtitle file: {subs_path}")
+            os.remove(subs_path)   # Удаляем SRT
+            
+            logger.info(f"Renaming {output_path} to {video_path}")
+            os.rename(output_path, video_path)  # Переименовываем обратно
+            
+            # Обновляем путь к файлу в информации
+            if isinstance(info, dict):
+                if 'requested_downloads' in info:
+                    info['requested_downloads'][0]['filepath'] = video_path
+                info['filepath'] = video_path
+            elif isinstance(info, str):
+                info = video_path
                 
-                if result.stderr:
-                    logger.info(f"FFmpeg stderr output: {result.stderr}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error embedding subtitles: {e}")
+            if os.path.exists(output_path):
+                os.remove(output_path)
                 
-                # После успешной конвертации
-                logger.info(f"Removing original video: {video_path}")
-                os.remove(video_path)  # Удаляем оригинал
-                
-                logger.info(f"Removing subtitle file: {subs_path}")
-                os.remove(subs_path)   # Удаляем SRT
-                
-                logger.info(f"Renaming {output_path} to {video_path}")
-                os.rename(output_path, video_path)  # Переименовываем обратно
-                
-                # Обновляем путь к файлу в информации
-                if isinstance(info, dict):
-                    if 'requested_downloads' in info:
-                        info['requested_downloads'][0]['filepath'] = video_path
-                    info['filepath'] = video_path
-                elif isinstance(info, str):
-                    info = video_path
-                    
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Error embedding subtitles: {e}")
-                if os.path.exists(output_path):
-                    os.remove(output_path)
-                    
-            except Exception as e:
-                logger.error(f"Unexpected error while processing subtitles: {e}")
-                if os.path.exists(output_path):
-                    os.remove(output_path)
+        except Exception as e:
+            logger.error(f"Unexpected error while processing subtitles: {e}")
+            if os.path.exists(output_path):
+                os.remove(output_path)
                 
         return info
         
