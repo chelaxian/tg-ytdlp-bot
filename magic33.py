@@ -5018,11 +5018,12 @@ def askq_callback(app, callback_query):
             callback_query.answer("❌ This URL cannot be embedded.", show_alert=True)
             return
             
-        # Send transformed URL
+        # Send transformed URL with hidden link
         app.send_message(
             callback_query.message.chat.id,
-            embed_url,
-            reply_to_message_id=original_message.id
+            f"[Embedded media]({embed_url})",
+            reply_to_message_id=original_message.id,
+            parse_mode=enums.ParseMode.MARKDOWN
         )
         send_to_logger(original_message, f"Quick Embed: {embed_url}")
         callback_query.message.delete()
