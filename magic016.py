@@ -6435,10 +6435,13 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     def embed_subs_postprocess(info):
         try:
             # Получаем путь к видео из info
+            video_path = None
             if isinstance(info, dict):
                 video_path = info.get('requested_downloads', [{}])[0].get('filepath', '')
                 if not video_path:
                     video_path = info.get('filepath', '')
+            elif isinstance(info, str):
+                video_path = info
             else:
                 logger.error(f"Unexpected info type: {type(info)}")
                 return info
@@ -6464,8 +6467,10 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
             # Запускаем ffmpeg для встраивания субтитров
             cmd = [
                 'ffmpeg', '-i', video_path,
-                '-vf', f'subtitles={subs_path}',
+                '-i', subs_path,
+                '-c:v', 'copy',
                 '-c:a', 'copy',
+                '-c:s', 'mov_text',
                 output_path
             ]
             subprocess.run(cmd, check=True)
@@ -6480,6 +6485,8 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
                 if 'requested_downloads' in info:
                     info['requested_downloads'][0]['filepath'] = video_path
                 info['filepath'] = video_path
+            elif isinstance(info, str):
+                info = video_path
             
         except subprocess.CalledProcessError as e:
             logger.error(f"Error embedding subtitles: {e}")
