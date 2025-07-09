@@ -1,15 +1,19 @@
 # Version 2.5.0
+import glob
 import hashlib
+import io
 import logging
 import math
 import os
 import re
+import requests
 import shutil
 import subprocess
 #import sys
 import threading
 import time
 from datetime import datetime
+from PIL import Image
 from types import SimpleNamespace
 from typing import Tuple
 from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
@@ -33,10 +37,6 @@ from yt_dlp import YoutubeDL
 import yt_dlp
 
 from config import Config
-
-import io
-from PIL import Image
-import requests
 
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
@@ -6416,25 +6416,69 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     
     # Общие настройки для субтитров
     ydl_opts.update({
-        'subtitlesformat': 'srt',  # Всегда используем SRT как базовый формат
+        'writesubtitles': True,      # Скачивать субтитры
+        'subtitlesformat': 'srt',    # Формат субтитров
+        'merge_output_format': 'mkv' # Сначала сохраняем в MKV для совместимости
     })
     
     # Постпроцессоры
     if 'postprocessors' not in ydl_opts:
         ydl_opts['postprocessors'] = []
     
-    # 1. Конвертация субтитров в SRT (если они в другом формате)
+    # Конвертация субтитров в SRT
     ydl_opts['postprocessors'].append({
         'key': 'FFmpegSubtitlesConvertor',
         'format': 'srt'
     })
     
-    # 2. Встраивание субтитров с помощью FFmpeg
-    ydl_opts['postprocessors'].append({
-        'key': 'FFmpegVideoConvertor',
-        'preferedformat': 'mp4',
-        'args': ['-vf', 'subtitles=%(subtitle_path)s', '-c:a', 'copy'],
-    })
+    # После скачивания видео и субтитров, используем отдельный вызов ffmpeg для встраивания субтитров
+    def embed_subs_postprocess(info):
+        video_path = info['filepath']
+        video_dir = os.path.dirname(video_path)
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        
+        # Ищем файл субтитров (учитываем разные варианты, например .en.srt или .en-US.srt)
+        subs_pattern = os.path.join(video_dir, f"{video_name}*.srt")
+        subs_files = glob.glob(subs_pattern)
+        
+        if not subs_files:
+            logger.error(f"Subtitles not found for {video_path}")
+            return info
+            
+        subs_path = subs_files[0]  # Берем первый найденный файл субтитров
+        output_path = video_path.replace('.mkv', '.mp4')
+        
+        try:
+            # Запускаем ffmpeg для встраивания субтитров
+            cmd = [
+                'ffmpeg', '-i', video_path,
+                '-vf', f'subtitles={subs_path}',
+                '-c:a', 'copy',
+                output_path
+            ]
+            subprocess.run(cmd, check=True)
+            
+            # Удаляем временные файлы только после успешной конвертации
+            os.remove(video_path)  # Удаляем MKV
+            os.remove(subs_path)   # Удаляем SRT
+            
+            # Обновляем путь к файлу в информации
+            info['filepath'] = output_path
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error embedding subtitles: {e}")
+            # В случае ошибки оставляем оригинальный файл
+            if os.path.exists(output_path):
+                os.remove(output_path)
+                
+        except Exception as e:
+            logger.error(f"Unexpected error while processing subtitles: {e}")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+                
+        return info
+        
+    ydl_opts['post_hooks'] = [embed_subs_postprocess]
     
     return ydl_opts
 
