@@ -6399,11 +6399,6 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     
     if not subs_lang or subs_lang == "OFF":
         return ydl_opts
-        
-    # Не перезаписываем формат видео, используем тот, который уже установлен
-    # в соответствии с пользовательскими настройками через /format или Always Ask Menu
-    if 'merge_output_format' not in ydl_opts:
-        ydl_opts['merge_output_format'] = 'mkv'
     
     # Настройки для субтитров в зависимости от выбора пользователя
     if subs_lang == "AUTO":
@@ -6421,30 +6416,24 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     
     # Общие настройки для субтитров
     ydl_opts.update({
-        'subtitlesformat': 'srt',
-        'convertsubtitles': 'srt',
+        'subtitlesformat': 'srt',  # Всегда используем SRT как базовый формат
     })
     
     # Постпроцессоры
     if 'postprocessors' not in ydl_opts:
         ydl_opts['postprocessors'] = []
     
-    # 1. Конвертация субтитров в SRT
+    # 1. Конвертация субтитров в SRT (если они в другом формате)
     ydl_opts['postprocessors'].append({
         'key': 'FFmpegSubtitlesConvertor',
-        'format': 'srt',
+        'format': 'srt'
     })
     
-    # 2. Встраивание субтитров
+    # 2. Встраивание субтитров с помощью FFmpeg
     ydl_opts['postprocessors'].append({
-        'key': 'EmbedSubtitle',
-        'when': 'before_dl'
-    })
-    
-    # 3. Конвертация в MP4
-    ydl_opts['postprocessors'].append({
-        'key': 'FFmpegVideoRemuxer',
-        'preferedformat': 'mp4'
+        'key': 'FFmpegVideoConvertor',
+        'preferedformat': 'mp4',
+        'args': ['-vf', 'subtitles=%(subtitle_path)s', '-c:a', 'copy'],
     })
     
     return ydl_opts
