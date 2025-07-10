@@ -2536,7 +2536,7 @@ def send_videos(
                 user_doc_msg = app.send_document(
                     chat_id=user_id,
                     document=temp_desc_path,
-                    caption="<blockquote>📝 if you want to change video caption - reply to video with new text</blockquote>",
+                    caption="<blockquote>🗒 if you want to change video caption - reply to video with new text</blockquote>",
                     reply_to_message_id=message.id,
                     parse_mode=enums.ParseMode.HTML
                 )
@@ -3510,7 +3510,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                     ]
 
-        status_msg = app.send_message(user_id, "📹 Video is processing...")
+        status_msg = app.send_message(user_id, "📽 Video is processing...")
         hourglass_msg = app.send_message(user_id, "⌛️")
         # We save ID status messages
         status_msg_id = status_msg.id
@@ -5286,7 +5286,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 is_cached = quality_key in cached_qualities
                 postfix = ""
             emoji = "🚀" if is_cached else "📹"
-            table_lines.append(f"{emoji}  {quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
+            table_lines.append(f"{emoji}{quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -5296,7 +5296,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if table_block:
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         # Hint as a separate code block at the very bottom
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.</pre>"
+        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n📝 — Subs are available with chosen language.</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
@@ -5329,10 +5329,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon} {quality_key}{subs_available}{postfix}"
+                button_text = f"{icon}{quality_key}{subs_available}{postfix}"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} {quality_key}{subs_available}"
+                button_text = f"{icon}{quality_key}{subs_available}"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons and popular:
             for height in popular:
@@ -5367,10 +5367,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     total = len(indices)
                     icon = "🚀" if n_cached > 0 else "📹"
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                    button_text = f"{icon} {quality_key}{subs_available}{postfix}"
+                    button_text = f"{icon}{quality_key}{subs_available}{postfix}"
                 else:
                     icon = "🚀" if quality_key in cached_qualities else "📹"
-                    button_text = f"{icon} {quality_key}{subs_available}"
+                    button_text = f"{icon}{quality_key}{subs_available}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons:
             quality_key = "best"
@@ -5381,10 +5381,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon} Best Quality{postfix}"
+                button_text = f"{icon}Best Quality{postfix}"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} Best Quality"
+                button_text = f"{icon}Best Quality"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
             
             # Add "Try Another Qualities" button when no automatic qualities detected
@@ -5866,10 +5866,10 @@ def show_manual_quality_menu(app, callback_query):
             total = len(indices)
             icon = "🚀" if n_cached > 0 else "📹"
             postfix = f" ({n_cached}/{total})" if total > 1 else ""
-            button_text = f"{icon} {quality}{postfix}"
+            button_text = f"{icon}{quality}{postfix}"
         else:
             icon = "🚀" if quality in cached_qualities else "📹"
-            button_text = f"{icon} {quality}"
+            button_text = f"{icon}{quality}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality}"))
 
     # Best Quality
@@ -5879,10 +5879,10 @@ def show_manual_quality_menu(app, callback_query):
         total = len(indices)
         icon = "🚀" if n_cached > 0 else "📹"
         postfix = f" ({n_cached}/{total})" if total > 1 else ""
-        button_text = f"{icon} Best Quality{postfix}"
+        button_text = f"{icon}Best Quality{postfix}"
     else:
         icon = "🚀" if "best" in cached_qualities else "📹"
-        button_text = f"{icon} Best Quality"
+        button_text = f"{icon}Best Quality"
     buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_best"))
     
     # Form rows of 3 buttons
