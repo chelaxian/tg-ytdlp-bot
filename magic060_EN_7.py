@@ -17,7 +17,7 @@ from PIL import Image
 from types import SimpleNamespace
 from typing import Tuple
 from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
-
+from functools import wraps
 import pyrebase
 import tldextract
 from moviepy.editor import VideoFileClip
@@ -39,6 +39,32 @@ import yt_dlp
 from config import Config
 
 import chardet
+
+def safe_str(s):
+    if s is None:
+        return ""
+    if isinstance(s, bytes):
+        try:
+            return s.decode("utf-8", errors="replace")
+        except Exception:
+            return str(s)
+    if not isinstance(s, str):
+        s = str(s)
+    try:
+        return s.encode("utf-8", errors="replace").decode("utf-8", errors="replace")
+    except Exception:
+        return s
+
+def safe_text_args(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Список аргументов, которые нужно обработать
+        text_keys = {"caption", "description", "message", "text"}
+        for key in text_keys:
+            if key in kwargs:
+                kwargs[key] = safe_str(kwargs[key])
+        return func(*args, **kwargs)
+    return wrapper
 
 def ensure_utf8_srt(srt_path):
     # We determine the encoding
@@ -2402,6 +2428,7 @@ def truncate_caption(
     return title_html, pre_block_str, blockquote_content, tags_block, link_block, was_truncated
 
 #@reply_with_keyboard
+@safe_text_args
 def send_videos(
     message,
     video_abs_path: str,
