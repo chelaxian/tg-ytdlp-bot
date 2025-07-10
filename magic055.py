@@ -1932,14 +1932,38 @@ def send_mediainfo_if_enabled(user_id, file_path, message):
 @reply_with_keyboard
 def save_my_cookie(app, message):
     user_id = str(message.chat.id)
-    # We determine the path to the user folder (for example, "./users/1234567)
-    user_folder = f"./users/{user_id}"
-    create_directory(user_folder)
-    cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
-    cookie_file_path = os.path.join(user_folder, cookie_filename)
-    app.download_media(message, file_name=cookie_file_path)
+    # Проверка размера файла
+    if message.document.file_size > 100 * 1024:
+        send_to_all(message, "❌ The file is too large. Maximum size is 100 KB.")
+        return
+    # Проверка расширения
+    if not message.document.file_name.lower().endswith('.txt'):
+        send_to_all(message, "❌ Only files of the following format are allowed .txt.")
+        return
+    # Скачиваем файл во временную папку для проверки содержимого
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = os.path.join(tmpdir, message.document.file_name)
+        app.download_media(message, file_name=tmp_path)
+        try:
+            with open(tmp_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read(4096)  # читаем только первые 4 КБ
+                if '# Netscape HTTP Cookie File' not in content:
+                    send_to_all(message, "❌ The file does not look like cookie.txt (there is no line '# Netscape HTTP Cookie File').")
+                    return
+        except Exception as e:
+            send_to_all(message, f"❌ Error reading file: {e}")
+            return
+        # Если все проверки пройдены — сохраняем файл в папку пользователя
+        user_folder = f"./users/{user_id}"
+        create_directory(user_folder)
+        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+        cookie_file_path = os.path.join(user_folder, cookie_filename)
+        import shutil
+        shutil.copyfile(tmp_path, cookie_file_path)
     send_to_user(message, "✅ Cookie file saved")
     send_to_logger(message, f"Cookie file saved for user {user_id}.")
+
 
 #@reply_with_keyboard
 def download_cookie(app, message):
@@ -6866,7 +6890,7 @@ def check_subs_limits(info_dict, quality_key=None):
 
 def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
     """
-    Прожигает (hardcode) субтитры в видео-файл, если есть подходящий .srt-файл и subs.txt
+    Прожигает (hardcode) субтитры в видео-файл, если есть любой .srt-файл и subs.txt
     tg_update_callback(progress: float, eta: str) — функция для обновления статуса в Telegram
     """
     try:
@@ -6889,36 +6913,18 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video too large for subtitles: {width}x{height}")
             return False
-        video_base = os.path.splitext(os.path.basename(video_path))[0]
-        # Ищем все .srt в папке, которые начинаются с базового имени видео
-        all_srt_files = glob.glob(os.path.join(video_dir, "*.srt"))
-        video_srt_files = [f for f in all_srt_files if os.path.basename(f).startswith(video_base)]
-        # Извлекаем языковые коды из имён файлов
-        available_langs = []
-        srt_by_lang = {}
-        for f in video_srt_files:
-            m = re.match(rf"{re.escape(video_base)}\.([a-zA-Z\-]+)", os.path.basename(f))
-            if m:
-                lang = m.group(1)
-                available_langs.append(lang)
-                srt_by_lang[lang] = f
-        # Используем lang_match для поиска подходящего языка
-        matched_lang = lang_match(subs_lang, available_langs)
-        if matched_lang and matched_lang in srt_by_lang:
-            subs_candidates = [srt_by_lang[matched_lang]]
-        else:
-            # Fallback: любой .srt для этого видео
-            subs_candidates = video_srt_files
-        logger.info(f"Subtitle candidates (priority order): {subs_candidates}")
-        if not subs_candidates:
-            logger.info(f"No subtitles found for {video_base}")
+        # --- УПРОЩЁННЫЙ ПОИСК: берём любой .srt-файл в папке ---
+        srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
+        if not srt_files:
+            logger.info(f"No .srt files found in {video_dir}")
             return False
-        subs_path = subs_candidates[0]
+        subs_path = os.path.join(video_dir, srt_files[0])
         if not os.path.exists(subs_path):
             logger.error(f"Subtitle file not found: {subs_path}")
             return False
         # Приводим .srt к UTF-8, если нужно
         subs_path = ensure_utf8_srt(subs_path)
+        video_base = os.path.splitext(os.path.basename(video_path))[0]
         output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
         # Получаем длительность видео через ffprobe
         def get_duration(path):
