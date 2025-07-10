@@ -2894,6 +2894,7 @@ def write_logs(message, video_url, video_title):
 # ########################################
 
 # @reply_with_keyboard
+@safe_text_args
 def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1):
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
@@ -3386,6 +3387,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 # Download_and_up function
 # ########################################
 #@reply_with_keyboard
+@safe_text_args
 def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
@@ -5988,6 +5990,7 @@ def show_manual_quality_menu(app, callback_query):
 
 # --- an auxiliary function for downloading with the format ---
 # @reply_with_keyboard
+@safe_text_args
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
 
     # We extract the range and other parameters from the original user message
