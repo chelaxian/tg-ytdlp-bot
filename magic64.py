@@ -4159,8 +4159,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     app.send_message(user_id, "ℹ️ Subtitles are not available for the selected language", reply_to_message_id=message.id)
                             # Clear
                             clear_subs_check_cache()
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
-                        
+                        logger.info(f"[DEBUG] Перед отправкой видео: path={after_rename_abs_path}, caption={repr(original_video_title)}, duration={duration}, thumb={thumb_dir}, info_text={repr(info_text)}, full_video_title={repr(full_video_title)}, tags_text_final={repr(tags_text_final)}")
+                        try:
+                            video_msg = send_videos(
+                                message,
+                                after_rename_abs_path,
+                                '' if force_no_title else original_video_title,
+                                duration,
+                                thumb_dir,
+                                info_text,
+                                proc_msg.id,
+                                full_video_title,
+                                tags_text_final
+                            )
+                            logger.info(f"[DEBUG] Видео успешно отправлено! video_msg={video_msg}")
+                        except Exception as e:
+                            logger.error(f"Error sending video: {e}")
+                            logger.error(f"[DEBUG] Ошибка при отправке видео. path={after_rename_abs_path}, caption={repr(original_video_title)}, duration={duration}, thumb={thumb_dir}, info_text={repr(info_text)}, full_video_title={repr(full_video_title)}, tags_text_final={repr(tags_text_final)}")
+                            send_to_all(message, f"❌ Error sending video: {str(e)}")
+                            continue
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
@@ -4241,23 +4258,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if thumb_dir and os.path.exists(thumb_dir):
                             os.remove(thumb_dir)
                         threading.Event().wait(2)
-                    logger.info(f"[DEBUG] Перед отправкой видео: path={after_rename_abs_path}, caption={repr(original_video_title)}, duration={duration}, thumb={thumb_dir}, info_text={repr(info_text)}, full_video_title={repr(full_video_title)}, tags_text_final={repr(tags_text_final)}")
-                    try:
-                        video_msg = send_videos(
-                            message,
-                            after_rename_abs_path,
-                            '' if force_no_title else original_video_title,
-                            duration,
-                            thumb_dir,
-                            info_text,
-                            proc_msg.id,
-                            full_video_title,
-                            tags_text_final
-                        )
-                        logger.info(f"[DEBUG] Видео успешно отправлено! video_msg={video_msg}")
                     except Exception as e:
                         logger.error(f"Error sending video: {e}")
-                        logger.error(f"[DEBUG] Ошибка при отправке видео. path={after_rename_abs_path}, caption={repr(original_video_title)}, duration={duration}, thumb={thumb_dir}, info_text={repr(info_text)}, full_video_title={repr(full_video_title)}, tags_text_final={repr(tags_text_final)}")
                         send_to_all(message, f"❌ Error sending video: {str(e)}")
                         continue
         if successful_uploads == len(indices_to_download):
