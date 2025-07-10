@@ -6884,36 +6884,34 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             logger.info(f"Subtitles disabled for user {user_id}")
             return False
         video_dir = os.path.dirname(video_path)
-        # ... внутри embed_subs_to_video, после определения video_path ...
         clip = VideoFileClip(video_path)
         width, height = clip.size
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video too large for subtitles: {width}x{height}")
             return False
-        video_name = os.path.splitext(os.path.basename(video_path))[0]
-        # Собираем все .srt-файлы для этого видео
-        all_srt_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
+        video_base = os.path.splitext(os.path.basename(video_path))[0]
+        # Ищем все .srt в папке, которые начинаются с базового имени видео
+        all_srt_files = glob.glob(os.path.join(video_dir, "*.srt"))
+        video_srt_files = [f for f in all_srt_files if os.path.basename(f).startswith(video_base)]
         # Извлекаем языковые коды из имён файлов
         available_langs = []
         srt_by_lang = {}
-        for f in all_srt_files:
-            # Пытаемся извлечь язык из имени файла: <video_name>.<lang>[...].srt
-            m = re.match(rf"{re.escape(video_name)}\.([a-zA-Z\-]+)", os.path.basename(f))
+        for f in video_srt_files:
+            m = re.match(rf"{re.escape(video_base)}\.([a-zA-Z\-]+)", os.path.basename(f))
             if m:
                 lang = m.group(1)
                 available_langs.append(lang)
                 srt_by_lang[lang] = f
         # Используем lang_match для поиска подходящего языка
         matched_lang = lang_match(subs_lang, available_langs)
-        subs_candidates = []
         if matched_lang and matched_lang in srt_by_lang:
             subs_candidates = [srt_by_lang[matched_lang]]
         else:
             # Fallback: любой .srt для этого видео
-            subs_candidates = all_srt_files
+            subs_candidates = video_srt_files
         logger.info(f"Subtitle candidates (priority order): {subs_candidates}")
         if not subs_candidates:
-            logger.info(f"No subtitles found for {video_name}")
+            logger.info(f"No subtitles found for {video_base}")
             return False
         subs_path = subs_candidates[0]
         if not os.path.exists(subs_path):
@@ -6921,7 +6919,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             return False
         # Приводим .srt к UTF-8, если нужно
         subs_path = ensure_utf8_srt(subs_path)
-        output_path = os.path.join(video_dir, f"{video_name}_with_subs_temp.mp4")
+        output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
         # Получаем длительность видео через ffprobe
         def get_duration(path):
             try:
@@ -7000,6 +6998,5 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
         return False
-
 
 app.run()
