@@ -6942,11 +6942,13 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             return None
         total_time = get_duration(video_path)
         # Прожиг субтитров
+        subs_path_escaped = subs_path.replace("'", "'\\''")
+        filter_arg = f"subtitles='{subs_path_escaped}'"
         cmd = [
             'ffmpeg',
             '-y',
             '-i', video_path,
-            '-vf', f"subtitles={subs_path}",
+            '-vf', filter_arg,
             '-c:a', 'copy',
             output_path
         ]
