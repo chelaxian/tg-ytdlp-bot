@@ -128,6 +128,7 @@ def save_user_subs_language(user_id, lang_code):
     else:
         with open(subs_file, "w", encoding="utf-8") as f:
             f.write(lang_code)
+    clear_subs_check_cache()
 
 def get_user_subs_auto_mode(user_id):
     """Get user's AUTO mode setting for subtitles"""
