@@ -2315,7 +2315,7 @@ def progress_bar(*args):
     except Exception as e:
         logger.error(f"Error updating progress: {e}")
 
-
+@safe_text_args
 def truncate_caption(
     title: str,
     description: str,
@@ -2626,6 +2626,7 @@ def TimeFormatter(milliseconds: int) -> str:
         ((str(milliseconds) + "ms, ") if milliseconds else "")
     return tmp[:-2]
 
+@safe_text_args
 def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
     """
     Split a video into multiple parts
@@ -2696,6 +2697,7 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration):
         }
         return split_vid_dict
 
+@safe_text_args
 def get_duration_thumb_(dir, video_path, thumb_name):
     # Generate a short unique name for the thumbnail
     thumb_hash = hashlib.md5(thumb_name.encode()).hexdigest()[:10]
@@ -2743,6 +2745,7 @@ def get_duration_thumb_(dir, video_path, thumb_name):
     clip.close()
     return duration, thumb_dir
 
+@safe_text_args
 def get_duration_thumb(message, dir_path, video_path, thumb_name):
     """
     Captures a thumbnail at 2 seconds into the video and retrieves video duration.
@@ -2864,6 +2867,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         send_to_all(message, f"❌ Error processing video: {e}")
         return None
 
+@safe_text_args
 def create_default_thumbnail(thumb_path, width=480, height=480):
     """Create a default thumbnail when normal thumbnail creation fails"""
     try:
@@ -4417,6 +4421,7 @@ def cleanup_temp_files():
         except Exception as e:
             logger.error(f"Error cleaning user directory {user_dir}: {e}")
 
+@safe_text_args
 def cleanup_user_temp_files(user_id):
     """Clean up temporary files for a specific user"""
     user_dir = os.path.join("users", str(user_id))
@@ -4935,7 +4940,7 @@ def extract_youtube_id(url: str) -> str:
             return m.group(1)
     raise ValueError("Failed to extract YouTube ID")
 
-
+@safe_text_args
 def download_thumbnail(video_id: str, dest: str, url: str = None) -> None:
     """
     Downloads YouTube (Maxresdefault/Hqdefault) to the disk in the original size.
@@ -5251,6 +5256,7 @@ def sort_quality_key(quality_key):
             return 0  # for unknown formats
 
 # @reply_with_keyboard
+@safe_text_args
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
@@ -6941,7 +6947,7 @@ def check_subs_limits(info_dict, quality_key=None):
         logger.error(f"Error checking subtitle limits: {e}")
         return False
 
-
+@safe_text_args
 def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
     """
     Burning (hardcode) subtitles in a video file, if there is any .SRT file and subs.txt
