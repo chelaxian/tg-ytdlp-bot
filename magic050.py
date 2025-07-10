@@ -6684,6 +6684,7 @@ def clear_subs_check_cache():
     """Очищает кэш проверок субтитров"""
     global _subs_check_cache
     _subs_check_cache.clear()
+    logger.info("Subs check cache cleared")
 
 def check_subs_availability(url, user_id, quality_key=None):
     """
