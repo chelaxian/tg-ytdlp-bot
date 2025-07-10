@@ -244,7 +244,7 @@ def get_language_keyboard(page=0, user_id=None):
     auto_emoji = "✅" if auto_mode else "☑️"
     keyboard.append([
         InlineKeyboardButton("🚫 OFF", callback_data="subs_lang|OFF"),
-        InlineKeyboardButton(f"{auto_emoji} AUTO-GEN", callback_data="subs_auto|toggle")
+        InlineKeyboardButton(f"{auto_emoji} AUTO-GEN", callback_data=f"subs_auto|toggle|{page}")
     ])
     
     return InlineKeyboardMarkup(keyboard)
@@ -6709,7 +6709,9 @@ def subs_lang_callback(app, callback_query):
 @app.on_callback_query(filters.regex(r"^subs_auto\|"))
 def subs_auto_callback(app, callback_query):
     """Handle AUTO-GEN mode toggle in subtitle language menu"""
-    action = callback_query.data.split("|")[1]
+    parts = callback_query.data.split("|")
+    action = parts[1]
+    page = int(parts[2]) if len(parts) > 2 else 0  # <-- вот тут!
     user_id = callback_query.from_user.id
     
     if action == "toggle":
@@ -6739,7 +6741,7 @@ def subs_auto_callback(app, callback_query):
         # Обновляем сообщение с новым меню
         callback_query.edit_message_text(
             f"**🎬 Настройки субтитров**\n\n{status_text}\n\nВыберите язык субтитров:",
-            reply_markup=get_language_keyboard(page=0, user_id=user_id)
+            reply_markup=get_language_keyboard(page=page, user_id=user_id)
         )
         
         send_to_logger(callback_query.message, f"User toggled AUTO-GEN mode to: {new_auto}")
