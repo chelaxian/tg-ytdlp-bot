@@ -9,7 +9,7 @@ import re
 import requests
 import shutil
 import subprocess
-#import sys
+# import sys
 import threading
 import time
 from datetime import datetime
@@ -41,13 +41,13 @@ from config import Config
 import chardet
 
 def ensure_utf8_srt(srt_path):
-    # Определяем кодировку
+    # We determine the encoding
     with open(srt_path, 'rb') as f:
         raw = f.read()
         result = chardet.detect(raw)
         encoding = result['encoding']
     if encoding.lower() != 'utf-8':
-        # Перекодируем во временный файл
+        # Spensed to a temporary file
         utf8_path = srt_path + '.utf8.srt'
         with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in, \
              open(utf8_path, 'w', encoding='utf-8') as f_out:
@@ -178,14 +178,14 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             available_langs = []
             
             if auto_only:
-                # Только автосубтитры
+                # Only autosubters
                 if 'automatic_captions' in info:
                     available_langs.extend(list(info['automatic_captions'].keys()))
                     logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
                 else:
                     logger.info("No automatic captions found")
             else:
-                # Только обычные субтитры
+                # Only ordinary subtitles
                 if 'subtitles' in info:
                     available_langs.extend(list(info['subtitles'].keys()))
                     logger.info(f"Found subtitles: {list(info['subtitles'].keys())}")
@@ -316,7 +316,7 @@ def reply_with_keyboard(func):
 # --- Example of using wrapper for any handler ---
 # @reply_with_keyboard
 # def your_handler(...):
-#     ...
+# ...
 
 # --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
@@ -602,7 +602,7 @@ def create_directory(path):
 
 # Command to Set Browser Cooks
 @app.on_message(filters.command("cookies_from_browser") & filters.private)
-#@reply_with_keyboard
+# @reply_with_keyboard
 def cookies_from_browser(app, message):
     user_id = message.chat.id
     # For non-admins, we check the subscription
@@ -671,7 +671,7 @@ def cookies_from_browser(app, message):
 
 # Callback Handler for Browser Selection
 @app.on_callback_query(filters.regex(r"^browser_choice\|"))
-#@reply_with_keyboard
+# @reply_with_keyboard
 def browser_choice_callback(app, callback_query):
     logger.info(f"[BROWSER] callback: {callback_query.data}")
     import subprocess
@@ -733,7 +733,7 @@ def browser_choice_callback(app, callback_query):
 
 # Command to Download Audio from a Video url
 @app.on_message(filters.command("audio") & filters.private)
-#@reply_with_keyboard
+# @reply_with_keyboard
 def audio_command_handler(app, message):
     user_id = message.chat.id
     if get_active_download(user_id):
@@ -764,7 +764,7 @@ def audio_command_handler(app, message):
 
 # /Playlist Command
 @app.on_message(filters.command("playlist") & filters.private)
-#@reply_with_keyboard
+# @reply_with_keyboard
 def playlist_command(app, message):
     user_id = message.chat.id
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
@@ -776,7 +776,7 @@ def playlist_command(app, message):
 
 # Command /Format Handler
 @app.on_message(filters.command("format") & filters.private)
-#@reply_with_keyboard
+# @reply_with_keyboard
 def set_format(app, message):
     user_id = message.chat.id
     # For non-admins, we check the subscription
@@ -816,7 +816,7 @@ def set_format(app, message):
 
 # Callbackquery Handler for /Format Menu Selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
-#@reply_with_keyboard
+# @reply_with_keyboard
 def format_option_callback(app, callback_query):
     logger.info(f"[FORMAT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -2845,7 +2845,7 @@ def write_logs(message, video_url, video_title):
 # Down_and_audio function
 # ########################################
 
-#@reply_with_keyboard
+# @reply_with_keyboard
 def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1):
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
@@ -4841,7 +4841,7 @@ def save_user_tags(user_id, tags):
                 f.write(tag + "\n")
 
 @app.on_message(filters.command("tags") & filters.private)
-#@reply_with_keyboard
+# @reply_with_keyboard
 def tags_command(app, message):
     user_id = message.chat.id
     user_dir = os.path.join("users", str(user_id))
@@ -4889,8 +4889,8 @@ def extract_youtube_id(url: str) -> str:
 
 def download_thumbnail(video_id: str, dest: str, url: str = None) -> None:
     """
-    Скачивает превью YouTube (maxresdefault/hqdefault) на диск в оригинальном размере.
-    url — нужен для определения Shorts по ссылке (но теперь не используется).
+    Downloads YouTube (Maxresdefault/Hqdefault) to the disk in the original size.
+    URL - it is needed to determine Shorts by link (but now it is not used).
     """
     base = f"https://img.youtube.com/vi/{video_id}"
     img_bytes = None
@@ -4903,7 +4903,7 @@ def download_thumbnail(video_id: str, dest: str, url: str = None) -> None:
             break
     if not img_bytes:
         raise RuntimeError("Failed to download thumbnail or it is too big")
-    # Больше ничего не делаем — сохраняем оригинальный размер!
+    # We do nothing else - we keep the original size!
 
 # --- global lists of domains and keywords ---
 PORN_DOMAINS = set()
@@ -5020,7 +5020,7 @@ def is_porn(url, title, description, caption=None):
     Checks content for pornography by domain and keywords (word-boundary regex search)
     in title, description and caption. Domain whitelist has highest priority.
     """
-    # 1. Проверка домена
+    # 1. Checking the domain
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
     for dom in domain_parts:
@@ -5031,7 +5031,7 @@ def is_porn(url, title, description, caption=None):
         logger.info(f"is_porn: domain match: {domain_parts}")
         return True
 
-    # 2. Подготовка текста
+    # 2. Preparation of the text
     title_lower       = title.lower()       if title       else ""
     description_lower = description.lower() if description else ""
     caption_lower     = caption.lower()     if caption     else ""
@@ -5039,21 +5039,21 @@ def is_porn(url, title, description, caption=None):
         logger.info("is_porn: all text fields empty")
         return False
 
-    # 3. Собираем единый текст для поиска
+    # 3. We collect a single text for search
     combined = " ".join([title_lower, description_lower, caption_lower])
     logger.debug(f"is_porn combined text: '{combined}'")
     logger.debug(f"is_porn keywords: {PORN_KEYWORDS}")
 
-    # 4. Готовим regex-паттерн со списком ключевых слов
+    # 4. Preparing a regex pattern with a list of keywords
     kws = [re.escape(kw.lower()) for kw in PORN_KEYWORDS if kw.strip()]
     if not kws:
-        # нет ни одного валидного ключа
+        # There is not a single valid key
         return False
 
-    # границы слов (\b) + флаг IGNORECASE
+    # The boundaries of words (\ b) + flag ignorecase
     pattern = re.compile(r"\b(" + "|".join(kws) + r")\b", flags=re.IGNORECASE)
 
-    # 5. Ищем совпадение
+    # 5. We are looking for a coincidence
     if pattern.search(combined):
         logger.info(f"is_porn: keyword match (regex): {pattern.pattern}")
         return True
@@ -5062,7 +5062,7 @@ def is_porn(url, title, description, caption=None):
     return False
 
 @app.on_message(filters.command("split") & filters.private)
-#@reply_with_keyboard
+# @reply_with_keyboard
 def split_command(app, message):
     user_id = message.chat.id
     # Subscription check for non-admines
@@ -5093,7 +5093,7 @@ def split_command(app, message):
     send_to_logger(message, "User opened /split menu.")
 
 @app.on_callback_query(filters.regex(r"^split_size\|"))
-#@reply_with_keyboard
+# @reply_with_keyboard
 def split_size_callback(app, callback_query):
     logger.info(f"[SPLIT] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -5149,12 +5149,12 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
     }
     if user_id is not None:
         user_dir = os.path.join("users", str(user_id))
-        # Проверяем наличие cookie.txt в папке пользователя
+        # Check the availability of cookie.txt in the user folder
         user_cookie_path = os.path.join(user_dir, "cookie.txt")
         if os.path.exists(user_cookie_path):
             cookie_file = user_cookie_path
         else:
-            # Если нет в папке пользователя, копируем из глобальной папки
+            # If not in the user folder, we copy from the global folder
             global_cookie_path = Config.COOKIE_FILE_PATH
             if os.path.exists(global_cookie_path):
                 try:
@@ -5169,9 +5169,9 @@ def get_video_formats(url, user_id=None, playlist_start_index=1):
             else:
                 cookie_file = None
         
-        # Проверяем, нужно ли использовать --no-cookies для данного домена
+        # We check whether to use —no-Cookies for this domain
         if is_no_cookie_domain(url):
-            ytdl_opts['cookiefile'] = None  # Эквивалент --no-cookies
+            ytdl_opts['cookiefile'] = None  # Equivalent-No-Cookies
             logger.info(f"Using --no-cookies for domain in get_video_formats: {url}")
         elif cookie_file:
             ytdl_opts['cookiefile'] = cookie_file
@@ -5201,7 +5201,7 @@ def sort_quality_key(quality_key):
         except ValueError:
             return 0  # for unknown formats
 
-#@reply_with_keyboard
+# @reply_with_keyboard
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
@@ -5263,10 +5263,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
                     scissors = f" ✂️{n_parts}"
             
-            # Проверяем доступность субтитров для этого качества
+            # Check the availability of subtitles for this quality
             subs_available = ""
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-            # Проверяем ограничения только если размер найден и не превышает лимит
+            # Check the restrictions only if the size is found and does not exceed the limit
             if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                 temp_info = {
                     'duration': info.get('duration'),
@@ -5301,25 +5301,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         buttons = []
         # Sort buttons by quality from lowest to highest
         for quality_key in sorted(found_quality_keys, key=sort_quality_key):
-            # Проверяем доступность субтитров для этого качества
+            # Check the availability of subtitles for this quality
             subs_available = ""
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-            # Сначала ищем size_val для этого качества
+            # First, we are looking for size_val for this quality
             size_val = None
             for (qk, w, h), size in minside_size_dim_map.items():
                 if qk == quality_key:
                     size_val = size
                     break
-            # Проверяем ограничения только если размер найден и не превышает лимит                
+            # Check the restrictions only if the size is found and does not exceed the limit
             if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                # Создаем временный info_dict для проверки ограничений
+                # Create a temporary info_dict to check restrictions
 
                 temp_info = {
                     'duration': info.get('duration'),
                     'filesize': size_val * 1024 * 1024 if size_val else None,
                     'filesize_approx': size_val * 1024 * 1024 if size_val else None
                 }
-                # Проверяем и ограничения, и доступность субтитров
+                # We check the restrictions and the availability of subtitles
                 if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
                     subs_available = "📝"
             
@@ -5347,17 +5347,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 if size_val is None:
                     continue
                     
-                # Проверяем доступность субтитров для этого качества
+                # Check the availability of subtitles for this quality
                 subs_available = ""
                 subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
                 if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                    # Создаем временный info_dict для проверки ограничений
+                    # Create a temporary info_dict to check restrictions
                     temp_info = {
                         'duration': info.get('duration'),
                         'filesize': size_val * 1024 * 1024 if size_val else None,
                         'filesize_approx': size_val * 1024 * 1024 if size_val else None
                     }
-                    # Проверяем и ограничения, и доступность субтитров
+                    # We check the restrictions and the availability of subtitles
                     if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
                         subs_available = "📝"
                 
@@ -5463,7 +5463,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
 # --- Callback Processor ---
 @app.on_callback_query(filters.regex(r"^askq\|"))
-#@reply_with_keyboard
+# @reply_with_keyboard
 def askq_callback(app, callback_query):
     logger.info(f"[ASKQ] callback: {callback_query.data}")
     user_id = callback_query.from_user.id
@@ -5808,7 +5808,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
 
-#@reply_with_keyboard
+# @reply_with_keyboard
 def show_manual_quality_menu(app, callback_query):
     """Show manual quality selection menu when automatic detection fails"""
     user_id = callback_query.from_user.id
@@ -5940,7 +5940,7 @@ def show_manual_quality_menu(app, callback_query):
 
 
 # --- an auxiliary function for downloading with the format ---
-#@reply_with_keyboard
+# @reply_with_keyboard
 def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
 
     # We extract the range and other parameters from the original user message
@@ -6053,13 +6053,13 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 logger.warning(f"save_to_video_cache: message_ids is empty for URL: {url}, quality: {quality_key}")
                 continue
             
-            # Упрощенная логика для кэширования
+            # Simplified logic for caching
             if len(message_ids) == 1:
-                # Одиночное видео - сохраняем как есть
+                # Single video - we keep as it is
                 cache_ref.child(quality_key).set(str(message_ids[0]))
                 logger.info(f"Saved single video to cache for URL hash {url_hash}, quality {quality_key}, msg_id {message_ids[0]}")
             else:
-                # Split видео (множественные части) - сохраняем все ID через запятую
+                # SPLIT Video (multiple parts) - keep all the ID through a comma
                 ids_string = ",".join(map(str, message_ids))
                 cache_ref.child(quality_key).set(ids_string)
                 logger.info(f"Saved split video to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string} ({len(message_ids)} parts)")
@@ -6580,18 +6580,18 @@ def get_real_height_for_quality(quality: str, width: int, height: int) -> int:
 
 def is_no_cookie_domain(url: str) -> bool:
     """
-    Проверяет, является ли домен из списка NO_COOKIE_DOMAINS.
-    Для таких доменов нужно использовать --no-cookies вместо --cookies.
+    Checks whether the domain is from the list no_cookie_domains.
+    For such domains, you need to use —no-Cookies instead of-Cookies.
     """
     try:
         parsed_url = urlparse(url)
         domain = parsed_url.netloc.lower()
         
-        # Убираем www. если есть
+        # We remove www. If there is
         if domain.startswith('www.'):
             domain = domain[4:]
             
-        # Проверяем домен и его поддомены
+        # Check the domain and its subdomain
         for no_cookie_domain in Config.NO_COOKIE_DOMAINS:
             if domain == no_cookie_domain or domain.endswith('.' + no_cookie_domain):
                 logger.info(f"URL {url} matches NO_COOKIE_DOMAINS pattern: {no_cookie_domain}")
@@ -6640,7 +6640,7 @@ def subs_command(app, message):
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
     
-    # Включаем AUTO-GEN по умолчанию, если не был включён ранее
+    # We turn on the Auto-Gen by default, if it was not included earlier
     if not get_user_subs_auto_mode(user_id):
         save_user_subs_auto_mode(user_id, True)
     
@@ -6709,7 +6709,7 @@ def subs_auto_callback(app, callback_query):
     """Handle AUTO-GEN mode toggle in subtitle language menu"""
     parts = callback_query.data.split("|")
     action = parts[1]
-    page = int(parts[2]) if len(parts) > 2 else 0  # <-- вот тут!
+    page = int(parts[2]) if len(parts) > 2 else 0  # <- Here!
     user_id = callback_query.from_user.id
     
     if action == "toggle":
@@ -6717,14 +6717,14 @@ def subs_auto_callback(app, callback_query):
         new_auto = not current_auto
         save_user_subs_auto_mode(user_id, new_auto)
         
-        # Показываем уведомление пользователю
+        # We show the notification to the user
         auto_text = "включен" if new_auto else "выключен"
         notification = f"✅ Режим автосубтитров {auto_text}"
         
-        # Отвечаем только уведомлением, не закрываем меню
+        # We answer only by notification, do not close the menu
         callback_query.answer(notification, show_alert=False)
         
-        # Обновляем меню с новым состоянием AUTO
+        # We update the menu with the new Auto state
         current_lang = get_user_subs_language(user_id)
         auto_mode = get_user_subs_auto_mode(user_id)
         
@@ -6736,7 +6736,7 @@ def subs_auto_callback(app, callback_query):
             auto_text = " (автосубтитры)" if auto_mode else ""
             status_text = f"{lang_info['flag']} Выбран язык: {lang_info['name']}{auto_text}"
         
-        # Обновляем сообщение с новым меню
+        # We update the message from the new menu
         callback_query.edit_message_text(
             f"**🎬 Настройки субтитров**\n\n{status_text}\n\nВыберите язык субтитров:",
             reply_markup=get_language_keyboard(page=page, user_id=user_id)
@@ -6747,7 +6747,7 @@ def subs_auto_callback(app, callback_query):
 
 def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     """
-    Модифицирует параметры yt-dlp для работы с субтитрами с учетом пользовательских настроек
+    Modifies YT-DLP parameters to work with subtitles taking into account custom settings
     """
     subs_lang = get_user_subs_language(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
@@ -6755,50 +6755,50 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     if not subs_lang or subs_lang == "OFF":
         return ydl_opts
     
-    # Настройки для субтитров в зависимости от выбора пользователя
+    # Subtit settings depending on the user choice
     if auto_mode:
-        # Режим автосубтитров - ищем выбранный язык только в автосубтитрах
+        # Car Subtit mode - looking for the selected language only in car carbits
         ydl_opts.update({
             'writeautomaticsub': True,
             'writesubtitles': False,
-            'subtitleslangs': [subs_lang],  # Ищем конкретный язык в автосубтитрах
-            'subtitlesformat': 'srt',  # Формат субтитров
+            'subtitleslangs': [subs_lang],  # We are looking for a specific language in car carbits
+            'subtitlesformat': 'srt',  # Subtitles format
         })
     else:
-        # Обычный режим - ищем выбранный язык в обычных субтитрах
+        # Normal mode - looking for a selected language in ordinary subtitles
         ydl_opts.update({
             'writeautomaticsub': False,
             'writesubtitles': True,
-            'subtitleslangs': [subs_lang],  # Используем язык, выбранный пользователем
-            'subtitlesformat': 'srt',  # Формат субтитров
+            'subtitleslangs': [subs_lang],  # We use the language selected by the user
+            'subtitlesformat': 'srt',  # Subtitles format
         })
     
     return ydl_opts
 
 
-# Кэш для проверок субтитров
+# Cache for subtitles checks
 _subs_check_cache = {}
 
 def clear_subs_check_cache():
-    """Очищает кэш проверок субтитров"""
+    """Cleans the cache of subtitle checks"""
     global _subs_check_cache
     _subs_check_cache.clear()
     logger.info("Subs check cache cleared")
 
 def check_subs_availability(url, user_id, quality_key=None):
     """
-    Проверяет доступность субтитров для выбранного пользователем языка
-    Возвращает True если субтитры доступны, False если нет
+    Checks the availability of subtitles for the language chosen by the user
+    Returns True if the subtitles are available, false if not
     """
     try:
-        # Создаем ключ кэша
+        # Create the Kesh key
         cache_key = f"{url}_{user_id}"
         
-        # Проверяем кэш
+        # Check the cache
         if cache_key in _subs_check_cache:
             return _subs_check_cache[cache_key]
         
-        # Получаем выбранный пользователем язык субтитров и режим AUTO
+        # We get the subtitus language chosen by the user and the Auto mode
         subs_lang = get_user_subs_language(user_id)
         auto_mode = get_user_subs_auto_mode(user_id)
         
@@ -6806,18 +6806,18 @@ def check_subs_availability(url, user_id, quality_key=None):
             _subs_check_cache[cache_key] = False
             return False
         
-        # Получаем список доступных языков для этого видео
-        # Если включен AUTO режим, ищем только в автосубтитрах
+        # We get a list of available languages ​​for this video
+        # If AUTO mode is turned on, we are looking only in car carbits
         available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
         
-        # Проверяем доступность выбранного языка
+        # Check the availability of the selected language
         lang_found = lang_match(subs_lang, available_langs)
         result = lang_found is not None
         
-        # Логируем для отладки
+        # We log in for debugging
         logger.info(f"check_subs_availability: lang={subs_lang}, auto_mode={auto_mode}, available_langs={available_langs}, result={result}")
         
-        # Сохраняем в кэш
+        # We save in the cache
         _subs_check_cache[cache_key] = result
         return result
             
@@ -6826,21 +6826,21 @@ def check_subs_availability(url, user_id, quality_key=None):
         return False
 
 def lang_match(user_lang, available_langs):
-    # user_lang: например, 'en', 'en-US', 'zh', 'pt'
-    # available_langs: список всех доступных языков, например ['en-US', 'en-GB', 'fr', 'pt-BR']
+    # user_lang: for example, 'en', 'en -us', 'zh', 'pt'
+    # AVAILABLE_LANGS: a list of all available languages, for example ['en -us', 'EN-GB', 'FR', 'PT-BR']
     if user_lang in available_langs:
         return user_lang
-    # Если выбран базовый язык, ищем любой с этим префиксом
+    # If the basic language is chosen, we look for any prefix with this
     if '-' not in user_lang:
         for lang in available_langs:
             if lang.startswith(user_lang + '-'):
                 return lang
-    # Если выбран язык с дефисом, ищем базовый
+    # If a language with a hyphen is chosen, we are looking for a basic
     if '-' in user_lang:
         base = user_lang.split('-')[0]
         if base in available_langs:
             return base
-    # Если выбран базовый, ищем дублирующийся код (ru-RU, en-EN и т.д.)
+    # If the base is selected, we are looking for a duplicate code (ru-RU, EN-EN, etc.)
     if '-' not in user_lang:
         for lang in available_langs:
             if lang.lower() == f'{user_lang.lower()}-{user_lang.lower()}':
@@ -6849,34 +6849,34 @@ def lang_match(user_lang, available_langs):
 
 def check_subs_limits(info_dict, quality_key=None):
     """
-    Проверяет ограничения для встраивания субтитров
-    Возвращает True если субтитры можно встраивать, False если превышены лимиты
+    Checks restrictions for embedding subtitles
+    Returns True if subtitles can be built, false if limits are exceeded
     """
     try:
-        # Получаем параметры из конфига
+        # We get the parameters from the config
         max_quality = Config.MAX_SUB_QUALITY
         max_duration = Config.MAX_SUB_DURATION
         max_size = Config.MAX_SUB_SIZE
         
-        # Проверяем качество видео (закомментировано - проверяем только длительность и размер)
+        # Check the quality of the video (is made - check only the duration and size)
         # if quality_key and quality_key != "best" and quality_key != "mp3":
-        #     try:
-        #         quality_height = int(quality_key.replace('p', ''))
-        #         if quality_height > max_quality:
-        #             logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
-        #             return False
-        #     except ValueError:
-        #         pass  # Если не удается извлечь высоту, пропускаем проверку качества
+        # try:
+        # quality_height = int(quality_key.replace('p', ''))
+        # if quality_height > max_quality:
+        # logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
+        # return False
+        # except ValueError:
+        # pass # If it is not possible to extract the height, we skip quality check
         
-        # Проверяем длительность
+        # Check the duration
         duration = info_dict.get('duration')
         if duration and duration > max_duration:
             logger.info(f"Subtitle embedding skipped: duration {duration}s exceeds limit {max_duration}s")
             return False
         
-        # Проверяем размер файла (только если он точно известен)
+        # Check the file size (only if it is accurately known)
         filesize = info_dict.get('filesize') or info_dict.get('filesize_approx')
-        if filesize and filesize > 0:  # Проверяем что размер больше 0
+        if filesize and filesize > 0:  # Check that the size is larger than 0
             size_mb = filesize // (1024 * 1024)
             if size_mb > max_size:
                 logger.info(f"Subtitle embedding skipped: size {size_mb}MB exceeds limit {max_size}MB")
@@ -6890,8 +6890,8 @@ def check_subs_limits(info_dict, quality_key=None):
 
 def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
     """
-    Прожигает (hardcode) субтитры в видео-файл, если есть любой .srt-файл и subs.txt
-    tg_update_callback(progress: float, eta: str) — функция для обновления статуса в Telegram
+    Burning (hardcode) subtitles in a video file, if there is any .SRT file and subs.txt
+    tg_update_callback (Progress: Float, ETA: StR) - Function for updating the status in Telegram
     """
     try:
         if not video_path or not os.path.exists(video_path):
@@ -6913,7 +6913,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video too large for subtitles: {width}x{height}")
             return False
-        # --- УПРОЩЁННЫЙ ПОИСК: берём любой .srt-файл в папке ---
+        # --- Simplified search: take any .SRT file in the folder ---
         srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
         if not srt_files:
             logger.info(f"No .srt files found in {video_dir}")
@@ -6922,11 +6922,11 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         if not os.path.exists(subs_path):
             logger.error(f"Subtitle file not found: {subs_path}")
             return False
-        # Приводим .srt к UTF-8, если нужно
+        # Bring .SRT to UTF-8, if necessary
         subs_path = ensure_utf8_srt(subs_path)
         video_base = os.path.splitext(os.path.basename(video_path))[0]
         output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
-        # Получаем длительность видео через ffprobe
+        # We get the duration of the video via FFPRobe
         def get_duration(path):
             try:
                 import json
@@ -6941,7 +6941,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
                 logger.error(f"ffprobe error: {e}")
             return None
         total_time = get_duration(video_path)
-        # Прожиг субтитров
+        # Field of subtitles
         subs_path_escaped = subs_path.replace("'", "'\\''")
         filter_arg = f"subtitles='{subs_path_escaped}'"
         cmd = [
@@ -6966,7 +6966,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             match = time_pattern.search(line)
             if match and total_time:
                 t = match.group(1)
-                # Преобразуем t (hh:mm:ss.xx) в секунды
+                # Transform T (hh: mm: ss.xx) in seconds
                 h, m, s = 0, 0, 0.0
                 parts = t.split(':')
                 if len(parts) == 3:
@@ -6982,7 +6982,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
                     elapsed = time.time() - last_update
                     eta_sec = int((1.0 - progress) * (elapsed / progress)) if progress > 0 else 0
                     eta = f"{eta_sec//60}:{eta_sec%60:02d}"
-                # Обновлять каждые 10 секунд или при изменении прогресса > 1%
+                # Update every 10 seconds or with a change in progress> 1%
                 if tg_update_callback and (time.time() - last_update > 10 or progress >= 1.0):
                     tg_update_callback(progress, eta)
                     last_update = time.time()
