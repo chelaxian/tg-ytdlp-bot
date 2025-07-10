@@ -5381,10 +5381,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon} Best Quality{subs_available}{postfix}"
+                button_text = f"{icon} Best Quality{postfix}"
             else:
                 icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon} Best Quality{subs_available}"
+                button_text = f"{icon} Best Quality"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
             
             # Add "Try Another Qualities" button when no automatic qualities detected
