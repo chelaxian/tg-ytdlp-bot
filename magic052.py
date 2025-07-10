@@ -6618,6 +6618,10 @@ def subs_command(app, message):
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
     
+    # Включаем AUTO-GEN по умолчанию, если не был включён ранее
+    if not get_user_subs_auto_mode(user_id):
+        save_user_subs_auto_mode(user_id, True)
+    
     current_lang = get_user_subs_language(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
     
@@ -6635,6 +6639,7 @@ def subs_command(app, message):
         reply_markup=get_language_keyboard(page=0, user_id=user_id)
     )
     send_to_logger(message, "User opened /subs menu.")
+
 
 
 @app.on_callback_query(filters.regex(r"^subs_page\|"))
@@ -6782,7 +6787,8 @@ def check_subs_availability(url, user_id, quality_key=None):
         available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
         
         # Проверяем доступность выбранного языка
-        result = subs_lang in available_langs
+        lang_found = lang_match(subs_lang, available_langs)
+        result = lang_found is not None
         
         # Логируем для отладки
         logger.info(f"check_subs_availability: lang={subs_lang}, auto_mode={auto_mode}, available_langs={available_langs}, result={result}")
@@ -6795,6 +6801,27 @@ def check_subs_availability(url, user_id, quality_key=None):
         logger.error(f"Error checking subtitle availability: {e}")
         return False
 
+def lang_match(user_lang, available_langs):
+    # user_lang: например, 'en', 'en-US', 'zh', 'pt'
+    # available_langs: список всех доступных языков, например ['en-US', 'en-GB', 'fr', 'pt-BR']
+    if user_lang in available_langs:
+        return user_lang
+    # Если выбран базовый язык, ищем любой с этим префиксом
+    if '-' not in user_lang:
+        for lang in available_langs:
+            if lang.startswith(user_lang + '-'):
+                return lang
+    # Если выбран язык с дефисом, ищем базовый
+    if '-' in user_lang:
+        base = user_lang.split('-')[0]
+        if base in available_langs:
+            return base
+    # Если выбран базовый, ищем дублирующийся код (ru-RU, en-EN и т.д.)
+    if '-' not in user_lang:
+        for lang in available_langs:
+            if lang.lower() == f'{user_lang.lower()}-{user_lang.lower()}':
+                return lang
+    return None
 
 def check_subs_limits(info_dict, quality_key=None):
     """
