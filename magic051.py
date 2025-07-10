@@ -125,6 +125,10 @@ def save_user_subs_language(user_id, lang_code):
     if lang_code in ["OFF", None]:
         if os.path.exists(subs_file):
             os.remove(subs_file)
+        subs_auto_file = os.path.join(user_dir, "subs_auto.txt")
+        if os.path.exists(subs_auto_file):
+            os.remove(subs_auto_file)
+        clear_subs_check_cache()
     else:
         with open(subs_file, "w", encoding="utf-8") as f:
             f.write(lang_code)
@@ -150,6 +154,7 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
     else:
         if os.path.exists(auto_file):
             os.remove(auto_file)
+    clear_subs_check_cache()
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Get available subtitle languages for a video"""
@@ -3360,7 +3365,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 return
             except Exception as e:
                 logger.error(f"Error reposting video from cache: {e}")
-                save_to_video_cache(url, quality_key, [], clear=True)
+                user_dir = os.path.join("users", str(user_id))
+                subs_txt_path = os.path.join(user_dir, "subs.txt")
+                if not os.path.exists(subs_txt_path):
+                    save_to_video_cache(url, quality_key, [], clear=True)
+                else:
+                    logger.info("Video with subs (subs.txt found) is not cached!")
                 app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_to_message_id=message.id)
     else:
         logger.info(f"down_and_up: quality_key is None, skipping cache check")
@@ -3945,7 +3955,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         rounded_quality_key = f"{ceil_to_popular(int(quality_key[:-1]))}p"
                                 except Exception:
                                     pass
-                                save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                user_dir = os.path.join("users", str(user_id))
+                                subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                if not os.path.exists(subs_txt_path):
+                                    save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                else:
+                                    logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), rounded_quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
@@ -3958,7 +3973,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                user_dir = os.path.join("users", str(user_id))
+                                subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                if not os.path.exists(subs_txt_path):
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                else:
+                                    logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
@@ -3972,7 +3992,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if is_playlist:
                             # For playlists, save to playlist cache with video index
                             current_video_index = x + video_start_with
-                            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                            user_dir = os.path.join("users", str(user_id))
+                            subs_txt_path = os.path.join(user_dir, "subs.txt")
+                            if not os.path.exists(subs_txt_path):
+                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                            else:
+                                logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                             logger.info(f"Checking the cache immediately after writing: {cached_check}")
                             playlist_indices.append(current_video_index)
@@ -3993,7 +4018,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # Удаляем дубликаты
                     split_msg_ids = list(dict.fromkeys(split_msg_ids))
                     logger.info(f"down_and_up: saving all split video parts to cache: {split_msg_ids}")
-                    save_to_video_cache(url, quality_key, split_msg_ids, original_text=message.text or message.caption or "")
+                    user_dir = os.path.join("users", str(user_id))
+                    subs_txt_path = os.path.join(user_dir, "subs.txt")
+                    if not os.path.exists(subs_txt_path):
+                        save_to_video_cache(url, quality_key, split_msg_ids, original_text=message.text or message.caption or "")
+                    else:
+                        logger.info("Split-видео с субтитрами не кэшируется!")
                 os.remove(thumb_dir)
                 os.remove(user_vid_path)
                 success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
@@ -4105,41 +4135,71 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    user_dir = os.path.join("users", str(user_id))
+                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                    if not os.path.exists(subs_txt_path):
+                                        save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    else:
+                                        logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                 else:
                                     # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    user_dir = os.path.join("users", str(user_id))
+                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                    if not os.path.exists(subs_txt_path):
+                                        save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
+                                    else:
+                                        logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                             else:
                                 logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                    user_dir = os.path.join("users", str(user_id))
+                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                    if not os.path.exists(subs_txt_path):
+                                        save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                    else:
+                                        logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.append(video_msg.id)
                                 else:
-                                    # For single videos, save to regular cache
-                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                    user_dir = os.path.join("users", str(user_id))
+                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                    if not os.path.exists(subs_txt_path):
+                                        # For single videos, save to regular cache
+                                        save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                    else:
+                                        logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                         except Exception as e:
                             logger.error(f"Error forwarding video to logger: {e}")
                             logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                user_dir = os.path.join("users", str(user_id))
+                                subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                if not os.path.exists(subs_txt_path):
+                                    save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
+                                else:
+                                    logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
                                 playlist_msg_ids.append(video_msg.id)
                             else:
                                 # For single videos, save to regular cache
-                                save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                user_dir = os.path.join("users", str(user_id))
+                                subs_txt_path = os.path.join(user_dir, "subs.txt")
+                                if not os.path.exists(subs_txt_path):
+                                    save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
+                                else:
+                                    logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
                         safe_edit_message_text(user_id, proc_msg_id,
                             f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
                         send_mediainfo_if_enabled(user_id, after_rename_abs_path, message)
@@ -4199,7 +4259,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         # --- ADDED: summary of cache after cycle ---
         if is_playlist and playlist_indices and playlist_msg_ids:
-            save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
+            user_dir = os.path.join("users", str(user_id))
+            subs_txt_path = os.path.join(user_dir, "subs.txt")
+            if not os.path.exists(subs_txt_path):
+                save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
+            else:
+                logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, playlist_indices)
             summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
             logger.info(f"[SUMMARY] Playlist cache (quality {quality_key}):\n{summary}")
@@ -5645,7 +5710,12 @@ def askq_callback(app, callback_query):
             return
         except Exception as e:
             logger.error(f"Error forwarding from cache: {e}")
-            save_to_video_cache(url, data, [], clear=True)
+            user_dir = os.path.join("users", str(user_id))
+            subs_txt_path = os.path.join(user_dir, "subs.txt")
+            if not os.path.exists(subs_txt_path):
+                save_to_video_cache(url, data, [], clear=True)
+            else:
+                logger.info("Видео с субтитрами (subs.txt найден) не кэшируется!")
             app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
         return
