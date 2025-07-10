@@ -3546,10 +3546,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 if subs_lang and subs_lang not in ["OFF"]:
                     # Проверяем доступность с учетом AUTO режима
                     available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
-                    if subs_lang not in available_langs:
+                    # Гибкая проверка: ищем точное совпадение или любой язык из группы
+                    lang_prefix = subs_lang.split('-')[0]
+                    found = False
+                    for l in available_langs:
+                        if l == subs_lang or l.startswith(subs_lang + '-') or l.startswith(subs_lang + '.') \
+                           or l == lang_prefix or l.startswith(lang_prefix + '-') or l.startswith(lang_prefix + '.'):
+                            found = True
+                            break
+                    if not found:
                         app.send_message(
                             user_id,
-                            f"⚠️ Subtitles in {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} are not available for this video. Downloading without subtitles.",
+                            f"⚠️ Субтитры на {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} не найдены для этого видео. Скачивание без субтитров.",
                             reply_to_message_id=message.id
                         )
             
@@ -6793,24 +6801,24 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         # --- Гибкий поиск с учётом групп языков и AUTO-GEN ---
         def find_subs_candidates_group():
             patterns = []
-            # 1. Точное совпадение
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.srt"))
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-orig.srt"))
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.auto.srt"))
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-auto.srt"))
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.translated.srt"))
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-translated.srt"))
-            # 2. Любой язык из группы (например, en, en-*, en.*)
+            # 1. Все варианты для выбранного языка и его группы
             lang_prefix = subs_lang.split('-')[0]
+            # Основные варианты (точное совпадение и с любым суффиксом)
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.srt"))
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-*.srt"))
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.*.srt"))
+            # Варианты для группы (например, ru, ru-*, ru.*)
             if lang_prefix != subs_lang:
                 patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.srt"))
                 patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-*.srt"))
                 patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.*.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-orig.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.auto.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-auto.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.translated.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-translated.srt"))
+            # Дополнительно: orig, auto, translated для обеих групп
+            for suffix in ["orig", "auto", "translated"]:
+                patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.{suffix}.srt"))
+                patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-{suffix}.srt"))
+                if lang_prefix != subs_lang:
+                    patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.{suffix}.srt"))
+                    patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-{suffix}.srt"))
             # 3. Любой .srt для этого видео
             patterns.append(os.path.join(video_dir, f"{video_name}*.srt"))
             # 4. Любой .srt в папке
