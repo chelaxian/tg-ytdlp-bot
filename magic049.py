@@ -1058,12 +1058,14 @@ def url_distractor(app, message):
         elif clean_args == "subs":
             remove_media(message, only=["subs.txt"])
             send_to_all(message, "🗑 Subtitle settings removed.")
+            clear_subs_check_cache()
             return
         elif clean_args == "all":
             # Delete all files and display the list of deleted ones
             user_dir = f'./users/{str(message.chat.id)}'
             if not os.path.exists(user_dir):
                 send_to_all(message, "🗑 No files to remove.")
+                clear_subs_check_cache()
                 return
 
             removed_files = []
@@ -1090,6 +1092,7 @@ def url_distractor(app, message):
             # Regular command /clean - delete only media files with filtering
             remove_media(message)
             send_to_all(message, "🗑 All media files are removed.")
+            clear_subs_check_cache()
             return
 
     # /USAGE Command
