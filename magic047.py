@@ -5174,7 +5174,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             subs_available = ""
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
             # Проверяем ограничения только если размер найден и не превышает лимит
-            if subs_enabled and is_youtube_url(url) and size_val is not None and size_val <= Config.MAX_SUB_QUALITY:
+            if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                 temp_info = {
                     'duration': info.get('duration'),
                     'filesize': size_val * 1024 * 1024 if size_val else None,
@@ -5218,7 +5218,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     size_val = size
                     break
             # Проверяем ограничения только если размер найден и не превышает лимит                
-            if subs_enabled and is_youtube_url(url) and size_val is not None and size_val <= Config.MAX_SUB_QUALITY:
+            if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                 # Создаем временный info_dict для проверки ограничений
 
                 temp_info = {
@@ -5257,7 +5257,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 # Проверяем доступность субтитров для этого качества
                 subs_available = ""
                 subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-                if subs_enabled and is_youtube_url(url) and size_val is not None and size_val <= Config.MAX_SUB_QUALITY:
+                if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                     # Создаем временный info_dict для проверки ограничений
                     temp_info = {
                         'duration': info.get('duration'),
