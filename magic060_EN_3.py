@@ -1610,7 +1610,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("📊 /mediainfo - Turn ON / OFF MediaInfo", callback_data="settings__cmd__mediainfo")],
             [InlineKeyboardButton("✂️ /split - Change split video part size", callback_data="settings__cmd__split")],
             [InlineKeyboardButton("🎧 /audio - Download video as audio", callback_data="settings__cmd__audio")],
-            [InlineKeyboardButton("💬 /subs - Subtitles settings", callback_data="settings__cmd__subs")],
+            [InlineKeyboardButton("💬 /subs - Subtitles language settings", callback_data="settings__cmd__subs")],
             [InlineKeyboardButton("📋 /playlist - How to download playlists", callback_data="settings__cmd__playlist")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
@@ -6639,14 +6639,14 @@ def subs_command(app, message):
     user_id = message.from_user.id
     if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
         return
-    
-    # We turn on the Auto-Gen by default, if it was not included earlier
+
+    # Enable AUTO-GEN by default if not enabled before
     if not get_user_subs_auto_mode(user_id):
         save_user_subs_auto_mode(user_id, True)
-    
+
     current_lang = get_user_subs_language(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
-    
+
     # Create status text
     if current_lang == "OFF" or current_lang is None:
         status_text = "🚫 Subtitles are disabled"
@@ -6654,14 +6654,18 @@ def subs_command(app, message):
         lang_info = LANGUAGES.get(current_lang, {"name": current_lang, "flag": "🌐"})
         auto_text = " (auto-subs)" if auto_mode else ""
         status_text = f"{lang_info['flag']} Selected language: {lang_info['name']}{auto_text}"
-    
+
     app.send_message(
         message.chat.id,
-        f"**🎬 Subtitle settings**\n\n{status_text}\n\nSelect subtitle language:",
-        reply_markup=get_language_keyboard(page=0, user_id=user_id)
+        f"**🎬 Subtitle settings**\n\n{status_text}\n\nSelect subtitle language:\n\n"
+        "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
+        "- 720p max quality\n"
+        "- 1 hour max duration\n"
+        "- 500mb max video size</blockquote>",
+        reply_markup=get_language_keyboard(page=0, user_id=user_id),
+        parse_mode=enums.ParseMode.HTML
     )
     send_to_logger(message, "User opened /subs menu.")
-
 
 
 @app.on_callback_query(filters.regex(r"^subs_page\|"))
