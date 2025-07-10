@@ -2442,7 +2442,10 @@ def send_videos(
             width = int(str(clip.w).strip().split()[0]) if clip.w else 0
             height = int(str(clip.h).strip().split()[0]) if clip.h else 0
             clip.close()
-        except Exception:
+        except Exception as e:
+            logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_abs_path}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             width, height = 0, 0
 
     try:
@@ -2662,8 +2665,15 @@ def get_duration_thumb_(dir, video_path, thumb_name):
     # Generate a short unique name for the thumbnail
     thumb_hash = hashlib.md5(thumb_name.encode()).hexdigest()[:10]
     thumb_dir = os.path.abspath(os.path.join(dir, thumb_hash + ".jpg"))
-    clip = VideoFileClip(video_path)
-    duration = (int(clip.duration))
+    try:
+        clip = VideoFileClip(video_path)
+        duration = int(clip.duration)
+        clip.close()
+    except Exception as e:
+        logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_path}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        duration = 0
     
     # Get original video dimensions
     #orig_w, orig_h = clip.w, clip.h
@@ -4092,11 +4102,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Check the limits for subtitles
                             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
                             # Get the real size of the video
-                            clip = VideoFileClip(after_rename_abs_path)
-                            width = int(clip.w)
-                            height = int(clip.h)
-                            clip.close()
-                            real_file_size = min(width, height)
+                            try:
+                                clip = VideoFileClip(after_rename_abs_path)
+                                width = int(clip.w)
+                                height = int(clip.h)
+                                clip.close()
+                                real_file_size = min(width, height)
+                            except Exception as e:
+                                logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
+                                import traceback
+                                logger.error(traceback.format_exc())
+                                width, height = 0, 0
+                                real_file_size = 0
                             if subs_enabled and is_youtube_url(url) and min(width, height) <= Config.MAX_SUB_QUALITY:
                                 # Check the availability of subtitles
                                 if check_subs_availability(url, user_id, quality_key):
@@ -6923,8 +6940,15 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             logger.info(f"Subtitles disabled for user {user_id}")
             return False
         video_dir = os.path.dirname(video_path)
-        clip = VideoFileClip(video_path)
-        width, height = clip.size
+        try:
+            clip = VideoFileClip(video_path)
+            width, height = clip.size
+            clip.close()
+        except Exception as e:
+            logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_path}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            width, height = 0, 0
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video too large for subtitles: {width}x{height}")
             return False
