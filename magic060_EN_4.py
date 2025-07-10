@@ -6657,7 +6657,7 @@ def subs_command(app, message):
 
     app.send_message(
         message.chat.id,
-        f"**🎬 Subtitle settings**\n\n{status_text}\n\nSelect subtitle language:\n\n"
+        f"<b>🎬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
         "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
         "- 720p max quality\n"
         "- 1 hour max duration\n"
