@@ -6818,28 +6818,20 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         # --- Гибкий поиск с учётом групп языков и AUTO-GEN ---
         def find_subs_candidates_group():
             patterns = []
-            # 1. Все варианты для выбранного языка и его группы
-            lang_prefix = subs_lang.split('-')[0]
-            # Основные варианты (точное совпадение и с любым суффиксом)
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.srt"))
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-*.srt"))
-            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.*.srt"))
-            # Варианты для группы (например, ru, ru-*, ru.*)
-            if lang_prefix != subs_lang:
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-*.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.*.srt"))
-            # Дополнительно: orig, auto, translated для обеих групп
+            # 1. Точное совпадение (ручные)
+            patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}.srt"))
+            # 2. Любой файл, начинающийся с <video_name>.<subs_lang>-
+            patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}-*.srt"))
+            # 3. Старые варианты (на всякий случай)
             for suffix in ["orig", "auto", "translated"]:
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.{suffix}.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-{suffix}.srt"))
-                if lang_prefix != subs_lang:
-                    patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.{suffix}.srt"))
-                    patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-{suffix}.srt"))
-            # 3. Любой .srt для этого видео
+                patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}-{suffix}.srt"))
+                patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}.{suffix}.srt"))
+            # 4. Любой .srt для этого видео (fallback)
             patterns.append(os.path.join(video_dir, f"{video_name}*.srt"))
-            # 4. Любой .srt в папке
+            # 5. Любой .srt в папке (самый последний fallback)
             patterns.append(os.path.join(video_dir, "*.srt"))
+
+            # Собираем кандидатов без дубликатов, в порядке приоритета
             found = []
             seen = set()
             for pat in patterns:
