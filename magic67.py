@@ -6929,16 +6929,19 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         if not video_path or not os.path.exists(video_path):
             logger.error(f"Video file not found: {video_path}")
             return False
+        
         user_dir = os.path.join("users", str(user_id))
         subs_file = os.path.join(user_dir, "subs.txt")
         if not os.path.exists(subs_file):
             logger.info(f"No subs.txt for user {user_id}, skipping embed_subs_to_video")
             return False
+        
         with open(subs_file, "r", encoding="utf-8") as f:
             subs_lang = f.read().strip()
         if not subs_lang or subs_lang == "OFF":
             logger.info(f"Subtitles disabled for user {user_id}")
             return False
+        
         video_dir = os.path.dirname(video_path)
         try:
             clip = VideoFileClip(video_path)
@@ -6949,25 +6952,31 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             import traceback
             logger.error(traceback.format_exc())
             width, height = 0, 0
+        
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video too large for subtitles: {width}x{height}")
             return False
+        
         # --- Simplified search: take any .SRT file in the folder ---
         srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
         if not srt_files:
             logger.info(f"No .srt files found in {video_dir}")
             return False
+        
         subs_path = os.path.join(video_dir, srt_files[0])
         if not os.path.exists(subs_path):
             logger.error(f"Subtitle file not found: {subs_path}")
             return False
+        
         # Bring .SRT to UTF-8, if necessary
         subs_path = ensure_utf8_srt(subs_path)
         if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
             logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
             return False
+        
         video_base = os.path.splitext(os.path.basename(video_path))[0]
         output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
+        
         # We get the duration of the video via FFPRobe
         def get_duration(path):
             try:
@@ -6982,7 +6991,9 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             except Exception as e:
                 logger.error(f"ffprobe error: {e}")
             return None
+        
         total_time = get_duration(video_path)
+        
         # Field of subtitles
         subs_path_escaped = subs_path.replace("'", "'\\''")
         filter_arg = f"subtitles='{subs_path_escaped}'"
@@ -6994,12 +7005,15 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             '-c:a', 'copy',
             output_path
         ]
+        
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
+        
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         progress = 0.0
         last_update = time.time()
         eta = "?"
         time_pattern = re.compile(r'time=([0-9:.]+)')
+        
         while True:
             line = proc.stdout.readline()
             if not line:
@@ -7028,25 +7042,65 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
                 if tg_update_callback and (time.time() - last_update > 10 or progress >= 1.0):
                     tg_update_callback(progress, eta)
                     last_update = time.time()
+        
         proc.wait()
+        
         if proc.returncode != 0:
             logger.error(f"FFmpeg error: process exited with code {proc.returncode}")
             if os.path.exists(output_path):
                 os.remove(output_path)
             return False
-        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-            logger.error("Output file is missing or empty")
+        
+        # Проверяем, что файл существует и не пустой
+        if not os.path.exists(output_path):
+            logger.error("Output file does not exist after ffmpeg")
+            return False
+        
+        # Ждём немного, чтобы файл точно завершил запись
+        time.sleep(1)
+        
+        output_size = os.path.getsize(output_path)
+        original_size = os.path.getsize(video_path)
+        
+        if output_size == 0:
+            logger.error("Output file is empty")
             if os.path.exists(output_path):
                 os.remove(output_path)
             return False
-        os.remove(video_path)
-        os.rename(output_path, video_path)
+        
+        # Проверяем, что итоговый файл не слишком мал (должен быть хотя бы 50% от оригинала)
+        if output_size < original_size * 0.5:
+            logger.error(f"Output file too small: {output_size} bytes (original: {original_size} bytes)")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+        
+        # Безопасно заменяем файл
+        backup_path = video_path + ".backup"
+        try:
+            os.rename(video_path, backup_path)  # Создаём backup
+            os.rename(output_path, video_path)   # Переименовываем результат
+            os.remove(backup_path)               # Удаляем backup
+        except Exception as e:
+            logger.error(f"Error replacing video file: {e}")
+            # Восстанавливаем исходный файл
+            if os.path.exists(backup_path):
+                os.rename(backup_path, video_path)
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+        
+        # Удаляем .srt только если всё прошло успешно
         if os.path.exists(subs_path):
             os.remove(subs_path)
+        
         logger.info("Successfully burned-in subtitles")
         return True
+        
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 app.run()
