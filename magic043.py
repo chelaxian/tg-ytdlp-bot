@@ -38,6 +38,23 @@ import yt_dlp
 
 from config import Config
 
+import chardet
+
+def ensure_utf8_srt(srt_path):
+    # Определяем кодировку
+    with open(srt_path, 'rb') as f:
+        raw = f.read()
+        result = chardet.detect(raw)
+        encoding = result['encoding']
+    if encoding.lower() != 'utf-8':
+        # Перекодируем во временный файл
+        utf8_path = srt_path + '.utf8.srt'
+        with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in, \
+             open(utf8_path, 'w', encoding='utf-8') as f_out:
+            f_out.write(f_in.read())
+        return utf8_path
+    return srt_path
+
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
     "ar": {"flag": "🇸🇦", "name": "العربية"},
@@ -6898,6 +6915,8 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         if not os.path.exists(subs_path):
             logger.error(f"Subtitle file not found: {subs_path}")
             return False
+        # Приводим .srt к UTF-8, если нужно
+        subs_path = ensure_utf8_srt(subs_path)
         output_path = os.path.join(video_dir, f"{video_name}_with_subs_temp.mp4")
         # Получаем длительность видео через ffprobe
         def get_duration(path):
