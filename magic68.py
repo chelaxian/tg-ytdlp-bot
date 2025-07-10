@@ -7008,7 +7008,15 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
         
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1
+        )
         progress = 0.0
         last_update = time.time()
         eta = "?"
@@ -7102,5 +7110,6 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
         import traceback
         logger.error(traceback.format_exc())
         return False
+
 
 app.run()
