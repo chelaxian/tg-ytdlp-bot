@@ -55,6 +55,12 @@ def ensure_utf8_srt(srt_path):
         return utf8_path
     return srt_path
 
+def read_file_utf8(path):
+    with open(path, 'rb') as f:
+        raw = f.read()
+    encoding = chardet.detect(raw)['encoding'] or 'utf-8'
+    return raw.decode(encoding, errors='replace')
+
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
     "ar": {"flag": "🇸🇦", "name": "العربية"},
@@ -4060,8 +4066,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     full_caption = caption_name
                     try:
                         if os.path.exists(full_title_path):
-                            with open(full_title_path, "r", encoding="utf-8") as f:
-                                full_caption = f.read().strip()
+                            full_caption = read_file_utf8(full_title_path).strip()
                     except Exception as e:
                         logger.error(f"Error reading full title: {e}")
 
