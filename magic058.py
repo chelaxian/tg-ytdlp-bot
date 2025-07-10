@@ -5860,31 +5860,29 @@ def show_manual_quality_menu(app, callback_query):
     buttons = []
     
     for quality in manual_qualities:
-        
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality, indices)
             total = len(indices)
             icon = "🚀" if n_cached > 0 else "📹"
             postfix = f" ({n_cached}/{total})" if total > 1 else ""
-            button_text = f"{icon} {quality}{subs_available}{postfix}"
+            button_text = f"{icon} {quality}{postfix}"
         else:
             icon = "🚀" if quality in cached_qualities else "📹"
-            button_text = f"{icon} {quality}{subs_available}"
+            button_text = f"{icon} {quality}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality}"))
-    
-    # Add Best Quality button
-    
+
+    # Best Quality
     if is_playlist and playlist_range:
         indices = list(range(playlist_range[0], playlist_range[1]+1))
         n_cached = get_cached_playlist_count(get_clean_playlist_url(url), "best", indices)
         total = len(indices)
         icon = "🚀" if n_cached > 0 else "📹"
         postfix = f" ({n_cached}/{total})" if total > 1 else ""
-        button_text = f"{icon} Best Quality{subs_available}{postfix}"
+        button_text = f"{icon} Best Quality{postfix}"
     else:
         icon = "🚀" if "best" in cached_qualities else "📹"
-        button_text = f"{icon} Best Quality{subs_available}"
+        button_text = f"{icon} Best Quality"
     buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_best"))
     
     # Form rows of 3 buttons
