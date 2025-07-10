@@ -41,6 +41,7 @@ from config import Config
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
     "ar": {"flag": "🇸🇦", "name": "العربية"},
+    "be": {"flag": "🇧🇾", "name": "Беларуская"},
     "bg": {"flag": "🇧🇬", "name": "Български"},
     "bn": {"flag": "🇧🇩", "name": "বাংলা"},
     "cs": {"flag": "🇨🇿", "name": "Čeština"},
@@ -48,7 +49,10 @@ LANGUAGES = {
     "de": {"flag": "🇩🇪", "name": "Deutsch"},
     "el": {"flag": "🇬🇷", "name": "Ελληνικά"},
     "en": {"flag": "🇬🇧", "name": "English"},
+    "en-US": {"flag": "🇺🇸", "name": "English (US)"},
+    "en-GB": {"flag": "🇬🇧", "name": "English (UK)"},
     "es": {"flag": "🇪🇸", "name": "Español"},
+    "es-419": {"flag": "🇲🇽", "name": "Español (Latinoamérica)"},
     "et": {"flag": "🇪🇪", "name": "Eesti"},
     "fa": {"flag": "🇮🇷", "name": "فارسی"},
     "fi": {"flag": "🇫🇮", "name": "Suomi"},
@@ -57,9 +61,11 @@ LANGUAGES = {
     "hi": {"flag": "🇮🇳", "name": "हिन्दी"},
     "hr": {"flag": "🇭🇷", "name": "Hrvatski"},
     "hu": {"flag": "🇭🇺", "name": "Magyar"},
+    "hy": {"flag": "🇦🇲", "name": "Հայերեն"},
     "id": {"flag": "🇮🇩", "name": "Bahasa Indonesia"},
     "it": {"flag": "🇮🇹", "name": "Italiano"},
     "ja": {"flag": "🇯🇵", "name": "日本語"},
+    "kk": {"flag": "🇰🇿", "name": "Қазақ тілі"},
     "ko": {"flag": "🇰🇷", "name": "한국어"},
     "lt": {"flag": "🇱🇹", "name": "Lietuvių"},
     "lv": {"flag": "🇱🇻", "name": "Latviešu"},
@@ -67,6 +73,7 @@ LANGUAGES = {
     "no": {"flag": "🇳🇴", "name": "Norsk"},
     "pl": {"flag": "🇵🇱", "name": "Polski"},
     "pt": {"flag": "🇵🇹", "name": "Português"},
+    "pt-BR": {"flag": "🇧🇷", "name": "Português (Brasil)"},
     "ro": {"flag": "🇷🇴", "name": "Română"},
     "ru": {"flag": "🇷🇺", "name": "Русский"},
     "sk": {"flag": "🇸🇰", "name": "Slovenčina"},
@@ -77,7 +84,9 @@ LANGUAGES = {
     "tr": {"flag": "🇹🇷", "name": "Türkçe"},
     "uk": {"flag": "🇺🇦", "name": "Українська"},
     "vi": {"flag": "🇻🇳", "name": "Tiếng Việt"},
-    "zh": {"flag": "🇨🇳", "name": "中文"}
+    "zh": {"flag": "🇨🇳", "name": "中文"},
+    "zh-Hans": {"flag": "🇨🇳", "name": "中文(简体)"},
+    "zh-Hant": {"flag": "🇹🇼", "name": "中文(繁體)"}
 }
 
 ITEMS_PER_PAGE = 10  # Number of languages per page
@@ -6780,29 +6789,84 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             return False
         video_dir = os.path.dirname(video_path)
         video_name = os.path.splitext(os.path.basename(video_path))[0]
-        # Ищем .srt-файл для этого видео
-        subs_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
-        logger.info(f"Looking for subtitle files: {video_name}*.srt in {video_dir}")
-        logger.info(f"Found subtitle files: {subs_files}")
-        
-        # Также ищем файлы с другими возможными именами
-        all_srt_files = glob.glob(os.path.join(video_dir, "*.srt"))
-        logger.info(f"All .srt files in directory: {all_srt_files}")
-        
-        # Если не нашли по шаблону, ищем файлы, которые начинаются с имени видео
-        if not subs_files and all_srt_files:
-            for srt_file in all_srt_files:
-                srt_basename = os.path.basename(srt_file)
-                if srt_basename.startswith(video_name):
-                    subs_files = [srt_file]
-                    logger.info(f"Found subtitle file by basename match: {srt_file}")
-                    break
-        
-        if not subs_files:
+        subs_candidates = []
+        # --- Гибкий поиск с учётом AUTO-GEN и приоритетов ---
+        def find_subs_candidates():
+            patterns = []
+            # 1. Обычные субтитры (без auto/orig/translated)
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.srt"))
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-orig.srt"))
+            # 2. Авто-сгенерированные
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.auto.srt"))
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-auto.srt"))
+            # 3. Автопереведённые
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}.translated.srt"))
+            patterns.append(os.path.join(video_dir, f"{video_name}*.{subs_lang}-translated.srt"))
+            # 4. Любой .srt для этого видео
+            patterns.append(os.path.join(video_dir, f"{video_name}*.srt"))
+            # 5. Любой .srt в папке
+            patterns.append(os.path.join(video_dir, "*.srt"))
+            found = []
+            seen = set()
+            for pat in patterns:
+                for f in glob.glob(pat):
+                    if f not in seen:
+                        found.append(f)
+                        seen.add(f)
+            return found
+        # --- Логика AUTO-GEN ---
+        if get_user_subs_auto_mode(user_id):
+            # Сначала ищем обычные субтитры (без auto/translated)
+            normal_patterns = [
+                os.path.join(video_dir, f"{video_name}*.{subs_lang}.srt"),
+                os.path.join(video_dir, f"{video_name}*.{subs_lang}-orig.srt"),
+            ]
+            normal_found = []
+            seen = set()
+            for pat in normal_patterns:
+                for f in glob.glob(pat):
+                    if f not in seen:
+                        normal_found.append(f)
+                        seen.add(f)
+            if normal_found:
+                subs_candidates = normal_found
+            else:
+                # Если нет обычных — ищем auto/translated
+                auto_patterns = [
+                    os.path.join(video_dir, f"{video_name}*.{subs_lang}.auto.srt"),
+                    os.path.join(video_dir, f"{video_name}*.{subs_lang}-auto.srt"),
+                    os.path.join(video_dir, f"{video_name}*.{subs_lang}.translated.srt"),
+                    os.path.join(video_dir, f"{video_name}*.{subs_lang}-translated.srt"),
+                ]
+                auto_found = []
+                for pat in auto_patterns:
+                    for f in glob.glob(pat):
+                        if f not in seen:
+                            auto_found.append(f)
+                            seen.add(f)
+                if auto_found:
+                    subs_candidates = auto_found
+                else:
+                    # Fallback: любой .srt для этого видео или любой .srt в папке
+                    fallback_patterns = [
+                        os.path.join(video_dir, f"{video_name}*.srt"),
+                        os.path.join(video_dir, "*.srt")
+                    ]
+                    fallback_found = []
+                    for pat in fallback_patterns:
+                        for f in glob.glob(pat):
+                            if f not in seen:
+                                fallback_found.append(f)
+                                seen.add(f)
+                    subs_candidates = fallback_found
+        else:
+            # Если не AUTO-GEN — ищем по всем приоритетам сразу
+            subs_candidates = find_subs_candidates()
+        logger.info(f"Subtitle candidates (priority order): {subs_candidates}")
+        if not subs_candidates:
             logger.info(f"No subtitles found for {video_name}")
-            logger.info(f"Available .srt files: {all_srt_files}")
             return False
-        subs_path = subs_files[0]
+        subs_path = subs_candidates[0]
         if not os.path.exists(subs_path):
             logger.error(f"Subtitle file not found: {subs_path}")
             return False
