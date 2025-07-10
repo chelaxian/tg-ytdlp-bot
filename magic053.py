@@ -6891,91 +6891,26 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             logger.info(f"Video too large for subtitles: {width}x{height}")
             return False
         video_name = os.path.splitext(os.path.basename(video_path))[0]
+        # Собираем все .srt-файлы для этого видео
+        all_srt_files = glob.glob(os.path.join(video_dir, f"{video_name}*.srt"))
+        # Извлекаем языковые коды из имён файлов
+        available_langs = []
+        srt_by_lang = {}
+        for f in all_srt_files:
+            # Пытаемся извлечь язык из имени файла: <video_name>.<lang>[...].srt
+            m = re.match(rf"{re.escape(video_name)}\.([a-zA-Z\-]+)", os.path.basename(f))
+            if m:
+                lang = m.group(1)
+                available_langs.append(lang)
+                srt_by_lang[lang] = f
+        # Используем lang_match для поиска подходящего языка
+        matched_lang = lang_match(subs_lang, available_langs)
         subs_candidates = []
-        # --- Гибкий поиск с учётом групп языков и AUTO-GEN ---
-        def find_subs_candidates_group():
-            patterns = []
-            # 1. Точное совпадение (ручные)
-            patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}.srt"))
-            # 2. Любой файл, начинающийся с <video_name>.<subs_lang>-
-            patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}-*.srt"))
-            # 3. Старые варианты (на всякий случай)
-            for suffix in ["orig", "auto", "translated"]:
-                patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}-{suffix}.srt"))
-                patterns.append(os.path.join(video_dir, f"{video_name}.{subs_lang}.{suffix}.srt"))
-            # 4. Любой .srt для этого видео (fallback)
-            patterns.append(os.path.join(video_dir, f"{video_name}*.srt"))
-            # 5. Любой .srt в папке (самый последний fallback)
-            patterns.append(os.path.join(video_dir, "*.srt"))
-
-            # Собираем кандидатов без дубликатов, в порядке приоритета
-            found = []
-            seen = set()
-            for pat in patterns:
-                for f in glob.glob(pat):
-                    if f not in seen:
-                        found.append(f)
-                        seen.add(f)
-            return found
-        # --- Логика AUTO-GEN ---
-        if get_user_subs_auto_mode(user_id):
-            # Сначала ищем обычные субтитры (без auto/translated)
-            normal_patterns = [
-                os.path.join(video_dir, f"{video_name}*.{subs_lang}.srt"),
-                os.path.join(video_dir, f"{video_name}*.{subs_lang}-orig.srt"),
-            ]
-            lang_prefix = subs_lang.split('-')[0]
-            if lang_prefix != subs_lang:
-                normal_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.srt"))
-                normal_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-orig.srt"))
-                normal_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-*.srt"))
-                normal_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.*.srt"))
-            normal_found = []
-            seen = set()
-            for pat in normal_patterns:
-                for f in glob.glob(pat):
-                    if f not in seen:
-                        normal_found.append(f)
-                        seen.add(f)
-            if normal_found:
-                subs_candidates = normal_found
-            else:
-                # Если нет обычных — ищем auto/translated для группы
-                auto_patterns = [
-                    os.path.join(video_dir, f"{video_name}*.{subs_lang}.auto.srt"),
-                    os.path.join(video_dir, f"{video_name}*.{subs_lang}-auto.srt"),
-                    os.path.join(video_dir, f"{video_name}*.{subs_lang}.translated.srt"),
-                    os.path.join(video_dir, f"{video_name}*.{subs_lang}-translated.srt"),
-                ]
-                if lang_prefix != subs_lang:
-                    auto_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.auto.srt"))
-                    auto_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-auto.srt"))
-                    auto_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}.translated.srt"))
-                    auto_patterns.append(os.path.join(video_dir, f"{video_name}*.{lang_prefix}-translated.srt"))
-                auto_found = []
-                for pat in auto_patterns:
-                    for f in glob.glob(pat):
-                        if f not in seen:
-                            auto_found.append(f)
-                            seen.add(f)
-                if auto_found:
-                    subs_candidates = auto_found
-                else:
-                    # Fallback: любой .srt для этого видео или любой .srt в папке
-                    fallback_patterns = [
-                        os.path.join(video_dir, f"{video_name}*.srt"),
-                        os.path.join(video_dir, "*.srt")
-                    ]
-                    fallback_found = []
-                    for pat in fallback_patterns:
-                        for f in glob.glob(pat):
-                            if f not in seen:
-                                fallback_found.append(f)
-                                seen.add(f)
-                    subs_candidates = fallback_found
+        if matched_lang and matched_lang in srt_by_lang:
+            subs_candidates = [srt_by_lang[matched_lang]]
         else:
-            # Если не AUTO-GEN — ищем по всем приоритетам и по группе
-            subs_candidates = find_subs_candidates_group()
+            # Fallback: любой .srt для этого видео
+            subs_candidates = all_srt_files
         logger.info(f"Subtitle candidates (priority order): {subs_candidates}")
         if not subs_candidates:
             logger.info(f"No subtitles found for {video_name}")
