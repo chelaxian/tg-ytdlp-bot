@@ -5812,7 +5812,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
 def show_manual_quality_menu(app, callback_query):
     """Show manual quality selection menu when automatic detection fails"""
     user_id = callback_query.from_user.id
-    
+    subs_available = ""
     # Extract URL and tags from the callback
     original_message = callback_query.message.reply_to_message
     if not original_message:
