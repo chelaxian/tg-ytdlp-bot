@@ -41,13 +41,23 @@ from config import Config
 import chardet
 
 def ensure_utf8_srt(srt_path):
-    # We determine the encoding
+    # Проверяем, существует ли файл
+    if not os.path.isfile(srt_path):
+        print(f"Файл {srt_path} не существует!")
+        return None
+    # Проверяем, не пустой ли файл
+    if os.path.getsize(srt_path) == 0:
+        print(f"Файл {srt_path} пустой!")
+        return None
+
     with open(srt_path, 'rb') as f:
         raw = f.read()
+        if not raw:
+            print(f"Файл {srt_path} пустой (raw)!")
+            return None
         result = chardet.detect(raw)
-        encoding = result['encoding']
+        encoding = result['encoding'] or 'utf-8'
     if encoding.lower() != 'utf-8':
-        # Spensed to a temporary file
         utf8_path = srt_path + '.utf8.srt'
         with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in, \
              open(utf8_path, 'w', encoding='utf-8') as f_out:
@@ -6928,6 +6938,9 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
             return False
         # Bring .SRT to UTF-8, if necessary
         subs_path = ensure_utf8_srt(subs_path)
+        if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
+            logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
+            return False
         video_base = os.path.splitext(os.path.basename(video_path))[0]
         output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
         # We get the duration of the video via FFPRobe
