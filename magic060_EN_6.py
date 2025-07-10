@@ -2463,6 +2463,21 @@ def send_videos(
         cap += link_block
 
         try:
+            def safe_str(s, name="var"):
+                try:
+                    if isinstance(s, bytes):
+                        s = s.decode('utf-8')
+                    s.encode('utf-8')
+                    return True
+                except Exception as e:
+                    logger.error(f"Problem with variable {name}: {e}")
+                    return False
+
+            safe_str(cap, "cap")
+            safe_str(caption, "caption")
+            safe_str(full_video_title, "full_video_title")
+            safe_str(tags_text, "tags_text")
+            safe_str(video_url, "video_url")
             # First try sending with full caption
             video_msg = app.send_video(
                 chat_id=user_id,
