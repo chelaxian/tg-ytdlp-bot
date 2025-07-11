@@ -7147,10 +7147,13 @@ def download_subtitles_ytdlp(url, user_id, video_dir):
             
         # Ищем подходящий язык используя функцию lang_match
         found_lang = lang_match(subs_lang, available_langs)
-                
+        
         if not found_lang:
             logger.info(f"Language {subs_lang} not found in available languages: {available_langs}")
             return None
+            
+        # Добавляем найденный язык в настройки
+        subs_opts['subtitleslangs'] = [found_lang]
             
         # Скачиваем субтитры
         with yt_dlp.YoutubeDL(subs_opts) as ydl:
