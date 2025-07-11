@@ -50,12 +50,12 @@ def download_subtitles_ytdlp(url, lang_code, user_dir, cookie_file=None):
     outtmpl = os.path.join(user_dir, '%(id)s.%(ext)s')
     ydl_opts = {
         'writesubtitles': True,
-        'writeautomaticsub': True,
+        'writeautomaticsub': False,  # <-- ИСПРАВЛЕНО: только обычные субтитры
         'subtitleslangs': [lang_code],
         'subtitlesformat': 'srt',
         'convert_subtitles': 'srt',
         'outtmpl': outtmpl,
-        'skip_download': True,
+        'skip_download': False,  # <-- ИСПРАВЛЕНО: скачиваем видео для правильной конвертации
         'quiet': True,
         'no_warnings': True,
     }
