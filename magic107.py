@@ -63,6 +63,7 @@ def download_subtitles_ytdlp(url, lang_code, user_dir, cookie_file=None, auto_mo
     if cookie_file:
         ydl_opts['cookiefile'] = cookie_file
 
+    logger.info(f"download_subtitles_ytdlp called: url={url}, lang_code={lang_code}, auto_mode={auto_mode}")
     logger.info(f"Скачиваем {'авто-сгенерированные' if auto_mode else 'обычные'} субтитры для языка {lang_code}")
 
     try:
@@ -360,15 +361,12 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             info = ydl.extract_info(url, download=False)
             available_langs = []
             if auto_only:
-                # Сначала ищем обычные субтитры
-                if 'subtitles' in info and info['subtitles']:
-                    available_langs.extend(list(info['subtitles'].keys()))
-                    logger.info(f"Found subtitles (priority): {list(info['subtitles'].keys())}")
-                elif 'automatic_captions' in info and info['automatic_captions']:
+                # Только автосгенерированные субтитры
+                if 'automatic_captions' in info and info['automatic_captions']:
                     available_langs.extend(list(info['automatic_captions'].keys()))
-                    logger.info(f"Found auto captions (fallback): {list(info['automatic_captions'].keys())}")
+                    logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
                 else:
-                    logger.info("No subtitles or automatic captions found")
+                    logger.info("No automatic captions found")
             else:
                 # Только обычные субтитры
                 if 'subtitles' in info:
@@ -4334,6 +4332,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         # Embed subtitles and get the result
                                         subs_lang = get_user_subs_language(user_id)
                                         logger.info(f"Calling embed_subs_to_video with video_path: {after_rename_abs_path}")
+                                        logger.info(f"Calling embed_subs_to_video with URL: {url}")
                                         logger.info(f"Video file exists: {os.path.exists(after_rename_abs_path)}")
                                         logger.info(f"Video file size: {os.path.getsize(after_rename_abs_path) if os.path.exists(after_rename_abs_path) else 'N/A'} bytes")
                                         embed_result = embed_subs_to_video(
@@ -7183,7 +7182,7 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
     Вшивает (hardcode) субтитры в видеофайл, если есть .SRT нужного языка.
     Сначала скачивает сабы через yt-dlp Python API, приводит к UTF-8, затем вшивает через ffmpeg.
     """
-    logger.info(f"embed_subs_to_video called: video_path={video_path}, user_id={user_id}, lang_code={lang_code}")
+    logger.info(f"embed_subs_to_video called: video_path={video_path}, user_id={user_id}, url={url}, lang_code={lang_code}")
     try:
 
         # Проверяем наличие видео
@@ -7201,10 +7200,24 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
         video_age = time.time() - os.path.getmtime(video_path)
         if video_age > 300:  # 5 минут
             logger.warning(f"Video file is old ({video_age:.1f}s), may be from previous download: {video_path}")
+        
+        # Проверяем соответствие URL и видео файла
+        if is_youtube_url(url):
+            video_id_from_url = extract_youtube_id(url)
+            video_name = os.path.splitext(os.path.basename(video_path))[0]
+            if video_id_from_url and video_id_from_url not in video_name:
+                logger.error(f"URL video ID ({video_id_from_url}) doesn't match video file name ({video_name})")
+                logger.error(f"This suggests we're using wrong URL or wrong video file")
+                return False
+            else:
+                logger.info(f"URL video ID ({video_id_from_url}) matches video file name ({video_name})")
 
         user_dir = os.path.dirname(video_path)
         cookie_file = os.path.join(user_dir, "cookie.txt")
 
+        # Очищаем кэш субтитров перед скачиванием
+        clear_subs_check_cache()
+        
         # Определяем режим пользователя (обычные или авто-субтитры)
         auto_mode = get_user_subs_auto_mode(user_id)
         logger.info(f"Режим субтитров для пользователя {user_id}: {'авто-сгенерированные' if auto_mode else 'обычные'}")
