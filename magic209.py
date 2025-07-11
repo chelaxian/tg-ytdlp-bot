@@ -7064,6 +7064,15 @@ def lang_match(user_lang, available_langs):
                 logger.info(f"lang_match: duplicate match found: {lang} for {user_lang}")
                 return lang
     
+    # NEW: Look for auto-translated subtitles (e.g., 'ru-en' for user_lang='ru')
+    if '-' not in user_lang:
+        for lang in available_langs:
+            if '-' in lang:
+                parts = lang.split('-')
+                if len(parts) == 2 and parts[0] == user_lang:
+                    logger.info(f"lang_match: auto-translated match found: {lang} for {user_lang}")
+                    return lang
+    
     logger.info(f"lang_match: no match found for {user_lang}")
     return None
 
