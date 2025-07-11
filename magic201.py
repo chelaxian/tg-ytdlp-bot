@@ -42,106 +42,60 @@ import chardet
 
 def ensure_utf8_srt(srt_path):
     """
-    УЛЬТИМАТИВНАЯ функция для исправления любых кодировок и кракозябр.
-    Принудительно перекодирует файл в UTF-8, пробуя все возможные кодировки.
+    Гарантирует, что файл srt в utf-8.
+    Если файл уже в utf-8 — ничего не делает.
+    Если нет — перекодирует в utf-8 (перезаписывает исходный файл).
+    Возвращает путь к итоговому файлу (всегда исходный путь).
     """
     if not os.path.isfile(srt_path):
-        logger.error(f"Файл {srt_path} не существует!")
+        print(f"Файл {srt_path} не существует!")
         return None
     if os.path.getsize(srt_path) == 0:
-        logger.error(f"Файл {srt_path} пустой!")
+        print(f"Файл {srt_path} пустой!")
         return None
 
-    # Читаем сырые байты
     with open(srt_path, 'rb') as f:
         raw = f.read()
         if not raw:
-            logger.error(f"Файл {srt_path} пустой (raw)!")
+            print(f"Файл {srt_path} пустой (raw)!")
             return None
+        result = chardet.detect(raw)
+        encoding = result['encoding'] or 'utf-8'
+        print(f"Определена кодировка файла {srt_path}: {encoding}")
 
-    # Определяем кодировку через chardet
-    result = chardet.detect(raw)
-    detected_encoding = result['encoding'] or 'utf-8'
-    confidence = result.get('confidence', 0)
-    logger.info(f"Определена кодировка файла {srt_path}: {detected_encoding} (confidence: {confidence:.2f})")
+    if encoding.lower() in ('utf-8', 'utf-8-sig'):
+        return srt_path
 
-    # Список кодировок для принудительного тестирования (в порядке приоритета)
-    encodings_to_try = [
-        'utf-8',
-        'utf-8-sig',  # UTF-8 с BOM
-        'cp1256',     # Arabic Windows
-        'iso-8859-6', # Arabic ISO
-        'cp1252',     # Western European
-        'iso-8859-1', # Latin-1
-        'cp1250',     # Central European
-        'cp1251',     # Cyrillic
-        'cp874',      # Thai
-        'tis-620',    # Thai
-        'big5',       # Traditional Chinese
-        'gbk',        # Simplified Chinese
-        'shift_jis',  # Japanese
-        'euc-kr',     # Korean
-        'utf-16',
-        'utf-16le',
-        'utf-16be',
-    ]
-
-    # Добавляем обнаруженную кодировку в начало списка
-    if detected_encoding.lower() not in [enc.lower() for enc in encodings_to_try]:
-        encodings_to_try.insert(0, detected_encoding)
-
-    # Пробуем декодировать с каждой кодировкой
-    decoded_text = None
-    successful_encoding = None
-    
-    for encoding in encodings_to_try:
-        try:
-            decoded_text = raw.decode(encoding)
-            successful_encoding = encoding
-            logger.info(f"Успешно декодировано с кодировкой: {encoding}")
-            break
-        except (UnicodeDecodeError, LookupError) as e:
-            logger.debug(f"Не удалось декодировать с {encoding}: {e}")
-            continue
-
-    # Если ни одна кодировка не сработала, используем force decode
-    if decoded_text is None:
-        logger.warning("Все кодировки не сработали, использую force decode")
-        decoded_text = raw.decode('utf-8', errors='replace')
-        successful_encoding = 'utf-8 (force)'
-
-    # Проверяем, есть ли в тексте кракозябры (символы замены)
-    if '' in decoded_text or '?' in decoded_text:
-        logger.warning(f"Обнаружены символы замены в тексте, кодировка {successful_encoding} может быть неправильной")
-        
-        # Пробуем ещё раз с другими кодировками, игнорируя уже испробованные
-        for encoding in ['cp1256', 'iso-8859-6', 'cp1252', 'utf-8-sig']:
-            if encoding not in [enc.lower() for enc in encodings_to_try[:len(encodings_to_try)//2]]:
-                try:
-                    test_text = raw.decode(encoding)
-                    if '' not in test_text and '?' not in test_text:
-                        decoded_text = test_text
-                        successful_encoding = encoding
-                        logger.info(f"Найдена лучшая кодировка: {encoding}")
-                        break
-                except:
-                    continue
-
-    # Записываем результат в UTF-8
+    # Перекодируем в utf-8 (перезаписываем исходный файл)
     try:
-        with open(srt_path, 'w', encoding='utf-8') as f:
-            f.write(decoded_text)
-        logger.info(f"Файл {srt_path} успешно перекодирован в UTF-8 (исходная кодировка: {successful_encoding})")
+        # Список кодировок для арабского языка (в порядке приоритета)
+        encodings_to_try = [encoding, 'cp1256', 'iso-8859-6', 'utf-8-sig', 'cp1252']
+        
+        text = None
+        for enc in encodings_to_try:
+            try:
+                with open(srt_path, 'r', encoding=enc, errors='replace') as f_in:
+                    text = f_in.read()
+                    # Проверяем, есть ли кракозябры
+                    if '' not in text and '?' not in text:
+                        break
+            except Exception:
+                continue
+        
+        # Если ничего не сработало, используем force decode
+        if text is None:
+            with open(srt_path, 'r', encoding='utf-8', errors='replace') as f_in:
+                text = f_in.read()
+        
+        with open(srt_path, 'w', encoding='utf-8') as f_out:
+            f_out.write(text)
         return srt_path
     except Exception as e:
-        logger.error(f"Ошибка при записи файла {srt_path}: {e}")
+        print(f"Ошибка при перекодировке {srt_path}: {e}")
         return None
 
-def force_fix_subtitle_encoding(srt_path):
-    """
-    ПРИНУДИТЕЛЬНО исправляет любые кракозябры в субтитрах.
-    Используется как последняя линия обороны.
-    """
+def force_fix_arabic_encoding(srt_path):
+    """Принудительно исправляет арабские кракозябры"""
     if not os.path.exists(srt_path):
         return None
     
@@ -153,7 +107,6 @@ def force_fix_subtitle_encoding(srt_path):
         arabic_encodings = ['cp1256', 'iso-8859-6', 'utf-8', 'utf-8-sig']
         
         best_text = None
-        best_encoding = None
         min_replacement_chars = float('inf')
         
         for encoding in arabic_encodings:
@@ -163,75 +116,19 @@ def force_fix_subtitle_encoding(srt_path):
                 if replacement_count < min_replacement_chars:
                     min_replacement_chars = replacement_count
                     best_text = text
-                    best_encoding = encoding
             except:
                 continue
         
         if best_text is None:
-            # Если ничего не сработало, используем force decode
             best_text = raw.decode('utf-8', errors='replace')
-            best_encoding = 'utf-8 (force)'
         
-        # Записываем исправленный файл
         with open(srt_path, 'w', encoding='utf-8') as f:
             f.write(best_text)
         
-        logger.info(f"Принудительно исправлена кодировка файла {srt_path} с {best_encoding}")
         return srt_path
-        
     except Exception as e:
-        logger.error(f"Ошибка при принудительном исправлении кодировки {srt_path}: {e}")
+        print(f"Ошибка при исправлении арабской кодировки: {e}")
         return None
-
-def download_subtitles_ytdlp(url, lang_code, user_dir, cookie_file=None, auto_mode=False):
-    """
-    Скачивает субтитры нужного языка через yt-dlp (Python API) в user_dir.
-    auto_mode: True - авто-сгенерированные субтитры, False - обычные субтитры
-    Возвращает путь к .srt-файлу или None.
-    """
-    from yt_dlp import YoutubeDL
-
-    outtmpl = os.path.join(user_dir, '%(id)s.%(ext)s')
-    ydl_opts = {
-        'writesubtitles': not auto_mode,  # Обычные субтитры только если не авто-режим
-        'writeautomaticsub': auto_mode,   # Авто-субтитры только если авто-режим
-        'subtitleslangs': [lang_code],
-        'subtitlesformat': 'srt',
-        'convert_subtitles': 'srt',
-        'outtmpl': outtmpl,
-        'skip_download': False,  # Скачиваем видео для правильной конвертации сабов
-        'quiet': True,
-        'no_warnings': True,
-    }
-    if cookie_file:
-        ydl_opts['cookiefile'] = cookie_file
-
-    logger.info(f"download_subtitles_ytdlp called: url={url}, lang_code={lang_code}, auto_mode={auto_mode}")
-    logger.info(f"Скачиваем {'авто-сгенерированные' if auto_mode else 'обычные'} субтитры для языка {lang_code}")
-
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-    except Exception as e:
-        logger.error(f"Ошибка при скачивании субтитров: {e}")
-        return None
-
-    # Ищем файл вида <video_id>.<lang>.srt
-    for fname in os.listdir(user_dir):
-        if fname.endswith(f".{lang_code}.srt"):
-            srt_path = os.path.join(user_dir, fname)
-            logger.info(f"Найден файл {'авто-' if auto_mode else ''}субтитров: {srt_path}")
-            return srt_path
-    
-    # Fallback: ищем любой .srt
-    for fname in os.listdir(user_dir):
-        if fname.endswith('.srt'):
-            srt_path = os.path.join(user_dir, fname)
-            logger.info(f"Найден fallback файл {'авто-' if auto_mode else ''}субтитров: {srt_path}")
-            return srt_path
-    
-    logger.error(f"Не найден файл {'авто-' if auto_mode else ''}субтитров для языка {lang_code} в {user_dir}")
-    return None
 
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
@@ -359,15 +256,12 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             info = ydl.extract_info(url, download=False)
             available_langs = []
             if auto_only:
-                # Сначала ищем обычные субтитры
-                if 'subtitles' in info and info['subtitles']:
-                    available_langs.extend(list(info['subtitles'].keys()))
-                    logger.info(f"Found subtitles (priority): {list(info['subtitles'].keys())}")
-                elif 'automatic_captions' in info and info['automatic_captions']:
+                # Только автосгенерированные субтитры
+                if 'automatic_captions' in info and info['automatic_captions']:
                     available_langs.extend(list(info['automatic_captions'].keys()))
-                    logger.info(f"Found auto captions (fallback): {list(info['automatic_captions'].keys())}")
+                    logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
                 else:
-                    logger.info("No subtitles or automatic captions found")
+                    logger.info("No automatic captions found")
             else:
                 # Только обычные субтитры
                 if 'subtitles' in info:
@@ -4332,17 +4226,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             except Exception as e:
                                                 logger.error(f"Failed to update subtitle progress: {e}")
                                         # Embed subtitles and get the result
-                                        # Embed subtitles and get the result
-                                        subs_lang = get_user_subs_language(user_id)
-                                        embed_result = embed_subs_to_video(
-                                            after_rename_abs_path,
-                                            user_id,
-                                            url,
-                                            subs_lang,
-                                            tg_update_callback,
-                                            app=app,
-                                            message=message
-                                        )
+                                        embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback, app=app, message=message)
                                         try:
                                             if embed_result:
                                                 app.edit_message_text(
@@ -7177,68 +7061,29 @@ def check_subs_limits(info_dict, quality_key=None):
         return False
 
 
-def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=None, app=None, message=None):
+def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, message=None):
     """
-    Вшивает (hardcode) субтитры в видеофайл, если есть .SRT нужного языка.
-    Сначала скачивает сабы через yt-dlp Python API, приводит к UTF-8, затем вшивает через ffmpeg.
+    Burning (hardcode) subtitles in a video file, if there is any .SRT file and subs.txt
+    tg_update_callback (Progress: Float, ETA: StR) - Function for updating the status in Telegram
     """
-    logger.info(f"embed_subs_to_video called: video_path={video_path}, user_id={user_id}, url={url}, lang_code={lang_code}")
     try:
-
-        # Проверяем наличие видео
         if not video_path or not os.path.exists(video_path):
             logger.error(f"Video file not found: {video_path}")
             return False
-
-        user_dir = os.path.dirname(video_path)
-        cookie_file = os.path.join(user_dir, "cookie.txt")
-
-        # Определяем режим пользователя (обычные или авто-субтитры)
-        auto_mode = get_user_subs_auto_mode(user_id)
-        logger.info(f"Режим субтитров для пользователя {user_id}: {'авто-сгенерированные' if auto_mode else 'обычные'}")
-
-        # Скачиваем субтитры через yt-dlp Python API
-        srt_path = download_subtitles_ytdlp(
-            url,
-            lang_code,
-            user_dir,
-            cookie_file if os.path.exists(cookie_file) else None,
-            auto_mode=auto_mode
-        )
-        if not srt_path or not os.path.exists(srt_path):
-            logger.info(f"No .srt file found for lang {lang_code} in {user_dir}")
+        
+        user_dir = os.path.join("users", str(user_id))
+        subs_file = os.path.join(user_dir, "subs.txt")
+        if not os.path.exists(subs_file):
+            logger.info(f"No subs.txt for user {user_id}, skipping embed_subs_to_video")
             return False
-
-        # УРОВЕНЬ 1: Приводим к UTF-8
-        srt_path = ensure_utf8_srt(srt_path)
-        if not srt_path or not os.path.exists(srt_path) or os.path.getsize(srt_path) == 0:
-            logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {srt_path}")
+        
+        with open(subs_file, "r", encoding="utf-8") as f:
+            subs_lang = f.read().strip()
+        if not subs_lang or subs_lang == "OFF":
+            logger.info(f"Subtitles disabled for user {user_id}")
             return False
-
-        # УРОВЕНЬ 2: Принудительно исправляем любые кракозябры
-        srt_path = force_fix_subtitle_encoding(srt_path)
-        if not srt_path or not os.path.exists(srt_path) or os.path.getsize(srt_path) == 0:
-            logger.error(f"Subtitle file after force_fix_subtitle_encoding is missing or empty: {srt_path}")
-            return False
-
-        # УРОВЕНЬ 3: Проверяем, что файл действительно читаемый
-        try:
-            with open(srt_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                if len(content.strip()) < 10:  # Слишком короткий файл
-                    logger.error(f"Subtitle file too short: {srt_path}")
-                    return False
-                if '' in content or '?' in content:  # Есть кракозябры
-                    logger.warning(f"Subtitle file still contains replacement characters: {srt_path}")
-                    # Пробуем ещё раз принудительно исправить
-                    srt_path = force_fix_subtitle_encoding(srt_path)
-                    if not srt_path:
-                        return False
-        except Exception as e:
-            logger.error(f"Error reading subtitle file {srt_path}: {e}")
-            return False
-
-        # Проверяем размер видео
+        
+        video_dir = os.path.dirname(video_path)
         try:
             clip = VideoFileClip(video_path)
             width, height = clip.size
@@ -7248,9 +7093,32 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
             import traceback
             logger.error(traceback.format_exc())
             width, height = 0, 0
-
+        
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video too large for subtitles: {width}x{height}")
+            return False
+        
+        # --- Simplified search: take any .SRT file in the folder ---
+        srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
+        if not srt_files:
+            logger.info(f"No .srt files found in {video_dir}")
+            return False
+        
+        subs_path = os.path.join(video_dir, srt_files[0])
+        if not os.path.exists(subs_path):
+            logger.error(f"Subtitle file not found: {subs_path}")
+            return False
+
+        # Всегда приводим .SRT к UTF-8
+        subs_path = ensure_utf8_srt(subs_path)
+        if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
+            logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
+            return False
+
+        # Принудительно исправляем арабские кракозябры
+        subs_path = force_fix_arabic_encoding(subs_path)
+        if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
+            logger.error(f"Subtitle file after force_fix_arabic_encoding is missing or empty: {subs_path}")
             return False
         
         video_base = os.path.splitext(os.path.basename(video_path))[0]
@@ -7297,11 +7165,9 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
             bufsize=1
         )
         progress = 0.0
-        start_time = time.time()
-        last_update = start_time
+        last_update = time.time()
         eta = "?"
         time_pattern = re.compile(r'time=([0-9:.]+)')
-        logger.info(f"FFmpeg process started, total_time: {total_time}")
         
         while True:
             line = proc.stdout.readline()
@@ -7311,7 +7177,7 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
             match = time_pattern.search(line)
             if match and total_time:
                 t = match.group(1)
-                # Transform T (hh:mm:ss.xx) in seconds
+                # Transform T (hh: mm: ss.xx) in seconds
                 h, m, s = 0, 0, 0.0
                 parts = t.split(':')
                 if len(parts) == 3:
@@ -7322,16 +7188,13 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
                     s = float(parts[0])
                 cur_sec = h * 3600 + m * 60 + s
                 progress = min(cur_sec / total_time, 1.0)
-                logger.info(f"Progress: {progress:.2f} ({cur_sec:.1f}s / {total_time:.1f}s)")
                 # ETA
                 if progress > 0:
-                    elapsed = time.time() - start_time
+                    elapsed = time.time() - last_update
                     eta_sec = int((1.0 - progress) * (elapsed / progress)) if progress > 0 else 0
                     eta = f"{eta_sec//60}:{eta_sec%60:02d}"
-                    logger.info(f"ETA: {eta}")
-                # Update every 10 seconds or with a change in progress > 1%
+                # Update every 10 seconds or with a change in progress> 1%
                 if tg_update_callback and (time.time() - last_update > 10 or progress >= 1.0):
-                    logger.info(f"Calling tg_update_callback with progress: {progress:.2f}, eta: {eta}")
                     tg_update_callback(progress, eta)
                     last_update = time.time()
         
@@ -7383,12 +7246,12 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
             return False
         
         # Отправляем .srt пользователю перед удалением
-        if os.path.exists(srt_path):
+        if os.path.exists(subs_path):
             try:
                 if app is not None and message is not None:
                     app.send_document(
                         chat_id=user_id,
-                        document=srt_path,
+                        document=subs_path,
                         caption="<blockquote>🎬 Subtitles srt-file</blockquote>",
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
@@ -7396,19 +7259,17 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
             except Exception as e:
                 logger.error(f"Ошибка при отправке srt-файла: {e}")
             try:
-                os.remove(srt_path)
+                os.remove(subs_path)
             except Exception as e:
                 logger.error(f"Ошибка при удалении srt-файла: {e}")
         
         logger.info("Successfully burned-in subtitles")
-        logger.info(f"embed_subs_to_video returning True")
         return True
         
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
-        logger.info(f"embed_subs_to_video returning False due to error")
         return False
 
 app.run()
