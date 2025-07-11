@@ -311,12 +311,15 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             info = ydl.extract_info(url, download=False)
             available_langs = []
             if auto_only:
-                # Только автосгенерированные субтитры
-                if 'automatic_captions' in info and info['automatic_captions']:
+                # Сначала ищем обычные субтитры
+                if 'subtitles' in info and info['subtitles']:
+                    available_langs.extend(list(info['subtitles'].keys()))
+                    logger.info(f"Found subtitles (priority): {list(info['subtitles'].keys())}")
+                elif 'automatic_captions' in info and info['automatic_captions']:
                     available_langs.extend(list(info['automatic_captions'].keys()))
-                    logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
+                    logger.info(f"Found auto captions (fallback): {list(info['automatic_captions'].keys())}")
                 else:
-                    logger.info("No automatic captions found")
+                    logger.info("No subtitles or automatic captions found")
             else:
                 # Только обычные субтитры
                 if 'subtitles' in info:
