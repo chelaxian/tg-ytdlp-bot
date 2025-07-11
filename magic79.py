@@ -3287,7 +3287,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     else:
                         # For single audios, save to regular cache
                         logger.info(f"down_and_audio: saving to video cache: msg_ids={msg_ids}")
-                        save_to_video_cache(url, quality_key, msg_ids, original_text=message.text or message.caption or "")
+                        save_to_video_cache(url, quality_key, msg_ids, original_text=message.text or message.caption or "", user_id=user_id)
             except Exception as send_error:
                 logger.error(f"Error sending audio: {send_error}")
                 send_to_user(message, f"❌ Failed to send audio: {send_error}")
@@ -3409,7 +3409,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 return
             else:
                 app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
-    elif quality_key and not is_playlist:
+    elif quality_key and not is_playlist and not subs_enabled:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
             try:
@@ -5783,31 +5783,33 @@ def askq_callback(app, callback_query):
                 down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
-    message_ids = get_cached_message_ids(url, data)
-    if message_ids:
-        callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
-        try:
-            app.forward_messages(
-                chat_id=user_id,
-                from_chat_id=Config.LOGS_ID,
-                message_ids=message_ids
-            )
-            app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
-            media_type = "Audio" if data == "mp3" else "Video"
-            log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
-            send_to_logger(original_message, log_msg)
+    subs_enabled = is_subs_enabled(user_id)
+    if not subs_enabled:
+        message_ids = get_cached_message_ids(url, data)
+        if message_ids:
+            callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
+            try:
+                app.forward_messages(
+                    chat_id=user_id,
+                    from_chat_id=Config.LOGS_ID,
+                    message_ids=message_ids
+                )
+                app.send_message(user_id, "✅ Video successfully sent from cache.", reply_to_message_id=original_message.id)
+                media_type = "Audio" if data == "mp3" else "Video"
+                log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
+                send_to_logger(original_message, log_msg)
+                return
+            except Exception as e:
+                logger.error(f"Error forwarding from cache: {e}")
+                user_dir = os.path.join("users", str(user_id))
+                subs_txt_path = os.path.join(user_dir, "subs.txt")
+                if not os.path.exists(subs_txt_path):
+                    save_to_video_cache(url, data, [], clear=True)
+                else:
+                    logger.info("Video with subtitles (subs.txt found) is not cached!")
+                app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
+                askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
             return
-        except Exception as e:
-            logger.error(f"Error forwarding from cache: {e}")
-            user_dir = os.path.join("users", str(user_id))
-            subs_txt_path = os.path.join(user_dir, "subs.txt")
-            if not os.path.exists(subs_txt_path):
-                save_to_video_cache(url, data, [], clear=True)
-            else:
-                logger.info("Video with subtitles (subs.txt found) is not cached!")
-            app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-            askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
-        return
     askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
 
 
@@ -6088,8 +6090,11 @@ def get_url_hash(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
 
 
-def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None):
+def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None, user_id: int = None):
     """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
+    if user_id is not None and is_subs_enabled(user_id):
+        logger.info("Video with subtitles is not cached!")
+        return
     logger.info(
         f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
     if not quality_key:
