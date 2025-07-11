@@ -6862,39 +6862,37 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     """
     Checks the availability of subtitles for the language chosen by the user.
     Если return_type=True, возвращает "normal", "auto" или None.
-    Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы).
+    Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы в нужном режиме).
     """
     try:
-        cache_key = f"{url}_{user_id}_{return_type}"
+        # Кэшируем оба типа результатов для одного видео/пользователя
+        cache_key = f"{url}_{user_id}_subs_types"
         if cache_key in _subs_check_cache:
-            return _subs_check_cache[cache_key]
-
-        subs_lang = get_user_subs_language(user_id)
-        if not subs_lang or subs_lang == "OFF":
-            _subs_check_cache[cache_key] = False if not return_type else None
-            return False if not return_type else None
-
-        auto_mode = get_user_subs_auto_mode(user_id)
-
-        if auto_mode:
-            # Только автосгенерированные
-            available_auto = get_available_subs_languages(url, user_id, auto_only=True)
-            has_auto = lang_match(subs_lang, available_auto) is not None
-            if return_type:
-                result = "auto" if has_auto else None
-            else:
-                result = has_auto
+            has_normal, has_auto = _subs_check_cache[cache_key]
         else:
-            # Только обычные
+            subs_lang = get_user_subs_language(user_id)
+            if not subs_lang or subs_lang == "OFF":
+                _subs_check_cache[cache_key] = (False, False)
+                return False if not return_type else None
+
             available_normal = get_available_subs_languages(url, user_id, auto_only=False)
             has_normal = lang_match(subs_lang, available_normal) is not None
-            if return_type:
-                result = "normal" if has_normal else None
-            else:
-                result = has_normal
 
-        _subs_check_cache[cache_key] = result
-        return result
+            available_auto = get_available_subs_languages(url, user_id, auto_only=True)
+            has_auto = lang_match(subs_lang, available_auto) is not None
+
+            _subs_check_cache[cache_key] = (has_normal, has_auto)
+
+        auto_mode = get_user_subs_auto_mode(user_id)
+        if return_type:
+            if auto_mode and has_auto:
+                return "auto"
+            elif not auto_mode and has_normal:
+                return "normal"
+            else:
+                return None
+        else:
+            return has_auto if auto_mode else has_normal
 
     except Exception as e:
         logger.error(f"Error checking subtitle availability: {e}")
