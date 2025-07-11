@@ -3413,7 +3413,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 return
             else:
                 app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
-    elif quality_key and not is_playlist and not is_subs_enabled(user_id):
+    elif quality_key and not is_playlist:
         found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
         subs_enabled = is_subs_enabled(user_id)
         auto_mode = get_user_subs_auto_mode(user_id)
