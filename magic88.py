@@ -5362,6 +5362,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
         # Проверяем наличие субтитров нужного типа для выбранного языка
         subs_hint = ""
+        subs_warn = ""
         if subs_enabled and is_youtube_url(url) and found_type_any is None:
             subs_warn = "\n⚠️ WARNING: Subtitles for selected language were not found and will not be embedded."
         
