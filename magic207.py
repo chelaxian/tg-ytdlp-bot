@@ -7114,7 +7114,6 @@ def download_subtitles_ytdlp(url, user_id, video_dir):
             'skip_download': True,  # Не скачиваем видео, только субтитры
             'outtmpl': os.path.join(video_dir, "%(title).50s.%(ext)s"),
             'subtitlesformat': 'srt',
-            'subtitleslangs': [found_lang],  # Используем найденный язык
         }
         
         if auto_mode:
