@@ -1258,6 +1258,8 @@ def url_distractor(app, message):
     # If the Message Contains a URL, Launch The Video Download Function.
     if ("https://" in text) or ("http://" in text):
         if not is_user_blocked(message):
+            # Очищаем кэш субтитров перед обработкой нового URL
+            clear_subs_check_cache()
             video_url_extractor(app, message)
         return
 
@@ -1313,6 +1315,7 @@ def url_distractor(app, message):
         return
 
     logger.info(f"{user_id} No matching command processed.")
+    clear_subs_check_cache()
 
 
 # Check the USAGE of the BOT
