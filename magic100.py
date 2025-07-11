@@ -40,6 +40,41 @@ from config import Config
 
 import chardet
 
+def download_subtitles_ytdlp(url, lang_code, user_dir, cookie_file=None):
+    """
+    Скачивает субтитры нужного языка через yt-dlp (Python API) в user_dir.
+    Возвращает путь к .srt-файлу или None.
+    """
+    from yt_dlp import YoutubeDL
+
+    outtmpl = os.path.join(user_dir, '%(id)s.%(ext)s')
+    ydl_opts = {
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitleslangs': [lang_code],
+        'subtitlesformat': 'srt',
+        'convert_subtitles': 'srt',
+        'outtmpl': outtmpl,
+        'skip_download': True,
+        'quiet': True,
+        'no_warnings': True,
+    }
+    if cookie_file:
+        ydl_opts['cookiefile'] = cookie_file
+
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+    # Ищем файл вида <video_id>.<lang>.srt
+    for fname in os.listdir(user_dir):
+        if fname.endswith(f".{lang_code}.srt"):
+            return os.path.join(user_dir, fname)
+    # Fallback: ищем любой .srt
+    for fname in os.listdir(user_dir):
+        if fname.endswith('.srt'):
+            return os.path.join(user_dir, fname)
+    return None
+
 def ensure_utf8_srt(srt_path):
     """
     Гарантирует, что файл srt в utf-8.
@@ -47,6 +82,7 @@ def ensure_utf8_srt(srt_path):
     Если нет — перекодирует в utf-8 (перезаписывает исходный файл).
     Возвращает путь к итоговому файлу (всегда исходный путь).
     """
+    import chardet
     if not os.path.isfile(srt_path):
         print(f"Файл {srt_path} не существует!")
         return None
@@ -63,28 +99,17 @@ def ensure_utf8_srt(srt_path):
         encoding = result['encoding'] or 'utf-8'
         print(f"Определена кодировка файла {srt_path}: {encoding}")
 
-    if encoding.lower() in ('utf-8', 'utf-8-sig'):
-        return srt_path
-
-    # Перекодируем в utf-8 (перезаписываем исходный файл)
     try:
+        text = raw.decode(encoding)
+    except Exception:
         try:
-            with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in:
-                text = f_in.read()
+            text = raw.decode('cp1256')
         except Exception:
-            # Пробуем cp1256 (арабский) и cp874 (тайский)
-            try:
-                with open(srt_path, 'r', encoding='cp1256', errors='replace') as f_in:
-                    text = f_in.read()
-            except Exception:
-                with open(srt_path, 'r', encoding='cp874', errors='replace') as f_in:
-                    text = f_in.read()
-        with open(srt_path, 'w', encoding='utf-8') as f_out:
-            f_out.write(text)
-        return srt_path
-    except Exception as e:
-        print(f"Ошибка при перекодировке {srt_path}: {e}")
-        return None
+            text = raw.decode('utf-8', errors='replace')
+
+    with open(srt_path, 'w', encoding='utf-8') as f:
+        f.write(text)
+    return srt_path
 
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
@@ -7020,68 +7045,62 @@ def check_subs_limits(info_dict, quality_key=None):
         return False
 
 
-def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, message=None):
+def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=None, app=None, message=None):
     """
-    Burning (hardcode) subtitles in a video file, if there is any .SRT file and subs.txt
-    tg_update_callback (Progress: Float, ETA: StR) - Function for updating the status in Telegram
+    Вшивает (hardcode) субтитры в видеофайл, если есть .SRT нужного языка.
+    Сначала скачивает сабы через yt-dlp Python API, приводит к UTF-8, затем вшивает через ffmpeg.
     """
     try:
+        import os
+        import subprocess
+        import time
+        import re
+        import traceback
+
+        # Проверяем наличие видео
         if not video_path or not os.path.exists(video_path):
             logger.error(f"Video file not found: {video_path}")
             return False
-        
-        user_dir = os.path.join("users", str(user_id))
-        subs_file = os.path.join(user_dir, "subs.txt")
-        if not os.path.exists(subs_file):
-            logger.info(f"No subs.txt for user {user_id}, skipping embed_subs_to_video")
+
+        user_dir = os.path.dirname(video_path)
+        cookie_file = os.path.join(user_dir, "cookie.txt")
+
+        # Скачиваем субтитры через yt-dlp Python API
+        srt_path = download_subtitles_ytdlp(
+            url,
+            lang_code,
+            user_dir,
+            cookie_file if os.path.exists(cookie_file) else None
+        )
+        if not srt_path or not os.path.exists(srt_path):
+            logger.info(f"No .srt file found for lang {lang_code} in {user_dir}")
             return False
-        
-        with open(subs_file, "r", encoding="utf-8") as f:
-            subs_lang = f.read().strip()
-        if not subs_lang or subs_lang == "OFF":
-            logger.info(f"Subtitles disabled for user {user_id}")
+
+        # Приводим к UTF-8
+        srt_path = ensure_utf8_srt(srt_path)
+        if not srt_path or not os.path.exists(srt_path) or os.path.getsize(srt_path) == 0:
+            logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {srt_path}")
             return False
-        
-        video_dir = os.path.dirname(video_path)
+
+        # Проверяем размер видео
         try:
+            from moviepy.editor import VideoFileClip
             clip = VideoFileClip(video_path)
             width, height = clip.size
             clip.close()
         except Exception as e:
             logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_path}: {e}")
-            import traceback
             logger.error(traceback.format_exc())
             width, height = 0, 0
-        
+
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video too large for subtitles: {width}x{height}")
             return False
-        
-        # --- Simplified search: take any .SRT file in the folder ---
-        srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
-        if not srt_files:
-            logger.info(f"No .srt files found in {video_dir}")
-            return False
-        
-        subs_path = os.path.join(video_dir, srt_files[0])
-        if not os.path.exists(subs_path):
-            logger.error(f"Subtitle file not found: {subs_path}")
-            return False
 
-        # Всегда приводим .SRT к UTF-8
-        subs_path = ensure_utf8_srt(subs_path)
-        if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
-            logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
-            return False
-
-        if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
-            logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
-            return False
-        
         video_base = os.path.splitext(os.path.basename(video_path))[0]
-        output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
-        
-        # We get the duration of the video via FFPRobe
+        output_path = os.path.join(user_dir, f"{video_base}_with_subs_temp.mp4")
+
+        # Получаем длительность видео через ffprobe
         def get_duration(path):
             try:
                 import json
@@ -7095,11 +7114,11 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             except Exception as e:
                 logger.error(f"ffprobe error: {e}")
             return None
-        
+
         total_time = get_duration(video_path)
-        
-        # Field of subtitles
-        subs_path_escaped = subs_path.replace("'", "'\\''")
+
+        # Экранируем путь к субтитрам для ffmpeg
+        subs_path_escaped = srt_path.replace("'", "'\\''")
         filter_arg = f"subtitles='{subs_path_escaped}'"
         cmd = [
             'ffmpeg',
@@ -7109,9 +7128,9 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             '-c:a', 'copy',
             output_path
         ]
-        
+
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
-        
+
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -7125,7 +7144,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         last_update = time.time()
         eta = "?"
         time_pattern = re.compile(r'time=([0-9:.]+)')
-        
+
         while True:
             line = proc.stdout.readline()
             if not line:
@@ -7134,7 +7153,6 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             match = time_pattern.search(line)
             if match and total_time:
                 t = match.group(1)
-                # Transform T (hh: mm: ss.xx) in seconds
                 h, m, s = 0, 0, 0.0
                 parts = t.split(':')
                 if len(parts) == 3:
@@ -7145,70 +7163,63 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                     s = float(parts[0])
                 cur_sec = h * 3600 + m * 60 + s
                 progress = min(cur_sec / total_time, 1.0)
-                # ETA
                 if progress > 0:
                     elapsed = time.time() - last_update
                     eta_sec = int((1.0 - progress) * (elapsed / progress)) if progress > 0 else 0
                     eta = f"{eta_sec//60}:{eta_sec%60:02d}"
-                # Update every 10 seconds or with a change in progress> 1%
                 if tg_update_callback and (time.time() - last_update > 10 or progress >= 1.0):
                     tg_update_callback(progress, eta)
                     last_update = time.time()
-        
+
         proc.wait()
-        
+
         if proc.returncode != 0:
             logger.error(f"FFmpeg error: process exited with code {proc.returncode}")
             if os.path.exists(output_path):
                 os.remove(output_path)
             return False
-        
-        # Проверяем, что файл существует и не пустой
+
         if not os.path.exists(output_path):
             logger.error("Output file does not exist after ffmpeg")
             return False
-        
-        # Ждём немного, чтобы файл точно завершил запись
+
         time.sleep(1)
-        
+
         output_size = os.path.getsize(output_path)
         original_size = os.path.getsize(video_path)
-        
+
         if output_size == 0:
             logger.error("Output file is empty")
             if os.path.exists(output_path):
                 os.remove(output_path)
             return False
-        
-        # Проверяем, что итоговый файл не слишком мал (должен быть хотя бы 50% от оригинала)
+
         if output_size < original_size * 0.5:
             logger.error(f"Output file too small: {output_size} bytes (original: {original_size} bytes)")
             if os.path.exists(output_path):
                 os.remove(output_path)
             return False
-        
-        # Безопасно заменяем файл
+
         backup_path = video_path + ".backup"
         try:
-            os.rename(video_path, backup_path)  # Создаём backup
-            os.rename(output_path, video_path)   # Переименовываем результат
-            os.remove(backup_path)               # Удаляем backup
+            os.rename(video_path, backup_path)
+            os.rename(output_path, video_path)
+            os.remove(backup_path)
         except Exception as e:
             logger.error(f"Error replacing video file: {e}")
-            # Восстанавливаем исходный файл
             if os.path.exists(backup_path):
                 os.rename(backup_path, video_path)
             if os.path.exists(output_path):
                 os.remove(output_path)
             return False
-        
+
         # Отправляем .srt пользователю перед удалением
-        if os.path.exists(subs_path):
+        if os.path.exists(srt_path):
             try:
                 if app is not None and message is not None:
                     app.send_document(
                         chat_id=user_id,
-                        document=subs_path,
+                        document=srt_path,
                         caption="<blockquote>🎬 Subtitles srt-file</blockquote>",
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
@@ -7216,13 +7227,13 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             except Exception as e:
                 logger.error(f"Ошибка при отправке srt-файла: {e}")
             try:
-                os.remove(subs_path)
+                os.remove(srt_path)
             except Exception as e:
                 logger.error(f"Ошибка при удалении srt-файла: {e}")
-        
+
         logger.info("Successfully burned-in subtitles")
         return True
-        
+
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
         import traceback
