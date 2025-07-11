@@ -4321,16 +4321,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             blocks = int(progress * 10)
                                             bar = '🟩' * blocks + '⬜️' * (10 - blocks)
                                             percent = int(progress * 100)
+                                            logger.info(f"tg_update_callback called: progress={progress:.2f}, eta={eta}, percent={percent}")
                                             try:
                                                 app.edit_message_text(
                                                     chat_id=user_id,
                                                     message_id=status_msg.id,
                                                     text=f"Embedding subtitles...\n{bar} {percent}%\nETA: {eta} min"
                                                 )
+                                                logger.info(f"Successfully updated subtitle progress message")
                                             except Exception as e:
                                                 logger.error(f"Failed to update subtitle progress: {e}")
                                         # Embed subtitles and get the result
                                         subs_lang = get_user_subs_language(user_id)
+                                        logger.info(f"Calling embed_subs_to_video with video_path: {after_rename_abs_path}")
+                                        logger.info(f"Video file exists: {os.path.exists(after_rename_abs_path)}")
+                                        logger.info(f"Video file size: {os.path.getsize(after_rename_abs_path) if os.path.exists(after_rename_abs_path) else 'N/A'} bytes")
                                         embed_result = embed_subs_to_video(
                                             after_rename_abs_path,
                                             user_id,
@@ -4622,7 +4627,8 @@ def cleanup_user_temp_files(user_id):
                 filename.startswith('yt_thumb_') or  # YouTube thumbnails
                 filename.endswith('.jpg') or  # Thumbnails
                 filename == 'full_title.txt' or  # Full title file
-                filename == 'full_description.txt'):  # Tags file
+                filename == 'full_description.txt' or  # Tags file
+                filename.endswith(('.mp4', '.mkv', '.webm', '.ts'))):  # Video files
                 try:
                     if os.path.isfile(file_path):
                         os.remove(file_path)
@@ -7177,12 +7183,24 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
     Вшивает (hardcode) субтитры в видеофайл, если есть .SRT нужного языка.
     Сначала скачивает сабы через yt-dlp Python API, приводит к UTF-8, затем вшивает через ffmpeg.
     """
+    logger.info(f"embed_subs_to_video called: video_path={video_path}, user_id={user_id}, lang_code={lang_code}")
     try:
 
         # Проверяем наличие видео
         if not video_path or not os.path.exists(video_path):
             logger.error(f"Video file not found: {video_path}")
             return False
+
+        # Проверяем, что это действительно видео файл
+        video_ext = os.path.splitext(video_path)[1].lower()
+        if video_ext not in ['.mp4', '.mkv', '.webm', '.ts']:
+            logger.error(f"Not a video file: {video_path}")
+            return False
+
+        # Проверяем, что видео файл не слишком старый (не старше 5 минут)
+        video_age = time.time() - os.path.getmtime(video_path)
+        if video_age > 300:  # 5 минут
+            logger.warning(f"Video file is old ({video_age:.1f}s), may be from previous download: {video_path}")
 
         user_dir = os.path.dirname(video_path)
         cookie_file = os.path.join(user_dir, "cookie.txt")
@@ -7191,6 +7209,17 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
         auto_mode = get_user_subs_auto_mode(user_id)
         logger.info(f"Режим субтитров для пользователя {user_id}: {'авто-сгенерированные' if auto_mode else 'обычные'}")
         
+        # Очищаем старые субтитры перед скачиванием новых
+        logger.info(f"Cleaning old subtitle files in {user_dir}")
+        for filename in os.listdir(user_dir):
+            if filename.endswith('.srt'):
+                old_srt_path = os.path.join(user_dir, filename)
+                try:
+                    os.remove(old_srt_path)
+                    logger.info(f"Removed old subtitle file: {filename}")
+                except Exception as e:
+                    logger.warning(f"Failed to remove old subtitle file {filename}: {e}")
+
         # Скачиваем субтитры через yt-dlp Python API
         srt_path = download_subtitles_ytdlp(
             url,
@@ -7201,6 +7230,7 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
         )
         if not srt_path or not os.path.exists(srt_path):
             logger.info(f"No .srt file found for lang {lang_code} in {user_dir}")
+            logger.info(f"embed_subs_to_video returning False - no srt file")
             return False
 
         # УРОВЕНЬ 1: Приводим к UTF-8
@@ -7280,6 +7310,7 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
         ]
 
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
+        logger.info(f"Starting ffmpeg process with progress tracking...")
 
         proc = subprocess.Popen(
             cmd,
@@ -7291,9 +7322,11 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
             bufsize=1
         )
         progress = 0.0
-        last_update = time.time()
+        start_time = time.time()
+        last_update = start_time
         eta = "?"
         time_pattern = re.compile(r'time=([0-9:.]+)')
+        logger.info(f"FFmpeg process started, total_time: {total_time}")
 
         while True:
             line = proc.stdout.readline()
@@ -7303,6 +7336,7 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
             match = time_pattern.search(line)
             if match and total_time:
                 t = match.group(1)
+                # Transform T (hh:mm:ss.xx) in seconds
                 h, m, s = 0, 0, 0.0
                 parts = t.split(':')
                 if len(parts) == 3:
@@ -7313,11 +7347,16 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
                     s = float(parts[0])
                 cur_sec = h * 3600 + m * 60 + s
                 progress = min(cur_sec / total_time, 1.0)
+                logger.info(f"Progress: {progress:.2f} ({cur_sec:.1f}s / {total_time:.1f}s)")
+                # ETA
                 if progress > 0:
-                    elapsed = time.time() - last_update
+                    elapsed = time.time() - start_time
                     eta_sec = int((1.0 - progress) * (elapsed / progress)) if progress > 0 else 0
                     eta = f"{eta_sec//60}:{eta_sec%60:02d}"
+                    logger.info(f"ETA: {eta}")
+                # Update every 10 seconds or with a change in progress > 1%
                 if tg_update_callback and (time.time() - last_update > 10 or progress >= 1.0):
+                    logger.info(f"Calling tg_update_callback with progress: {progress:.2f}, eta: {eta}")
                     tg_update_callback(progress, eta)
                     last_update = time.time()
 
@@ -7382,11 +7421,13 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
                 logger.error(f"Ошибка при удалении srt-файла: {e}")
 
         logger.info("Successfully burned-in subtitles")
+        logger.info(f"embed_subs_to_video returning True")
         return True
 
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
         logger.error(traceback.format_exc())
+        logger.info(f"embed_subs_to_video returning False due to error")
         return False
 
 app.run()
