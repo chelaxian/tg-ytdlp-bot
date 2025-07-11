@@ -1,4 +1,5 @@
-# Version 2.5.0
+
+# Version 3.0.0 # embedded subtitles
 import glob
 import hashlib
 import io
@@ -4142,7 +4143,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             except Exception as e:
                                                 logger.error(f"Failed to update subtitle progress: {e}")
                                         # Embed subtitles and get the result
-                                        embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback)
+                                        embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback, app=app, message=message)
                                         try:
                                             if embed_result:
                                                 app.edit_message_text(
@@ -5324,7 +5325,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if table_block:
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         # Hint as a separate code block at the very bottom
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved.\n📝 — Subs are available with chosen language.</pre>"
+        subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved." + ("\n📝 — Subs are available with chosen language." if subs_enabled else "") + "</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
@@ -6920,7 +6922,7 @@ def check_subs_limits(info_dict, quality_key=None):
         return False
 
 
-def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
+def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, message=None):
     """
     Burning (hardcode) subtitles in a video file, if there is any .SRT file and subs.txt
     tg_update_callback (Progress: Float, ETA: StR) - Function for updating the status in Telegram
@@ -7098,9 +7100,23 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None):
                 os.remove(output_path)
             return False
         
-        # Удаляем .srt только если всё прошло успешно
+        # Отправляем .srt пользователю перед удалением
         if os.path.exists(subs_path):
-            os.remove(subs_path)
+            try:
+                if app is not None and message is not None:
+                    app.send_document(
+                        chat_id=user_id,
+                        document=subs_path,
+                        caption="<blockquote>📝 Ваши субтитры к видео</blockquote>",
+                        reply_to_message_id=message.id,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+            except Exception as e:
+                logger.error(f"Ошибка при отправке srt-файла: {e}")
+            try:
+                os.remove(subs_path)
+            except Exception as e:
+                logger.error(f"Ошибка при удалении srt-файла: {e}")
         
         logger.info("Successfully burned-in subtitles")
         return True
