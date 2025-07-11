@@ -1,5 +1,6 @@
 
 
+
 # Version 3.0.0 # embedded subtitles
 import glob
 import hashlib
@@ -201,22 +202,23 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             available_langs = []
-            
             if auto_only:
-                # Only autosubters
-                if 'automatic_captions' in info:
+                # Сначала ищем обычные субтитры
+                if 'subtitles' in info and info['subtitles']:
+                    available_langs.extend(list(info['subtitles'].keys()))
+                    logger.info(f"Found subtitles (priority): {list(info['subtitles'].keys())}")
+                elif 'automatic_captions' in info and info['automatic_captions']:
                     available_langs.extend(list(info['automatic_captions'].keys()))
-                    logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
+                    logger.info(f"Found auto captions (fallback): {list(info['automatic_captions'].keys())}")
                 else:
-                    logger.info("No automatic captions found")
+                    logger.info("No subtitles or automatic captions found")
             else:
-                # Only ordinary subtitles
+                # Только обычные субтитры
                 if 'subtitles' in info:
                     available_langs.extend(list(info['subtitles'].keys()))
                     logger.info(f"Found subtitles: {list(info['subtitles'].keys())}")
                 else:
                     logger.info("No subtitles found")
-            
             result = list(set(available_langs))  # Remove duplicates
             logger.info(f"get_available_subs_languages: auto_only={auto_only}, result={result}")
             return result
