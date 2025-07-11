@@ -3747,10 +3747,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'live_from_start': True
             }
             
-            # Add subtitle options if it's a YouTube video
+            # Check subtitle availability for YouTube videos (but don't download them here)
             if is_youtube_url(url):
-                common_opts = modify_yt_dlp_opts_for_subs(common_opts, user_id)
-                # Check if subtitles are available in the selected language
                 subs_lang = get_user_subs_language(user_id)
                 auto_mode = get_user_subs_auto_mode(user_id)
                 if subs_lang and subs_lang not in ["OFF"]:
@@ -4261,6 +4259,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if subs_enabled and is_youtube_url(url) and min(width, height) <= Config.MAX_SUB_QUALITY:
                                 found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                 if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                                    
+                                    # Сначала скачиваем субтитры отдельно
+                                    video_dir = os.path.dirname(after_rename_abs_path)
+                                    subs_path = download_subtitles_ytdlp(url, user_id, video_dir)
+                                    
+                                    if not subs_path:
+                                        app.send_message(user_id, "⚠️ Failed to download subtitles", reply_to_message_id=message.id)
+                                        continue
                                     
                                     # Get the real size of the file after downloading
                                     real_file_size = os.path.getsize(after_rename_abs_path) if os.path.exists(after_rename_abs_path) else 0
@@ -6983,36 +6989,6 @@ def subs_auto_callback(app, callback_query):
         send_to_logger(callback_query.message, f"User toggled AUTO-GEN mode to: {new_auto}")
 
 
-def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
-    """
-    Modifies YT-DLP parameters to work with subtitles taking into account custom settings
-    """
-    subs_lang = get_user_subs_language(user_id)
-    auto_mode = get_user_subs_auto_mode(user_id)
-    
-    if not subs_lang or subs_lang == "OFF":
-        return ydl_opts
-    
-    # autosub settings depending on the user choice
-    if auto_mode:
-        # autosub mode - looking for the selected language only in car carbits
-        ydl_opts.update({
-            'writeautomaticsub': True,
-            'writesubtitles': False,
-            'subtitleslangs': [subs_lang],  # We are looking for a specific language in car carbits
-            'subtitlesformat': 'srt',  # Subtitles format
-        })
-    else:
-        # Normal mode - looking for a selected language in ordinary subtitles
-        ydl_opts.update({
-            'writeautomaticsub': False,
-            'writesubtitles': True,
-            'subtitleslangs': [subs_lang],  # We use the language selected by the user
-            'subtitlesformat': 'srt',  # Subtitles format
-        })
-    
-    return ydl_opts
-
 
 # Cache for subtitles checks
 _subs_check_cache = {}
@@ -7121,6 +7097,77 @@ def check_subs_limits(info_dict, quality_key=None):
         logger.error(f"Error checking subtitle limits: {e}")
         return False
 
+
+def download_subtitles_ytdlp(url, user_id, video_dir):
+    """
+    Отдельно скачивает субтитры для видео через yt-dlp
+    """
+    try:
+        subs_lang = get_user_subs_language(user_id)
+        auto_mode = get_user_subs_auto_mode(user_id)
+        
+        if not subs_lang or subs_lang == "OFF":
+            return None
+            
+        # Настройки для скачивания субтитров
+        subs_opts = {
+            'skip_download': True,  # Не скачиваем видео, только субтитры
+            'outtmpl': os.path.join(video_dir, "%(title).50s.%(ext)s"),
+            'subtitlesformat': 'srt',
+            'subtitleslangs': [found_lang],  # Используем найденный язык
+        }
+        
+        if auto_mode:
+            subs_opts.update({
+                'writeautomaticsub': True,
+                'writesubtitles': False,
+            })
+        else:
+            subs_opts.update({
+                'writeautomaticsub': False,
+                'writesubtitles': True,
+            })
+            
+        # Добавляем cookie файл если есть
+        user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            subs_opts['cookiefile'] = user_cookie_path
+        else:
+            global_cookie_path = Config.COOKIE_FILE_PATH
+            if os.path.exists(global_cookie_path):
+                subs_opts['cookiefile'] = global_cookie_path
+            else:
+                subs_opts['cookiefile'] = None
+        
+        # Проверяем доступность субтитров
+        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+        if not available_langs:
+            logger.info(f"No subtitles available for {subs_lang}")
+            return None
+            
+        # Ищем подходящий язык используя функцию lang_match
+        found_lang = lang_match(subs_lang, available_langs)
+                
+        if not found_lang:
+            logger.info(f"Language {subs_lang} not found in available languages: {available_langs}")
+            return None
+            
+        # Скачиваем субтитры
+        with yt_dlp.YoutubeDL(subs_opts) as ydl:
+            ydl.download([url])
+            
+        # Ищем скачанный файл субтитров
+        srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
+        if srt_files:
+            subs_path = os.path.join(video_dir, srt_files[0])
+            logger.info(f"Subtitles downloaded: {subs_path}")
+            return subs_path
+            
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error downloading subtitles: {e}")
+        return None
 
 def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, message=None):
     """
