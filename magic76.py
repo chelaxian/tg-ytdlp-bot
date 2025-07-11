@@ -6876,18 +6876,22 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
 
         auto_mode = get_user_subs_auto_mode(user_id)
 
-        # Сначала ищем только нужный тип
-        available = get_available_subs_languages(url, user_id, auto_only=auto_mode)
-        has = lang_match(subs_lang, available) is not None
-
-        if return_type:
-            if has:
-                result = "auto" if auto_mode else "normal"
+        if auto_mode:
+            # Только автосгенерированные
+            available_auto = get_available_subs_languages(url, user_id, auto_only=True)
+            has_auto = lang_match(subs_lang, available_auto) is not None
+            if return_type:
+                result = "auto" if has_auto else None
             else:
-                # Если fallback разрешён — можно тут добавить вторую проверку
-                result = None
+                result = has_auto
         else:
-            result = has
+            # Только обычные
+            available_normal = get_available_subs_languages(url, user_id, auto_only=False)
+            has_normal = lang_match(subs_lang, available_normal) is not None
+            if return_type:
+                result = "normal" if has_normal else None
+            else:
+                result = has_normal
 
         _subs_check_cache[cache_key] = result
         return result
