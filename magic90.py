@@ -3432,9 +3432,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return
                 except Exception as e:
                     logger.error(f"Error reposting video from cache: {e}")
-                    user_dir = os.path.join("users", str(user_id))
-                    subs_txt_path = os.path.join(user_dir, "subs.txt")
-                    if not os.path.exists(subs_txt_path):
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                    subs_enabled = is_subs_enabled(user_id)
+                    auto_mode = get_user_subs_auto_mode(user_id)
+                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                    if not need_subs:
                         save_to_video_cache(url, quality_key, [], clear=True)
                     else:
                         logger.info("Video with subs (subs.txt found) is not cached!")
@@ -4022,9 +4024,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         rounded_quality_key = f"{ceil_to_popular(int(quality_key[:-1]))}p"
                                 except Exception:
                                     pass
-                                user_dir = os.path.join("users", str(user_id))
-                                subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                if not os.path.exists(subs_txt_path):
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                subs_enabled = is_subs_enabled(user_id)
+                                auto_mode = get_user_subs_auto_mode(user_id)
+                                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                if not need_subs:
                                     save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
                                 else:
                                     logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4040,9 +4044,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                user_dir = os.path.join("users", str(user_id))
-                                subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                if not os.path.exists(subs_txt_path):
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                subs_enabled = is_subs_enabled(user_id)
+                                auto_mode = get_user_subs_auto_mode(user_id)
+                                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                if not need_subs:
                                     save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                                 else:
                                     logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4059,9 +4065,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if is_playlist:
                             # For playlists, save to playlist cache with video index
                             current_video_index = x + video_start_with
-                            user_dir = os.path.join("users", str(user_id))
-                            subs_txt_path = os.path.join(user_dir, "subs.txt")
-                            if not os.path.exists(subs_txt_path):
+                            found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                            subs_enabled = is_subs_enabled(user_id)
+                            auto_mode = get_user_subs_auto_mode(user_id)
+                            need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                            if not need_subs:
                                 save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                             else:
                                 logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4085,9 +4093,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # Remove duplicates
                     split_msg_ids = list(dict.fromkeys(split_msg_ids))
                     logger.info(f"down_and_up: saving all split video parts to cache: {split_msg_ids}")
-                    user_dir = os.path.join("users", str(user_id))
-                    subs_txt_path = os.path.join(user_dir, "subs.txt")
-                    if not os.path.exists(subs_txt_path):
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                    subs_enabled = is_subs_enabled(user_id)
+                    auto_mode = get_user_subs_auto_mode(user_id)
+                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                    if not need_subs:
                         save_to_video_cache(url, quality_key, split_msg_ids, original_text=message.text or message.caption or "")
                     else:
                         logger.info("Split video with subtitles is not cached!")
@@ -4211,9 +4221,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    user_dir = os.path.join("users", str(user_id))
-                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                    if not os.path.exists(subs_txt_path):
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                    subs_enabled = is_subs_enabled(user_id)
+                                    auto_mode = get_user_subs_auto_mode(user_id)
+                                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                    if not need_subs:
                                         save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
                                     else:
                                         logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4223,9 +4235,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                 else:
                                     # For single videos, save to regular cache
-                                    user_dir = os.path.join("users", str(user_id))
-                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                    if not os.path.exists(subs_txt_path):
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                    subs_enabled = is_subs_enabled(user_id)
+                                    auto_mode = get_user_subs_auto_mode(user_id)
+                                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                    if not need_subs:
                                         save_to_video_cache(url, quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "")
                                     else:
                                         logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4234,9 +4248,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    user_dir = os.path.join("users", str(user_id))
-                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                    if not os.path.exists(subs_txt_path):
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                    subs_enabled = is_subs_enabled(user_id)
+                                    auto_mode = get_user_subs_auto_mode(user_id)
+                                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                    if not need_subs:
                                         save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                                     else:
                                         logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4245,9 +4261,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.append(video_msg.id)
                                 else:
-                                    user_dir = os.path.join("users", str(user_id))
-                                    subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                    if not os.path.exists(subs_txt_path):
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                    subs_enabled = is_subs_enabled(user_id)
+                                    auto_mode = get_user_subs_auto_mode(user_id)
+                                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                    if not need_subs:
                                         # For single videos, save to regular cache
                                         save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
                                     else:
@@ -4258,9 +4276,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                user_dir = os.path.join("users", str(user_id))
-                                subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                if not os.path.exists(subs_txt_path):
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                subs_enabled = is_subs_enabled(user_id)
+                                auto_mode = get_user_subs_auto_mode(user_id)
+                                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                if not need_subs:
                                     save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "")
                                 else:
                                     logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4270,9 +4290,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 playlist_msg_ids.append(video_msg.id)
                             else:
                                 # For single videos, save to regular cache
-                                user_dir = os.path.join("users", str(user_id))
-                                subs_txt_path = os.path.join(user_dir, "subs.txt")
-                                if not os.path.exists(subs_txt_path):
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                subs_enabled = is_subs_enabled(user_id)
+                                auto_mode = get_user_subs_auto_mode(user_id)
+                                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                                if not need_subs:
                                     save_to_video_cache(url, quality_key, [video_msg.id], original_text=message.text or message.caption or "")
                                 else:
                                     logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -4336,9 +4358,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         # --- ADDED: summary of cache after cycle ---
         if is_playlist and playlist_indices and playlist_msg_ids:
-            user_dir = os.path.join("users", str(user_id))
-            subs_txt_path = os.path.join(user_dir, "subs.txt")
-            if not os.path.exists(subs_txt_path):
+            found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+            subs_enabled = is_subs_enabled(user_id)
+            auto_mode = get_user_subs_auto_mode(user_id)
+            need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+            if not need_subs:
                 save_to_playlist_cache(get_clean_playlist_url(url), quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "")
             else:
                 logger.info("Video with subtitles (subs.txt found) is not cached!")
@@ -5797,8 +5821,12 @@ def askq_callback(app, callback_query):
                 down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
+    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
     subs_enabled = is_subs_enabled(user_id)
-    if not subs_enabled:
+    auto_mode = get_user_subs_auto_mode(user_id)
+    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+    if not need_subs:
+
         message_ids = get_cached_message_ids(url, data)
         if message_ids:
             callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
@@ -5814,13 +5842,14 @@ def askq_callback(app, callback_query):
                 send_to_logger(original_message, log_msg)
                 return
             except Exception as e:
-                logger.error(f"Error forwarding from cache: {e}")
-                user_dir = os.path.join("users", str(user_id))
-                subs_txt_path = os.path.join(user_dir, "subs.txt")
-                if not os.path.exists(subs_txt_path):
+                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                subs_enabled = is_subs_enabled(user_id)
+                auto_mode = get_user_subs_auto_mode(user_id)
+                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                if not need_subs:
                     save_to_video_cache(url, data, [], clear=True)
                 else:
-                    logger.info("Video with subtitles (subs.txt found) is not cached!")
+                    logger.info("Video with subtitles (real subs found and needed) is not cached!")
                 app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
                 askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
             return
