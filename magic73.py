@@ -1,3 +1,7 @@
+
+
+
+
 # Version 3.0.0 # embedded subtitles
 import glob
 import hashlib
@@ -6854,45 +6858,47 @@ def clear_subs_check_cache():
     _subs_check_cache.clear()
     logger.info("Subs check cache cleared")
 
-def check_subs_availability(url, user_id, quality_key=None):
+def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     """
-    Checks the availability of subtitles for the language chosen by the user
-    Returns True if the subtitles are available, false if not
+    Checks the availability of subtitles for the language chosen by the user.
+    Если return_type=True, возвращает "normal", "auto" или None.
+    Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы).
     """
     try:
-        # Create the Kesh key
         cache_key = f"{url}_{user_id}"
-        
-        # Check the cache
-        if cache_key in _subs_check_cache:
+        # Кэш только для старого режима (True/False)
+        if not return_type and cache_key in _subs_check_cache:
             return _subs_check_cache[cache_key]
-        
-        # We get the subtitus language chosen by the user and the Auto mode
+
         subs_lang = get_user_subs_language(user_id)
-        auto_mode = get_user_subs_auto_mode(user_id)
-        
         if not subs_lang or subs_lang == "OFF":
-            _subs_check_cache[cache_key] = False
-            return False
-        
-        # We get a list of available languages ​​for this video
-        # If AUTO mode is turned on, we are looking only in car carbits
-        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
-        
-        # Check the availability of the selected language
-        lang_found = lang_match(subs_lang, available_langs)
-        result = lang_found is not None
-        
-        # We log in for debugging
-        logger.info(f"check_subs_availability: lang={subs_lang}, auto_mode={auto_mode}, available_langs={available_langs}, result={result}")
-        
-        # We save in the cache
-        _subs_check_cache[cache_key] = result
-        return result
-            
+            if not return_type:
+                _subs_check_cache[cache_key] = False
+            return False if not return_type else None
+
+        # Проверяем обычные субтитры
+        available_normal = get_available_subs_languages(url, user_id, auto_only=False)
+        has_normal = lang_match(subs_lang, available_normal) is not None
+
+        # Проверяем автосгенерированные субтитры
+        available_auto = get_available_subs_languages(url, user_id, auto_only=True)
+        has_auto = lang_match(subs_lang, available_auto) is not None
+
+        if return_type:
+            if has_normal:
+                return "normal"
+            elif has_auto:
+                return "auto"
+            else:
+                return None
+        else:
+            result = has_normal or has_auto
+            _subs_check_cache[cache_key] = result
+            return result
+
     except Exception as e:
         logger.error(f"Error checking subtitle availability: {e}")
-        return False
+        return False if not return_type else None
 
 def lang_match(user_lang, available_langs):
     # user_lang: for example, 'en', 'en -us', 'zh', 'pt'
@@ -7171,5 +7177,6 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         import traceback
         logger.error(traceback.format_exc())
         return False
+
 
 app.run()
