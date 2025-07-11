@@ -6865,15 +6865,13 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы).
     """
     try:
-        cache_key = f"{url}_{user_id}"
-        # Кэш только для старого режима (True/False)
-        if not return_type and cache_key in _subs_check_cache:
+        cache_key = f"{url}_{user_id}_{return_type}"
+        if cache_key in _subs_check_cache:
             return _subs_check_cache[cache_key]
 
         subs_lang = get_user_subs_language(user_id)
         if not subs_lang or subs_lang == "OFF":
-            if not return_type:
-                _subs_check_cache[cache_key] = False
+            _subs_check_cache[cache_key] = False if not return_type else None
             return False if not return_type else None
 
         # Проверяем обычные субтитры
@@ -6885,16 +6883,12 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
         has_auto = lang_match(subs_lang, available_auto) is not None
 
         if return_type:
-            if has_normal:
-                return "normal"
-            elif has_auto:
-                return "auto"
-            else:
-                return None
+            result = "normal" if has_normal else "auto" if has_auto else None
         else:
             result = has_normal or has_auto
-            _subs_check_cache[cache_key] = result
-            return result
+
+        _subs_check_cache[cache_key] = result
+        return result
 
     except Exception as e:
         logger.error(f"Error checking subtitle availability: {e}")
