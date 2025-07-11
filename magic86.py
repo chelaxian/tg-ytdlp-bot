@@ -5358,6 +5358,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
         auto_mode = get_user_subs_auto_mode(user_id)
         subs_lang = get_user_subs_language(user_id)
+        found_type_any = check_subs_availability(url, user_id, return_type=True)
 
         # Проверяем наличие субтитров нужного типа для выбранного языка
         subs_hint = ""
@@ -5368,6 +5369,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved." + subs_hint + "</pre>"
         cap += f"\n{hint}\n"
+        if subs_enabled and is_youtube_url(url) and found_type_any is None:
+            cap += '<blockquote>⚠️ <b>WARNING</b>: Subtitles for selected language were not found and will not be embedded.</blockquote>\n'
         buttons = []
         # Sort buttons by quality from lowest to highest
         for quality_key in sorted(found_quality_keys, key=sort_quality_key):
