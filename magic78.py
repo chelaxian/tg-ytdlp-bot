@@ -1,8 +1,4 @@
-
-
-
-
-# Version 3.0.0 # embedded subtitles
+# Version 3.0.1 # embedded subtitles
 import glob
 import hashlib
 import io
@@ -6862,37 +6858,33 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     """
     Checks the availability of subtitles for the language chosen by the user.
     Если return_type=True, возвращает "normal", "auto" или None.
-    Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы в нужном режиме).
+    Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы).
     """
     try:
-        # Кэшируем оба типа результатов для одного видео/пользователя
-        cache_key = f"{url}_{user_id}_subs_types"
+        cache_key = f"{url}_{user_id}_{return_type}"
         if cache_key in _subs_check_cache:
-            has_normal, has_auto = _subs_check_cache[cache_key]
-        else:
-            subs_lang = get_user_subs_language(user_id)
-            if not subs_lang or subs_lang == "OFF":
-                _subs_check_cache[cache_key] = (False, False)
-                return False if not return_type else None
+            return _subs_check_cache[cache_key]
 
-            available_normal = get_available_subs_languages(url, user_id, auto_only=False)
-            has_normal = lang_match(subs_lang, available_normal) is not None
+        subs_lang = get_user_subs_language(user_id)
+        if not subs_lang or subs_lang == "OFF":
+            _subs_check_cache[cache_key] = False if not return_type else None
+            return False if not return_type else None
 
-            available_auto = get_available_subs_languages(url, user_id, auto_only=True)
-            has_auto = lang_match(subs_lang, available_auto) is not None
+        # Проверяем обычные субтитры
+        available_normal = get_available_subs_languages(url, user_id, auto_only=False)
+        has_normal = lang_match(subs_lang, available_normal) is not None
 
-            _subs_check_cache[cache_key] = (has_normal, has_auto)
+        # Проверяем автосгенерированные субтитры
+        available_auto = get_available_subs_languages(url, user_id, auto_only=True)
+        has_auto = lang_match(subs_lang, available_auto) is not None
 
-        auto_mode = get_user_subs_auto_mode(user_id)
         if return_type:
-            if auto_mode and has_auto:
-                return "auto"
-            elif not auto_mode and has_normal:
-                return "normal"
-            else:
-                return None
+            result = "normal" if has_normal else "auto" if has_auto else None
         else:
-            return has_auto if auto_mode else has_normal
+            result = has_normal or has_auto
+
+        _subs_check_cache[cache_key] = result
+        return result
 
     except Exception as e:
         logger.error(f"Error checking subtitle availability: {e}")
@@ -7175,6 +7167,5 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         import traceback
         logger.error(traceback.format_exc())
         return False
-
 
 app.run()
