@@ -311,15 +311,12 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             info = ydl.extract_info(url, download=False)
             available_langs = []
             if auto_only:
-                # Сначала ищем обычные субтитры
-                if 'subtitles' in info and info['subtitles']:
-                    available_langs.extend(list(info['subtitles'].keys()))
-                    logger.info(f"Found subtitles (priority): {list(info['subtitles'].keys())}")
-                elif 'automatic_captions' in info and info['automatic_captions']:
+                # Только автосубтитры
+                if 'automatic_captions' in info and info['automatic_captions']:
                     available_langs.extend(list(info['automatic_captions'].keys()))
-                    logger.info(f"Found auto captions (fallback): {list(info['automatic_captions'].keys())}")
+                    logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
                 else:
-                    logger.info("No subtitles or automatic captions found")
+                    logger.info("No automatic captions found")
             else:
                 # Только обычные субтитры
                 if 'subtitles' in info:
@@ -7018,10 +7015,12 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
         # Проверяем обычные субтитры
         available_normal = get_available_subs_languages(url, user_id, auto_only=False)
         has_normal = lang_match(subs_lang, available_normal) is not None
+        logger.info(f"check_subs_availability: normal subs - available={available_normal}, has_normal={has_normal}")
 
         # Проверяем автосгенерированные субтитры
         available_auto = get_available_subs_languages(url, user_id, auto_only=True)
         has_auto = lang_match(subs_lang, available_auto) is not None
+        logger.info(f"check_subs_availability: auto subs - available={available_auto}, has_auto={has_auto}")
 
         if return_type:
             result = "normal" if has_normal else "auto" if has_auto else None
@@ -7038,23 +7037,34 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
 def lang_match(user_lang, available_langs):
     # user_lang: for example, 'en', 'en -us', 'zh', 'pt'
     # AVAILABLE_LANGS: a list of all available languages, for example ['en -us', 'EN-GB', 'FR', 'PT-BR']
+    logger.info(f"lang_match: user_lang='{user_lang}', available_langs={available_langs}")
+    
     if user_lang in available_langs:
+        logger.info(f"lang_match: exact match found: {user_lang}")
         return user_lang
+    
     # If the basic language is chosen, we look for any prefix with this
     if '-' not in user_lang:
         for lang in available_langs:
             if lang.startswith(user_lang + '-'):
+                logger.info(f"lang_match: prefix match found: {lang} for {user_lang}")
                 return lang
+    
     # If a language with a hyphen is chosen, we are looking for a basic
     if '-' in user_lang:
         base = user_lang.split('-')[0]
         if base in available_langs:
+            logger.info(f"lang_match: base match found: {base} for {user_lang}")
             return base
+    
     # If the base is selected, we are looking for a duplicate code (ru-RU, EN-EN, etc.)
     if '-' not in user_lang:
         for lang in available_langs:
             if lang.lower() == f'{user_lang.lower()}-{user_lang.lower()}':
+                logger.info(f"lang_match: duplicate match found: {lang} for {user_lang}")
                 return lang
+    
+    logger.info(f"lang_match: no match found for {user_lang}")
     return None
 
 def check_subs_limits(info_dict, quality_key=None):
