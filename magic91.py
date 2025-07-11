@@ -5382,7 +5382,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
         auto_mode = get_user_subs_auto_mode(user_id)
         subs_lang = get_user_subs_language(user_id)
-        found_type_any = check_subs_availability(url, user_id, return_type=True)
 
         # Проверяем наличие субтитров нужного типа для выбранного языка
         subs_hint = ""
@@ -5821,7 +5820,7 @@ def askq_callback(app, callback_query):
                 down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
-    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+    found_type = check_subs_availability(url, user_id, data, return_type=True)
     subs_enabled = is_subs_enabled(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -5842,7 +5841,7 @@ def askq_callback(app, callback_query):
                 send_to_logger(original_message, log_msg)
                 return
             except Exception as e:
-                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                found_type = check_subs_availability(url, user_id, data, return_type=True)
                 subs_enabled = is_subs_enabled(user_id)
                 auto_mode = get_user_subs_auto_mode(user_id)
                 need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
