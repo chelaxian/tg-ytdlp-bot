@@ -2567,7 +2567,7 @@ def send_videos(
                 user_doc_msg = app.send_document(
                     chat_id=user_id,
                     document=temp_desc_path,
-                    caption="<blockquote>🗒 if you want to change video caption - reply to video with new text</blockquote>",
+                    caption="<blockquote>📝 if you want to change video caption - reply to video with new text</blockquote>",
                     reply_to_message_id=message.id,
                     parse_mode=enums.ParseMode.HTML
                 )
@@ -3414,26 +3414,31 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             else:
                 app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
     elif quality_key and not is_playlist and not is_subs_enabled(user_id):
-        cached_ids = get_cached_message_ids(url, quality_key)
-        if cached_ids:
-            try:
-                app.forward_messages(
-                    chat_id=user_id,
-                    from_chat_id=Config.LOGS_ID,
-                    message_ids=cached_ids
-                )
-                app.send_message(user_id, "✅ Video sent from cache.", reply_to_message_id=message.id)
-                send_to_logger(message, f"Video sent from cache (quality={quality_key}) to user {user_id}")
-                return
-            except Exception as e:
-                logger.error(f"Error reposting video from cache: {e}")
-                user_dir = os.path.join("users", str(user_id))
-                subs_txt_path = os.path.join(user_dir, "subs.txt")
-                if not os.path.exists(subs_txt_path):
-                    save_to_video_cache(url, quality_key, [], clear=True)
-                else:
-                    logger.info("Video with subs (subs.txt found) is not cached!")
-                app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_to_message_id=message.id)
+        found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+        subs_enabled = is_subs_enabled(user_id)
+        auto_mode = get_user_subs_auto_mode(user_id)
+        need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+        if not need_subs:
+            cached_ids = get_cached_message_ids(url, quality_key)
+            if cached_ids:
+                try:
+                    app.forward_messages(
+                        chat_id=user_id,
+                        from_chat_id=Config.LOGS_ID,
+                        message_ids=cached_ids
+                    )
+                    app.send_message(user_id, "✅ Video sent from cache.", reply_to_message_id=message.id)
+                    send_to_logger(message, f"Video sent from cache (quality={quality_key}) to user {user_id}")
+                    return
+                except Exception as e:
+                    logger.error(f"Error reposting video from cache: {e}")
+                    user_dir = os.path.join("users", str(user_id))
+                    subs_txt_path = os.path.join(user_dir, "subs.txt")
+                    if not os.path.exists(subs_txt_path):
+                        save_to_video_cache(url, quality_key, [], clear=True)
+                    else:
+                        logger.info("Video with subs (subs.txt found) is not cached!")
+                    app.send_message(user_id, "⚠️ Unable to get video from cache, starting new download...", reply_to_message_id=message.id)
     else:
         logger.info(f"down_and_up: quality_key is None, skipping cache check")
 
@@ -5328,7 +5333,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         'filesize_approx': size_val * 1024 * 1024 if size_val else None
                     }
                     if check_subs_limits(temp_info, quality_key):
-                        subs_available = "📝"
+                        subs_available = "🎬"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5359,7 +5364,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if subs_enabled and is_youtube_url(url):
             found_type = check_subs_availability(url, user_id, return_type=True)
             if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
-                subs_hint = "\n📝 — Subs are available with chosen language."
+                subs_hint = "\n🎬 — Subs are available with chosen language."
 
         hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved." + subs_hint + "</pre>"
         cap += f"\n{hint}\n"
@@ -5388,7 +5393,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         'filesize_approx': size_val * 1024 * 1024 if size_val else None
                     }
                     if check_subs_limits(temp_info, quality_key):
-                        subs_available = "📝"
+                        subs_available = "🎬"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5428,7 +5433,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                             'filesize_approx': size_val * 1024 * 1024 if size_val else None
                         }
                         if check_subs_limits(temp_info, quality_key):
-                            subs_available = "📝"
+                            subs_available = "🎬"
                 
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -6096,9 +6101,14 @@ def get_url_hash(url: str) -> str:
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None, user_id: int = None):
     """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
-    if user_id is not None and is_subs_enabled(user_id):
-        logger.info("Video with subtitles is not cached!")
-        return
+    if user_id is not None:
+        found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+        subs_enabled = is_subs_enabled(user_id)
+        auto_mode = get_user_subs_auto_mode(user_id)
+        need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+        if need_subs:
+            logger.info("Video with subtitles is not cached!")
+            return
     logger.info(
         f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
     if not quality_key:
@@ -7157,7 +7167,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                     app.send_document(
                         chat_id=user_id,
                         document=subs_path,
-                        caption="<blockquote>📝 Subtitles srt-file</blockquote>",
+                        caption="<blockquote>🎬 Subtitles srt-file</blockquote>",
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
