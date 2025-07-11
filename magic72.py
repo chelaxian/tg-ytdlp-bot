@@ -1,6 +1,3 @@
-
-
-
 # Version 3.0.0 # embedded subtitles
 import glob
 import hashlib
@@ -4131,9 +4128,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.error(traceback.format_exc())
                                 width, height = 0, 0
                                 real_file_size = 0
+                            auto_mode = get_user_subs_auto_mode(user_id)
                             if subs_enabled and is_youtube_url(url) and min(width, height) <= Config.MAX_SUB_QUALITY:
-                                # Check the availability of subtitles
-                                if check_subs_availability(url, user_id, quality_key):
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                                if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                                    
                                     # Get the real size of the file after downloading
                                     real_file_size = os.path.getsize(after_rename_abs_path) if os.path.exists(after_rename_abs_path) else 0
                                     
@@ -5309,17 +5308,23 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     scissors = f" ✂️{n_parts}"
             
             # Check the availability of subtitles for this quality
-            subs_available = ""
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-            # Check the restrictions only if the size is found and does not exceed the limit
+            auto_mode = get_user_subs_auto_mode(user_id)
+            subs_available = ""
+
             if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                temp_info = {
-                    'duration': info.get('duration'),
-                    'filesize': size_val * 1024 * 1024 if size_val else None,
-                    'filesize_approx': size_val * 1024 * 1024 if size_val else None
-                }
-                if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
-                    subs_available = "📝"
+                # Проверяем наличие субтитров нужного типа
+                # check_subs_availability должен возвращать тип найденных субтитров: "normal", "auto", None
+                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                    # Только если найден нужный тип
+                    temp_info = {
+                        'duration': info.get('duration'),
+                        'filesize': size_val * 1024 * 1024 if size_val else None,
+                        'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                    }
+                    if check_subs_limits(temp_info, quality_key):
+                        subs_available = "📝"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5342,7 +5347,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"\n<blockquote>{table_block}</blockquote>\n"
         # Hint as a separate code block at the very bottom
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved." + ("\n📝 — Subs are available with chosen language." if subs_enabled else "") + "</pre>"
+        auto_mode = get_user_subs_auto_mode(user_id)
+        subs_lang = get_user_subs_language(user_id)
+
+        # Проверяем наличие субтитров нужного типа для выбранного языка
+        subs_hint = ""
+        if subs_enabled and is_youtube_url(url):
+            found_type = check_subs_availability(url, user_id, return_type=True)
+            if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                subs_hint = "\n📝 — Subs are available with chosen language."
+
+        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n🚀 — Instant repost. Video is already saved." + subs_hint + "</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
@@ -5350,6 +5365,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             # Check the availability of subtitles for this quality
             subs_available = ""
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+            auto_mode = get_user_subs_auto_mode(user_id)
+            subs_available = ""
             # First, we are looking for size_val for this quality
             size_val = None
             for (qk, w, h), size in minside_size_dim_map.items():
@@ -5358,16 +5375,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     break
             # Check the restrictions only if the size is found and does not exceed the limit
             if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                # Create a temporary info_dict to check restrictions
-
-                temp_info = {
-                    'duration': info.get('duration'),
-                    'filesize': size_val * 1024 * 1024 if size_val else None,
-                    'filesize_approx': size_val * 1024 * 1024 if size_val else None
-                }
-                # We check the restrictions and the availability of subtitles
-                if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
-                    subs_available = "📝"
+                # Проверяем наличие субтитров нужного типа
+                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                    temp_info = {
+                        'duration': info.get('duration'),
+                        'filesize': size_val * 1024 * 1024 if size_val else None,
+                        'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                    }
+                    if check_subs_limits(temp_info, quality_key):
+                        subs_available = "📝"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5396,16 +5413,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 # Check the availability of subtitles for this quality
                 subs_available = ""
                 subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+                auto_mode = get_user_subs_auto_mode(user_id)
                 if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                    # Create a temporary info_dict to check restrictions
-                    temp_info = {
-                        'duration': info.get('duration'),
-                        'filesize': size_val * 1024 * 1024 if size_val else None,
-                        'filesize_approx': size_val * 1024 * 1024 if size_val else None
-                    }
-                    # We check the restrictions and the availability of subtitles
-                    if check_subs_limits(temp_info, quality_key) and check_subs_availability(url, user_id, quality_key):
-                        subs_available = "📝"
+                    # Проверяем наличие субтитров нужного типа
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                    if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                        temp_info = {
+                            'duration': info.get('duration'),
+                            'filesize': size_val * 1024 * 1024 if size_val else None,
+                            'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                        }
+                        if check_subs_limits(temp_info, quality_key):
+                            subs_available = "📝"
                 
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -6805,9 +6824,9 @@ def modify_yt_dlp_opts_for_subs(ydl_opts: dict, user_id: int) -> dict:
     if not subs_lang or subs_lang == "OFF":
         return ydl_opts
     
-    # Subtit settings depending on the user choice
+    # autosub settings depending on the user choice
     if auto_mode:
-        # Car Subtit mode - looking for the selected language only in car carbits
+        # autosub mode - looking for the selected language only in car carbits
         ydl_opts.update({
             'writeautomaticsub': True,
             'writesubtitles': False,
@@ -7152,6 +7171,5 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         import traceback
         logger.error(traceback.format_exc())
         return False
-
 
 app.run()
