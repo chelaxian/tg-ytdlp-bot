@@ -4207,7 +4207,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             except Exception as e:
                                                 logger.error(f"Failed to update subtitle progress: {e}")
                                         # Embed subtitles and get the result
-                                        embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback, app=app, message=message)
+                                        subs_lang = get_user_subs_language(user_id)
+                                        embed_result = embed_subs_to_video(
+                                            after_rename_abs_path,
+                                            user_id,
+                                            url,
+                                            subs_lang,
+                                            tg_update_callback,
+                                            app=app,
+                                            message=message
+                                        )
                                         try:
                                             if embed_result:
                                                 app.edit_message_text(
