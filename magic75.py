@@ -6874,18 +6874,20 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
             _subs_check_cache[cache_key] = False if not return_type else None
             return False if not return_type else None
 
-        # Проверяем обычные субтитры
-        available_normal = get_available_subs_languages(url, user_id, auto_only=False)
-        has_normal = lang_match(subs_lang, available_normal) is not None
+        auto_mode = get_user_subs_auto_mode(user_id)
 
-        # Проверяем автосгенерированные субтитры
-        available_auto = get_available_subs_languages(url, user_id, auto_only=True)
-        has_auto = lang_match(subs_lang, available_auto) is not None
+        # Сначала ищем только нужный тип
+        available = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+        has = lang_match(subs_lang, available) is not None
 
         if return_type:
-            result = "normal" if has_normal else "auto" if has_auto else None
+            if has:
+                result = "auto" if auto_mode else "normal"
+            else:
+                # Если fallback разрешён — можно тут добавить вторую проверку
+                result = None
         else:
-            result = has_normal or has_auto
+            result = has
 
         _subs_check_cache[cache_key] = result
         return result
