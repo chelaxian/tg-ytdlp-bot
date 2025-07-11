@@ -5368,7 +5368,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 is_cached = quality_key in cached_qualities
                 postfix = ""
-            emoji = "🚀" if is_cached else "📹"
+            need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+            emoji = "🚀" if is_cached and not need_subs else "📹"
             table_lines.append(f"{emoji}{quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
@@ -5431,7 +5432,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
                 button_text = f"{icon}{quality_key}{subs_available}{postfix}"
             else:
-                icon = "🚀" if quality_key in cached_qualities else "📹"
+                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
                 button_text = f"{icon}{quality_key}{subs_available}"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons and popular:
@@ -5471,7 +5473,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
                     button_text = f"{icon}{quality_key}{subs_available}{postfix}"
                 else:
-                    icon = "🚀" if quality_key in cached_qualities else "📹"
+                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                    icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
                     button_text = f"{icon}{quality_key}{subs_available}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons:
