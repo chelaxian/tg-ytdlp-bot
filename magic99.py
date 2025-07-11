@@ -47,7 +47,6 @@ def ensure_utf8_srt(srt_path):
     Если нет — перекодирует в utf-8 (перезаписывает исходный файл).
     Возвращает путь к итоговому файлу (всегда исходный путь).
     """
-
     if not os.path.isfile(srt_path):
         print(f"Файл {srt_path} не существует!")
         return None
@@ -62,15 +61,24 @@ def ensure_utf8_srt(srt_path):
             return None
         result = chardet.detect(raw)
         encoding = result['encoding'] or 'utf-8'
+        print(f"Определена кодировка файла {srt_path}: {encoding}")
 
-    # Если уже utf-8 — ничего не делаем
-    if encoding.lower() == 'utf-8':
+    if encoding.lower() in ('utf-8', 'utf-8-sig'):
         return srt_path
 
     # Перекодируем в utf-8 (перезаписываем исходный файл)
     try:
-        with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in:
-            text = f_in.read()
+        try:
+            with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in:
+                text = f_in.read()
+        except Exception:
+            # Пробуем cp1256 (арабский) и cp874 (тайский)
+            try:
+                with open(srt_path, 'r', encoding='cp1256', errors='replace') as f_in:
+                    text = f_in.read()
+            except Exception:
+                with open(srt_path, 'r', encoding='cp874', errors='replace') as f_in:
+                    text = f_in.read()
         with open(srt_path, 'w', encoding='utf-8') as f_out:
             f_out.write(text)
         return srt_path
@@ -7059,15 +7067,9 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         if not os.path.exists(subs_path):
             logger.error(f"Subtitle file not found: {subs_path}")
             return False
-        
-        # Bring .SRT to UTF-8, if necessary
-        with open(subs_path, 'rb') as f:
-            raw = f.read()
-            result = chardet.detect(raw)
-            encoding = result['encoding'] or 'utf-8'
-        if encoding.lower() != 'utf-8':
-            subs_path = ensure_utf8_srt(subs_path)
-        # subs_path теперь точно в utf-8
+
+        # Всегда приводим .SRT к UTF-8
+        subs_path = ensure_utf8_srt(subs_path)
         if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
             logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
             return False
