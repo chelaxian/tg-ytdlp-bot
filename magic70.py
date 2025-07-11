@@ -1,4 +1,5 @@
 
+
 # Version 3.0.0 # embedded subtitles
 import glob
 import hashlib
@@ -42,11 +43,16 @@ from config import Config
 import chardet
 
 def ensure_utf8_srt(srt_path):
-    # Проверяем, существует ли файл
+    """
+    Гарантирует, что файл srt в utf-8.
+    Если файл уже в utf-8 — ничего не делает.
+    Если нет — перекодирует в utf-8 (перезаписывает исходный файл).
+    Возвращает путь к итоговому файлу (всегда исходный путь).
+    """
+
     if not os.path.isfile(srt_path):
         print(f"Файл {srt_path} не существует!")
         return None
-    # Проверяем, не пустой ли файл
     if os.path.getsize(srt_path) == 0:
         print(f"Файл {srt_path} пустой!")
         return None
@@ -58,13 +64,21 @@ def ensure_utf8_srt(srt_path):
             return None
         result = chardet.detect(raw)
         encoding = result['encoding'] or 'utf-8'
-    if encoding.lower() != 'utf-8':
-        utf8_path = srt_path + '.utf8.srt'
-        with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in, \
-             open(utf8_path, 'w', encoding='utf-8') as f_out:
-            f_out.write(f_in.read())
-        return utf8_path
-    return srt_path
+
+    # Если уже utf-8 — ничего не делаем
+    if encoding.lower() == 'utf-8':
+        return srt_path
+
+    # Перекодируем в utf-8 (перезаписываем исходный файл)
+    try:
+        with open(srt_path, 'r', encoding=encoding, errors='replace') as f_in:
+            text = f_in.read()
+        with open(srt_path, 'w', encoding='utf-8') as f_out:
+            f_out.write(text)
+        return srt_path
+    except Exception as e:
+        print(f"Ошибка при перекодировке {srt_path}: {e}")
+        return None
 
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
@@ -6971,7 +6985,17 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             return False
         
         # Bring .SRT to UTF-8, if necessary
-        subs_path = ensure_utf8_srt(subs_path)
+        with open(subs_path, 'rb') as f:
+            raw = f.read()
+            result = chardet.detect(raw)
+            encoding = result['encoding'] or 'utf-8'
+        if encoding.lower() != 'utf-8':
+            subs_path = ensure_utf8_srt(subs_path)
+        # subs_path теперь точно в utf-8
+        if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
+            logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
+            return False
+
         if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
             logger.error(f"Subtitle file after ensure_utf8_srt is missing or empty: {subs_path}")
             return False
@@ -7107,7 +7131,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                     app.send_document(
                         chat_id=user_id,
                         document=subs_path,
-                        caption="<blockquote>📝 Ваши субтитры к видео</blockquote>",
+                        caption="<blockquote>📝 Subtitles srt-file</blockquote>",
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
