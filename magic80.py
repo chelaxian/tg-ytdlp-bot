@@ -140,6 +140,10 @@ def get_user_subs_language(user_id):
             return f.read().strip()
     return None
 
+def is_subs_enabled(user_id):
+    lang = get_user_subs_language(user_id)
+    return lang is not None and lang != "OFF"
+
 def save_user_subs_language(user_id, lang_code):
     """Save user's subtitle language preference"""
     user_dir = os.path.join("users", str(user_id))
@@ -3409,7 +3413,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 return
             else:
                 app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
-    elif quality_key and not is_playlist and not subs_enabled:
+    elif quality_key and not is_playlist and not is_subs_enabled(user_id):
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
             try:
