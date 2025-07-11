@@ -5343,7 +5343,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             # Check the availability of subtitles for this quality
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
             auto_mode = get_user_subs_auto_mode(user_id)
-
+            subs_available = ""
 
             if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                 # Проверяем наличие субтитров нужного типа
@@ -5356,7 +5356,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         'filesize': size_val * 1024 * 1024 if size_val else None,
                         'filesize_approx': size_val * 1024 * 1024 if size_val else None
                     }
-
+                    if check_subs_limits(temp_info, quality_key):
+                        subs_available = "🎬"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5368,14 +5369,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 is_cached = quality_key in cached_qualities
                 postfix = ""
             need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
-            if need_subs:
-                emoji = "🎬"
-            elif is_cached:
-                emoji = "🚀"
-            else:
-                emoji = "📹"
-            table_lines.append(f"{emoji}{quality_key}:  {size_str}{dim_str}{scissors}{postfix}")
-    
+            emoji = "🚀" if is_cached and not need_subs else "📹"
+            table_lines.append(f"{emoji}{quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -5410,10 +5405,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         # Sort buttons by quality from lowest to highest
         for quality_key in sorted(found_quality_keys, key=sort_quality_key):
             # Check the availability of subtitles for this quality
-
+            subs_available = ""
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
             auto_mode = get_user_subs_auto_mode(user_id)
-
+            subs_available = ""
             # First, we are looking for size_val for this quality
             size_val = None
             for (qk, w, h), size in minside_size_dim_map.items():
@@ -5430,6 +5425,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         'filesize': size_val * 1024 * 1024 if size_val else None,
                         'filesize_approx': size_val * 1024 * 1024 if size_val else None
                     }
+                    if check_subs_limits(temp_info, quality_key):
+                        subs_available = "🎬"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5437,15 +5434,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon}{quality_key}{postfix}"
+                button_text = f"{icon}{quality_key}{subs_available}{postfix}"
             else:
-                if need_subs:
-                    icon = "🎬"
-                elif quality_key in cached_qualities:
-                    icon = "🚀"
-                else:
-                    icon = "📹"
-                button_text = f"{icon}{quality_key}{postfix}"
+                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
+                button_text = f"{icon}{quality_key}{subs_available}"
             buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons and popular:
             for height in popular:
@@ -5461,7 +5454,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     continue
                     
                 # Check the availability of subtitles for this quality
-
+                subs_available = ""
                 subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
                 auto_mode = get_user_subs_auto_mode(user_id)
                 if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
@@ -5473,7 +5466,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                             'filesize': size_val * 1024 * 1024 if size_val else None,
                             'filesize_approx': size_val * 1024 * 1024 if size_val else None
                         }
-
+                        if check_subs_limits(temp_info, quality_key):
+                            subs_available = "🎬"
                 
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5481,15 +5475,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     total = len(indices)
                     icon = "🚀" if n_cached > 0 else "📹"
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                    button_text = f"{icon}{quality_key}{postfix}"
+                    button_text = f"{icon}{quality_key}{subs_available}{postfix}"
                 else:
-                    if need_subs:
-                        icon = "🎬"
-                    elif quality_key in cached_qualities:
-                        icon = "🚀"
-                    else:
-                        icon = "📹"
-                    button_text = f"{icon}{quality_key}{postfix}"
+                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                    icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
+                    button_text = f"{icon}{quality_key}{subs_available}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         if not buttons:
             quality_key = "best"
@@ -5938,7 +5928,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
 def show_manual_quality_menu(app, callback_query):
     """Show manual quality selection menu when automatic detection fails"""
     user_id = callback_query.from_user.id
-
+    subs_available = ""
     # Extract URL and tags from the callback
     original_message = callback_query.message.reply_to_message
     if not original_message:
