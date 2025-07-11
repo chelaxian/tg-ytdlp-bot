@@ -2495,7 +2495,6 @@ def send_videos(
             clip.close()
         except Exception as e:
             logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_abs_path}: {e}")
-            import traceback
             logger.error(traceback.format_exc())
             width, height = 0, 0
 
@@ -2722,7 +2721,6 @@ def get_duration_thumb_(dir, video_path, thumb_name):
         clip.close()
     except Exception as e:
         logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_path}: {e}")
-        import traceback
         logger.error(traceback.format_exc())
         duration = 0
     
@@ -4176,7 +4174,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 real_file_size = min(width, height)
                             except Exception as e:
                                 logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
-                                import traceback
                                 logger.error(traceback.format_exc())
                                 width, height = 0, 0
                                 real_file_size = 0
@@ -6470,7 +6467,6 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 
@@ -6534,7 +6530,6 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         return {}
     except Exception as e:
         logger.error(f"Failed to get from playlist cache: {e}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return {}
 
@@ -7051,11 +7046,6 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
     Сначала скачивает сабы через yt-dlp Python API, приводит к UTF-8, затем вшивает через ffmpeg.
     """
     try:
-        import os
-        import subprocess
-        import time
-        import re
-        import traceback
 
         # Проверяем наличие видео
         if not video_path or not os.path.exists(video_path):
@@ -7236,7 +7226,6 @@ def embed_subs_to_video(video_path, user_id, url, lang_code, tg_update_callback=
 
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
-        import traceback
         logger.error(traceback.format_exc())
         return False
 
