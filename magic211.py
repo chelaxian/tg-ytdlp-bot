@@ -4124,6 +4124,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
                     video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                    found_type = None 
                     try:
                         forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                         logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
@@ -4133,6 +4134,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 # For playlists, save to playlist cache with index
                                 current_video_index = x + video_start_with
                                 rounded_quality_key = quality_key
+                                found_type = None 
                                 try:
                                     if quality_key.endswith('p'):
                                         rounded_quality_key = f"{ceil_to_popular(int(quality_key[:-1]))}p"
@@ -4225,6 +4227,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 if final_name:
                     # Read the full name from the file
                     full_caption = caption_name
+                    found_type = None 
                     try:
                         if os.path.exists(full_title_path):
                             with open(full_title_path, "r", encoding="utf-8") as f:
@@ -4334,7 +4337,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Clear
                             clear_subs_check_cache()
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
-                        
+                        found_type = None 
                         try:
                             forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
                             logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
@@ -5404,6 +5407,7 @@ def sort_quality_key(quality_key):
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
+    found_type = None 
     try:
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         original_text = message.text or message.caption or ""
@@ -5949,6 +5953,7 @@ def askq_callback(app, callback_query):
                 down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
+    found_type = None 
     found_type = check_subs_availability(url, user_id, data, return_type=True)
     subs_enabled = is_subs_enabled(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
