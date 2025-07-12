@@ -3528,7 +3528,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         if not need_subs:
             cached_ids = get_cached_message_ids(url, quality_key)
             if cached_ids:
+                # Инициализируем found_type перед try-except блоком
+                found_type = None
                 try:
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                     app.forward_messages(
                         chat_id=user_id,
                         from_chat_id=Config.LOGS_ID,
@@ -3539,7 +3542,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return
                 except Exception as e:
                     logger.error(f"Error reposting video from cache: {e}")
-                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                    # Если found_type не был установлен, устанавливаем его здесь
+                    if found_type is None:
+                        try:
+                            found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                        except Exception as subs_e:
+                            logger.error(f"Error checking subs availability: {subs_e}")
+                            found_type = None
                     subs_enabled = is_subs_enabled(user_id)
                     auto_mode = get_user_subs_auto_mode(user_id)
                     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
