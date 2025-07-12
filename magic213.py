@@ -5398,6 +5398,7 @@ def sort_quality_key(quality_key):
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
+    found_type = None
     try:
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         original_text = message.text or message.caption or ""
@@ -6258,6 +6259,7 @@ def get_url_hash(url: str) -> str:
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None, user_id: int = None):
     """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
+    
     if user_id is not None:
         found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
         subs_enabled = is_subs_enabled(user_id)
