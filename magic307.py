@@ -3101,6 +3101,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         hourglass_msg_id = hourglass_msg.id
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
         proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
+        # Останавливаем анимацию Processing сразу после отправки сообщения
+        if proc_anim_thread:
+            stop_anim.set()
+            proc_anim_thread.join(timeout=1)
+            proc_anim_thread = None
 
         # Check if there's enough disk space (estimate 500MB per audio file)
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
@@ -3157,11 +3162,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 blocks = int(percent // 10)
                 bar = "🟩" * blocks + "⬜️" * (10 - blocks)
                 try:
-                    # Останавливаем анимацию при первом обновлении сообщения
-                    if proc_anim_thread and proc_anim_thread.is_alive():
-                        stop_anim.set()
-                        proc_anim_thread.join(timeout=1)
-                        proc_anim_thread = None
                     safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n📥 Downloading audio:\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
@@ -3617,6 +3617,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         hourglass_msg_id = None
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
         proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
+        # Останавливаем анимацию Processing сразу после отправки сообщения
+        if proc_anim_thread:
+            stop_anim.set()
+            proc_anim_thread.join(timeout=1)
+            proc_anim_thread = None
 
         # Check if there's enough disk space (estimate 2GB per video)
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
@@ -3723,11 +3728,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.error(f"Error deleting first processing messages: {e}")
                         first_progress_update = False
 
-                    # Останавливаем анимацию при первом обновлении сообщения
-                    if proc_anim_thread and proc_anim_thread.is_alive():
-                        stop_anim.set()
-                        proc_anim_thread.join(timeout=1)
-                        proc_anim_thread = None
                     safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
@@ -5001,7 +5001,7 @@ def start_processing_animation(user_id, proc_msg_id, stop_anim):
                     active = False
                     break
                 counter += 1
-                time.sleep(1.0)
+                time.sleep(1.0)  # Изменено с 1.0 на 3.0 секунды
             except Exception as e:
                 logger.error(f"Error in processing animation: {e}")
                 active = False
@@ -5711,12 +5711,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap already contains a hint and a table
-        # Останавливаем анимацию перед удалением сообщения
+        app.delete_messages(user_id, proc_msg.id)
+        proc_msg = None
+        # Останавливаем анимацию после удаления сообщения
         if proc_anim_thread:
             stop_anim.set()
             proc_anim_thread.join(timeout=1)
-        app.delete_messages(user_id, proc_msg.id)
-        proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
             app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         else:
