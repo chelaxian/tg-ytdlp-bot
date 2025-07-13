@@ -5513,8 +5513,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 subs_warn = "\n⚠️ WARNING: Subtitles for selected language were not found and will not be embedded."
 
-        repost_line = "🚀 — Instant repost. Video is already saved." if show_repost_hint else ""
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n" + repost_line + subs_hint + subs_warn + "</pre>"
+        repost_line = "\n🚀 — Instant repost. Video is already saved." if show_repost_hint else ""
+        hint = "<pre language=\"info\">📹 — Choose quality for new download." + repost_line + subs_hint + subs_warn + "</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
