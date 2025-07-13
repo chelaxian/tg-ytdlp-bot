@@ -7510,7 +7510,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                     app.send_document(
                         chat_id=user_id,
                         document=subs_path,
-                        caption="<blockquote>💬 Subtitles srt-file</blockquote>",
+                        caption="<blockquote>💬 Subtitles SRT-file</blockquote>",
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
