@@ -2609,7 +2609,7 @@ def send_videos(
                 progress_args=(
                     user_id,
                     msg_id,
-                    f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                    f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__📤 Uploading Video...__"
                 ),
                 reply_to_message_id=message.id,
                 parse_mode=enums.ParseMode.HTML
@@ -2638,7 +2638,7 @@ def send_videos(
                         progress_args=(
                             user_id,
                             msg_id,
-                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n__Uploading Video... 📤__"
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n__📤 Uploading Video...__"
                         ),
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
@@ -2658,7 +2658,7 @@ def send_videos(
                         progress_args=(
                             user_id,
                             msg_id,
-                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n__Uploading Video... 📤__"
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n__📤 Uploading Video...__"
                         ),
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
@@ -3362,7 +3362,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             try:
                 full_bar = "🟩" * 10
-                safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\nUploading audio file...\n{full_bar}   100.0%")
+                safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n📤 Uploading audio file...\n{full_bar}   100.0%")
             except Exception as e:
                 logger.error(f"Error updating upload status: {e}")
 
@@ -4186,7 +4186,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Accumulate IDs of parts for split video
                             split_msg_ids.append(video_msg.id)
                     safe_edit_message_text(user_id, proc_msg_id,
-                                          f"{info_text}\n{full_bar}   100.0%\n__Splitted part {p + 1} file uploaded__")
+                                          f"{info_text}\n{full_bar}   100.0%\n__📤 Splitted part {p + 1} file uploaded__")
                     if p < len(caption_lst) - 1:
                         threading.Event().wait(2)
                     os.remove(splited_thumb_dir)
