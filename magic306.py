@@ -3157,6 +3157,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 blocks = int(percent // 10)
                 bar = "🟩" * blocks + "⬜️" * (10 - blocks)
                 try:
+                    # Останавливаем анимацию при первом обновлении сообщения
+                    if proc_anim_thread and proc_anim_thread.is_alive():
+                        stop_anim.set()
+                        proc_anim_thread.join(timeout=1)
+                        proc_anim_thread = None
                     safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n📥 Downloading audio:\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
@@ -3718,6 +3723,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.error(f"Error deleting first processing messages: {e}")
                         first_progress_update = False
 
+                    # Останавливаем анимацию при первом обновлении сообщения
+                    if proc_anim_thread and proc_anim_thread.is_alive():
+                        stop_anim.set()
+                        proc_anim_thread.join(timeout=1)
+                        proc_anim_thread = None
                     safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
@@ -5701,6 +5711,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap already contains a hint and a table
+        # Останавливаем анимацию перед удалением сообщения
+        if proc_anim_thread:
+            stop_anim.set()
+            proc_anim_thread.join(timeout=1)
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
@@ -5708,10 +5722,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         else:
             app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu sent for {url}")
-        # Останавливаем анимацию после отправки финального меню
-        if proc_anim_thread:
-            stop_anim.set()
-            proc_anim_thread.join(timeout=1)
     except FloodWait as e:
         wait_time = e.value
         user_dir = os.path.join("users", str(user_id))
