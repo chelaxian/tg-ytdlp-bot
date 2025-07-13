@@ -5448,6 +5448,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 cached_qualities = get_cached_qualities(url)
             info = get_video_formats(url, user_id, playlist_start_index)
+            time.sleep(0.1)  # Даём время анимации обновиться
             title = info.get('title', 'Video')
             video_id = info.get('id')
             tags_text = generate_final_tags(url, tags, info)
@@ -5545,6 +5546,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
             if subs_enabled and is_youtube_url(url):
                 found_type = check_subs_availability(url, user_id, return_type=True)
+                time.sleep(0.1)  # Даём время анимации обновиться
                 need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
                 if need_subs:
                     subs_hint = "\n💬 — Subs are available with chosen language."
@@ -5755,9 +5757,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         proc_msg = app.send_message(user_id, "🔁 Processing...", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         proc_anim_thread = start_processing_animation(user_id, proc_msg.id, stop_anim)
         
+        # Даём время анимации запуститься
+        time.sleep(0.1)
+        
         # Запускаем тяжёлую работу в отдельном потоке
         work_thread = threading.Thread(target=do_heavy_work, daemon=True)
         work_thread.start()
+        
+        # Ждём завершения работы
+        work_thread.join()
         
     except Exception as e:
         logger.error(f"Error in ask_quality_menu: {e}")
