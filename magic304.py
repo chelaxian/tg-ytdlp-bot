@@ -4984,7 +4984,7 @@ def start_processing_animation(user_id, proc_msg_id, stop_anim):
                     active = False
                     break
                 counter += 1
-                time.sleep(3.0)
+                time.sleep(1.0)
             except Exception as e:
                 logger.error(f"Error in processing animation: {e}")
                 active = False
