@@ -7158,76 +7158,161 @@ def check_subs_limits(info_dict, quality_key=None):
 
 def download_subtitles_ytdlp(url, user_id, video_dir):
     """
-    Отдельно скачивает субтитры для видео через yt-dlp
+    Отдельно скачивает субтитры для видео через yt-dlp с проверкой языка
     """
-    try:
-        subs_lang = get_user_subs_language(user_id)
-        auto_mode = get_user_subs_auto_mode(user_id)
-        
-        if not subs_lang or subs_lang == "OFF":
-            return None
+    max_retries = 2  # Увеличиваем количество попыток
+    
+    for attempt in range(max_retries):
+        try:
+            subs_lang = get_user_subs_language(user_id)
+            auto_mode = get_user_subs_auto_mode(user_id)
             
-        # Настройки для скачивания субтитров
-        subs_opts = {
-            'skip_download': True,  # Не скачиваем видео, только субтитры
-            'outtmpl': os.path.join(video_dir, "%(title).50s.%(ext)s"),
-            'subtitlesformat': 'srt',
-        }
-        
-        if auto_mode:
-            subs_opts.update({
-                'writeautomaticsub': True,
-                'writesubtitles': False,
-            })
-        else:
-            subs_opts.update({
-                'writeautomaticsub': False,
-                'writesubtitles': True,
-            })
+            if not subs_lang or subs_lang == "OFF":
+                return None
+                
+            # Настройки для скачивания субтитров
+            subs_opts = {
+                'skip_download': True,  # Не скачиваем видео, только субтитры
+                'outtmpl': os.path.join(video_dir, "%(title).50s.%(ext)s"),
+                'subtitlesformat': 'srt',
+            }
             
-        # Добавляем cookie файл если есть
-        user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
-        if os.path.exists(user_cookie_path):
-            subs_opts['cookiefile'] = user_cookie_path
-        else:
-            global_cookie_path = Config.COOKIE_FILE_PATH
-            if os.path.exists(global_cookie_path):
-                subs_opts['cookiefile'] = global_cookie_path
+            if auto_mode:
+                subs_opts.update({
+                    'writeautomaticsub': True,
+                    'writesubtitles': False,
+                })
             else:
-                subs_opts['cookiefile'] = None
-        
-        # Проверяем доступность субтитров
-        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
-        if not available_langs:
-            logger.info(f"No subtitles available for {subs_lang}")
+                subs_opts.update({
+                    'writeautomaticsub': False,
+                    'writesubtitles': True,
+                })
+                
+            # Добавляем cookie файл если есть
+            user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+            if os.path.exists(user_cookie_path):
+                subs_opts['cookiefile'] = user_cookie_path
+            else:
+                global_cookie_path = Config.COOKIE_FILE_PATH
+                if os.path.exists(global_cookie_path):
+                    subs_opts['cookiefile'] = global_cookie_path
+                else:
+                    subs_opts['cookiefile'] = None
+            
+            # Проверяем доступность субтитров
+            available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+            if not available_langs:
+                logger.info(f"No subtitles available for {subs_lang}")
+                return None
+                
+            # Ищем подходящий язык используя функцию lang_match
+            found_lang = lang_match(subs_lang, available_langs)
+            
+            if not found_lang:
+                logger.info(f"Language {subs_lang} not found in available languages: {available_langs}")
+                return None
+                
+            # Добавляем найденный язык в настройки
+            subs_opts['subtitleslangs'] = [found_lang]
+                
+            # Скачиваем субтитры
+            with yt_dlp.YoutubeDL(subs_opts) as ydl:
+                ydl.download([url])
+                
+            # Ищем скачанный файл субтитров
+            srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
+            if srt_files:
+                subs_path = os.path.join(video_dir, srt_files[0])
+                logger.info(f"Subtitles downloaded: {subs_path}")
+                
+                # Проверяем, что файл содержит символы выбранного языка
+                if os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
+                    try:
+                        with open(subs_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                        
+                        # Проверяем наличие символов выбранного языка
+                        has_language_chars = False
+                        
+                        if subs_lang == 'ru':  # Русский
+                            # Проверяем наличие русских символов (кириллица)
+                            russian_chars = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
+                            has_language_chars = any(char.lower() in russian_chars for char in content if char.isalpha())
+                        elif subs_lang == 'en':  # Английский
+                            # Проверяем наличие английских символов
+                            english_chars = 'abcdefghijklmnopqrstuvwxyz'
+                            has_language_chars = any(char.lower() in english_chars for char in content if char.isalpha())
+                        elif subs_lang == 'es':  # Испанский
+                            # Проверяем наличие испанских символов
+                            spanish_chars = 'abcdefghijklmnopqrstuvwxyzñáéíóúü'
+                            has_language_chars = any(char.lower() in spanish_chars for char in content if char.isalpha())
+                        elif subs_lang == 'fr':  # Французский
+                            # Проверяем наличие французских символов
+                            french_chars = 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç'
+                            has_language_chars = any(char.lower() in french_chars for char in content if char.isalpha())
+                        elif subs_lang == 'de':  # Немецкий
+                            # Проверяем наличие немецких символов
+                            german_chars = 'abcdefghijklmnopqrstuvwxyzäöüß'
+                            has_language_chars = any(char.lower() in german_chars for char in content if char.isalpha())
+                        elif subs_lang == 'it':  # Итальянский
+                            # Проверяем наличие итальянских символов
+                            italian_chars = 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù'
+                            has_language_chars = any(char.lower() in italian_chars for char in content if char.isalpha())
+                        elif subs_lang == 'pt':  # Португальский
+                            # Проверяем наличие португальских символов
+                            portuguese_chars = 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú'
+                            has_language_chars = any(char.lower() in portuguese_chars for char in content if char.isalpha())
+                        elif subs_lang == 'ja':  # Японский
+                            # Проверяем наличие японских символов (хирагана, катакана, кандзи)
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        elif subs_lang == 'ko':  # Корейский
+                            # Проверяем наличие корейских символов
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        elif subs_lang == 'zh':  # Китайский
+                            # Проверяем наличие китайских символов
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        elif subs_lang == 'ar':  # Арабский
+                            # Проверяем наличие арабских символов
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        else:
+                            # Для других языков проверяем наличие любых символов выше ASCII
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        
+                        # Также проверяем наличие таймкодов
+                        has_timestamps = '-->' in content
+                        
+                        if has_language_chars or has_timestamps:
+                            logger.info(f"Subtitles file contains {subs_lang} characters, size: {os.path.getsize(subs_path)} bytes")
+                            return subs_path
+                        else:
+                            logger.warning(f"Subtitles file doesn't contain {subs_lang} characters, attempt {attempt + 1}/{max_retries}")
+                            if attempt < max_retries - 1:
+                                time.sleep(3)  # Увеличиваем паузу между попытками
+                                continue
+                            else:
+                                logger.error(f"Failed to download valid subtitles after {max_retries} attempts")
+                                return None
+                                
+                    except Exception as e:
+                        logger.error(f"Error reading subtitle file: {e}")
+                        if attempt < max_retries - 1:
+                            time.sleep(3)
+                            continue
+                        else:
+                            return None
+                
+                return subs_path
+                
             return None
             
-        # Ищем подходящий язык используя функцию lang_match
-        found_lang = lang_match(subs_lang, available_langs)
-        
-        if not found_lang:
-            logger.info(f"Language {subs_lang} not found in available languages: {available_langs}")
+        except Exception as e:
+            logger.error(f"Error downloading subtitles (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(3)  # Пауза перед повторной попыткой
+                continue
             return None
-            
-        # Добавляем найденный язык в настройки
-        subs_opts['subtitleslangs'] = [found_lang]
-            
-        # Скачиваем субтитры
-        with yt_dlp.YoutubeDL(subs_opts) as ydl:
-            ydl.download([url])
-            
-        # Ищем скачанный файл субтитров
-        srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
-        if srt_files:
-            subs_path = os.path.join(video_dir, srt_files[0])
-            logger.info(f"Subtitles downloaded: {subs_path}")
-            return subs_path
-            
-        return None
-        
-    except Exception as e:
-        logger.error(f"Error downloading subtitles: {e}")
-        return None
+    
+    return None
 
 def download_subtitles_only(app, message, url, tags, playlist_name=None, video_count=1, video_start_with=1):
     """
@@ -7251,6 +7336,10 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
         
         # Check subtitle availability
         auto_mode = get_user_subs_auto_mode(user_id)
+        
+        # Очищаем кэш перед проверкой, чтобы избежать проблем с кэшированием
+        clear_subs_check_cache()
+        
         found_type = check_subs_availability(url, user_id, return_type=True)
         need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
         
