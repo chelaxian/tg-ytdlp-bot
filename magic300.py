@@ -3095,7 +3095,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         # If there is no flood error, send a normal message (only once)
         proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
         proc_msg_id = proc_msg.id
-        status_msg = app.send_message(user_id, "🎧 Audio is processing...")
+        status_msg = app.send_message(user_id, "🎙️ Audio is processing...")
         hourglass_msg = app.send_message(user_id, "⏳ Please wait...")
         status_msg_id = status_msg.id
         hourglass_msg_id = hourglass_msg.id
@@ -5474,7 +5474,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         'filesize_approx': size_val * 1024 * 1024 if size_val else None
                     }
                     if check_subs_limits(temp_info, quality_key):
-                        subs_available = "🎬"
+                        subs_available = "💬"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5510,7 +5510,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             found_type = check_subs_availability(url, user_id, return_type=True)
             need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
             if need_subs:
-                subs_hint = "\n🎬 — Subs are available with chosen language."
+                subs_hint = "\n💬 — Subs are available with chosen language."
                 show_repost_hint = False  # 🚀 не показываем, если сабы реально есть и нужны
             else:
                 subs_warn = "\n⚠️ WARNING: Subtitles for selected language were not found and will not be embedded."
@@ -5543,7 +5543,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                         'filesize_approx': size_val * 1024 * 1024 if size_val else None
                     }
                     if check_subs_limits(temp_info, quality_key):
-                        subs_available = "🎬"
+                        subs_available = "💬"
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5584,7 +5584,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                             'filesize_approx': size_val * 1024 * 1024 if size_val else None
                         }
                         if check_subs_limits(temp_info, quality_key):
-                            subs_available = "🎬"
+                            subs_available = "💬"
                 
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5633,11 +5633,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             indices = list(range(playlist_range[0], playlist_range[1]+1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
             total = len(indices)
-            icon = "🚀" if n_cached > 0 else "🎵"
+            icon = "🚀" if n_cached > 0 else "🎧"
             postfix = f" ({n_cached}/{total})" if total > 1 else ""
             button_text = f"{icon} audio (mp3){postfix}"
         else:
-            icon = "🚀" if quality_key in cached_qualities else "🎵"
+            icon = "🚀" if quality_key in cached_qualities else "🎧"
             button_text = f"{icon} audio (mp3)"
         keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
         
@@ -5651,7 +5651,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
             
             if need_subs:
-                keyboard_rows.append([InlineKeyboardButton("🎬 Subtitles Only", callback_data="askq|subs_only")])
+                keyboard_rows.append([InlineKeyboardButton("💬 Subtitles Only", callback_data="askq|subs_only")])
         
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
@@ -6152,11 +6152,11 @@ def show_manual_quality_menu(app, callback_query):
         indices = list(range(playlist_range[0], playlist_range[1]+1))
         n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
         total = len(indices)
-        icon = "🚀" if n_cached > 0 else "🎵"
+        icon = "🚀" if n_cached > 0 else "🎧"
         postfix = f" ({n_cached}/{total})" if total > 1 else ""
         button_text = f"{icon} audio (mp3){postfix}"
     else:
-        icon = "🚀" if quality_key in cached_qualities else "🎵"
+        icon = "🚀" if quality_key in cached_qualities else "🎧"
         button_text = f"{icon} audio (mp3)"
     keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality_key}")])
     
@@ -6168,7 +6168,7 @@ def show_manual_quality_menu(app, callback_query):
         need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
         
         if need_subs:
-            keyboard_rows.append([InlineKeyboardButton("🎬 Subtitles Only", callback_data="askq|subs_only")])
+            keyboard_rows.append([InlineKeyboardButton("💬 Subtitles Only", callback_data="askq|subs_only")])
     
     # Add Back and Cancel buttons
     keyboard_rows.append([
@@ -6932,7 +6932,7 @@ def subs_command(app, message):
 
     app.send_message(
         message.chat.id,
-        f"<b>🎬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
+        f"<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
         "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
         "- 720p max quality\n"
         "- 1 hour max duration\n"
@@ -6960,7 +6960,7 @@ def subs_page_callback(app, callback_query):
         status_text = f"{lang_info['flag']} Selected language: {lang_info['name']}{auto_text}"
     
     callback_query.edit_message_text(
-        f"**🎬 Subtitle settings**\n\n{status_text}\n\nSelect subtitle language:",
+        f"**💬 Subtitle settings**\n\n{status_text}\n\nSelect subtitle language:",
         reply_markup=get_language_keyboard(page, user_id=user_id)
     )
     callback_query.answer()
@@ -7017,7 +7017,7 @@ def subs_auto_callback(app, callback_query):
         
         # We update the message from the new menu
         callback_query.edit_message_text(
-            f"**🎬 Subtitle settings**\n\n{status_text}\n\nSelect subtitle language:",
+            f"**💬 Subtitle settings**\n\n{status_text}\n\nSelect subtitle language:",
             reply_markup=get_language_keyboard(page=page, user_id=user_id)
         )
         
@@ -7258,7 +7258,7 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
             return
         
         # Send message about download start
-        status_msg = app.send_message(user_id, "🎬 Downloading subtitles...", reply_to_message_id=message.id)
+        status_msg = app.send_message(user_id, "💬 Downloading subtitles...", reply_to_message_id=message.id)
         
         # Download subtitles
         subs_path = download_subtitles_ytdlp(url, user_id, user_dir)
@@ -7278,7 +7278,7 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
                     title = "Video"
                 
                 # Form caption
-                caption = f"<b>🎬 Subtitles</b>\n\n"
+                caption = f"<b>💬 Subtitles</b>\n\n"
                 caption += f"<b>Video:</b> {title}\n"
                 caption += f"<b>Language:</b> {subs_lang}\n"
                 caption += f"<b>Type:</b> {'Auto-generated' if auto_mode else 'Manual'}\n"
@@ -7510,7 +7510,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                     app.send_document(
                         chat_id=user_id,
                         document=subs_path,
-                        caption="<blockquote>🎬 Subtitles srt-file</blockquote>",
+                        caption="<blockquote>💬 Subtitles srt-file</blockquote>",
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
