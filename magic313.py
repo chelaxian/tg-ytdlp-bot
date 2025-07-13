@@ -5764,8 +5764,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         work_thread = threading.Thread(target=do_heavy_work, daemon=True)
         work_thread.start()
         
-        # Ждём завершения работы
-        work_thread.join()
+        # НЕ ждём завершения работы - пусть работает параллельно
+        # work_thread.join()  # Убираем блокировку
         
     except Exception as e:
         logger.error(f"Error in ask_quality_menu: {e}")
