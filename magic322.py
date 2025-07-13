@@ -5397,6 +5397,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
     found_type = None
+    
+    # Очищаем кэш субтитров перед проверкой, чтобы избежать проблем с кэшированием
+    clear_subs_check_cache()
     try:
         # Проверяем, включены ли субтитры
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
