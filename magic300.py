@@ -3887,7 +3887,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 **📶 Total Progress**
 > **Video:** {idx + 1} / {len(indices_to_download)}
 """
-
             current_total_process = total_process
 
             # Determine rename_name based on the incoming playlist_name:
@@ -3957,7 +3956,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             try:
                 safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n{full_bar}   100.0%\n__Downloaded video. Processing for upload...__ ♻️")
+                    f"{info_text}\n{full_bar}   100.0%\n__Downloaded video.\nProcessing for upload...__ ♻️")
             except Exception as e:
                 logger.error(f"Status update error after download: {e}")
 
