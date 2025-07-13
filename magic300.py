@@ -1,4 +1,4 @@
-# Version 3.0.1 # embedded subtitles
+# Version 3.0.2 # embedded subtitles
 import glob
 import hashlib
 import io
