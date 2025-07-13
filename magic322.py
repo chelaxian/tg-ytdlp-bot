@@ -6936,7 +6936,7 @@ def subs_command(app, message):
         f"<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
         "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
         "- 720p max quality\n"
-        "- 1 hour max duration\n"
+        "- 1.5 hour max duration\n"
         "- 500mb max video size</blockquote>",
         reply_markup=get_language_keyboard(page=0, user_id=user_id),
         parse_mode=enums.ParseMode.HTML
@@ -7281,11 +7281,16 @@ def download_subtitles_ytdlp(url, user_id, video_dir):
                         # Также проверяем наличие таймкодов
                         has_timestamps = '-->' in content
                         
-                        if has_language_chars or has_timestamps:
-                            logger.info(f"Subtitles file contains {subs_lang} characters, size: {os.path.getsize(subs_path)} bytes")
+                        # Проверяем, что файл содержит И символы языка, И таймкоды
+                        if has_language_chars and has_timestamps:
+                            logger.info(f"Subtitles file contains {subs_lang} characters and timestamps, size: {os.path.getsize(subs_path)} bytes")
                             return subs_path
                         else:
-                            logger.warning(f"Subtitles file doesn't contain {subs_lang} characters, attempt {attempt + 1}/{max_retries}")
+                            if not has_language_chars:
+                                logger.warning(f"Subtitles file doesn't contain {subs_lang} characters, attempt {attempt + 1}/{max_retries}")
+                            if not has_timestamps:
+                                logger.warning(f"Subtitles file doesn't contain timestamps, attempt {attempt + 1}/{max_retries}")
+                            
                             if attempt < max_retries - 1:
                                 time.sleep(3)  # Увеличиваем паузу между попытками
                                 continue
