@@ -4276,7 +4276,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     }
                                     
                                     if check_subs_limits(real_info, quality_key):
-                                        status_msg = app.send_message(user_id, "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\nEmbedding subtitles... ⏳")
+                                        status_msg = app.send_message(user_id, "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\n🔥 Burning subtitles...")
                                         def tg_update_callback(progress, eta):
                                             blocks = int(progress * 10)
                                             bar = '🟩' * blocks + '⬜️' * (10 - blocks)
@@ -5400,7 +5400,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     try:
         # Проверяем, включены ли субтитры
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-        processing_text = "🔄 Processing... (wait 5 sec)" if subs_enabled else "🔄 Processing..."
+        processing_text = "🔄 Processing... (wait 6 sec)" if subs_enabled else "🔄 Processing..."
         proc_msg = app.send_message(user_id, processing_text, reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
