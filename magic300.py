@@ -7294,7 +7294,7 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
                     reply_to_message_id=message.id,
                     parse_mode=enums.ParseMode.HTML
                 )
-                
+                send_to_logger(message, "💬 Subtitles SRT-file sent to user.")
                 # Remove temporary file
                 try:
                     os.remove(subs_path)
@@ -7514,6 +7514,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
+                    send_to_logger(message, "💬 Subtitles SRT-file sent to user.") 
             except Exception as e:
                 logger.error(f"Ошибка при отправке srt-файла: {e}")
             try:
