@@ -3100,7 +3100,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         status_msg_id = status_msg.id
         hourglass_msg_id = hourglass_msg.id
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
-        proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
 
         # Check if there's enough disk space (estimate 500MB per audio file)
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
@@ -3445,8 +3444,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         stop_anim.set()
         if anim_thread:
             anim_thread.join(timeout=1)  # Wait for animation thread with timeout
-        if proc_anim_thread:
-            proc_anim_thread.join(timeout=1)
 
         try:
             if status_msg_id:
@@ -3610,7 +3607,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         hourglass_msg = None
         hourglass_msg_id = None
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
-        proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
 
         # Check if there's enough disk space (estimate 2GB per video)
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
@@ -5436,8 +5432,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
     found_type = None
+    stop_anim = threading.Event()
+    proc_anim_thread = None
     try:
         proc_msg = app.send_message(user_id, "🔁 Processing...", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
+        proc_anim_thread = start_processing_animation(user_id, proc_msg.id, stop_anim)
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
@@ -5695,6 +5694,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         # cap already contains a hint and a table
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
+        if proc_anim_thread:
+            stop_anim.set()
+            proc_anim_thread.join(timeout=1)
         if thumb_path and os.path.exists(thumb_path):
             app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         else:
@@ -5721,6 +5723,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             proc_msg = None
         else:
             app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
+        if proc_anim_thread:
+            stop_anim.set()
+            proc_anim_thread.join(timeout=1)
         return
     except Exception as e:
         error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
@@ -5735,6 +5740,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             logger.error(f"Error sending error message: {e2}")
             app.send_message(user_id, error_text, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu error for {url}: {e}")
+        if proc_anim_thread:
+            stop_anim.set()
+            proc_anim_thread.join(timeout=1)
         return
 
 # --- Callback Processor ---
