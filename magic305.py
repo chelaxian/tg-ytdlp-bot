@@ -3100,7 +3100,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         status_msg_id = status_msg.id
         hourglass_msg_id = hourglass_msg.id
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
-        #proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
+        proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
 
         # Check if there's enough disk space (estimate 500MB per audio file)
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
@@ -3445,6 +3445,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         stop_anim.set()
         if anim_thread:
             anim_thread.join(timeout=1)  # Wait for animation thread with timeout
+        if proc_anim_thread:
+            proc_anim_thread.join(timeout=1)  # Wait for processing animation thread with timeout
 
         try:
             if status_msg_id:
@@ -3558,6 +3560,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     hourglass_msg = None
     hourglass_msg_id = None
     anim_thread = None
+    proc_anim_thread = None
     stop_anim = threading.Event()
     proc_msg = None
     proc_msg_id = None
@@ -3608,7 +3611,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         hourglass_msg = None
         hourglass_msg_id = None
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
-        #proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
+        proc_anim_thread = start_processing_animation(user_id, proc_msg_id, stop_anim)
 
         # Check if there's enough disk space (estimate 2GB per video)
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
@@ -4471,6 +4474,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
         except Exception as e:
             logger.error(f"Error deleting status messages: {e}")
+
+        # Stop processing animation
+        if proc_anim_thread:
+            proc_anim_thread.join(timeout=1)  # Wait for processing animation thread with timeout
 
         # --- ADDED: summary of cache after cycle ---
         if is_playlist and playlist_indices and playlist_msg_ids:
@@ -5696,14 +5703,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         # cap already contains a hint and a table
         app.delete_messages(user_id, proc_msg.id)
         proc_msg = None
-        if proc_anim_thread:
-            stop_anim.set()
-            proc_anim_thread.join(timeout=1)
         if thumb_path and os.path.exists(thumb_path):
             app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         else:
             app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu sent for {url}")
+        # Останавливаем анимацию после отправки финального меню
+        if proc_anim_thread:
+            stop_anim.set()
+            proc_anim_thread.join(timeout=1)
     except FloodWait as e:
         wait_time = e.value
         user_dir = os.path.join("users", str(user_id))
