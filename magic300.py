@@ -2638,7 +2638,7 @@ def send_videos(
                         progress_args=(
                             user_id,
                             msg_id,
-                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n__Uploading Video... 📤__"
                         ),
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
@@ -2658,7 +2658,7 @@ def send_videos(
                         progress_args=(
                             user_id,
                             msg_id,
-                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n\n__Uploading Video... 📤__"
+                            f"{info_text}\n**Video duration:** __{TimeFormatter(duration*1000)}__\n__Uploading Video... 📤__"
                         ),
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
@@ -3069,9 +3069,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.")
+                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n⏳ Please wait: {time_str}\nTo update timer send URL again 2 times.")
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.")
+            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times.")
 
         # We are trying to replace with "Download started"
         try:
@@ -3228,7 +3228,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
                 try:
                     safe_edit_message_text(user_id, proc_msg_id,
-                        f"{current_total_process}\n\n> __Downloading audio using format: ba...__ 📥")
+                        f"{current_total_process}\n> __Downloading audio using format: ba...__ 📥")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
                 
@@ -3373,7 +3373,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
             bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
             # Use original audio_title for caption, not sanitized caption_name
-            caption_with_link = f"{audio_title}\n\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
+            caption_with_link = f"{audio_title}\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
             
             try:
                 audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
@@ -3416,9 +3416,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 threading.Event().wait(2)
 
         if successful_uploads == len(indices_to_download):
-            success_msg = f"✅ Audio successfully downloaded and sent - {len(indices_to_download)} files uploaded.\n\n{Config.CREDITS_MSG}"
+            success_msg = f"✅ Audio successfully downloaded and sent - {len(indices_to_download)} files uploaded.\n{Config.CREDITS_MSG}"
         else:
-            success_msg = f"⚠️ Partially completed - {successful_uploads}/{len(indices_to_download)} audio files uploaded.\n\n{Config.CREDITS_MSG}"
+            success_msg = f"⚠️ Partially completed - {successful_uploads}/{len(indices_to_download)} audio files uploaded.\n{Config.CREDITS_MSG}"
             
         try:
             safe_edit_message_text(user_id, proc_msg_id, success_msg)
@@ -3573,9 +3573,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times.")
+                proc_msg = app.send_message(user_id, f"⚠️ Telegram has limited message sending.\n⏳ Please wait: {time_str}\nTo update timer send URL again 2 times.")
         else:
-            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n\n⏳ Please wait: \n\nTo update timer send URL again 2 times.")
+            proc_msg = app.send_message(user_id, "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times.")
 
         # We are trying to replace with "Download started"
         try:
@@ -3826,10 +3826,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n__Detected HLS stream. Downloading...__ 📥")
+                            f"{current_total_process}\n__Detected HLS stream. Downloading...__ 📥")
                     else:
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
+                            f"{current_total_process}\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
                 with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
@@ -3957,7 +3957,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             try:
                 safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n\n{full_bar}   100.0%\n\n__Downloaded video. Processing for upload...__ ♻️")
+                    f"{info_text}\n{full_bar}   100.0%\n__Downloaded video. Processing for upload...__ ♻️")
             except Exception as e:
                 logger.error(f"Status update error after download: {e}")
 
@@ -4011,7 +4011,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             if final_name.lower().endswith((".webm", ".ts")):
                 try:
                     safe_edit_message_text(user_id, proc_msg_id,
-                        f"{info_text}\n\n{full_bar}   100.0%\nConverting video using ffmpeg... ⏳")
+                        f"{info_text}\n{full_bar}   100.0%\nConverting video using ffmpeg... ⏳")
                 except Exception as e:
                     logger.error(f"Error updating status before conversion: {e}")
 
@@ -4103,7 +4103,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             max_size = get_user_split_size(user_id)  # 1.95 GB - close to Telegram's 2GB limit with 50MB safety margin
             if int(video_size_in_bytes) > max_size:
                 safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n\n{full_bar}   100.0%\n__⚠️ Your video size ({video_size}) is too large.__\n__Splitting file...__ ✂️")
+                    f"{info_text}\n{full_bar}   100.0%\n__⚠️ Your video size ({video_size}) is too large.__\n__Splitting file...__ ✂️")
                 returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, duration)
                 caption_lst = returned.get("video")
                 path_lst = returned.get("path")
@@ -4188,7 +4188,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Accumulate IDs of parts for split video
                             split_msg_ids.append(video_msg.id)
                     safe_edit_message_text(user_id, proc_msg_id,
-                                          f"{info_text}\n\n{full_bar}   100.0%\n__Splitted part {p + 1} file uploaded__")
+                                          f"{info_text}\n{full_bar}   100.0%\n__Splitted part {p + 1} file uploaded__")
                     if p < len(caption_lst) - 1:
                         threading.Event().wait(2)
                     os.remove(splited_thumb_dir)
@@ -4210,7 +4210,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info("Split video with subtitles is not cached!")
                 os.remove(thumb_dir)
                 os.remove(user_vid_path)
-                success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
+                success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n{Config.CREDITS_MSG}"
                 safe_edit_message_text(user_id, proc_msg_id, success_msg)
                 send_to_logger(message, "Video upload completed with file splitting.")
                 break
@@ -4278,7 +4278,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     }
                                     
                                     if check_subs_limits(real_info, quality_key):
-                                        status_msg = app.send_message(user_id, "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\n\nEmbedding subtitles... ⏳")
+                                        status_msg = app.send_message(user_id, "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\nEmbedding subtitles... ⏳")
                                         def tg_update_callback(progress, eta):
                                             blocks = int(progress * 10)
                                             bar = '🟩' * blocks + '⬜️' * (10 - blocks)
@@ -4415,7 +4415,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 else:
                                     logger.info("Video with subtitles (subs.txt found) is not cached!")
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{info_text}\n{full_bar}   100.0%\n\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n\n1 file uploaded.")
+                            f"{info_text}\n{full_bar}   100.0%\n**🎞 Video duration:** __{TimeFormatter(duration * 1000)}__\n1 file uploaded.")
                         send_mediainfo_if_enabled(user_id, after_rename_abs_path, message)
                         os.remove(after_rename_abs_path)
                         if thumb_dir and os.path.exists(thumb_dir):
@@ -4427,7 +4427,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         send_to_all(message, f"❌ Error sending video: {str(e)}")
                         continue
         if successful_uploads == len(indices_to_download):
-            success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n\n{Config.CREDITS_MSG}"
+            success_msg = f"**✅ Upload complete** - {video_count} files uploaded.\n{Config.CREDITS_MSG}"
             safe_edit_message_text(user_id, proc_msg_id, success_msg)
             send_to_logger(message, success_msg)
 
@@ -5674,7 +5674,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         minutes = (wait_time % 3600) // 60
         seconds = wait_time % 60
         time_str = f"{hours}h {minutes}m {seconds}s"
-        flood_msg = f"⚠️ Telegram has limited message sending.\n\n⏳ Please wait: {time_str}\n\nTo update timer send URL again 2 times."
+        flood_msg = f"⚠️ Telegram has limited message sending.\n⏳ Please wait: {time_str}\nTo update timer send URL again 2 times."
         if proc_msg:
             try:
                 app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
