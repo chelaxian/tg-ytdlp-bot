@@ -5434,182 +5434,142 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     found_type = None
     stop_anim = threading.Event()
     proc_anim_thread = None
-    try:
-        proc_msg = app.send_message(user_id, "🔁 Processing...", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
-        proc_anim_thread = start_processing_animation(user_id, proc_msg.id, stop_anim)
-        original_text = message.text or message.caption or ""
-        is_playlist = is_playlist_with_range(original_text)
-        playlist_range = None
-        if is_playlist:
-            _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
-            playlist_range = (video_start_with, video_end_with)
-            cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
-        else:
-            cached_qualities = get_cached_qualities(url)
-        info = get_video_formats(url, user_id, playlist_start_index)
-        title = info.get('title', 'Video')
-        video_id = info.get('id')
-        tags_text = generate_final_tags(url, tags, info)
-        thumb_path = None
-        user_dir = os.path.join("users", str(user_id))
-        create_directory(user_dir)
-        if ("youtube.com" in url or "youtu.be" in url) and video_id:
-            thumb_path = os.path.join(user_dir, f"yt_thumb_{video_id}.jpg")
-            try:
-                download_thumbnail(video_id, thumb_path, url)
-            except Exception:
-                thumb_path = None
-        # --- Table with qualities and sizes ---
-        popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
-        # popular_sizes = [[256,144],[426,240],[640,360],[854,480],[960,540],[1024,576],[1280,720],[1920,1080],[2560,1440],[3840,2160],[7680,4320]]
-        minside_size_dim_map = {}
-        for f in info.get('formats', []):
-            if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
-                w = f['width']
-                h = f['height']
-                # Use the get_quality_by_min_side function to determine the quality
-                quality_key = get_quality_by_min_side(w, h)
-                if quality_key != "best":  # Exclude best from display
-                    if f.get('filesize'):
-                        size_mb = int(f['filesize']) // (1024*1024)
-                    elif f.get('filesize_approx'):
-                        size_mb = int(f['filesize_approx']) // (1024*1024)
-                    else:
-                        size_mb = None
-                    if size_mb:
-                        key = (quality_key, w, h)
-                        minside_size_dim_map[key] = size_mb
-        table_lines = []
-        found_quality_keys = set()
-        # Sort by quality from lowest to highest
-        for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(), key=lambda x: sort_quality_key(x[0][0])):
-            found_quality_keys.add(quality_key)
-            size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
-            dim_str = f" ({w}×{h})"
-            scissors = ""
-            if get_user_split_size(user_id):
-                video_bytes = size_val * 1024 * 1024
-                if video_bytes > get_user_split_size(user_id):
-                    n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
-                    scissors = f" ✂️{n_parts}"
-            
-            # Check the availability of subtitles for this quality
-            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-            auto_mode = get_user_subs_auto_mode(user_id)
-            subs_available = ""
-
-            if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                # Проверяем наличие субтитров нужного типа
-                # check_subs_availability должен возвращать тип найденных субтитров: "normal", "auto", None
-                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
-                if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
-                    # Только если найден нужный тип
-                    temp_info = {
-                        'duration': info.get('duration'),
-                        'filesize': size_val * 1024 * 1024 if size_val else None,
-                        'filesize_approx': size_val * 1024 * 1024 if size_val else None
-                    }
-                    if check_subs_limits(temp_info, quality_key):
-                        subs_available = "💬"
-            
-            if is_playlist and playlist_range:
-                indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                postfix = f" ({n_cached}/{total})"
-                is_cached = n_cached > 0
+    
+    def do_heavy_work():
+        nonlocal proc_msg, found_type
+        try:
+            original_text = message.text or message.caption or ""
+            is_playlist = is_playlist_with_range(original_text)
+            playlist_range = None
+            if is_playlist:
+                _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
+                playlist_range = (video_start_with, video_end_with)
+                cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
             else:
-                is_cached = quality_key in cached_qualities
-                postfix = ""
-            need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
-            emoji = "🚀" if is_cached and not need_subs else "📹"
-            table_lines.append(f"{emoji}{quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
-        table_block = "\n".join(table_lines)
-        # --- Forming caption ---
-        cap = f"<b>{title}</b>\n"
-        if tags_text:
-            cap += f"{tags_text}\n"
-        # Block with qualities
-        if table_block:
-            cap += f"\n<blockquote>{table_block}</blockquote>\n"
-        # Hint as a separate code block at the very bottom
-        subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-        auto_mode = get_user_subs_auto_mode(user_id)
-        subs_lang = get_user_subs_language(user_id)
+                cached_qualities = get_cached_qualities(url)
+            info = get_video_formats(url, user_id, playlist_start_index)
+            title = info.get('title', 'Video')
+            video_id = info.get('id')
+            tags_text = generate_final_tags(url, tags, info)
+            thumb_path = None
+            user_dir = os.path.join("users", str(user_id))
+            create_directory(user_dir)
+            if ("youtube.com" in url or "youtu.be" in url) and video_id:
+                thumb_path = os.path.join(user_dir, f"yt_thumb_{video_id}.jpg")
+                try:
+                    download_thumbnail(video_id, thumb_path, url)
+                except Exception:
+                    thumb_path = None
+            # --- Table with qualities and sizes ---
+            popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
+            # popular_sizes = [[256,144],[426,240],[640,360],[854,480],[960,540],[1024,576],[1280,720],[1920,1080],[2560,1440],[3840,2160],[7680,4320]]
+            minside_size_dim_map = {}
+            for f in info.get('formats', []):
+                if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
+                    w = f['width']
+                    h = f['height']
+                    # Use the get_quality_by_min_side function to determine the quality
+                    quality_key = get_quality_by_min_side(w, h)
+                    if quality_key != "best":  # Exclude best from display
+                        if f.get('filesize'):
+                            size_mb = int(f['filesize']) // (1024*1024)
+                        elif f.get('filesize_approx'):
+                            size_mb = int(f['filesize_approx']) // (1024*1024)
+                        else:
+                            size_mb = None
+                        if size_mb:
+                            key = (quality_key, w, h)
+                            minside_size_dim_map[key] = size_mb
+            table_lines = []
+            found_quality_keys = set()
+            # Sort by quality from lowest to highest
+            for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(), key=lambda x: sort_quality_key(x[0][0])):
+                found_quality_keys.add(quality_key)
+                size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
+                dim_str = f" ({w}×{h})"
+                scissors = ""
+                if get_user_split_size(user_id):
+                    video_bytes = size_val * 1024 * 1024
+                    if video_bytes > get_user_split_size(user_id):
+                        n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
+                        scissors = f" ✂️{n_parts}"
+                
+                # Check the availability of subtitles for this quality
+                subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+                auto_mode = get_user_subs_auto_mode(user_id)
+                subs_available = ""
 
-        # Проверяем наличие субтитров нужного типа для выбранного языка
-        subs_hint = ""
-        subs_warn = ""
-        show_repost_hint = True
-
-        if subs_enabled and is_youtube_url(url):
-            found_type = check_subs_availability(url, user_id, return_type=True)
-            need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
-            if need_subs:
-                subs_hint = "\n💬 — Subs are available with chosen language."
-                show_repost_hint = False  # 🚀 не показываем, если сабы реально есть и нужны
-            else:
-                subs_warn = "\n⚠️ WARNING: Subtitles for selected language were not found and will not be embedded."
-
-        repost_line = "🚀 — Instant repost. Video is already saved." if show_repost_hint else ""
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n" + repost_line + subs_hint + subs_warn + "</pre>"
-        cap += f"\n{hint}\n"
-        buttons = []
-        # Sort buttons by quality from lowest to highest
-        for quality_key in sorted(found_quality_keys, key=sort_quality_key):
-            # Check the availability of subtitles for this quality
-            subs_available = ""
-            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-            auto_mode = get_user_subs_auto_mode(user_id)
-            subs_available = ""
-            # First, we are looking for size_val for this quality
-            size_val = None
-            for (qk, w, h), size in minside_size_dim_map.items():
-                if qk == quality_key:
-                    size_val = size
-                    break
-            # Check the restrictions only if the size is found and does not exceed the limit
-            if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                # Проверяем наличие субтитров нужного типа
-                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
-                if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
-                    temp_info = {
-                        'duration': info.get('duration'),
-                        'filesize': size_val * 1024 * 1024 if size_val else None,
-                        'filesize_approx': size_val * 1024 * 1024 if size_val else None
-                    }
-                    if check_subs_limits(temp_info, quality_key):
-                        subs_available = "💬"
-            
-            if is_playlist and playlist_range:
-                indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-                total = len(indices)
-                icon = "🚀" if n_cached > 0 else "📹"
-                postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon}{quality_key}{subs_available}{postfix}"
-            else:
+                if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
+                    # Проверяем наличие субтитров нужного типа
+                    # check_subs_availability должен возвращать тип найденных субтитров: "normal", "auto", None
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                    if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                        # Только если найден нужный тип
+                        temp_info = {
+                            'duration': info.get('duration'),
+                            'filesize': size_val * 1024 * 1024 if size_val else None,
+                            'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                        }
+                        if check_subs_limits(temp_info, quality_key):
+                            subs_available = "💬"
+                
+                if is_playlist and playlist_range:
+                    indices = list(range(playlist_range[0], playlist_range[1]+1))
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    total = len(indices)
+                    postfix = f" ({n_cached}/{total})"
+                    is_cached = n_cached > 0
+                else:
+                    is_cached = quality_key in cached_qualities
+                    postfix = ""
                 need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
-                icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
-                button_text = f"{icon}{quality_key}{subs_available}"
-            buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        if not buttons and popular:
-            for height in popular:
-                quality_key = f"{height}p"
-                # Find the file size for this quality
+                emoji = "🚀" if is_cached and not need_subs else "📹"
+                table_lines.append(f"{emoji}{quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
+            table_block = "\n".join(table_lines)
+            # --- Forming caption ---
+            cap = f"<b>{title}</b>\n"
+            if tags_text:
+                cap += f"{tags_text}\n"
+            # Block with qualities
+            if table_block:
+                cap += f"\n<blockquote>{table_block}</blockquote>\n"
+            # Hint as a separate code block at the very bottom
+            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+            auto_mode = get_user_subs_auto_mode(user_id)
+            subs_lang = get_user_subs_language(user_id)
+
+            # Проверяем наличие субтитров нужного типа для выбранного языка
+            subs_hint = ""
+            subs_warn = ""
+            show_repost_hint = True
+
+            if subs_enabled and is_youtube_url(url):
+                found_type = check_subs_availability(url, user_id, return_type=True)
+                need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
+                if need_subs:
+                    subs_hint = "\n💬 — Subs are available with chosen language."
+                    show_repost_hint = False  # 🚀 не показываем, если сабы реально есть и нужны
+                else:
+                    subs_warn = "\n⚠️ WARNING: Subtitles for selected language were not found and will not be embedded."
+
+            repost_line = "🚀 — Instant repost. Video is already saved." if show_repost_hint else ""
+            hint = "<pre language=\"info\">📹 — Choose quality for new download.\n" + repost_line + subs_hint + subs_warn + "</pre>"
+            cap += f"\n{hint}\n"
+            buttons = []
+            # Sort buttons by quality from lowest to highest
+            for quality_key in sorted(found_quality_keys, key=sort_quality_key):
+                # Check the availability of subtitles for this quality
+                subs_available = ""
+                subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+                auto_mode = get_user_subs_auto_mode(user_id)
+                subs_available = ""
+                # First, we are looking for size_val for this quality
                 size_val = None
                 for (qk, w, h), size in minside_size_dim_map.items():
                     if qk == quality_key:
                         size_val = size
                         break
-                
-                if size_val is None:
-                    continue
-                    
-                # Check the availability of subtitles for this quality
-                subs_available = ""
-                subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-                auto_mode = get_user_subs_auto_mode(user_id)
+                # Check the restrictions only if the size is found and does not exceed the limit
                 if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                     # Проверяем наличие субтитров нужного типа
                     found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
@@ -5634,115 +5594,178 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
                     button_text = f"{icon}{quality_key}{subs_available}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
-        if not buttons:
-            quality_key = "best"
+            if not buttons and popular:
+                for height in popular:
+                    quality_key = f"{height}p"
+                    # Find the file size for this quality
+                    size_val = None
+                    for (qk, w, h), size in minside_size_dim_map.items():
+                        if qk == quality_key:
+                            size_val = size
+                            break
+                    
+                    if size_val is None:
+                        continue
+                        
+                    # Check the availability of subtitles for this quality
+                    subs_available = ""
+                    subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+                    auto_mode = get_user_subs_auto_mode(user_id)
+                    if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
+                        # Проверяем наличие субтитров нужного типа
+                        found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                        if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
+                            temp_info = {
+                                'duration': info.get('duration'),
+                                'filesize': size_val * 1024 * 1024 if size_val else None,
+                                'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                            }
+                            if check_subs_limits(temp_info, quality_key):
+                                subs_available = "💬"
+                    
+                    if is_playlist and playlist_range:
+                        indices = list(range(playlist_range[0], playlist_range[1]+1))
+                        n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                        total = len(indices)
+                        icon = "🚀" if n_cached > 0 else "📹"
+                        postfix = f" ({n_cached}/{total})" if total > 1 else ""
+                        button_text = f"{icon}{quality_key}{subs_available}{postfix}"
+                    else:
+                        need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
+                        icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
+                        button_text = f"{icon}{quality_key}{subs_available}"
+                    buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+            if not buttons:
+                quality_key = "best"
+                
+                if is_playlist and playlist_range:
+                    indices = list(range(playlist_range[0], playlist_range[1]+1))
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    total = len(indices)
+                    icon = "🚀" if n_cached > 0 else "📹"
+                    postfix = f" ({n_cached}/{total})" if total > 1 else ""
+                    button_text = f"{icon}Best Quality{postfix}"
+                else:
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
+                    button_text = f"{icon}Best Quality"
+                buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+                
+                # Add "Try Another Qualities" button when no automatic qualities detected
+                buttons.append(InlineKeyboardButton("🎛 Force Quality", callback_data=f"askq|try_manual"))
+                
+                # Add explanation when automatic quality detection fails
+                autodiscovery_note = "<blockquote>⚠️ Available qualities could not be automatically detected. You can manually force a specific quality.</blockquote>"
+                cap += f"\n{autodiscovery_note}\n"
+            # --- Form rows of 3 buttons ---
+            keyboard_rows = []
             
+            # Add Quick Embed button for supported services at the top (but not for ranges)
+            if (is_instagram_url(url) or is_twitter_url(url) or is_reddit_url(url)) and not is_playlist_with_range(original_text):
+                keyboard_rows.append([InlineKeyboardButton("🚀 Quick Embed", callback_data="askq|quick_embed")])
+            for i in range(0, len(buttons), 3):
+                keyboard_rows.append(buttons[i:i+3])
+            # --- button mp3 ---
+            quality_key = "mp3"
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
                 n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                 total = len(indices)
-                icon = "🚀" if n_cached > 0 else "📹"
+                icon = "🚀" if n_cached > 0 else "🎧"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                button_text = f"{icon}Best Quality{postfix}"
+                button_text = f"{icon} audio (mp3){postfix}"
             else:
-                icon = "🚀" if quality_key in cached_qualities else "📹"
-                button_text = f"{icon}Best Quality"
-            buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+                icon = "🚀" if quality_key in cached_qualities else "🎧"
+                button_text = f"{icon} audio (mp3)"
+            keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
             
-            # Add "Try Another Qualities" button when no automatic qualities detected
-            buttons.append(InlineKeyboardButton("🎛 Force Quality", callback_data=f"askq|try_manual"))
+            # --- button subtitles only ---
+            # Показываем кнопку только если включены субтитры и это YouTube
+            subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+            if subs_enabled and is_youtube_url(url):
+                # Проверяем наличие субтитров
+                found_type = check_subs_availability(url, user_id, return_type=True)
+                auto_mode = get_user_subs_auto_mode(user_id)
+                need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
+                
+                if need_subs:
+                    keyboard_rows.append([InlineKeyboardButton("💬 Subtitles Only", callback_data="askq|subs_only")])
             
-            # Add explanation when automatic quality detection fails
-            autodiscovery_note = "<blockquote>⚠️ Available qualities could not be automatically detected. You can manually force a specific quality.</blockquote>"
-            cap += f"\n{autodiscovery_note}\n"
-        # --- Form rows of 3 buttons ---
-        keyboard_rows = []
-        
-        # Add Quick Embed button for supported services at the top (but not for ranges)
-        if (is_instagram_url(url) or is_twitter_url(url) or is_reddit_url(url)) and not is_playlist_with_range(original_text):
-            keyboard_rows.append([InlineKeyboardButton("🚀 Quick Embed", callback_data="askq|quick_embed")])
-        for i in range(0, len(buttons), 3):
-            keyboard_rows.append(buttons[i:i+3])
-        # --- button mp3 ---
-        quality_key = "mp3"
-        if is_playlist and playlist_range:
-            indices = list(range(playlist_range[0], playlist_range[1]+1))
-            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-            total = len(indices)
-            icon = "🚀" if n_cached > 0 else "🎧"
-            postfix = f" ({n_cached}/{total})" if total > 1 else ""
-            button_text = f"{icon} audio (mp3){postfix}"
-        else:
-            icon = "🚀" if quality_key in cached_qualities else "🎧"
-            button_text = f"{icon} audio (mp3)"
-        keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}")])
-        
-        # --- button subtitles only ---
-        # Показываем кнопку только если включены субтитры и это YouTube
-        subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-        if subs_enabled and is_youtube_url(url):
-            # Проверяем наличие субтитров
-            found_type = check_subs_availability(url, user_id, return_type=True)
-            auto_mode = get_user_subs_auto_mode(user_id)
-            need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
+            keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
+            keyboard = InlineKeyboardMarkup(keyboard_rows)
             
-            if need_subs:
-                keyboard_rows.append([InlineKeyboardButton("💬 Subtitles Only", callback_data="askq|subs_only")])
-        
-        keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
-        keyboard = InlineKeyboardMarkup(keyboard_rows)
-        # cap already contains a hint and a table
-        app.delete_messages(user_id, proc_msg.id)
-        proc_msg = None
-        if proc_anim_thread:
+            # Останавливаем анимацию и удаляем сообщение
             stop_anim.set()
-            proc_anim_thread.join(timeout=1)
-        if thumb_path and os.path.exists(thumb_path):
-            app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
-        else:
-            app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
-        send_to_logger(message, f"Always Ask menu sent for {url}")
-    except FloodWait as e:
-        wait_time = e.value
-        user_dir = os.path.join("users", str(user_id))
-        create_directory(user_dir)
-        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
-        with open(flood_time_file, 'w') as f:
-            f.write(str(wait_time))
-        hours = wait_time // 3600
-        minutes = (wait_time % 3600) // 60
-        seconds = wait_time % 60
-        time_str = f"{hours}h {minutes}m {seconds}s"
-        flood_msg = f"⚠️ Telegram has limited message sending.\n⏳ Please wait: {time_str}\nTo update timer send URL again 2 times."
-        if proc_msg:
-            try:
-                app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
-            except Exception as e:
-                if 'MESSAGE_ID_INVALID' not in str(e):
-                    logger.warning(f"Failed to edit message: {e}")
+            if proc_anim_thread:
+                proc_anim_thread.join(timeout=1)
+            app.delete_messages(user_id, proc_msg.id)
             proc_msg = None
-        else:
-            app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
-        if proc_anim_thread:
-            stop_anim.set()
-            proc_anim_thread.join(timeout=1)
-        return
-    except Exception as e:
-        error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
-        try:
-            if proc_msg:
-                result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
-                if result is None:
-                    app.send_message(user_id, error_text, reply_to_message_id=message.id)
+            
+            # Отправляем финальное меню
+            if thumb_path and os.path.exists(thumb_path):
+                app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
             else:
+                app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
+            send_to_logger(message, f"Always Ask menu sent for {url}")
+            
+        except FloodWait as e:
+            wait_time = e.value
+            user_dir = os.path.join("users", str(user_id))
+            create_directory(user_dir)
+            flood_time_file = os.path.join(user_dir, "flood_wait.txt")
+            with open(flood_time_file, 'w') as f:
+                f.write(str(wait_time))
+            hours = wait_time // 3600
+            minutes = (wait_time % 3600) // 60
+            seconds = wait_time % 60
+            time_str = f"{hours}h {minutes}m {seconds}s"
+            flood_msg = f"⚠️ Telegram has limited message sending.\n⏳ Please wait: {time_str}\nTo update timer send URL again 2 times."
+            if proc_msg:
+                try:
+                    app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=flood_msg)
+                except Exception as e:
+                    if 'MESSAGE_ID_INVALID' not in str(e):
+                        logger.warning(f"Failed to edit message: {e}")
+                proc_msg = None
+            else:
+                app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
+            if proc_anim_thread:
+                stop_anim.set()
+                proc_anim_thread.join(timeout=1)
+            return
+        except Exception as e:
+            error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
+            try:
+                if proc_msg:
+                    result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
+                    if result is None:
+                        app.send_message(user_id, error_text, reply_to_message_id=message.id)
+                else:
+                    app.send_message(user_id, error_text, reply_to_message_id=message.id)
+            except Exception as e2:
+                logger.error(f"Error sending error message: {e2}")
                 app.send_message(user_id, error_text, reply_to_message_id=message.id)
-        except Exception as e2:
-            logger.error(f"Error sending error message: {e2}")
-            app.send_message(user_id, error_text, reply_to_message_id=message.id)
-        send_to_logger(message, f"Always Ask menu error for {url}: {e}")
+            send_to_logger(message, f"Always Ask menu error for {url}: {e}")
+            if proc_anim_thread:
+                stop_anim.set()
+                proc_anim_thread.join(timeout=1)
+            return
+    
+    # Запускаем анимацию и тяжёлую работу в отдельном потоке
+    try:
+        proc_msg = app.send_message(user_id, "🔁 Processing...", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
+        proc_anim_thread = start_processing_animation(user_id, proc_msg.id, stop_anim)
+        
+        # Запускаем тяжёлую работу в отдельном потоке
+        work_thread = threading.Thread(target=do_heavy_work, daemon=True)
+        work_thread.start()
+        
+    except Exception as e:
+        logger.error(f"Error in ask_quality_menu: {e}")
         if proc_anim_thread:
             stop_anim.set()
             proc_anim_thread.join(timeout=1)
+        if proc_msg:
+            app.delete_messages(user_id, proc_msg.id)
         return
 
 # --- Callback Processor ---
