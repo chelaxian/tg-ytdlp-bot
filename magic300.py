@@ -3947,7 +3947,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             info_text = f"""
 {total_process}
-
 **📋 Video Info**
 > **Number:** {idx + video_start_with}
 > **Title:** {original_video_title}
