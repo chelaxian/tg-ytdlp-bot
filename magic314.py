@@ -4982,7 +4982,7 @@ def start_processing_animation(user_id, proc_msg_id, stop_anim):
                     active = False
                     break
                 counter += 1
-                time.sleep(1.0)
+                time.sleep(0.8)  # Уменьшаем интервал для более частого обновления
             except Exception as e:
                 logger.error(f"Error in processing animation: {e}")
                 active = False
@@ -5448,7 +5448,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 cached_qualities = get_cached_qualities(url)
             info = get_video_formats(url, user_id, playlist_start_index)
-            time.sleep(0.1)  # Даём время анимации обновиться
+            time.sleep(0.3)  # Даём больше времени анимации обновиться
             title = info.get('title', 'Video')
             video_id = info.get('id')
             tags_text = generate_final_tags(url, tags, info)
@@ -5483,8 +5483,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                             minside_size_dim_map[key] = size_mb
             table_lines = []
             found_quality_keys = set()
+            
+            time.sleep(0.2)  # Даём время анимации обновиться
             # Sort by quality from lowest to highest
-            for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(), key=lambda x: sort_quality_key(x[0][0])):
+            for i, ((quality_key, w, h), size_val) in enumerate(sorted(minside_size_dim_map.items(), key=lambda x: sort_quality_key(x[0][0]))):
                 found_quality_keys.add(quality_key)
                 size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
                 dim_str = f" ({w}×{h})"
@@ -5526,7 +5528,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
                 emoji = "🚀" if is_cached and not need_subs else "📹"
                 table_lines.append(f"{emoji}{quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
+                
+                # Даём время анимации обновиться каждые 5 качеств
+                if (i + 1) % 5 == 0:
+                    time.sleep(0.1)
             table_block = "\n".join(table_lines)
+            
+            time.sleep(0.2)  # Даём время анимации обновиться
             # --- Forming caption ---
             cap = f"<b>{title}</b>\n"
             if tags_text:
@@ -5546,7 +5554,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
 
             if subs_enabled and is_youtube_url(url):
                 found_type = check_subs_availability(url, user_id, return_type=True)
-                time.sleep(0.1)  # Даём время анимации обновиться
+                time.sleep(0.3)  # Даём больше времени анимации обновиться
                 need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
                 if need_subs:
                     subs_hint = "\n💬 — Subs are available with chosen language."
@@ -5559,7 +5567,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             cap += f"\n{hint}\n"
             buttons = []
             # Sort buttons by quality from lowest to highest
-            for quality_key in sorted(found_quality_keys, key=sort_quality_key):
+            for i, quality_key in enumerate(sorted(found_quality_keys, key=sort_quality_key)):
                 # Check the availability of subtitles for this quality
                 subs_available = ""
                 subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
@@ -5596,6 +5604,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
                     button_text = f"{icon}{quality_key}{subs_available}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+                
+                # Даём время анимации обновиться каждые 3 кнопки
+                if (i + 1) % 3 == 0:
+                    time.sleep(0.1)
             if not buttons and popular:
                 for height in popular:
                     quality_key = f"{height}p"
@@ -5758,7 +5770,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         proc_anim_thread = start_processing_animation(user_id, proc_msg.id, stop_anim)
         
         # Даём время анимации запуститься
-        time.sleep(0.1)
+        time.sleep(0.3)
         
         # Запускаем тяжёлую работу в отдельном потоке
         work_thread = threading.Thread(target=do_heavy_work, daemon=True)
