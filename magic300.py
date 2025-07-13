@@ -3027,7 +3027,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 send_to_logger(message, f"Playlist audio sent from cache (quality={quality_key}) to user{user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...", reply_to_message_id=message.id)
+                app.send_message(user_id, f"📥 {len(cached_videos)}/{len(requested_indices)} audio sent from cache, downloading missing ones...", reply_to_message_id=message.id)
     elif quality_key and not is_playlist:
         cached_ids = get_cached_message_ids(url, quality_key)
         if cached_ids:
@@ -3156,7 +3156,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 blocks = int(percent // 10)
                 bar = "🟩" * blocks + "⬜️" * (10 - blocks)
                 try:
-                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\nDownloading audio:\n{bar}   {percent:.1f}%")
+                    safe_edit_message_text(user_id, proc_msg_id, f"{current_total_process}\n📥 Downloading audio:\n{bar}   {percent:.1f}%")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
@@ -3164,7 +3164,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 try:
                     full_bar = "🟩" * 10
                     safe_edit_message_text(user_id, proc_msg_id,
-                        f"{current_total_process}\nDownloading audio:\n{full_bar}   100.0%\nDownload finished, processing audio...")
+                        f"{current_total_process}\n📥 Downloading audio:\n{full_bar}   100.0%\nDownload finished, processing audio...")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                 last_update = current_time
@@ -3228,7 +3228,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
                 try:
                     safe_edit_message_text(user_id, proc_msg_id,
-                        f"{current_total_process}\n> __Downloading audio using format: ba...__ 📥")
+                        f"{current_total_process}\n> __📥 Downloading audio using format: ba...__")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
                 
@@ -3519,7 +3519,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 send_to_logger(message, f"Playlist videos sent from cache (quality={quality_key}) to user {user_id}")
                 return
             else:
-                app.send_message(user_id, f"♻️ {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
+                app.send_message(user_id, f"📥 {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
     elif quality_key and not is_playlist:
         found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
         subs_enabled = is_subs_enabled(user_id)
@@ -3826,10 +3826,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n__Detected HLS stream. Downloading...__ 📥")
+                            f"{current_total_process}\n__Detected HLS stream.\n📥 Downloading...__")
                     else:
                         safe_edit_message_text(user_id, proc_msg_id,
-                            f"{current_total_process}\n> __Downloading using format: {ytdl_opts.get('format', 'default')}...__ 📥")
+                            f"{current_total_process}\n> __📥 Downloading using format: {ytdl_opts.get('format', 'default')}...__")
                 except Exception as e:
                     logger.error(f"Status update error: {e}")
                 with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
@@ -3955,7 +3955,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             try:
                 safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n{full_bar}   100.0%\n__Downloaded video.\nProcessing for upload...__ ♻️")
+                    f"{info_text}\n{full_bar}   100.0%\n__Downloaded video.\n📤 Processing for upload...__")
             except Exception as e:
                 logger.error(f"Status update error after download: {e}")
 
@@ -4934,7 +4934,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
 
                 # Use safe_edit_message_text and check if message exists
                 result = safe_edit_message_text(user_id, proc_msg_id,
-                    f"{current_total_process}\nDownloading HLS stream: {frag_text}\n{bar}")
+                    f"{current_total_process}\n📥 Downloading HLS stream: {frag_text}\n{bar}")
 
                 # If message was deleted (returns None), stop animation
                 if result is None and counter > 2:  # Allow first few attempts to fail
@@ -5780,7 +5780,7 @@ def askq_callback(app, callback_query):
     # Handle manual quality selection
     if data.startswith("manual_"):
         quality = data.replace("manual_", "")
-        callback_query.answer(f"Downloading {quality}...")
+        callback_query.answer(f"📥 Downloading {quality}...")
         
         original_message = callback_query.message.reply_to_message
         if not original_message:
@@ -5995,7 +5995,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     user_id = callback_query.from_user.id
     tags = tags_text.split() if tags_text else []
     if data == "mp3":
-        callback_query.answer("Downloading audio...")
+        callback_query.answer("🎧 Downloading audio...")
         # Extract playlist parameters from the original message
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
@@ -6004,7 +6004,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         return
     
     if data == "subs_only":
-        callback_query.answer("Downloading subtitles only...")
+        callback_query.answer("💬 Downloading subtitles only...")
         # Extract playlist parameters from the original message
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
@@ -6014,7 +6014,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     # Logic for forming the format with the real height
     if data == "best":
-        callback_query.answer("Downloading best quality...")
+        callback_query.answer("📥 Downloading best quality...")
         fmt = "bv*[vcodec*=avc1]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo+bestaudio/best"
         quality_key = "best"
     else:
@@ -6055,7 +6055,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                     fmt = f"bv*[vcodec*=avc1][height<={real_height}]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo[height<={quality_val}]+bestaudio/best[height<={quality_val}]/best"
             
             quality_key = data
-            callback_query.answer(f"Downloading {data}...")
+            callback_query.answer(f"📥 Downloading {data}...")
         except ValueError:
             callback_query.answer("Unknown quality.")
             return
