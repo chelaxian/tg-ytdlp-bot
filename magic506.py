@@ -5421,69 +5421,67 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 thumb_path = None
         # --- Table with qualities and sizes ---
         popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
-        # popular_sizes = [[256,144],[426,240],[640,360],[854,480],[960,540],[1024,576],[1280,720],[1920,1080],[2560,1440],[3840,2160],[7680,4320]]
-        minside_size_dim_map = {}
+        quality_map = {}
         for f in info.get('formats', []):
             if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
                 w = f['width']
                 h = f['height']
-                # Use the get_quality_by_min_side function to determine the quality
                 quality_key = get_quality_by_min_side(w, h)
-                if quality_key != "best":  # Exclude best from display
-                    if f.get('filesize'):
-                        size_mb = int(f['filesize']) // (1024*1024)
-                    elif f.get('filesize_approx'):
-                        size_mb = int(f['filesize_approx']) // (1024*1024)
-                    else:
-                        size_mb = None
-                    if size_mb:
-                        key = (quality_key, w, h)
-                        minside_size_dim_map[key] = size_mb
+                if quality_key == "best":
+                    continue
+                # Берём только первый формат для каждого качества (или лучший по filesize)
+                filesize = f.get('filesize') or f.get('filesize_approx')
+                if quality_key not in quality_map or (filesize and filesize > (quality_map[quality_key].get('filesize') or 0)):
+                    quality_map[quality_key] = f
         table_lines = []
         found_quality_keys = set()
-        # Sort by quality from lowest to highest
-        for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(), key=lambda x: sort_quality_key(x[0][0])):
-            found_quality_keys.add(quality_key)
-            size_str = f"{round(size_val/1024, 1)}GB" if size_val >= 1024 else f"{size_val}MB"
-            dim_str = f" ({w}×{h})"
+        for q in sorted(quality_map.keys(), key=sort_quality_key):
+            f = quality_map[q]
+            w = f.get('width')
+            h = f.get('height')
+            filesize = f.get('filesize') or f.get('filesize_approx')
+            if filesize:
+                if filesize >= 1024*1024*1024:
+                    size_str = f"{round(filesize/1024/1024/1024, 2)}GB"
+                else:
+                    size_str = f"{round(filesize/1024/1024, 1)}MB"
+            else:
+                size_str = '—'
+            dim_str = f" ({w}×{h})" if w and h else ''
             scissors = ""
-            if get_user_split_size(user_id):
-                video_bytes = size_val * 1024 * 1024
+            if get_user_split_size(user_id) and filesize:
+                video_bytes = filesize
                 if video_bytes > get_user_split_size(user_id):
                     n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
                     scissors = f" ✂️{n_parts}"
-            
             # Check the availability of subtitles for this quality
             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
             auto_mode = get_user_subs_auto_mode(user_id)
             subs_available = ""
-
             if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                # Проверяем наличие субтитров нужного типа
-                # check_subs_availability должен возвращать тип найденных субтитров: "normal", "auto", None
-                found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+                found_type = check_subs_availability(url, user_id, q, return_type=True)
                 if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
-                    # Только если найден нужный тип
                     temp_info = {
                         'duration': info.get('duration'),
-                        'filesize': size_val * 1024 * 1024 if size_val else None,
-                        'filesize_approx': size_val * 1024 * 1024 if size_val else None
+                        'filesize': filesize,
+                        'filesize_approx': filesize
                     }
-                    if check_subs_limits(temp_info, quality_key):
+                    if check_subs_limits(temp_info, q):
                         subs_available = "💬"
-            
+            # Кэш/иконка
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), q, indices)
                 total = len(indices)
                 postfix = f" ({n_cached}/{total})"
                 is_cached = n_cached > 0
             else:
-                is_cached = quality_key in cached_qualities
+                is_cached = q in cached_qualities
                 postfix = ""
             need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
             emoji = "🚀" if is_cached and not need_subs else "📹"
-            table_lines.append(f"{emoji}{quality_key}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
+            table_lines.append(f"{emoji}{q}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
+            found_quality_keys.add(q)
         table_block = "\n".join(table_lines)
         # --- Forming caption ---
         cap = f"<b>{title}</b>\n"
@@ -5616,13 +5614,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             found_type = check_subs_availability(url, user_id, return_type=True)
             need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
             if need_subs:
-                subs_hint = "\n💬 — Subs are available with chosen language."
+                subs_hint = "\n💬—Subtitles available"
                 show_repost_hint = False  # 🚀 не показываем, если сабы реально есть и нужны
             else:
-                subs_warn = "\n⚠️ WARNING: Subtitles for selected language were not found and will not be embedded."
+                subs_warn = "\n⚠️ Subtitles not found!"
 
-        repost_line = "\n🚀 — Instant repost. Video is already saved." if show_repost_hint else ""
-        hint = "<pre language=\"info\">📹 — Choose quality for new download." + repost_line + subs_hint + subs_warn + "</pre>"
+        repost_line = "\n🚀—Instant cache repost" if show_repost_hint else ""
+        hint = "<pre language=\"info\">📹—Choose download quality" + repost_line + subs_hint + subs_warn + "</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
