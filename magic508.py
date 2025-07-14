@@ -5649,13 +5649,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             found_type = check_subs_availability(url, user_id, return_type=True)
             need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
             if need_subs:
-                subs_hint = "\n💬—Subtitles available"
+                subs_hint = "\n💬 — Subtitles are available"
                 show_repost_hint = False  # 🚀 не показываем, если сабы реально есть и нужны
             else:
-                subs_warn = "\n⚠️ Subtitles not found!"
+                subs_warn = "\n⚠️ Subs not found & won't embed"
 
-        repost_line = "\n🚀—Instant cache repost" if show_repost_hint else ""
-        hint = "<pre language=\"info\">📹—Choose download quality" + repost_line + subs_hint + subs_warn + "</pre>"
+        repost_line = "\n🚀 — Instant repost from cache" if show_repost_hint else ""
+        hint = "<pre language=\"info\">📹 — Choose download quality" + repost_line + subs_hint + subs_warn + "</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
