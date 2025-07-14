@@ -7663,8 +7663,10 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             font_size = 14
         elif height >= 240:
             font_size = 12
-        else:
+        elif height >= 144:
             font_size = 10
+        else:
+            font_size = 18
 
         # Field of subtitles with improved styling и максимум 2 строки
         subs_path_escaped = subs_path.replace("'", "'\\''")
