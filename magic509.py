@@ -5419,6 +5419,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             except Exception:
                 thumb_path = None
         # --- Table with qualities and sizes ---
+        table_block = ''
+        found_quality_keys = set()
         if ("youtube.com" in url or "youtu.be" in url):
             quality_map = {}
             for f in info.get('formats', []):
@@ -5432,7 +5434,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     if quality_key not in quality_map or (filesize and filesize > (quality_map[quality_key].get('filesize') or 0)):
                         quality_map[quality_key] = f
             table_lines = []
-            found_quality_keys = set()
             for q in sorted(quality_map.keys(), key=sort_quality_key):
                 f = quality_map[q]
                 w = f.get('width')
@@ -5503,7 +5504,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                             key = (quality_key, w, h)
                             minside_size_dim_map[key] = size_mb
             table_lines = []
-            found_quality_keys = set()
             for (quality_key, w, h), size_val in sorted(minside_size_dim_map.items(), key=lambda x: sort_quality_key(x[0][0])):
                 found_quality_keys.add(quality_key)
                 size_str = f"{round(size_val/1024, 1)}GB" if size_val and size_val >= 1024 else (f"{size_val}MB" if size_val else '—')
@@ -6921,7 +6921,7 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                         for index in indices:
                             index_str = str(index)
                             val = db_child_by_path(db,
-                                                   f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
+                                                  f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
                             if val is not None:
                                 cached_count += 1
                                 logger.info(
