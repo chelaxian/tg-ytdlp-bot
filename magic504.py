@@ -5513,28 +5513,38 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             # Первая строка: канал и подписчики
             meta_lines = []
             if uploader:
-                ch_line = f"Channel: <b>{uploader}</b>"
+                ch_line = f"Channel: <b>{uploader}</b>\n"
                 if subs_str:
-                    ch_line += f"  {subs_str}"
+                    ch_line += f"<blockquote>{subs_str}</blockquote>\n"
                 meta_lines.append(ch_line)
-            # Вторая строка: название и дата
+            # Вторая строка: название
             t_line = ''
             if title_val:
-                t_line = f"Title: <b>{title_val}</b>"
-            if upload_date_str:
-                t_line += f"  📅 {upload_date_str}"
+                t_line = f"Title: <b>{title_val}</b>\n"
             if t_line:
                 meta_lines.append(t_line)
-            # Третья строка: просмотры, лайки, длительность
+            # Третья строка: дата + длительность (в цитате)
+            date_dur_line = ''
+            if upload_date_str:
+                date_dur_line += f"📅 {upload_date_str}"
+            if duration_str:
+                if date_dur_line:
+                    date_dur_line += f"  ⏱️ {duration_str}"
+                else:
+                    date_dur_line = f"⏱️ {duration_str}"
+            if date_dur_line:
+                meta_lines.append(f"<blockquote>{date_dur_line}</blockquote>")
+            # Четвёртая строка: просмотры + лайки (в цитате)
             stat_line = ''
             if views_str:
                 stat_line += views_str
             if likes_str:
-                stat_line += f"  {likes_str}"
-            if duration_str:
-                stat_line += f"  ⏱️ {duration_str}"
+                if stat_line:
+                    stat_line += f"  {likes_str}"
+                else:
+                    stat_line = likes_str
             if stat_line:
-                meta_lines.append(stat_line)
+                meta_lines.append(f"<blockquote>{stat_line}</blockquote>")
             # Собираем блок
             meta_block = '\n'.join(meta_lines)
             cap = meta_block + '\n\n'
@@ -5549,8 +5559,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         # --- Ссылки в самом низу ---
         if ("youtube.com" in url or "youtu.be" in url):
             webpage_url = info.get('webpage_url') or ''
-            video_url_link = f'<a href="{webpage_url}">VIDEO URL</a>' if webpage_url else ''
-            channel_url_link = f'<a href="{channel_url}">CHANNEL URL</a>' if channel_url else ''
+            video_url_link = f'<a href="{webpage_url}">[VIDEO]</a>' if webpage_url else ''
+            channel_url_link = f'<a href="{channel_url}">[CHANNEL]</a>' if channel_url else ''
             thumbnail_url = info.get('thumbnail') or ''
             thumb_link = f'<a href="{thumbnail_url}">[Thumbnail]</a>' if thumbnail_url else ''
             links = '  '.join([x for x in [video_url_link, channel_url_link, thumb_link] if x])
