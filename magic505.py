@@ -5513,14 +5513,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             # Первая строка: канал и подписчики
             meta_lines = []
             if uploader:
-                ch_line = f"Channel: <b>{uploader}</b>\n"
+                ch_line = f"📺 <b>{uploader}</b>\n"
                 if subs_str:
                     ch_line += f"<blockquote>{subs_str}</blockquote>\n"
                 meta_lines.append(ch_line)
             # Вторая строка: название
             t_line = ''
             if title_val:
-                t_line = f"Title: <b>{title_val}</b>\n"
+                t_line = f"<b>{title_val}</b>"
             if t_line:
                 meta_lines.append(t_line)
             # Третья строка: дата + длительность (в цитате)
