@@ -628,7 +628,7 @@ base_db = firebase.database()
 # Additional check: Execute a test GET request to the root node
 try:
     test_data = base_db.get(idToken)
-    logger.info("Test GET operation succeeded. Data:", test_data.val())
+    logger.info("Test GET operation succeeded. Data: %s", test_data.val())
 except Exception as e:
     logger.error("Test GET operation failed:", e)
 
@@ -665,7 +665,7 @@ _format = {"ID": "0", "timestamp": math.floor(time.time())}
 try:
     # Try writing data to the path: bot/tgytdlp_bot/users/0
     result = db.child(f"{db_path}/users/0").set(_format)
-    logger.info("Data written successfully. Result:", result)
+    logger.info("Data written successfully. Result: %s", result)
 except Exception as e:
     logger.error("Error writing data to Firebase:", e)
     raise
@@ -682,7 +682,7 @@ def token_refresher():
             new_idToken = new_user["idToken"]
             db.token = new_idToken
             user = new_user
-            logger.info("Firebase idToken refreshed successfully. New token (first 20 chars):", new_idToken[:20])
+            logger.info("Firebase idToken refreshed successfully. New token (first 20 chars): %s", new_idToken[:20])
         except Exception as e:
             logger.error("Error refreshing Firebase idToken:", e)
 
@@ -3093,7 +3093,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             return
 
         # If there is no flood error, send a normal message (only once)
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
+        proc_msg = app.send_message(user_id, "🔄 Processing...", reply_to_message_id=message.id)
         proc_msg_id = proc_msg.id
         status_msg = app.send_message(user_id, "🎙️ Audio is processing...")
         hourglass_msg = app.send_message(user_id, "⏳ Please wait...")
@@ -3247,10 +3247,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Send full error message with instructions immediately
                 send_to_all(
                     message,
-                    f"❌ Error downloading: {error_text}\n────────────────\n"
-                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
                     "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again."
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again.\n"
+                    f"────────────────\n❌ Error downloading: {error_text}"
                 )
                 return None
             except Exception as e:
@@ -3599,7 +3599,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             return
 
         # If there is no flood error, send a normal message
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id)
+        proc_msg = app.send_message(user_id, "🔄 Processing...", reply_to_message_id=message.id)
         proc_msg_id = proc_msg.id
         error_message = ""
         status_msg = None
@@ -3699,7 +3699,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             processing_messages = []
                             download_started_messages = []
                             for msg in messages:
-                                if msg.text == "Processing... ♻️":
+                                if msg.text == "🔄 Processing...":
                                     processing_messages.append(msg.id)
                                 elif msg.text == "Download started":
                                     download_started_messages.append(msg.id)
@@ -3856,11 +3856,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.error(f"DownloadError: {error_message}")
                 # Send full error message with instructions immediately
                 send_to_all(
-                    message,
-                    f"❌ Error downloading: {error_message}\n────────────────\n"
-                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    message,                   
+                    "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
                     "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again.\n"
+                    f"────────────────\n❌ Error downloading: {error_message}"
                 )
                 return None
             except Exception as e:
@@ -3955,7 +3955,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             try:
                 safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n{full_bar}   100.0%\n__Downloaded video.\n📤 Processing for upload...__")
+                    f"{info_text}\n{full_bar}   100.0%\n__☑️ Downloaded video.\n📤 Processing for upload...__")
             except Exception as e:
                 logger.error(f"Status update error after download: {e}")
 
@@ -4276,7 +4276,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     }
                                     
                                     if check_subs_limits(real_info, quality_key):
-                                        status_msg = app.send_message(user_id, "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\nEmbedding subtitles... ⏳")
+                                        status_msg = app.send_message(user_id, "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\n🔥 Starting to burn subtitles...")
                                         def tg_update_callback(progress, eta):
                                             blocks = int(progress * 10)
                                             bar = '🟩' * blocks + '⬜️' * (10 - blocks)
@@ -4285,7 +4285,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 app.edit_message_text(
                                                     chat_id=user_id,
                                                     message_id=status_msg.id,
-                                                    text=f"Embedding subtitles...\n{bar} {percent}%\nETA: {eta} min"
+                                                    text=f"🔥 Embedding subtitles...\n{bar} {percent}%\nETA: {eta} min"
                                                 )
                                             except Exception as e:
                                                 logger.error(f"Failed to update subtitle progress: {e}")
@@ -5397,8 +5397,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     user_id = message.chat.id
     proc_msg = None
     found_type = None
+    
+    # Очищаем кэш субтитров перед проверкой, чтобы избежать проблем с кэшированием
+    clear_subs_check_cache()
     try:
-        proc_msg = app.send_message(user_id, "Processing... ♻️", reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
+        # Проверяем, включены ли субтитры
+        subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
+        processing_text = "🔄 Processing... (wait 6 sec)" if subs_enabled else "🔄 Processing..."
+        proc_msg = app.send_message(user_id, processing_text, reply_to_message_id=message.id, reply_markup=get_main_reply_keyboard())
         original_text = message.text or message.caption or ""
         is_playlist = is_playlist_with_range(original_text)
         playlist_range = None
@@ -5513,8 +5519,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             else:
                 subs_warn = "\n⚠️ WARNING: Subtitles for selected language were not found and will not be embedded."
 
-        repost_line = "🚀 — Instant repost. Video is already saved." if show_repost_hint else ""
-        hint = "<pre language=\"info\">📹 — Choose quality for new download.\n" + repost_line + subs_hint + subs_warn + "</pre>"
+        repost_line = "\n🚀 — Instant repost. Video is already saved." if show_repost_hint else ""
+        hint = "<pre language=\"info\">📹 — Choose quality for new download." + repost_line + subs_hint + subs_warn + "</pre>"
         cap += f"\n{hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
@@ -6933,7 +6939,7 @@ def subs_command(app, message):
         f"<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
         "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
         "- 720p max quality\n"
-        "- 1 hour max duration\n"
+        "- 1.5 hour max duration\n"
         "- 500mb max video size</blockquote>",
         reply_markup=get_language_keyboard(page=0, user_id=user_id),
         parse_mode=enums.ParseMode.HTML
@@ -7155,76 +7161,166 @@ def check_subs_limits(info_dict, quality_key=None):
 
 def download_subtitles_ytdlp(url, user_id, video_dir):
     """
-    Отдельно скачивает субтитры для видео через yt-dlp
+    Отдельно скачивает субтитры для видео через yt-dlp с проверкой языка
     """
-    try:
-        subs_lang = get_user_subs_language(user_id)
-        auto_mode = get_user_subs_auto_mode(user_id)
-        
-        if not subs_lang or subs_lang == "OFF":
-            return None
+    max_retries = 2  # Увеличиваем количество попыток
+    
+    for attempt in range(max_retries):
+        try:
+            subs_lang = get_user_subs_language(user_id)
+            auto_mode = get_user_subs_auto_mode(user_id)
             
-        # Настройки для скачивания субтитров
-        subs_opts = {
-            'skip_download': True,  # Не скачиваем видео, только субтитры
-            'outtmpl': os.path.join(video_dir, "%(title).50s.%(ext)s"),
-            'subtitlesformat': 'srt',
-        }
-        
-        if auto_mode:
-            subs_opts.update({
-                'writeautomaticsub': True,
-                'writesubtitles': False,
-            })
-        else:
-            subs_opts.update({
-                'writeautomaticsub': False,
-                'writesubtitles': True,
-            })
+            if not subs_lang or subs_lang == "OFF":
+                return None
+                
+            # Настройки для скачивания субтитров
+            subs_opts = {
+                'skip_download': True,  # Не скачиваем видео, только субтитры
+                'outtmpl': os.path.join(video_dir, "%(title).50s.%(ext)s"),
+                'subtitlesformat': 'srt',
+            }
             
-        # Добавляем cookie файл если есть
-        user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
-        if os.path.exists(user_cookie_path):
-            subs_opts['cookiefile'] = user_cookie_path
-        else:
-            global_cookie_path = Config.COOKIE_FILE_PATH
-            if os.path.exists(global_cookie_path):
-                subs_opts['cookiefile'] = global_cookie_path
+            if auto_mode:
+                subs_opts.update({
+                    'writeautomaticsub': True,
+                    'writesubtitles': False,
+                })
             else:
-                subs_opts['cookiefile'] = None
-        
-        # Проверяем доступность субтитров
-        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
-        if not available_langs:
-            logger.info(f"No subtitles available for {subs_lang}")
+                subs_opts.update({
+                    'writeautomaticsub': False,
+                    'writesubtitles': True,
+                })
+                
+            # Добавляем cookie файл если есть
+            user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+            if os.path.exists(user_cookie_path):
+                subs_opts['cookiefile'] = user_cookie_path
+            else:
+                global_cookie_path = Config.COOKIE_FILE_PATH
+                if os.path.exists(global_cookie_path):
+                    subs_opts['cookiefile'] = global_cookie_path
+                else:
+                    subs_opts['cookiefile'] = None
+            
+            # Проверяем доступность субтитров
+            available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+            if not available_langs:
+                logger.info(f"No subtitles available for {subs_lang}")
+                return None
+                
+            # Ищем подходящий язык используя функцию lang_match
+            found_lang = lang_match(subs_lang, available_langs)
+            
+            if not found_lang:
+                logger.info(f"Language {subs_lang} not found in available languages: {available_langs}")
+                return None
+                
+            # Добавляем найденный язык в настройки
+            subs_opts['subtitleslangs'] = [found_lang]
+                
+            # Скачиваем субтитры
+            with yt_dlp.YoutubeDL(subs_opts) as ydl:
+                ydl.download([url])
+                
+            # Ищем скачанный файл субтитров
+            srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
+            if srt_files:
+                subs_path = os.path.join(video_dir, srt_files[0])
+                logger.info(f"Subtitles downloaded: {subs_path}")
+                
+                # Проверяем, что файл содержит символы выбранного языка
+                if os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
+                    try:
+                        with open(subs_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                        
+                        # Проверяем наличие символов выбранного языка
+                        has_language_chars = False
+                        
+                        if subs_lang == 'ru':  # Русский
+                            # Проверяем наличие русских символов (кириллица)
+                            russian_chars = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
+                            has_language_chars = any(char.lower() in russian_chars for char in content if char.isalpha())
+                        elif subs_lang == 'en':  # Английский
+                            # Проверяем наличие английских символов
+                            english_chars = 'abcdefghijklmnopqrstuvwxyz'
+                            has_language_chars = any(char.lower() in english_chars for char in content if char.isalpha())
+                        elif subs_lang == 'es':  # Испанский
+                            # Проверяем наличие испанских символов
+                            spanish_chars = 'abcdefghijklmnopqrstuvwxyzñáéíóúü'
+                            has_language_chars = any(char.lower() in spanish_chars for char in content if char.isalpha())
+                        elif subs_lang == 'fr':  # Французский
+                            # Проверяем наличие французских символов
+                            french_chars = 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç'
+                            has_language_chars = any(char.lower() in french_chars for char in content if char.isalpha())
+                        elif subs_lang == 'de':  # Немецкий
+                            # Проверяем наличие немецких символов
+                            german_chars = 'abcdefghijklmnopqrstuvwxyzäöüß'
+                            has_language_chars = any(char.lower() in german_chars for char in content if char.isalpha())
+                        elif subs_lang == 'it':  # Итальянский
+                            # Проверяем наличие итальянских символов
+                            italian_chars = 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù'
+                            has_language_chars = any(char.lower() in italian_chars for char in content if char.isalpha())
+                        elif subs_lang == 'pt':  # Португальский
+                            # Проверяем наличие португальских символов
+                            portuguese_chars = 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú'
+                            has_language_chars = any(char.lower() in portuguese_chars for char in content if char.isalpha())
+                        elif subs_lang == 'ja':  # Японский
+                            # Проверяем наличие японских символов (хирагана, катакана, кандзи)
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        elif subs_lang == 'ko':  # Корейский
+                            # Проверяем наличие корейских символов
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        elif subs_lang == 'zh':  # Китайский
+                            # Проверяем наличие китайских символов
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        elif subs_lang == 'ar':  # Арабский
+                            # Проверяем наличие арабских символов
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        else:
+                            # Для других языков проверяем наличие любых символов выше ASCII
+                            has_language_chars = any(ord(char) > 127 for char in content if char.isalpha())
+                        
+                        # Также проверяем наличие таймкодов
+                        has_timestamps = '-->' in content
+                        
+                        # Проверяем, что файл содержит И символы языка, И таймкоды
+                        if has_language_chars and has_timestamps:
+                            logger.info(f"Subtitles file contains {subs_lang} characters and timestamps, size: {os.path.getsize(subs_path)} bytes")
+                            return subs_path
+                        else:
+                            if not has_language_chars:
+                                logger.warning(f"Subtitles file doesn't contain {subs_lang} characters, attempt {attempt + 1}/{max_retries}")
+                            if not has_timestamps:
+                                logger.warning(f"Subtitles file doesn't contain timestamps, attempt {attempt + 1}/{max_retries}")
+                            
+                            if attempt < max_retries - 1:
+                                time.sleep(3)  # Увеличиваем паузу между попытками
+                                continue
+                            else:
+                                logger.error(f"Failed to download valid subtitles after {max_retries} attempts")
+                                return None
+                                
+                    except Exception as e:
+                        logger.error(f"Error reading subtitle file: {e}")
+                        if attempt < max_retries - 1:
+                            time.sleep(3)
+                            continue
+                        else:
+                            return None
+                
+                return subs_path
+                
             return None
             
-        # Ищем подходящий язык используя функцию lang_match
-        found_lang = lang_match(subs_lang, available_langs)
-        
-        if not found_lang:
-            logger.info(f"Language {subs_lang} not found in available languages: {available_langs}")
+        except Exception as e:
+            logger.error(f"Error downloading subtitles (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(3)  # Пауза перед повторной попыткой
+                continue
             return None
-            
-        # Добавляем найденный язык в настройки
-        subs_opts['subtitleslangs'] = [found_lang]
-            
-        # Скачиваем субтитры
-        with yt_dlp.YoutubeDL(subs_opts) as ydl:
-            ydl.download([url])
-            
-        # Ищем скачанный файл субтитров
-        srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
-        if srt_files:
-            subs_path = os.path.join(video_dir, srt_files[0])
-            logger.info(f"Subtitles downloaded: {subs_path}")
-            return subs_path
-            
-        return None
-        
-    except Exception as e:
-        logger.error(f"Error downloading subtitles: {e}")
-        return None
+    
+    return None
 
 def download_subtitles_only(app, message, url, tags, playlist_name=None, video_count=1, video_start_with=1):
     """
@@ -7248,6 +7344,10 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
         
         # Check subtitle availability
         auto_mode = get_user_subs_auto_mode(user_id)
+        
+        # Очищаем кэш перед проверкой, чтобы избежать проблем с кэшированием
+        clear_subs_check_cache()
+        
         found_type = check_subs_availability(url, user_id, return_type=True)
         need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
         
@@ -7285,13 +7385,15 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
                     caption += f"\n<b>Tags:</b> {' '.join(tags)}"
                 
                 # Send subtitle file
-                app.send_document(
+                sent_msg = app.send_document(
                     chat_id=user_id,
                     document=subs_path,
                     caption=caption,
                     reply_to_message_id=message.id,
                     parse_mode=enums.ParseMode.HTML
                 )
+                # Пересылаем это сообщение в лог-канал
+                safe_forward_messages(Config.LOGS_ID, user_id, [sent_msg.id])
                 send_to_logger(message, "💬 Subtitles SRT-file sent to user.")
                 # Remove temporary file
                 try:
@@ -7349,10 +7451,30 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             logger.error(traceback.format_exc())
             width, height = 0, 0
         
-        if min(width, height) > Config.MAX_SUB_QUALITY:
-            logger.info(f"Video too large for subtitles: {width}x{height}")
+        # Явная проверка на невалидные размеры
+        if width == 0 or height == 0:
+            logger.error(f"Не удалось определить разрешение видео: width={width}, height={height}")
             return False
-        
+
+        total_time = get_duration(video_path)
+        original_size = os.path.getsize(video_path)
+
+        # Проверка длительности видео
+        if total_time and total_time > Config.MAX_SUB_DURATION:
+            logger.info(f"Video duration too long for subtitles: {total_time} сек")
+            return False
+
+        # Проверка размера файла
+        original_size_mb = original_size / (1024 * 1024)
+        if original_size_mb > Config.MAX_SUB_SIZE:
+            logger.info(f"Video file too large for subtitles: {original_size_mb:.2f} MB")
+            return False
+
+        # Проверка качества видео по наименьшей стороне
+        if min(width, height) > Config.MAX_SUB_QUALITY:
+            logger.info(f"Video quality too high for subtitles: {width}x{height}, min side: {min(width, height)}p > {Config.MAX_SUB_QUALITY}p")
+            return False
+
         # --- Simplified search: take any .SRT file in the folder ---
         srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
         if not srt_files:
@@ -7393,8 +7515,6 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             except Exception as e:
                 logger.error(f"ffprobe error: {e}")
             return None
-        
-        total_time = get_duration(video_path)
         
         # Field of subtitles with improved styling
         subs_path_escaped = subs_path.replace("'", "'\\''")
@@ -7505,13 +7625,14 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         if os.path.exists(subs_path):
             try:
                 if app is not None and message is not None:
-                    app.send_document(
+                    sent_msg = app.send_document(
                         chat_id=user_id,
                         document=subs_path,
                         caption="<blockquote>💬 Subtitles SRT-file</blockquote>",
                         reply_to_message_id=message.id,
                         parse_mode=enums.ParseMode.HTML
                     )
+                    safe_forward_messages(Config.LOGS_ID, user_id, [sent_msg.id])
                     send_to_logger(message, "💬 Subtitles SRT-file sent to user.") 
             except Exception as e:
                 logger.error(f"Ошибка при отправке srt-файла: {e}")
