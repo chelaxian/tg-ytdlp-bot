@@ -5500,7 +5500,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             upload_date = info.get('upload_date')
             webpage_url = info.get('webpage_url') or ''
             thumbnail_url = info.get('thumbnail') or ''
-            description = info.get('description') or ''
+            #description = info.get('description') or ''
             # Форматирование
             duration_str = TimeFormatter(duration*1000) if duration else ''
             filesize_str = humanbytes(filesize) if filesize else ''
@@ -5514,7 +5514,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 except Exception:
                     upload_date_str = str(upload_date)
             # Обрезаем описание
-            description_short = (description[:300] + '...') if len(description) > 300 else description
+            #description_short = (description[:300] + '...') if len(description) > 300 else description
             # Ссылки
             video_url_link = f'<a href="{webpage_url}">VIDEO URL</a>' if webpage_url else ''
             channel_url_link = f'<a href="{channel_url}">CHANNEL URL</a>' if channel_url else ''
@@ -5546,8 +5546,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 meta_block += f'{channel_url_link}\n'
             if thumbnail_url:
                 meta_block += f'<a href="{thumbnail_url}">[Thumbnail]</a>\n'
-            if description_short:
-                meta_block += f'<b>Description:</b> {description_short}\n'
+            #if description_short:
+                #meta_block += f'<b>Description:</b> {description_short}\n'
             meta_block += '</blockquote>\n'
             cap += meta_block
         if tags_text:
