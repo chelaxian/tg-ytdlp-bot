@@ -7418,6 +7418,27 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
         except:
             app.send_message(user_id, f"❌ Error downloading subtitles: {str(e)}")
 
+
+def get_video_info_ffprobe(video_path):
+    import json
+    try:
+        result = subprocess.run([
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-show_entries', 'format=duration',
+            '-of', 'json', video_path
+        ], capture_output=True, text=True)
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            width = data['streams'][0]['width'] if data['streams'] else 0
+            height = data['streams'][0]['height'] if data['streams'] else 0
+            duration = float(data['format']['duration']) if 'format' in data and 'duration' in data['format'] else 0
+            return width, height, duration
+    except Exception as e:
+        logger.error(f'ffprobe error: {e}')
+    return 0, 0, 0
+
 def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, message=None):
     """
     Burning (hardcode) subtitles in a video file, if there is any .SRT file and subs.txt
