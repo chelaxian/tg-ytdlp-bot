@@ -7482,10 +7482,12 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             return False
 
         # Проверка качества видео по наименьшей стороне
+        # Логируем параметры видео перед проверкой качества
+        logger.info(f"Проверка качества: width={width}, height={height}, min_side={min(width, height)}, лимит={Config.MAX_SUB_QUALITY}")
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video quality too high for subtitles: {width}x{height}, min side: {min(width, height)}p > {Config.MAX_SUB_QUALITY}p")
             return False
-
+            
         # --- Simplified search: take any .SRT file in the folder ---
         srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
         if not srt_files:
