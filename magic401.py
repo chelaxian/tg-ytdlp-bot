@@ -5214,8 +5214,8 @@ def is_porn(url, title, description, caption=None):
     # 1. Checking the domain
     clean_url = get_clean_url_for_tagging(url)
     domain_parts, _ = extract_domain_parts(clean_url)
-    for dom in domain_parts:
-        if dom in Config.WHITELIST:
+    for dom in Config.WHITELIST:
+        if dom in domain_parts:
             logger.info(f"is_porn: domain in WHITELIST: {dom}")
             return False
     if is_porn_domain(domain_parts):
@@ -7441,22 +7441,12 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             return False
         
         video_dir = os.path.dirname(video_path)
-        try:
-            clip = VideoFileClip(video_path)
-            width, height = clip.size
-            clip.close()
-        except Exception as e:
-            logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_path}: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            width, height = 0, 0
         
-        # Явная проверка на невалидные размеры
+        # Получаем параметры видео через ffprobe
+        width, height, total_time = get_video_info_ffprobe(video_path)
         if width == 0 or height == 0:
-            logger.error(f"Не удалось определить разрешение видео: width={width}, height={height}")
+            logger.error(f"Не удалось определить разрешение видео через ffprobe: width={width}, height={height}")
             return False
-
-        total_time = get_duration(video_path)
         original_size = os.path.getsize(video_path)
 
         # Проверка длительности видео
