@@ -5711,39 +5711,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             popular = [144, 240, 360, 480, 540, 576, 720, 1080, 1440, 2160, 4320]
             for height in popular:
                 quality_key = f"{height}p"
-                f = quality_map.get(quality_key)
-                if not f:
+                size_val = None
+                w = h = None
+                for (qk, ww, hh), size in minside_size_dim_map.items():
+                    if qk == quality_key:
+                        size_val = size
+                        w = ww
+                        h = hh
+                        break
+                if size_val is None:
                     continue
-                filesize = f.get('filesize') or f.get('filesize_approx')
-                if filesize:
-                    if filesize >= 1024*1024*1024:
-                        size_str = f"{round(filesize/1024/1024/1024, 2)}GB"
-                    else:
-                        size_str = f"{round(filesize/1024/1024, 1)}MB"
-                else:
-                    size_str = '—'
-                dim_str = f" ({f.get('width')}×{f.get('height')})" if f.get('width') and f.get('height') else ''
+                size_str = f"{round(size_val/1024, 1)}GB" if size_val and size_val >= 1024 else (f"{size_val}MB" if size_val else '—')
+                dim_str = f" ({w}×{h})" if w and h else ''
                 scissors = ""
-                if get_user_split_size(user_id) and filesize:
-                    video_bytes = filesize
+                if get_user_split_size(user_id) and size_val:
+                    video_bytes = size_val * 1024 * 1024
                     if video_bytes > get_user_split_size(user_id):
                         n_parts = (video_bytes + get_user_split_size(user_id) - 1) // get_user_split_size(user_id)
                         scissors = f" ✂️{n_parts}"
-                # Check the availability of subtitles for this quality
-                subs_available = ""
-                subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
-                auto_mode = get_user_subs_auto_mode(user_id)
-                if subs_enabled and is_youtube_url(url) and f.get('width') is not None and f.get('height') is not None and min(int(f.get('width')), int(f.get('height'))) <= Config.MAX_SUB_QUALITY:
-                    # Проверяем наличие субтитров нужного типа
-                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
-                    if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
-                        temp_info = {
-                            'duration': info.get('duration'),
-                            'filesize': filesize,
-                            'filesize_approx': filesize
-                        }
-                        if check_subs_limits(temp_info, quality_key):
-                            subs_available = "💬"
+
                 
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
@@ -5751,11 +5737,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     total = len(indices)
                     icon = "🚀" if n_cached > 0 else "📹"
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
-                    button_text = f"{icon}{quality_key}{subs_available}{postfix}"
+                    button_text = f"{icon}{quality_key}{postfix}"
                 else:
-                    need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
-                    icon = "🚀" if quality_key in cached_qualities and not need_subs else "📹"
-                    button_text = f"{icon}{quality_key}{subs_available}"
+                    
+                    icon = "🚀" if quality_key in cached_qualities else "📹"
+                    button_text = f"{icon}{quality_key}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
 
         if not buttons:
