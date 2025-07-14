@@ -7271,16 +7271,6 @@ def check_subs_limits(info_dict, quality_key=None):
         max_duration = Config.MAX_SUB_DURATION
         max_size = Config.MAX_SUB_SIZE
         
-        # Check the quality of the video (is made - check only the duration and size)
-        # if quality_key and quality_key != "best" and quality_key != "mp3":
-        # try:
-        # quality_height = int(quality_key.replace('p', ''))
-        # if quality_height > max_quality:
-        # logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
-        # return False
-        # except ValueError:
-        # pass # If it is not possible to extract the height, we skip quality check
-        
         # Check the duration
         duration = info_dict.get('duration')
         if duration and duration > max_duration:
@@ -7657,18 +7647,32 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
         
         # Выбираем размер шрифта в зависимости от высоты видео
-        if height >= 1440:
+        if height >= 4320:
+            font_size = 72
+        elif height >= 2880:
+            font_size = 60
+        elif height >= 2160:
+            font_size = 54
+        elif height >= 1440:
             font_size = 48
         elif height >= 1080:
             font_size = 36
         elif height >= 720:
             font_size = 28
+        elif height >= 540:
+            font_size = 24
         elif height >= 480:
             font_size = 22
         elif height >= 360:
             font_size = 18
-        else:
+        elif height >= 288:
+            font_size = 16
+        elif height >= 240:
             font_size = 14
+        elif height >= 144:
+            font_size = 12
+        else:
+            font_size = 28
 
         # Field of subtitles with improved styling и максимум 2 строки
         subs_path_escaped = subs_path.replace("'", "'\\''")
