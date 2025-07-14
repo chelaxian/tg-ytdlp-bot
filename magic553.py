@@ -7646,33 +7646,25 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         video_base = os.path.splitext(os.path.basename(video_path))[0]
         output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
         
-        # Выбираем размер шрифта в зависимости от высоты видео
+        # Выбираем размер шрифта в зависимости от высоты видео (адаптивно, без гигантских значений)
         if height >= 4320:
-            font_size = 72
-        elif height >= 2880:
-            font_size = 60
+            font_size = 40  # 8K
         elif height >= 2160:
-            font_size = 54
+            font_size = 32  # 4K
         elif height >= 1440:
-            font_size = 48
+            font_size = 26  # 2K
         elif height >= 1080:
-            font_size = 36
+            font_size = 22  # FullHD
         elif height >= 720:
-            font_size = 28
-        elif height >= 540:
-            font_size = 24
+            font_size = 18  # HD
         elif height >= 480:
-            font_size = 22
+            font_size = 16  # SD
         elif height >= 360:
-            font_size = 18
-        elif height >= 288:
-            font_size = 16
-        elif height >= 240:
             font_size = 14
-        elif height >= 144:
+        elif height >= 240:
             font_size = 12
         else:
-            font_size = 28
+            font_size = 10
 
         # Field of subtitles with improved styling и максимум 2 строки
         subs_path_escaped = subs_path.replace("'", "'\\''")
