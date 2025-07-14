@@ -20,7 +20,7 @@ from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
 import traceback
 import pyrebase
 import tldextract
-from moviepy.editor import VideoFileClip
+#from moviepy.editor import VideoFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from pyrogram import Client, filters
 from pyrogram import enums
@@ -2562,13 +2562,9 @@ def send_videos(
     else:
         # For the rest - define the size of the video dynamically
         try:
-            from moviepy.editor import VideoFileClip
-            clip = VideoFileClip(video_abs_path)
-            width = int(str(clip.w).strip().split()[0]) if clip.w else 0
-            height = int(str(clip.h).strip().split()[0]) if clip.h else 0
-            clip.close()
+            width, height, _ = get_video_info_ffprobe(video_abs_path)
         except Exception as e:
-            logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_abs_path}: {e}")
+            logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {video_abs_path}: {e}")
             import traceback
             logger.error(traceback.format_exc())
             width, height = 0, 0
@@ -2791,11 +2787,10 @@ def get_duration_thumb_(dir, video_path, thumb_name):
     thumb_hash = hashlib.md5(thumb_name.encode()).hexdigest()[:10]
     thumb_dir = os.path.abspath(os.path.join(dir, thumb_hash + ".jpg"))
     try:
-        clip = VideoFileClip(video_path)
-        duration = int(clip.duration)
-        clip.close()
+        _, _, duration = get_video_info_ffprobe(video_path)
+        duration = int(duration)
     except Exception as e:
-        logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {video_path}: {e}")
+        logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {video_path}: {e}")
         import traceback
         logger.error(traceback.format_exc())
         duration = 0
@@ -4241,13 +4236,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
                             # Get the real size of the video
                             try:
-                                clip = VideoFileClip(after_rename_abs_path)
-                                width = int(clip.w)
-                                height = int(clip.h)
-                                clip.close()
+                                width, height, _ = get_video_info_ffprobe(after_rename_abs_path)
                                 real_file_size = min(width, height)
                             except Exception as e:
-                                logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
+                                logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
                                 import traceback
                                 logger.error(traceback.format_exc())
                                 width, height = 0, 0
@@ -7487,7 +7479,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         if min(width, height) > Config.MAX_SUB_QUALITY:
             logger.info(f"Video quality too high for subtitles: {width}x{height}, min side: {min(width, height)}p > {Config.MAX_SUB_QUALITY}p")
             return False
-            
+
         # --- Simplified search: take any .SRT file in the folder ---
         srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
         if not srt_files:
