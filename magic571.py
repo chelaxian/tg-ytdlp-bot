@@ -5513,16 +5513,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         else:
             cached_qualities = get_cached_qualities(url)
         info = get_video_formats(url, user_id, playlist_start_index)
-        
-        # --- Исправление для плейлистов ---
-        if info and "entries" in info:
-            entries = info["entries"]
-            idx = max(0, playlist_start_index - 1)
-            if idx < len(entries):
-                info = entries[idx]
-            else:
-                info = entries[0]
-        
         title = info.get('title', 'Video')
         video_id = info.get('id')
         tags_text = generate_final_tags(url, tags, info)
@@ -5635,10 +5625,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 table_lines.append(f"{emoji}{quality_key}:  {size_str}{dim_str}{scissors}")
             table_block = "\n".join(table_lines)
 
-        # --- Forming caption ---
-        cap = f"<b>{title}</b>\n"
-        # --- YouTube расширенный блок ---
-        if ("youtube.com" in url or "youtu.be" in url):
+        # --- Формирование caption ---
+        is_playlist = info and "entries" in info
+
+        if ("youtube.com" in url or "youtu.be" in url) and not is_playlist:
             uploader = info.get('uploader') or ''
             channel_url = info.get('channel_url') or ''
             view_count = info.get('view_count')
@@ -5699,7 +5689,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             meta_block = '\n'.join(meta_lines)
             cap = meta_block + '\n\n'
         else:
-            cap = ''
+            cap = f"<b>{title}</b>\n"
+
         # --- Таблица качеств ---
         if table_block:
             cap += f"<blockquote>{table_block}</blockquote>\n"
@@ -5707,7 +5698,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if tags_text:
             cap += f"{tags_text}\n"
         # --- Ссылки в самом низу ---
-        if ("youtube.com" in url or "youtu.be" in url):
+        if ("youtube.com" in url or "youtu.be" in url) and not is_playlist:
             webpage_url = info.get('webpage_url') or ''
             video_url_link = f'<a href="{webpage_url}">[VIDEO]</a>' if webpage_url else ''
             channel_url_link = f'<a href="{channel_url}">[CHANNEL]</a>' if channel_url else ''
@@ -5717,41 +5708,42 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             if links:
                 cap += f"\n{links}"
         # --- Обрезка по лимиту ---
-        if len(cap) > 1024:
-            # Обрезаем по приоритету: лайки, подписчики, просмотры, дата, длительность, название, канал
-            # 1. Лайки
-            cap1 = cap.replace(likes_str, '') if likes_str else cap
-            if len(cap1) <= 1024:
-                cap = cap1
-            else:
-                # 2. Подписчики
-                cap2 = cap1.replace(subs_str, '') if subs_str else cap1
-                if len(cap2) <= 1024:
-                    cap = cap2
+        if ("youtube.com" in url or "youtu.be" in url) and not is_playlist:
+            if len(cap) > 1024:
+                # Обрезаем по приоритету: лайки, подписчики, просмотры, дата, длительность, название, канал
+                # 1. Лайки
+                cap1 = cap.replace(likes_str, '') if likes_str else cap
+                if len(cap1) <= 1024:
+                    cap = cap1
                 else:
-                    # 3. Просмотры
-                    cap3 = cap2.replace(views_str, '') if views_str else cap2
-                    if len(cap3) <= 1024:
-                        cap = cap3
+                    # 2. Подписчики
+                    cap2 = cap1.replace(subs_str, '') if subs_str else cap1
+                    if len(cap2) <= 1024:
+                        cap = cap2
                     else:
-                        # 4. Дата
-                        cap4 = cap3.replace(upload_date_str, '') if upload_date_str else cap3
-                        if len(cap4) <= 1024:
-                            cap = cap4
+                        # 3. Просмотры
+                        cap3 = cap2.replace(views_str, '') if views_str else cap2
+                        if len(cap3) <= 1024:
+                            cap = cap3
                         else:
-                            # 5. Длительность
-                            cap5 = cap4.replace(duration_str, '') if duration_str else cap4
-                            if len(cap5) <= 1024:
-                                cap = cap5
+                            # 4. Дата
+                            cap4 = cap3.replace(upload_date_str, '') if upload_date_str else cap3
+                            if len(cap4) <= 1024:
+                                cap = cap4
                             else:
-                                # 6. Название
-                                cap6 = cap5.replace(title_val, '') if title_val else cap5
-                                if len(cap6) <= 1024:
-                                    cap = cap6
+                                # 5. Длительность
+                                cap5 = cap4.replace(duration_str, '') if duration_str else cap4
+                                if len(cap5) <= 1024:
+                                    cap = cap5
                                 else:
-                                    # 7. Канал
-                                    cap7 = cap6.replace(uploader, '') if uploader else cap6
-                                    cap = cap7[:1021] + '...'
+                                    # 6. Название
+                                    cap6 = cap5.replace(title_val, '') if title_val else cap5
+                                    if len(cap6) <= 1024:
+                                        cap = cap6
+                                    else:
+                                        # 7. Канал
+                                        cap7 = cap6.replace(uploader, '') if uploader else cap6
+                                        cap = cap7[:1021] + '...'
         # --- Hint ---
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
         auto_mode = get_user_subs_auto_mode(user_id)
@@ -6251,45 +6243,9 @@ def askq_callback(app, callback_query):
                 else:
                     logger.info("Video with subtitles (real subs found and needed) is not cached!")
                 app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-                # --- Исправление для плейлистов ---
-                original_text = original_message.text or original_message.caption or ""
-                if is_playlist_with_range(original_text):
-                    _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
-                    video_count = video_end_with - video_start_with + 1
-                    down_and_up(
-                        app,
-                        original_message,
-                        url,
-                        playlist_name,
-                        video_count,
-                        video_start_with,
-                        tags_text,
-                        force_no_title=False,
-                        format_override=None,
-                        quality_key=data
-                    )
-                else:
-                    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
-                return
-    # --- Исправление для плейлистов ---
-    original_text = original_message.text or original_message.caption or ""
-    if is_playlist_with_range(original_text):
-        _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
-        video_count = video_end_with - video_start_with + 1
-        down_and_up(
-            app,
-            original_message,
-            url,
-            playlist_name,
-            video_count,
-            video_start_with,
-            tags_text,
-            force_no_title=False,
-            format_override=None,
-            quality_key=data
-        )
-    else:
-        askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+                askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+            return
+    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
 
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
