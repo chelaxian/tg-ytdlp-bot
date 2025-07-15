@@ -1716,15 +1716,23 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
     if data == "clean":
         # Show the cleaning menu
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🍪 Cookies", callback_data="clean_option|cookies")],
-            [InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs")],
-            [InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags")],
-            [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
-            [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
-            [InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs")],
-            [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],
-            [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
-            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
+            [
+                InlineKeyboardButton("🍪 Cookies only", callback_data="clean_option|cookies"),
+                InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs"),
+            ],
+            [
+                InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags"),
+                InlineKeyboardButton("📼 Format", callback_data="clean_option|format"),
+            ],
+            [
+                InlineKeyboardButton("✂️ Split", callback_data="clean_option|split"),
+                InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo"),
+            ],
+            [
+                InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs"),
+                InlineKeyboardButton("🗑  All files", callback_data="clean_option|all"),
+            ],
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
         ])
         callback_query.edit_message_text(
             "<b>🧹 Clean Options</b>\n\nChoose what to clean:",
