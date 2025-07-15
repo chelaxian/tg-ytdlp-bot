@@ -1653,6 +1653,37 @@ def check_runtime(message):
     pass
 
 
+def get_youtube_playlist_video_ids(playlist_url, start, end, user_id=None):
+    import yt_dlp
+    ytdl_opts = {
+        'quiet': True,
+        'skip_download': True,
+        'extract_flat': True,
+        'forcejson': True,
+        'no_warnings': True,
+        'simulate': True,
+        'playlist_items': f"{start}-{end}",
+        'extractor_args': {'generic': ['impersonate=chrome']},
+        'referer': playlist_url,
+        'geo_bypass': True,
+        'check_certificate': False,
+        'live_from_start': True
+    }
+    if user_id is not None:
+        user_dir = os.path.join("users", str(user_id))
+        user_cookie_path = os.path.join(user_dir, "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            ytdl_opts['cookiefile'] = user_cookie_path
+        elif os.path.exists(Config.COOKIE_FILE_PATH):
+            ytdl_opts['cookiefile'] = Config.COOKIE_FILE_PATH
+    try:
+        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+            info = ydl.extract_info(playlist_url, download=False)
+        entries = info.get('entries', [])
+        return [e['id'] for e in entries if 'id' in e]
+    except Exception as e:
+        logger.error(f"get_youtube_playlist_video_ids error: {e}")
+        return []
 
 def uncache_command(app, message):
     """
@@ -1670,29 +1701,55 @@ def uncache_command(app, message):
         return
     removed_any = False
     try:
-        #Clearing the cache by video
+        # Обычное удаление по ссылке (для одиночных видео и не-YouTube)
         normalized_url = normalize_url_for_cache(url)
         url_hash = get_url_hash(normalized_url)
         video_cache_path = f"{Config.VIDEO_CACHE_DB_PATH}/{url_hash}"
         db_child_by_path(db, video_cache_path).remove()
         removed_any = True
-        # Clear cache by playlist (if any)
-        playlist_url = get_clean_playlist_url(url)
-        if playlist_url:
-            playlist_normalized = normalize_url_for_cache(playlist_url)
-            playlist_hash = get_url_hash(playlist_normalized)
-            playlist_cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}"
-            db_child_by_path(db, playlist_cache_path).remove()
-            removed_any = True
-            # If there is a range (eg *1*5), clear the cache for each index
+
+        # Для YouTube-плейлистов — удаляем кэш по каждому видео
+        if is_youtube_url(url) and 'list=' in url:
             import re
             m = re.search(r"\*(\d+)\*(\d+)", url)
             if m:
                 start, end = int(m.group(1)), int(m.group(2))
-                for idx in range(start, end + 1):
-                    idx_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}/{idx}"
-                    db_child_by_path(db, idx_path).remove()
-        # Clear cache for short/long YouTube links
+            else:
+                start, end = 1, 1000000  # большое число — чтобы получить все
+            playlist_url = get_clean_playlist_url(url)
+            video_ids = get_youtube_playlist_video_ids(playlist_url, start, end)
+            for vid in video_ids:
+                for variant in [
+                    f"https://www.youtube.com/watch?v={vid}",
+                    f"https://youtu.be/{vid}"
+                ]:
+                    norm = normalize_url_for_cache(variant)
+                    h = get_url_hash(norm)
+                    db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{h}").remove()
+            # Также чистим ветку плейлиста (playlist cache)
+            playlist_normalized = normalize_url_for_cache(playlist_url)
+            playlist_hash = get_url_hash(playlist_normalized)
+            db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}").remove()
+            removed_any = True
+        else:
+            # Старое поведение для остальных плейлистов
+            playlist_url = get_clean_playlist_url(url)
+            if playlist_url:
+                playlist_normalized = normalize_url_for_cache(playlist_url)
+                playlist_hash = get_url_hash(playlist_normalized)
+                playlist_cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}"
+                db_child_by_path(db, playlist_cache_path).remove()
+                removed_any = True
+                # Если есть диапазон (например, *1*5), чистим индексы
+                import re
+                m = re.search(r"\*(\d+)\*(\d+)", url)
+                if m:
+                    start, end = int(m.group(1)), int(m.group(2))
+                    for idx in range(start, end + 1):
+                        idx_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{playlist_hash}/{idx}"
+                        db_child_by_path(db, idx_path).remove()
+
+        # Clear cache for short/long YouTube links (одиночные видео)
         if is_youtube_url(url):
             short_url = youtube_to_short_url(url)
             long_url = youtube_to_long_url(url)
@@ -1701,6 +1758,7 @@ def uncache_command(app, message):
                 h = get_url_hash(norm)
                 db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{h}").remove()
                 db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{h}").remove()
+
         if removed_any:
             send_to_user(message, f"✅ Cache cleared successfully for URL:\n`{url}`")
             send_to_logger(message, f"Admin {user_id} cleared cache for URL: {url}")
