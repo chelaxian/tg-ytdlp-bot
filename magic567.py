@@ -891,7 +891,7 @@ def check_playlist_range_limits(url, video_start_with, video_end_with, app, mess
     if count > max_count:
         app.send_message(
             message.chat.id,
-            f"❗️ Превышен лимит диапазона для {service}: {count} (максимум {max_count}).\nУменьшите диапазон и попробуйте снова.",
+            f"❗️ Range limit exceeded for {service}: {count} (maximum {max_count}).\nReduce the range and try again.",
             reply_to_message_id=getattr(message, 'id', None)
         )
         return False
@@ -5491,6 +5491,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
     
     # Очищаем кэш субтитров перед проверкой, чтобы избежать проблем с кэшированием
     clear_subs_check_cache()
+    # --- Проверка лимита диапазона для Always Ask Menu ---
+    original_text = message.text or message.caption or ""
+    is_playlist = is_playlist_with_range(original_text)
+    if is_playlist:
+        _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
+        if not check_playlist_range_limits(url, video_start_with, video_end_with, app, message):
+            return
     try:
         # Проверяем, включены ли субтитры
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
