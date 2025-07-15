@@ -3080,6 +3080,9 @@ def write_logs(message, video_url, video_title):
 # ####################################################################################
 # ####################################################################################
 
+# ####################################################################################
+# ####################################################################################
+
 # ########################################
 # Down_and_audio function
 # ########################################
@@ -3287,7 +3290,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 ],
                'prefer_ffmpeg': True,
                'extractaudio': True,
-               'playlist_items': str(current_index + video_start_with),  # ВОЗВРАЩЕНО: рабочая формула
+               'playlist_items': str(current_index + video_start_with),
                'outtmpl': os.path.join(user_folder, "%(title).50s.%(ext)s"),
                'progress_hooks': [progress_hook],
                'extractor_args': {
@@ -3311,7 +3314,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if "entries" in info_dict:
                     entries = info_dict["entries"]
                     if len(entries) > 1:  # If the video in the playlist is more than one
-                        actual_index = current_index + video_start_with - 1  # ВОЗВРАЩЕНО: рабочая формула
+                        actual_index = current_index + video_start_with - 1  # -1 because indexes in entries start from 0
                         if actual_index < len(entries):
                             info_dict = entries[actual_index]
                         else:
@@ -3341,10 +3344,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Send full error message with instructions immediately
                 send_to_all(
                     message,
-                    "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
+                    f"❌ Error downloading: {error_text}\n────────────────\n"
+                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
                     "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again.\n"
-                    f"────────────────\n❌ Error downloading: {error_text}"
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again."
                 )
                 return None
             except Exception as e:
@@ -3353,7 +3356,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Check if this is a "No videos found in playlist" error
                 if "No videos found in playlist" in error_text or "Story might have expired" in error_text:
-                    error_message = f"❌ No content found at index {current_index}"
+                    error_message = f"❌ No content found at index {current_index + video_start_with}"
                     send_to_all(message, error_message)
                     logger.info(f"Skipping item at index {current_index} (no content found)")
                     return "SKIP"
@@ -3366,7 +3369,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         else:
             indices_to_download = range(video_count)
         for idx, current_index in enumerate(indices_to_download):
-            current_index = current_index - video_start_with  # ВОЗВРАЩЕНО: для правильной индексации
+            current_index = current_index - video_start_with  # for numbering/display
             total_process = f"""
 **📶 Total Progress**
 > **Audio:** {idx + 1} / {len(indices_to_download)}
@@ -3950,11 +3953,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.error(f"DownloadError: {error_message}")
                 # Send full error message with instructions immediately
                 send_to_all(
-                    message,                   
-                    "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
+                    message,
+                    f"❌ Error downloading: {error_message}\n────────────────\n"
+                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
                     "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again.\n"
-                    f"────────────────\n❌ Error downloading: {error_message}"
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
                 )
                 return None
             except Exception as e:
@@ -3976,7 +3979,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         else:
             indices_to_download = range(video_count)
         for idx, current_index in enumerate(indices_to_download):
-            current_index = current_index - video_start_with  # для правильной индексации
+            x = current_index - video_start_with  # Don't add quality if size is unknown
             total_process = f"""
 **📶 Total Progress**
 > **Video:** {idx + 1} / {len(indices_to_download)}
@@ -4022,8 +4025,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             video_title = sanitize_filename(original_video_title) if original_video_title else "video"  # Sanitized for file operations
 
             # --- Use new centralized function for all tags ---
-            tags_list = tags_text.split() if tags_text else []
-            tags_text_final = generate_final_tags(url, tags_list, info_dict)
+            tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
            # If rename_name is not set, set it equal to video_title
@@ -4043,7 +4045,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             info_text = f"""
 {total_process}
 **📋 Video Info**
-> **Number:** {current_index}
+> **Number:** {idx + video_start_with}
 > **Title:** {original_video_title}
 > **ID:** {video_id}
 """
@@ -4217,7 +4219,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"down_and_up: collecting forwarded message IDs for split video: {[m.id for m in forwarded_msgs]}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with index
-                                current_video_index = idx + video_start_with
+                                current_video_index = x + video_start_with
                                 rounded_quality_key = quality_key
                                 try:
                                     if quality_key.endswith('p'):
@@ -4243,7 +4245,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"down_and_up: collecting video_msg.id for split video: {video_msg.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
-                                current_video_index = idx + video_start_with
+                                current_video_index = x + video_start_with
                                 found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
@@ -4264,7 +4266,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info(f"down_and_up: collecting video_msg.id after error for split video: {video_msg.id}")
                         if is_playlist:
                             # For playlists, save to playlist cache with video index
-                            current_video_index = idx + video_start_with
+                            current_video_index = x + video_start_with
                             found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                             subs_enabled = is_subs_enabled(user_id)
                             auto_mode = get_user_subs_auto_mode(user_id)
@@ -4336,10 +4338,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
                             # Get the real size of the video
                             try:
-                                width, height, _ = get_video_info_ffprobe(after_rename_abs_path)
+                                clip = VideoFileClip(after_rename_abs_path)
+                                width = int(clip.w)
+                                height = int(clip.h)
+                                clip.close()
                                 real_file_size = min(width, height)
                             except Exception as e:
-                                logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
+                                logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
                                 import traceback
                                 logger.error(traceback.format_exc())
                                 width, height = 0, 0
@@ -4426,7 +4431,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
-                                    current_video_index = idx + video_start_with
+                                    current_video_index = x + video_start_with
                                     found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
@@ -4453,7 +4458,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
-                                    current_video_index = idx + video_start_with
+                                    current_video_index = x + video_start_with
                                     found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
@@ -4481,7 +4486,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
-                                current_video_index = idx + video_start_with
+                                current_video_index = x + video_start_with
                                 found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
