@@ -3080,9 +3080,6 @@ def write_logs(message, video_url, video_title):
 # ####################################################################################
 # ####################################################################################
 
-# ####################################################################################
-# ####################################################################################
-
 # ########################################
 # Down_and_audio function
 # ########################################
@@ -3344,10 +3341,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Send full error message with instructions immediately
                 send_to_all(
                     message,
-                    f"❌ Error downloading: {error_text}\n────────────────\n"
-                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
                     "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again."
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again.\n"
+                    f"────────────────\n❌ Error downloading: {error_text}"
                 )
                 return None
             except Exception as e:
@@ -3953,11 +3950,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.error(f"DownloadError: {error_message}")
                 # Send full error message with instructions immediately
                 send_to_all(
-                    message,
-                    f"❌ Error downloading: {error_message}\n────────────────\n"
-                    "> Check [here](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) if your site supported\n"
+                    message,                   
+                    "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
                     "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again."
+                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again.\n"
+                    f"────────────────\n❌ Error downloading: {error_message}"
                 )
                 return None
             except Exception as e:
@@ -4025,7 +4022,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             video_title = sanitize_filename(original_video_title) if original_video_title else "video"  # Sanitized for file operations
 
             # --- Use new centralized function for all tags ---
-            tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
+            tags_list = tags_text.split() if tags_text else []
+            tags_text_final = generate_final_tags(url, tags_list, info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
            # If rename_name is not set, set it equal to video_title
@@ -4338,13 +4336,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
                             # Get the real size of the video
                             try:
-                                clip = VideoFileClip(after_rename_abs_path)
-                                width = int(clip.w)
-                                height = int(clip.h)
-                                clip.close()
+                                width, height, _ = get_video_info_ffprobe(after_rename_abs_path)
                                 real_file_size = min(width, height)
                             except Exception as e:
-                                logger.error(f"[MOVIEPY BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
+                                logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
                                 import traceback
                                 logger.error(traceback.format_exc())
                                 width, height = 0, 0
