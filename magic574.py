@@ -5700,12 +5700,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if ("youtube.com" in url or "youtu.be" in url):
             #webpage_url = info.get('webpage_url') or ''
             #video_url_link = f'<a href="{webpage_url}">[VIDEO]</a>' if webpage_url else ''
-            channel_url_link = f'<a href="{channel_url}">[CHANNEL]</a>' if channel_url else ''
-            thumbnail_url = info.get('thumbnail') or ''
-            thumb_link = f'<a href="{thumbnail_url}">[Thumbnail]</a>' if thumbnail_url else ''
-            links = '  '.join([x for x in [channel_url_link, thumb_link] if x])
-            if links:
-                cap += f"\n{links}"
+            #channel_url_link = f'<a href="{channel_url}">[CHANNEL]</a>' if channel_url else ''
+            #thumbnail_url = info.get('thumbnail') or ''
+            #thumb_link = f'<a href="{thumbnail_url}">[Thumbnail]</a>' if thumbnail_url else ''
+            #links = '  '.join([x for x in [channel_url_link, thumb_link] if x])
+            #if links:
+                #cap += f"\n{links}"
         # --- Обрезка по лимиту ---
         if len(cap) > 1024:
             # Обрезаем по приоритету: лайки, подписчики, просмотры, дата, длительность, название, канал
