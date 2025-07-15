@@ -6943,7 +6943,7 @@ def get_clean_playlist_url(url: str) -> str:
 
 
 def strip_range_from_url(url: str) -> str:
-    """Removes a range of the form *1*3 or *1*10000 from the end of the URL."""
+    """Removes a range of the form *1*3 or *1*1000000000 from the end of the URL."""
     original_url = url
     result = re.sub(r'\*\d+\*\d+$', '', url)
     if original_url != result:
