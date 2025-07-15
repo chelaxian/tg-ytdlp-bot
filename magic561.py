@@ -816,7 +816,10 @@ def browser_choice_callback(app, callback_query):
     cookie_file = os.path.join(user_dir, "cookie.txt")
 
     if data == "cancel":
-        callback_query.edit_message_text("🔚 Browser selection canceled.")
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
         callback_query.answer("✅ Browser choice updated.")
         send_to_logger(callback_query.message, "Browser selection canceled.")
         return
@@ -956,7 +959,10 @@ def format_option_callback(app, callback_query):
 
     # If you press the Cancel button
     if data == "cancel":
-        callback_query.edit_message_text("🔚 Format selection canceled.")
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
         callback_query.answer("✅ Format choice updated.")
         send_to_logger(callback_query.message, "Format selection canceled.")
         return
@@ -1675,11 +1681,15 @@ def settings_command(app, message):
     user_id = message.chat.id
     # Main settings menu
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean")],
-        [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
-        [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
-        [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
-        [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
+        [
+            InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean"),
+            InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies"),
+        ],
+        [
+            InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media"),
+            InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs"),
+        ],
+        [InlineKeyboardButton("🔙 Cancel", callback_data="settings__menu__cancel")]
     ])
     app.send_message(
         user_id,
@@ -1696,8 +1706,11 @@ def settings_command(app, message):
 def settings_menu_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("__")[-1]
-    if data == "close":
-        callback_query.message.delete()
+    if data == "cancel":
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
         callback_query.answer("Menu closed.")
         return
     if data == "clean":
@@ -1774,11 +1787,15 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
     if data == "back":
         # Return to main menu
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean")],
-            [InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies")],
-            [InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media")],
-            [InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs")],
-            [InlineKeyboardButton("🔙 Close", callback_data="settings__menu__close")]
+            [
+                InlineKeyboardButton("🧹 CLEAN", callback_data="settings__menu__clean"),
+                InlineKeyboardButton("🍪 COOKIES", callback_data="settings__menu__cookies"),
+            ],
+            [
+                InlineKeyboardButton("🎞 MEDIA", callback_data="settings__menu__media"),
+                InlineKeyboardButton("📖 INFO", callback_data="settings__menu__logs"),
+            ],
+            [InlineKeyboardButton("🔙 Cancel", callback_data="settings__menu__cancel")]
         ])
         callback_query.edit_message_text(
             "<b>Bot Settings</b>\n\nChoose a category:",
@@ -1799,14 +1816,22 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
     if data == "clean":
         # Show the cleaning menu instead of direct execution
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🍪 Cookies only", callback_data="clean_option|cookies")],
-            [InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs")],
-            [InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags")],
-            [InlineKeyboardButton("📼 Format", callback_data="clean_option|format")],
-            [InlineKeyboardButton("✂️ Split", callback_data="clean_option|split")],
-            [InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo")],
-            [InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs")],
-            [InlineKeyboardButton("🗑  All files", callback_data="clean_option|all")],
+            [
+                InlineKeyboardButton("🍪 Cookies only", callback_data="clean_option|cookies"),
+                InlineKeyboardButton("📃 Logs ", callback_data="clean_option|logs"),
+            ],
+            [
+                InlineKeyboardButton("#️⃣ Tags", callback_data="clean_option|tags"),
+                InlineKeyboardButton("📼 Format", callback_data="clean_option|format"),
+            ],
+            [
+                InlineKeyboardButton("✂️ Split", callback_data="clean_option|split"),
+                InlineKeyboardButton("📊 Mediainfo", callback_data="clean_option|mediainfo"),
+            ],
+            [
+                InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs"),
+                InlineKeyboardButton("🗑  All files", callback_data="clean_option|all"),
+            ],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
         ])
         callback_query.edit_message_text(
@@ -1966,9 +1991,8 @@ def mediainfo_command(app, message):
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     buttons = [
-        [InlineKeyboardButton("✅ ON", callback_data="mediainfo_option|on")],
-        [InlineKeyboardButton("❌ OFF", callback_data="mediainfo_option|off")],
-        [InlineKeyboardButton("🔙 Cancel", callback_data="mediainfo_option|cancel")]
+        [InlineKeyboardButton("✅ ON", callback_data="mediainfo_option|on"), InlineKeyboardButton("❌ OFF", callback_data="mediainfo_option|off")],
+        [InlineKeyboardButton("🔙 Cancel", callback_data="mediainfo_option|cancel")],
     ]
     keyboard = InlineKeyboardMarkup(buttons)
     app.send_message(
@@ -1989,7 +2013,10 @@ def mediainfo_option_callback(app, callback_query):
     create_directory(user_dir)
     mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
     if callback_query.data == "mediainfo_option|cancel":
-        callback_query.edit_message_text("🔚 MediaInfo: cancelled.")
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
         callback_query.answer("Menu closed.")
         send_to_logger(callback_query.message, "MediaInfo: cancelled.")
         return
@@ -2109,11 +2136,21 @@ def download_cookie(app, message):
     
     # Buttons for services
     buttons = [
-        [InlineKeyboardButton("📺 YouTube", callback_data="download_cookie|youtube")],
-        [InlineKeyboardButton("📷 Instagram", callback_data="download_cookie|instagram")],
-        [InlineKeyboardButton("🐦 Twitter/X", callback_data="download_cookie|twitter")],
-        [InlineKeyboardButton("🎵 TikTok", callback_data="download_cookie|tiktok")],
-        [InlineKeyboardButton("📘 Facebook", callback_data="download_cookie|facebook")]
+        [
+            InlineKeyboardButton("📺 YouTube", callback_data="download_cookie|youtube"),
+            InlineKeyboardButton("📷 Instagram", callback_data="download_cookie|instagram"),
+        ],
+        [
+            InlineKeyboardButton("🐦 Twitter/X", callback_data="download_cookie|twitter"),
+            InlineKeyboardButton("🎵 TikTok", callback_data="download_cookie|tiktok"),
+        ],
+        [
+            InlineKeyboardButton("📘 Facebook", callback_data="download_cookie|facebook"),
+            InlineKeyboardButton("📝 Your Own", callback_data="download_cookie|own"),
+        ],
+        [
+            InlineKeyboardButton("🔙 Cancel", callback_data="download_cookie|cancel"),
+        ],
     ]
     keyboard = InlineKeyboardMarkup(buttons)
     text = """
@@ -2152,6 +2189,20 @@ def download_cookie_callback(app, callback_query):
         download_and_save_cookie(app, callback_query, Config.TIKTOK_COOKIE_URL, "tiktok")
     elif data == "facebook":
         download_and_save_cookie(app, callback_query, Config.FACEBOOK_COOKIE_URL, "facebook")
+    elif data == "own":
+        app.answer_callback_query(callback_query.id)
+        app.send_message(
+            callback_query.message.chat.id,
+            Config.SAVE_AS_COOKIE_HINT,
+            reply_to_message_id=callback_query.message.id if hasattr(callback_query.message, 'id') else None
+        )
+    elif data == "cancel":
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
+        callback_query.answer("Menu closed.")
+        return
 
 def download_and_save_cookie(app, callback_query, url, service):
     user_id = str(callback_query.from_user.id)
@@ -5280,8 +5331,11 @@ def split_size_callback(app, callback_query):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
     if data == "cancel":
-        callback_query.edit_message_text("🔚 Split size selection canceled.")
-        callback_query.answer("✅ Split choice updated.")
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
+        callback_query.answer("Menu closed.")
         send_to_logger(callback_query.message, "Split selection canceled.")
         return
     try:
@@ -5853,7 +5907,10 @@ def askq_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
 
     if data == "cancel":
-        callback_query.message.delete()
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
         callback_query.answer("Menu closed.")
         return
         
