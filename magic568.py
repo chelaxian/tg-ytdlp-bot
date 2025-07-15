@@ -5577,16 +5577,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 # Кэш/иконка
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), q, indices)
+                    cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), q, indices)
+                    n_cached = len(cached_videos)
                     total = len(indices)
-                    postfix = f" ({n_cached}/{total})"
-                    is_cached = n_cached > 0
+                    icon = "🚀" if n_cached > 0 else "📹"
+                    postfix = f" ({n_cached}/{total})" if total > 1 else ""
+                    button_text = f"{icon}{q}{subs_available}{postfix}"
                 else:
                     is_cached = q in cached_qualities
                     postfix = ""
-                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
-                emoji = "🚀" if is_cached and not need_subs else "📹"
-                table_lines.append(f"{emoji}{q}{subs_available}:  {size_str}{dim_str}{scissors}{postfix}")
+                    icon = "🚀" if is_cached and not need_subs else "📹"
+                    button_text = f"{icon}{q}{subs_available}"
+                table_lines.append(f"{button_text}:  {size_str}{dim_str}{scissors}{postfix}")
                 found_quality_keys.add(q)
             table_block = "\n".join(table_lines)
         else:
@@ -5804,7 +5806,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
+                    n_cached = len(cached_videos)
                     total = len(indices)
                     icon = "🚀" if n_cached > 0 else "📹"
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -5840,7 +5843,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 
                 if is_playlist and playlist_range:
                     indices = list(range(playlist_range[0], playlist_range[1]+1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
+                    n_cached = len(cached_videos)
                     total = len(indices)
                     icon = "🚀" if n_cached > 0 else "📹"
                     postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -5856,7 +5860,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             
             if is_playlist and playlist_range:
                 indices = list(range(playlist_range[0], playlist_range[1]+1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
+                n_cached = len(cached_videos)
                 total = len(indices)
                 icon = "🚀" if n_cached > 0 else "📹"
                 postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -5884,7 +5889,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         quality_key = "mp3"
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
-            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+            cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
+            n_cached = len(cached_videos)
             total = len(indices)
             icon = "🚀" if n_cached > 0 else "🎧"
             postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -6371,7 +6377,8 @@ def show_manual_quality_menu(app, callback_query):
     for quality in manual_qualities:
         if is_playlist and playlist_range:
             indices = list(range(playlist_range[0], playlist_range[1]+1))
-            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality, indices)
+            cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality, indices)
+            n_cached = len(cached_videos)
             total = len(indices)
             icon = "🚀" if n_cached > 0 else "📹"
             postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -6384,7 +6391,8 @@ def show_manual_quality_menu(app, callback_query):
     # Best Quality
     if is_playlist and playlist_range:
         indices = list(range(playlist_range[0], playlist_range[1]+1))
-        n_cached = get_cached_playlist_count(get_clean_playlist_url(url), "best", indices)
+        cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), "best", indices)
+        n_cached = len(cached_videos)
         total = len(indices)
         icon = "🚀" if n_cached > 0 else "📹"
         postfix = f" ({n_cached}/{total})" if total > 1 else ""
@@ -6403,7 +6411,8 @@ def show_manual_quality_menu(app, callback_query):
     quality_key = "mp3"
     if is_playlist and playlist_range:
         indices = list(range(playlist_range[0], playlist_range[1]+1))
-        n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+        cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, indices)
+        n_cached = len(cached_videos)
         total = len(indices)
         icon = "🚀" if n_cached > 0 else "🎧"
         postfix = f" ({n_cached}/{total})" if total > 1 else ""
