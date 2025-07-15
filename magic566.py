@@ -866,6 +866,37 @@ def browser_choice_callback(app, callback_query):
 
     callback_query.answer("✅ Browser choice updated.")
 
+def check_playlist_range_limits(url, video_start_with, video_end_with, app, message):
+    """
+    Проверяет лимиты диапазона скачивания для плейлистов, TikTok и Instagram.
+    Для одиночных видео всегда возвращает True.
+    Если диапазон превышает лимит — отправляет предупреждение и возвращает False.
+    """
+    # Если одиночное видео (нет диапазона) — всегда True
+    if video_start_with == 1 and video_end_with == 1:
+        return True
+
+    url_l = str(url).lower() if url else ''
+    if 'tiktok.com' in url_l:
+        max_count = Config.MAX_TIKTOK_COUNT
+        service = 'TikTok'
+    elif 'instagram.com' in url_l:
+        max_count = Config.MAX_TIKTOK_COUNT
+        service = 'Instagram'
+    else:
+        max_count = Config.MAX_PLAYLIST_COUNT
+        service = 'playlist'
+
+    count = video_end_with - video_start_with + 1
+    if count > max_count:
+        app.send_message(
+            message.chat.id,
+            f"❗️ Превышен лимит диапазона для {service}: {count} (максимум {max_count}).\nУменьшите диапазон и попробуйте снова.",
+            reply_to_message_id=getattr(message, 'id', None)
+        )
+        return False
+    return True
+
 # Command to Download Audio from a Video url
 @app.on_message(filters.command("audio") & filters.private)
 # @reply_with_keyboard
@@ -893,6 +924,10 @@ def audio_command_handler(app, message):
     full_string = message.text or message.caption or ""
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
     video_count = video_end_with - video_start_with + 1
+    
+    # Проверка лимита диапазона
+    if not check_playlist_range_limits(url, video_start_with, video_end_with, app, message):
+        return
     
     down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
 
@@ -1616,6 +1651,7 @@ def check_runtime(message):
         now = TimeFormatter(now)
         send_to_user(message, f"⏳ __Bot running time -__ **{now}**")
     pass
+
 
 
 def uncache_command(app, message):
@@ -2379,6 +2415,10 @@ def video_url_extractor(app, message):
     if tag_error:
         wrong, example = tag_error
         app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
+        return
+    
+    # Проверка лимита диапазона
+    if not check_playlist_range_limits(url, video_start_with, video_end_with, app, message):
         return
     
     if url:
@@ -5862,7 +5902,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         keyboard_rows.append([InlineKeyboardButton("🔙 Cancel", callback_data="askq|cancel")])
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap already contains a hint and a table
-        app.delete_messages(user_id, proc_msg.id)
+        try:
+            app.delete_messages(user_id, proc_msg.id)
+        except Exception as e:
+            if 'MESSAGE_ID_INVALID' not in str(e):
+                logger.warning(f"Failed to delete message: {e}")
+            app.edit_message_reply_markup(chat_id=user_id, message_id=proc_msg.id, reply_markup=None)
         proc_msg = None
         if thumb_path and os.path.exists(thumb_path):
             app.send_photo(user_id, thumb_path, caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
@@ -5916,9 +5961,9 @@ def askq_callback(app, callback_query):
 
     if data == "cancel":
         try:
-            callback_query.message.delete()
+            app.delete_messages(user_id, callback_query.message.id)
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            app.edit_message_reply_markup(chat_id=user_id, message_id=callback_query.message.id, reply_markup=None)
         callback_query.answer("Menu closed.")
         return
         
@@ -5947,7 +5992,7 @@ def askq_callback(app, callback_query):
             reply_to_message_id=original_message.id
         )
         send_to_logger(original_message, f"Quick Embed: {embed_url}")
-        callback_query.message.delete()
+        app.delete_messages(user_id, callback_query.message.id)
         return
     
     # Handle manual quality selection menu
@@ -5960,7 +6005,7 @@ def askq_callback(app, callback_query):
         original_message = callback_query.message.reply_to_message
         if not original_message:
             callback_query.answer("❌ Error: Original message not found.", show_alert=True)
-            callback_query.message.delete()
+            app.delete_messages(user_id, callback_query.message.id)
             return
         
         url = None
@@ -5981,11 +6026,11 @@ def askq_callback(app, callback_query):
                 tag_matches = re.findall(r'#\S+', caption_text)
                 if tag_matches:
                     tags = tag_matches
-            callback_query.message.delete()
+            app.delete_messages(user_id, callback_query.message.id)
             ask_quality_menu(app, original_message, url, tags)
         else:
             callback_query.answer("❌ Error: URL not found.", show_alert=True)
-            callback_query.message.delete()
+            app.delete_messages(user_id, callback_query.message.id)
         return
     
     # Handle manual quality selection
@@ -5996,7 +6041,7 @@ def askq_callback(app, callback_query):
         original_message = callback_query.message.reply_to_message
         if not original_message:
             callback_query.answer("❌ Error: Original message not found.", show_alert=True)
-            callback_query.message.delete()
+            app.delete_messages(user_id, callback_query.message.id)
             return
         
         url = None
@@ -6012,14 +6057,14 @@ def askq_callback(app, callback_query):
         
         if not url:
             callback_query.answer("❌ Error: URL not found.", show_alert=True)
-            callback_query.message.delete()
+            app.delete_messages(user_id, callback_query.message.id)
             return
         
         # Новый способ: всегда извлекаем теги из исходного сообщения пользователя
         original_text = original_message.text or original_message.caption or ""
         _, _, _, _, tags, tags_text, _ = extract_url_range_tags(original_text)
         
-        callback_query.message.delete()
+        app.delete_messages(user_id, callback_query.message.id)
         
         # Force use specific quality format like in /format command
         if quality == "best":
@@ -6048,7 +6093,7 @@ def askq_callback(app, callback_query):
     original_message = callback_query.message.reply_to_message
     if not original_message:
         callback_query.answer("❌ Error: Original message not found. It might have been deleted. Please send the link again.", show_alert=True)
-        callback_query.message.delete()
+        app.delete_messages(user_id, callback_query.message.id)
         return
 
     url = None
@@ -6063,14 +6108,14 @@ def askq_callback(app, callback_query):
             url = url_match.group(0)
     if not url:
         callback_query.answer("❌ Error: Original URL not found. Please send the link again.", show_alert=True)
-        callback_query.message.delete()
+        app.delete_messages(user_id, callback_query.message.id)
         return
 
     # Извлекаем теги из исходного сообщения пользователя
     original_text = original_message.text or original_message.caption or ""
     _, _, _, _, tags, tags_text, _ = extract_url_range_tags(original_text)
 
-    callback_query.message.delete()
+    app.delete_messages(user_id, callback_query.message.id)
 
     original_text = original_message.text or original_message.caption or ""
     if is_playlist_with_range(original_text):
@@ -7325,16 +7370,6 @@ def check_subs_limits(info_dict, quality_key=None):
         max_quality = Config.MAX_SUB_QUALITY
         max_duration = Config.MAX_SUB_DURATION
         max_size = Config.MAX_SUB_SIZE
-        
-        # Check the quality of the video (is made - check only the duration and size)
-        # if quality_key and quality_key != "best" and quality_key != "mp3":
-        # try:
-        # quality_height = int(quality_key.replace('p', ''))
-        # if quality_height > max_quality:
-        # logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
-        # return False
-        # except ValueError:
-        # pass # If it is not possible to extract the height, we skip quality check
         
         # Check the duration
         duration = info_dict.get('duration')
