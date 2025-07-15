@@ -5513,6 +5513,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         else:
             cached_qualities = get_cached_qualities(url)
         info = get_video_formats(url, user_id, playlist_start_index)
+        
+        # --- Исправление для плейлистов ---
+        if info and "entries" in info:
+            entries = info["entries"]
+            idx = max(0, playlist_start_index - 1)
+            if idx < len(entries):
+                info = entries[idx]
+            else:
+                info = entries[0]
+        
         title = info.get('title', 'Video')
         video_id = info.get('id')
         tags_text = generate_final_tags(url, tags, info)
