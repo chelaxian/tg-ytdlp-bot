@@ -3923,7 +3923,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             video_title = sanitize_filename(original_video_title) if original_video_title else "video"  # Sanitized for file operations
 
             # --- Use new centralized function for all tags ---
-            tags_text_final = generate_final_tags(url, tags_text.split(), info_dict)
+            tags_list = tags_text.split() if tags_text else []
+            tags_text_final = generate_final_tags(url, tags_list, info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
            # If rename_name is not set, set it equal to video_title
