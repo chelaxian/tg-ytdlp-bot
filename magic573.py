@@ -5625,11 +5625,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 table_lines.append(f"{emoji}{quality_key}:  {size_str}{dim_str}{scissors}")
             table_block = "\n".join(table_lines)
 
-        # --- Формирование caption ---
-        is_playlist = info and "entries" in info
-
-        if ("youtube.com" in url or "youtu.be" in url) and not is_playlist:
-            # --- Красивая шапка только для одиночных видео ---
+        # --- Forming caption ---
+        cap = f"<b>{title}</b>\n"
+        # --- YouTube расширенный блок ---
+        if ("youtube.com" in url or "youtu.be" in url):
             uploader = info.get('uploader') or ''
             channel_url = info.get('channel_url') or ''
             view_count = info.get('view_count')
@@ -5638,6 +5637,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
             duration = info.get('duration')
             upload_date = info.get('upload_date')
             title_val = info.get('title') or ''
+            # Форматирование
             duration_str = TimeFormatter(duration*1000) if duration else ''
             upload_date_str = ''
             if upload_date and len(str(upload_date)) == 8:
@@ -5646,20 +5646,24 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     upload_date_str = dt.strftime('%d.%m.%Y')
                 except Exception:
                     upload_date_str = str(upload_date)
+            # Эмодзи
             views_str = f'👁 {view_count:,}' if view_count is not None else ''
             likes_str = f'❤️ {like_count:,}' if like_count is not None else ''
             subs_str = f'👥 {channel_follower_count:,}' if channel_follower_count is not None else ''
+            # Первая строка: канал и подписчики
             meta_lines = []
             if uploader:
                 ch_line = f"📺 <b>{uploader}</b>\n"
                 if subs_str:
                     ch_line += f"<blockquote>{subs_str}</blockquote>\n"
                 meta_lines.append(ch_line)
+            # Вторая строка: название
             t_line = ''
             if title_val:
                 t_line = f"<b>{title_val}</b>"
             if t_line:
                 meta_lines.append(t_line)
+            # Третья строка: дата + длительность (в цитате)
             date_dur_line = ''
             if upload_date_str:
                 date_dur_line += f"📅 {upload_date_str}"
@@ -5670,6 +5674,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     date_dur_line = f"⏱️ {duration_str}"
             if date_dur_line:
                 meta_lines.append(f"<blockquote>{date_dur_line}</blockquote>")
+            # Четвёртая строка: просмотры + лайки (в цитате)
             stat_line = ''
             if views_str:
                 stat_line += views_str
@@ -5680,33 +5685,63 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                     stat_line = likes_str
             if stat_line:
                 meta_lines.append(f"<blockquote>{stat_line}</blockquote>")
+            # Собираем блок
             meta_block = '\n'.join(meta_lines)
             cap = meta_block + '\n\n'
-            # --- Таблица качеств ---
-            if table_block:
-                cap += f"<blockquote>{table_block}</blockquote>\n"
-            # --- Теги ---
-            if tags_text:
-                cap += f"{tags_text}\n"
-            # --- Ссылки в самом низу ---
-            webpage_url = info.get('webpage_url') or ''
-            video_url_link = f'<a href="{webpage_url}">[VIDEO]</a>' if webpage_url else ''
+        else:
+            cap = ''
+        # --- Таблица качеств ---
+        if table_block:
+            cap += f"<blockquote>{table_block}</blockquote>\n"
+        # --- Теги ---
+        if tags_text:
+            cap += f"{tags_text}\n"
+        # --- Ссылки в самом низу ---
+        if ("youtube.com" in url or "youtu.be" in url):
+            #webpage_url = info.get('webpage_url') or ''
+            #video_url_link = f'<a href="{webpage_url}">[VIDEO]</a>' if webpage_url else ''
             channel_url_link = f'<a href="{channel_url}">[CHANNEL]</a>' if channel_url else ''
             thumbnail_url = info.get('thumbnail') or ''
             thumb_link = f'<a href="{thumbnail_url}">[Thumbnail]</a>' if thumbnail_url else ''
-            links = '  '.join([x for x in [video_url_link, channel_url_link, thumb_link] if x])
+            links = '  '.join([x for x in [channel_url_link, thumb_link] if x])
             if links:
                 cap += f"\n{links}"
-            # --- Обрезка по лимиту --- (оставь если хочешь, можно убрать)
-            if len(cap) > 1024:
-                cap = cap[:1021] + '...'
-        else:
-            # --- Для плейлистов и не-YouTube — только простая шапка и таблица ---
-            cap = f"<b>{title}</b>\n"
-            if table_block:
-                cap += f"<blockquote>{table_block}</blockquote>\n"
-            if tags_text:
-                cap += f"{tags_text}\n"
+        # --- Обрезка по лимиту ---
+        if len(cap) > 1024:
+            # Обрезаем по приоритету: лайки, подписчики, просмотры, дата, длительность, название, канал
+            # 1. Лайки
+            cap1 = cap.replace(likes_str, '') if likes_str else cap
+            if len(cap1) <= 1024:
+                cap = cap1
+            else:
+                # 2. Подписчики
+                cap2 = cap1.replace(subs_str, '') if subs_str else cap1
+                if len(cap2) <= 1024:
+                    cap = cap2
+                else:
+                    # 3. Просмотры
+                    cap3 = cap2.replace(views_str, '') if views_str else cap2
+                    if len(cap3) <= 1024:
+                        cap = cap3
+                    else:
+                        # 4. Дата
+                        cap4 = cap3.replace(upload_date_str, '') if upload_date_str else cap3
+                        if len(cap4) <= 1024:
+                            cap = cap4
+                        else:
+                            # 5. Длительность
+                            cap5 = cap4.replace(duration_str, '') if duration_str else cap4
+                            if len(cap5) <= 1024:
+                                cap = cap5
+                            else:
+                                # 6. Название
+                                cap6 = cap5.replace(title_val, '') if title_val else cap5
+                                if len(cap6) <= 1024:
+                                    cap = cap6
+                                else:
+                                    # 7. Канал
+                                    cap7 = cap6.replace(uploader, '') if uploader else cap6
+                                    cap = cap7[:1021] + '...'
         # --- Hint ---
         subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
         auto_mode = get_user_subs_auto_mode(user_id)
