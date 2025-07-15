@@ -3482,7 +3482,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     
                     if is_playlist:
                         # For playlists, save to playlist cache with index
-                        current_video_index = current_index
+                        current_video_index = idx + video_start_with
                         logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
                         save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], msg_ids, original_text=message.text or message.caption or "")
                         cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
@@ -3976,7 +3976,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         else:
             indices_to_download = range(video_count)
         for idx, current_index in enumerate(indices_to_download):
-            current_index = current_index - video_start_with  # ВОЗВРАЩЕНО: для правильной индексации
+            current_index = current_index - video_start_with  # для правильной индексации
             total_process = f"""
 **📶 Total Progress**
 > **Video:** {idx + 1} / {len(indices_to_download)}
@@ -4217,7 +4217,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"down_and_up: collecting forwarded message IDs for split video: {[m.id for m in forwarded_msgs]}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with index
-                                current_video_index = x + video_start_with
+                                current_video_index = idx + video_start_with
                                 rounded_quality_key = quality_key
                                 try:
                                     if quality_key.endswith('p'):
@@ -4243,7 +4243,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"down_and_up: collecting video_msg.id for split video: {video_msg.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
-                                current_video_index = x + video_start_with
+                                current_video_index = idx + video_start_with
                                 found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
@@ -4264,7 +4264,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info(f"down_and_up: collecting video_msg.id after error for split video: {video_msg.id}")
                         if is_playlist:
                             # For playlists, save to playlist cache with video index
-                            current_video_index = x + video_start_with
+                            current_video_index = idx + video_start_with
                             found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                             subs_enabled = is_subs_enabled(user_id)
                             auto_mode = get_user_subs_auto_mode(user_id)
@@ -4426,7 +4426,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.info(f"down_and_up: saving to cache with forwarded message IDs: {[m.id for m in forwarded_msgs]}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
-                                    current_video_index = current_index
+                                    current_video_index = idx + video_start_with
                                     found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
@@ -4453,7 +4453,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.info(f"down_and_up: saving to cache with video_msg.id: {video_msg.id}")
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
-                                    current_video_index = current_index
+                                    current_video_index = idx + video_start_with
                                     found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
@@ -4481,7 +4481,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"down_and_up: saving to cache with video_msg.id after error: {video_msg.id}")
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
-                                current_video_index = current_index
+                                current_video_index = idx + video_start_with
                                 found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
