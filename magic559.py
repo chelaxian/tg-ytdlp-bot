@@ -5950,13 +5950,9 @@ def askq_callback(app, callback_query):
             callback_query.message.delete()
             return
         
-        tags = []
-        caption_text = callback_query.message.caption
-        if caption_text:
-            tag_matches = re.findall(r'#\S+', caption_text)
-            if tag_matches:
-                tags = tag_matches
-        tags_text = ' '.join(tags)
+        # Новый способ: всегда извлекаем теги из исходного сообщения пользователя
+        original_text = original_message.text or original_message.caption or ""
+        _, _, _, _, tags, tags_text, _ = extract_url_range_tags(original_text)
         
         callback_query.message.delete()
         
