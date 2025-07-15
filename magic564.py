@@ -1732,7 +1732,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
                 InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs"),
                 InlineKeyboardButton("🗑  All files", callback_data="clean_option|all"),
             ],
-            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
             "<b>🧹 Clean Options</b>\n\nChoose what to clean:",
@@ -1840,7 +1840,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
                 InlineKeyboardButton("💬 Subtitles", callback_data="clean_option|subs"),
                 InlineKeyboardButton("🗑  All files", callback_data="clean_option|all"),
             ],
-            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__cookies")]
+            [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
         callback_query.edit_message_text(
             "<b>🧹 Clean Options</b>\n\nChoose what to clean:",
