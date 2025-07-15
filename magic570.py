@@ -6251,9 +6251,45 @@ def askq_callback(app, callback_query):
                 else:
                     logger.info("Video with subtitles (real subs found and needed) is not cached!")
                 app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-                askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
-            return
-    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+                # --- Исправление для плейлистов ---
+                original_text = original_message.text or original_message.caption or ""
+                if is_playlist_with_range(original_text):
+                    _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
+                    video_count = video_end_with - video_start_with + 1
+                    down_and_up(
+                        app,
+                        original_message,
+                        url,
+                        playlist_name,
+                        video_count,
+                        video_start_with,
+                        tags_text,
+                        force_no_title=False,
+                        format_override=None,
+                        quality_key=data
+                    )
+                else:
+                    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+                return
+    # --- Исправление для плейлистов ---
+    original_text = original_message.text or original_message.caption or ""
+    if is_playlist_with_range(original_text):
+        _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
+        video_count = video_end_with - video_start_with + 1
+        down_and_up(
+            app,
+            original_message,
+            url,
+            playlist_name,
+            video_count,
+            video_start_with,
+            tags_text,
+            force_no_title=False,
+            format_override=None,
+            quality_key=data
+        )
+    else:
+        askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
 
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
