@@ -348,10 +348,10 @@ def get_language_keyboard(page=0, user_id=None):
     current_lang = get_user_subs_language(user_id) if user_id else None
     auto_mode = get_user_subs_auto_mode(user_id) if user_id else False
     
-    # Add language buttons in 2 columns
-    for i in range(0, len(current_page_langs), 2):
+    # Add language buttons in 3 columns
+    for i in range(0, len(current_page_langs), 3):
         row = []
-        for j in range(2):
+        for j in range(3):
             if i + j < len(current_page_langs):
                 lang_code, lang_info = current_page_langs[i + j]
                 # Add checkmark if this is the selected language
