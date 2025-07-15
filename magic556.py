@@ -6007,13 +6007,9 @@ def askq_callback(app, callback_query):
         callback_query.message.delete()
         return
 
-    tags = []
-    caption_text = callback_query.message.caption
-    if caption_text:
-        tag_matches = re.findall(r'#\S+', caption_text)
-        if tag_matches:
-            tags = tag_matches
-    tags_text = ' '.join(tags)
+    # Извлекаем теги из исходного сообщения пользователя
+    original_text = original_message.text or original_message.caption or ""
+    _, _, _, _, tags, tags_text, _ = extract_url_range_tags(original_text)
 
     callback_query.message.delete()
 
@@ -7271,6 +7267,16 @@ def check_subs_limits(info_dict, quality_key=None):
         max_duration = Config.MAX_SUB_DURATION
         max_size = Config.MAX_SUB_SIZE
         
+        # Check the quality of the video (is made - check only the duration and size)
+        # if quality_key and quality_key != "best" and quality_key != "mp3":
+        # try:
+        # quality_height = int(quality_key.replace('p', ''))
+        # if quality_height > max_quality:
+        # logger.info(f"Subtitle embedding skipped: quality {quality_height}p exceeds limit {max_quality}p")
+        # return False
+        # except ValueError:
+        # pass # If it is not possible to extract the height, we skip quality check
+        
         # Check the duration
         duration = info_dict.get('duration')
         if duration and duration > max_duration:
@@ -7646,34 +7652,25 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         video_base = os.path.splitext(os.path.basename(video_path))[0]
         output_path = os.path.join(video_dir, f"{video_base}_with_subs_temp.mp4")
         
-        # Выбираем размер шрифта в зависимости от высоты видео (адаптивно, без гигантских значений)
-        if height >= 4320:
-            font_size = 32  # 8K
-        elif height >= 2160:
-            font_size = 24  # 4K
-        elif height >= 1440:
-            font_size = 22  # 2K
-        elif height >= 1080:
-            font_size = 18  # FullHD
-        elif height >= 720:
-            font_size = 16  # HD
-        elif height >= 480:
-            font_size = 14  # SD
-        elif height >= 360:
-            font_size = 13
-        elif height >= 240:
-            font_size = 12
-        elif height >= 144:
-            font_size = 11
-        else:
-            font_size = 16
-
-        # Field of subtitles with improved styling и максимум 2 строки
+        # We get the duration of the video via FFPRobe
+        def get_duration(path):
+            try:
+                import json
+                result = subprocess.run([
+                    'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                    '-of', 'json', path
+                ], capture_output=True, text=True)
+                if result.returncode == 0:
+                    data = json.loads(result.stdout)
+                    return float(data['format']['duration'])
+            except Exception as e:
+                logger.error(f"ffprobe error: {e}")
+            return None
+        
+        # Field of subtitles with improved styling
         subs_path_escaped = subs_path.replace("'", "'\\''")
-        filter_arg = (
-            f"subtitles='{subs_path_escaped}':force_style="
-            f"'FontSize={font_size},PrimaryColour=&Hffffff,OutlineColour=&H000000,BackColour=&H80000000,Outline=2,Shadow=1,MarginV=25,MaxLines=2'"
-        )
+        # Добавляем полупрозрачную черную обводку как на YouTube и улучшенное отображение субтитров
+        filter_arg = f"subtitles='{subs_path_escaped}':force_style='FontSize=16,PrimaryColour=&Hffffff,OutlineColour=&H000000,BackColour=&H80000000,Outline=2,Shadow=1,MarginV=25'"
         cmd = [
             'ffmpeg',
             '-y',
@@ -7803,6 +7800,5 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         import traceback
         logger.error(traceback.format_exc())
         return False
-
 
 app.run()
