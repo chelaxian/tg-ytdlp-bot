@@ -5697,7 +5697,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
         if tags_text:
             cap += f"{tags_text}\n"
         # --- Ссылки в самом низу ---
-        if ("youtube.com" in url or "youtu.be" in url):
+        #if ("youtube.com" in url or "youtu.be" in url):
             #webpage_url = info.get('webpage_url') or ''
             #video_url_link = f'<a href="{webpage_url}">[VIDEO]</a>' if webpage_url else ''
             #channel_url_link = f'<a href="{channel_url}">[CHANNEL]</a>' if channel_url else ''
