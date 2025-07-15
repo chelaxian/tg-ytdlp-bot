@@ -332,31 +332,29 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
     return []
 
 def get_language_keyboard(page=0, user_id=None):
-    """Generate keyboard with language buttons in 3 columns"""
+    """Generate keyboard with language buttons in 2 columns"""
     keyboard = []
-    LANGS_PER_ROW = 3
-    ROWS_PER_PAGE = 5  # например, 5 строк по 3 = 15 языков на страницу
-
-    # Получаем все языки
-    all_langs = list(LANGUAGES.items())
-    total_languages = len(all_langs)
-    total_pages = math.ceil(total_languages / (LANGS_PER_ROW * ROWS_PER_PAGE))
-
-    # Срез для текущей страницы
-    start_idx = page * LANGS_PER_ROW * ROWS_PER_PAGE
-    end_idx = start_idx + LANGS_PER_ROW * ROWS_PER_PAGE
-    current_page_langs = all_langs[start_idx:end_idx]
-
-    # Текущий язык и авто-режим
+    
+    # Calculate total pages
+    total_languages = len(LANGUAGES)
+    total_pages = math.ceil(total_languages / ITEMS_PER_PAGE)
+    
+    # Get languages for current page
+    start_idx = page * ITEMS_PER_PAGE
+    end_idx = start_idx + ITEMS_PER_PAGE
+    current_page_langs = list(LANGUAGES.items())[start_idx:end_idx]
+    
+    # Get current language and auto mode
     current_lang = get_user_subs_language(user_id) if user_id else None
     auto_mode = get_user_subs_auto_mode(user_id) if user_id else False
-
-    # Формируем кнопки по 3 в ряд
-    for i in range(0, len(current_page_langs), LANGS_PER_ROW):
+    
+    # Add language buttons in 2 columns
+    for i in range(0, len(current_page_langs), 2):
         row = []
-        for j in range(LANGS_PER_ROW):
+        for j in range(2):
             if i + j < len(current_page_langs):
                 lang_code, lang_info = current_page_langs[i + j]
+                # Add checkmark if this is the selected language
                 checkmark = "✅ " if lang_code == current_lang else ""
                 button_text = f"{checkmark}{lang_info['flag']} {lang_info['name']}"
                 row.append(InlineKeyboardButton(
@@ -364,8 +362,8 @@ def get_language_keyboard(page=0, user_id=None):
                     callback_data=f"subs_lang|{lang_code}"
                 ))
         keyboard.append(row)
-
-    # Навигация
+    
+    # Navigation row
     nav_row = []
     if page > 0:
         nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"subs_page|{page-1}"))
@@ -373,14 +371,14 @@ def get_language_keyboard(page=0, user_id=None):
         nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"subs_page|{page+1}"))
     if nav_row:
         keyboard.append(nav_row)
-
-    # Спец. опции
+    
+    # Special options row (always at bottom)
     auto_emoji = "✅" if auto_mode else "☑️"
     keyboard.append([
         InlineKeyboardButton("🚫 OFF", callback_data="subs_lang|OFF"),
         InlineKeyboardButton(f"{auto_emoji} AUTO-GEN", callback_data=f"subs_auto|toggle|{page}")
     ])
-
+    
     return InlineKeyboardMarkup(keyboard)
 
 
