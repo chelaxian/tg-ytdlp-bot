@@ -4982,25 +4982,22 @@ def extract_url_range_tags(text: str):
         after_playlist = after_range[playlist_match.end():]
     else:
         after_playlist = after_range
+    # Новый способ: ищем все #теги по всему тексту (многострочно)
     tags = []
     tags_text = ''
     error_tag = None
     error_tag_example = None
-    tag_part = after_playlist.strip()
-    if tag_part:
-        for raw in re.finditer(r'#([^#\s]+)', tag_part):
-            tag = raw.group(1)
-            # We check that the tag consists only of the permitted characters
-            if not re.fullmatch(r'[\w\d_]+', tag, re.UNICODE):
-                error_tag = tag
-                # For example, show the user how the corrected tag would look like
-                example = re.sub(r'[^\w\d_]', '_', tag, flags=re.UNICODE)
-                error_tag_example = f'#{example}'
-                break  # Interrupt the check after the first error
-            tags.append(f'#{tag}')
-        # We form Tags_text with spaces between tags
-        tags_text = ' '.join(tags)
-    # Return the motorcade with an error if it was found
+    # Собираем все #теги из всего текста (многострочно)
+    for raw in re.finditer(r'#([^#\s]+)', text, re.UNICODE):
+        tag = raw.group(1)
+        if not re.fullmatch(r'[\w\d_]+', tag, re.UNICODE):
+            error_tag = tag
+            example = re.sub(r'[^\w\d_]', '_', tag, flags=re.UNICODE)
+            error_tag_example = f'#{example}'
+            break
+        tags.append(f'#{tag}')
+    tags_text = ' '.join(tags)
+    # Возвращаем ошибку, если есть
     return url, video_start_with, video_end_with, playlist_name, tags, tags_text, (error_tag, error_tag_example) if error_tag else None
 
 def save_user_tags(user_id, tags):
