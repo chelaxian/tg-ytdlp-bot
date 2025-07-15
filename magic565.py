@@ -1743,13 +1743,13 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie",
+            [InlineKeyboardButton("📥 /download_cookie - Download my 5 cookies",
                                   callback_data="settings__cmd__download_cookie")],
-            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser",
+            [InlineKeyboardButton("🌐 /cookies_from_browser - Get browser's YT-cookie",
                                   callback_data="settings__cmd__cookies_from_browser")],
-            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder",
+            [InlineKeyboardButton("🔎 /check_cookie - Check your cookie file",
                                   callback_data="settings__cmd__check_cookie")],
-            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie",
+            [InlineKeyboardButton("🔖 /save_as_cookie - Upload your cookie",
                                   callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
