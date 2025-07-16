@@ -3171,6 +3171,8 @@ def write_logs(message, video_url, video_title):
 
 # @reply_with_keyboard
 def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1):
+    set_active_download(user_id, True)
+    set_download_start_time(user_id)
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
@@ -3684,6 +3686,8 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
 # ########################################
 #@reply_with_keyboard
 def down_and_up(app, message, user_id, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
+    set_active_download(user_id, True)
+    set_download_start_time(user_id)
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
@@ -5594,7 +5598,10 @@ def sort_quality_key(quality_key):
 # @reply_with_keyboard
 def ask_quality_menu(app, message, user_id, url, tags, playlist_start_index=1):
     proc_msg = None
-    
+    set_active_download(user_id, True)
+    set_download_start_time(user_id)
+    if user_id and get_user_cancel_event(user_id).is_set():
+         raise Exception("Operation cancelled by user via /cancel")    
     # Очищаем кэш субтитров перед проверкой, чтобы избежать проблем с кэшированием
     clear_subs_check_cache()
     # --- Проверка лимита диапазона для Always Ask Menu ---
@@ -5615,6 +5622,8 @@ def ask_quality_menu(app, message, user_id, url, tags, playlist_start_index=1):
         if is_playlist:
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
             playlist_range = (video_start_with, video_end_with)
+            if user_id and get_user_cancel_event(user_id).is_set():
+                raise Exception("Operation cancelled by user via /cancel")    
             cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
         else:
             cached_qualities = get_cached_qualities(url)
@@ -6027,6 +6036,8 @@ def ask_quality_menu(app, message, user_id, url, tags, playlist_start_index=1):
         else:
             app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_to_message_id=message.id)
         send_to_logger(message, f"Always Ask menu sent for {url}")
+        set_active_download(user_id, False)
+        clear_download_start_time(user_id)
     except FloodWait as e:
         wait_time = e.value
         user_dir = os.path.join("users", str(user_id))
@@ -6559,6 +6570,7 @@ def show_manual_quality_menu(app, callback_query):
         else:
             callback_query.edit_message_text(text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
         callback_query.answer("Manual quality selection menu opened.")
+
     except Exception as e:
         logger.error(f"Error showing manual quality menu: {e}")
         callback_query.answer("❌ Error opening manual quality menu.", show_alert=True)
@@ -7670,6 +7682,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir):
     return None
 
 def download_subtitles_only(app, message, user_id, url, tags, playlist_name=None, video_count=1, video_start_with=1):
+    set_active_download(user_id, True)
+    set_download_start_time(user_id)
     """
     Скачивает и отправляет только файл субтитров без видео
     """
@@ -7744,6 +7758,8 @@ def download_subtitles_only(app, message, user_id, url, tags, playlist_name=None
                 # Пересылаем это сообщение в лог-канал
                 safe_forward_messages(Config.LOGS_ID, user_id, [sent_msg.id])
                 send_to_logger(message, "💬 Subtitles SRT-file sent to user.")
+                set_active_download(user_id, False)
+                clear_download_start_time(user_id)
                 # Remove temporary file
                 try:
                     os.remove(subs_path)
