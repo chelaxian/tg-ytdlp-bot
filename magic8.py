@@ -40,6 +40,14 @@ from config import Config
 
 import chardet
 
+
+class UserCancelled(Exception):
+    """Исключение для отмены действий пользователем."""
+    pass
+
+user_processes_lock = threading.Lock()
+user_processes = {}
+
 def ensure_utf8_srt(srt_path):
     """
     УЛЬТИМАТИВНАЯ функция для исправления любых кодировок и кракозябр.
