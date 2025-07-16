@@ -1,4 +1,4 @@
-# Version 3.0.2 # embedded subtitles
+# Version 3.0.4 # embedded subtitles + close buttons
 import glob
 import hashlib
 import io
@@ -1055,8 +1055,15 @@ def format_option_callback(app, callback_query):
 
     # If the Custom button is pressed
     if data == "custom":
-        callback_query.edit_message_text(
-            "To use a custom format, send the command in the following form:\n\n`/format bestvideo+bestaudio/best`\n\nReplace `bestvideo+bestaudio/best` with your desired format string."
+        # Отправка сообщения с кнопкой Close
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔚 Close", callback_data="audio_hint|close")]
+        ])
+        app.send_message(
+            user_id,
+            "Download only audio from video source.\nUsage: /audio + URL \n(ex. /audio https://youtu.be/abc123)\n(ex. /audio https://youtu.be/playlist?list=abc123*1*10)",
+            reply_to_message_id=callback_query.message.id,
+            reply_markup=keyboard
         )
         callback_query.answer("Hint sent.")
         send_to_logger(callback_query.message, "Custom format hint sent.")
@@ -1150,7 +1157,18 @@ def format_option_callback(app, callback_query):
         send_to_logger(callback_query.message, "Format set to ALWAYS_ASK.")
         return
 
-
+# Обработчик callback для закрытия сообщения
+@app.on_callback_query(filters.regex(r"^audio_hint\|"))
+def audio_hint_callback(app, callback_query):
+    data = callback_query.data.split("|")[1]
+    if data == "close":
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
+        callback_query.answer("Audio hint closed.")
+        send_to_logger(callback_query.message, "Audio hint closed.")
+        return
 # ####################################################################################
 
 # Checking user is Blocked or not
@@ -2013,7 +2031,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("🔚 Close", callback_data="audio_hint|close")]
         ])
         app.send_message(user_id,
-                         "Download only audio from video source.\nUsage: /audio + URL (ex. /audio https://youtu.be/abc123)",
+                         "Download only audio from video source.\nUsage: /audio + URL \n(ex. /audio https://youtu.be/abc123)\n(ex. /audio https://youtu.be/playlist?list=abc123*1*10)",
                          reply_to_message_id=callback_query.message.id,
                          reply_markup=keyboard)
         callback_query.answer("Hint sent.")
