@@ -59,7 +59,7 @@ class Config(object):
     }
     #######################################################
     # Commands
-    DOWNLOAD_COOKIE_COMMAND = "/download_cookie"
+    DOWNLOAD_COOKIE_COMMAND = "/cookies"
     SUBS_COMMAND = "/subs"
     CHECK_COOKIE_COMMAND = "/check_cookie"
     SAVE_AS_COOKIE_COMMAND = "/save_as_cookie"
