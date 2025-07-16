@@ -2466,7 +2466,7 @@ def video_url_extractor(app, message):
             wrong, example = tag_error
             app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
             return
-        ask_quality_menu(app, original_message, user_id, url, tags)
+        ask_quality_menu(app, message, user_id, url, tags)
         return
 
     # This code is executed only if the user has selected a specific format
