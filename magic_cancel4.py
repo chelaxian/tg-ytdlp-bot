@@ -2743,7 +2743,7 @@ def send_videos(
             width, height, _ = get_video_info_ffprobe(video_abs_path)
         except Exception as e:
             logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {video_abs_path}: {e}")
-            import traceback
+            
             logger.error(traceback.format_exc())
             width, height = 0, 0
 
@@ -2982,7 +2982,7 @@ def get_duration_thumb_(dir, video_path, thumb_name):
         duration = int(duration)
     except Exception as e:
         logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {video_path}: {e}")
-        import traceback
+        
         logger.error(traceback.format_exc())
         duration = 0
     
@@ -4464,7 +4464,7 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                                 real_file_size = min(width, height)
                             except Exception as e:
                                 logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
-                                import traceback
+                                
                                 logger.error(traceback.format_exc())
                                 width, height = 0, 0
                                 real_file_size = 0
@@ -6972,7 +6972,7 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
-        import traceback
+        
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 
@@ -7036,7 +7036,7 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
         return {}
     except Exception as e:
         logger.error(f"Failed to get from playlist cache: {e}")
-        import traceback
+        
         logger.error(f"Traceback: {traceback.format_exc()}")
         return {}
 
@@ -8042,7 +8042,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         
     except Exception as e:
         logger.error(f"Error in embed_subs_to_video: {str(e)}")
-        import traceback
+        
         logger.error(traceback.format_exc())
         return False
 
