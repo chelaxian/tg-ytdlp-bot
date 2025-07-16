@@ -3482,14 +3482,14 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
                     error_text = str(e)
                     logger.error(f"Audio download attempt failed: {e}")
                     
-                    # Check if this is a \"No videos found in playlist\" error
-                    if \"No videos found in playlist\" in error_text or \"Story might have expired\" in error_text:
-                        error_message = f\"❌ No content found at index {current_index + video_start_with}\"
+                    # Check if this is a "No videos found in playlist" error
+                    if "No videos found in playlist" in error_text or "Story might have expired" in error_text:
+                        error_message = f"❌ No content found at index {current_index + video_start_with}"
                         send_to_all(message, error_message)
-                        logger.info(f\"Skipping item at index {current_index} (no content found)\")
-                        return \"SKIP\"
+                        logger.info(f"Skipping item at index {current_index} (no content found)")
+                        return "SKIP"
                     else:
-                        send_to_user(message, f\"❌ Unknown error: {e}\")
+                        send_to_user(message, f"❌ Unknown error: {e}")
                     return None
 
             if is_playlist and quality_key:
@@ -3501,17 +3501,17 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
                 if user_id and get_user_cancel_event(user_id).is_set():
                     raise UserCancelled("Operation cancelled by user via /cancel")
                 current_index = current_index - video_start_with  # for numbering/display
-                total_process = f\"\"\"
+                total_process = f"""
 **📶 Total Progress**
 > **Audio:** {idx + 1} / {len(indices_to_download)}
-\"\"\"
+"""
 
                 current_total_process = total_process
 
                 # Determine rename_name based on the incoming playlist_name:
                 if playlist_name and playlist_name.strip():
                     # A new name for the playlist is explicitly set - let's use it
-                    rename_name = sanitize_filename(f\"{playlist_name.strip()} - Part {idx + video_start_with}\")
+                    rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {idx + video_start_with}")
                 else:
                     # No new name set - extract name from metadata
                     rename_name = None
@@ -3523,7 +3523,7 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
 
                 if info_dict is None:
                     with playlist_errors_lock:
-                        error_key = f\"{user_id}_{playlist_name}\"
+                        error_key = f"{user_id}_{playlist_name}"
                         if error_key not in playlist_errors:
                             playlist_errors[error_key] = True
 
@@ -3600,11 +3600,11 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
                 # We form a text with tags and a link for audio
                 tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
                 tags_text_final = generate_final_tags(url, tags_for_final, info_dict)
-                tags_block = (tags_text_final.strip() + '\\n') if tags_text_final and tags_text_final.strip() else ''
+                tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
                 bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
                 bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
                 # Use original audio_title for caption, not sanitized caption_name
-                caption_with_link = f"{audio_title}\\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
+                caption_with_link = f"{audio_title}\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
                 
                 try:
                     audio_msg = app.send_audio(chat_id=user_id, audio=audio_file, caption=caption_with_link, reply_to_message_id=message.id)
@@ -3650,9 +3650,9 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
                     threading.Event().wait(2)
 
             if successful_uploads == len(indices_to_download):
-                success_msg = f"✅ Audio successfully downloaded and sent - {len(indices_to_download)} files uploaded.\\n{Config.CREDITS_MSG}"
+                success_msg = f"✅ Audio successfully downloaded and sent - {len(indices_to_download)} files uploaded.\n{Config.CREDITS_MSG}"
             else:
-                success_msg = f"⚠️ Partially completed - {successful_uploads}/{len(indices_to_download)} audio files uploaded.\\n{Config.CREDITS_MSG}"
+                success_msg = f"⚠️ Partially completed - {successful_uploads}/{len(indices_to_download)} audio files uploaded.\n{Config.CREDITS_MSG}"
                 
             try:
                 safe_edit_message_text(user_id, proc_msg_id, success_msg)
@@ -3671,15 +3671,15 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
             set_active_download(user_id, False)
             clear_download_start_time(user_id)
             reset_user_cancel_event(user_id)
-            app.send_message(user_id, \"❌ Операция отменена.\")
+            app.send_message(user_id, "❌ Операция отменена.")
             return
         except Exception as e:
-            if \"Download timeout exceeded\" in str(e):
-                send_to_user(message, \"⏰ Download cancelled due to timeout (2 hours)\")
-                send_to_logger(message, \"Download cancelled due to timeout\")
+            if "Download timeout exceeded" in str(e):
+                send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)")
+                send_to_logger(message, "Download cancelled due to timeout")
             else:
-                logger.error(f\"Error in audio download: {e}\")
-                send_to_user(message, f\"❌ Failed to download audio: {e}\")
+                logger.error(f"Error in audio download: {e}")
+                send_to_user(message, f"❌ Failed to download audio: {e}")
         finally:
             # Always clean up resources
             stop_anim.set()
@@ -3692,7 +3692,7 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
                 if hourglass_msg_id:
                     safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
             except Exception as e:
-                logger.error(f\"Error deleting status messages: {e}\")
+                logger.error(f"Error deleting status messages: {e}")
 
             # Clean up any remaining audio files
             for audio_file in audio_files:
@@ -3700,7 +3700,7 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
                     if os.path.exists(audio_file):
                         os.remove(audio_file)
                 except Exception as e:
-                    logger.error(f\"Failed to delete file {audio_file}: {e}\")
+                    logger.error(f"Failed to delete file {audio_file}: {e}")
 
             set_active_download(user_id, False)
             clear_download_start_time(user_id)  # Cleaning the start time
@@ -3709,22 +3709,21 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
             try:
                 cleanup_user_temp_files(user_id)
             except Exception as e:
-                logger.error(f\"Error cleaning up temp files for user {user_id}: {e}\")
+                logger.error(f"Error cleaning up temp files for user {user_id}: {e}")
 
             # Reset playlist errors if this was a playlist
             if playlist_name:
                 with playlist_errors_lock:
-                    error_key = f\"{user_id}_{playlist_name}\"
+                    error_key = f"{user_id}_{playlist_name}"
                     if error_key in playlist_errors:
                         del playlist_errors[error_key]
     except UserCancelled as e:
-        logger.info(f\"Задача отменена пользователем: {e}\")
+        logger.info(f"Задача отменена пользователем: {e}")
         set_active_download(user_id, False)
         clear_download_start_time(user_id)
         reset_user_cancel_event(user_id)
-        app.send_message(user_id, \"❌ Операция отменена.\")
+        app.send_message(user_id, "❌ Операция отменена.")
         return
-
 
 # ########################################
 # Download_and_up function
