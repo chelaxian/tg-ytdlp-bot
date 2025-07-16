@@ -1057,11 +1057,11 @@ def format_option_callback(app, callback_query):
     if data == "custom":
         # Отправка сообщения с кнопкой Close
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔚 Close", callback_data="audio_hint|close")]
+            [InlineKeyboardButton("🔚 Close", callback_data="format_custom|close")]
         ])
         app.send_message(
             user_id,
-            "Download only audio from video source.\nUsage: /audio + URL \n(ex. /audio https://youtu.be/abc123)\n(ex. /audio https://youtu.be/playlist?list=abc123*1*10)",
+            "To use a custom format, send the command in the following form:\n\n`/format bestvideo+bestaudio/best`\n\nReplace `bestvideo+bestaudio/best` with your desired format string.",
             reply_to_message_id=callback_query.message.id,
             reply_markup=keyboard
         )
@@ -1158,16 +1158,16 @@ def format_option_callback(app, callback_query):
         return
 
 # Обработчик callback для закрытия сообщения
-@app.on_callback_query(filters.regex(r"^audio_hint\|"))
-def audio_hint_callback(app, callback_query):
+@app.on_callback_query(filters.regex(r"^format_custom\|"))
+def format_custom_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
     if data == "close":
         try:
             callback_query.message.delete()
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer("Audio hint closed.")
-        send_to_logger(callback_query.message, "Audio hint closed.")
+        callback_query.answer("Custom format menu closed.")
+        send_to_logger(callback_query.message, "Custom format menu closed")
         return
 # ####################################################################################
 
@@ -1873,9 +1873,9 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
                                   callback_data="settings__cmd__download_cookie")],
             [InlineKeyboardButton("🌐 /cookies_from_browser - Get browser's YT-cookie",
                                   callback_data="settings__cmd__cookies_from_browser")],
-            [InlineKeyboardButton("🔎 /check_cookie - Check your cookie file",
+            [InlineKeyboardButton("🔎 /check_cookie - Validate your cookie file",
                                   callback_data="settings__cmd__check_cookie")],
-            [InlineKeyboardButton("🔖 /save_as_cookie - Upload your cookie",
+            [InlineKeyboardButton("🔖 /save_as_cookie - Upload custom cookie",
                                   callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
@@ -2031,7 +2031,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton("🔚 Close", callback_data="audio_hint|close")]
         ])
         app.send_message(user_id,
-                         "Download only audio from video source.\nUsage: /audio + URL \n(ex. /audio https://youtu.be/abc123)\n(ex. /audio https://youtu.be/playlist?list=abc123*1*10)",
+                         "Download only audio from video source.\n\nUsage: /audio + URL \n\n(ex. /audio https://youtu.be/abc123)\n(ex. /audio https://youtu.be/playlist?list=abc123*1*10)",
                          reply_to_message_id=callback_query.message.id,
                          reply_markup=keyboard)
         callback_query.answer("Hint sent.")
@@ -2096,13 +2096,13 @@ def clean_option_callback(app, callback_query):
     elif data == "back":
         # Back to the cookies menu
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie",
+            [InlineKeyboardButton("📥 /download_cookie - Download my 5 cookies",
                                   callback_data="settings__cmd__download_cookie")],
-            [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser",
+            [InlineKeyboardButton("🌐 /cookies_from_browser - Get browser's YT-cookie",
                                   callback_data="settings__cmd__cookies_from_browser")],
-            [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder",
+            [InlineKeyboardButton("🔎 /check_cookie - Validate your cookie file",
                                   callback_data="settings__cmd__check_cookie")],
-            [InlineKeyboardButton("🔖 /save_as_cookie - Send text to save as cookie",
+            [InlineKeyboardButton("🔖 /save_as_cookie - Upload custom cookie",
                                   callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙 Back", callback_data="settings__menu__back")]
         ])
