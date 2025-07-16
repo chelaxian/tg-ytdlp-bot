@@ -1178,6 +1178,15 @@ def cancel_command(app, message):
         return
     cancel_event = get_user_cancel_event(user_id)
     cancel_event.set()
+    # === Жёстко убиваем процесс пользователя, если есть ===
+    with user_processes_lock:
+        proc = user_processes.get(user_id)
+        if proc:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            del user_processes[user_id]
     time.sleep(1)
     set_active_download(user_id, False)
     clear_download_start_time(user_id)
@@ -1193,8 +1202,6 @@ def cancel_command(app, message):
                 except Exception:
                     pass
     app.send_message(user_id, "✅ Operation cancelled. All temporary media files have been deleted..")
-
-
 
 # === Запрет /clean во время активной загрузки ===
 @app.on_message(filters.command("clean") & filters.private)
@@ -4006,12 +4013,18 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
             ytdl_opts = {**common_opts, **attempt_opts}
             try:
                 with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+                    if get_user_cancel_event(user_id).is_set():
+                        raise Exception("Operation cancelled by user via /cancel")
                     info_dict = ydl.extract_info(url, download=False)
+                if get_user_cancel_event(user_id).is_set():
+                    raise Exception("Operation cancelled by user via /cancel")
                 if "entries" in info_dict:
                     entries = info_dict["entries"]
                     if not entries:
                         raise Exception(f"No videos found in playlist at index {current_index}")
                     if len(entries) > 1:  # If the video in the playlist is more than one
+                        if get_user_cancel_event(user_id).is_set():
+                            raise Exception("Operation cancelled by user via /cancel")
                         if current_index < len(entries):
                             info_dict = entries[current_index]
                         else:
