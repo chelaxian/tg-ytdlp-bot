@@ -941,7 +941,7 @@ def audio_command_handler(app, message):
     if not check_playlist_range_limits(url, video_start_with, video_end_with, app, message):
         return
     
-    down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+    down_and_audio(app, message, user_id, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
 
 
 # /Playlist Command
@@ -1271,7 +1271,7 @@ def url_distractor(app, message):
         return
 
     # /cancel command
-    if text.startswith(Config.CANCEL_COMMAND_COMMAND):
+    if text.startswith(Config.CANCEL_COMMAND):
         settings_command(app, message)
         return    
 
@@ -2466,7 +2466,7 @@ def video_url_extractor(app, message):
             wrong, example = tag_error
             app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
             return
-        ask_quality_menu(app, message, url, tags, video_start_with)
+        ask_quality_menu(app, original_message, user_id, url, tags)
         return
 
     # This code is executed only if the user has selected a specific format
@@ -2545,9 +2545,9 @@ def video_url_extractor(app, message):
         
         # --- Pass title='' for TikTok, otherwise as usual ---
         if is_tiktok:
-            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, force_no_title=True, format_override=saved_format, quality_key=quality_key)
+            down_and_up(app, message, user_id, url, playlist_name, video_count, video_start_with, tags_text_full, force_no_title=True, format_override=saved_format, quality_key=quality_key)
         else:
-            down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text_full, format_override=saved_format, quality_key=quality_key)
+            down_and_up(app, message, user_id, url, playlist_name, video_count, video_start_with, tags_text_full, format_override=saved_format, quality_key=quality_key)
     else:
         send_to_all(message, f"**User entered like this:** {full_string}\n{Config.ERROR1}")
 
@@ -2702,6 +2702,7 @@ def truncate_caption(
 #@reply_with_keyboard
 def send_videos(
     message,
+    user_id,
     video_abs_path: str,
     caption: str,
     duration: int,
@@ -2713,7 +2714,6 @@ def send_videos(
 ):
     import re
     import os
-    user_id = message.chat.id
     if get_user_cancel_event(user_id).is_set():
         raise Exception("Operation cancelled by user via /cancel")
     text = message.text or ""
@@ -3170,14 +3170,13 @@ def write_logs(message, video_url, video_title):
 # ########################################
 
 # @reply_with_keyboard
-def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1):
+def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1):
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
     playlist_indices = []
     playlist_msg_ids = []  
         
-    user_id = message.chat.id
     # === ПРОВЕРКА ОТМЕНЫ В НАЧАЛЕ ===
     if user_id and get_user_cancel_event(user_id).is_set():
         raise Exception("Operation cancelled by user via /cancel")
@@ -3684,14 +3683,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 # Download_and_up function
 # ########################################
 #@reply_with_keyboard
-def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
+def down_and_up(app, message, user_id, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None):
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
     playlist_indices = []
     playlist_msg_ids = []    
 
-    user_id = message.chat.id
     logger.info(f"down_and_up called: url={url}, quality_key={quality_key}, format_override={format_override}, video_count={video_count}, video_start_with={video_start_with}")
     
     # We define a playlist not only by the number of videos, but also by the presence of a range in the URL
@@ -4317,7 +4315,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                    video_msg = send_videos(message, user_id, path_lst[p], '' if force_no_title else caption_lst[p], part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                     found_type = None
                     try:
                         forwarded_msgs = safe_forward_messages(Config.LOGS_ID, user_id, [video_msg.id])
@@ -4525,7 +4523,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     app.send_message(user_id, "ℹ️ Subtitles are not available for the selected language", reply_to_message_id=message.id)
                             # Clear
                             clear_subs_check_cache()
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                        video_msg = send_videos(message, user_id, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         
                         found_type = None
                         try:
@@ -5594,8 +5592,7 @@ def sort_quality_key(quality_key):
             return 0  # for unknown formats
 
 # @reply_with_keyboard
-def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
-    user_id = message.chat.id
+def ask_quality_menu(app, message, user_id, url, tags, playlist_start_index=1):
     proc_msg = None
     
     # Очищаем кэш субтитров перед проверкой, чтобы избежать проблем с кэшированием
@@ -6143,7 +6140,7 @@ def askq_callback(app, callback_query):
                 if tag_matches:
                     tags = tag_matches
             app.delete_messages(user_id, callback_query.message.id)
-            ask_quality_menu(app, original_message, url, tags)
+            ask_quality_menu(app, original_message, user_id, url, tags)
         else:
             callback_query.answer("❌ Error: URL not found.", show_alert=True)
             app.delete_messages(user_id, callback_query.message.id)
@@ -6186,7 +6183,7 @@ def askq_callback(app, callback_query):
         if quality == "best":
             format_override = "bv*[vcodec*=avc1]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo+bestaudio/best"
         elif quality == "mp3":
-            down_and_audio(app, original_message, url, tags, quality_key="mp3")
+            down_and_audio(app, original_message, user_id, url, tags, quality_key="mp3")
             return
         else:
             try:
@@ -6201,9 +6198,9 @@ def askq_callback(app, callback_query):
         if is_playlist_with_range(original_text):
             _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
             video_count = video_end_with - video_start_with + 1
-            down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=quality)
+            down_and_up(app, original_message, user_id, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=quality)
         else:
-            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=quality)
+            down_and_up_with_format(app, original_message, user_id, url, format_override, tags_text, quality_key=quality)
         return
 
     original_message = callback_query.message.reply_to_message
@@ -6277,7 +6274,7 @@ def askq_callback(app, callback_query):
                 new_count = new_end - new_start + 1
                 
                 if data == "mp3":
-                    down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
+                    down_and_audio(app, original_message, user_id, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start)
                 else:
                     try:
                         # Form the correct format for the missing videos
@@ -6291,7 +6288,7 @@ def askq_callback(app, callback_query):
                         logger.error(f"askq_callback: error forming format: {e}")
                         format_override = "bestvideo+bestaudio/best"
                     
-                    down_and_up(app, original_message, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=format_override, quality_key=used_quality_key)
+                    down_and_up(app, original_message, user_id, url, playlist_name, new_count, new_start, tags_text, force_no_title=False, format_override=format_override, quality_key=used_quality_key)
             else:
                 # All videos were in the cache
                 app.send_message(user_id, f"✅ Sent from cache: {len(cached_videos)}/{len(requested_indices)} files.", reply_to_message_id=original_message.id)
@@ -6303,7 +6300,7 @@ def askq_callback(app, callback_query):
             # If there is no cache at all - download everything again
             logger.info(f"askq_callback: no cache found for any quality, starting new download")
             if data == "mp3":
-                down_and_audio(app, original_message, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+                down_and_audio(app, original_message, user_id, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
             else:
                 try:
                     # Form the correct format for the new download
@@ -6316,7 +6313,7 @@ def askq_callback(app, callback_query):
                 except ValueError:
                     format_override = "bestvideo+bestaudio/best"
                 
-                down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
+                down_and_up(app, original_message, user_id, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
     found_type = check_subs_availability(url, user_id, data, return_type=True)
@@ -6350,12 +6347,12 @@ def askq_callback(app, callback_query):
                 else:
                     logger.info("Video with subtitles (real subs found and needed) is not cached!")
                 app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-                askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+                askq_callback_logic(app, callback_query, data, original_message, user_id, url, tags_text)
             return
-    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+    askq_callback_logic(app, callback_query, data, original_message, user_id, url, tags_text)
 
 
-def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
+def askq_callback_logic(app, callback_query, data, original_message, user_id, url, tags_text):
     user_id = callback_query.from_user.id
     tags = tags_text.split() if tags_text else []
     if data == "mp3":
@@ -6364,7 +6361,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
         video_count = video_end_with - video_start_with + 1
-        down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+        down_and_audio(app, original_message, user_id, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
     
     if data == "subs_only":
@@ -6373,7 +6370,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
         video_count = video_end_with - video_start_with + 1
-        download_subtitles_only(app, original_message, url, tags, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+        download_subtitles_only(app, original_message, user_id, url, tags, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
     
     # Logic for forming the format with the real height
@@ -6424,7 +6421,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             callback_query.answer("Unknown quality.")
             return
     
-    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key)
+    down_and_up_with_format(app, original_message, user_id, url, fmt, tags_text, quality_key=quality_key)
 
 # @reply_with_keyboard
 def show_manual_quality_menu(app, callback_query):
@@ -6569,7 +6566,7 @@ def show_manual_quality_menu(app, callback_query):
 
 # --- an auxiliary function for downloading with the format ---
 # @reply_with_keyboard
-def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None):
+def down_and_up_with_format(app, message, user_id, url, fmt, tags_text, quality_key=None):
 
     # We extract the range and other parameters from the original user message
     full_string = message.text or message.caption or ""
@@ -6587,7 +6584,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None)
     is_tiktok = is_tiktok_url(url)
 
     # We call the main function of loading with the correct parameters of the playlist
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
+    down_and_up(app, message, user_id, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key)
 
 
 def sanitize_autotag(tag: str) -> str:
@@ -7672,11 +7669,10 @@ def download_subtitles_ytdlp(url, user_id, video_dir):
     
     return None
 
-def download_subtitles_only(app, message, url, tags, playlist_name=None, video_count=1, video_start_with=1):
+def download_subtitles_only(app, message, user_id, url, tags, playlist_name=None, video_count=1, video_start_with=1):
     """
     Скачивает и отправляет только файл субтитров без видео
     """
-    user_id = message.chat.id
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     
