@@ -387,17 +387,7 @@ def get_language_keyboard(page=0, user_id=None):
 
     return InlineKeyboardMarkup(keyboard)
 
-@app.on_callback_query(filters.regex(r"^subs_lang_close\|"))
-def subs_lang_close_callback(app, callback_query):
-    data = callback_query.data.split("|")[1]
-    if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer("Subtitle language menu closed.")
-        send_to_logger(callback_query.message, "Subtitle language menu closed.")
-        return
+
 
 # --- Function for permanent reply-keyboard ---
 def get_main_reply_keyboard():
@@ -720,6 +710,17 @@ app = Client(
 
 # #############################################################################################################################
 # #############################################################################################################################
+@app.on_callback_query(filters.regex(r"^subs_lang_close\|"))
+def subs_lang_close_callback(app, callback_query):
+    data = callback_query.data.split("|")[1]
+    if data == "close":
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
+        callback_query.answer("Subtitle language menu closed.")
+        send_to_logger(callback_query.message, "Subtitle language menu closed.")
+        return
 
 @app.on_message(filters.command("start") & filters.private)
 @reply_with_keyboard
