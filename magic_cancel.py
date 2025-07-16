@@ -397,7 +397,7 @@ def get_language_keyboard(page=0, user_id=None):
 def get_main_reply_keyboard():
     return ReplyKeyboardMarkup(
         [
-            ["/clean", "/download_cookie"],
+            ["/clean", "/cancel", "/cookies"],
             ["/playlist", "/settings", "/help"]
         ],
         resize_keyboard=True,
@@ -1232,7 +1232,7 @@ def url_distractor(app, message):
 
     # /Download_cookie Command
     if text == Config.DOWNLOAD_COOKIE_COMMAND:
-        download_cookie(app, message)
+        cookies(app, message)
         return
 
     # /Check_cookie Command
@@ -1848,8 +1848,8 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         return
     if data == "cookies":
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📥 /download_cookie - Download my 5 cookies",
-                                  callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("📥 /cookies - Download my 5 cookies",
+                                  callback_data="settings__cmd__cookies")],
             [InlineKeyboardButton("🌐 /cookies_from_browser - Get browser's YT-cookie",
                                   callback_data="settings__cmd__cookies_from_browser")],
             [InlineKeyboardButton("🔎 /check_cookie - Check your cookie file",
@@ -1954,8 +1954,8 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         )
         callback_query.answer()
         return
-    if data == "download_cookie":
-        url_distractor(app, fake_message("/download_cookie", user_id))
+    if data == "cookies":
+        url_distractor(app, fake_message("/cookies", user_id))
         callback_query.answer("Command executed.")
         return
     if data == "cookies_from_browser":
@@ -2059,8 +2059,8 @@ def clean_option_callback(app, callback_query):
     elif data == "back":
         # Back to the cookies menu
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📥 /download_cookie - Download my YouTube cookie",
-                                  callback_data="settings__cmd__download_cookie")],
+            [InlineKeyboardButton("📥 /cookies - Download my YouTube cookie",
+                                  callback_data="settings__cmd__cookies")],
             [InlineKeyboardButton("🌐 /cookies_from_browser - Get cookies from browser",
                                   callback_data="settings__cmd__cookies_from_browser")],
             [InlineKeyboardButton("🔎 /check_cookie - Check cookie file in your folder",
@@ -2242,7 +2242,7 @@ def save_my_cookie(app, message):
 
 
 #@reply_with_keyboard
-def download_cookie(app, message):
+def cookies(app, message):
     """
     Shows a menu with buttons to download cookie files from different services.
     """
@@ -2251,19 +2251,19 @@ def download_cookie(app, message):
     # Buttons for services
     buttons = [
         [
-            InlineKeyboardButton("📺 YouTube", callback_data="download_cookie|youtube"),
-            InlineKeyboardButton("📷 Instagram", callback_data="download_cookie|instagram"),
+            InlineKeyboardButton("📺 YouTube", callback_data="cookies|youtube"),
+            InlineKeyboardButton("📷 Instagram", callback_data="cookies|instagram"),
         ],
         [
-            InlineKeyboardButton("🐦 Twitter/X", callback_data="download_cookie|twitter"),
-            InlineKeyboardButton("🎵 TikTok", callback_data="download_cookie|tiktok"),
+            InlineKeyboardButton("🐦 Twitter/X", callback_data="cookies|twitter"),
+            InlineKeyboardButton("🎵 TikTok", callback_data="cookies|tiktok"),
         ],
         [
-            InlineKeyboardButton("📘 Facebook", callback_data="download_cookie|facebook"),
-            InlineKeyboardButton("📝 Your Own", callback_data="download_cookie|own"),
+            InlineKeyboardButton("📘 Facebook", callback_data="cookies|facebook"),
+            InlineKeyboardButton("📝 Your Own", callback_data="cookies|own"),
         ],
         [
-            InlineKeyboardButton("🔙 Cancel", callback_data="download_cookie|cancel"),
+            InlineKeyboardButton("🔙 Cancel", callback_data="cookies|cancel"),
         ],
     ]
     keyboard = InlineKeyboardMarkup(buttons)
@@ -2287,9 +2287,9 @@ Cookie files will be saved as cookie.txt in your folder.
         reply_to_message_id=message.id
     )
 
-@app.on_callback_query(filters.regex(r"^download_cookie\|"))
+@app.on_callback_query(filters.regex(r"^cookies\|"))
 #@reply_with_keyboard
-def download_cookie_callback(app, callback_query):
+def cookies_callback(app, callback_query):
     user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
 
@@ -3440,7 +3440,7 @@ def down_and_audio(app, message, user_id, url, tags, quality_key=None, playlist_
                     message,
                     "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
                     "> You may need `cookie` for downloading this audio. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again.\n"
+                    "> For Youtube - get `cookie` via **/cookies** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your audio link again.\n"
                     f"────────────────\n❌ Error downloading: {error_text}"
                 )
                 return None
@@ -4058,7 +4058,7 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                     message,                   
                     "> Check [here](https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites) if your site supported\n"
                     "> You may need `cookie` for downloading this video. First, clean your workspace via **/clean** command\n"
-                    "> For Youtube - get `cookie` via **/download_cookie** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again.\n"
+                    "> For Youtube - get `cookie` via **/cookies** command. For any other supported site - send your own cookie ([guide1](https://t.me/c/2303231066/18)) ([guide2](https://t.me/c/2303231066/22)) and after that send your video link again.\n"
                     f"────────────────\n❌ Error downloading: {error_message}"
                 )
                 return None
@@ -6050,7 +6050,7 @@ def ask_quality_menu(app, message, user_id, url, tags, playlist_start_index=1):
             app.send_message(user_id, flood_msg, reply_to_message_id=message.id)
         return
     except Exception as e:
-        error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /download_cookie or /cookies_from_browser and try again."
+        error_text = f"❌ Error retrieving video information:\n{e}\n> Try the /clean command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via /cookies or /cookies_from_browser and try again."
         try:
             if proc_msg:
                 result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text)
