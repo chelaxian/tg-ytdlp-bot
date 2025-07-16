@@ -19,14 +19,24 @@ class Config(object):
     # Add main channel to subscribe - Required (int)
     SUBSCRIBE_CHANNEL = -0000000000000
     # Add subscription channel - Required (str)
-    SUBSCRIBE_CHANNEL_URL = "https://t.me/upekshaip"
+    SUBSCRIBE_CHANNEL_URL = "https://t.me/YOUR_CHANNEL_NAME"
     # Download timeout in seconds (2 hours = 7200 seconds)
-    DOWNLOAD_TIMEOUT = 7200
+    DOWNLOAD_TIMEOUT = 7200 # in seconds
+    MAX_SUB_QUALITY = 720 # 720p
+    MAX_SUB_DURATION = 5400 # in seconds
+    MAX_SUB_SIZE = 500 # in MB
+    MAX_PLAYLIST_COUNT = 50
+    MAX_TIKTOK_COUNT = 500      
     # Cookie file URL
     # EX: "https://path/to/your/cookie-file.txt"
     COOKIE_URL = ""
+    YOUTUBE_COOKIE_URL = ""
+    INSTAGRAM_COOKIE_URL = ""
+    TWITTER_COOKIE_URL = ""
+    TIKTOK_COOKIE_URL = ""
+    FACEBOOK_COOKIE_URL = ""
     # Do not chanege this
-    COOKIE_FILE_PATH = "cookies.txt"
+    COOKIE_FILE_PATH = "cookies/cookie.txt"
     # Do not chanege this
     PIC_FILE_PATH = "pic.jpg"
     #######################################################
@@ -50,6 +60,7 @@ class Config(object):
     #######################################################
     # Commands
     DOWNLOAD_COOKIE_COMMAND = "/download_cookie"
+    SUBS_COMMAND = "/subs"
     CHECK_COOKIE_COMMAND = "/check_cookie"
     SAVE_AS_COOKIE_COMMAND = "/save_as_cookie"
     AUDIO_COMMAND = "/audio"
@@ -64,6 +75,7 @@ class Config(object):
     RUN_TIME = "/run_time"
     GET_USER_LOGS_COMMAND = "/log"
     CLEAN_COMMAND = "/clean"
+    CANCEL_COMMAND = "/cancel"
     USAGE_COMMAND = "/usage"
     TAGS_COMMAND = "/tags"
     BROADCAST_MESSAGE = "/broadcast"
@@ -85,10 +97,10 @@ To download playlists send its URL with <code>*start*end</code> ranges in the en
 
 <b>Examples:</b>
 
-🟥 <b>Video range from YouTube playlist:</b>
+🟥 <b>Video range from YouTube playlist:</b> (need 🍪)
 <code>https://youtu.be/playlist?list=PL...*1*5</code>
 (downloads videos from 1 to 5 inclusive)
-🟥 <b>Single video from YouTube playlist:</b>
+🟥 <b>Single video from YouTube playlist:</b> (need 🍪)
 <code>https://youtu.be/playlist?list=PL...*3*3</code>
 (downloads only the 3rd video)
 
@@ -96,7 +108,9 @@ To download playlists send its URL with <code>*start*end</code> ranges in the en
 <code>https://www.tiktok.com/@USERNAME*1*10</code>
 (downloads first 10 videos from user profile)
 
-🟪 <b>Instagram stories albums:</b> (need your 🍪)
+🟪 <b>Instagram stories:</b> (need your 🍪)
+<code>https://www.instagram.com/stories/USERNAME*1*3</code>
+(downloads first 3 stories)
 <code>https://www.instagram.com/stories/highlights/123...*1*10</code>
 (downloads first 10 stories from album)
 
@@ -121,7 +135,7 @@ To download playlists send its URL with <code>*start*end</code> ranges in the en
 (downloads first 2 video from model profile)
 
 and so on...
-see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">supported sites list</a>
+see <a href="https://raw.githubusercontent.com/yt-dlp/yt-dlp/refs/heads/master/supportedsites.md">supported sites list</a>
 """
     HELP_MSG = """
 🎬 <b>Video Download Bot - Help</b>
@@ -151,6 +165,7 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
 • <code>/clean format</code> - Remove format settings
 • <code>/clean split</code> - Remove split settings
 • <code>/clean mediainfo</code> - Remove mediainfo settings
+• <code>/clean sub</code> - Remove subtitle settings
 
 ⚙️ <b>Settings:</b>
 • <code>/settings</code> - Open settings menu
@@ -158,6 +173,7 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
 • <code>/split</code> - Set max part size (250MB-2GB)
 • <code>/mediainfo</code> - Enable/disable file info
 • <code>/tags</code> - View your saved tags
+• <code>/sub</code> - Turn on/off subtitles
 
 🏷️ <b>Tags System:</b>
 • Add <code>#tag1#tag2</code> after any URL
@@ -168,8 +184,8 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
 • <code>/usage</code> - View your download history
 • <code>/help</b> - Show this help message
 
-<blockquote expandable>
-🇷🇺 <b>Бот для скачивания видео - Помощь</b>
+<blockquote expandable>🇷🇺 <b>Бот для скачивания видео - Помощь</b>
+(нажми, чтобы развернуть 👇)
 
 📥 <b>Основное использование:</b>
 • Отправьте ссылку на видео для загрузки
@@ -196,6 +212,7 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
 • <code>/clean format</code> - Удалить настройки формата
 • <code>/clean split</code> - Удалить настройки нарезки
 • <code>/clean mediainfo</code> - Удалить настройки mediainfo
+• <code>/clean sub</code> - Удалить настройки субтитров
 
 ⚙️ <b>Настройки:</b>
 • <code>/settings</code> - Открыть меню настроек
@@ -203,6 +220,7 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
 • <code>/split</code> - Установить размер части (250MB-2GB)
 • <code>/mediainfo</code> - Включить/выключить информацию о файле
 • <code>/tags</code> - Посмотреть ваши теги
+• <code>/sub</code> - Включить/выключить субтитры
 
 🏷️ <b>Система тегов:</b>
 • Добавьте <code>#тег1#тег2</code> после любой ссылки
@@ -213,9 +231,8 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
 • <code>/usage</code> - История загрузок
 • <code>/help</code> - Показать эту справку
 </blockquote>
-
-👨‍💻 <i>Developer:</i> @upekshaip
-🤝 <i>Contributor:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
+👨‍💻 <i>Developer:</i> @upekshaip <a href="https://github.com/upekshaip/tg-ytdlp-bot">[🛠 github]</a>
+🤝 <i>Contributor:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl <a href="https://github.com/chelaxian/tg-ytdlp-bot">[🛠 github]</a>
     """
     #######################################################
     # Restricted content site lists
@@ -227,9 +244,14 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
     SUPPORTED_SITES_FILE = "supported_sites.txt"
     # --- Whitelist of domains that are not considered porn ---
     WHITELIST = [
-        'dailymotion.com', 'sky.com', 'xbox.com', 'youtube.com', 'youtu.be', '1tv.ru', 'x.ai'
+        'dailymotion.com', 'sky.com', 'xbox.com', 'youtube.com', 'youtu.be', '1tv.ru', 'x.ai',
+        'twitch.tv', 'www.twitch.tv', 'vimeo.com', 'facebook.com'
         # Other secure domains can be added
     ]
+    NO_COOKIE_DOMAINS = [
+        'dailymotion.com'
+        # Other secure domains can be added
+    ]    
     # TikTok Domain List
     TIKTOK_DOMAINS = [
         'tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com',
@@ -244,13 +266,20 @@ see <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">sup
     ]
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
     SAVE_AS_COOKIE_HINT = (
-        "Just send to bot cookie.txt file as document\n"
-        "Also you can send your cookie as plain text.\n"
-        "Usage:\n\n"
+        "Just send the bot the <b><u>cookie.txt</u></b> file as a document\n\n"
+        "You can also send cookies as plain text.\n"
+        "<b>Usage:</b>\n\n"
+        "<pre>"
         "/save_as_cookie\n"
         "# Netscape HTTP Cookie File\n"
         "# http://curl.haxx.se/rfc/cookie_spec.html\n"
         "# This file was generated by Cookie-Editor\n"
         ".youtube.com  TRUE  /  FALSE  1111111111  ST-xxxxx  session_logininfo=AAAAAAAAAAAAAAAAAAA\n"
+        "</pre>\n"
+        "<blockquote>\n"
+        "Instructions:\n"
+        "https://t.me/c/2303231066/18 \n"
+        "https://t.me/c/2303231066/22 "
+        "</blockquote>"
     )
     #######################################################
