@@ -1534,7 +1534,9 @@ def send_promo_message(app, message):
 def get_user_log(app, message):
     user_id = message.chat.id
     if int(message.chat.id) in Config.ADMIN:
-        user_id = message.text.split(Config.GET_USER_LOGS_COMMAND + " ")[1]
+        user_id = message.chat.id
+        if Config.GET_USER_LOGS_COMMAND in message.text:
+            user_id = message.text.split(Config.GET_USER_LOGS_COMMAND + " ")[1]
 
     try:
         db_data = db.child("bot").child("tgytdlp_bot").child("logs").child(user_id).get().each()
@@ -5243,15 +5245,30 @@ def tags_command(app, message):
         return
     # We form posts by 4096 characters
     msg = ''
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔚 Close", callback_data="tags_close|close")]
+    ])
     for tag in tags:
         if len(msg) + len(tag) + 1 > 4096:
-            app.send_message(user_id, msg, reply_to_message_id=message.id)
+            app.send_message(user_id, msg, reply_to_message_id=message.id, reply_markup=keyboard)
             send_to_logger(message, msg)
             msg = ''
         msg += tag + '\n'
     if msg:
-        app.send_message(user_id, msg, reply_to_message_id=message.id)
+        app.send_message(user_id, msg, reply_to_message_id=message.id, reply_markup=keyboard)
         send_to_logger(message, msg)
+
+@app.on_callback_query(filters.regex(r"^tags_close\|"))
+def tags_close_callback(app, callback_query):
+    data = callback_query.data.split("|")[1]
+    if data == "close":
+        try:
+            callback_query.message.delete()
+        except Exception:
+            callback_query.edit_message_reply_markup(reply_markup=None)
+        callback_query.answer("Tags message closed.")
+        send_to_logger(callback_query.message, "Tags message closed.")
+        return
 
 def extract_youtube_id(url: str) -> str:
     """
