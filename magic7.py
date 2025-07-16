@@ -3733,7 +3733,8 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
     set_active_download(user_id, True)
     set_download_start_time(user_id)
     """
-    Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
+    Now if part of the playlist range is already cached, we first repost the cached indexes, 
+    then download and cache the missing ones, without finishing after reposting part of the range.
     """
     playlist_indices = []
     playlist_msg_ids = []    
@@ -3746,9 +3747,11 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
     requested_indices = list(range(video_start_with, video_start_with + video_count)) if is_playlist else []
     cached_videos = {}
     uncached_indices = []
+
     try:
         if get_user_cancel_event(user_id).is_set():
             raise UserCancelled("Operation cancelled by user via /cancel")
+        
         if quality_key and is_playlist:
             cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, requested_indices)
             uncached_indices = [i for i in requested_indices if i not in cached_videos]
@@ -3778,7 +3781,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
             if not need_subs:
                 cached_ids = get_cached_message_ids(url, quality_key)
                 if cached_ids:
-                    found_type = None
                     try:
                         app.forward_messages(
                             chat_id=user_id,
@@ -3901,10 +3903,8 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                         attempts = [{'format': custom_format, 'prefer_ffmpeg': True, 'merge_output_format': 'mp4'}]
                 else:
                     attempts = [
-                        {'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best',
-                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
-                        {'format': 'bv*[vcodec*=avc1]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo+bestaudio/best',
-                        'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                        {'format': 'bv*[vcodec*=avc1][height<=1080]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/best', 'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
+                        {'format': 'bv*[vcodec*=avc1]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bestvideo+bestaudio/best', 'prefer_ffmpeg': True, 'merge_output_format': 'mp4', 'extract_flat': False},
                         {'format': 'best', 'prefer_ffmpeg': False, 'extract_flat': False}
                     ]
 
@@ -3968,15 +3968,15 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                 'playlist_items': str(current_index),
                 'outtmpl': os.path.join(user_dir_name, "%(title).50s.%(ext)s"),
                 'postprocessors': [
-                {
-                   'key': 'EmbedThumbnail'
-                },
-                {
-                   'key': 'FFmpegMetadata'
-                }                  
+                    {
+                        'key': 'EmbedThumbnail'
+                    },
+                    {
+                        'key': 'FFmpegMetadata'
+                    }                  
                 ],                
                 'extractor_args': {
-                   'generic': ['impersonate=chrome']
+                    'generic': ['impersonate=chrome']
                 },
                 'referer': url,
                 'geo_bypass': True,
@@ -4084,7 +4084,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                     logger.error(f"Final progress update error: {e}")
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
-                nonlocal error_message
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 send_to_all(
@@ -4110,6 +4109,7 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
             indices_to_download = uncached_indices
         else:
             indices_to_download = range(video_count)
+        
         for idx, current_index in enumerate(indices_to_download):
             if get_user_cancel_event(user_id).is_set():
                 raise UserCancelled("Operation cancelled by user via /cancel")
@@ -4177,47 +4177,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
 > **Title:** {original_video_title}
 > **ID:** {video_id}
 """
-            # ... (остальной код функции, связанный с отправкой видео, обработкой файлов и т.д.)
-    except UserCancelled as e:
-        logger.info(f"Задача отменена пользователем: {e}")
-        set_active_download(user_id, False)
-        clear_download_start_time(user_id)
-        reset_user_cancel_event(user_id)
-        app.send_message(user_id, "❌ Операция отменена.")
-        return
-    except Exception as e:
-        logger.error(f"Error in down_and_up: {e}")
-        send_to_user(message, f"❌ Failed to download/upload video: {e}")
-        return
-    finally:
-        stop_anim.set()
-        if anim_thread:
-            anim_thread.join(timeout=1)
-        try:
-            if status_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[status_msg_id], revoke=True)
-            if hourglass_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
-        except Exception as e:
-            logger.error(f"Error deleting status messages: {e}")
-        set_active_download(user_id, False)
-        clear_download_start_time(user_id)
-        try:
-            cleanup_user_temp_files(user_id)
-        except Exception as e:
-            logger.error(f"Error cleaning up temp files for user {user_id}: {e}")
-        if playlist_name:
-            with playlist_errors_lock:
-                error_key = f"{user_id}_{playlist_name}"
-                if error_key in playlist_errors:
-                    del playlist_errors[error_key]
-
-            try:
-                safe_edit_message_text(user_id, proc_msg_id,
-                    f"{info_text}\n{full_bar}   100.0%\n__☑️ Downloaded video.\n📤 Processing for upload...__")
-            except Exception as e:
-                logger.error(f"Status update error after download: {e}")
-
             dir_path = os.path.join("users", str(user_id))
             allfiles = os.listdir(dir_path)
             files = [fname for fname in allfiles if fname.endswith(('.mp4', '.mkv', '.webm', '.ts'))]
@@ -4327,7 +4286,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                     user_vid_path
                 ]
                 result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, universal_newlines=True)
-                #duration = int(float(result))
                 duration = int(float(str(result).strip().split()[0])) if result else 0
             except Exception as e:
                 logger.warning(f"Failed to get video duration: {e}")
@@ -4504,7 +4462,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                                 real_file_size = min(width, height)
                             except Exception as e:
                                 logger.error(f"[FFPROBE BYPASS] Ошибка при обработке видео {after_rename_abs_path}: {e}")
-                                
                                 logger.error(traceback.format_exc())
                                 width, height = 0, 0
                                 real_file_size = 0
@@ -4512,7 +4469,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
                             if subs_enabled and is_youtube_url(url) and min(width, height) <= Config.MAX_SUB_QUALITY:
                                 found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                                 if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
-                                    
                                     # Сначала скачиваем субтитры отдельно
                                     video_dir = os.path.dirname(after_rename_abs_path)
                                     subs_path = download_subtitles_ytdlp(url, user_id, video_dir)
@@ -4690,6 +4646,13 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
             app.send_message(user_id, f"✅ Playlist videos sent: {total_sent}/{len(requested_indices)} files.", reply_to_message_id=message.id)
             send_to_logger(message, f"Playlist videos sent: {total_sent}/{len(requested_indices)} files (quality={quality_key}) to user {user_id}")
 
+    except UserCancelled as e:
+        logger.info(f"Задача отменена пользователем: {e}")
+        set_active_download(user_id, False)
+        clear_download_start_time(user_id)
+        reset_user_cancel_event(user_id)
+        app.send_message(user_id, "❌ Операция отменена.")
+        return
     except Exception as e:
         if "Download timeout exceeded" in str(e):
             send_to_user(message, "⏰ Download cancelled due to timeout (2 hours)")
@@ -4698,14 +4661,19 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
             logger.error(f"Error in video download: {e}")
             send_to_user(message, f"❌ Failed to download video: {e}")
         
-        # Clean up temporary files on error
-        try:
-            cleanup_user_temp_files(user_id)
-        except Exception as cleanup_error:
-            logger.error(f"Error cleaning up temp files after error for user {user_id}: {cleanup_error}")
     finally:
+        stop_anim.set()
+        if anim_thread:
+            anim_thread.join(timeout=1)
+        try:
+            if status_msg_id:
+                safe_delete_messages(chat_id=user_id, message_ids=[status_msg_id], revoke=True)
+            if hourglass_msg_id:
+                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
+        except Exception as e:
+            logger.error(f"Error deleting status messages: {e}")
         set_active_download(user_id, False)
-        clear_download_start_time(user_id)  # Clear the download start time
+        clear_download_start_time(user_id)
         if playlist_name:
             with playlist_errors_lock:
                 error_key = f"{user_id}_{playlist_name}"
@@ -4717,14 +4685,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
             cleanup_user_temp_files(user_id)
         except Exception as e:
             logger.error(f"Error cleaning up temp files for user {user_id}: {e}")
-
-        try:
-            if status_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[status_msg_id], revoke=True)
-            if hourglass_msg_id:
-                safe_delete_messages(chat_id=user_id, message_ids=[hourglass_msg_id], revoke=True)
-        except Exception as e:
-            logger.error(f"Error deleting status messages: {e}")
 
         # --- ADDED: summary of cache after cycle ---
         if is_playlist and playlist_indices and playlist_msg_ids:
@@ -4739,7 +4699,6 @@ def down_and_up(app, message, user_id, url, playlist_name, video_count, video_st
             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, playlist_indices)
             summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
             logger.info(f"[SUMMARY] Playlist cache (quality {quality_key}):\n{summary}")
-
 #########################################
 
 # YT-DLP HOOK
