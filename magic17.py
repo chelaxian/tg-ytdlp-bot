@@ -7408,31 +7408,32 @@ def subs_auto_callback(app, callback_query):
         send_to_logger(callback_query.message, f"User toggled AUTO-GEN mode to: {new_auto}")
 
 
-
 # Cache for subtitles checks
 _subs_check_cache = {}
 
 def clear_subs_check_cache():
-    """Cleans the cache of subtitle checks"""
+    """Очищает кэш найденных субтитров"""
     global _subs_check_cache
     _subs_check_cache.clear()
     logger.info("Subs check cache cleared")
 
 def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     """
-    Checks the availability of subtitles for the language chosen by the user.
+    Проверяет наличие субтитров для выбранного пользователем языка.
+    Кэширует результат в памяти, чтобы не делать повторных запросов к API.
     Если return_type=True, возвращает "normal", "auto" или None.
     Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы).
     """
     try:
-        cache_key = f"{url}_{user_id}_{return_type}"
-        if cache_key in _subs_check_cache:
-            return _subs_check_cache[cache_key]
-
         subs_lang = get_user_subs_language(user_id)
         if not subs_lang or subs_lang == "OFF":
-            _subs_check_cache[cache_key] = False if not return_type else None
             return False if not return_type else None
+
+        # Формируем ключ кэша: url + user_id + quality_key + auto_mode + язык + return_type
+        auto_mode = get_user_subs_auto_mode(user_id)
+        cache_key = f"{url}_{user_id}_{quality_key}_{auto_mode}_{subs_lang}_{return_type}"
+        if cache_key in _subs_check_cache:
+            return _subs_check_cache[cache_key]
 
         # Проверяем обычные субтитры
         available_normal = get_available_subs_languages(url, user_id, auto_only=False)
