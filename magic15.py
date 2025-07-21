@@ -3745,7 +3745,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             else:
                 app.send_message(user_id, f"📥 {len(cached_videos)}/{len(requested_indices)} videos sent from cache, downloading missing ones...", reply_to_message_id=message.id)
     elif quality_key and not is_playlist:
-        found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+        clear_subs_check_cache()
+        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+        found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
         subs_enabled = is_subs_enabled(user_id)
         auto_mode = get_user_subs_auto_mode(user_id)
         need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -3764,7 +3766,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return
                 except Exception as e:
                     logger.error(f"Error reposting video from cache: {e}")
-                    found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                     subs_enabled = is_subs_enabled(user_id)
                     auto_mode = get_user_subs_auto_mode(user_id)
                     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -3975,8 +3977,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 auto_mode = get_user_subs_auto_mode(user_id)
                 if subs_lang and subs_lang not in ["OFF"]:
                     # Check availability with AUTO mode
-                    clear_subs_check_cache()
-                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+                    #clear_subs_check_cache()
+                    #available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
                     # Flexible check: search for an exact match or any language from the group
                     lang_prefix = subs_lang.split('-')[0]
                     found = False
@@ -4355,7 +4357,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         rounded_quality_key = f"{ceil_to_popular(int(quality_key[:-1]))}p"
                                 except Exception:
                                     pass
-                                found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
                                 need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4375,7 +4377,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
                                 need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4396,7 +4398,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if is_playlist:
                             # For playlists, save to playlist cache with video index
                             current_video_index = x + video_start_with
-                            found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                            found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                             subs_enabled = is_subs_enabled(user_id)
                             auto_mode = get_user_subs_auto_mode(user_id)
                             need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4424,7 +4426,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # Remove duplicates
                     split_msg_ids = list(dict.fromkeys(split_msg_ids))
                     logger.info(f"down_and_up: saving all split video parts to cache: {split_msg_ids}")
-                    found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                     subs_enabled = is_subs_enabled(user_id)
                     auto_mode = get_user_subs_auto_mode(user_id)
                     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4477,7 +4479,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 real_file_size = 0
                             auto_mode = get_user_subs_auto_mode(user_id)
                             if subs_enabled and is_youtube_url(url) and min(width, height) <= Config.MAX_SUB_QUALITY:
-                                found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                 if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                                     
                                     # Сначала скачиваем субтитры отдельно
@@ -4558,7 +4560,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
                                     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4572,7 +4574,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                 else:
                                     # For single videos, save to regular cache
-                                    found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
                                     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4585,7 +4587,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if is_playlist:
                                     # For playlists, save to playlist cache with video index
                                     current_video_index = x + video_start_with
-                                    found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
                                     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4598,7 +4600,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.append(video_msg.id)
                                 else:
-                                    found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
                                     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4613,7 +4615,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_playlist:
                                 # For playlists, save to playlist cache with video index
                                 current_video_index = x + video_start_with
-                                found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
                                 need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4627,7 +4629,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 playlist_msg_ids.append(video_msg.id)
                             else:
                                 # For single videos, save to regular cache
-                                found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                                found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
                                 need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -4695,7 +4697,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         # --- ADDED: summary of cache after cycle ---
         if is_playlist and playlist_indices and playlist_msg_ids:
-            found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+            found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
             subs_enabled = is_subs_enabled(user_id)
             auto_mode = get_user_subs_auto_mode(user_id)
             need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -5711,6 +5713,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 auto_mode = get_user_subs_auto_mode(user_id)
                 subs_available = ""
                 if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
+                    clear_subs_check_cache()
+                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
                     found_type = check_subs_availability(url, user_id, q, return_type=True, available_normal=available_langs, available_auto=available_langs)
                     if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                         temp_info = {
@@ -5938,7 +5942,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1):
                 auto_mode = get_user_subs_auto_mode(user_id)
                 if subs_enabled and is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                     # Проверяем наличие субтитров нужного типа
-                    found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
                     if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                         temp_info = {
                             'duration': info.get('duration'),
@@ -6356,6 +6360,8 @@ def askq_callback(app, callback_query):
                 down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=data)
             return
     # --- other logic for single files ---
+    clear_subs_check_cache()
+    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
     found_type = check_subs_availability(url, user_id, data, return_type=True, available_normal=available_langs, available_auto=available_langs)
     subs_enabled = is_subs_enabled(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
@@ -6562,6 +6568,8 @@ def show_manual_quality_menu(app, callback_query):
     # Add subtitles only button if enabled
     subs_enabled = get_user_subs_language(user_id) not in [None, "OFF"]
     if subs_enabled and is_youtube_url(url):
+        clear_subs_check_cache()
+        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
         found_type = check_subs_availability(url, user_id, return_type=True, available_normal=available_langs, available_auto=available_langs)
         auto_mode = get_user_subs_auto_mode(user_id)
         need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
@@ -6692,7 +6700,9 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
     """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
     
     if user_id is not None:
-        found_type = found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
+        clear_subs_check_cache()
+        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+        found_type = check_subs_availability(url, user_id, quality_key, return_type=True, available_normal=available_langs, available_auto=available_langs)
         subs_enabled = is_subs_enabled(user_id)
         auto_mode = get_user_subs_auto_mode(user_id)
         need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -7699,7 +7709,7 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
         
         # Очищаем кэш перед проверкой, чтобы избежать проблем с кэшированием
         clear_subs_check_cache()
-        
+        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
         found_type = check_subs_availability(url, user_id, return_type=True, available_normal=available_langs, available_auto=available_langs)
         need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
         
