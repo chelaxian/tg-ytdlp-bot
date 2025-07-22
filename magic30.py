@@ -292,16 +292,11 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Get available subtitle languages for a video. Handles 429 errors with retries."""
-    import time
-    import yt_dlp
-    import os
-    import random
+    import time, random, os, yt_dlp
 
     max_retries = 3
-    # экспоненциальный + джиттер
     def backoff(i):
-        base = [30, 60, 120]  # сек
-        return base[i] + random.uniform(0, 3)
+        return [30, 60, 120][i] + random.uniform(0, 3)
 
     def extract_info_with_cookies():
         ytdl_opts = {
@@ -315,18 +310,15 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             'sleep-requests': 2,
             'min_sleep_interval': 1,
             'max_sleep_interval': 3,
-            'extractor_args': {'youtube': {'player_client': ['web']}}
+            'extractor_args': {'youtube': {'player_client': ['web']}},
         }
 
         if user_id:
-            user_dir = os.path.join("users", str(user_id))
-            cookie_file = os.path.join(user_dir, "cookie.txt")
+            cookie_file = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(cookie_file):
                 ytdl_opts['cookiefile'] = cookie_file
-        else:
-            # глобальный cookie если есть
-            if hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
-                ytdl_opts['cookiefile'] = Config.COOKIE_FILE_PATH
+        elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
+            ytdl_opts['cookiefile'] = Config.COOKIE_FILE_PATH
 
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             return ydl.extract_info(url, download=False)
@@ -334,7 +326,6 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
     for attempt in range(max_retries + 1):
         try:
             info = extract_info_with_cookies()
-
             normal = list(info.get('subtitles', {}).keys())
             auto   = list(info.get('automatic_captions', {}).keys())
 
@@ -353,19 +344,19 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             if "429" in str(e):
                 if attempt < max_retries:
                     delay = backoff(attempt)
-                    logger.warning(f"429 Too Many Requests (attempt {attempt + 1}/{max_retries}). Sleep {delay:.1f}s")
+                    logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{max_retries}) sleep {delay:.1f}s")
                     time.sleep(delay)
                     continue
-                logger.error("Final attempt failed with 429 Too Many Requests.")
-                raise Exception("❌ YouTube rate limit (429). Try again later.")
-            else:
-                logger.error(f"DownloadError while getting subtitles: {e}")
-                break
+                logger.error("Final attempt failed with 429")
+                raise Exception("❌ YouTube rate limit (429). Try later.")
+            logger.error(f"DownloadError while getting subtitles: {e}")
+            break
         except Exception as e:
             logger.error(f"Unexpected error getting subtitles: {e}")
             break
 
     return []
+
 
 
 
@@ -7595,10 +7586,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
     Отдельно скачивает субтитры для видео через yt-dlp с проверкой языка
     """
-    import os
-    import time
-    import random
-    import yt_dlp
+    import os, time, random, yt_dlp
 
     max_retries = 3
 
@@ -7642,21 +7630,17 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             else:
                 subs_opts.update({'writeautomaticsub': False, 'writesubtitles': True})
 
-            # cookies
             user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(user_cookie_path):
                 subs_opts['cookiefile'] = user_cookie_path
             elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
                 subs_opts['cookiefile'] = Config.COOKIE_FILE_PATH
-            # иначе ключ не добавляем
 
-            # нужный язык
             subs_opts['subtitleslangs'] = [found_lang]
 
             with yt_dlp.YoutubeDL(subs_opts) as ydl:
                 ydl.download([url])
 
-            # Поиск файла
             srt_files = [f for f in os.listdir(video_dir)
                          if f.lower().endswith('.srt') and f".{found_lang}." in f.lower()]
             if not srt_files:
@@ -7672,7 +7656,6 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     with open(subs_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
 
-                    # Проверка языка
                     has_language_chars = False
                     if subs_lang == 'ru':
                         russian_chars = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
@@ -7705,17 +7688,17 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     if has_language_chars and has_timestamps:
                         logger.info(f"Valid subtitles ({subs_lang}), size={os.path.getsize(subs_path)}")
                         return subs_path
-                    else:
-                        if not has_language_chars:
-                            logger.warning(f"File doesn't contain {subs_lang} chars, attempt {attempt+1}/{max_retries}")
-                        if not has_timestamps:
-                            logger.warning(f"No timestamps in file, attempt {attempt+1}/{max_retries}")
 
-                        if attempt < max_retries - 1:
-                            time.sleep(10 + random.uniform(0, 3))
-                            continue
-                        logger.error("Failed to download valid subtitles")
-                        return None
+                    if not has_language_chars:
+                        logger.warning(f"File doesn't contain {subs_lang} chars, attempt {attempt+1}/{max_retries}")
+                    if not has_timestamps:
+                        logger.warning(f"No timestamps in file, attempt {attempt+1}/{max_retries}")
+
+                    if attempt < max_retries - 1:
+                        time.sleep(10 + random.uniform(0, 3))
+                        continue
+                    logger.error("Failed to download valid subtitles")
+                    return None
 
                 except Exception as e:
                     logger.error(f"Error reading subtitle file: {e}")
@@ -7735,9 +7718,9 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     continue
                 logger.error("Final attempt failed due to 429")
                 return None
-            else:
-                logger.error(f"DownloadError: {e}")
-                return None
+            logger.error(f"DownloadError: {e}")
+            return None
+
         except Exception as e:
             logger.error(f"Unexpected error (attempt {attempt+1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
@@ -7746,6 +7729,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return None
 
     return None
+
 
 
 def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
