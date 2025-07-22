@@ -296,7 +296,7 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
     import yt_dlp
 
     max_retries = 2
-    retry_delays = [1.0, 2.0]  # seconds
+    retry_delays = [3.0, 5.0]  # seconds
 
     def extract_info_with_cookies():
         ytdl_opts = {
@@ -7716,7 +7716,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                                 logger.warning(f"Subtitles file doesn't contain timestamps, attempt {attempt + 1}/{max_retries}")
                             
                             if attempt < max_retries - 1:
-                                time.sleep(3)  # Увеличиваем паузу между попытками
+                                time.sleep(5)  # Увеличиваем паузу между попытками
                                 continue
                             else:
                                 logger.error(f"Failed to download valid subtitles after {max_retries} attempts")
@@ -7725,7 +7725,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     except Exception as e:
                         logger.error(f"Error reading subtitle file: {e}")
                         if attempt < max_retries - 1:
-                            time.sleep(3)
+                            time.sleep(5)
                             continue
                         else:
                             return None
@@ -7738,7 +7738,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             if "429" in str(e):
                 logger.warning(f"Received 429 Too Many Requests while downloading subtitles (attempt {attempt + 1}/{max_retries})")
                 if attempt < max_retries - 1:
-                    time.sleep(2 + attempt)  # увеличивающаяся задержка
+                    time.sleep(5 + attempt)  # увеличивающаяся задержка
                     continue
                 else:
                     logger.error("Final attempt failed due to 429 Too Many Requests")
@@ -7750,7 +7750,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
         except Exception as e:
             logger.error(f"Unexpected error downloading subtitles (attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
-                time.sleep(3)  # Пауза перед повторной попыткой
+                time.sleep(5)  # Пауза перед повторной попыткой
                 continue
             return None
 
