@@ -291,60 +291,71 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
     clear_subs_check_cache()
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
-    """Get available subtitle languages for a video. Handles 429 errors with retries."""
-    import time, random, os, yt_dlp
+    """Возвращает список доступных языков субтитров. Корректно обрабатывает 429."""
+    import os
+    import time
+    import random
+    import yt_dlp
 
-    max_retries = 3
-    def backoff(i):
-        return [30, 60, 120][i] + random.uniform(0, 3)
+    MAX_RETRIES = 3
+
+    def backoff(i: int) -> float:
+        # exponential-ish with jitter
+        base = (30, 60, 120)
+        return base[min(i, len(base) - 1)] + random.uniform(0, 3)
 
     def extract_info_with_cookies():
-        ytdl_opts = {
+        base_opts = {
             'quiet': True,
             'no_warnings': True,
-            'skip_download': True,
-            'simulate': True,
-            'listsubtitles': True,
+            'skip_download': True,   # do not download media
             'noplaylist': True,
-            'extract_flat': True,
             'sleep-requests': 2,
             'min_sleep_interval': 1,
             'max_sleep_interval': 3,
-            'extractor_args': {'youtube': {'player_client': ['web']}},
+            'retries': 6,
+            'extractor_retries': 3,
         }
 
+        # cookies
         if user_id:
             cookie_file = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(cookie_file):
-                ytdl_opts['cookiefile'] = cookie_file
+                base_opts['cookiefile'] = cookie_file
         elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
-            ytdl_opts['cookiefile'] = Config.COOKIE_FILE_PATH
+            base_opts['cookiefile'] = Config.COOKIE_FILE_PATH
 
-        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
-            return ydl.extract_info(url, download=False)
+        last_info = {}
+        for client in ('web', 'android', 'tv'):
+            opts = dict(base_opts)
+            opts['extractor_args'] = {'youtube': {'player_client': [client]}}
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+            if info.get('subtitles') or info.get('automatic_captions'):
+                logger.info(f"youtube player_client={client} returned captions")
+                return info
+            logger.info(f"player_client={client} has no captions, trying next...")
+            last_info = info
+        return last_info  # even if empty
 
-    for attempt in range(max_retries + 1):
+    for attempt in range(MAX_RETRIES):
         try:
             info = extract_info_with_cookies()
+
             normal = list(info.get('subtitles', {}).keys())
             auto   = list(info.get('automatic_captions', {}).keys())
 
-            if auto_only:
-                result = auto
-                logger.info(f"Found auto captions: {auto}")
-            else:
-                result = normal
-                logger.info(f"Found subtitles: {normal}")
-
+            result = auto if auto_only else normal
             result = list(set(result))
+
             logger.info(f"get_available_subs_languages: auto_only={auto_only}, result={result}")
             return result
 
         except yt_dlp.utils.DownloadError as e:
             if "429" in str(e):
-                if attempt < max_retries:
+                if attempt < MAX_RETRIES - 1:
                     delay = backoff(attempt)
-                    logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{max_retries}) sleep {delay:.1f}s")
+                    logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{MAX_RETRIES}) sleep {delay:.1f}s")
                     time.sleep(delay)
                     continue
                 logger.error("Final attempt failed with 429")
@@ -356,6 +367,7 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             break
 
     return []
+
 
 
 
@@ -7584,13 +7596,16 @@ def check_subs_limits(info_dict, quality_key=None):
 
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
-    Отдельно скачивает субтитры для видео через yt-dlp с проверкой языка
+    Отдельно скачивает субтитры для видео через yt-dlp с проверкой языка.
     """
-    import os, time, random, yt_dlp
+    import os
+    import time
+    import random
+    import yt_dlp
 
-    max_retries = 3
+    MAX_RETRIES = 3
 
-    for attempt in range(max_retries):
+    for attempt in range(MAX_RETRIES):
         try:
             subs_lang = get_user_subs_language(user_id)
             auto_mode = get_user_subs_auto_mode(user_id)
@@ -7630,17 +7645,20 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             else:
                 subs_opts.update({'writeautomaticsub': False, 'writesubtitles': True})
 
+            # cookies
             user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(user_cookie_path):
                 subs_opts['cookiefile'] = user_cookie_path
             elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
                 subs_opts['cookiefile'] = Config.COOKIE_FILE_PATH
 
+            # set lang
             subs_opts['subtitleslangs'] = [found_lang]
 
             with yt_dlp.YoutubeDL(subs_opts) as ydl:
                 ydl.download([url])
 
+            # find downloaded srt
             srt_files = [f for f in os.listdir(video_dir)
                          if f.lower().endswith('.srt') and f".{found_lang}." in f.lower()]
             if not srt_files:
@@ -7648,6 +7666,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 if not srt_files:
                     return None
 
+            # pick the newest
+            srt_files.sort(key=lambda fn: os.path.getmtime(os.path.join(video_dir, fn)), reverse=True)
             subs_path = os.path.join(video_dir, srt_files[0])
             logger.info(f"Subtitles downloaded: {subs_path}")
 
@@ -7656,29 +7676,31 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     with open(subs_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
 
+                    # language chars check
                     has_language_chars = False
                     if subs_lang == 'ru':
-                        russian_chars = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
-                        has_language_chars = any(ch.lower() in russian_chars for ch in content if ch.isalpha())
+                        alphabet = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
+                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
                     elif subs_lang == 'en':
-                        english_chars = 'abcdefghijklmnopqrstuvwxyz'
-                        has_language_chars = any(ch.lower() in english_chars for ch in content if ch.isalpha())
+                        alphabet = 'abcdefghijklmnopqrstuvwxyz'
+                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
                     elif subs_lang == 'es':
-                        spanish_chars = 'abcdefghijklmnopqrstuvwxyzñáéíóúü'
-                        has_language_chars = any(ch.lower() in spanish_chars for ch in content if ch.isalpha())
+                        alphabet = 'abcdefghijklmnopqrstuvwxyzñáéíóúü'
+                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
                     elif subs_lang == 'fr':
-                        french_chars = 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç'
-                        has_language_chars = any(ch.lower() in french_chars for ch in content if ch.isalpha())
+                        alphabet = 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç'
+                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
                     elif subs_lang == 'de':
-                        german_chars = 'abcdefghijklmnopqrstuvwxyzäöüß'
-                        has_language_chars = any(ch.lower() in german_chars for ch in content if ch.isalpha())
+                        alphabet = 'abcdefghijklmnopqrstuvwxyzäöüß'
+                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
                     elif subs_lang == 'it':
-                        italian_chars = 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù'
-                        has_language_chars = any(ch.lower() in italian_chars for ch in content if ch.isalpha())
+                        alphabet = 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù'
+                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
                     elif subs_lang == 'pt':
-                        portuguese_chars = 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú'
-                        has_language_chars = any(ch.lower() in portuguese_chars for ch in content if ch.isalpha())
+                        alphabet = 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú'
+                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
                     elif subs_lang in ('ja', 'ko', 'zh', 'ar'):
+                        # quick unicode check
                         has_language_chars = any(ord(ch) > 127 for ch in content if ch.isalpha())
                     else:
                         has_language_chars = any(ord(ch) > 127 for ch in content if ch.isalpha())
@@ -7690,11 +7712,11 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                         return subs_path
 
                     if not has_language_chars:
-                        logger.warning(f"File doesn't contain {subs_lang} chars, attempt {attempt+1}/{max_retries}")
+                        logger.warning(f"File doesn't contain {subs_lang} chars, attempt {attempt+1}/{MAX_RETRIES}")
                     if not has_timestamps:
-                        logger.warning(f"No timestamps in file, attempt {attempt+1}/{max_retries}")
+                        logger.warning(f"No timestamps in file, attempt {attempt+1}/{MAX_RETRIES}")
 
-                    if attempt < max_retries - 1:
+                    if attempt < MAX_RETRIES - 1:
                         time.sleep(10 + random.uniform(0, 3))
                         continue
                     logger.error("Failed to download valid subtitles")
@@ -7702,7 +7724,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
                 except Exception as e:
                     logger.error(f"Error reading subtitle file: {e}")
-                    if attempt < max_retries - 1:
+                    if attempt < MAX_RETRIES - 1:
                         time.sleep(10 + random.uniform(0, 3))
                         continue
                     return None
@@ -7711,8 +7733,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
         except yt_dlp.utils.DownloadError as e:
             if "429" in str(e):
-                logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{max_retries})")
-                if attempt < max_retries - 1:
+                logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{MAX_RETRIES})")
+                if attempt < MAX_RETRIES - 1:
                     sleep_sec = 30 * (attempt + 1) + random.uniform(0, 3)
                     time.sleep(sleep_sec)
                     continue
@@ -7722,13 +7744,14 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return None
 
         except Exception as e:
-            logger.error(f"Unexpected error (attempt {attempt+1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
+            logger.error(f"Unexpected error (attempt {attempt+1}/{MAX_RETRIES}): {e}")
+            if attempt < MAX_RETRIES - 1:
                 time.sleep(10 + random.uniform(0, 3))
                 continue
             return None
 
     return None
+
 
 
 
