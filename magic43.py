@@ -141,60 +141,66 @@ def ensure_utf8_srt(srt_path):
 
 def force_fix_arabic_encoding(srt_path, lang=None):
     """
-    Принудительно чинит кракозябры в субтитрах для арабских/персидских/урду и т.п. языков.
-    Всегда перезаписывает файл в UTF-8.
-    
-    :param srt_path: путь к файлу .srt/.vtt
-    :param lang: код языка ('ar', 'fa', 'ur', 'ps', 'iw', 'he'); если не из списка — просто выходим
-    :return: путь к файлу (или None при ошибке)
+    Принудительная перекодировка арабских/персидских/урду и т.п. субтитров.
+    Если язык не из списка RTL_FIX_LANGS — ничего не делаем.
+    Всегда сохраняем результат в UTF-8.
     """
     import os
-
-    RTL_LANGS = {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}
-    if lang not in RTL_LANGS:
-        # Ничего не делаем для прочих языков
-        return srt_path
 
     if not os.path.exists(srt_path):
         return None
 
+    # если передали язык и он нам не интересен — сразу выходим
+    if lang and lang not in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
+        return srt_path
+
     try:
         with open(srt_path, 'rb') as f:
             raw = f.read()
+    except Exception as e:
+        logger.error(f"force_fix_arabic_encoding: read error {srt_path}: {e}")
+        return None
 
-        # Часто встречающиеся кодировки для арабских субтитров
-        candidate_encodings = ['cp1256', 'windows-1256', 'iso-8859-6', 'utf-8', 'utf-8-sig']
+    # порядок имеет значение: сначала пробуем нормальные utf-8 варианты
+    encodings = [
+        'utf-8-sig', 'utf-8',
+        'cp1256', 'windows-1256',
+        'iso-8859-6', 'mac-arabic', 'cp720'
+    ]
 
-        best_text = None
-        best_encoding = None
-        min_bad = float('inf')
+    best_text = None
+    best_bad = 10**9
+    best_enc = None
 
-        for enc in candidate_encodings:
-            try:
-                txt = raw.decode(enc)
-                # Простая метрика: сколько знаков вопроса осталось (обычно они появляются вместо букв)
-                bad = txt.count('?')
-                if bad < min_bad:
-                    min_bad = bad
-                    best_text = txt
-                    best_encoding = enc
-            except Exception:
-                continue
+    for enc in encodings:
+        try:
+            txt = raw.decode(enc, errors='replace')
+        except Exception:
+            continue
+        # чем меньше знаков '?', тем лучше (простая метрика «испорченности»)
+        bad = txt.count('?')
+        if bad < best_bad:
+            best_bad = bad
+            best_text = txt
+            best_enc = enc
 
-        if best_text is None:
-            # Последняя попытка — силой в utf-8 с заменами
-            best_text = raw.decode('utf-8', errors='replace')
-            best_encoding = 'utf-8 (force)'
+    if best_text is None:
+        # вообще ничего не получилось — жёстко форсим utf-8
+        best_text = raw.decode('utf-8', errors='replace')
+        best_enc = 'utf-8(force)'
 
+    # небольшая нормализация
+    best_text = best_text.replace('\r\n', '\n').replace('\r', '\n').replace('\ufeff', '')
+
+    try:
         with open(srt_path, 'w', encoding='utf-8') as f:
             f.write(best_text)
-
-        logger.info(f"force_fix_arabic_encoding: {srt_path} re-encoded from {best_encoding} -> utf-8")
+        logger.info(f"force_fix_arabic_encoding: {srt_path} re-encoded from {best_enc} -> utf-8")
         return srt_path
-
     except Exception as e:
-        logger.error(f"force_fix_arabic_encoding error ({srt_path}): {e}")
+        logger.error(f"force_fix_arabic_encoding: write error {srt_path}: {e}")
         return None
+
 
 
 # Dictionary of languages with their emoji flags and native names
