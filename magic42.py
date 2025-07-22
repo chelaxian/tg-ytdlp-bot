@@ -139,73 +139,63 @@ def ensure_utf8_srt(srt_path):
         logger.error(f"Ошибка при записи файла {srt_path}: {e}")
         return None
 
-def force_fix_arabic_encoding(srt_path):
+def force_fix_arabic_encoding(srt_path, lang=None):
     """
-    Force-fix broken Arabic (and generic) encodings in SRT/VTT files.
-    Always rewrites file to UTF-8.
+    Принудительно чинит кракозябры в субтитрах для арабских/персидских/урду и т.п. языков.
+    Всегда перезаписывает файл в UTF-8.
+    
+    :param srt_path: путь к файлу .srt/.vtt
+    :param lang: код языка ('ar', 'fa', 'ur', 'ps', 'iw', 'he'); если не из списка — просто выходим
+    :return: путь к файлу (или None при ошибке)
     """
-    import os, re, codecs
+    import os
+
+    RTL_LANGS = {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}
+    if lang not in RTL_LANGS:
+        # Ничего не делаем для прочих языков
+        return srt_path
 
     if not os.path.exists(srt_path):
         return None
 
-    # Arabic unicode ranges (primary + presentation forms)
-    arabic_re = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]')
-
-    # Candidate encodings to try
-    candidates = [
-        'utf-8-sig', 'utf-8',
-        'cp1256', 'windows-1256',
-        'iso-8859-6', 'cp720', 'mac-arabic'
-    ]
-
     try:
         with open(srt_path, 'rb') as f:
             raw = f.read()
-    except Exception as e:
-        logger.error(f"force_fix_arabic_encoding: read error {srt_path}: {e}")
-        return None
 
-    best_text = None
-    best_score = None
-    best_enc = None
+        # Часто встречающиеся кодировки для арабских субтитров
+        candidate_encodings = ['cp1256', 'windows-1256', 'iso-8859-6', 'utf-8', 'utf-8-sig']
 
-    for enc in candidates:
-        try:
-            # decode with replacement so we can count bad chars
-            text = raw.decode(enc, errors='replace')
-        except Exception:
-            continue
+        best_text = None
+        best_encoding = None
+        min_bad = float('inf')
 
-        # metrics
-        rep_cnt = text.count('\ufffd') + text.count('�') + text.count('?')
-        ar_cnt = len(arabic_re.findall(text))
-        # Lower score is better: we punish replacements, reward arabic chars
-        score = rep_cnt * 1000 - ar_cnt
+        for enc in candidate_encodings:
+            try:
+                txt = raw.decode(enc)
+                # Простая метрика: сколько знаков вопроса осталось (обычно они появляются вместо букв)
+                bad = txt.count('?')
+                if bad < min_bad:
+                    min_bad = bad
+                    best_text = txt
+                    best_encoding = enc
+            except Exception:
+                continue
 
-        if best_score is None or score < best_score:
-            best_score = score
-            best_text = text
-            best_enc = enc
+        if best_text is None:
+            # Последняя попытка — силой в utf-8 с заменами
+            best_text = raw.decode('utf-8', errors='replace')
+            best_encoding = 'utf-8 (force)'
 
-    if best_text is None:
-        # fallback: brute-force utf-8 with replace
-        best_text = raw.decode('utf-8', errors='replace')
-        best_enc = 'utf-8 (force)'
-
-    # Normalize line endings and strip BOM artifacts
-    best_text = best_text.replace('\r\n', '\n').replace('\r', '\n')
-    # Some files have duplicated BOM chars inside lines, wipe them
-    best_text = best_text.replace('\ufeff', '')
-
-    try:
-        with codecs.open(srt_path, 'w', encoding='utf-8') as f:
+        with open(srt_path, 'w', encoding='utf-8') as f:
             f.write(best_text)
-        logger.info(f"force_fix_arabic_encoding: {srt_path} re-encoded from {best_enc} -> utf-8")
+
+        logger.info(f"force_fix_arabic_encoding: {srt_path} re-encoded from {best_encoding} -> utf-8")
         return srt_path
+
     except Exception as e:
-        logger.error(f"force_fix_arabic_encoding: write error {srt_path}: {e}")
+        logger.error(f"force_fix_arabic_encoding error ({srt_path}): {e}")
         return None
+
 
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
@@ -554,8 +544,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                             ok_lang = check_lang_text(subs_lang, content)
 
                         if ok_ts and ok_lang:
-                            if subs_lang == 'ar':
-                                force_fix_arabic_encoding(subs_path)
+                            if subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
+                                force_fix_arabic_encoding(subs_path, subs_lang)
                             logger.info(f"Valid subtitles ({subs_lang}), size={os.path.getsize(subs_path)}")
                             return subs_path
                         else:
@@ -608,8 +598,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     ok_lang = check_lang_text(subs_lang, content)
 
                 if ok_ts and ok_lang:
-                    if subs_lang == 'ar':
-                        force_fix_arabic_encoding(dst_path)
+                    if subs_lang in {'ar','fa','ur','ps','iw','he'}:
+                        force_fix_arabic_encoding(dst_path, subs_lang)
                     logger.info(f"Valid subtitles (fallback) ({subs_lang}), size={os.path.getsize(dst_path)}")
                     return dst_path
 
@@ -682,8 +672,8 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
         if subs_path and os.path.exists(subs_path):
             # Process subtitle file
             subs_path = ensure_utf8_srt(subs_path)
-            if subs_path:
-                subs_path = force_fix_arabic_encoding(subs_path)
+            if subs_path and subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
+                subs_path = force_fix_arabic_encoding(subs_path, subs_lang)
             
             if subs_path and os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
                 # Get video information for caption
@@ -8045,7 +8035,8 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             return False
 
         # Принудительно исправляем арабские кракозябры
-        subs_path = force_fix_arabic_encoding(subs_path)
+        if subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
+            subs_path = force_fix_arabic_encoding(subs_path, subs_lang)
         if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
             logger.error(f"Subtitle file after force_fix_arabic_encoding is missing or empty: {subs_path}")
             return False
