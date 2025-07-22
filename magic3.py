@@ -387,35 +387,36 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
 
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
-    Скачивает субтитры через yt-dlp. При неудаче — прямой timedtext fallback.
-    Языковая проверка строгая только для RTL/CJK, иначе принимаем по таймкодам.
+    Скачивает субтитры через yt-dlp. Если не получилось или пришёл 429 — берём прямой timedtext URL.
+    НЕ форсим &fmt=srt и не заставляем сервер конвертировать – берём то, что отдаёт YouTube.
+    Валидируем по таймкодам + (для RTL/CJK) по юникод-диапазону.
     """
-    import os, time, random, re, yt_dlp, requests
+    import os, re, time, random, yt_dlp, requests
 
-    MAX_RETRIES = 1  # мы не хотим долбиться десятки раз – лучше сразу fallback
+    MAX_RETRIES = 1  # не долбим youtube по 10 раз
+    RTL_CJK = {'ar', 'fa', 'ur', 'ps', 'iw', 'he', 'zh', 'zh-Hans', 'zh-Hant', 'ja', 'ko'}
 
-    RTL_CJK = {'ar','fa','ur','iw','he','zh','zh-Hans','zh-Hant','ja','ko'}
-
-    def rand_jitter(base: float, spread: float = 2.5):
+    # ---------- helpers ----------
+    def _rand_jitter(base: float, spread: float = 2.5):
         return base + random.uniform(0, spread)
 
-    def has_timestamps(text: str) -> bool:
-        patterns = (
+    def _has_timestamps(text: str) -> bool:
+        pats = (
             r"\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}",  # SRT
-            r"WEBVTT",               # VTT header
-            r"<tt[\s>]", r"<p[^>]+begin=",  # TTML/DFXP
+            r"WEBVTT",                                # VTT
+            r"<tt[\s>]", r"<p[^>]+begin=",            # TTML/DFXP
         )
-        return any(re.search(p, text, re.IGNORECASE) for p in patterns)
+        return any(re.search(p, text, flags=re.IGNORECASE) for p in pats)
 
     UNICODE_RANGES = {
         'ar': r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]',
+        'fa': r'[\u0600-\u06FF]',
+        'ur': r'[\u0600-\u06FF]',
+        'iw': r'[\u0590-\u05FF]',
+        'he': r'[\u0590-\u05FF]',
         'zh': r'[\u4E00-\u9FFF\u3400-\u4DBF]',
         'ja': r'[\u3040-\u30FF\u31F0-\u31FF\uFF66-\uFF9D\u4E00-\u9FFF]',
         'ko': r'[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]',
-        'fa': r'[\u0600-\u06FF]',   # перс
-        'ur': r'[\u0600-\u06FF]',
-        'iw': r'[\u0590-\u05FF]',   # иврит (старое обозначение)
-        'he': r'[\u0590-\u05FF]',
     }
     ALPHABETS = {
         'ru': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
@@ -427,24 +428,18 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
         'pt': 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú',
     }
 
-    def check_lang_text(lang: str, text: str) -> bool:
-        # совсем маленькие файлы часто 429-заглушки
+    def _check_lang_text(lang: str, text: str) -> bool:
         if len(text) < 120:
             return False
-
         if lang in RTL_CJK:
-            pattern = UNICODE_RANGES.get(lang) or r'[\u0600-\u06FF]'  # default rtl range
-            return re.search(pattern, text) is not None
-
-        # Для латиницы можно проверить алфавит, но не критично
+            pat = UNICODE_RANGES.get(lang)
+            return re.search(pat, text) is not None if pat else True
         if lang in ALPHABETS:
             alpha = ALPHABETS[lang]
             return any(ch.lower() in alpha for ch in text if ch.isalpha())
-
-        # def: любые non-ascii
         return any(ord(ch) > 127 for ch in text if ch.isalpha())
 
-    def download_timedtext(track_url: str, dst_path: str, retries: int = 3) -> bool:
+    def _download_timedtext(track_url: str, dst_path: str, retries: int = 3) -> bool:
         sess = requests.Session()
         headers = {
             "User-Agent": "Mozilla/5.0",
@@ -457,15 +452,15 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     f.write(r.content)
                 return True
             if r.status_code == 429:
-                sleep_s = rand_jitter([10, 25, 55][min(i, 2)])
+                sleep_s = _rand_jitter([10, 25, 55][min(i, 2)])
                 logger.warning(f"timedtext 429, sleep {sleep_s:.1f}s ({i+1}/{retries})")
                 time.sleep(sleep_s)
                 continue
             logger.error(f"timedtext HTTP {r.status_code}, retry {i+1}/{retries}")
-            time.sleep(rand_jitter(5))
+            time.sleep(_rand_jitter(5))
         return False
+    # -----------------------------
 
-    # ---------- основной цикл ----------
     for attempt in range(MAX_RETRIES):
         try:
             subs_lang = get_user_subs_language(user_id)
@@ -484,7 +479,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             client = _subs_check_cache.get(f"{url}_{user_id}_client", 'tv')
 
-            # --- 1) yt-dlp попытка ---
+            # 1) yt-dlp
             subs_opts = {
                 'skip_download': True,
                 'format': 'best',
@@ -501,7 +496,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 'quiet': True,
                 'no_warnings': True,
                 'extractor_args': {'youtube': {'player_client': [client]}},
-                'subtitleslangs': [found_lang],   # только выбранный язык
+                'subtitleslangs': [found_lang],
             }
             if auto_mode:
                 subs_opts.update({'writeautomaticsub': True, 'writesubtitles': False})
@@ -514,37 +509,32 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
                 subs_opts['cookiefile'] = Config.COOKIE_FILE_PATH
 
-            yt_success = False
+            yt_ok = False
             try:
                 with yt_dlp.YoutubeDL(subs_opts) as ydl:
                     ydl.download([url])
-                yt_success = True
+                yt_ok = True
             except yt_dlp.utils.DownloadError as e:
                 if "429" not in str(e):
-                    raise
-                # 429 – пойдём в fallback
+                    raise  # не rate-limit – кидаем дальше
 
-            if yt_success:
-                # ищем файл (учитываем NA.*, *-orig и т.п.)
+            if yt_ok:
                 fl = found_lang.lower()
-                candidates = [f for f in os.listdir(video_dir)
-                              if f.lower().endswith('.srt') and (f".{fl}." in f.lower() or f".{fl}-" in f.lower() or f".na.{fl}." in f.lower())]
-                if not candidates:
-                    # fallback к любому srt
-                    candidates = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
-                if candidates:
-                    candidates.sort(key=lambda fn: os.path.getmtime(os.path.join(video_dir, fn)), reverse=True)
-                    subs_path = os.path.join(video_dir, candidates[0])
+                cand = [f for f in os.listdir(video_dir)
+                        if f.lower().endswith('.srt') and (f".{fl}." in f.lower() or f".{fl}-" in f.lower() or f".na.{fl}." in f.lower())]
+                if not cand:
+                    cand = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
+                if cand:
+                    cand.sort(key=lambda fn: os.path.getmtime(os.path.join(video_dir, fn)), reverse=True)
+                    subs_path = os.path.join(video_dir, cand[0])
                     logger.info(f"Subtitles downloaded: {subs_path}")
 
                     if os.path.getsize(subs_path) > 0:
                         with open(subs_path, 'r', encoding='utf-8', errors='ignore') as f:
                             content = f.read()
 
-                        ok_ts = has_timestamps(content)
-                        ok_lang = True
-                        if subs_lang in RTL_CJK:
-                            ok_lang = check_lang_text(subs_lang, content)
+                        ok_ts = _has_timestamps(content)
+                        ok_lang = _check_lang_text(subs_lang, content) if subs_lang in RTL_CJK else True
 
                         if ok_ts and ok_lang:
                             if subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
@@ -553,11 +543,13 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                             return subs_path
                         else:
                             logger.warning("Downloaded file invalid, deleting...")
-                            try: os.remove(subs_path)
-                            except: pass
-                    # если файл пустой/битый – уходим в fallback
+                            try:
+                                os.remove(subs_path)
+                            except Exception:
+                                pass
+                    # иначе идём в fallback
 
-            # --- 2) Fallback: прямой timedtext ---
+            # 2) fallback: timedtext
             info_opts = dict(subs_opts)
             info_opts['skip_download'] = True
             info_opts['writesubtitles'] = False
@@ -570,9 +562,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             tracks = subs_dict.get(found_lang) or []
             if not tracks:
-                # Иногда нужный язык подписан ru-orig и т.д.
-                alt_key = next((k for k in subs_dict if k.startswith(found_lang)), None)
-                tracks = subs_dict.get(alt_key, []) if alt_key else []
+                alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
+                tracks = subs_dict.get(alt, []) if alt else []
 
             if not tracks:
                 logger.error("No track URL found in info for selected language")
@@ -581,34 +572,34 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             preferred = ('srt', 'vtt', 'json3', 'srv3', 'ttml')
             track = next((t for t in tracks if (t.get('ext') or '').lower() in preferred), tracks[0])
 
+            ext = (track.get('ext') or 'txt').lower()
             track_url = track.get('url', '')
-            if track_url and 'fmt=' not in track_url:
-                track_url += '&fmt=srt'
 
-            base_name = f"{info.get('title','video')[:50]}.{found_lang}.srt"
+            base_name = f"{info.get('title','video')[:50]}.{found_lang}.{ext}"
             dst_path = os.path.join(video_dir, base_name)
 
-            if not download_timedtext(track_url, dst_path):
+            if not _download_timedtext(track_url, dst_path):
                 return None
 
             if os.path.exists(dst_path) and os.path.getsize(dst_path) > 0:
+                # читаем как текст, даже если vtt/ttml – нам для проверки
                 with open(dst_path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
 
-                ok_ts = has_timestamps(content)
-                ok_lang = True
-                if subs_lang in RTL_CJK:
-                    ok_lang = check_lang_text(subs_lang, content)
+                ok_ts = _has_timestamps(content)
+                ok_lang = _check_lang_text(subs_lang, content) if subs_lang in RTL_CJK else True
 
                 if ok_ts and ok_lang:
-                    if subs_lang in {'ar','fa','ur','ps','iw','he'}:
+                    if subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
                         force_fix_arabic_encoding(dst_path, subs_lang)
                     logger.info(f"Valid subtitles (fallback) ({subs_lang}), size={os.path.getsize(dst_path)}")
                     return dst_path
 
                 logger.warning("Fallback file invalid, deleting...")
-                try: os.remove(dst_path)
-                except: pass
+                try:
+                    os.remove(dst_path)
+                except Exception:
+                    pass
 
             logger.error("Failed to get valid subtitles after fallback")
             return None
@@ -617,7 +608,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             if "429" in str(e):
                 logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{MAX_RETRIES})")
                 if attempt < MAX_RETRIES - 1:
-                    time.sleep(rand_jitter(25 * (attempt + 1)))
+                    time.sleep(_rand_jitter(25 * (attempt + 1)))
                     continue
                 logger.error("Final attempt failed due to 429")
                 return None
@@ -626,11 +617,12 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
         except Exception as e:
             logger.error(f"Unexpected error (attempt {attempt+1}/{MAX_RETRIES}): {e}")
             if attempt < MAX_RETRIES - 1:
-                time.sleep(rand_jitter(10))
+                time.sleep(_rand_jitter(10))
                 continue
             return None
 
     return None
+
 
 
 def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
