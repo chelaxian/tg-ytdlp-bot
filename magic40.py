@@ -312,45 +312,22 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
             os.remove(auto_file)
     clear_subs_check_cache()
 
-# ---------------- helpers ----------------
-def _rand_jitter(base: float, spread: float = 3.0):
-    import random
-    return base + random.uniform(0, spread)
-
-def _download_timedtext(url, dst_path, max_retries=5):
-    """Скачивает файл субтитров по прямому URL (YouTube timedtext) с бэкоффом."""
-    import time, requests, os
-
-    sess = requests.Session()
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Accept-Language": "en-US,en;q=0.9",
-    }
-
-    for i in range(max_retries):
-        r = sess.get(url, headers=headers, timeout=20)
-        if r.status_code == 200 and r.content:
-            with open(dst_path, "wb") as f:
-                f.write(r.content)
-            return True
-        if r.status_code == 429:
-            sleep_s = _rand_jitter([30, 60, 120, 180, 240][min(i, 4)])
-            logger.warning(f"timedtext 429, sleep {sleep_s:.1f}s ({i+1}/{max_retries})")
-            time.sleep(sleep_s)
-            continue
-        logger.error(f"timedtext HTTP {r.status_code}, retry {i+1}/{max_retries}")
-        time.sleep(_rand_jitter(5))
-    return False
-# -----------------------------------------
-# Глобальный кеш клиентa, чтобы использовать тот же при скачивании
+# ----------------- globals -----------------
 _subs_check_cache = globals().get('_subs_check_cache', {})
+_subs_info_cache  = globals().get('_subs_info_cache', {})
+# -------------------------------------------
+
+
 def get_available_subs_languages(url, user_id=None, auto_only=False):
-    """Возвращает список доступных языков субтитров. Обрабатывает 429 и 'Requested format...'."""
-    import os, time, random, yt_dlp
+    """
+    Возвращает список доступных языков субтитров.
+    Делает ОДИН extract_info (с подбором player_client); результат кешируется.
+    """
+    import os, random, yt_dlp
 
     MAX_RETRIES = 1
-    def backoff(i): return (3, 5, 10)[min(i, 2)] + random.uniform(0, 3)
-    #def backoff(i): return (30, 60, 120)[min(i, 2)] + random.uniform(0, 3)
+    def backoff(i):  # короткий, т.к. 429 тут редкость
+        return (3, 5, 10)[min(i, 2)] + random.uniform(0, 2.5)
 
     def extract_info_with_cookies():
         base_opts = {
@@ -358,14 +335,14 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             'no_warnings': True,
             'skip_download': True,
             'noplaylist': True,
-            'format': 'best',
             'ignore_no_formats_error': True,
-            'sleep-requests': 2,
-            'min_sleep_interval': 1,
-            'max_sleep_interval': 3,
-            'retries': 6,
-            'extractor_retries': 3,
+            'sleep-requests': 1,
+            'min_sleep_interval': 0.5,
+            'max_sleep_interval': 1.5,
+            'retries': 3,
+            'extractor_retries': 2,
         }
+
         # cookies
         if user_id:
             cf = os.path.join("users", str(user_id), "cookie.txt")
@@ -379,26 +356,35 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             opts = dict(base_opts)
             if client:
                 opts['extractor_args'] = {'youtube': {'player_client': [client]}}
+
             try:
                 with yt_dlp.YoutubeDL(opts) as ydl:
                     info = ydl.extract_info(url, download=False)
             except yt_dlp.utils.DownloadError as e:
+                # "Requested format is not available" sometimes flies by, just try next
                 if 'Requested format is not available' in str(e):
                     continue
                 raise
+
             if info.get('subtitles') or info.get('automatic_captions'):
                 used_client = client or 'default'
                 logger.info(f"youtube player_client={used_client} returned captions")
                 _subs_check_cache[f"{url}_{user_id}_client"] = used_client
+                _subs_info_cache[(url, user_id)] = info            # кешим
                 return info
+
             logger.info(f"player_client={client or 'default'} has no captions, trying next...")
             last_info = info
+
         _subs_check_cache[f"{url}_{user_id}_client"] = used_client or 'default'
+        _subs_info_cache[(url, user_id)] = last_info
         return last_info
 
     for attempt in range(MAX_RETRIES):
         try:
-            info = extract_info_with_cookies()
+            info = _subs_info_cache.get((url, user_id))
+            if not info:
+                info = extract_info_with_cookies()
 
             normal = list(info.get('subtitles', {}).keys())
             auto   = list(info.get('automatic_captions', {}).keys())
@@ -424,6 +410,269 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
 
     return []
 
+
+def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
+    """
+    Скачивает СРАЗУ по прямому URL дорожки из extract_info.
+    yt-dlp используется только для получения info (если нет в кеше).
+    Валидирует язык, таймкоды и при арабском правит кодировку.
+    """
+    import os, time, re, yt_dlp, random
+
+    MAX_RETRIES = 1  # по одному заходу – не долбим API
+
+    # ---------- helpers ----------
+    def _rand_jitter(base: float, spread: float = 2.0):
+        return base + random.uniform(0, spread)
+
+    def _has_timestamps(text: str) -> bool:
+        patterns = [
+            r"\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}",  # SRT
+            r"\bWEBVTT\b",                         # VTT header
+            r"<tt[\s>]", r"<p[^>]+begin=",         # TTML
+        ]
+        return any(re.search(p, text, re.IGNORECASE) for p in patterns)
+
+    _UNICODE_RANGES = {
+        'ar': r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]',
+        'zh': r'[\u4E00-\u9FFF\u3400-\u4DBF]',
+        'ja': r'[\u3040-\u30FF\u31F0-\u31FF\uFF66-\uFF9D\u4E00-\u9FFF]',
+        'ko': r'[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]',
+    }
+    _ALPHABETS = {
+        'ru': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+        'en': 'abcdefghijklmnopqrstuvwxyz',
+        'es': 'abcdefghijklmnopqrstuvwxyzñáéíóúü',
+        'fr': 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç',
+        'de': 'abcdefghijklmnopqrstuvwxyzäöüß',
+        'it': 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù',
+        'pt': 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú',
+    }
+
+    def _check_lang_text(lang: str, text: str) -> bool:
+        if not text or len(text) < 50:
+            return False
+        if lang in _ALPHABETS:
+            alpha = _ALPHABETS[lang]
+            return any(ch.lower() in alpha for ch in text if ch.isalpha())
+        if lang in _UNICODE_RANGES:
+            return re.search(_UNICODE_RANGES[lang], text) is not None
+        return any(ord(ch) > 127 for ch in text if ch.isalpha())
+
+    def _download_timedtext(track_url: str, dst_path: str) -> bool:
+        import requests
+        sess = requests.Session()
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+        r = sess.get(track_url, headers=headers, timeout=20)
+        if r.status_code == 200 and r.content:
+            with open(dst_path, "wb") as f:
+                f.write(r.content)
+            return True
+        if r.status_code == 429:
+            logger.warning("timedtext 429 on first hit -> abort (no spam)")
+        else:
+            logger.error(f"timedtext HTTP {r.status_code}")
+        return False
+    # -----------------------------
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            subs_lang = get_user_subs_language(user_id)
+            auto_mode = get_user_subs_auto_mode(user_id)
+
+            if not subs_lang or subs_lang == "OFF":
+                return None
+            if not available_langs:
+                logger.info(f"No subtitles available for {subs_lang}")
+                return None
+
+            found_lang = lang_match(subs_lang, available_langs)
+            if not found_lang:
+                logger.info(f"Language {subs_lang} not found in {available_langs}")
+                return None
+
+            # info из кеша, иначе получаем быстро
+            info = _subs_info_cache.get((url, user_id))
+            if not info:
+                # быстрый extract без скачивания
+                base_opts = {
+                    'quiet': True,
+                    'no_warnings': True,
+                    'skip_download': True,
+                    'noplaylist': True,
+                    'ignore_no_formats_error': True,
+                    'retries': 2,
+                    'extractor_retries': 1,
+                }
+                client = _subs_check_cache.get(f"{url}_{user_id}_client", 'tv')
+                base_opts['extractor_args'] = {'youtube': {'player_client': [client]}}
+
+                user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+                if os.path.exists(user_cookie_path):
+                    base_opts['cookiefile'] = user_cookie_path
+                elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
+                    base_opts['cookiefile'] = Config.COOKIE_FILE_PATH
+
+                with yt_dlp.YoutubeDL(base_opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                _subs_info_cache[(url, user_id)] = info
+
+            subs_dict = info.get('automatic_captions' if auto_mode else 'subtitles', {})
+            tracks = subs_dict.get(found_lang) or []
+            if not tracks:
+                logger.error("No track URL for selected language in info")
+                return None
+
+            # Берём первую адекватную дорожку
+            preferred_ext = ('srt', 'vtt', 'json3', 'srv3', 'ttml')
+            track = next((t for t in tracks if (t.get('ext') or '').lower() in preferred_ext), tracks[0])
+            track_url = track.get('url', '')
+            if not track_url:
+                logger.error("Empty track URL")
+                return None
+
+            # просим сразу srt, если возможно (YouTube вернёт что может)
+            if 'fmt=' not in track_url:
+                track_url += '&fmt=srt'
+
+            base_name = f"{info.get('title','video')[:50]}.{found_lang}.srt"
+            dst_path  = os.path.join(video_dir, base_name)
+
+            ok = _download_timedtext(track_url, dst_path)
+            if not ok:
+                logger.error("Direct timedtext download failed")
+                return None
+
+            # validate
+            if os.path.exists(dst_path) and os.path.getsize(dst_path) > 0:
+                with open(dst_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+
+                if _check_lang_text(subs_lang, content) and _has_timestamps(content):
+                    if subs_lang == 'ar':
+                        force_fix_arabic_encoding(dst_path)
+                    logger.info(f"Valid subtitles ({subs_lang}), size={os.path.getsize(dst_path)}")
+                    return dst_path
+
+                logger.warning("Downloaded file invalid, deleting...")
+                try:
+                    os.remove(dst_path)
+                except Exception:
+                    pass
+
+            logger.error("Failed to get valid subtitles")
+            return None
+
+        except yt_dlp.utils.DownloadError as e:
+            if "429" in str(e):
+                logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{MAX_RETRIES}) – abort")
+                return None
+            logger.error(f"DownloadError: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error (attempt {attempt+1}/{MAX_RETRIES}): {e}")
+            return None
+
+    return None
+
+def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
+    """
+    Скачивает и отправляет только файл субтитров без видео
+    """
+    user_id = message.chat.id
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    
+    try:
+        # Check if subtitles are enabled
+        subs_lang = get_user_subs_language(user_id)
+        if not subs_lang or subs_lang == "OFF":
+            app.send_message(user_id, "❌ Subtitles are disabled. Use /subs to configure.")
+            return
+        
+        # Check if this is YouTube
+        if not is_youtube_url(url):
+            app.send_message(user_id, "❌ Subtitle downloading is only supported for YouTube.")
+            return
+        
+        # Check subtitle availability
+        auto_mode = get_user_subs_auto_mode(user_id)
+        
+        # Очищаем кэш перед проверкой, чтобы избежать проблем с кэшированием
+        #clear_subs_check_cache()
+        
+        #found_type = check_subs_availability(url, user_id, return_type=True)
+        #need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
+        
+        #if not need_subs:
+            #app.send_message(user_id, "❌ Subtitles for selected language not found.")
+            #return
+        
+        # Send message about download start
+        status_msg = app.send_message(user_id, "💬 Downloading subtitles...", reply_to_message_id=message.id)
+        
+        # Download subtitles
+        subs_path = download_subtitles_ytdlp(url, user_id, user_dir, available_langs)
+        
+        if subs_path and os.path.exists(subs_path):
+            # Process subtitle file
+            subs_path = ensure_utf8_srt(subs_path)
+            if subs_path:
+                subs_path = force_fix_arabic_encoding(subs_path)
+            
+            if subs_path and os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
+                # Get video information for caption
+                try:
+                    info = get_video_formats(url, user_id)
+                    title = info.get('title', 'Video')
+                except:
+                    title = "Video"
+                
+                # Form caption
+                caption = f"<b>💬 Subtitles</b>\n\n"
+                caption += f"<b>Video:</b> {title}\n"
+                caption += f"<b>Language:</b> {subs_lang}\n"
+                caption += f"<b>Type:</b> {'Auto-generated' if auto_mode else 'Manual'}\n"
+                
+                if tags:
+                    caption += f"\n<b>Tags:</b> {' '.join(tags)}"
+                
+                # Send subtitle file
+                sent_msg = app.send_document(
+                    chat_id=user_id,
+                    document=subs_path,
+                    caption=caption,
+                    reply_to_message_id=message.id,
+                    parse_mode=enums.ParseMode.HTML
+                )
+                # Пересылаем это сообщение в лог-канал
+                safe_forward_messages(Config.LOGS_ID, user_id, [sent_msg.id])
+                send_to_logger(message, "💬 Subtitles SRT-file sent to user.")
+                # Remove temporary file
+                try:
+                    os.remove(subs_path)
+                except Exception as e:
+                    logger.error(f"Error deleting temporary subtitle file: {e}")
+                
+                # Delete status message
+                try:
+                    app.delete_messages(user_id, status_msg.id)
+                except:
+                    pass
+            else:
+                app.edit_message_text(user_id, status_msg.id, "❌ Error processing subtitle file.")
+        else:
+            app.edit_message_text(user_id, status_msg.id, "❌ Failed to download subtitles.")
+            
+    except Exception as e:
+        logger.error(f"Error downloading subtitles: {e}")
+        try:
+            app.edit_message_text(user_id, status_msg.id, f"❌ Error: {str(e)}")
+        except:
+            app.send_message(user_id, f"❌ Error downloading subtitles: {str(e)}")
 
 
 def get_language_keyboard(page=0, user_id=None):
@@ -7646,341 +7895,6 @@ def check_subs_limits(info_dict, quality_key=None):
     except Exception as e:
         logger.error(f"Error checking subtitle limits: {e}")
         return False
-
-def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
-    """
-    Скачивает и отправляет только файл субтитров без видео
-    """
-    user_id = message.chat.id
-    user_dir = os.path.join("users", str(user_id))
-    create_directory(user_dir)
-    
-    try:
-        # Check if subtitles are enabled
-        subs_lang = get_user_subs_language(user_id)
-        if not subs_lang or subs_lang == "OFF":
-            app.send_message(user_id, "❌ Subtitles are disabled. Use /subs to configure.")
-            return
-        
-        # Check if this is YouTube
-        if not is_youtube_url(url):
-            app.send_message(user_id, "❌ Subtitle downloading is only supported for YouTube.")
-            return
-        
-        # Check subtitle availability
-        auto_mode = get_user_subs_auto_mode(user_id)
-        
-        # Очищаем кэш перед проверкой, чтобы избежать проблем с кэшированием
-        #clear_subs_check_cache()
-        
-        #found_type = check_subs_availability(url, user_id, return_type=True)
-        #need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
-        
-        #if not need_subs:
-            #app.send_message(user_id, "❌ Subtitles for selected language not found.")
-            #return
-        
-        # Send message about download start
-        status_msg = app.send_message(user_id, "💬 Downloading subtitles...", reply_to_message_id=message.id)
-        
-        # Download subtitles
-        subs_path = download_subtitles_ytdlp(url, user_id, user_dir, available_langs)
-        
-        if subs_path and os.path.exists(subs_path):
-            # Process subtitle file
-            subs_path = ensure_utf8_srt(subs_path)
-            if subs_path:
-                subs_path = force_fix_arabic_encoding(subs_path)
-            
-            if subs_path and os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
-                # Get video information for caption
-                try:
-                    info = get_video_formats(url, user_id)
-                    title = info.get('title', 'Video')
-                except:
-                    title = "Video"
-                
-                # Form caption
-                caption = f"<b>💬 Subtitles</b>\n\n"
-                caption += f"<b>Video:</b> {title}\n"
-                caption += f"<b>Language:</b> {subs_lang}\n"
-                caption += f"<b>Type:</b> {'Auto-generated' if auto_mode else 'Manual'}\n"
-                
-                if tags:
-                    caption += f"\n<b>Tags:</b> {' '.join(tags)}"
-                
-                # Send subtitle file
-                sent_msg = app.send_document(
-                    chat_id=user_id,
-                    document=subs_path,
-                    caption=caption,
-                    reply_to_message_id=message.id,
-                    parse_mode=enums.ParseMode.HTML
-                )
-                # Пересылаем это сообщение в лог-канал
-                safe_forward_messages(Config.LOGS_ID, user_id, [sent_msg.id])
-                send_to_logger(message, "💬 Subtitles SRT-file sent to user.")
-                # Remove temporary file
-                try:
-                    os.remove(subs_path)
-                except Exception as e:
-                    logger.error(f"Error deleting temporary subtitle file: {e}")
-                
-                # Delete status message
-                try:
-                    app.delete_messages(user_id, status_msg.id)
-                except:
-                    pass
-            else:
-                app.edit_message_text(user_id, status_msg.id, "❌ Error processing subtitle file.")
-        else:
-            app.edit_message_text(user_id, status_msg.id, "❌ Failed to download subtitles.")
-            
-    except Exception as e:
-        logger.error(f"Error downloading subtitles: {e}")
-        try:
-            app.edit_message_text(user_id, status_msg.id, f"❌ Error: {str(e)}")
-        except:
-            app.send_message(user_id, f"❌ Error downloading subtitles: {str(e)}")
-
-
-
-def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
-    """
-    Download subtitles via yt-dlp first, then direct timedtext fallback.
-    Avoids 429 as much as possible and validates language (ar/zh/ja/ko/etc).
-    """
-    import os, time, random, re, yt_dlp
-
-    MAX_RETRIES = 1
-
-    # ----------------- helpers -----------------
-    def _rand_jitter(base: float, spread: float = 3.0):
-        import random
-        return base + random.uniform(0, spread)
-
-    def _has_timestamps(text: str) -> bool:
-        patterns = [
-            r"\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}",  # SRT
-            r"WEBVTT",                                # VTT header
-            r"<tt[\s>]", r"<p[^>]+begin=",            # TTML
-        ]
-        return any(re.search(p, text, re.IGNORECASE) for p in patterns)
-
-    _UNICODE_RANGES = {
-        'ar': r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]',
-        'zh': r'[\u4E00-\u9FFF\u3400-\u4DBF]',
-        'ja': r'[\u3040-\u30FF\u31F0-\u31FF\uFF66-\uFF9D\u4E00-\u9FFF]',
-        'ko': r'[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]',
-    }
-    _ALPHABETS = {
-        'ru': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-        'en': 'abcdefghijklmnopqrstuvwxyz',
-        'es': 'abcdefghijklmnopqrstuvwxyzñáéíóúü',
-        'fr': 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç',
-        'de': 'abcdefghijklmnopqrstuvwxyzäöüß',
-        'it': 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù',
-        'pt': 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú',
-    }
-
-    def _check_lang_text(lang: str, text: str) -> bool:
-        # Too short? Very likely garbage
-        if not text or len(text) < 50:
-            return False
-
-        # Latin alphabet based langs
-        if lang in _ALPHABETS:
-            alpha = _ALPHABETS[lang]
-            return any(ch.lower() in alpha for ch in text if ch.isalpha())
-
-        # RTL / CJK languages
-        if lang in _UNICODE_RANGES:
-            return re.search(_UNICODE_RANGES[lang], text) is not None
-
-        # Default heuristic: any non-ascii
-        return any(ord(ch) > 127 for ch in text if ch.isalpha())
-
-    #def _download_timedtext(track_url: str, dst_path: str, max_retries: int = 5) -> bool:
-    def _download_timedtext(track_url: str, dst_path: str, max_retries: int = 1) -> bool:
-        import requests
-        sess = requests.Session()
-        headers = {
-            "User-Agent": "Mozilla/5.0",
-            "Accept-Language": "en-US,en;q=0.9",
-        }
-        for i in range(max_retries):
-            r = sess.get(track_url, headers=headers, timeout=20)
-            if r.status_code == 200 and r.content:
-                with open(dst_path, "wb") as f:
-                    f.write(r.content)
-                return True
-            if r.status_code == 429:
-                #sleep_s = _rand_jitter([30, 60, 120, 180, 240][min(i, 4)])
-                sleep_s = _rand_jitter([1, 2, 3, 4, 5][min(i, 4)])
-                logger.warning(f"timedtext 429, sleep {sleep_s:.1f}s ({i+1}/{max_retries})")
-                time.sleep(sleep_s)
-                continue
-            logger.error(f"timedtext HTTP {r.status_code}, retry {i+1}/{max_retries}")
-            time.sleep(_rand_jitter(5))
-        return False
-    # ------------------------------------------
-
-    for attempt in range(MAX_RETRIES):
-        try:
-            subs_lang = get_user_subs_language(user_id)
-            auto_mode = get_user_subs_auto_mode(user_id)
-
-            if not subs_lang or subs_lang == "OFF":
-                return None
-            if not available_langs:
-                logger.info(f"No subtitles available for {subs_lang}")
-                return None
-
-            found_lang = lang_match(subs_lang, available_langs)
-            if not found_lang:
-                logger.info(f"Language {subs_lang} not found in {available_langs}")
-                return None
-
-            client = _subs_check_cache.get(f"{url}_{user_id}_client", 'tv')
-
-            # 1) Try yt-dlp
-            subs_opts = {
-                'skip_download': True,
-                'format': 'best',
-                'ignore_no_formats_error': True,
-                'noplaylist': True,
-                'outtmpl': {'subtitle': os.path.join(video_dir, "%(title).50s.%(lang)s.%(ext)s")},
-                'subtitlesformat': 'srt',
-                'sleep-requests': 2,
-                'min_sleep_interval': 1,
-                'max_sleep_interval': 3,
-                'retries': 6,
-                'extractor_retries': 3,
-                'concurrent_fragment_downloads': 1,
-                'quiet': True,
-                'no_warnings': True,
-                'extractor_args': {'youtube': {'player_client': [client]}},
-                'subtitleslangs': [found_lang],   # <--- строго только этот язык
-            }
-            if auto_mode:
-                subs_opts.update({'writeautomaticsub': True, 'writesubtitles': False})
-            else:
-                subs_opts.update({'writeautomaticsub': False, 'writesubtitles': True})
-
-            user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
-            if os.path.exists(user_cookie_path):
-                subs_opts['cookiefile'] = user_cookie_path
-            elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
-                subs_opts['cookiefile'] = Config.COOKIE_FILE_PATH
-
-            try:
-                with yt_dlp.YoutubeDL(subs_opts) as ydl:
-                    ydl.download([url])
-            except yt_dlp.utils.DownloadError as e:
-                if "429" not in str(e):
-                    raise   # любая другая ошибка - наружу
-                # иначе пойдём в fallback
-            else:
-                # Ищем файл строго по языку
-                srt_files = [f for f in os.listdir(video_dir)
-                             if f.lower().endswith('.srt') and f".{found_lang}." in f.lower()]
-                if srt_files:
-                    srt_files.sort(key=lambda fn: os.path.getmtime(os.path.join(video_dir, fn)), reverse=True)
-                    subs_path = os.path.join(video_dir, srt_files[0])
-                    logger.info(f"Subtitles downloaded: {subs_path}")
-
-                    if os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
-                        with open(subs_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            content = f.read()
-
-                        if _check_lang_text(subs_lang, content) and _has_timestamps(content):
-                            if subs_lang == 'ar':
-                                force_fix_arabic_encoding(subs_path)
-                            logger.info(f"Valid subtitles ({subs_lang}), size={os.path.getsize(subs_path)}")
-                            return subs_path
-                        logger.warning("Invalid content/timestamps after yt-dlp, will fallback")
-
-                # Если сюда дошли — файл не найден или невалиден, идём в fallback
-
-            # 2) Fallback: direct timedtext
-            info_opts = dict(subs_opts)
-            info_opts['skip_download'] = True
-            info_opts['writesubtitles'] = False
-            info_opts['writeautomaticsub'] = False
-            with yt_dlp.YoutubeDL(info_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-
-            subs_dict = info.get('automatic_captions' if auto_mode else 'subtitles', {})
-            tracks = subs_dict.get(found_lang) or []
-            if not tracks:
-                logger.error("No track URL found in info for selected language")
-                return None
-
-            # choose best ext
-            preferred = ('srt', 'vtt', 'json3', 'srv3', 'ttml')
-            track = None
-            for cand in tracks:
-                ext = (cand.get('ext') or '').lower()
-                if ext in preferred:
-                    track = cand
-                    break
-            if not track:
-                track = tracks[0]
-
-            track_url = track.get('url', '')
-            if track_url and 'fmt=' not in track_url:
-                track_url += '&fmt=srt'
-
-            base_name = f"{info.get('title','video')[:50]}.{found_lang}.srt"
-            dst_path = os.path.join(video_dir, base_name)
-
-            ok = _download_timedtext(track_url, dst_path)
-            if not ok:
-                if attempt < MAX_RETRIES - 1:
-                    time.sleep(_rand_jitter(15))
-                    continue
-                return None
-
-            if os.path.exists(dst_path) and os.path.getsize(dst_path) > 0:
-                with open(dst_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-                if _check_lang_text(subs_lang, content) and _has_timestamps(content):
-                    if subs_lang == 'ar':
-                        force_fix_arabic_encoding(dst_path)
-                    logger.info(f"Valid subtitles (fallback) ({subs_lang}), size={os.path.getsize(dst_path)}")
-                    return dst_path
-
-                logger.warning("Fallback file invalid, deleting...")
-                try:
-                    os.remove(dst_path)
-                except Exception:
-                    pass
-
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(_rand_jitter(10))
-                continue
-            logger.error("Failed to get valid subtitles after fallback")
-            return None
-
-        except yt_dlp.utils.DownloadError as e:
-            if "429" in str(e):
-                logger.warning(f"429 Too Many Requests (attempt {attempt+1}/{MAX_RETRIES})")
-                if attempt < MAX_RETRIES - 1:
-                    time.sleep(_rand_jitter(30 * (attempt + 1)))
-                    continue
-                logger.error("Final attempt failed due to 429")
-                return None
-            logger.error(f"DownloadError: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected error (attempt {attempt+1}/{MAX_RETRIES}): {e}")
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(_rand_jitter(10))
-                continue
-            return None
-
-    return None
-
 
 def get_video_info_ffprobe(video_path):
     import json
