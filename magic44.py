@@ -309,9 +309,6 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
     clear_subs_check_cache()
 
 
-# Глобальный кеш клиента, если ещё не создан
-_subs_check_cache = globals().get('_subs_check_cache', {})
-
 def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Возвращает список доступных языков субтитров. Обходит 429 и 'Requested format...'."""
     import os, random, time, yt_dlp
@@ -7821,10 +7818,10 @@ def subs_auto_callback(app, callback_query):
         
         send_to_logger(callback_query.message, f"User toggled AUTO-GEN mode to: {new_auto}")
 
-
-
 # Cache for subtitles checks
-_subs_check_cache = {}
+#_subs_check_cache = {}
+# Глобальный кеш клиента, если ещё не создан
+_subs_check_cache = globals().get('_subs_check_cache', {})
 
 def clear_subs_check_cache():
     """Cleans the cache of subtitle checks"""
