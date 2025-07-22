@@ -7647,6 +7647,103 @@ def check_subs_limits(info_dict, quality_key=None):
         logger.error(f"Error checking subtitle limits: {e}")
         return False
 
+def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
+    """
+    Скачивает и отправляет только файл субтитров без видео
+    """
+    user_id = message.chat.id
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    
+    try:
+        # Check if subtitles are enabled
+        subs_lang = get_user_subs_language(user_id)
+        if not subs_lang or subs_lang == "OFF":
+            app.send_message(user_id, "❌ Subtitles are disabled. Use /subs to configure.")
+            return
+        
+        # Check if this is YouTube
+        if not is_youtube_url(url):
+            app.send_message(user_id, "❌ Subtitle downloading is only supported for YouTube.")
+            return
+        
+        # Check subtitle availability
+        auto_mode = get_user_subs_auto_mode(user_id)
+        
+        # Очищаем кэш перед проверкой, чтобы избежать проблем с кэшированием
+        #clear_subs_check_cache()
+        
+        #found_type = check_subs_availability(url, user_id, return_type=True)
+        #need_subs = (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")
+        
+        #if not need_subs:
+            #app.send_message(user_id, "❌ Subtitles for selected language not found.")
+            #return
+        
+        # Send message about download start
+        status_msg = app.send_message(user_id, "💬 Downloading subtitles...", reply_to_message_id=message.id)
+        
+        # Download subtitles
+        subs_path = download_subtitles_ytdlp(url, user_id, user_dir)
+        
+        if subs_path and os.path.exists(subs_path):
+            # Process subtitle file
+            subs_path = ensure_utf8_srt(subs_path)
+            if subs_path:
+                subs_path = force_fix_arabic_encoding(subs_path)
+            
+            if subs_path and os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
+                # Get video information for caption
+                try:
+                    info = get_video_formats(url, user_id)
+                    title = info.get('title', 'Video')
+                except:
+                    title = "Video"
+                
+                # Form caption
+                caption = f"<b>💬 Subtitles</b>\n\n"
+                caption += f"<b>Video:</b> {title}\n"
+                caption += f"<b>Language:</b> {subs_lang}\n"
+                caption += f"<b>Type:</b> {'Auto-generated' if auto_mode else 'Manual'}\n"
+                
+                if tags:
+                    caption += f"\n<b>Tags:</b> {' '.join(tags)}"
+                
+                # Send subtitle file
+                sent_msg = app.send_document(
+                    chat_id=user_id,
+                    document=subs_path,
+                    caption=caption,
+                    reply_to_message_id=message.id,
+                    parse_mode=enums.ParseMode.HTML
+                )
+                # Пересылаем это сообщение в лог-канал
+                safe_forward_messages(Config.LOGS_ID, user_id, [sent_msg.id])
+                send_to_logger(message, "💬 Subtitles SRT-file sent to user.")
+                # Remove temporary file
+                try:
+                    os.remove(subs_path)
+                except Exception as e:
+                    logger.error(f"Error deleting temporary subtitle file: {e}")
+                
+                # Delete status message
+                try:
+                    app.delete_messages(user_id, status_msg.id)
+                except:
+                    pass
+            else:
+                app.edit_message_text(user_id, status_msg.id, "❌ Error processing subtitle file.")
+        else:
+            app.edit_message_text(user_id, status_msg.id, "❌ Failed to download subtitles.")
+            
+    except Exception as e:
+        logger.error(f"Error downloading subtitles: {e}")
+        try:
+            app.edit_message_text(user_id, status_msg.id, f"❌ Error: {str(e)}")
+        except:
+            app.send_message(user_id, f"❌ Error downloading subtitles: {str(e)}")
+
+
 
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
