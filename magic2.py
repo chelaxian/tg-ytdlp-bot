@@ -4107,7 +4107,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         available_langs = _subs_check_cache.get(
             f"{url}_{user_id}_{'auto' if found_type == 'auto' else 'normal'}_langs",
             []
-        )        
+        )
+        # Сначала скачиваем субтитры отдельно
+        user_dir = os.path.join("users", str(user_id))
+        video_dir = user_dir
+        subs_path = download_subtitles_ytdlp(url, user_id, video_dir, available_langs)
+                                    
+        if not subs_path:
+            app.send_message(user_id, "⚠️ Failed to download subtitles", reply_to_message_id=message.id)
+            #continue
+
     # We define a playlist not only by the number of videos, but also by the presence of a range in the URL
     original_text = message.text or message.caption or ""
     is_playlist = video_count > 1 or is_playlist_with_range(original_text)
@@ -4871,12 +4880,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                                     
                                     # Сначала скачиваем субтитры отдельно
-                                    video_dir = os.path.dirname(after_rename_abs_path)
-                                    subs_path = download_subtitles_ytdlp(url, user_id, video_dir, available_langs)
+                                    #video_dir = os.path.dirname(after_rename_abs_path)
+                                    #subs_path = download_subtitles_ytdlp(url, user_id, video_dir, available_langs)
                                     
-                                    if not subs_path:
-                                        app.send_message(user_id, "⚠️ Failed to download subtitles", reply_to_message_id=message.id)
-                                        continue
+                                    #if not subs_path:
+                                        #app.send_message(user_id, "⚠️ Failed to download subtitles", reply_to_message_id=message.id)
+                                        #continue
                                     
                                     # Get the real size of the file after downloading
                                     real_file_size = os.path.getsize(after_rename_abs_path) if os.path.exists(after_rename_abs_path) else 0
