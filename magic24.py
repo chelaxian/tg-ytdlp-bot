@@ -7734,25 +7734,26 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 
             return None
             
-		except yt_dlp.utils.DownloadError as e:
-			if "429" in str(e):
-				logger.warning(f"Received 429 Too Many Requests while downloading subtitles (attempt {attempt + 1}/{max_retries})")
-				if attempt < max_retries - 1:
-					time.sleep(2 + attempt)  # увеличивающаяся задержка
-					continue
-				else:
-					logger.error("Final attempt failed due to 429 Too Many Requests")
-					return None
-			else:
-				logger.error(f"DownloadError while downloading subtitles: {e}")
-				return None
+        except yt_dlp.utils.DownloadError as e:
+            if "429" in str(e):
+                logger.warning(f"Received 429 Too Many Requests while downloading subtitles (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    time.sleep(2 + attempt)  # увеличивающаяся задержка
+                    continue
+                else:
+                    logger.error("Final attempt failed due to 429 Too Many Requests")
+                    return None
+            else:
+                logger.error(f"DownloadError while downloading subtitles: {e}")
+                return None
 
-		except Exception as e:
-			logger.error(f"Unexpected error downloading subtitles (attempt {attempt + 1}/{max_retries}): {e}")
-			if attempt < max_retries - 1:
-				time.sleep(3)  # Пауза перед повторной попыткой
-				continue
-			return None
+        except Exception as e:
+            logger.error(f"Unexpected error downloading subtitles (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(3)  # Пауза перед повторной попыткой
+                continue
+            return None
+
     
     return None
 
