@@ -322,15 +322,10 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
 
 
 def force_fix_arabic_encoding(srt_path: str, lang: str | None = None):
-    """
-    Принудительно перекодирует арабские/персидские/урду/ивритские субтитры в UTF-8.
-    Если язык не из целевого списка – просто возвращаем путь без действий.
-    Никаких проверок на '�' и прочее внутри не делаем.
-    """
+    """Принудительная перекодировка араб/перс/урду/иврит сабов в UTF-8."""
     target_langs = {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}
     if lang is not None and lang not in target_langs:
         return srt_path
-
     if not os.path.exists(srt_path):
         return None
 
@@ -338,20 +333,15 @@ def force_fix_arabic_encoding(srt_path: str, lang: str | None = None):
         with open(srt_path, 'rb') as f:
             raw = f.read()
 
-        # Популярные кодировки для арабских шрифтов
         encodings = ['utf-8-sig', 'utf-8', 'cp1256', 'windows-1256', 'iso-8859-6', 'cp720', 'mac-arabic']
-
-        best_text = None
-        best_enc = None
-        min_bad = float('inf')
+        best_text, best_enc, min_bad = None, None, float('inf')
 
         for enc in encodings:
             try:
                 text = raw.decode(enc, errors='replace')
             except Exception:
                 continue
-            # считаем только обычные '?' как испорченные символы (простая эвристика)
-            bad = text.count('?')
+            bad = text.count('?')  # простая эвристика
             if bad < min_bad:
                 min_bad = bad
                 best_text = text
@@ -359,30 +349,27 @@ def force_fix_arabic_encoding(srt_path: str, lang: str | None = None):
 
         if best_text is None:
             best_text = raw.decode('utf-8', errors='replace')
-            best_enc = 'utf-8(force)'
+            best_enc  = 'utf-8(force)'
 
-        # нормализуем переводы строк и вычищаем BOM-ы
         best_text = best_text.replace('\r\n', '\n').replace('\r', '\n').replace('\ufeff', '')
-
         with open(srt_path, 'w', encoding='utf-8') as f:
             f.write(best_text)
 
         logger.info(f"force_fix_arabic_encoding: {srt_path} re-encoded from {best_enc} -> utf-8")
         return srt_path
-
     except Exception as e:
         logger.error(f"force_fix_arabic_encoding error {srt_path}: {e}")
         return None
 
 
 def _clean_srt_text(text: str) -> str:
-    # 1) убираем word-level теги <00:..> и <c>...</c>
+    # убираем word-level теги
     text = re.sub(r'<\d{2}:\d{2}:\d{2}[.,]\d{3}>', '', text)
     text = re.sub(r'</?c[^>]*>', '', text)
 
-    # 2) убираем WEBVTT-параметры в строке с таймкодом
+    # вычищаем WEBVTT-параметры в строке тайминга
     def _strip_settings(m):
-        return m.group(1)  # только "00:.. --> 00:.."
+        return m.group(1)
     text = re.sub(
         r'(^\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(.*)$',
         _strip_settings,
@@ -390,16 +377,14 @@ def _clean_srt_text(text: str) -> str:
         flags=re.MULTILINE
     )
 
-    # 3) убираем пустые теги/артефакты, BOM
     text = text.replace('\ufeff', '')
     text = re.sub(r'[ \t]{2,}', ' ', text)
 
-    # 4) удаляем дублированные последовательные блоки с одинаковым текстом
-    blocks = []
-    cur = []
+    # удалить дубли блоков
+    blocks, cur = [], []
     for line in text.splitlines():
         if line.strip().isdigit() and not cur:
-            cur = [line]  # новый блок
+            cur = [line]
         elif line.strip() == '' and cur:
             blocks.append('\n'.join(cur))
             cur = []
@@ -408,25 +393,24 @@ def _clean_srt_text(text: str) -> str:
     if cur:
         blocks.append('\n'.join(cur))
 
-    cleaned_blocks = []
-    prev_text = ''
+    cleaned, prev = [], ''
     for b in blocks:
         parts = b.split('\n', 2)
         if len(parts) < 3:
-            cleaned_blocks.append(b)
+            cleaned.append(b)
             continue
         idx, timing, payload = parts[0], parts[1], parts[2]
         payload_stripped = payload.strip()
-        if payload_stripped == prev_text:
-            continue  # дубликат
-        prev_text = payload_stripped
-        cleaned_blocks.append('\n'.join([idx, timing, payload_stripped, '']))
+        if payload_stripped == prev:
+            continue
+        prev = payload_stripped
+        cleaned.append('\n'.join([idx, timing, payload_stripped, '']))
 
-    return '\n'.join(cleaned_blocks).strip() + '\n'
+    return '\n'.join(cleaned).strip() + '\n'
 
 
 def _convert_vtt_to_srt(path: str) -> str:
-    """Простая конверсия VTT -> SRT + чистка."""
+    """VTT -> SRT (+ clean)."""
     try:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
             raw = f.read()
@@ -435,39 +419,28 @@ def _convert_vtt_to_srt(path: str) -> str:
 
         raw = raw.replace('\r', '')
         body = raw.split('WEBVTT', 1)[-1].strip()
-
         cues = re.split(r'\n\s*\n', body)
-        out_lines = []
-        idx = 1
+
+        out, idx = [], 1
         for cue in cues:
             if '-->' not in cue:
                 continue
             lines = cue.splitlines()
-            tc_line_idx = next((i for i, l in enumerate(lines) if '-->' in l), None)
-            if tc_line_idx is None:
+            tc_line = next((l for l in lines if '-->' in l), None)
+            if not tc_line:
                 continue
-
-            timing = lines[tc_line_idx]
-            timing = re.sub(r'(\d{2}:\d{2}:\d{2})\.(\d{3})', r'\1,\2', timing)
+            timing = re.sub(r'(\d{2}:\d{2}:\d{2})\.(\d{3})', r'\1,\2', tc_line)
             timing = re.sub(r'(-->.*?)(\s+.*)$', r'\1', timing)
-
-            payload = '\n'.join(lines[tc_line_idx + 1:]).strip()
+            payload = '\n'.join(lines[lines.index(tc_line)+1:]).strip()
             if not payload:
                 continue
-
-            out_lines.append(str(idx))
-            out_lines.append(timing)
-            out_lines.append(payload)
-            out_lines.append('')
+            out += [str(idx), timing, payload, '']
             idx += 1
 
-        srt_txt = '\n'.join(out_lines)
-        srt_txt = _clean_srt_text(srt_txt)
-
+        srt_txt = _clean_srt_text('\n'.join(out))
         new_path = os.path.splitext(path)[0] + '.srt'
         with open(new_path, 'w', encoding='utf-8') as f:
             f.write(srt_txt)
-
         os.remove(path)
         return new_path
     except Exception as e:
@@ -475,27 +448,83 @@ def _convert_vtt_to_srt(path: str) -> str:
         return path
 
 
+def _convert_json3_srv3_to_srt(path: str) -> str:
+    """Конвертация YouTube json3/srv3 в SRT (минимально достаточная)."""
+    try:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            raw = f.read()
+
+        # json3
+        try:
+            data = json.loads(raw)
+        except Exception:
+            data = None
+
+        lines = []
+        idx = 1
+
+        def ms2ts(ms: int) -> str:
+            h = ms // 3600000
+            ms %= 3600000
+            m = ms // 60000
+            ms %= 60000
+            s = ms // 1000
+            ms %= 1000
+            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+        if isinstance(data, dict) and 'events' in data:
+            for ev in data['events']:
+                if not ev.get('segs'):
+                    continue
+                txt = ''.join(seg.get('utf8', '') for seg in ev['segs']).strip()
+                if not txt:
+                    continue
+                start = int(ev.get('tStartMs', 0))
+                dur   = int(ev.get('dDurationMs', 0))
+                end   = start + dur
+                lines += [str(idx), f"{ms2ts(start)} --> {ms2ts(end)}", txt, '']
+                idx += 1
+        else:
+            # srv3 (xml-like)
+            # <p t="12345" d="678">text</p>
+            for m in re.finditer(r'<p[^>]*t="(\d+)"[^>]*d="(\d+)"[^>]*>(.*?)</p>', raw, flags=re.S):
+                start = int(m.group(1))
+                dur   = int(m.group(2))
+                end   = start + dur
+                text = re.sub(r'<[^>]+>', '', m.group(3))
+                text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>').strip()
+                if not text:
+                    continue
+                lines += [str(idx), f"{ms2ts(start)} --> {ms2ts(end)}", text, '']
+                idx += 1
+
+        if not lines:
+            return path  # ничего не смогли разобрать
+
+        srt_txt = _clean_srt_text('\n'.join(lines))
+        new_path = os.path.splitext(path)[0] + '.srt'
+        with open(new_path, 'w', encoding='utf-8') as f:
+            f.write(srt_txt)
+        os.remove(path)
+        return new_path
+    except Exception as e:
+        logger.warning(f"json3/srv3 -> SRT convert fail: {e}")
+        return path
+
+
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
-    Берём info один раз, выбираем ОДИН трек (VTT/TTML/SRV/JSON/SRT),
-    пробуем скачать его с разными fmt-параметрами, конвертим локально.
-    Для RTL/CJK проверяем наличие нужных символов.
+    Одно извлечение info, выбираем 1 трек. Для URL с автопереводом (tlang=)
+    НЕ перебираем fmt, чтобы не словить 429. json3/srv3 конвертим локально.
     """
-    import yt_dlp
-    import requests
-    import random
-    import time
-
     MAX_RETRIES = 1
     RTL_CJK = {'ar', 'fa', 'ur', 'ps', 'iw', 'he', 'zh', 'zh-Hans', 'zh-Hant', 'ja', 'ko'}
 
-    # ---------- helpers ----------
     def _rand_jitter(base, spread=2.5):
         return base + random.uniform(0, spread)
 
     def _has_srt_timestamps(txt: str) -> bool:
-        pat = r"\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[\.,:]\d{1,3}"
-        return re.search(pat, txt) is not None
+        return re.search(r"\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}", txt) is not None
 
     UNICODE_RANGES = {
         'ar': r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]',
@@ -515,6 +544,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
         'de': 'abcdefghijklmnopqrstuvwxyzäöüß',
         'it': 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù',
         'pt': 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú',
+        'el': 'αβγδεζηθικλμνξοπρστυφχψωΆΈΉΊΌΎΏϊϋΐΰόώήέά',  # греческий
     }
 
     def _check_lang_text(lang: str, text: str) -> bool:
@@ -528,47 +558,37 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return any(ch.lower() in alpha for ch in text if ch.isalpha())
         return any(ord(ch) > 127 for ch in text if ch.isalpha())
 
-    def _build_variants(u: str):
-        base = re.sub(r'([?&])fmt=[^&]+', r'\1', u).rstrip('&?')
-        q = '&' if '?' in base else '?'
-        variants = [
-            base,
-            base + q + 'fmt=vtt',
-            base + q + 'fmt=ttml',
-            base + q + 'fmt=json3',
-            base + q + 'fmt=srv3',
-            base + q + 'fmt=srt',
-        ]
-        seen, res = set(), []
-        for v in variants:
-            if v not in seen:
-                res.append(v); seen.add(v)
-        return res
-
-    def _download_timedtext(urls, dst_path, retries_each=1):
+    def _download_once(url_tt: str, dst_path: str, retries: int = 2) -> bool:
+        global _LAST_TIMEDTEXT_TS
         sess = requests.Session()
         headers = {
             "User-Agent": "Mozilla/5.0",
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.youtube.com/",
-            "Origin": "https://www.youtube.com",
+            "Origin":  "https://www.youtube.com",
         }
-        for u in urls:
-            for i in range(retries_each):
-                r = sess.get(u, headers=headers, timeout=25)
-                if r.status_code == 200 and r.content:
-                    with open(dst_path, "wb") as f:
-                        f.write(r.content)
-                    return True
-                if r.status_code == 429:
-                    sleep_s = _rand_jitter([8, 18, 38][min(i, 2)])
-                    logger.warning(f"timedtext 429 ({u}), sleep {sleep_s:.1f}s ({i+1}/{retries_each})")
-                    time.sleep(sleep_s)
-                    continue
-                logger.error(f"timedtext HTTP {r.status_code} ({u}), retry {i+1}/{retries_each}")
-                time.sleep(_rand_jitter(4))
+        for i in range(retries):
+            # простой глобальный троттлинг
+            delta = time.time() - _LAST_TIMEDTEXT_TS
+            if delta < 1.5:
+                time.sleep(1.5 - delta)
+
+            r = sess.get(url_tt, headers=headers, timeout=25)
+            _LAST_TIMEDTEXT_TS = time.time()
+
+            if r.status_code == 200 and r.content:
+                with open(dst_path, "wb") as f:
+                    f.write(r.content)
+                return True
+
+            if r.status_code == 429:
+                logger.warning(f"timedtext 429 ({url_tt}), sleep a bit")
+                time.sleep(_rand_jitter(12, 6))
+                continue
+
+            logger.error(f"timedtext HTTP {r.status_code} ({url_tt})")
+            time.sleep(_rand_jitter(4))
         return False
-    # ---------- /helpers ----------
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -601,6 +621,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 'extractor_retries': 3,
                 'extractor_args': {'youtube': {'player_client': [client]}},
             }
+            # cookies
             user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(user_cookie_path):
                 info_opts['cookiefile'] = user_cookie_path
@@ -610,7 +631,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             with yt_dlp.YoutubeDL(info_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
 
-            subs_dict = info.get('automatic_captions' if auto_mode else 'subtitles', {})
+            subs_key = 'automatic_captions' if auto_mode else 'subtitles'
+            subs_dict = info.get(subs_key, {})
             tracks = subs_dict.get(found_lang) or []
             if not tracks:
                 alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
@@ -620,7 +642,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 logger.error("No track URL found in info for selected language")
                 return None
 
-            preferred = ('vtt', 'ttml', 'srv3', 'json3', 'srt')
+            # приоритет
+            preferred = ('srt', 'vtt', 'ttml', 'json3', 'srv3')
             track = min(
                 tracks,
                 key=lambda t: preferred.index((t.get('ext') or '').lower())
@@ -629,24 +652,39 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             ext = (track.get('ext') or 'txt').lower()
             track_url = track.get('url', '')
-            variants = _build_variants(track_url)
+            # если автоперевод (есть tlang=) — не трогаем fmt, делаем ровно один запрос
+            is_translated = 'tlang=' in track_url
 
             base_name = f"{info.get('title','video')[:50]}.{found_lang}.{ext}"
             dst = os.path.join(video_dir, base_name)
 
-            if not _download_timedtext(variants, dst):
+            ok = False
+            if is_translated:
+                ok = _download_once(track_url, dst, retries=2)
+            else:
+                # можно попробовать VTT сначала
+                urls_try = [track_url]
+                if 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
+                    # добавим один fmt=vtt
+                    q = '&' if '?' in track_url else '?'
+                    urls_try.append(track_url + q + 'fmt=vtt')
+                # берём по очереди
+                for u in urls_try:
+                    if _download_once(u, dst, retries=2):
+                        ok = True
+                        break
+
+            if not ok or os.path.getsize(dst) < 200:
+                try: os.remove(dst)
+                except Exception: pass
+                logger.warning("Could not download/too small -> None")
                 return None
 
-            if os.path.getsize(dst) < 200:
-                try:
-                    os.remove(dst)
-                except Exception:
-                    pass
-                return None
-
-            # конверт/чистка
+            # конверт
             if ext == 'vtt':
                 dst = _convert_vtt_to_srt(dst)
+            elif ext in ('json3', 'srv3'):
+                dst = _convert_json3_srv3_to_srt(dst)
 
             with open(dst, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
@@ -659,7 +697,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             ok_ts = _has_srt_timestamps(content)
             ok_lang = True
-            if subs_lang in RTL_CJK:
+            if subs_lang in RTL_CJK or subs_lang == 'el':  # греческий тоже проверим
                 ok_lang = _check_lang_text(subs_lang, content)
 
             if ok_ts and ok_lang:
@@ -669,10 +707,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 return dst
 
             logger.warning("Downloaded track invalid after clean/convert")
-            try:
-                os.remove(dst)
-            except Exception:
-                pass
+            try: os.remove(dst)
+            except Exception: pass
             return None
 
         except yt_dlp.utils.DownloadError as e:
@@ -693,7 +729,6 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return None
 
     return None
-
 
 
 def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
@@ -7890,10 +7925,9 @@ def subs_auto_callback(app, callback_query):
         
         send_to_logger(callback_query.message, f"User toggled AUTO-GEN mode to: {new_auto}")
 
-# Cache for subtitles checks
-#_subs_check_cache = {}
-# Глобальный кеш клиента, если ещё не создан
+# ---------- GLOBAL ----------
 _subs_check_cache = globals().get('_subs_check_cache', {})
+_LAST_TIMEDTEXT_TS = globals().get('_LAST_TIMEDTEXT_TS', 0.0)
 
 def clear_subs_check_cache():
     """Cleans the cache of subtitle checks"""
