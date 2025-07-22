@@ -139,70 +139,6 @@ def ensure_utf8_srt(srt_path):
         logger.error(f"Ошибка при записи файла {srt_path}: {e}")
         return None
 
-def force_fix_arabic_encoding(srt_path, lang=None):
-    """
-    Принудительная перекодировка арабских/персидских/урду и т.п. субтитров.
-    Если язык не из списка RTL_FIX_LANGS — ничего не делаем.
-    Всегда сохраняем результат в UTF-8.
-    """
-    import os
-
-    if not os.path.exists(srt_path):
-        return None
-
-    # если передали язык и он нам не интересен — сразу выходим
-    if lang and lang not in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
-        return srt_path
-
-    try:
-        with open(srt_path, 'rb') as f:
-            raw = f.read()
-    except Exception as e:
-        logger.error(f"force_fix_arabic_encoding: read error {srt_path}: {e}")
-        return None
-
-    # порядок имеет значение: сначала пробуем нормальные utf-8 варианты
-    encodings = [
-        'utf-8-sig', 'utf-8',
-        'cp1256', 'windows-1256',
-        'iso-8859-6', 'mac-arabic', 'cp720'
-    ]
-
-    best_text = None
-    best_bad = 10**9
-    best_enc = None
-
-    for enc in encodings:
-        try:
-            txt = raw.decode(enc, errors='replace')
-        except Exception:
-            continue
-        # чем меньше знаков '?', тем лучше (простая метрика «испорченности»)
-        bad = txt.count('?')
-        if bad < best_bad:
-            best_bad = bad
-            best_text = txt
-            best_enc = enc
-
-    if best_text is None:
-        # вообще ничего не получилось — жёстко форсим utf-8
-        best_text = raw.decode('utf-8', errors='replace')
-        best_enc = 'utf-8(force)'
-
-    # небольшая нормализация
-    best_text = best_text.replace('\r\n', '\n').replace('\r', '\n').replace('\ufeff', '')
-
-    try:
-        with open(srt_path, 'w', encoding='utf-8') as f:
-            f.write(best_text)
-        logger.info(f"force_fix_arabic_encoding: {srt_path} re-encoded from {best_enc} -> utf-8")
-        return srt_path
-    except Exception as e:
-        logger.error(f"force_fix_arabic_encoding: write error {srt_path}: {e}")
-        return None
-
-
-
 # Dictionary of languages with their emoji flags and native names
 LANGUAGES = {
     "ar": {"flag": "🇸🇦", "name": "العربية"},
@@ -385,6 +321,60 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
     return []
 
 
+def force_fix_arabic_encoding(srt_path: str, lang: str | None = None):
+    """
+    Принудительно перекодирует арабские/персидские/урду/ивритские субтитры в UTF-8.
+    Если язык не из целевого списка – просто возвращаем путь без действий.
+    Никаких проверок на '�' и прочее внутри не делаем.
+    """
+    target_langs = {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}
+    if lang is not None and lang not in target_langs:
+        return srt_path
+
+    if not os.path.exists(srt_path):
+        return None
+
+    try:
+        with open(srt_path, 'rb') as f:
+            raw = f.read()
+
+        # Популярные кодировки для арабских шрифтов
+        encodings = ['utf-8-sig', 'utf-8', 'cp1256', 'windows-1256', 'iso-8859-6', 'cp720', 'mac-arabic']
+
+        best_text = None
+        best_enc = None
+        min_bad = float('inf')
+
+        for enc in encodings:
+            try:
+                text = raw.decode(enc, errors='replace')
+            except Exception:
+                continue
+            # считаем только обычные '?' как испорченные символы (простая эвристика)
+            bad = text.count('?')
+            if bad < min_bad:
+                min_bad = bad
+                best_text = text
+                best_enc = enc
+
+        if best_text is None:
+            best_text = raw.decode('utf-8', errors='replace')
+            best_enc = 'utf-8(force)'
+
+        # нормализуем переводы строк и вычищаем BOM-ы
+        best_text = best_text.replace('\r\n', '\n').replace('\r', '\n').replace('\ufeff', '')
+
+        with open(srt_path, 'w', encoding='utf-8') as f:
+            f.write(best_text)
+
+        logger.info(f"force_fix_arabic_encoding: {srt_path} re-encoded from {best_enc} -> utf-8")
+        return srt_path
+
+    except Exception as e:
+        logger.error(f"force_fix_arabic_encoding error {srt_path}: {e}")
+        return None
+
+
 def _clean_srt_text(text: str) -> str:
     # 1) убираем word-level теги <00:..> и <c>...</c>
     text = re.sub(r'<\d{2}:\d{2}:\d{2}[.,]\d{3}>', '', text)
@@ -394,7 +384,7 @@ def _clean_srt_text(text: str) -> str:
     def _strip_settings(m):
         return m.group(1)  # только "00:.. --> 00:.."
     text = re.sub(
-        r'(^\d{1,2}:\d{2}:\d{2}[.,]\d{3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[.,]\d{3})(.*)$',
+        r'(^\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(.*)$',
         _strip_settings,
         text,
         flags=re.MULTILINE
@@ -402,16 +392,14 @@ def _clean_srt_text(text: str) -> str:
 
     # 3) убираем пустые теги/артефакты, BOM
     text = text.replace('\ufeff', '')
-    # двойные пробелы -> один
     text = re.sub(r'[ \t]{2,}', ' ', text)
 
-    # 4) удаляем дублированные последовательные строки с одинаковым текстом
+    # 4) удаляем дублированные последовательные блоки с одинаковым текстом
     blocks = []
     cur = []
     for line in text.splitlines():
         if line.strip().isdigit() and not cur:
-            # старт нового блока
-            cur = [line]
+            cur = [line]  # новый блок
         elif line.strip() == '' and cur:
             blocks.append('\n'.join(cur))
             cur = []
@@ -430,8 +418,7 @@ def _clean_srt_text(text: str) -> str:
         idx, timing, payload = parts[0], parts[1], parts[2]
         payload_stripped = payload.strip()
         if payload_stripped == prev_text:
-            # пропускаем дубликат
-            continue
+            continue  # дубликат
         prev_text = payload_stripped
         cleaned_blocks.append('\n'.join([idx, timing, payload_stripped, '']))
 
@@ -447,29 +434,24 @@ def _convert_vtt_to_srt(path: str) -> str:
             return path
 
         raw = raw.replace('\r', '')
-        # убираем заголовок
         body = raw.split('WEBVTT', 1)[-1].strip()
 
-        # Разбиваем по пустым строкам
         cues = re.split(r'\n\s*\n', body)
         out_lines = []
         idx = 1
         for cue in cues:
             if '-->' not in cue:
                 continue
-            # Первая строка может быть ID, поэтому ищем строку с "-->"
             lines = cue.splitlines()
-            # найдём строку с таймкодом
-            tc_line_idx = next((i for i,l in enumerate(lines) if '-->' in l), None)
+            tc_line_idx = next((i for i, l in enumerate(lines) if '-->' in l), None)
             if tc_line_idx is None:
                 continue
+
             timing = lines[tc_line_idx]
-            # заменяем .123 на ,123
             timing = re.sub(r'(\d{2}:\d{2}:\d{2})\.(\d{3})', r'\1,\2', timing)
-            # режем всё после таймкодов (align/start/position)
             timing = re.sub(r'(-->.*?)(\s+.*)$', r'\1', timing)
 
-            payload = '\n'.join(lines[tc_line_idx+1:]).strip()
+            payload = '\n'.join(lines[tc_line_idx + 1:]).strip()
             if not payload:
                 continue
 
@@ -492,16 +474,20 @@ def _convert_vtt_to_srt(path: str) -> str:
         logger.warning(f"VTT->SRT convert fail: {e}")
         return path
 
+
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
-    Берём info один раз, выбираем ОДИН трек (VTT/TTML/…),
+    Берём info один раз, выбираем ОДИН трек (VTT/TTML/SRV/JSON/SRT),
     пробуем скачать его с разными fmt-параметрами, конвертим локально.
-    Для RTL/CJK проверяем символы.
+    Для RTL/CJK проверяем наличие нужных символов.
     """
-    import os, re, time, random, yt_dlp, requests
+    import yt_dlp
+    import requests
+    import random
+    import time
 
     MAX_RETRIES = 1
-    RTL_CJK = {'ar','fa','ur','ps','iw','he','zh','zh-Hans','zh-Hant','ja','ko'}
+    RTL_CJK = {'ar', 'fa', 'ur', 'ps', 'iw', 'he', 'zh', 'zh-Hans', 'zh-Hant', 'ja', 'ko'}
 
     # ---------- helpers ----------
     def _rand_jitter(base, spread=2.5):
@@ -543,22 +529,21 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
         return any(ord(ch) > 127 for ch in text if ch.isalpha())
 
     def _build_variants(u: str):
-        # меняем/удаляем fmt, чтобы не триггерить конвертацию на сервере
         base = re.sub(r'([?&])fmt=[^&]+', r'\1', u).rstrip('&?')
+        q = '&' if '?' in base else '?'
         variants = [
-            base,                               # как есть
-            base + ('&' if '?' in base else '?') + 'fmt=vtt',
-            base + ('&' if '?' in base else '?') + 'fmt=ttml',
-            base + ('&' if '?' in base else '?') + 'fmt=json3',
-            base + ('&' if '?' in base else '?') + 'fmt=srv3',
-            base + ('&' if '?' in base else '?') + 'fmt=srt',   # на крайний случай
+            base,
+            base + q + 'fmt=vtt',
+            base + q + 'fmt=ttml',
+            base + q + 'fmt=json3',
+            base + q + 'fmt=srv3',
+            base + q + 'fmt=srt',
         ]
-        # убрать дубликаты, сохранив порядок
-        seen, out = set(), []
-        for x in variants:
-            if x not in seen:
-                out.append(x); seen.add(x)
-        return out
+        seen, res = set(), []
+        for v in variants:
+            if v not in seen:
+                res.append(v); seen.add(v)
+        return res
 
     def _download_timedtext(urls, dst_path, retries_each=1):
         sess = requests.Session()
@@ -566,7 +551,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             "User-Agent": "Mozilla/5.0",
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.youtube.com/",
-            "Origin":  "https://www.youtube.com",
+            "Origin": "https://www.youtube.com",
         }
         for u in urls:
             for i in range(retries_each):
@@ -635,11 +620,11 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 logger.error("No track URL found in info for selected language")
                 return None
 
-            # ПРИОРИТЕТ: vtt -> ttml -> srv3/json3 -> srt
-            preferred = ('vtt','ttml','srv3','json3','srt')
+            preferred = ('vtt', 'ttml', 'srv3', 'json3', 'srt')
             track = min(
                 tracks,
-                key=lambda t: preferred.index((t.get('ext') or '').lower()) if (t.get('ext') or '').lower() in preferred else 999
+                key=lambda t: preferred.index((t.get('ext') or '').lower())
+                if (t.get('ext') or '').lower() in preferred else 999
             )
 
             ext = (track.get('ext') or 'txt').lower()
@@ -653,8 +638,10 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 return None
 
             if os.path.getsize(dst) < 200:
-                try: os.remove(dst)
-                except: pass
+                try:
+                    os.remove(dst)
+                except Exception:
+                    pass
                 return None
 
             # конверт/чистка
@@ -676,14 +663,16 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 ok_lang = _check_lang_text(subs_lang, content)
 
             if ok_ts and ok_lang:
-                if subs_lang in {'ar','fa','ur','ps','iw','he'}:
+                if subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
                     force_fix_arabic_encoding(dst, subs_lang)
                 logger.info(f"Valid subtitles ({subs_lang}), size={os.path.getsize(dst)}")
                 return dst
 
             logger.warning("Downloaded track invalid after clean/convert")
-            try: os.remove(dst)
-            except: pass
+            try:
+                os.remove(dst)
+            except Exception:
+                pass
             return None
 
         except yt_dlp.utils.DownloadError as e:
