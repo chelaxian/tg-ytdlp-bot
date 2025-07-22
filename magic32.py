@@ -291,7 +291,7 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
     clear_subs_check_cache()
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
-    """Возвращает список доступных языков субтитров. Корректно обрабатывает 429."""
+    """Возвращает список доступных языков субтитров. Обрабатывает 429 и 'Requested format is not available'."""
     import os
     import time
     import random
@@ -300,7 +300,6 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
     MAX_RETRIES = 3
 
     def backoff(i: int) -> float:
-        # exponential-ish with jitter
         base = (30, 60, 120)
         return base[min(i, len(base) - 1)] + random.uniform(0, 3)
 
@@ -308,8 +307,10 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
         base_opts = {
             'quiet': True,
             'no_warnings': True,
-            'skip_download': True,   # do not download media
+            'skip_download': True,
             'noplaylist': True,
+            'format': 'best',                   # чтобы не падать на формате
+            'ignore_no_formats_error': True,    # глушим ошибку выбора формата
             'sleep-requests': 2,
             'min_sleep_interval': 1,
             'max_sleep_interval': 3,
@@ -326,17 +327,25 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             base_opts['cookiefile'] = Config.COOKIE_FILE_PATH
 
         last_info = {}
-        for client in ('web', 'android', 'tv'):
+        # пробуем разные клиенты + дефолт вообще без extractor_args
+        for client in ('web', 'android', 'tv', None):
             opts = dict(base_opts)
-            opts['extractor_args'] = {'youtube': {'player_client': [client]}}
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=False)
+            if client:
+                opts['extractor_args'] = {'youtube': {'player_client': [client]}}
+            try:
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
+            except yt_dlp.utils.DownloadError as e:
+                if 'Requested format is not available' in str(e):
+                    # пробуем без клиента сразу
+                    continue
+                raise
             if info.get('subtitles') or info.get('automatic_captions'):
-                logger.info(f"youtube player_client={client} returned captions")
+                logger.info(f"youtube player_client={client or 'default'} returned captions")
                 return info
-            logger.info(f"player_client={client} has no captions, trying next...")
+            logger.info(f"player_client={client or 'default'} has no captions, trying next...")
             last_info = info
-        return last_info  # even if empty
+        return last_info
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -367,9 +376,6 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             break
 
     return []
-
-
-
 
 
 def get_language_keyboard(page=0, user_id=None):
@@ -7596,7 +7602,7 @@ def check_subs_limits(info_dict, quality_key=None):
 
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
-    Отдельно скачивает субтитры для видео через yt-dlp с проверкой языка.
+    Скачивает субтитры через yt-dlp с проверкой языка и минимизацией запросов.
     """
     import os
     import time
@@ -7624,7 +7630,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             subs_opts = {
                 'skip_download': True,
-                'format': 'none',
+                'format': 'best',                   # не 'none', чтобы не падать
+                'ignore_no_formats_error': True,
                 'noplaylist': True,
                 'outtmpl': {
                     'subtitle': os.path.join(video_dir, "%(title).50s.%(lang)s.%(ext)s")
@@ -7652,13 +7659,12 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
                 subs_opts['cookiefile'] = Config.COOKIE_FILE_PATH
 
-            # set lang
             subs_opts['subtitleslangs'] = [found_lang]
 
             with yt_dlp.YoutubeDL(subs_opts) as ydl:
                 ydl.download([url])
 
-            # find downloaded srt
+            # ищем srt
             srt_files = [f for f in os.listdir(video_dir)
                          if f.lower().endswith('.srt') and f".{found_lang}." in f.lower()]
             if not srt_files:
@@ -7666,7 +7672,6 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 if not srt_files:
                     return None
 
-            # pick the newest
             srt_files.sort(key=lambda fn: os.path.getmtime(os.path.join(video_dir, fn)), reverse=True)
             subs_path = os.path.join(video_dir, srt_files[0])
             logger.info(f"Subtitles downloaded: {subs_path}")
@@ -7676,35 +7681,33 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     with open(subs_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
 
-                    # language chars check
-                    has_language_chars = False
-                    if subs_lang == 'ru':
-                        alphabet = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
-                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
-                    elif subs_lang == 'en':
-                        alphabet = 'abcdefghijklmnopqrstuvwxyz'
-                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
-                    elif subs_lang == 'es':
-                        alphabet = 'abcdefghijklmnopqrstuvwxyzñáéíóúü'
-                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
-                    elif subs_lang == 'fr':
-                        alphabet = 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç'
-                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
-                    elif subs_lang == 'de':
-                        alphabet = 'abcdefghijklmnopqrstuvwxyzäöüß'
-                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
-                    elif subs_lang == 'it':
-                        alphabet = 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù'
-                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
-                    elif subs_lang == 'pt':
-                        alphabet = 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú'
-                        has_language_chars = any(ch.lower() in alphabet for ch in content if ch.isalpha())
-                    elif subs_lang in ('ja', 'ko', 'zh', 'ar'):
-                        # quick unicode check
-                        has_language_chars = any(ord(ch) > 127 for ch in content if ch.isalpha())
-                    else:
-                        has_language_chars = any(ord(ch) > 127 for ch in content if ch.isalpha())
+                    # language check
+                    def check_lang(lang: str, text: str) -> bool:
+                        if lang == 'ru':
+                            alphabet = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
+                            return any(ch.lower() in alphabet for ch in text if ch.isalpha())
+                        if lang == 'en':
+                            alphabet = 'abcdefghijklmnopqrstuvwxyz'
+                            return any(ch.lower() in alphabet for ch in text if ch.isalpha())
+                        if lang == 'es':
+                            alphabet = 'abcdefghijklmnopqrstuvwxyzñáéíóúü'
+                            return any(ch.lower() in alphabet for ch in text if ch.isalpha())
+                        if lang == 'fr':
+                            alphabet = 'abcdefghijklmnopqrstuvwxyzàâäéèêëïîôöùûüÿç'
+                            return any(ch.lower() in alphabet for ch in text if ch.isalpha())
+                        if lang == 'de':
+                            alphabet = 'abcdefghijklmnopqrstuvwxyzäöüß'
+                            return any(ch.lower() in alphabet for ch in text if ch.isalpha())
+                        if lang == 'it':
+                            alphabet = 'abcdefghijklmnopqrstuvwxyzàèéìíîòóù'
+                            return any(ch.lower() in alphabet for ch in text if ch.isalpha())
+                        if lang == 'pt':
+                            alphabet = 'abcdefghijklmnopqrstuvwxyzàáâãçéêíóôõú'
+                            return any(ch.lower() in alphabet for ch in text if ch.isalpha())
+                        # unicode-heavy langs
+                        return any(ord(ch) > 127 for ch in text if ch.isalpha())
 
+                    has_language_chars = check_lang(subs_lang, content)
                     has_timestamps = '-->' in content
 
                     if has_language_chars and has_timestamps:
@@ -7751,6 +7754,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return None
 
     return None
+
 
 
 
