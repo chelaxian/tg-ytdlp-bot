@@ -3705,6 +3705,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     subs_enabled = is_subs_enabled(user_id)
     if subs_enabled and is_youtube_url(url):
         found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
+        available_langs = _subs_check_cache.get(
+            f"{url}_{user_id}_{'auto' if found_type == 'auto' else 'normal'}_langs",
+            []
+        )        
     # We define a playlist not only by the number of videos, but also by the presence of a range in the URL
     original_text = message.text or message.caption or ""
     is_playlist = video_count > 1 or is_playlist_with_range(original_text)
@@ -3963,7 +3967,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 auto_mode = get_user_subs_auto_mode(user_id)
                 if subs_lang and subs_lang not in ["OFF"]:
                     # Check availability with AUTO mode
-                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+                    #available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
                     # Flexible check: search for an exact match or any language from the group
                     lang_prefix = subs_lang.split('-')[0]
                     found = False
@@ -4469,7 +4473,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     
                                     # Сначала скачиваем субтитры отдельно
                                     video_dir = os.path.dirname(after_rename_abs_path)
-                                    subs_path = download_subtitles_ytdlp(url, user_id, video_dir)
+                                    subs_path = download_subtitles_ytdlp(url, user_id, video_dir, available_langs)
                                     
                                     if not subs_path:
                                         app.send_message(user_id, "⚠️ Failed to download subtitles", reply_to_message_id=message.id)
@@ -6344,6 +6348,11 @@ def askq_callback(app, callback_query):
             return
     # --- other logic for single files ---
     found_type = check_subs_availability(url, user_id, data, return_type=True)
+    available_langs = _subs_check_cache.get(
+        f"{url}_{user_id}_{'auto' if found_type == 'auto' else 'normal'}_langs",
+        []
+    )
+
     subs_enabled = is_subs_enabled(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
     need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
@@ -6374,12 +6383,12 @@ def askq_callback(app, callback_query):
                 else:
                     logger.info("Video with subtitles (real subs found and needed) is not cached!")
                 app.send_message(user_id, "⚠️ Failed to get video from cache, starting a new download...", reply_to_message_id=original_message.id)
-                askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+                askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs)
             return
-    askq_callback_logic(app, callback_query, data, original_message, url, tags_text)
+    askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs)
 
 
-def askq_callback_logic(app, callback_query, data, original_message, url, tags_text):
+def askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs):
     user_id = callback_query.from_user.id
     tags = tags_text.split() if tags_text else []
     if data == "mp3":
@@ -6397,7 +6406,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
         video_count = video_end_with - video_start_with + 1
-        download_subtitles_only(app, original_message, url, tags, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+        download_subtitles_only(app, original_message, url, tags, available_langs, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
     
     # Logic for forming the format with the real height
@@ -7426,6 +7435,8 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     Checks the availability of subtitles for the language chosen by the user.
     Если return_type=True, возвращает "normal", "auto" или None.
     Если return_type=False, возвращает True/False (есть ли вообще какие-то сабы).
+
+    Также кэширует списки языков для normal и auto.
     """
     try:
         cache_key = f"{url}_{user_id}_{return_type}"
@@ -7435,7 +7446,7 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
         subs_lang = get_user_subs_language(user_id)
         if not subs_lang or subs_lang == "OFF":
             _subs_check_cache[cache_key] = False if not return_type else None
-            return False if not return_type else None
+            return _subs_check_cache[cache_key]
 
         # Проверяем обычные субтитры
         available_normal = get_available_subs_languages(url, user_id, auto_only=False)
@@ -7447,6 +7458,11 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
         has_auto = lang_match(subs_lang, available_auto) is not None
         logger.info(f"check_subs_availability: auto subs - available={available_auto}, has_auto={has_auto}")
 
+        # Кэшируем найденные списки языков отдельно
+        _subs_check_cache[f"{url}_{user_id}_normal_langs"] = available_normal
+        _subs_check_cache[f"{url}_{user_id}_auto_langs"] = available_auto
+
+        # Определяем тип или наличие сабов
         if return_type:
             result = "normal" if has_normal else "auto" if has_auto else None
         else:
@@ -7454,6 +7470,11 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
 
         _subs_check_cache[cache_key] = result
         return result
+
+    except Exception as e:
+        logger.error(f"Error checking subtitle availability: {e}")
+        return False if not return_type else None
+
 
     except Exception as e:
         logger.error(f"Error checking subtitle availability: {e}")
@@ -7532,7 +7553,7 @@ def check_subs_limits(info_dict, quality_key=None):
         return False
 
 
-def download_subtitles_ytdlp(url, user_id, video_dir):
+def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
     Отдельно скачивает субтитры для видео через yt-dlp с проверкой языка
     """
@@ -7576,7 +7597,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir):
                     subs_opts['cookiefile'] = None
             
             # Проверяем доступность субтитров
-            available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+            #available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
             if not available_langs:
                 logger.info(f"No subtitles available for {subs_lang}")
                 return None
@@ -7695,7 +7716,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir):
     
     return None
 
-def download_subtitles_only(app, message, url, tags, playlist_name=None, video_count=1, video_start_with=1):
+def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
     """
     Скачивает и отправляет только файл субтитров без видео
     """
@@ -7732,7 +7753,7 @@ def download_subtitles_only(app, message, url, tags, playlist_name=None, video_c
         status_msg = app.send_message(user_id, "💬 Downloading subtitles...", reply_to_message_id=message.id)
         
         # Download subtitles
-        subs_path = download_subtitles_ytdlp(url, user_id, user_dir)
+        subs_path = download_subtitles_ytdlp(url, user_id, user_dir, available_langs)
         
         if subs_path and os.path.exists(subs_path):
             # Process subtitle file
