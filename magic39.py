@@ -7800,7 +7800,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
         # Default heuristic: any non-ascii
         return any(ord(ch) > 127 for ch in text if ch.isalpha())
 
-    def _download_timedtext(track_url: str, dst_path: str, max_retries: int = 5) -> bool:
+    #def _download_timedtext(track_url: str, dst_path: str, max_retries: int = 5) -> bool:
+    def _download_timedtext(track_url: str, dst_path: str, max_retries: int = 1) -> bool:
         import requests
         sess = requests.Session()
         headers = {
@@ -7814,7 +7815,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     f.write(r.content)
                 return True
             if r.status_code == 429:
-                sleep_s = _rand_jitter([30, 60, 120, 180, 240][min(i, 4)])
+                #sleep_s = _rand_jitter([30, 60, 120, 180, 240][min(i, 4)])
+                sleep_s = _rand_jitter([1, 2, 3, 4, 5][min(i, 4)])
                 logger.warning(f"timedtext 429, sleep {sleep_s:.1f}s ({i+1}/{max_retries})")
                 time.sleep(sleep_s)
                 continue
