@@ -291,8 +291,14 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
     clear_subs_check_cache()
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
-    """Get available subtitle languages for a video"""
-    try:
+    """Get available subtitle languages for a video. Handles 429 errors with retries."""
+    import time
+    import yt_dlp
+
+    max_retries = 2
+    retry_delays = [1.0, 2.0]  # seconds
+
+    def extract_info_with_cookies():
         ytdl_opts = {
             'quiet': True,
             'no_warnings': True,
@@ -300,7 +306,7 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             'writesubtitles': True,
             'listsubtitles': True
         }
-        
+
         if user_id:
             user_dir = os.path.join("users", str(user_id))
             cookie_file = os.path.join(user_dir, "cookie.txt")
@@ -308,28 +314,49 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
                 ytdl_opts['cookiefile'] = cookie_file
 
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            return ydl.extract_info(url, download=False)
+
+    for attempt in range(max_retries + 1):
+        try:
+            info = extract_info_with_cookies()
+
             available_langs = []
             if auto_only:
-                # Только автосубтитры
                 if 'automatic_captions' in info and info['automatic_captions']:
                     available_langs.extend(list(info['automatic_captions'].keys()))
                     logger.info(f"Found auto captions: {list(info['automatic_captions'].keys())}")
                 else:
                     logger.info("No automatic captions found")
             else:
-                # Только обычные субтитры
                 if 'subtitles' in info:
                     available_langs.extend(list(info['subtitles'].keys()))
                     logger.info(f"Found subtitles: {list(info['subtitles'].keys())}")
                 else:
                     logger.info("No subtitles found")
-            result = list(set(available_langs))  # Remove duplicates
+
+            result = list(set(available_langs))
             logger.info(f"get_available_subs_languages: auto_only={auto_only}, result={result}")
             return result
-    except Exception as e:
-        logger.error(f"Error getting available subtitles: {e}")
+
+        except yt_dlp.utils.DownloadError as e:
+            if "429" in str(e):
+                if attempt < max_retries:
+                    delay = retry_delays[attempt]
+                    logger.warning(f"Received 429 Too Many Requests (attempt {attempt + 1}). Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                    continue
+                else:
+                    logger.error("Final attempt failed with 429 Too Many Requests.")
+                    raise Exception("❌ YouTube API rate limit reached (429 Too Many Requests). Try again later.")
+            else:
+                logger.error(f"DownloadError while getting subtitles: {e}")
+                break
+        except Exception as e:
+            logger.error(f"Unexpected error getting subtitles: {e}")
+            break
+
     return []
+
 
 def get_language_keyboard(page=0, user_id=None):
     """Generate keyboard with language buttons in 3 columns"""
