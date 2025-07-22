@@ -9,6 +9,7 @@ import re
 import requests
 import shutil
 import subprocess
+import random
 # import sys
 import threading
 import time
@@ -247,7 +248,7 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Возвращает список доступных языков субтитров. Обходит 429 и 'Requested format...'."""
-    import os, random, time, yt_dlp
+    #import os, random, time, yt_dlp
 
     MAX_RETRIES = 1
     def backoff(i):  # короткий, т.к. сам листинг обычно не бьётся в лимиты
