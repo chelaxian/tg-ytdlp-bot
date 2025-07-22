@@ -494,9 +494,9 @@ def _convert_vtt_to_srt(path: str) -> str:
 
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     """
-    Качаем сабы: достаём прямой track.url из info и делаем один запрос к timedtext.
-    Для RTL/CJK проверяем наличие нужных символов.
-    Если пришёл VTT/SRV3 с мусором — конвертим VTT в SRT и чистим текст.
+    Берём info один раз, выбираем ОДИН трек (VTT/TTML/…),
+    пробуем скачать его с разными fmt-параметрами, конвертим локально.
+    Для RTL/CJK проверяем символы.
     """
     import os, re, time, random, yt_dlp, requests
 
@@ -542,7 +542,25 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return any(ch.lower() in alpha for ch in text if ch.isalpha())
         return any(ord(ch) > 127 for ch in text if ch.isalpha())
 
-    def _download_timedtext(track_url: str, dst_path: str, retries: int = 3) -> bool:
+    def _build_variants(u: str):
+        # меняем/удаляем fmt, чтобы не триггерить конвертацию на сервере
+        base = re.sub(r'([?&])fmt=[^&]+', r'\1', u).rstrip('&?')
+        variants = [
+            base,                               # как есть
+            base + ('&' if '?' in base else '?') + 'fmt=vtt',
+            base + ('&' if '?' in base else '?') + 'fmt=ttml',
+            base + ('&' if '?' in base else '?') + 'fmt=json3',
+            base + ('&' if '?' in base else '?') + 'fmt=srv3',
+            base + ('&' if '?' in base else '?') + 'fmt=srt',   # на крайний случай
+        ]
+        # убрать дубликаты, сохранив порядок
+        seen, out = set(), []
+        for x in variants:
+            if x not in seen:
+                out.append(x); seen.add(x)
+        return out
+
+    def _download_timedtext(urls, dst_path, retries_each=1):
         sess = requests.Session()
         headers = {
             "User-Agent": "Mozilla/5.0",
@@ -550,19 +568,20 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             "Referer": "https://www.youtube.com/",
             "Origin":  "https://www.youtube.com",
         }
-        for i in range(retries):
-            r = sess.get(track_url, headers=headers, timeout=25)
-            if r.status_code == 200 and r.content:
-                with open(dst_path, "wb") as f:
-                    f.write(r.content)
-                return True
-            if r.status_code == 429:
-                sleep_s = _rand_jitter([10, 25, 55][min(i, 2)])
-                logger.warning(f"timedtext 429, sleep {sleep_s:.1f}s ({i+1}/{retries})")
-                time.sleep(sleep_s)
-                continue
-            logger.error(f"timedtext HTTP {r.status_code}, retry {i+1}/{retries}")
-            time.sleep(_rand_jitter(5))
+        for u in urls:
+            for i in range(retries_each):
+                r = sess.get(u, headers=headers, timeout=25)
+                if r.status_code == 200 and r.content:
+                    with open(dst_path, "wb") as f:
+                        f.write(r.content)
+                    return True
+                if r.status_code == 429:
+                    sleep_s = _rand_jitter([8, 18, 38][min(i, 2)])
+                    logger.warning(f"timedtext 429 ({u}), sleep {sleep_s:.1f}s ({i+1}/{retries_each})")
+                    time.sleep(sleep_s)
+                    continue
+                logger.error(f"timedtext HTTP {r.status_code} ({u}), retry {i+1}/{retries_each}")
+                time.sleep(_rand_jitter(4))
         return False
     # ---------- /helpers ----------
 
@@ -583,7 +602,6 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             client = _subs_check_cache.get(f"{url}_{user_id}_client", 'tv')
 
-            # 1) Получаем info и прямой URL дорожки
             info_opts = {
                 'quiet': True,
                 'no_warnings': True,
@@ -617,8 +635,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 logger.error("No track URL found in info for selected language")
                 return None
 
-            # Выбираем один лучший трек (минимум запросов)
-            preferred = ('srt','vtt','ttml','json3','srv3')
+            # ПРИОРИТЕТ: vtt -> ttml -> srv3/json3 -> srt
+            preferred = ('vtt','ttml','srv3','json3','srt')
             track = min(
                 tracks,
                 key=lambda t: preferred.index((t.get('ext') or '').lower()) if (t.get('ext') or '').lower() in preferred else 999
@@ -626,10 +644,12 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             ext = (track.get('ext') or 'txt').lower()
             track_url = track.get('url', '')
+            variants = _build_variants(track_url)
+
             base_name = f"{info.get('title','video')[:50]}.{found_lang}.{ext}"
             dst = os.path.join(video_dir, base_name)
 
-            if not _download_timedtext(track_url, dst):
+            if not _download_timedtext(variants, dst):
                 return None
 
             if os.path.getsize(dst) < 200:
@@ -644,7 +664,6 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             with open(dst, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
 
-            # VTT->SRT конвертер уже мог выдать SRT без чистки — чистим всегда
             cleaned = _clean_srt_text(content)
             if cleaned != content:
                 with open(dst, 'w', encoding='utf-8') as f:
