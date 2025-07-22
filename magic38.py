@@ -7684,7 +7684,7 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
         status_msg = app.send_message(user_id, "💬 Downloading subtitles...", reply_to_message_id=message.id)
         
         # Download subtitles
-        subs_path = download_subtitles_ytdlp(url, user_id, user_dir)
+        subs_path = download_subtitles_ytdlp(url, user_id, user_dir, available_langs)
         
         if subs_path and os.path.exists(subs_path):
             # Process subtitle file
