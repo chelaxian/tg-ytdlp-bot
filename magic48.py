@@ -4394,7 +4394,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
 
-        # --- Pre-download file size limit check ---
+        # Получаем info_dict для оценки размера выбранного качества
         try:
             with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
                 pre_info = ydl.extract_info(url, download=False)
@@ -4405,17 +4405,35 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             logger.warning(f"Failed to extract info for size check: {e}")
             pre_info = {}
 
-		# from config import Config
+        # Найти формат для выбранного quality_key
+        selected_format = None
+        for f in pre_info.get('formats', []):
+            w = f.get('width')
+            h = f.get('height')
+            if w and h:
+                qk = get_quality_by_min_side(w, h)
+                if str(qk) == str(quality_key):
+                    selected_format = f
+                    break
+
+        # Если не нашли — fallback на best
+        if not selected_format and pre_info.get('formats'):
+            selected_format = pre_info['formats'][-1]
+
+        # Проверяем лимит
+        from _config import Config
         BYTES_IN_GIB = 1024 ** 3
         max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 10)
         max_size_bytes = int(max_size_gb * BYTES_IN_GIB)
-        if not check_file_size_limit(pre_info, max_size_bytes=max_size_bytes):
-            app.send_message(
-                user_id,
-                f"The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.",
-                reply_to_message_id=message.id
-            )
-            return
+        if selected_format:
+            if not check_file_size_limit(selected_format, max_size_bytes=max_size_bytes):
+                app.send_message(
+                    user_id,
+                    f"❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.",
+                    reply_to_message_id=message.id
+                )
+                send_to_logger(message, f"❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.")
+                return
 
         current_total_process = ""
         last_update = 0
