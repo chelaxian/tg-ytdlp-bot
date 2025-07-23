@@ -4405,23 +4405,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             logger.warning(f"Failed to extract info for size check: {e}")
             pre_info = {}
 
-        from _config import Config
-        max_size_bytes = getattr(Config, 'MAX_FILE_SIZE', 10 * 1024 * 1024 * 1024)
-        # Преобразуем в GB для сообщения
-        if isinstance(max_size_bytes, str):
-            import re
-            match = re.match(r"(\\d+(?:\\.\\d+)?)\\s*GB", max_size_bytes, re.IGNORECASE)
-            if match:
-                max_size_gb = float(match.group(1))
-                max_size_bytes = int(max_size_gb * 1024 ** 3)
-            else:
-                max_size_gb = max_size_bytes
-        else:
-            max_size_gb = max_size_bytes / (1024 ** 3)
+		# from config import Config
+        BYTES_IN_GIB = 1024 ** 3
+        max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 10)
+        max_size_bytes = int(max_size_gb * BYTES_IN_GIB)
         if not check_file_size_limit(pre_info, max_size_bytes=max_size_bytes):
             app.send_message(
                 user_id,
-                f"The file size exceeds the {max_size_gb:.1f} GB limit. Please select a smaller file within the allowed size.",
+                f"The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.",
                 reply_to_message_id=message.id
             )
             return
@@ -8065,34 +8056,32 @@ def check_file_size_limit(info_dict, max_size_bytes=None):
     Проверяет, не превышает ли размер файла глобальный лимит.
     Возвращает True, если размер в пределах лимита, иначе False.
     """
-    import math
     if max_size_bytes is None:
-        from _config import Config
-        max_size_bytes = getattr(Config, 'MAX_FILE_SIZE', 10 * 1024 * 1024 * 1024)
+        max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 10)  # GiB
+        max_size_bytes = int(max_size_gb * 1024 ** 3)
+
     filesize = info_dict.get('filesize') or info_dict.get('filesize_approx')
     if filesize and filesize > 0:
-        size_bytes = filesize
+        size_bytes = int(filesize)
     else:
-        # Пробуем оценить по битрейту и длительности
+        # Try to estimate by bitrate (kbit/s) and duration (s)
         tbr = info_dict.get('tbr')
         duration = info_dict.get('duration')
         if tbr and duration:
-            # tbr обычно в кбит/с, переводим в байты
-            size_bytes = float(tbr) * float(duration) * 125
+            size_bytes = float(tbr) * float(duration) * 125  # kbit/s -> bytes
         else:
-            # Пробуем оценить по разрешению и длительности (очень грубо)
+            # Very rough estimate by resolution and duration
             width = info_dict.get('width')
             height = info_dict.get('height')
             duration = info_dict.get('duration')
             if width and height and duration:
-                # Коэффициент подобран для среднего битрейта (примерно 0.07 байт/пиксель/сек)
                 size_bytes = int(width) * int(height) * float(duration) * 0.07
             else:
-                # Не удалось оценить размер
+                # Could not estimate, allow download
                 return True
-    if size_bytes > max_size_bytes:
-        return False
-    return True
+
+    return size_bytes <= max_size_bytes
+
     
 def check_subs_limits(info_dict, quality_key=None):
     """
