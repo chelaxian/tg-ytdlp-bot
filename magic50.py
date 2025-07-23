@@ -4708,6 +4708,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 continue
 
             if info_dict is None:
+                send_to_user(message, "❌ Failed to download video: info not found or site not supported.")
+                logger.error("Error in video download: info_dict is None")
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
                     if error_key not in playlist_errors:
