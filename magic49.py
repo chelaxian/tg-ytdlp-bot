@@ -4396,9 +4396,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         # Получаем info_dict для оценки размера выбранного качества
         try:
-            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            ydl_opts = {'quiet': True}
+            user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+            if os.path.exists(user_cookie_path):
+                ydl_opts['cookiefile'] = user_cookie_path
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 pre_info = ydl.extract_info(url, download=False)
-            # Для плейлистов берем первый элемент, если есть
             if 'entries' in pre_info and isinstance(pre_info['entries'], list) and pre_info['entries']:
                 pre_info = pre_info['entries'][0]
         except Exception as e:
@@ -4416,24 +4419,52 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     selected_format = f
                     break
 
-        # Если не нашли — fallback на best
-        if not selected_format and pre_info.get('formats'):
-            selected_format = pre_info['formats'][-1]
+        # Если не нашли формат — ОСТАНАВЛИВАЕМ скачивание!
+        #if not selected_format:
+            #logger.warning(f"[SIZE CHECK] Could not determine format for quality_key={quality_key}. Download will not start.")
+            #app.send_message(
+                #user_id,
+                #"Unable to determine the file size for the selected quality. Please try another quality or check your cookies.",
+                #reply_to_message_id=message.id
+            #)
+            #return
 
         # Проверяем лимит
-        from _config import Config
+        #from _config import Config
         BYTES_IN_GIB = 1024 ** 3
-        max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 10)
+        max_size_gb = getattr(Config, 'MAX_FILE_SIZE', 10)
         max_size_bytes = int(max_size_gb * BYTES_IN_GIB)
-        if selected_format:
-            if not check_file_size_limit(selected_format, max_size_bytes=max_size_bytes):
-                app.send_message(
-                    user_id,
-                    f"❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.",
-                    reply_to_message_id=message.id
-                )
-                send_to_logger(message, f"❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.")
-                return
+        # Получаем размер файла
+        filesize = selected_format.get('filesize') or selected_format.get('filesize_approx')
+        if not filesize:
+            # fallback на оценку
+            tbr = selected_format.get('tbr')
+            duration = selected_format.get('duration')
+            if tbr and duration:
+                filesize = float(tbr) * float(duration) * 125
+            else:
+                width = selected_format.get('width')
+                height = selected_format.get('height')
+                duration = selected_format.get('duration')
+                if width and height and duration:
+                    filesize = int(width) * int(height) * float(duration) * 0.07
+                else:
+                    filesize = 0
+
+        allowed = check_file_size_limit(selected_format, max_size_bytes=max_size_bytes)
+        logger.info(f"[SIZE CHECK] quality_key={quality_key}, determined size={filesize/(1024**3):.2f} GB, limit={max_size_gb} GB, allowed={allowed}")
+
+        if not allowed:
+            app.send_message(
+                user_id,
+                f"❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.",
+                reply_to_message_id=message.id
+            )
+            send_to_logger(message, f"❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size.")
+            logger.warning(f"[SIZE CHECK] Download for quality_key={quality_key} was blocked due to size limit.")
+            return
+        else:
+            logger.info(f"[SIZE CHECK] Download for quality_key={quality_key} is allowed and will proceed.")
 
         current_total_process = ""
         last_update = 0
