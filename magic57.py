@@ -49,13 +49,13 @@ def load_firebase_cache():
     """Загружает локальный кэш Firebase из JSON файла"""
     global firebase_cache
     try:
-        cache_file = "firebase_cache.json"
+        cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
         if os.path.exists(cache_file):
             with open(cache_file, "r", encoding="utf-8") as f:
                 firebase_cache = json.load(f)
             print(f"✅ Firebase cache loaded: {len(firebase_cache)} root nodes")
         else:
-            print("⚠️ Firebase cache file not found, starting with empty cache")
+            print(f"⚠️ Firebase cache file not found, starting with empty cache: {cache_file}")
             firebase_cache = {}
     except Exception as e:
         print(f"❌ Failed to load firebase cache: {e}")
@@ -65,14 +65,14 @@ def reload_firebase_cache():
     """Перезагружает локальный кэш Firebase из JSON файла"""
     global firebase_cache
     try:
-        cache_file = "firebase_cache.json"
+        cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
         if os.path.exists(cache_file):
             with open(cache_file, "r", encoding="utf-8") as f:
                 firebase_cache = json.load(f)
             print(f"✅ Firebase cache reloaded: {len(firebase_cache)} root nodes")
             return True
         else:
-            print("⚠️ Firebase cache file not found")
+            print(f"⚠️ Firebase cache file not found: {cache_file}")
             return False
     except Exception as e:
         print(f"❌ Failed to reload firebase cache: {e}")
