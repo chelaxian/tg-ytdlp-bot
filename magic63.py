@@ -102,9 +102,10 @@ def get_from_local_cache(path_parts):
 
 def log_firebase_access_attempt(path_parts, success=True):
     """
-    Логирует попытки обращения к Firebase (для отслеживания оставшихся .get() вызовов)
+    Логирует попытки обращения к локальному кэшу (для отслеживания оставшихся .get() вызовов)
     """
-    path_str = '/'.join(path_parts)
+    # Показываем путь в формате JSON для локального кэша
+    path_str = ' -> '.join(path_parts)  # Например: "bot -> video_cache -> playlists -> url_hash -> quality"
     status = "SUCCESS" if success else "MISS"
     print(f"🔥 Firebase access attempt: {path_str} -> {status}")
 
