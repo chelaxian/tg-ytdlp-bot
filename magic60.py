@@ -1275,14 +1275,23 @@ app = Client(
 
 # #############################################################################################################################
 # #############################################################################################################################
+
 @app.on_message(filters.command("reload_cache") & filters.private)
 def reload_firebase_cache_command(app, message):
     """Обработчик команды для перезагрузки локального кэша Firebase"""
     if int(message.chat.id) not in Config.ADMIN:
         send_to_user(message, "❌ Access denied. Admin only.")
         return
-    
     try:
+        # 1. Сначала запускаем download_firebase.py по пути из конфига
+        script_path = getattr(Config, "DOWNLOAD_FIREBASE_SCRIPT_PATH", "download_firebase.py")
+        send_to_user(message, f"⏳ Downloading fresh Firebase dump using {script_path} ...")
+        result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
+        if result.returncode != 0:
+            send_to_user(message, f"❌ Error running {script_path}:\n{result.stdout}\n{result.stderr}")
+            send_to_logger(message, f"Error running {script_path}: {result.stdout}\n{result.stderr}")
+            return
+        # 2. Теперь подгружаем кэш
         success = reload_firebase_cache()
         if success:
             send_to_user(message, "✅ Firebase cache reloaded successfully!")
