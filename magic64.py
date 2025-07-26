@@ -45,6 +45,10 @@ import chardet
 # Глобальная переменная для локального кэша Firebase
 firebase_cache = {}
 
+# Глобальная переменная для отслеживания состояния автоматической загрузки кэша
+auto_cache_enabled = getattr(Config, 'AUTO_CACHE_RELOAD_ENABLED', True)
+auto_cache_thread = None
+
 def load_firebase_cache():
     """Загружает локальный кэш Firebase из JSON файла"""
     global firebase_cache
@@ -78,7 +82,88 @@ def reload_firebase_cache():
         print(f"❌ Failed to reload firebase cache: {e}")
         return False
 
+def auto_reload_firebase_cache():
+    """Автоматически загружает кэш Firebase с указанным интервалом"""
+    global auto_cache_enabled
+    while auto_cache_enabled:
+        try:
+            # Получаем интервал из конфигурации (по умолчанию 4 часа)
+            reload_interval = getattr(Config, 'RELOAD_CACHE_EVERY', 4) * 3600  # конвертируем часы в секунды
+            
+            # Ждём указанный интервал, проверяя каждую секунду, не отключили ли автозагрузку
+            for _ in range(reload_interval):
+                if not auto_cache_enabled:
+                    print("🛑 Auto Firebase cache reloader stopped by admin")
+                    return
+                time.sleep(1)
+            
+            if not auto_cache_enabled:
+                print("🛑 Auto Firebase cache reloader stopped by admin")
+                return
+                
+            print(f"🔄 Auto-reloading Firebase cache (every {reload_interval//3600} hours)...")
+            
+            # 1. Сначала запускаем скрипт для скачивания свежего дампа
+            script_path = getattr(Config, "DOWNLOAD_FIREBASE_SCRIPT_PATH", "download_firebase.py")
+            print(f"⏳ Downloading fresh Firebase dump using {script_path} ...")
+            
+            result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"❌ Error running {script_path}:\n{result.stdout}\n{result.stderr}")
+                continue
+            
+            # 2. Теперь подгружаем кэш в память
+            success = reload_firebase_cache()
+            if success:
+                print(f"✅ Firebase cache auto-reloaded successfully at {datetime.now()}")
+                # Отправляем уведомление в лог-канал, если есть доступ к app
+                try:
+                    if 'app' in globals() and app:
+                        safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded successfully at {datetime.now()}")
+                except Exception as e:
+                    print(f"⚠️ Could not send log message: {e}")
+            else:
+                print(f"❌ Failed to auto-reload Firebase cache at {datetime.now()}")
+                
+        except Exception as e:
+            print(f"❌ Error in auto-reload Firebase cache: {e}")
+            # Ждём 1 час перед повторной попыткой в случае ошибки
+            for _ in range(3600):
+                if not auto_cache_enabled:
+                    print("🛑 Auto Firebase cache reloader stopped by admin")
+                    return
+                time.sleep(1)
+    
+    print("🛑 Auto Firebase cache reloader stopped")
 
+def start_auto_cache_reloader():
+    """Запускает поток для автоматической загрузки кэша"""
+    global auto_cache_thread, auto_cache_enabled
+    if auto_cache_enabled and auto_cache_thread is None:
+        auto_cache_thread = threading.Thread(target=auto_reload_firebase_cache, daemon=True)
+        auto_cache_thread.start()
+        print(f"🚀 Auto Firebase cache reloader started (every {getattr(Config, 'RELOAD_CACHE_EVERY', 4)} hours)")
+        return auto_cache_thread
+    return None
+
+def stop_auto_cache_reloader():
+    """Останавливает автоматическую загрузку кэша"""
+    global auto_cache_enabled, auto_cache_thread
+    auto_cache_enabled = False
+    if auto_cache_thread and auto_cache_thread.is_alive():
+        print("🛑 Auto Firebase cache reloader stopped")
+    auto_cache_thread = None
+
+def toggle_auto_cache_reloader():
+    """Переключает состояние автоматической загрузки кэша"""
+    global auto_cache_enabled
+    auto_cache_enabled = not auto_cache_enabled
+    if auto_cache_enabled:
+        start_auto_cache_reloader()
+        return True
+    else:
+        stop_auto_cache_reloader()
+        return False
 
 # Загружаем кэш при импорте модуля
 load_firebase_cache()
@@ -1304,6 +1389,39 @@ def reload_firebase_cache_command(app, message):
         send_to_user(message, f"❌ Error reloading cache: {str(e)}")
         send_to_logger(message, f"Error reloading Firebase cache: {str(e)}")
 
+def auto_cache_command(app, message):
+    """Обработчик команды для управления автоматической загрузкой кэша Firebase"""
+    if int(message.chat.id) not in Config.ADMIN:
+        send_to_user(message, "❌ Access denied. Admin only.")
+        return
+    
+    global auto_cache_enabled
+    
+    try:
+        # Переключаем состояние
+        new_state = toggle_auto_cache_reloader()
+        
+        if new_state:
+            status = "✅ ENABLED"
+            action = "started"
+            interval = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
+            send_to_user(message, f"🔄 Auto Firebase cache reloading {action}!\n\n"
+                                f"📊 Status: {status}\n"
+                                f"⏰ Interval: Every {interval} hours\n"
+                                f"📝 Next reload: ~{interval} hours from now")
+            send_to_logger(message, f"Auto Firebase cache reloading {action} by admin.")
+        else:
+            status = "❌ DISABLED"
+            action = "stopped"
+            send_to_user(message, f"🛑 Auto Firebase cache reloading {action}!\n\n"
+                                f"📊 Status: {status}\n"
+                                f"💡 Use /auto_cache again to re-enable")
+            send_to_logger(message, f"Auto Firebase cache reloading {action} by admin.")
+            
+    except Exception as e:
+        send_to_user(message, f"❌ Error toggling auto cache: {str(e)}")
+        send_to_logger(message, f"Error toggling auto Firebase cache: {str(e)}")
+
 
 @app.on_callback_query(filters.regex(r"^subs_lang_close\|"))
 def subs_lang_close_callback(app, callback_query):
@@ -2008,6 +2126,11 @@ def url_distractor(app, message):
         # /reload_cache Command - Reload cache for URL
         if Config.RELOAD_CACHE_COMMAND in text:
             reload_firebase_cache_command(app, message)
+            return
+
+        # /auto_cache Command - Toggle automatic cache reloading
+        if Config.AUTO_CACHE_COMMAND in text:
+            auto_cache_command(app, message)
             return
 
     # Reframed processing for all users (admins and ordinary users)
@@ -8539,5 +8662,8 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         logger.error(traceback.format_exc())
         return False
 
+
+# Запускаем автоматическую загрузку кэша Firebase
+start_auto_cache_reloader()
 
 app.run()
