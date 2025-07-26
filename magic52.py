@@ -4408,7 +4408,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 ydl_opts['cookiefile'] = user_cookie_path
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 pre_info = ydl.extract_info(url, download=False)
-            if 'entries' in pre_info and isinstance(pre_info['entries'], list) and pre_info['entries']:
+            # Проверяем, что pre_info не None
+            if pre_info is None:
+                logger.warning("pre_info is None, skipping size check")
+                pre_info = {}
+            elif 'entries' in pre_info and isinstance(pre_info['entries'], list) and pre_info['entries']:
                 pre_info = pre_info['entries'][0]
         except Exception as e:
             logger.warning(f"Failed to extract info for size check: {e}")
@@ -4441,24 +4445,35 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         max_size_gb = getattr(Config, 'MAX_FILE_SIZE', 10)
         max_size_bytes = int(max_size_gb * BYTES_IN_GIB)
         # Получаем размер файла
-        filesize = selected_format.get('filesize') or selected_format.get('filesize_approx')
-        if not filesize:
-            # fallback на оценку
-            tbr = selected_format.get('tbr')
-            duration = selected_format.get('duration')
-            if tbr and duration:
-                filesize = float(tbr) * float(duration) * 125
-            else:
-                width = selected_format.get('width')
-                height = selected_format.get('height')
+        if selected_format is None:
+            logger.warning("selected_format is None, skipping size check")
+            filesize = 0
+            allowed = True  # Разрешаем скачивание если не можем определить размер
+        else:
+            filesize = selected_format.get('filesize') or selected_format.get('filesize_approx')
+            if not filesize:
+                # fallback на оценку
+                tbr = selected_format.get('tbr')
                 duration = selected_format.get('duration')
-                if width and height and duration:
-                    filesize = int(width) * int(height) * float(duration) * 0.07
+                if tbr and duration:
+                    filesize = float(tbr) * float(duration) * 125
                 else:
-                    filesize = 0
+                    width = selected_format.get('width')
+                    height = selected_format.get('height')
+                    duration = selected_format.get('duration')
+                    if width and height and duration:
+                        filesize = int(width) * int(height) * float(duration) * 0.07
+                    else:
+                        filesize = 0
 
-        allowed = check_file_size_limit(selected_format, max_size_bytes=max_size_bytes)
-        logger.info(f"[SIZE CHECK] quality_key={quality_key}, determined size={filesize/(1024**3):.2f} GB, limit={max_size_gb} GB, allowed={allowed}")
+                allowed = check_file_size_limit(selected_format, max_size_bytes=max_size_bytes)
+        
+        # Безопасное логирование размера файла
+        if filesize > 0:
+            size_gb = filesize/(1024**3)
+            logger.info(f"[SIZE CHECK] quality_key={quality_key}, determined size={size_gb:.2f} GB, limit={max_size_gb} GB, allowed={allowed}")
+        else:
+            logger.info(f"[SIZE CHECK] quality_key={quality_key}, size unknown, limit={max_size_gb} GB, allowed={allowed}")
 
         if not allowed:
             app.send_message(
@@ -4722,12 +4737,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 break
 
             successful_uploads += 1
-
-            # Check if info_dict is None before accessing it
-            if info_dict is None:
-                logger.error("info_dict is None, cannot proceed with video processing")
-                send_to_user(message, "❌ Failed to extract video information")
-                break
 
             video_id = info_dict.get("id", None)
             original_video_title = info_dict.get("title", None)  # Original title with emojis
