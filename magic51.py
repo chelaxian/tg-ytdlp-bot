@@ -4008,6 +4008,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             successful_uploads += 1
 
+            # Check if info_dict is None before accessing it
+            if info_dict is None:
+                logger.error("info_dict is None, cannot proceed with audio processing")
+                send_to_user(message, "❌ Failed to extract audio information")
+                break
+
             audio_title = info_dict.get("title", "audio")
             audio_title = sanitize_filename(audio_title)
             
@@ -4612,7 +4618,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # If there is only one video in the playlist, just download it
                         info_dict = entries[0]  # Just take the first video
 
-                if ("m3u8" in url.lower()) or (info_dict.get("protocol") == "m3u8_native"):
+                if ("m3u8" in url.lower()) or (info_dict and info_dict.get("protocol") == "m3u8_native"):
                     is_hls = True
                     # if "format" in ytdl_opts:
                     # del ytdl_opts["format"]
@@ -4708,8 +4714,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 continue
 
             if info_dict is None:
-                send_to_user(message, "❌ Failed to download video: info not found or site not supported.")
-                logger.error("Error in video download: info_dict is None")
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
                     if error_key not in playlist_errors:
@@ -4718,6 +4722,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 break
 
             successful_uploads += 1
+
+            # Check if info_dict is None before accessing it
+            if info_dict is None:
+                logger.error("info_dict is None, cannot proceed with video processing")
+                send_to_user(message, "❌ Failed to extract video information")
+                break
 
             video_id = info_dict.get("id", None)
             original_video_title = info_dict.get("title", None)  # Original title with emojis
@@ -7246,15 +7256,17 @@ def generate_final_tags(url, user_tags, info_dict):
                 final_tags.append(channel_tag)
                 seen.add(channel_tag.lower())
     # 4. #porn if defined by title, description or caption
-    video_title = info_dict.get("title")
-    video_description = info_dict.get("description")
+    video_title = info_dict.get("title") if info_dict else None
+    video_description = info_dict.get("description") if info_dict else None
     video_caption = info_dict.get("caption") if info_dict else None
     if is_porn(url, video_title, video_description, video_caption):
         if '#porn' not in seen:
             final_tags.append('#porn')
             seen.add('#porn')
     result = ' '.join(final_tags)
-    logger.info(f"Generated final tags for '{info_dict.get('title', 'N/A')}': \"{result}\"")
+    # Check if info_dict is None before accessing it
+    title = info_dict.get('title', 'N/A') if info_dict else 'N/A'
+    logger.info(f"Generated final tags for '{title}': \"{result}\"")
     return result
 
 # --- new functions for caching ---
@@ -8111,6 +8123,11 @@ def check_file_size_limit(info_dict, max_size_bytes=None):
         max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 10)  # GiB
         max_size_bytes = int(max_size_gb * 1024 ** 3)
 
+    # Check if info_dict is None
+    if info_dict is None:
+        logger.warning("check_file_size_limit: info_dict is None, allowing download")
+        return True
+
     filesize = info_dict.get('filesize') or info_dict.get('filesize_approx')
     if filesize and filesize > 0:
         size_bytes = int(filesize)
@@ -8140,6 +8157,11 @@ def check_subs_limits(info_dict, quality_key=None):
     Returns True if subtitles can be built, false if limits are exceeded
     """
     try:
+        # Check if info_dict is None
+        if info_dict is None:
+            logger.warning("check_subs_limits: info_dict is None, allowing subtitle embedding")
+            return True
+            
         # We get the parameters from the config
         max_quality = Config.MAX_SUB_QUALITY
         max_duration = Config.MAX_SUB_DURATION
