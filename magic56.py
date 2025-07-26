@@ -2,6 +2,7 @@
 import glob
 import hashlib
 import io
+import json
 import logging
 import math
 import os
@@ -40,6 +41,70 @@ import yt_dlp
 from config import Config
 
 import chardet
+
+# Глобальная переменная для локального кэша Firebase
+firebase_cache = {}
+
+def load_firebase_cache():
+    """Загружает локальный кэш Firebase из JSON файла"""
+    global firebase_cache
+    try:
+        cache_file = "firebase_cache.json"
+        if os.path.exists(cache_file):
+            with open(cache_file, "r", encoding="utf-8") as f:
+                firebase_cache = json.load(f)
+            print(f"✅ Firebase cache loaded: {len(firebase_cache)} root nodes")
+        else:
+            print("⚠️ Firebase cache file not found, starting with empty cache")
+            firebase_cache = {}
+    except Exception as e:
+        print(f"❌ Failed to load firebase cache: {e}")
+        firebase_cache = {}
+
+def reload_firebase_cache():
+    """Перезагружает локальный кэш Firebase из JSON файла"""
+    global firebase_cache
+    try:
+        cache_file = "firebase_cache.json"
+        if os.path.exists(cache_file):
+            with open(cache_file, "r", encoding="utf-8") as f:
+                firebase_cache = json.load(f)
+            print(f"✅ Firebase cache reloaded: {len(firebase_cache)} root nodes")
+            return True
+        else:
+            print("⚠️ Firebase cache file not found")
+            return False
+    except Exception as e:
+        print(f"❌ Failed to reload firebase cache: {e}")
+        return False
+
+# Загружаем кэш при импорте модуля
+load_firebase_cache()
+
+def get_from_local_cache(path_parts):
+    """
+    Получает данные из локального кэша по пути, разделенному на части
+    Например: get_from_local_cache(['bot', 'video_cache', 'hash123', '720p'])
+    """
+    global firebase_cache
+    current = firebase_cache
+    for part in path_parts:
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            log_firebase_access_attempt(path_parts, success=False)
+            return None
+    
+    log_firebase_access_attempt(path_parts, success=True)
+    return current
+
+def log_firebase_access_attempt(path_parts, success=True):
+    """
+    Логирует попытки обращения к Firebase (для отслеживания оставшихся .get() вызовов)
+    """
+    path_str = '/'.join(path_parts)
+    status = "SUCCESS" if success else "MISS"
+    print(f"🔥 Firebase access attempt: {path_str} -> {status}")
 
 def ensure_utf8_srt(srt_path):
     """
@@ -1908,6 +1973,11 @@ def url_distractor(app, message):
             uncache_command(app, message)
             return
 
+        # /reload_cache Command - Reload cache for URL
+        if Config.RELOAD_CACHE_COMMAND in text:
+            reload_firebase_cache(app, message)
+            return
+
     # Reframed processing for all users (admins and ordinary users)
     if message.reply_to_message:
         # If the reference text begins with /broadcast, then:
@@ -2103,6 +2173,25 @@ def get_user_log(app, message):
                           caption=f"{user_id} - all logs")
     except:
         send_to_all(message, "**❌ User did not download any content yet...** Not exist in logs")
+
+
+@app.on_message(filters.command("reload_cache") & filters.private)
+def reload_cache_command(app, message):
+    """Команда для администратора для перезагрузки локального кэша Firebase"""
+    if int(message.chat.id) not in Config.ADMIN:
+        send_to_user(message, "❌ Access denied. Admin only.")
+        return
+    
+    try:
+        success = reload_firebase_cache()
+        if success:
+            send_to_user(message, "✅ Firebase cache reloaded successfully!")
+            send_to_logger(message, "Firebase cache reloaded by admin.")
+        else:
+            send_to_user(message, "❌ Failed to reload Firebase cache. Check if firebase_cache.json exists.")
+    except Exception as e:
+        send_to_user(message, f"❌ Error reloading cache: {str(e)}")
+        send_to_logger(message, f"Error reloading Firebase cache: {str(e)}")
 
 
 @app.on_callback_query(filters.regex(r"^userlogs_close\|"))
@@ -7366,8 +7455,12 @@ def get_cached_message_ids(url: str, quality_key: str) -> list:
         for u in set(urls):
             url_hash = get_url_hash(u)
             logger.info(f"get_cached_message_ids: checking hash {url_hash} for quality {quality_key}")
-            ids_string = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).child(quality_key).get().val()
-            logger.info(f"get_cached_message_ids: raw value from Firebase: {ids_string} (type: {type(ids_string)})")
+            
+            # Используем локальный кэш вместо Firebase
+            path_parts = Config.VIDEO_CACHE_DB_PATH.split('/') + [url_hash, quality_key]
+            ids_string = get_from_local_cache(path_parts)
+            
+            logger.info(f"get_cached_message_ids: raw value from local cache: {ids_string} (type: {type(ids_string)})")
             if ids_string:
                 result = [int(msg_id) for msg_id in ids_string.split(',')]
                 logger.info(
@@ -7386,8 +7479,12 @@ def get_cached_qualities(url: str) -> set:
     """He gets all the castle qualities for the URL."""
     try:
         url_hash = get_url_hash(normalize_url_for_cache(url))
-        data = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash).get().val()
-        if data:
+        
+        # Используем локальный кэш вместо Firebase
+        path_parts = Config.VIDEO_CACHE_DB_PATH.split('/') + [url_hash]
+        data = get_from_local_cache(path_parts)
+        
+        if data and isinstance(data, dict):
             return set(data.keys())
         return set()
     except Exception as e:
@@ -7638,8 +7735,10 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
                 for index in requested_indices:
                     index_str = str(index)
                     try:
-                        cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}"
-                        msg_id = db_child_by_path(db, cache_path).get().val()
+                        # Используем локальный кэш вместо Firebase
+                        path_parts = Config.PLAYLIST_CACHE_DB_PATH.split('/') + [url_hash, qk, index_str]
+                        msg_id = get_from_local_cache(path_parts)
+                        
                         if msg_id is not None:
                             found[index] = int(msg_id)
                             logger.info(
@@ -7667,9 +7766,12 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
     """Gets all available qualities for a cached playlist."""
     try:
         url_hash = get_url_hash(normalize_url_for_cache(strip_range_from_url(playlist_url)))
-        # Get all the quality keys inside the url_hash folder
-        data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}").get().val()
-        if data:
+        
+        # Используем локальный кэш вместо Firebase
+        path_parts = Config.PLAYLIST_CACHE_DB_PATH.split('/') + [url_hash]
+        data = get_from_local_cache(path_parts)
+        
+        if data and isinstance(data, dict):
             return set(data.keys())
         return set()
     except Exception as e:
@@ -7751,7 +7853,10 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                     # For large ranges, we use a fast count
                     if len(indices) > 100:
                         try:
-                            data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                            # Используем локальный кэш вместо Firebase
+                            path_parts = Config.PLAYLIST_CACHE_DB_PATH.split('/') + [url_hash, qk]
+                            data = get_from_local_cache(path_parts)
+                            
                             if data and isinstance(data, dict):
                                 # Count only indices from the requested range
                                 cached_count = sum(
@@ -7766,8 +7871,10 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                         # For small ranges, check each index separately
                         for index in indices:
                             index_str = str(index)
-                            val = db_child_by_path(db,
-                                                  f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}/{index_str}").get().val()
+                            # Используем локальный кэш вместо Firebase
+                            path_parts = Config.PLAYLIST_CACHE_DB_PATH.split('/') + [url_hash, qk, index_str]
+                            val = get_from_local_cache(path_parts)
+                            
                             if val is not None:
                                 cached_count += 1
                                 logger.info(
@@ -7775,7 +7882,10 @@ def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list
                 else:
                     # Get all quality data and count non-empty records
                     try:
-                        data = db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{qk}").get().val()
+                        # Используем локальный кэш вместо Firebase
+                        path_parts = Config.PLAYLIST_CACHE_DB_PATH.split('/') + [url_hash, qk]
+                        data = get_from_local_cache(path_parts)
+                        
                         if data:
                             if isinstance(data, dict):
                                 cached_count = len(data)
