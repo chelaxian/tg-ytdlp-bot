@@ -78,24 +78,7 @@ def reload_firebase_cache():
         print(f"❌ Failed to reload firebase cache: {e}")
         return False
 
-@app.on_message(filters.command("reload_cache") & filters.private)
-def reload_firebase_cache_command(app, message):
-    """Обработчик команды для перезагрузки локального кэша Firebase"""
-    if int(message.chat.id) not in Config.ADMIN:
-        send_to_user(message, "❌ Access denied. Admin only.")
-        return
-    
-    try:
-        success = reload_firebase_cache()
-        if success:
-            send_to_user(message, "✅ Firebase cache reloaded successfully!")
-            send_to_logger(message, "Firebase cache reloaded by admin.")
-        else:
-            cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
-            send_to_user(message, f"❌ Failed to reload Firebase cache. Check if {cache_file} exists.")
-    except Exception as e:
-        send_to_user(message, f"❌ Error reloading cache: {str(e)}")
-        send_to_logger(message, f"Error reloading Firebase cache: {str(e)}")
+
 
 # Загружаем кэш при импорте модуля
 load_firebase_cache()
@@ -1292,6 +1275,26 @@ app = Client(
 
 # #############################################################################################################################
 # #############################################################################################################################
+@app.on_message(filters.command("reload_cache") & filters.private)
+def reload_firebase_cache_command(app, message):
+    """Обработчик команды для перезагрузки локального кэша Firebase"""
+    if int(message.chat.id) not in Config.ADMIN:
+        send_to_user(message, "❌ Access denied. Admin only.")
+        return
+    
+    try:
+        success = reload_firebase_cache()
+        if success:
+            send_to_user(message, "✅ Firebase cache reloaded successfully!")
+            send_to_logger(message, "Firebase cache reloaded by admin.")
+        else:
+            cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
+            send_to_user(message, f"❌ Failed to reload Firebase cache. Check if {cache_file} exists.")
+    except Exception as e:
+        send_to_user(message, f"❌ Error reloading cache: {str(e)}")
+        send_to_logger(message, f"Error reloading Firebase cache: {str(e)}")
+
+
 @app.on_callback_query(filters.regex(r"^subs_lang_close\|"))
 def subs_lang_close_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
