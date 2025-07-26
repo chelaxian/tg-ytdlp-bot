@@ -42,6 +42,7 @@ class Config(object):
     PIC_FILE_PATH = "pic.jpg"
     FIREBASE_CACHE_FILE = "dump.json"
     RELOAD_CACHE_COMMAND = "/reload_cache"
+    DOWNLOAD_FIREBASE_SCRIPT_PATH = "download_firebase.py"
     #######################################################
     # Firebase initialization
     # your firebase DB path
