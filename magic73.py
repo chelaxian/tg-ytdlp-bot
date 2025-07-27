@@ -1,21 +1,17 @@
 # Version 3.1.0 # save firebase-cache localy to prevent exceeding no-cost limits on google firebase
 import glob
-import pytz
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dt_time
+import subprocess, threading, time, sys, os
+from zoneinfo import ZoneInfo  # встроено в Python 3.9+
 import hashlib
 import io
 import json
 import logging
 import math
-import os
 import re
 import requests
 import shutil
-import subprocess
 import random
-import sys
-import threading
-import time
 from datetime import datetime
 from PIL import Image
 from types import SimpleNamespace
@@ -85,36 +81,32 @@ def reload_firebase_cache():
         return False
 
 
+def get_next_reload_time(interval_hours: int, tz_name: str = "UTC") -> tuple[datetime, float]:
+    """
+    Возвращает datetime следующего интервала обновления и время в секундах до него.
+    Привязка по системному времени от 00:00 в заданной таймзоне.
+    """
+    now = datetime.now(ZoneInfo(tz_name))
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    elapsed = (now - midnight).total_seconds()
+    interval_seconds = interval_hours * 3600
+    next_interval = ((elapsed // interval_seconds) + 1) * interval_seconds
+    next_reload = midnight + timedelta(seconds=next_interval)
+    wait_seconds = (next_reload - now).total_seconds()
+    return next_reload, wait_seconds
+
 def auto_reload_firebase_cache():
-    """Автоматически загружает кэш Firebase с интервалом, привязанным к системному времени (например, каждые 4 часа от 00:00)"""
+    """Автоматически загружает кэш Firebase с привязкой к кратным интервалам от 00:00"""
     global auto_cache_enabled
-
     reload_hours = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
-
-    # Получаем временную зону из конфига (например, "Europe/London")
     tz_name = getattr(Config, 'CACHE_TIMEZONE', 'UTC')
-    try:
-        tz = pytz.timezone(tz_name)
-    except Exception as e:
-        print(f"❌ Invalid timezone '{tz_name}', falling back to UTC")
-        tz = pytz.UTC
 
     while auto_cache_enabled:
         try:
-            # Текущее локальное время в нужной зоне
-            now = datetime.now(tz).replace(minute=0, second=0, microsecond=0)
-            start_of_day = now.replace(hour=0)
+            next_reload, wait_seconds = get_next_reload_time(reload_hours, tz_name)
 
-            # Список возможных точек перезагрузки
-            reload_points = [start_of_day + timedelta(hours=h) for h in range(0, 24, reload_hours)]
-
-            # Следующая точка в будущем
-            next_reload_time = next((t for t in reload_points if t > now), start_of_day + timedelta(days=1))
-
-            wait_seconds = (next_reload_time - datetime.now(tz)).total_seconds()
-            minutes_left = int(wait_seconds // 60)
-
-            print(f"⏳ Next Firebase cache reload scheduled at {next_reload_time.strftime('%H:%M')} (in {minutes_left} minutes) [Timezone: {tz_name}]")
+            print(f"⏳ Next Firebase cache reload scheduled at {next_reload.strftime('%Y-%m-%d %H:%M:%S %Z')} (in {int(wait_seconds // 60)} minutes)")
 
             for _ in range(int(wait_seconds)):
                 if not auto_cache_enabled:
@@ -122,39 +114,26 @@ def auto_reload_firebase_cache():
                     return
                 time.sleep(1)
 
-            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now(ZoneInfo(tz_name))}")
 
-            # 1. Запускаем скрипт
+            # 1. Скачиваем свежий кэш
             script_path = getattr(Config, "DOWNLOAD_FIREBASE_SCRIPT_PATH", "download_firebase.py")
-            print(f"⏳ Downloading fresh Firebase dump using {script_path} ...")
-
             result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
             if result.returncode != 0:
                 print(f"❌ Error running {script_path}:\n{result.stdout}\n{result.stderr}")
                 continue
 
-            # 2. Подгружаем в память
-            success = reload_firebase_cache()
-            if success:
-                print(f"✅ Firebase cache auto-reloaded successfully at {datetime.now(tz)}")
-                try:
-                    if 'app' in globals() and app:
-                        safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded successfully at {datetime.now(tz)}")
-                except Exception as e:
-                    print(f"⚠️ Could not send log message: {e}")
+            # 2. Перезагружаем кэш
+            if reload_firebase_cache():
+                print(f"✅ Firebase cache reloaded at {datetime.now(ZoneInfo(tz_name))}")
+                if 'app' in globals() and app:
+                    safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded at {datetime.now(ZoneInfo(tz_name))}")
             else:
-                print(f"❌ Failed to auto-reload Firebase cache at {datetime.now(tz)}")
+                print(f"❌ Failed to reload Firebase cache")
 
         except Exception as e:
-            print(f"❌ Error in auto-reload Firebase cache: {e}")
-            # Ждём 1 час перед повторной попыткой в случае ошибки
-            for _ in range(3600):
-                if not auto_cache_enabled:
-                    print("🛑 Auto Firebase cache reloader stopped by admin")
-                    return
-                time.sleep(1)
-
-    print("🛑 Auto Firebase cache reloader stopped")
+            print(f"❌ Exception in auto_reload_firebase_cache: {e}")
+            time.sleep(3600)  # wait 1 hour before retry
     
 
 def start_auto_cache_reloader():
