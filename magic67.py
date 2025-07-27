@@ -83,40 +83,42 @@ def reload_firebase_cache():
         return False
 
 def auto_reload_firebase_cache():
-    """Автоматически загружает кэш Firebase с указанным интервалом"""
+    """Автоматически загружает кэш Firebase с интервалом, привязанным к системному времени (например, каждые 4 часа от 00:00)"""
     global auto_cache_enabled
+    reload_hours = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
+
     while auto_cache_enabled:
         try:
-            # Получаем интервал из конфигурации (по умолчанию 4 часа)
-            reload_interval = getattr(Config, 'RELOAD_CACHE_EVERY', 4) * 3600  # конвертируем часы в секунды
-            
-            # Ждём указанный интервал, проверяя каждую секунду, не отключили ли автозагрузку
-            for _ in range(reload_interval):
+            # Вычисляем время до следующего кратного интервала от 00:00
+            now = datetime.now()
+            next_reload = now.replace(minute=0, second=0, microsecond=0)
+            while next_reload <= now:
+                next_reload += timedelta(hours=reload_hours)
+            wait_seconds = (next_reload - now).total_seconds()
+
+            print(f"⏳ Next Firebase cache reload scheduled at {next_reload} (in {wait_seconds:.0f} seconds)")
+
+            for _ in range(int(wait_seconds)):
                 if not auto_cache_enabled:
                     print("🛑 Auto Firebase cache reloader stopped by admin")
                     return
                 time.sleep(1)
-            
-            if not auto_cache_enabled:
-                print("🛑 Auto Firebase cache reloader stopped by admin")
-                return
-                
-            print(f"🔄 Auto-reloading Firebase cache (every {reload_interval//3600} hours)...")
-            
+
+            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now()}")
+
             # 1. Сначала запускаем скрипт для скачивания свежего дампа
             script_path = getattr(Config, "DOWNLOAD_FIREBASE_SCRIPT_PATH", "download_firebase.py")
             print(f"⏳ Downloading fresh Firebase dump using {script_path} ...")
-            
+
             result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
             if result.returncode != 0:
                 print(f"❌ Error running {script_path}:\n{result.stdout}\n{result.stderr}")
                 continue
-            
+
             # 2. Теперь подгружаем кэш в память
             success = reload_firebase_cache()
             if success:
                 print(f"✅ Firebase cache auto-reloaded successfully at {datetime.now()}")
-                # Отправляем уведомление в лог-канал, если есть доступ к app
                 try:
                     if 'app' in globals() and app:
                         safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded successfully at {datetime.now()}")
@@ -124,17 +126,17 @@ def auto_reload_firebase_cache():
                     print(f"⚠️ Could not send log message: {e}")
             else:
                 print(f"❌ Failed to auto-reload Firebase cache at {datetime.now()}")
-                
+
         except Exception as e:
             print(f"❌ Error in auto-reload Firebase cache: {e}")
-            # Ждём 1 час перед повторной попыткой в случае ошибки
             for _ in range(3600):
                 if not auto_cache_enabled:
                     print("🛑 Auto Firebase cache reloader stopped by admin")
                     return
                 time.sleep(1)
-    
+
     print("🛑 Auto Firebase cache reloader stopped")
+
 
 def start_auto_cache_reloader():
     """Запускает поток для автоматической загрузки кэша"""
@@ -142,7 +144,7 @@ def start_auto_cache_reloader():
     if auto_cache_enabled and auto_cache_thread is None:
         auto_cache_thread = threading.Thread(target=auto_reload_firebase_cache, daemon=True)
         auto_cache_thread.start()
-        print(f"🚀 Auto Firebase cache reloader started (every {getattr(Config, 'RELOAD_CACHE_EVERY', 4)} hours)")
+        print(f"🚀 Auto Firebase cache reloader started (aligned every {getattr(Config, 'RELOAD_CACHE_EVERY', 4)} hours from 00:00)")
         return auto_cache_thread
     return None
 
