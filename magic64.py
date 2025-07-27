@@ -1249,48 +1249,26 @@ def check_disk_space(path, required_bytes):
         return True
 
 
-# Firebase Initialization with Authentication
+# Initialize Firebase
 firebase = pyrebase.initialize_app(Config.FIREBASE_CONF)
-
-# Create auth object from pyrebase
 auth = firebase.auth()
 
-# Sign in using email and password (ensure these credentials are set in your Config)
+# Authenticate user
 try:
     user = auth.sign_in_with_email_and_password(Config.FIREBASE_USER, Config.FIREBASE_PASSWORD)
-    # Debug: Print essential details of the user object
-    logger.info("User signed in successfully.")
-    logger.info(f"User email: {user.get('email')}")
-    logger.info(f"User localId: {user.get('localId')}")
-    # If available, check email verification status
-    if "emailVerified" in user:
-        logger.info(f"Email verified: {user['emailVerified']}")
-    else:
-        logger.info("Email verification status not available in user object.")
+    logger.info("✅ Firebase signed in")
 except Exception as e:
-    logger.error(f"Error during Firebase authentication: {e}")
+    logger.error(f"❌ Firebase authentication error: {e}")
     raise
 
-# Debug: Print a portion of idToken
-idToken = user.get("idToken")
-if idToken:
-    logger.info(f"Firebase idToken (first 20 chars): {idToken[:20]}")
-else:
-    logger.error("No idToken received!")
-    raise Exception("idToken is empty.")
+# Extract idToken
+id_token = user.get("idToken")
+if not id_token:
+    raise Exception("idToken is missing")
 
-# Get the base database object
+# Setup database with authentication
 base_db = firebase.database()
 
-# Additional check: Execute a test GET request to the root node
-try:
-    test_data = base_db.get(idToken)
-    logger.info("Test GET operation succeeded. Data: %s", test_data.val())
-except Exception as e:
-    logger.error("Test GET operation failed:", e)
-
-
-# Define a wrapper class to automatically pass the idToken for all database operations
 class AuthedDB:
     def __init__(self, db, token):
         self.db = db
@@ -1314,37 +1292,33 @@ class AuthedDB:
     def remove(self, *args, **kwargs):
         return self.db.remove(self.token, *args, **kwargs)
 
+# Create authed db wrapper
+db = AuthedDB(base_db, id_token)
 
-# Let's use the rstrip() method directly in the f-string to form the correct path
-db = AuthedDB(base_db, user["idToken"])
-db_path = Config.BOT_DB_PATH.rstrip("/")
-_format = {"ID": "0", "timestamp": math.floor(time.time())}
+# Optional write to verify it's working
 try:
-    # Try writing data to the path: bot/tgytdlp_bot/users/0
-    result = db.child(f"{db_path}/users/0").set(_format)
-    logger.info("Data written successfully. Result: %s", result)
+    db_path = Config.BOT_DB_PATH.rstrip("/")
+    payload = {"ID": "0", "timestamp": math.floor(time.time())}
+    db.child(f"{db_path}/users/0").set(payload)
+    logger.info("✅ Initial Firebase write successful")
 except Exception as e:
-    logger.error("Error writing data to Firebase:", e)
+    logger.error(f"❌ Error writing to Firebase: {e}")
     raise
 
-
-# Function to periodically refresh the idToken using the refreshToken
+# Background thread to refresh idToken every 50 minutes
 def token_refresher():
     global db, user
     while True:
-        # Sleep for 50 minutes (3000 seconds)
-        time.sleep(3000)
+        time.sleep(3000)  # 50 minutes
         try:
             new_user = auth.refresh(user["refreshToken"])
-            new_idToken = new_user["idToken"]
-            db.token = new_idToken
+            new_id_token = new_user["idToken"]
+            db.token = new_id_token
             user = new_user
-            logger.info("Firebase idToken refreshed successfully. New token (first 20 chars): %s", new_idToken[:20])
+            logger.info("🔁 Firebase token refreshed")
         except Exception as e:
-            logger.error("Error refreshing Firebase idToken:", e)
+            logger.error(f"❌ Token refresh error: {e}")
 
-
-# Start the token refresher thread as a daemon
 token_thread = threading.Thread(target=token_refresher, daemon=True)
 token_thread.start()
 
@@ -2273,61 +2247,41 @@ def send_promo_message(app, message):
 # Getting the User Logs
 
 def get_user_log(app, message):
-    user_id = message.chat.id
-    if int(message.chat.id) in Config.ADMIN:
-        user_id = message.chat.id
-        if Config.GET_USER_LOGS_COMMAND in message.text:
-            user_id = message.text.split(Config.GET_USER_LOGS_COMMAND + " ")[1]
+    user_id = str(message.chat.id)
+    if int(message.chat.id) in Config.ADMIN and Config.GET_USER_LOGS_COMMAND in message.text:
+        user_id = message.text.split(Config.GET_USER_LOGS_COMMAND + " ")[1]
 
-    try:
-        db_data = db.child("bot").child("tgytdlp_bot").child("logs").child(user_id).get().each()
-        lst = [user.val() for user in db_data]
-        data = []
-        data_tg = []
-        least_10 = []
-
-        for l in lst:
-            ts = datetime.fromtimestamp(int(l["timestamp"]))
-            row = f"""{ts} | {l["ID"]} | {l["name"]} | {l["title"]} | {l["urls"]}"""
-            row_2 = f"""**{ts}** | `{l["ID"]}` | **{l["name"]}** | {l["title"]} | {l["urls"]}"""
-            data.append(row)
-            data_tg.append(row_2)
-        total = len(data_tg)
-        if total > 10:
-            for i in range(10):
-                info = data_tg[(total - 10) + i]
-                least_10.append(info)
-            least_10.sort(key=str.lower)
-            format_str = '\n \n'.join(least_10)
-        else:
-            data_tg.sort(key=str.lower)
-            format_str = '\n \n'.join(data_tg)
-        data.sort(key=str.lower)
-        now = datetime.fromtimestamp(math.floor(time.time()))
-        txt_format = f"Logs of {Config.BOT_NAME_FOR_USERS}\nUser: {user_id}\nTotal logs: {total}\nCurrent time: {now}\n \n" + \
-                     '\n'.join(data)
-
-        user_dir = os.path.join("users", str(message.chat.id))
-        create_directory(user_dir)
-        log_path = os.path.join(user_dir, "logs.txt")
-        with open(log_path, 'w', encoding="utf-8") as f:
-            f.write(str(txt_format))
-
-        # Вместо send_to_all отправляем с кнопкой Close
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔚 Close", callback_data="userlogs_close|close")]
-        ])
-        app.send_message(
-            message.chat.id,
-            f"Total: **{total}**\n**{user_id}** - logs (Last 10):\n \n \n{format_str}",
-            reply_markup=keyboard
-        )
-        app.send_document(message.chat.id, log_path,
-                          caption=f"{user_id} - all logs")
-        app.send_document(Config.LOGS_ID, log_path,
-                          caption=f"{user_id} - all logs")
-    except:
+    logs_dict = get_from_local_cache(["bot", "tgytdlp_bot", "logs", user_id])
+    if not logs_dict:
         send_to_all(message, "**❌ User did not download any content yet...** Not exist in logs")
+        return
+
+    logs = list(logs_dict.values())
+    data, data_tg = [], []
+
+    for l in logs:
+        ts = datetime.fromtimestamp(int(l["timestamp"]))
+        row = f"{ts} | {l['ID']} | {l['name']} | {l['title']} | {l['urls']}"
+        row_2 = f"**{ts}** | `{l['ID']}` | **{l['name']}`** | {l['title']} | {l['urls']}"
+        data.append(row)
+        data_tg.append(row_2)
+
+    total = len(data_tg)
+    least_10 = sorted(data_tg[-10:], key=str.lower) if total > 10 else sorted(data_tg, key=str.lower)
+    format_str = "\n\n".join(least_10)
+    now = datetime.fromtimestamp(math.floor(time.time()))
+    txt_format = f"Logs of {Config.BOT_NAME_FOR_USERS}\nUser: {user_id}\nTotal logs: {total}\nCurrent time: {now}\n\n" + '\n'.join(sorted(data, key=str.lower))
+
+    user_dir = os.path.join("users", str(message.chat.id))
+    os.makedirs(user_dir, exist_ok=True)
+    log_path = os.path.join(user_dir, "logs.txt")
+    with open(log_path, 'w', encoding="utf-8") as f:
+        f.write(txt_format)
+
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔚 Close", callback_data="userlogs_close|close")]])
+    app.send_message(message.chat.id, f"Total: **{total}**\n**{user_id}** - logs (Last 10):\n\n{format_str}", reply_markup=keyboard)
+    app.send_document(message.chat.id, log_path, caption=f"{user_id} - all logs")
+    app.send_document(Config.LOGS_ID, log_path, caption=f"{user_id} - all logs")
 
 
 @app.on_callback_query(filters.regex(r"^userlogs_close\|"))
@@ -2346,59 +2300,45 @@ def userlogs_close_callback(app, callback_query):
 # Get All Kinds of Users (Users/ Blocked/ Unblocked)
 
 def get_user_details(app, message):
-    global path
-    command = message.text.split(Config.GET_USER_DETAILS_COMMAND)[1]
-    if command == "_blocked":
-        path = "blocked_users"
-    if command == "_unblocked":
-        path = "unblocked_users"
-    if command == "_users":
-        path = "users"
-    modified_lst = []
-    txt_lst = []
-    raw_data = db.child(
-        f"{Config.BOT_DB_PATH}/{path}").get().each()
-    data_users = [user.val() for user in raw_data]
-    for user in data_users:
+    command = message.text.split(Config.GET_USER_DETAILS_COMMAND)[1].strip()
+    path_map = {
+        "_blocked": "blocked_users",
+        "_unblocked": "unblocked_users",
+        "_users": "users"
+    }
+    path = path_map.get(command)
+    if not path:
+        send_to_all(message, "❌ Invalid command")
+        return
+
+    data_dict = get_from_local_cache([Config.BOT_DB_PATH, path])
+    if not data_dict:
+        send_to_all(message, f"❌ No data found in cache for `{path}`")
+        return
+
+    modified_lst, txt_lst = [], []
+    for user in data_dict.values():
         if user["ID"] != "0":
-            id = user["ID"]
             ts = datetime.fromtimestamp(int(user["timestamp"]))
-            txt_format = f"TS: {ts} | ID: {id}"
-            id = f"TS: **{ts}** | ID: `{id}`"
-            modified_lst.append(id)
-            txt_lst.append(txt_format)
+            txt_lst.append(f"TS: {ts} | ID: {user['ID']}")
+            modified_lst.append(f"TS: **{ts}** | ID: `{user['ID']}`")
 
     modified_lst.sort(key=str.lower)
     txt_lst.sort(key=str.lower)
-    no_of_users_to_display = 20
-    if len(modified_lst) <= no_of_users_to_display:
-        mod = f"__Total Users: {len(modified_lst)}__\nLast {str(no_of_users_to_display)} " + \
-              path + \
-              f":\n \n" + \
-              '\n'.join(modified_lst)
-    else:
-        temp = []
-        for j in range(no_of_users_to_display):
-            temp.append(modified_lst[((j + 1) * -1)])
-        temp.sort(key=str.lower)
-        mod = f"__Total Users: {len(modified_lst)}__\nLast {str(no_of_users_to_display)} " + \
-              path + \
-              f":\n \n" + '\n'.join(temp)
+    display_list = modified_lst[-20:] if len(modified_lst) > 20 else modified_lst
 
     now = datetime.fromtimestamp(math.floor(time.time()))
-    txt_format = f"{Config.BOT_NAME} {path}\nTotal {path}: {len(modified_lst)}\nCurrent time: {now}\n \n" + '\n'.join(
-        txt_lst)
-    file = path + '.txt'
+    txt_format = f"{Config.BOT_NAME} {path}\nTotal {path}: {len(modified_lst)}\nCurrent time: {now}\n\n" + '\n'.join(txt_lst)
+    mod = f"__Total Users: {len(modified_lst)}__\nLast 20 {path}:\n\n" + '\n'.join(display_list)
+
+    file = f"{path}.txt"
     with open(file, 'w', encoding="utf-8") as f:
-        f.write(str(txt_format))
+        f.write(txt_format)
+
     send_to_all(message, mod)
-    app.send_document(message.chat.id, "./" + file,
-                      caption=f"{Config.BOT_NAME} - all {path}")
-    app.send_document(Config.LOGS_ID, "./" + file,
-                      caption=f"{Config.BOT_NAME} - all {path}")
-
+    app.send_document(message.chat.id, f"./{file}", caption=f"{Config.BOT_NAME} - all {path}")
+    app.send_document(Config.LOGS_ID, f"./{file}", caption=f"{Config.BOT_NAME} - all {path}")
     logger.info(mod)
-
 
 # Block User
 
