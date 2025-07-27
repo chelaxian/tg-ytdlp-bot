@@ -1274,8 +1274,11 @@ class AuthedDB:
         self.db = db
         self.token = token
 
-    def child(self, path):
-        return AuthedDB(self.db.child(path), self.token)
+    def child(self, *path_parts):
+        db_ref = self.db
+        for part in path_parts:
+            db_ref = db_ref.child(part)
+        return AuthedDB(db_ref, self.token)
 
     def set(self, data, *args, **kwargs):
         return self.db.set(data, self.token, *args, **kwargs)
@@ -1291,6 +1294,7 @@ class AuthedDB:
 
     def remove(self, *args, **kwargs):
         return self.db.remove(self.token, *args, **kwargs)
+	    
 
 # Create authed db wrapper
 db = AuthedDB(base_db, id_token)
