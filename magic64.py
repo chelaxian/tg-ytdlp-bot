@@ -7461,7 +7461,7 @@ def get_url_hash(url: str) -> str:
 
 
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None, user_id: int = None):
-    """Saves message IDs to cache for two YouTube link variants (long/short) at once."""
+    """Saves message IDs to Firebase video cache after checking local cache to avoid duplication."""
     found_type = None
     if user_id is not None:
         found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
@@ -7471,47 +7471,60 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
         if need_subs:
             logger.info("Video with subtitles is not cached!")
             return
-    logger.info(
-        f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
+
+    logger.info(f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
+
     if not quality_key:
         logger.warning(f"save_to_video_cache: quality_key is empty, skipping cache save for URL: {url}")
         return
-    # Check if this is a playlist with range - if so, skip cache
+
     if original_text and is_playlist_with_range(original_text):
         logger.info(f"Playlist with range detected, skipping cache save for URL: {url}")
         return
 
     try:
         urls = [normalize_url_for_cache(url)]
-        # If it's YouTube, add both options
         if is_youtube_url(url):
-            urls.append(normalize_url_for_cache(youtube_to_short_url(url)))
-            urls.append(normalize_url_for_cache(youtube_to_long_url(url)))
+            urls += [
+                normalize_url_for_cache(youtube_to_short_url(url)),
+                normalize_url_for_cache(youtube_to_long_url(url))
+            ]
+        
         logger.info(f"save_to_video_cache: normalized URLs: {urls}")
+
         for u in set(urls):
             url_hash = get_url_hash(u)
-            cache_ref = db.child(Config.VIDEO_CACHE_DB_PATH).child(url_hash)
+            path_parts = [Config.VIDEO_CACHE_DB_PATH, url_hash]
+
+            # === CLEAR MODE ===
             if clear:
-                cache_ref.child(quality_key).remove()
-                logger.info(f"Cache cleared for URL hash {url_hash}, quality {quality_key}")
+                logger.info(f"Clearing cache for URL hash {url_hash}, quality {quality_key}")
+                db.child(*path_parts).child(quality_key).remove()
                 continue
+
             if not message_ids:
                 logger.warning(f"save_to_video_cache: message_ids is empty for URL: {url}, quality: {quality_key}")
                 continue
-            
-            # Simplified logic for caching
+
+            # === LOCAL CACHE CHECK ===
+            existing = get_from_local_cache(path_parts + [quality_key])
+            if existing is not None:
+                logger.info(f"Cache already exists for URL hash {url_hash}, quality {quality_key}, skipping save.")
+                continue  # skip writing if already cached locally
+
+            cache_ref = db.child(*path_parts)
+
             if len(message_ids) == 1:
-                # Single video - we keep as it is
                 cache_ref.child(quality_key).set(str(message_ids[0]))
-                logger.info(f"Saved single video to cache for URL hash {url_hash}, quality {quality_key}, msg_id {message_ids[0]}")
+                logger.info(f"Saved single video to cache: hash={url_hash}, quality={quality_key}, msg_id={message_ids[0]}")
             else:
-                # SPLIT Video (multiple parts) - keep all the ID through a comma
                 ids_string = ",".join(map(str, message_ids))
                 cache_ref.child(quality_key).set(ids_string)
-                logger.info(f"Saved split video to cache for URL hash {url_hash}, quality {quality_key}, msg_ids {ids_string} ({len(message_ids)} parts)")
-    except Exception as e:
-        logger.error(f"Failed to save to cache: {e}")
+                logger.info(f"Saved split video to cache: hash={url_hash}, quality={quality_key}, msg_ids={ids_string}")
 
+    except Exception as e:
+        logger.error(f"Failed to save to video cache: {e}")
+        
 
 def get_cached_message_ids(url: str, quality_key: str) -> list:
     """Searches cache for both versions of YouTube link (long/short)."""
@@ -7731,45 +7744,56 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                            clear: bool = False, original_text: str = None):
     logger.info(
         f"save_to_playlist_cache called: playlist_url={playlist_url}, quality_key={quality_key}, video_indices={video_indices}, message_ids={message_ids}, clear={clear}")
+    
     if not quality_key:
-        logger.warning(
-            f"save_to_playlist_cache: quality_key is empty, skipping cache save for playlist: {playlist_url}")
+        logger.warning(f"quality_key is empty, skipping cache save for playlist: {playlist_url}")
         return
-    if not hasattr(Config,
-                   'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in (
-            '', '/', '.'):
-        logger.error(
-            f"save_to_playlist_cache: PLAYLIST_CACHE_DB_PATH is empty or invalid! Skipping cache write for playlist: {playlist_url}")
+
+    if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
+        logger.error(f"PLAYLIST_CACHE_DB_PATH is invalid, skipping write for: {playlist_url}")
         return
+
     try:
+        # Нормализуем URL (без диапазона) и формируем все варианты ссылок
         urls = [normalize_url_for_cache(strip_range_from_url(playlist_url))]
         if is_youtube_url(playlist_url):
-            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))))
-            urls.append(normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))))
-        logger.info(f"save_to_playlist_cache: normalized URLs: {urls}")
+            urls.extend([
+                normalize_url_for_cache(strip_range_from_url(youtube_to_short_url(playlist_url))),
+                normalize_url_for_cache(strip_range_from_url(youtube_to_long_url(playlist_url))),
+            ])
+        logger.info(f"Normalized playlist URLs: {urls}")
+
         for u in set(urls):
             url_hash = get_url_hash(u)
-            logger.info(f"save_to_playlist_cache: using URL hash: {url_hash}")
+            logger.info(f"Using playlist URL hash: {url_hash}")
+
             if clear:
-                # Delete the entire quality branch
                 db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").remove()
-                logger.info(f"Playlist cache cleared for URL hash {url_hash}, quality {quality_key}")
+                logger.info(f"Cleared playlist cache for hash={url_hash}, quality={quality_key}")
                 continue
+
             if not message_ids or not video_indices:
-                logger.warning(
-                    f"save_to_playlist_cache: message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
+                logger.warning(f"message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
                 continue
+
             for i, msg_id in zip(video_indices, message_ids):
-                cache_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}/{str(i)}"
-                logger.info(f"save_to_playlist_cache: saving to path: {cache_path}, msg_id: {msg_id}")
-                db_child_by_path(db, cache_path).set(str(msg_id))
-            logger.info(
-                f"Saved to playlist cache for URL hash {url_hash}, quality {quality_key}, indices: {video_indices}, msg_ids: {message_ids}")
+                path_parts = [Config.PLAYLIST_CACHE_DB_PATH, url_hash, quality_key, str(i)]
+                already_cached = get_from_local_cache(path_parts)
+
+                if already_cached:
+                    logger.info(f"Playlist part already cached: {path_parts}, skipping")
+                    continue
+
+                db_child_by_path(db, "/".join(path_parts)).set(str(msg_id))
+                logger.info(f"Saved to playlist cache: path={path_parts}, msg_id={msg_id}")
+
+        logger.info(f"✅ Saved to playlist cache for hash={url_hash}, quality={quality_key}, indices={video_indices}, message_ids={message_ids}")
+
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
-
+        
 
 def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_indices: list) -> dict:
     logger.info(
@@ -7869,7 +7893,7 @@ def strip_range_from_url(url: str) -> str:
 
 
 def db_child_by_path(db, path):
-    for part in path.split("/"):
+    for part in path.strip("/").split("/"):
         db = db.child(part)
     return db
 
