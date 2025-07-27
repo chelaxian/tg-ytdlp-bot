@@ -1397,11 +1397,6 @@ def auto_cache_command(app, message):
             "💡 Use /auto_cache again to re-enable"
         )
         send_to_logger(message, "Auto reload stopped by admin.")
-
-
-    except Exception as e:
-        send_to_user(message, f"❌ Error toggling auto cache: {str(e)}")
-        send_to_logger(message, f"Error toggling auto Firebase cache: {str(e)}")
         
 
 @app.on_callback_query(filters.regex(r"^subs_lang_close\|"))
