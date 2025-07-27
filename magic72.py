@@ -1,5 +1,6 @@
 # Version 3.1.0 # save firebase-cache localy to prevent exceeding no-cost limits on google firebase
 import glob
+import pytz
 from datetime import datetime, timedelta
 import hashlib
 import io
@@ -87,27 +88,33 @@ def reload_firebase_cache():
 def auto_reload_firebase_cache():
     """Автоматически загружает кэш Firebase с интервалом, привязанным к системному времени (например, каждые 4 часа от 00:00)"""
     global auto_cache_enabled
+
     reload_hours = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
+
+    # Получаем временную зону из конфига (например, "Europe/London")
+    tz_name = getattr(Config, 'CACHE_TIMEZONE', 'UTC')
+    try:
+        tz = pytz.timezone(tz_name)
+    except Exception as e:
+        print(f"❌ Invalid timezone '{tz_name}', falling back to UTC")
+        tz = pytz.UTC
 
     while auto_cache_enabled:
         try:
-            # Получаем текущее системное время
-            now = datetime.now().replace(minute=0, second=0, microsecond=0)
-
-            # Начало дня: 00:00
+            # Текущее локальное время в нужной зоне
+            now = datetime.now(tz).replace(minute=0, second=0, microsecond=0)
             start_of_day = now.replace(hour=0)
 
-            # Все точки перезагрузки в текущих сутках (0:00, 4:00, 8:00, ...)
+            # Список возможных точек перезагрузки
             reload_points = [start_of_day + timedelta(hours=h) for h in range(0, 24, reload_hours)]
 
-            # Находим ближайшую точку в будущем
+            # Следующая точка в будущем
             next_reload_time = next((t for t in reload_points if t > now), start_of_day + timedelta(days=1))
 
-            # Сколько ждать до следующей точки
-            wait_seconds = (next_reload_time - datetime.now()).total_seconds()
+            wait_seconds = (next_reload_time - datetime.now(tz)).total_seconds()
             minutes_left = int(wait_seconds // 60)
 
-            print(f"⏳ Next Firebase cache reload scheduled at {next_reload_time.strftime('%H:%M')} (in {minutes_left} minutes)")
+            print(f"⏳ Next Firebase cache reload scheduled at {next_reload_time.strftime('%H:%M')} (in {minutes_left} minutes) [Timezone: {tz_name}]")
 
             for _ in range(int(wait_seconds)):
                 if not auto_cache_enabled:
@@ -115,9 +122,9 @@ def auto_reload_firebase_cache():
                     return
                 time.sleep(1)
 
-            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')}")
 
-            # 1. Сначала запускаем скрипт для скачивания свежего дампа
+            # 1. Запускаем скрипт
             script_path = getattr(Config, "DOWNLOAD_FIREBASE_SCRIPT_PATH", "download_firebase.py")
             print(f"⏳ Downloading fresh Firebase dump using {script_path} ...")
 
@@ -126,17 +133,17 @@ def auto_reload_firebase_cache():
                 print(f"❌ Error running {script_path}:\n{result.stdout}\n{result.stderr}")
                 continue
 
-            # 2. Теперь подгружаем кэш в память
+            # 2. Подгружаем в память
             success = reload_firebase_cache()
             if success:
-                print(f"✅ Firebase cache auto-reloaded successfully at {datetime.now()}")
+                print(f"✅ Firebase cache auto-reloaded successfully at {datetime.now(tz)}")
                 try:
                     if 'app' in globals() and app:
-                        safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded successfully at {datetime.now()}")
+                        safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded successfully at {datetime.now(tz)}")
                 except Exception as e:
                     print(f"⚠️ Could not send log message: {e}")
             else:
-                print(f"❌ Failed to auto-reload Firebase cache at {datetime.now()}")
+                print(f"❌ Failed to auto-reload Firebase cache at {datetime.now(tz)}")
 
         except Exception as e:
             print(f"❌ Error in auto-reload Firebase cache: {e}")
@@ -148,6 +155,7 @@ def auto_reload_firebase_cache():
                 time.sleep(1)
 
     print("🛑 Auto Firebase cache reloader stopped")
+    
 
 def start_auto_cache_reloader():
     """Запускает поток для автоматической загрузки кэша"""
