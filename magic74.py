@@ -81,14 +81,12 @@ def reload_firebase_cache():
         return False
 
 
-def get_next_reload_time(interval_hours: int, tz_name: str = "UTC") -> tuple[datetime, float]:
+def get_next_reload_time_from_local(interval_hours: int) -> tuple[datetime, float]:
     """
-    Возвращает datetime следующего интервала обновления и время в секундах до него.
-    Привязка по системному времени от 00:00 в заданной таймзоне.
+    Возвращает время следующего обновления, привязанного к кратным интервалам от 00:00 по локальному системному времени.
     """
-    now = datetime.now(ZoneInfo(tz_name))
+    now = datetime.now()  # локальное время как в bash date
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    
     elapsed = (now - midnight).total_seconds()
     interval_seconds = interval_hours * 3600
     next_interval = ((elapsed // interval_seconds) + 1) * interval_seconds
@@ -97,16 +95,15 @@ def get_next_reload_time(interval_hours: int, tz_name: str = "UTC") -> tuple[dat
     return next_reload, wait_seconds
 
 def auto_reload_firebase_cache():
-    """Автоматически загружает кэш Firebase с привязкой к кратным интервалам от 00:00"""
+    """Автоматически загружает кэш Firebase с интервалом, привязанным к системному локальному времени"""
     global auto_cache_enabled
     reload_hours = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
-    tz_name = getattr(Config, 'CACHE_TIMEZONE', 'UTC')
 
     while auto_cache_enabled:
         try:
-            next_reload, wait_seconds = get_next_reload_time(reload_hours, tz_name)
+            next_reload, wait_seconds = get_next_reload_time_from_local(reload_hours)
 
-            print(f"⏳ Next Firebase cache reload scheduled at {next_reload.strftime('%Y-%m-%d %H:%M:%S %Z')} (in {int(wait_seconds // 60)} minutes)")
+            print(f"⏳ Next Firebase cache reload scheduled at {next_reload.strftime('%Y-%m-%d %H:%M:%S')} (in {int(wait_seconds // 60)} minutes)")
 
             for _ in range(int(wait_seconds)):
                 if not auto_cache_enabled:
@@ -114,26 +111,28 @@ def auto_reload_firebase_cache():
                     return
                 time.sleep(1)
 
-            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now(ZoneInfo(tz_name))}")
+            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-            # 1. Скачиваем свежий кэш
+            # Скачиваем свежий JSON
             script_path = getattr(Config, "DOWNLOAD_FIREBASE_SCRIPT_PATH", "download_firebase.py")
             result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
             if result.returncode != 0:
                 print(f"❌ Error running {script_path}:\n{result.stdout}\n{result.stderr}")
                 continue
 
-            # 2. Перезагружаем кэш
+            # Перезагружаем кэш
             if reload_firebase_cache():
-                print(f"✅ Firebase cache reloaded at {datetime.now(ZoneInfo(tz_name))}")
+                print(f"✅ Firebase cache reloaded at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 if 'app' in globals() and app:
-                    safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded at {datetime.now(ZoneInfo(tz_name))}")
+                    safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache reloaded at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             else:
                 print(f"❌ Failed to reload Firebase cache")
 
         except Exception as e:
             print(f"❌ Exception in auto_reload_firebase_cache: {e}")
-            time.sleep(3600)  # wait 1 hour before retry
+            time.sleep(3600)
+
+    print("🛑 Auto Firebase cache reloader stopped")
     
 
 def start_auto_cache_reloader():
