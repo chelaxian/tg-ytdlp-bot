@@ -1369,39 +1369,51 @@ def reload_firebase_cache_command(app, message):
         send_to_user(message, f"❌ Error reloading cache: {str(e)}")
         send_to_logger(message, f"Error reloading Firebase cache: {str(e)}")
 
+
 def auto_cache_command(app, message):
     """Обработчик команды для управления автоматической загрузкой кэша Firebase"""
     if int(message.chat.id) not in Config.ADMIN:
         send_to_user(message, "❌ Access denied. Admin only.")
         return
-    
+
     global auto_cache_enabled
-    
+
     try:
-        # Переключаем состояние
+        # Переключаем состояние автообновления
         new_state = toggle_auto_cache_reloader()
-        
+        interval = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
+
         if new_state:
+            # Вычисляем следующее системное время срабатывания
+            now = datetime.now()
+            next_reload = now.replace(minute=0, second=0, microsecond=0)
+            while next_reload <= now:
+                next_reload += timedelta(hours=interval)
+            time_to_next = (next_reload - now)
+
             status = "✅ ENABLED"
             action = "started"
-            interval = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
-            send_to_user(message, f"🔄 Auto Firebase cache reloading {action}!\n\n"
-                                f"📊 Status: {status}\n"
-                                f"⏰ Interval: Every {interval} hours\n"
-                                f"📝 Next reload: ~{interval} hours from now")
-            send_to_logger(message, f"Auto Firebase cache reloading {action} by admin.")
+            send_to_user(message,
+                f"🔄 Auto Firebase cache reloading {action}!\n\n"
+                f"📊 Status: {status}\n"
+                f"⏰ Schedule: every {interval} hours from 00:00\n"
+                f"🕒 Next reload: {next_reload.strftime('%H:%M')} (in {int(time_to_next.total_seconds() // 60)} minutes)"
+            )
+            send_to_logger(message, f"Auto Firebase cache reloading {action} by admin. Next at {next_reload}")
         else:
             status = "❌ DISABLED"
             action = "stopped"
-            send_to_user(message, f"🛑 Auto Firebase cache reloading {action}!\n\n"
-                                f"📊 Status: {status}\n"
-                                f"💡 Use /auto_cache again to re-enable")
+            send_to_user(message,
+                f"🛑 Auto Firebase cache reloading {action}!\n\n"
+                f"📊 Status: {status}\n"
+                f"💡 Use /auto_cache again to re-enable"
+            )
             send_to_logger(message, f"Auto Firebase cache reloading {action} by admin.")
-            
+
     except Exception as e:
         send_to_user(message, f"❌ Error toggling auto cache: {str(e)}")
         send_to_logger(message, f"Error toggling auto Firebase cache: {str(e)}")
-
+        
 
 @app.on_callback_query(filters.regex(r"^subs_lang_close\|"))
 def subs_lang_close_callback(app, callback_query):
