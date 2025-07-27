@@ -83,60 +83,43 @@ def reload_firebase_cache():
         print(f"❌ Failed to reload firebase cache: {e}")
         return False
 
+
 def auto_reload_firebase_cache():
-    """Автоматически загружает кэш Firebase с интервалом, привязанным к системному времени (например, каждые 4 часа от 00:00)"""
+    """Автоматически вызывает reload_cache каждые N часов, начиная с 00:00"""
     global auto_cache_enabled
-    reload_hours = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
+
+    interval_hours = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
+    interval = timedelta(hours=interval_hours)
 
     while auto_cache_enabled:
+        now = datetime.now()
+        next_exec_hour = ((now.hour // interval_hours) + 1) * interval_hours
+        next_exec_time = now.replace(minute=0, second=0, microsecond=0)
+
+        if next_exec_hour >= 24:
+            next_exec_time = next_exec_time.replace(hour=0) + timedelta(days=1)
+        else:
+            next_exec_time = next_exec_time.replace(hour=next_exec_hour)
+
+        wait_seconds = (next_exec_time - now).total_seconds()
+        print(f"⏳ Waiting until {next_exec_time} to reload Firebase cache ({wait_seconds/3600:.2f} hours)")
+
+        for _ in range(int(wait_seconds)):
+            if not auto_cache_enabled:
+                print("🛑 Auto Firebase cache reloader stopped by admin")
+                return
+            time.sleep(1)
+
+        # Вызов команды reload_cache как будто от админа
         try:
-            # Вычисляем время до следующего кратного интервала от 00:00
-            now = datetime.now()
-            next_reload = now.replace(minute=0, second=0, microsecond=0)
-            while next_reload <= now:
-                next_reload += timedelta(hours=reload_hours)
-            wait_seconds = (next_reload - now).total_seconds()
-
-            print(f"⏳ Next Firebase cache reload scheduled at {next_reload} (in {wait_seconds:.0f} seconds)")
-
-            for _ in range(int(wait_seconds)):
-                if not auto_cache_enabled:
-                    print("🛑 Auto Firebase cache reloader stopped by admin")
-                    return
-                time.sleep(1)
-
-            print(f"🔄 Executing scheduled Firebase cache reload at {datetime.now()}")
-
-            # 1. Сначала запускаем скрипт для скачивания свежего дампа
-            script_path = getattr(Config, "DOWNLOAD_FIREBASE_SCRIPT_PATH", "download_firebase.py")
-            print(f"⏳ Downloading fresh Firebase dump using {script_path} ...")
-
-            result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
-            if result.returncode != 0:
-                print(f"❌ Error running {script_path}:\n{result.stdout}\n{result.stderr}")
-                continue
-
-            # 2. Теперь подгружаем кэш в память
-            success = reload_firebase_cache()
-            if success:
-                print(f"✅ Firebase cache auto-reloaded successfully at {datetime.now()}")
-                try:
-                    if 'app' in globals() and app:
-                        safe_send_message(Config.LOGS_ID, f"🔄 Firebase cache auto-reloaded successfully at {datetime.now()}")
-                except Exception as e:
-                    print(f"⚠️ Could not send log message: {e}")
-            else:
-                print(f"❌ Failed to auto-reload Firebase cache at {datetime.now()}")
-
+            user_id = Config.ADMIN[0] if isinstance(Config.ADMIN, (list, tuple)) else Config.ADMIN
+            print(f"🔄 Triggering /reload_cache as admin (user_id={user_id})")
+            msg = fake_message("/reload_cache", user_id)
+            reload_firebase_cache_command(app, msg)
         except Exception as e:
-            print(f"❌ Error in auto-reload Firebase cache: {e}")
-            for _ in range(3600):
-                if not auto_cache_enabled:
-                    print("🛑 Auto Firebase cache reloader stopped by admin")
-                    return
-                time.sleep(1)
-
-    print("🛑 Auto Firebase cache reloader stopped")
+            print(f"❌ Error running auto reload_cache: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 def start_auto_cache_reloader():
