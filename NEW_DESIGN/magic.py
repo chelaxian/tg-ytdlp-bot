@@ -37,8 +37,7 @@ from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
-    ReplyKeyboardMarkup,
-    ReplyParameters
+    ReplyKeyboardMarkup
 )
 from yt_dlp import YoutubeDL
 import yt_dlp
