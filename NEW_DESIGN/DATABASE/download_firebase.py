@@ -10,6 +10,9 @@ import sys
 from datetime import datetime
 
 try:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    
     from CONFIG.config import Config
 except ImportError:
     print("❌ Не найден CONFIG/config.py или класс Config! Все параметры должны быть в CONFIG/config.py.")
