@@ -49,6 +49,7 @@ notifier = SystemdNotifier()
 def watchdog_loop():
     while True:
         notifier.notify("WATCHDOG=1")
+        print(f"[Watchdog] Sent WATCHDOG=1 at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         time.sleep(30)  # Frequency is less than WatchdogSec
 
 # Start watchdog thread
@@ -56,6 +57,7 @@ threading.Thread(target=watchdog_loop, daemon=True).start()
 
 # At the beginning of initialization
 notifier.notify("READY=1")
+print(f"[Watchdog] Sent READY=1 at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 # Global variable for local cache Firebase
 firebase_cache = {}
