@@ -1,7 +1,7 @@
 # ===================== /settings =====================
 from pyrogram import filters
 from CONFIG.config import Config
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram import enums
 
 from HELPERS.app_instance import get_app_lazy
