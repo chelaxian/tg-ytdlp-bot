@@ -3,58 +3,9 @@
 Support me on [BuyMeACoffee](https://buymeacoffee.com/upekshaip) \
 Thanks to Contributor - [@IIlIlIlIIIlllIIlIIlIllIIllIlIIIl](https://t.me/IIlIlIlIIIlllIIlIIlIllIIllIlIIIl) - [chelaxian](https://github.com/chelaxian/tg-ytdlp-bot)
 
-**🚀 Enhanced Fork:** This repository has been significantly improved with a complete modular architecture refactoring, enhanced maintainability, and optimized code structure.
-
 Download private YouTube/videos using a cookie file.
 
 Test free bot - https://t.me/tgytdlp_bot
-
-## 🏗️ Project Architecture
-
-This project has been completely refactored from a monolithic structure to a clean, modular architecture:
-
-### 📊 Refactoring Statistics
-- **Original size:** 5,431 lines → **New size:** 336 lines (-93.8%)
-- **Functions migrated:** 119 → 175 (+56 service functions)
-- **Modules created:** 25 Python files
-- **Code optimization:** -503 lines (-9.3%)
-
-### 📁 Modular Structure
-```
-tg-ytdlp-bot/
-├── magic.py (336 lines - entry point)
-└── magic/
-    ├── handlers/          # Command and message handlers
-    │   ├── commands.py    # Main bot commands
-    │   ├── admin.py       # Admin commands  
-    │   ├── url_handler.py # URL processing
-    │   ├── settings.py    # Settings menu and commands
-    │   └── quality.py     # Quality selection handlers
-    ├── download/          # Download and caching
-    │   ├── downloader.py  # Core download logic
-    │   ├── quality.py     # Quality management
-    │   └── cache.py       # Caching system
-    ├── processing/        # Data processing
-    │   ├── tags.py        # Tag system
-    │   ├── url_parser.py  # URL parsing
-    │   ├── video.py       # Video processing
-    │   └── thumbnail.py   # Thumbnail processing
-    ├── user/              # User settings
-    │   └── settings.py    # Settings management
-    ├── utils/             # Utilities
-    │   ├── formatters.py  # Data formatting
-    │   ├── filesystem.py  # File operations
-    │   └── communication.py # Telegram communication
-    └── database/          # Database
-        └── firebase.py    # Firebase integration
-```
-
-### 🎯 Benefits of New Architecture
-- **Improved maintainability** - Logical separation of concerns
-- **Better code organization** - Related functions grouped together
-- **Enhanced readability** - Clean, focused modules
-- **Easier testing** - Isolated components
-- **Future-proof design** - Scalable modular structure
 
 ## Full Documentation
 [https://upekshaip.com/projects/-O0t36gRpfJR1p8KB7vU](https://upekshaip.com/projects/-O0t36gRpfJR1p8KB7vU)
@@ -154,8 +105,6 @@ pip install --no-cache-dir --force-reinstall "urllib3==1.26.20"
 pip install --no-deps moviepy==1.0.3
 python3 magic.py
 ```
-
-**Note:** The project now uses a modular architecture. The main entry point is still `magic.py`, but the core functionality is organized across the `magic/` directory structure.
 ---
 ### (Optional) Installing ffmpeg (example for Ubuntu/Debian)
 <details>
@@ -172,6 +121,31 @@ python3 magic.py
    Verify the installation:
    ```sh
    ffmpeg -version
+   ```
+
+   If you need to support extra languages such as arabic, chinese, japanese, korean - you also need to install this language packs:
+   ```sh
+   sudo apt update
+   sudo add-apt-repository universe
+   sudo apt update
+
+   sudo apt install fonts-noto-core             # – Noto Sans, Noto Serif, … base fonts Google Noto
+   sudo apt install fonts-noto-extra            # – extra fonts (including arabic)
+   sudo apt install fonts-kacst fonts-kacst-one # – KACST arabic fonts
+   sudo apt install fonts-noto-cjk              # – Chinese-Japanese-Korean characters
+   ```
+
+   For Amiri arabic:
+   ```sh
+   git clone https://github.com/aliftype/amiri.git
+   sudo mkdir -p /usr/share/fonts/truetype/amiri
+   sudo cp amiri/fonts/*.ttf /usr/share/fonts/truetype/amiri/
+   ```
+   
+   Update font cache
+   ```sh
+   sudo fc-cache -fv
+   fc-list | grep -i amiri
    ```
 </details> 
 
@@ -223,13 +197,13 @@ Usage example:
 The **/format** command allows users to set a custom download format for their videos. Users can either supply a custom format string or choose from a preset menu.
 
 **Main Menu Options:**
-- 💻<=4k (best for desktop TG app)
-- 📱<=FullHD (best for mobile TG app)
+- ❓ Always Ask (menu + buttons)
+- **🎛 Others (144p - 4320p)** – opens a full resolution menu (see below)
+- 💻4k (best for PC/Mac Telegram)
+- 📱FullHD (best for mobile Telegram)
 - 📈bestvideo+bestaudio (MAX quality)
-- 📉best (no ffmpeg)
-- **Others** – opens a full resolution menu (see below)
-- 🎚 custom – for entering a custom format string
-- 🔙 Cancel – cancels the selection
+- **🎚 Custom (enter your own)** – for entering a custom format string
+- 🔙 Close – cancels the selection
 
 **Full Resolution Menu (triggered by "Others"):**
 - 144p (256×144)
@@ -267,6 +241,8 @@ Then select the desired option from the menu.
 - **/download_cookie** - Download the cookie file.
 - **/save_as_cookie** - Save text as cookie (or upload TXT-doc).
 - **/cookies_from_browser** - Get cookies from browser (if supported).
+- **/subs** - Enable/disable subtitle embedding for videos.
+
 
 ## Admin Commands
 
@@ -287,7 +263,9 @@ Then select the desired option from the menu.
 - **/all_users** - Get all users.
 - **/all_blocked** - Get all blocked users.
 - **/all_unblocked** - Get all unblocked users.
-
+- **/uncache** - Clear cached subtitle language data.
+- **/reload_cache** - Reload cache from firebase to local json file
+- **/auto_cache** - Toggle turn ON/OFF mode of auto reloading of cache every N hours. 
 ---
 
 ## Settings Menu (`/settings`)
@@ -381,7 +359,11 @@ Response:
 • Upload a cookie file to download private videos and playlists. \
 • Check or update your cookie file with **/check_cookie**, **/download_cookie**, **/save_as_cookie** and **/cookies_from_browser** commands. \
 • To clean your workspace on server from bad files (e.g. old cookies or media) use **/clean** command (might be helpfull for get rid of errors). \
-• See your usage statistics and logs by sending the **/usage** command.
+• See your usage statistics and logs by sending the **/usage** command. \
+• Control subtitle embedding with **/subs** command - enable or disable automatic subtitle burning into videos. \
+• Clear cached subtitle language data with **/uncache** command if you experience issues with subtitle detection. \
+• Reload cache from firebase to local json file with **/reload_cache** command. \
+• Toggle turn ON/OFF mode of auto reloading of cache every **N** hours with **/auto_cache** command. 
 
 ---
 
@@ -412,35 +394,10 @@ For example, add the following line to your crontab:
 
 ---
 
-## 🔄 Recent Major Refactoring
-
-The project has undergone a complete architectural transformation from a monolithic 5,431-line file to a clean, modular structure:
-
-### 📈 What Was Accomplished
-- **Monolithic to Modular:** Split `magic.py` (5,431 lines) into 25 focused modules
-- **Function Migration:** Successfully moved all 119 functions to appropriate modules
-- **Code Optimization:** Reduced overall codebase by 503 lines while improving structure
-- **Enhanced Maintainability:** Logical separation of concerns across modules
-
-### 🏗️ New Architecture Benefits
-- **Better Organization:** Related functionality grouped together
-- **Improved Readability:** Clean, focused modules instead of one massive file
-- **Easier Maintenance:** Isolated components for targeted updates
-- **Enhanced Testing:** Modular design enables unit testing
-- **Future Scalability:** Easy to add new features without affecting existing code
-
-### 📋 Migration Documentation
-For detailed information about the refactoring process and function migration, see:
-- `FUNCTION_MIGRATION_TABLE.md` - Complete function migration mapping
-- `README_RESTRUCTURE.md` - Refactoring process documentation
-
----
-
 ## TODO
 
 - ~~Add a custom formatter selector for downloads.~~
 - ~~Enhance MP3 support.~~
-- ~~Complete codebase refactoring to modular architecture~~ ✅
 - Add Google Drive support to store files.
 
 ---
@@ -490,3 +447,20 @@ To restrict access to your database only to authenticated users, update your sec
 ```
 
 These rules allow read and write operations only if the request contains a valid `idToken`—meaning the user is authenticated.
+
+### 5. Autostart service
+
+To create auto-start service for this bot - copy text from this file https://github.com/chelaxian/tg-ytdlp-bot/blob/main/etc/systemd/system/tg-ytdlp-bot.service and paste it to 
+```bash
+/etc/systemd/system/tg-ytdlp-bot.service
+```
+do not forget to change path in service to yoyr actual path
+
+reload systemctl and enable/start service
+```bash
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl enable tg-ytdlp-bot.service
+systemctl restart tg-ytdlp-bot.service
+journalctl -u tg-ytdlp-bot -f
+```
