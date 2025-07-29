@@ -9,7 +9,7 @@ from URL_PARSERS.tags import extract_url_range_tags, save_user_tags, get_auto_ta
 from URL_PARSERS.tiktok import is_tiktok_url
 from DOWN_AND_UP.always_ask_menu import ask_quality_menu
 from DOWN_AND_UP.down_and_up import down_and_up
-from DOWN_AND_UP.limitter import playlist_errors, playlist_errors_lock
+from HELPERS.download_status import playlist_errors, playlist_errors_lock
 from pyrogram import filters
 from CONFIG.config import Config
 import os
