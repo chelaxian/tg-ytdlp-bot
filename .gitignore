@@ -1,0 +1,14 @@
+magic.session
+magic.session-journal
+cookies.txt
+users
+test.py
+logs.txt
+torrent.py
+bot_sample.py
+tg-bot
+users.txt
+benv
+config.py
+.vscode
+__pycache__
