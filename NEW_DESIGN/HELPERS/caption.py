@@ -13,6 +13,9 @@ app = get_app_lazy()
 @on_message(filters.text & filters.private)
 # @reply_with_keyboard
 def caption_editor(app, message):
+    if not message.reply_to_message or not message.reply_to_message.video:
+        return
+        
     users_name = message.chat.first_name
     user_id = message.chat.id
     caption = message.text
