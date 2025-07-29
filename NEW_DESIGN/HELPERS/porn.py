@@ -2,7 +2,7 @@ import tldextract
 from urllib.parse import urlparse
 from CONFIG.config import Config
 from HELPERS.logger import logger
-from HELPERS.qualifier import get_clean_url_for_tagging
+from URL_PARSERS.tags import get_clean_url_for_tagging
 
 # --- global lists of domains and keywords ---
 PORN_DOMAINS = set()
