@@ -4,9 +4,18 @@
 # Text Message Handler for General Commands
 from HELPERS.app_instance import get_app_lazy
 from HELPERS.handler_registry import on_message
+from HELPERS.decorators import reply_with_keyboard
+from HELPERS.limitter import is_user_in_channel
+from HELPERS.logger import send_to_all
+from HELPERS.filesystem_hlp import remove_media
+from COMMANDS.cookies_cmd import save_as_cookie_file, download_cookie, checking_cookie_file, cookies_from_browser
+from COMMANDS.subtitles_cmd import subs_command
+from COMMANDS.other_handlers import audio_command_handler
+from COMMANDS.format_cmd import set_format
+from COMMANDS.mediainfo_cmd import mediainfo_command
+from COMMANDS.settings_cmd import settings_command
 from pyrogram import filters
 from CONFIG.config import Config
-from HELPERS.decorators import reply_with_keyboard
 
 # Get app instance for decorators
 app = get_app_lazy()
