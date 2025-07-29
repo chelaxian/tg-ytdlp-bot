@@ -1,5 +1,6 @@
 # Version 3.1.0 # save firebase-cache localy to prevent exceeding no-cost limits on google firebase
 import glob
+from sdnotify import SystemdNotifier
 from datetime import datetime, timedelta
 import hashlib
 import io
@@ -42,6 +43,19 @@ import yt_dlp
 from config import Config
 
 import chardet
+
+notifier = SystemdNotifier()
+
+def watchdog_loop():
+    while True:
+        notifier.notify("WATCHDOG=1")
+        time.sleep(30)  # Frequency is less than WatchdogSec
+
+# Start watchdog thread
+threading.Thread(target=watchdog_loop, daemon=True).start()
+
+# At the beginning of initialization
+notifier.notify("READY=1")
 
 # Global variable for local cache Firebase
 firebase_cache = {}
