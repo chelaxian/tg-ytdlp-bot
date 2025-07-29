@@ -6,7 +6,7 @@ from HELPERS.app_instance import get_app_lazy
 from HELPERS.handler_registry import on_message
 from pyrogram import filters
 from CONFIG.config import Config
-from magic import reply_with_keyboard
+from HELPERS.decorators import reply_with_keyboard
 
 # Get app instance for decorators
 app = get_app_lazy()
