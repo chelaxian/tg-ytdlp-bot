@@ -8,6 +8,20 @@ import os
 # Get app instance for decorators
 app = get_app_lazy()
 
+def check_user(message):
+    """Check if user is in channel and create user directory"""
+    user_id_str = str(message.chat.id)
+    
+    # Create The User Folder Inside The "Users" Directory
+    user_dir = os.path.join("users", user_id_str)
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir, exist_ok=True)
+    
+    # Check if user is in channel (for non-admins)
+    if int(message.chat.id) not in Config.ADMIN:
+        return is_user_in_channel(app, message)
+    return True
+
 def humanbytes(size):
     # https://stackoverflow.com/a/49361727/4723940
     # 2 ** 10 = 1024
