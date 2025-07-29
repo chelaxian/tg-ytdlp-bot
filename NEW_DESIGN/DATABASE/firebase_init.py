@@ -6,7 +6,7 @@ import os
 from CONFIG.config import Config
 from HELPERS.logger import logger
 from HELPERS.filesystem_hlp import create_directory
-from HELPERS.safe_messeger import send_to_all
+from HELPERS.logger import send_to_all
 
 # Global variable for timing
 starting_point = []
