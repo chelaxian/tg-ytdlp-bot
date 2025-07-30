@@ -1,7 +1,6 @@
 # #############################################################################################################################
 
 from HELPERS.app_instance import get_app_lazy
-from HELPERS.handler_registry import on_message, on_callback_query
 from HELPERS.decorators import reply_with_keyboard, send_reply_keyboard_always
 from HELPERS.logger import send_to_logger, send_to_user
 from HELPERS.limitter import is_user_in_channel, check_user
@@ -19,29 +18,24 @@ from CONFIG.config import Config
 # Get app instance for decorators
 app = get_app_lazy()
 
-@on_message(filters.command("start") & filters.private)
+@app.on_message(filters.command("start") & filters.private)
 # @reply_with_keyboard
 def command1(app, message):
-    print(f"🔍 The /start handler is called for the user {message.chat.id}")
-    print(f"🔍 Message text: '{message.text}'")
     if int(message.chat.id) in Config.ADMIN:
-        print(f"✅ User {message.chat.id} is an administrator")
         send_to_user(message, "Welcome Master 🥷")
     else:
-        print(f"✅ User {message.chat.id} is not an administrator")
         check_user(message)
         app.send_message(
             message.chat.id,
             f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
         send_to_logger(message, f"{message.chat.id} - user started the bot")
-    # Send the keyboard after processing the command
+    # Отправляем клавиатуру после обработки команды
     send_reply_keyboard_always(message.chat.id)
-    print(f"✅ The /start handler is completed for the user {message.chat.id}")
 
 print("🔍 Registering the /start handler")
 
 
-@on_message(filters.command("help"))
+@app.on_message(filters.command("help"))
 def command2(app, message):
     print(f"🔍 The /help handler is called for the user {message.chat.id}")
     print(f"🔍 Message text: '{message.text}'")
@@ -56,7 +50,7 @@ def command2(app, message):
     send_reply_keyboard_always(message.chat.id)
     print(f"✅ The /help handler is completed for the user {message.chat.id}")
 
-@on_callback_query(filters.regex(r"^help_msg\|"))
+@app.on_callback_query(filters.regex(r"^help_msg\|"))
 def help_msg_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
     if data == "close":
@@ -72,7 +66,7 @@ def help_msg_callback(app, callback_query):
 #############################################################################################################################
 
 # Command to Download Audio from a Video url
-@on_message(filters.command("audio") & filters.private)
+@app.on_message(filters.command("audio") & filters.private)
 # @reply_with_keyboard
 def audio_command_handler(app, message):
     user_id = message.chat.id
@@ -107,7 +101,7 @@ def audio_command_handler(app, message):
 
 
 # /Playlist Command
-@on_message(filters.command("playlist") & filters.private)
+@app.on_message(filters.command("playlist") & filters.private)
 # @reply_with_keyboard
 def playlist_command(app, message):
     user_id = message.chat.id
@@ -120,7 +114,7 @@ def playlist_command(app, message):
     app.send_message(user_id, Config.PLAYLIST_HELP_MSG, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
     send_to_logger(message, "User requested playlist help.")
 
-@on_callback_query(filters.regex(r"^playlist_help\|"))
+@app.on_callback_query(filters.regex(r"^playlist_help\|"))
 def playlist_help_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
     if data == "close":
@@ -133,7 +127,7 @@ def playlist_help_callback(app, callback_query):
         return
 
 
-@on_callback_query(filters.regex(r"^userlogs_close\|"))
+@app.on_callback_query(filters.regex(r"^userlogs_close\|"))
 def userlogs_close_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
     if data == "close":
@@ -145,7 +139,7 @@ def userlogs_close_callback(app, callback_query):
         send_to_logger(callback_query.message, "User logs message closed.")
         return
 
-@on_callback_query(filters.regex(r"^audio_hint\|"))
+@app.on_callback_query(filters.regex(r"^audio_hint\|"))
 def audio_hint_callback(app, callback_query):
     data = callback_query.data.split("|")[1]
     if data == "close":
@@ -156,7 +150,3 @@ def audio_hint_callback(app, callback_query):
         callback_query.answer("Audio hint closed.")
         send_to_logger(callback_query.message, "Audio hint closed.")
         return
-
-
-
-
