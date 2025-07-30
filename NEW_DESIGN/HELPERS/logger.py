@@ -10,6 +10,7 @@ except ImportError:
     SystemdNotifier = None
 from pyrogram import enums
 from CONFIG.config import Config
+from HELPERS.safe_messeger import safe_send_message
 
 # Configure logging
 logging.basicConfig(
