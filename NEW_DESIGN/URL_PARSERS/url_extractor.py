@@ -7,15 +7,24 @@ from HELPERS.handler_registry import on_message
 from HELPERS.decorators import reply_with_keyboard
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.logger import send_to_all
+from HELPERS.caption import caption_editor
 from HELPERS.filesystem_hlp import remove_media
 from COMMANDS.cookies_cmd import save_as_cookie_file, download_cookie, checking_cookie_file, cookies_from_browser
-from COMMANDS.subtitles_cmd import subs_command
+from COMMANDS.subtitles_cmd import subs_command, clear_subs_check_cache
+# Импортируем функцию audio_command_handler из COMMANDS.other_handlers
 from COMMANDS.other_handlers import audio_command_handler
 from COMMANDS.format_cmd import set_format
+import os
 from COMMANDS.mediainfo_cmd import mediainfo_command
 from COMMANDS.settings_cmd import settings_command
+from COMMANDS.admin_cmd import get_user_log, send_promo_message, block_user, unblock_user, check_runtime, get_user_details, uncache_command, reload_firebase_cache_command
+from DATABASE.cache_db import auto_cache_command
+from DATABASE.firebase_init import is_user_blocked
+from URL_PARSERS.video_extractor import video_url_extractor
+from URL_PARSERS.playlist_utils import is_playlist_with_range
 from pyrogram import filters
 from CONFIG.config import Config
+from HELPERS.logger import logger
 
 # Get app instance for decorators
 app = get_app_lazy()
@@ -244,16 +253,5 @@ def url_distractor(app, message):
     logger.info(f"{user_id} No matching command processed.")
     clear_subs_check_cache()
 
-# --- New function to check if URL contains playlist range ---
-def is_playlist_with_range(text: str) -> bool:
-    """
-    Checks if the text contains a playlist range pattern like *1*3, 1*1000, *5*10, or just * for full playlist.
-    Returns True if a range is detected, False otherwise.
-    """
-    if not isinstance(text, str):
-        return False
-
-    # Look for patterns like *1*3, 1*1000, *5*10, or just * for full playlist
-    range_pattern = r'\*[0-9]+\*[0-9]+|[0-9]+\*[0-9]+|\*'
-    return bool(re.search(range_pattern, text))
+# Функция is_playlist_with_range теперь импортируется из URL_PARSERS.playlist_utils
 ######################################################
