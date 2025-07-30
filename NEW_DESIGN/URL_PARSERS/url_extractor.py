@@ -3,7 +3,6 @@
 # Checking Actions
 # Text Message Handler for General Commands
 from HELPERS.app_instance import get_app_lazy
-from HELPERS.handler_registry import on_message
 from HELPERS.decorators import reply_with_keyboard
 from HELPERS.limitter import is_user_in_channel, check_user
 from HELPERS.logger import send_to_all, send_to_logger
@@ -31,32 +30,21 @@ from pyrogram import enums
 # Get app instance for decorators
 app = get_app_lazy()
 
-# Test handler to check if registration works
-@on_message(filters.all)
-def test_handler(app, message):
-    print(f"🔍 TEST HANDLER called!")
-    print(f"🔍 Message: '{message.text}' from {message.chat.id}")
-    return
-
-@on_message(filters.text & filters.private)
+@app.on_message(filters.text & filters.private)
 # @reply_with_keyboard
 def url_distractor(app, message):
-    print(f"🔍 url_distractor called!")
-    print(f"🔍 Message type: {type(message)}")
-    print(f"🔍 Chat ID: {message.chat.id}")
-    print(f"🔍 User name: {message.chat.first_name}")
-    print(f"🔍 Message text: '{message.text}'")
-    
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     text = message.text.strip()
-    
-    print(f"🔍 url_distractor received message: '{text}' from user {user_id}")
-    print(f"🔍 User is an administrator: {is_admin}")
 
-    # For non-admin users, if they haven't Joined the Channel, Exit ImmediaTely.
-    if not is_admin and not is_user_in_channel(app, message):
-        print(f"❌User {user_id} is not in the channel")
+    # For non-admin users, if they haven't Joined the Channel, Exit Immediately
+    if not is_admin:
+        if not is_user_in_channel(message):
+            return
+
+    # Check if a message is a command
+    if text.startswith('/'):
+        print(f"🔍 Message is a command, skipping processing in url_distractor")
         return
 
     # ----- Basic Commands -----
