@@ -12,7 +12,6 @@ from URL_PARSERS.normalizer import normalize_url_for_cache
 from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
 from URL_PARSERS.playlist_utils import is_playlist_with_range
 from COMMANDS.subtitles_cmd import check_subs_availability, is_subs_enabled, get_user_subs_auto_mode
-from COMMANDS.admin_cmd import reload_firebase_cache_command
 
 # Get app instance
 app = get_app_lazy()
@@ -103,8 +102,12 @@ def auto_reload_firebase_cache():
                 else Config.ADMIN
             )
             print(f"🔄 Triggering /reload_cache as admin (user_id={user_id})")
-            msg = fake_message("/reload_cache", user_id)
-            reload_firebase_cache_command(app, msg)
+            # Just reload the cache directly
+            success = reload_firebase_cache()
+            if success:
+                print("✅ Firebase cache reloaded successfully!")
+            else:
+                print("❌ Failed to reload Firebase cache")
         except Exception as e:
             print(f"❌ Error running auto reload_cache: {e}")
             import traceback; traceback.print_exc()
