@@ -50,6 +50,7 @@ import chardet
 ###########################################################
 # CONFIG
 from CONFIG.config import Config
+# from test_config import Config
 
 # HELPERS
 from HELPERS.app_instance import set_app
@@ -112,8 +113,12 @@ app = Client(
 set_app(app)
 
 # Apply all registered handlers
-from HELPERS.handler_registry import apply_all_handlers
+from HELPERS.handler_registry import apply_all_handlers, registry
+print(f"🔍 Количество зарегистрированных обработчиков: {len(registry.handlers)}")
+for i, (handler_type, filters, func) in enumerate(registry.handlers):
+    print(f"  {i+1}. {handler_type} - {func.__name__}")
 apply_all_handlers(app)
+print("✅ Все обработчики применены к приложению")
 
 ###########################################################
 #        BOT KEYBOARD
