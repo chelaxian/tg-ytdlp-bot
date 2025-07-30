@@ -68,47 +68,6 @@ from DATABASE.cache_db import *
 from DATABASE.download_firebase import *
 from DATABASE.firebase_init import *
 
-# URL_PARSERS
-from URL_PARSERS.embedder import *
-from URL_PARSERS.nocookie import *
-from URL_PARSERS.normalizer import *
-from URL_PARSERS.tags import *
-from URL_PARSERS.tiktok import *
-from URL_PARSERS.url_extractor import *
-from URL_PARSERS.video_extractor import *
-from URL_PARSERS.youtube import *
-
-# COMMANDS
-print("🔍 importing COMMANDS modules...")
-from COMMANDS.admin_cmd import *
-print("✅ admin_cmd imported")
-from COMMANDS.clean_cmd import *
-print("✅ clean_cmd imported")
-from COMMANDS.cookies_cmd import *
-print("✅ cookies_cmd imported")
-from COMMANDS.format_cmd import *
-print("✅ format_cmd imported")
-from COMMANDS.mediainfo_cmd import *
-print("✅ mediainfo_cmd imported")
-from COMMANDS.other_handlers import *
-print("✅ other_handlers imported")
-from COMMANDS.settings_cmd import *
-print("✅ settings_cmd imported")
-from COMMANDS.split_sizer import *
-print("✅ split_sizer imported")
-from COMMANDS.subtitles_cmd import *
-print("✅ subtitles_cmd imported")
-from COMMANDS.tag_cmd import *
-print("✅ tag_cmd imported")
-
-# DOWN_AND_UP
-from DOWN_AND_UP.always_ask_menu import *
-from DOWN_AND_UP.down_and_audio import *
-from DOWN_AND_UP.down_and_up import *
-from DOWN_AND_UP.ffmpeg import *
-from DOWN_AND_UP.sender import *
-from DOWN_AND_UP.yt_dlp_hook import *
-
 ###########################################################
 #        APP INITIALIZATION
 ###########################################################
@@ -123,13 +82,37 @@ app = Client(
 # Set global app instance
 set_app(app)
 
-# Apply all registered handlers
-from HELPERS.handler_registry import apply_all_handlers, registry
-print(f"🔍 Number of registered handlers: {len(registry.handlers)}")
-for i, (handler_type, filters, func) in enumerate(registry.handlers):
-    print(f"  {i+1}. {handler_type} - {func.__name__}")
-apply_all_handlers(app)
-print("✅ All handlers applied to the app")
+# COMMANDS
+from COMMANDS.admin_cmd import *
+from COMMANDS.clean_cmd import *
+from COMMANDS.cookies_cmd import *
+from COMMANDS.format_cmd import *
+from COMMANDS.mediainfo_cmd import *
+from COMMANDS.other_handlers import *
+from COMMANDS.settings_cmd import *
+from COMMANDS.split_sizer import *
+from COMMANDS.subtitles_cmd import *
+from COMMANDS.tag_cmd import *
+
+# URL_PARSERS
+from URL_PARSERS.embedder import *
+from URL_PARSERS.nocookie import *
+from URL_PARSERS.normalizer import *
+from URL_PARSERS.tags import *
+from URL_PARSERS.tiktok import *
+from URL_PARSERS.url_extractor import *
+from URL_PARSERS.video_extractor import *
+from URL_PARSERS.youtube import *
+
+# DOWN_AND_UP
+from DOWN_AND_UP.always_ask_menu import *
+from DOWN_AND_UP.down_and_audio import *
+from DOWN_AND_UP.down_and_up import *
+from DOWN_AND_UP.ffmpeg import *
+from DOWN_AND_UP.sender import *
+from DOWN_AND_UP.yt_dlp_hook import *
+
+print("✅ All modules are loaded")
 
 ###########################################################
 #        BOT KEYBOARD
