@@ -65,18 +65,8 @@ def send_reply_keyboard_always(user_id):
     except Exception as e:
         logger.warning(f"Failed to send persistent reply keyboard: {e}")
 
-def on_message(filters=None):
-    """Decorator factory for message handlers"""
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            app = get_app_lazy()
-            if app:
-                # Register the handler with the app
-                app.on_message(filters)(func)
-            return func
-        return wrapper
-    return decorator 
+# Удаляем конфликтующую функцию on_message из decorators.py
+# Она должна быть только в handler_registry.py 
 
 def reply_with_keyboard(func):
     """Wrapper for any custom action that adds reply keyboard"""
