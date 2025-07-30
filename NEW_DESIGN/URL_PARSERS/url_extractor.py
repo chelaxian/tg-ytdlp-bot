@@ -5,8 +5,8 @@
 from HELPERS.app_instance import get_app_lazy
 from HELPERS.handler_registry import on_message
 from HELPERS.decorators import reply_with_keyboard
-from HELPERS.limitter import is_user_in_channel
-from HELPERS.logger import send_to_all
+from HELPERS.limitter import is_user_in_channel, check_user
+from HELPERS.logger import send_to_all, send_to_logger
 from HELPERS.caption import caption_editor
 from HELPERS.filesystem_hlp import remove_media
 from COMMANDS.cookies_cmd import save_as_cookie_file, download_cookie, checking_cookie_file, cookies_from_browser
@@ -25,6 +25,8 @@ from URL_PARSERS.playlist_utils import is_playlist_with_range
 from pyrogram import filters
 from CONFIG.config import Config
 from HELPERS.logger import logger
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram import enums
 
 # Get app instance for decorators
 app = get_app_lazy()
@@ -32,15 +34,48 @@ app = get_app_lazy()
 @on_message(filters.text & filters.private)
 @reply_with_keyboard
 def url_distractor(app, message):
+    print(f"🔍 url_distractor called!")
+    print(f"🔍 Message type: {type(message)}")
+    print(f"🔍 Chat ID: {message.chat.id}")
+    print(f"🔍 User name: {message.chat.first_name}")
+    print(f"🔍 Message text: '{message.text}'")
+    
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     text = message.text.strip()
     
     print(f"🔍 url_distractor received message: '{text}' from user {user_id}")
+    print(f"🔍 User is an administrator: {is_admin}")
 
     # For non-admin users, if they haven't Joined the Channel, Exit ImmediaTely.
     if not is_admin and not is_user_in_channel(app, message):
         print(f"❌User {user_id} is not in the channel")
+        return
+
+    # ----- Basic Commands -----
+    # /Start Command
+    if text == "/start":
+        print(f"✅ Processing the START command: {text}")
+        if is_admin:
+            send_to_all(message, "Welcome Master 🥷")
+        else:
+            check_user(message)
+            app.send_message(
+                message.chat.id,
+                f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
+            send_to_logger(message, f"{message.chat.id} - user started the bot")
+        return
+
+    # /Help Command
+    if text == "/help":
+        print(f"✅ Processing the HELP command: {text}")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔚 Close", callback_data="help_msg|close")]
+        ])
+        app.send_message(message.chat.id, (Config.HELP_MSG),
+                         parse_mode=enums.ParseMode.HTML,
+                         reply_markup=keyboard)
+        send_to_logger(message, f"Send help txt to user")
         return
 
     # ----- User Commands -----
@@ -268,5 +303,5 @@ def url_distractor(app, message):
     logger.info(f"{user_id} No matching command processed.")
     clear_subs_check_cache()
 
-# Функция is_playlist_with_range теперь импортируется из URL_PARSERS.playlist_utils
-######################################################
+# The function is_playlist_with_range is now imported from URL_PARSERS.playlist_utils
+######################################################  
