@@ -2,7 +2,6 @@ import tldextract
 from urllib.parse import urlparse
 from CONFIG.config import Config
 from HELPERS.logger import logger
-from URL_PARSERS.tags import get_clean_url_for_tagging
 
 # --- global lists of domains and keywords ---
 PORN_DOMAINS = set()
@@ -84,7 +83,7 @@ def is_porn(url, title, description, caption=None):
     in title, description and caption. Domain whitelist has highest priority.
     """
     # 1. Checking the domain
-    clean_url = get_clean_url_for_tagging(url)
+    clean_url = url.lower() # Assuming get_clean_url_for_tagging is removed, so we just use the lowercased URL
     domain_parts, _ = extract_domain_parts(clean_url)
     for dom in Config.WHITELIST:
         if dom in domain_parts:
