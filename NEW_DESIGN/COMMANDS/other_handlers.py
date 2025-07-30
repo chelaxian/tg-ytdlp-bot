@@ -20,6 +20,7 @@ from CONFIG.config import Config
 app = get_app_lazy()
 
 @on_message(filters.command("start") & filters.private)
+# @reply_with_keyboard
 def command1(app, message):
     print(f"🔍 The /start handler is called for the user {message.chat.id}")
     print(f"🔍 Message text: '{message.text}'")
