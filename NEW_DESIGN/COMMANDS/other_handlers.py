@@ -1,154 +1,272 @@
-# #############################################################################################################################
+# ####################################################################################
 
+# Checking Actions
+# Text Message Handler for General Commands
 from HELPERS.app_instance import get_app_lazy
-from HELPERS.handler_registry import on_message, on_callback_query
-from HELPERS.decorators import reply_with_keyboard, send_reply_keyboard_always
-from HELPERS.logger import send_to_logger, send_to_user
-from HELPERS.limitter import is_user_in_channel, check_user
-from HELPERS.download_status import get_active_download
-from HELPERS.filesystem_hlp import create_directory
-from URL_PARSERS.tags import extract_url_range_tags
-from DOWN_AND_UP.down_and_audio import down_and_audio
-from HELPERS.limitter import check_playlist_range_limits
-from URL_PARSERS.tags import save_user_tags
-from pyrogram import filters, enums
+from HELPERS.handler_registry import on_message
+from HELPERS.decorators import reply_with_keyboard
+from HELPERS.limitter import is_user_in_channel
+from HELPERS.logger import send_to_all
+from HELPERS.caption import caption_editor
+from HELPERS.filesystem_hlp import remove_media
+from COMMANDS.cookies_cmd import save_as_cookie_file, download_cookie, checking_cookie_file, cookies_from_browser
+from COMMANDS.subtitles_cmd import subs_command, clear_subs_check_cache
+# Import the audio_command_handler function from COMMANDS.other_handlers
+from COMMANDS.other_handlers import audio_command_handler
+from COMMANDS.format_cmd import set_format
 import os
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from COMMANDS.mediainfo_cmd import mediainfo_command
+from COMMANDS.settings_cmd import settings_command
+from COMMANDS.admin_cmd import get_user_log, send_promo_message, block_user, unblock_user, check_runtime, get_user_details, uncache_command, reload_firebase_cache_command
+from DATABASE.cache_db import auto_cache_command
+from DATABASE.firebase_init import is_user_blocked
+from URL_PARSERS.video_extractor import video_url_extractor
+from URL_PARSERS.playlist_utils import is_playlist_with_range
+from pyrogram import filters
 from CONFIG.config import Config
+from HELPERS.logger import logger
 
 # Get app instance for decorators
 app = get_app_lazy()
 
-@on_message(filters.command("start") & filters.private)
-def command1(app, message):
-    print(f"🔍 The /start handler is called for the user {message.chat.id}")
-    if int(message.chat.id) in Config.ADMIN:
-        send_to_user(message, "Welcome Master 🥷")
-    else:
-        check_user(message)
-        app.send_message(
-            message.chat.id,
-            f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
-        send_to_logger(message, f"{message.chat.id} - user started the bot")
-    # Отправляем клавиатуру после обработки команды
-    send_reply_keyboard_always(message.chat.id)
-
-print("🔍Registering a command handler /start")
-
-
-@on_message(filters.command("help"))
-def command2(app, message):
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔚 Close", callback_data="help_msg|close")]
-    ])
-    app.send_message(message.chat.id, (Config.HELP_MSG),
-                     parse_mode=enums.ParseMode.HTML,
-                     reply_markup=keyboard)
-    send_to_logger(message, f"Send help txt to user")
-    # Отправляем клавиатуру после обработки команды
-    send_reply_keyboard_always(message.chat.id)
-
-@on_callback_query(filters.regex(r"^help_msg\|"))
-def help_msg_callback(app, callback_query):
-    data = callback_query.data.split("|")[1]
-    if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer("Help closed.")
-        send_to_logger(callback_query.message, "Help message closed.")
-        return
-
-
-#############################################################################################################################
-
-# Command to Download Audio from a Video url
-@on_message(filters.command("audio") & filters.private)
-# @reply_with_keyboard
-def audio_command_handler(app, message):
+@on_message(filters.text & filters.private)
+@reply_with_keyboard
+def url_distractor(app, message):
     user_id = message.chat.id
-    if get_active_download(user_id):
-        app.send_message(user_id, "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED", reply_to_message_id=message.id)
-        return
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
-        return
-    user_dir = os.path.join("users", str(user_id))
-    create_directory(user_dir)
-    text = message.text
-    url, _, _, _, tags, tags_text, tag_error = extract_url_range_tags(text)
-    if tag_error:
-        wrong, example = tag_error
-        app.send_message(user_id, f"❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}", reply_to_message_id=message.id)
-        return
-    if not url:
-        send_to_user(message, "Please, send valid URL.")
-        return
-    save_user_tags(user_id, tags)
+    is_admin = int(user_id) in Config.ADMIN
+    text = message.text.strip()
     
-    # Extract playlist parameters from the message
-    full_string = message.text or message.caption or ""
-    _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
-    video_count = video_end_with - video_start_with + 1
-    
-    # Checking the range limit
-    if not check_playlist_range_limits(url, video_start_with, video_end_with, app, message):
-        return
-    
-    down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
+    print(f"🔍 url_distractor received message: '{text}' from user {user_id}")
 
-
-# /Playlist Command
-@on_message(filters.command("playlist") & filters.private)
-# @reply_with_keyboard
-def playlist_command(app, message):
-    user_id = message.chat.id
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    # For non-admin users, if they haven't Joined the Channel, Exit ImmediaTely.
+    if not is_admin and not is_user_in_channel(app, message):
+        print(f"❌User {user_id} is not in the channel")
         return
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔚 Close", callback_data="playlist_help|close")]
-    ])
-    app.send_message(user_id, Config.PLAYLIST_HELP_MSG, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
-    send_to_logger(message, "User requested playlist help.")
-
-@on_callback_query(filters.regex(r"^playlist_help\|"))
-def playlist_help_callback(app, callback_query):
-    data = callback_query.data.split("|")[1]
-    if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer("Playlist help closed.")
-        send_to_logger(callback_query.message, "Playlist help closed.")
+    # ----- User Commands -----
+    # /Save_as_cookie Command
+    if text.startswith(Config.SAVE_AS_COOKIE_COMMAND):
+        print(f"✅ Processing the SAVE_AS_COOKIE command: {text}")
+        save_as_cookie_file(app, message)
         return
 
-
-@on_callback_query(filters.regex(r"^userlogs_close\|"))
-def userlogs_close_callback(app, callback_query):
-    data = callback_query.data.split("|")[1]
-    if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer("Logs message closed.")
-        send_to_logger(callback_query.message, "User logs message closed.")
+    # /Subs Command
+    if text.startswith(Config.SUBS_COMMAND):
+        print(f"✅ Processing the SUBS command: {text}")
+        subs_command(app, message)
         return
 
-@on_callback_query(filters.regex(r"^audio_hint\|"))
-def audio_hint_callback(app, callback_query):
-    data = callback_query.data.split("|")[1]
-    if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer("Audio hint closed.")
-        send_to_logger(callback_query.message, "Audio hint closed.")
+    # /Download_cookie Command
+    if text == Config.DOWNLOAD_COOKIE_COMMAND:
+        print(f"✅ Processing the DOWNLOAD_COOKIE command: {text}")
+        download_cookie(app, message)
         return
 
+    # /Check_cookie Command
+    if text == Config.CHECK_COOKIE_COMMAND:
+        print(f"✅ Processing the command CHECK_COOKIE: {text}")
+        checking_cookie_file(app, message)
+        return
 
+    # /cookies_from_browser Command
+    if text.startswith(Config.COOKIES_FROM_BROWSER_COMMAND):
+        print(f"✅ Processing the command COOKIES_FROM_BROWSER: {text}")
+        cookies_from_browser(app, message)
+        return
 
+    # /Audio Command
+    if text.startswith(Config.AUDIO_COMMAND):
+        print(f"✅ Processing the AUDIO command: {text}")
+        audio_command_handler(app, message)
+        return
 
+    # /Format Command
+    if text.startswith(Config.FORMAT_COMMAND):
+        print(f"✅ Processing the FORMAT command: {text}")
+        set_format(app, message)
+        return
+
+    # /Mediainfo Command
+    if text.startswith(Config.MEDIINFO_COMMAND):
+        print(f"✅ Processing the MEDIINFO command: {text}")
+        mediainfo_command(app, message)
+        return
+
+    # /Settings Command
+    if text.startswith(Config.SETTINGS_COMMAND):
+        print(f"✅ Processing the SETTINGS command: {text}")
+        settings_command(app, message)
+        return
+
+        # /Playlist Command
+    if text.startswith(Config.PLAYLIST_COMMAND):
+        print(f"✅ Processing the PLAYLIST command: {text}")
+        settings_command(app, message)
+        return
+
+        # /Clean Command
+    if text.startswith(Config.CLEAN_COMMAND):
+        print(f"✅ Processing the CLEAN command: {text}")
+        clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
+        if clean_args in ["cookie", "cookies"]:
+            remove_media(message, only=["cookie.txt"])
+            send_to_all(message, "🗑 Cookie file removed.")
+            return
+        elif clean_args in ["log", "logs"]:
+            remove_media(message, only=["logs.txt"])
+            send_to_all(message, "🗑 Logs file removed.")
+            return
+        elif clean_args in ["tag", "tags"]:
+            remove_media(message, only=["tags.txt"])
+            send_to_all(message, "🗑 Tags file removed.")
+            return
+        elif clean_args == "format":
+            remove_media(message, only=["format.txt"])
+            send_to_all(message, "🗑 Format file removed.")
+            return
+        elif clean_args == "split":
+            remove_media(message, only=["split.txt"])
+            send_to_all(message, "🗑 Split file removed.")
+            return
+        elif clean_args == "mediainfo":
+            remove_media(message, only=["mediainfo.txt"])
+            send_to_all(message, "🗑 Mediainfo file removed.")
+            return
+        elif clean_args == "subs":
+            remove_media(message, only=["subs.txt"])
+            send_to_all(message, "🗑 Subtitle settings removed.")
+            clear_subs_check_cache()
+            return
+        elif clean_args == "all":
+            # Delete all files and display the list of deleted ones
+            user_dir = f'./users/{str(message.chat.id)}'
+            if not os.path.exists(user_dir):
+                send_to_all(message, "🗑 No files to remove.")
+                clear_subs_check_cache()
+                return
+
+            removed_files = []
+            allfiles = os.listdir(user_dir)
+
+            # Delete all files in the user folder
+            for file in allfiles:
+                file_path = os.path.join(user_dir, file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        removed_files.append(file)
+                        logger.info(f"Removed file: {file_path}")
+                except Exception as e:
+                    logger.error(f"Failed to remove file {file_path}: {e}")
+
+            if removed_files:
+                files_list = "\n".join([f"• {file}" for file in removed_files])
+                send_to_all(message, f"🗑 All files removed successfully!\n\nRemoved files:\n{files_list}")
+            else:
+                send_to_all(message, "🗑 No files to remove.")
+            return
+        else:
+            # Regular command /clean - delete only media files with filtering
+            remove_media(message)
+            send_to_all(message, "🗑 All media files are removed.")
+            clear_subs_check_cache()
+            return
+
+    # /USAGE Command
+    if Config.USAGE_COMMAND in text:
+        get_user_log(app, message)
+        return
+
+    # /tags Command
+    if Config.TAGS_COMMAND in text:
+        tags_command(app, message)
+        return
+
+    # /Split Command
+    if text.startswith(Config.SPLIT_COMMAND):
+        split_command(app, message)
+        return
+
+    # /uncache Command - Clear cache for URL (for admins only)
+    if text.startswith(Config.UNCACHE_COMMAND):
+        if is_admin:
+            uncache_command(app, message)
+        else:
+            send_to_all(message, "❌ This command is only available for administrators.")
+        return
+
+    # If the Message Contains a URL, Launch The Video Download Function.
+    if ("https://" in text) or ("http://" in text):
+        print(f"✅ Processing the URL: {text}")
+        if not is_user_blocked(message):
+            # Clean the cache of subtitles before processing the new URL
+            clear_subs_check_cache()
+            video_url_extractor(app, message)
+        return
+
+    # ----- Admin Commands -----
+    if is_admin:
+        # If the message begins with /BroadCast, we process it as BroadCast, regardless
+        if text.startswith(Config.BROADCAST_MESSAGE):
+            send_promo_message(app, message)
+            return
+
+        # /Block_user Command
+        if Config.BLOCK_USER_COMMAND in text:
+            block_user(app, message)
+            return
+
+        # /unblock_user Command
+        if Config.UNBLOCK_USER_COMMAND in text:
+            unblock_user(app, message)
+            return
+
+        # /Run_Time Command
+        if Config.RUN_TIME in text:
+            check_runtime(message)
+            return
+
+        # /All Command for User Details
+        if Config.GET_USER_DETAILS_COMMAND in text:
+            get_user_details(app, message)
+            return
+
+        # /log Command for User Logs
+        if Config.GET_USER_LOGS_COMMAND in text:
+            get_user_log(app, message)
+            return
+
+        # /uncache Command - Clear cache for URL
+        if Config.UNCACHE_COMMAND in text:
+            uncache_command(app, message)
+            return
+
+        # /reload_cache Command - Reload cache for URL
+        if Config.RELOAD_CACHE_COMMAND in text:
+            reload_firebase_cache_command(app, message)
+            return
+
+        # /auto_cache Command - Toggle automatic cache reloading
+        if Config.AUTO_CACHE_COMMAND in text:
+            auto_cache_command(app, message)
+            return
+
+    # Reframed processing for all users (admins and ordinary users)
+    if message.reply_to_message:
+        # If the reference text begins with /broadcast, then:
+        if text.startswith(Config.BROADCAST_MESSAGE):
+            # Only for admins we call send_promo_message
+            if is_admin:
+                send_promo_message(app, message)
+        else:
+            # Otherwise, if the reform contains video, we call Caption_EDITOR
+            if not is_user_blocked(message):
+                if message.reply_to_message.video:
+                    caption_editor(app, message)
+        return
+
+    logger.info(f"{user_id} No matching command processed.")
+    clear_subs_check_cache()
+
+# Функция is_playlist_with_range теперь импортируется из URL_PARSERS.playlist_utils
+######################################################
