@@ -2,7 +2,7 @@
 
 from HELPERS.app_instance import get_app_lazy
 from HELPERS.handler_registry import on_message, on_callback_query
-from HELPERS.decorators import reply_with_keyboard
+from HELPERS.decorators import reply_with_keyboard, send_reply_keyboard_always
 from HELPERS.logger import send_to_logger, send_to_user
 from HELPERS.limitter import is_user_in_channel, check_user
 from HELPERS.download_status import get_active_download
@@ -20,8 +20,8 @@ from CONFIG.config import Config
 app = get_app_lazy()
 
 @on_message(filters.command("start") & filters.private)
-@reply_with_keyboard
 def command1(app, message):
+    print(f"🔍 The /start handler is called for the user {message.chat.id}")
     if int(message.chat.id) in Config.ADMIN:
         send_to_user(message, "Welcome Master 🥷")
     else:
@@ -30,10 +30,13 @@ def command1(app, message):
             message.chat.id,
             f"Hello {message.chat.first_name},\n \n__This bot🤖 can download any videos into telegram directly.😊 For more information press **/help**__ 👈\n \n {Config.CREDITS_MSG}")
         send_to_logger(message, f"{message.chat.id} - user started the bot")
+    # Отправляем клавиатуру после обработки команды
+    send_reply_keyboard_always(message.chat.id)
+
+print("🔍Registering a command handler /start")
 
 
 @on_message(filters.command("help"))
-@reply_with_keyboard
 def command2(app, message):
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔚 Close", callback_data="help_msg|close")]
@@ -42,6 +45,8 @@ def command2(app, message):
                      parse_mode=enums.ParseMode.HTML,
                      reply_markup=keyboard)
     send_to_logger(message, f"Send help txt to user")
+    # Отправляем клавиатуру после обработки команды
+    send_reply_keyboard_always(message.chat.id)
 
 @on_callback_query(filters.regex(r"^help_msg\|"))
 def help_msg_callback(app, callback_query):
