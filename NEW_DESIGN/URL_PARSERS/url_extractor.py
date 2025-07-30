@@ -11,7 +11,7 @@ from HELPERS.caption import caption_editor
 from HELPERS.filesystem_hlp import remove_media
 from COMMANDS.cookies_cmd import save_as_cookie_file, download_cookie, checking_cookie_file, cookies_from_browser
 from COMMANDS.subtitles_cmd import subs_command, clear_subs_check_cache
-# Импортируем функцию audio_command_handler из COMMANDS.other_handlers
+# Import the audio_command_handler function from COMMANDS.other_handlers
 from COMMANDS.other_handlers import audio_command_handler
 from COMMANDS.format_cmd import set_format
 import os
@@ -35,64 +35,78 @@ def url_distractor(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     text = message.text.strip()
+    
+    print(f"🔍 url_distractor received message: '{text}' from user {user_id}")
 
     # For non-admin users, if they haven't Joined the Channel, Exit ImmediaTely.
     if not is_admin and not is_user_in_channel(app, message):
+        print(f"❌User {user_id} is not in the channel")
         return
 
     # ----- User Commands -----
     # /Save_as_cookie Command
     if text.startswith(Config.SAVE_AS_COOKIE_COMMAND):
+        print(f"✅ Processing the SAVE_AS_COOKIE command: {text}")
         save_as_cookie_file(app, message)
         return
 
     # /Subs Command
     if text.startswith(Config.SUBS_COMMAND):
+        print(f"✅ Processing the SUBS command: {text}")
         subs_command(app, message)
         return
 
     # /Download_cookie Command
     if text == Config.DOWNLOAD_COOKIE_COMMAND:
+        print(f"✅ Processing the DOWNLOAD_COOKIE command: {text}")
         download_cookie(app, message)
         return
 
     # /Check_cookie Command
     if text == Config.CHECK_COOKIE_COMMAND:
+        print(f"✅ Processing the command CHECK_COOKIE: {text}")
         checking_cookie_file(app, message)
         return
 
     # /cookies_from_browser Command
     if text.startswith(Config.COOKIES_FROM_BROWSER_COMMAND):
+        print(f"✅ Processing the command COOKIES_FROM_BROWSER: {text}")
         cookies_from_browser(app, message)
         return
 
     # /Audio Command
     if text.startswith(Config.AUDIO_COMMAND):
+        print(f"✅ Processing the AUDIO command: {text}")
         audio_command_handler(app, message)
         return
 
     # /Format Command
     if text.startswith(Config.FORMAT_COMMAND):
+        print(f"✅ Processing the FORMAT command: {text}")
         set_format(app, message)
         return
 
     # /Mediainfo Command
     if text.startswith(Config.MEDIINFO_COMMAND):
+        print(f"✅ Processing the MEDIINFO command: {text}")
         mediainfo_command(app, message)
         return
 
     # /Settings Command
     if text.startswith(Config.SETTINGS_COMMAND):
+        print(f"✅ Processing the SETTINGS command: {text}")
         settings_command(app, message)
         return
 
         # /Playlist Command
     if text.startswith(Config.PLAYLIST_COMMAND):
+        print(f"✅ Processing the PLAYLIST command: {text}")
         settings_command(app, message)
         return
 
         # /Clean Command
     if text.startswith(Config.CLEAN_COMMAND):
+        print(f"✅ Processing the CLEAN command: {text}")
         clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
         if clean_args in ["cookie", "cookies"]:
             remove_media(message, only=["cookie.txt"])
@@ -183,6 +197,7 @@ def url_distractor(app, message):
 
     # If the Message Contains a URL, Launch The Video Download Function.
     if ("https://" in text) or ("http://" in text):
+        print(f"✅ Processing the URL: {text}")
         if not is_user_blocked(message):
             # Clean the cache of subtitles before processing the new URL
             clear_subs_check_cache()
