@@ -1,7 +1,16 @@
 from HELPERS.app_instance import get_app_lazy
 from HELPERS.handler_registry import on_message
+from HELPERS.logger import send_to_user, send_to_logger, send_to_all
 from pyrogram import filters
 from CONFIG.config import Config
+import subprocess
+import sys
+from DATABASE.cache_db import reload_firebase_cache, get_from_local_cache
+from DATABASE.firebase_init import db
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 # Get app instance for decorators
 app = get_app_lazy()
