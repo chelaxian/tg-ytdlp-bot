@@ -1,7 +1,14 @@
 # Add signal processing for correct termination
 import signal
+import os
+import sys
+import threading
+import logging
 
 from HELPERS.app_instance import get_app_lazy
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 # Get app instance for decorators
 app = get_app_lazy()
