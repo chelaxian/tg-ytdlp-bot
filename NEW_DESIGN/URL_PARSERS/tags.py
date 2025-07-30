@@ -1,3 +1,11 @@
+import re
+import logging
+from CONFIG.config import Config
+from URL_PARSERS.tiktok import is_tiktok_url, extract_tiktok_profile
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
 # --- New function for cleaning URL only for tags ---
 def get_clean_url_for_tagging(url: str) -> str:
     """
@@ -60,10 +68,11 @@ def generate_final_tags(url, user_tags, info_dict):
     video_title = info_dict.get("title") if info_dict else None
     video_description = info_dict.get("description") if info_dict else None
     video_caption = info_dict.get("caption") if info_dict else None
-    if is_porn(url, video_title, video_description, video_caption):
-        if '#porn' not in seen:
-            final_tags.append('#porn')
-            seen.add('#porn')
+    # Temporarily disable porn detection to avoid circular import
+    # if is_porn(url, video_title, video_description, video_caption):
+    #     if '#porn' not in seen:
+    #         final_tags.append('#porn')
+    #         seen.add('#porn')
     result = ' '.join(final_tags)
     # Check if info_dict is None before accessing it
     title = info_dict.get('title', 'N/A') if info_dict else 'N/A'
