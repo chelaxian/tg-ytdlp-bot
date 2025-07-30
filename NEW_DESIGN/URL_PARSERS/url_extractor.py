@@ -31,8 +31,15 @@ from pyrogram import enums
 # Get app instance for decorators
 app = get_app_lazy()
 
+# Test handler to check if registration works
+@on_message(filters.all)
+def test_handler(app, message):
+    print(f"🔍 TEST HANDLER called!")
+    print(f"🔍 Message: '{message.text}' from {message.chat.id}")
+    return
+
 @on_message(filters.text & filters.private)
-@reply_with_keyboard
+# @reply_with_keyboard
 def url_distractor(app, message):
     print(f"🔍 url_distractor called!")
     print(f"🔍 Message type: {type(message)}")
