@@ -1394,6 +1394,7 @@ class Messages(object):
     URL_PROGRESS_MSG = "<b>رابط:</b> {current} / {total}"
     MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ تم تجاوز حد الروابط: {count}/{limit}"
     MULTI_URL_COMPLETED_MSG = "اكتملت المعالجة"
+    MULTI_URL_RANGE_NOT_ALLOWED_MSG = "❌ نطاقات قوائم التشغيل غير مسموحة في وضع الروابط المتعددة. أرسل روابط فردية فقط بدون نطاقات (*1*5، /vid 1-10، إلخ)."
     
     # Error messages
     ERROR_CHECK_SUPPORTED_SITES_MSG = "تحقق <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>هنا</a> إذا كان موقعك مدعوماً"

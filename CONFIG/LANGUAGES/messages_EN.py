@@ -1416,6 +1416,7 @@ Use:
     URL_PROGRESS_MSG = "<b>URL:</b> {current} / {total}"
     MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL limit exceeded: {count}/{limit}"
     MULTI_URL_COMPLETED_MSG = "Processing completed"
+    MULTI_URL_RANGE_NOT_ALLOWED_MSG = "❌ Playlist ranges are not allowed in multiple URL mode. Send only single URLs without ranges (*1*5, /vid 1-10, etc.)."
     
     # Error messages
     ERROR_CHECK_SUPPORTED_SITES_MSG = "Check <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>here</a> if your site supported"

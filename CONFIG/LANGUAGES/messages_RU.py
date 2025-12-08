@@ -1416,6 +1416,7 @@ class Messages(object):
     URL_PROGRESS_MSG = "<b>Ссылка:</b> {current} / {total}"
     MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ Превышен лимит ссылок: {count}/{limit}"
     MULTI_URL_COMPLETED_MSG = "Обработка завершена"
+    MULTI_URL_RANGE_NOT_ALLOWED_MSG = "❌ Диапазоны плейлистов не разрешены при множественной загрузке. Отправьте только одиночные ссылки без диапазонов (*1*5, /vid 1-10 и т.д.)."
     
     # Error messages
     ERROR_CHECK_SUPPORTED_SITES_MSG = "Проверьте <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>здесь</a>, поддерживается ли ваш сайт"

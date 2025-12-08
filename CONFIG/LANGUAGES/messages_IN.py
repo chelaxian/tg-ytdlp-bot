@@ -1394,6 +1394,7 @@ class Messages(object):
     URL_PROGRESS_MSG = "<b>URL:</b> {current} / {total}"
     MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL सीमा पार हो गई: {count}/{limit}"
     MULTI_URL_COMPLETED_MSG = "प्रसंस्करण पूर्ण"
+    MULTI_URL_RANGE_NOT_ALLOWED_MSG = "❌ प्लेलिस्ट रेंज कई URL मोड में अनुमति नहीं है। बिना रेंज के केवल एकल URL भेजें (*1*5, /vid 1-10, आदि)।"
     
     # Error messages
     ERROR_CHECK_SUPPORTED_SITES_MSG = "यहां <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>जांचें</a> कि क्या आपकी साइट समर्थित है"

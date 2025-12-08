@@ -20,6 +20,36 @@ import re
 # Get app instance for decorators
 app = get_app()
 
+def has_range_syntax(text):
+    """
+    Check if text contains range syntax (playlist ranges, /vid commands with ranges).
+    Returns True if range syntax is detected, False otherwise.
+    """
+    if not isinstance(text, str):
+        return False
+    
+    # Check for playlist range syntax: URL*start*end (with optional negative numbers)
+    # Pattern matches: *1*5, *-1*-5, *1*9999, etc.
+    if re.search(r'\*\-?\d+\*\-?\d+', text):
+        return True
+    
+    # Check for /vid command with range: /vid start-end URL
+    # Pattern matches: /vid 1-10, /vid -1--5, /vid 1-, etc.
+    if re.search(r'/vid\s+\-?\d+\-\-?\d*', text):
+        return True
+    
+    # Check for /img command with range: /img start-end URL
+    # Pattern matches: /img 1-10, /img -1--5, /img 1-, etc.
+    if re.search(r'/img\s+\-?\d+\-\-?\d*', text):
+        return True
+    
+    # Check for URL with range pattern directly in URL: https://...*1*5
+    # This catches cases where range is part of the URL string
+    if re.search(r'https?://[^\s]*\*\-?\d+\*\-?\d+', text):
+        return True
+    
+    return False
+
 def extract_multiple_urls(text):
     """
     Extract multiple URLs from text.
@@ -98,7 +128,18 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
             # Extract URL, range, tags from the URL string
             # For multiple URLs, we treat each URL as a separate message
             url_text = url
+            
+            # Additional safety check: verify no range syntax in individual URL
+            if has_range_syntax(url_text):
+                logger.warning(f"Range syntax detected in URL during queue processing: {url_text}")
+                continue
+            
             url_parsed, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(url_text)
+            
+            # Verify that extracted range is default (1, 1) - no actual range
+            if video_start_with != 1 or video_end_with != 1:
+                logger.warning(f"Range detected in URL during queue processing: start={video_start_with}, end={video_end_with}, URL={url_text}")
+                continue
             
             if tag_error:
                 if isinstance(tag_error, tuple) and len(tag_error) == 2:
@@ -271,8 +312,27 @@ def video_url_extractor(app, message):
     # Extract multiple URLs if in non-Always Ask mode
     all_urls = extract_multiple_urls(full_string)
     
-    # If multiple URLs found, process them in queue
+    # If multiple URLs found, check for range syntax and process them in queue
     if len(all_urls) > 1:
+        # Check if the message contains range syntax - this is not allowed for multiple URLs
+        if has_range_syntax(full_string):
+            error_msg = safe_get_messages(user_id).MULTI_URL_RANGE_NOT_ALLOWED_MSG if hasattr(safe_get_messages(user_id), 'MULTI_URL_RANGE_NOT_ALLOWED_MSG') else "❌ Диапазоны плейлистов не разрешены при множественной загрузке. Отправьте только одиночные ссылки без диапазонов."
+            app.send_message(user_id, error_msg, reply_parameters=ReplyParameters(message_id=message.id))
+            logger.warning(f"User {user_id} attempted to use range syntax with multiple URLs")
+            return
+        
+        # Check each URL individually for range syntax
+        invalid_urls = []
+        for url in all_urls:
+            if has_range_syntax(url):
+                invalid_urls.append(url)
+        
+        if invalid_urls:
+            error_msg = safe_get_messages(user_id).MULTI_URL_RANGE_NOT_ALLOWED_MSG if hasattr(safe_get_messages(user_id), 'MULTI_URL_RANGE_NOT_ALLOWED_MSG') else "❌ Диапазоны плейлистов не разрешены при множественной загрузке. Отправьте только одиночные ссылки без диапазонов."
+            app.send_message(user_id, error_msg, reply_parameters=ReplyParameters(message_id=message.id))
+            logger.warning(f"User {user_id} attempted to use range syntax in URLs: {invalid_urls}")
+            return
+        
         logger.info(f"🔍 [DEBUG] video_extractor: Found {len(all_urls)} URLs, processing in queue mode")
         process_multiple_urls_queue(app, message, all_urls, saved_format, is_admin, is_group)
         return
