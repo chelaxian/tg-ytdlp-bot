@@ -47,9 +47,19 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 2. **Choose quality** from the interactive menu
 3. **Download** your video with custom settings
 
+**Single URL:**
 ```
 https://youtube.com/watch?v=dQw4w9WgXcQ
 ```
+
+**Multiple URLs (in quality selection mode):**
+When you have set a quality format (via `/format` command), you can send up to **10 URLs** in one message (20 in groups). Each URL on a new line or separated by spaces:
+```
+https://youtube.com/watch?v=video1
+https://youtube.com/watch?v=video2
+https://youtube.com/watch?v=video3
+```
+The bot will process them in queue with progress status updates.
 
 ## 📋 Table of Contents
 
@@ -563,6 +573,7 @@ Also you may fill in `porn_domains.txt` `porn_keywords.txt` files in `TXT` folde
 `CONFIG/limits.py` is the single place where all runtime limits for the bot are configured. Before deploying, review this file and tune values for your hardware and hosting:
 
 - **Downloads & subtitles:** `MAX_FILE_SIZE_GB`, `MAX_VIDEO_DURATION`, and `MAX_SUB_*` prevent extremely large videos/subtitles from entering the queue. In groups, `GROUP_MULTIPLIER` is applied automatically.
+- **Multiple URLs:** `MAX_MULTI_URL_LIMIT` (default: 10) controls how many URLs can be sent in one message when quality format is set. In groups, this is multiplied by `GROUP_MULTIPLIER` (default: 20). Admins have no limit.
 - **Images & live streams:** `MAX_IMG_*`, `ENABLE_LIVE_STREAM_BLOCKING`, and `MAX_LIVE_STREAM_DURATION` protect you from endless album/live-stream downloads. On slow connections, increase `MAX_IMG_TOTAL_WAIT_TIME`.
 - **Cookie cache:** `COOKIE_CACHE_DURATION`, `COOKIE_CACHE_MAX_LIFETIME`, and `YOUTUBE_COOKIE_RETRY_LIMIT_PER_HOUR` control how aggressively YouTube cookies are reused and how many retry attempts a single user gets per hour.
 - **Rate limits:** `RATE_LIMIT_PER_MINUTE|HOUR|DAY` and the corresponding `RATE_LIMIT_COOLDOWN_*` values implement anti‑spam. When a user exceeds limits, they are put on cooldown for 5/60/1440 minutes.
@@ -591,6 +602,7 @@ After changing this file, restart the bot so new limits are applied. If you run 
 | Command | Description | Example |
 |---------|-------------|---------|
 | **Video URL** | Download video (auto-detect) | `https://youtube.com/watch?v=...` |
+| **Multiple URLs** | Download multiple videos in queue (quality mode only) | Send up to 10 URLs (20 in groups) in one message |
 | `/vid` | Download video | `/vid https://youtube.com/watch?v=...` |
 | `/audio` | Download audio only | `/audio https://youtube.com/watch?v=...` |
 | `/link` | Get direct video links | `/link 720 https://youtube.com/watch?v=...` |
@@ -731,6 +743,28 @@ CONFIG/LANGUAGES/
 ---
 
 ## 🎯 Advanced Features
+
+### 📦 Multiple URLs Support
+
+Download multiple videos in one message when quality format is set:
+
+- **Quality Mode Required**: Works only when you've set a quality format via `/format` command (not in "Always Ask" mode)
+- **Queue Processing**: URLs are processed sequentially with real-time progress updates
+- **Limits**: 
+  - Private chats: up to **10 URLs** per message
+  - Groups: up to **20 URLs** per message (2x multiplier)
+  - Admins: unlimited URLs
+- **Format**: Each URL on a new line or separated by spaces
+- **Status Display**: Shows progress like playlist downloads: "URL: X / Y"
+
+**Example:**
+```
+https://youtube.com/watch?v=video1
+https://youtube.com/watch?v=video2
+https://youtube.com/watch?v=video3
+```
+
+**Note:** In "Always Ask" mode, only the first URL is processed.
 
 ### 🎬 Always Ask Menu
 
