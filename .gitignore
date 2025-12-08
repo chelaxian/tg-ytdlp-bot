@@ -127,3 +127,4 @@ TXT/porn_keywords.txt.backup
 CONFIG/.dashboard_sessions.json
 CONFIG/.active_sessions.json
 env
+delete_redacted.sh
