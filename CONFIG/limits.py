@@ -90,5 +90,11 @@ class LimitsConfig(object):
     # Group multipliers (applied in groups/channels) - except quality
     GROUP_MULTIPLIER = 2
     #######################################################
+    # Multiple URLs in one message limits (for non-Always Ask mode)
+    # Maximum number of URLs per message for regular users
+    MAX_MULTI_URL_LIMIT = 10
+    # For groups, the limit is MAX_MULTI_URL_LIMIT * GROUP_MULTIPLIER (20)
+    # Admins have no limit (0 means unlimited)
+    #######################################################
     NSFW_STAR_COST = 1
     

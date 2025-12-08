@@ -88,6 +88,7 @@ Use <code>/img URL</code> to download images/photos/albums from many platforms.
 📥 <b>Basic Usage:</b>
 • Send any link → bot downloads it
   <i>the bot automatically tries to download videos via yt-dlp and images via gallery-dl.</i>
+• <b>Multiple URLs:</b> In quality selection mode (<code>/format</code>) you can send up to <b>10 URLs</b> in one message. Each URL on a new line or separated by spaces.
 • <code>/audio URL</code> → extract audio
 • <code>/link [quality] URL</code> → get direct links
 • <code>/proxy</code> → enable/disable proxy for all downloads
@@ -216,15 +217,18 @@ Press the button below to activate inline search via @vid.
 
 Add my bots to your groups to get enhanced features and higher limits!
 ————————————
-📊 <b>Current FREE Limits (in Bot’s DM):</b>
+📊 <b>Current FREE Limits (in Bot's DM):</b>
 <blockquote>•🗑 Messy junk from all the files unsorted 👎
 • Max 1 file size: <b>8 GB </b>
 • Max 1 file quality: <b>UNLIM</b>
 • Max 1 file duration: <b>UNLIM</b>
 • Max number of downloads: <b>UNLIM</b>
+• Max URLs in one message: <b>10</b> (only in quality selection mode)
 • Max playlist items per 1 time: <b>50</b>
 • Max TikTok videos per 1 time: <b>500</b>
 • Max images per 1 time: <b>1000</b>
+• URL rate limits: <b>5/min, 60/hour, 1000/day</b>
+• Command limit: <b>20/min</b>
 • 1 Download max time: <b>2 hours</b>
 • 🔞 NSFW content is paid! 1⭐️ = $0.02
 • 🆓 ALL OTHER MEDIA ARE TOTALY FREE
@@ -241,9 +245,12 @@ Add my bots to your groups to get enhanced features and higher limits!
 •  📌 Auto pin status message with download progress
 •  🖼 /img command downloads media as 10-item albums
 • Max 1 file size: <b>16 GB</b> ⬆️
+• Max URLs in one message: <b>20</b> ⬆️ (only in quality selection mode)
 • Max playlist items per 1 time: <b>100</b> ⬆️
 • Max TikTok videos per 1 time: 1000 ⬆️
 • Max images per 1 time: 2000 ⬆️
+• URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
+• Command limit: <b>40/min</b> ⬆️
 • 1 Download max time: <b>4 hours</b> ⬆️
 • 🔞 NSFW content: Free with full metadata 🆓
 • 📢 No need to subscribe to my channel for groups
@@ -1406,6 +1413,9 @@ Use:
     NO_SUBTITLES_DETECTED_MSG = "No subtitles detected"
     VIDEO_PROGRESS_MSG = "<b>Video:</b> {current} / {total}"
     AUDIO_PROGRESS_MSG = "<b>Audio:</b> {current} / {total}"
+    URL_PROGRESS_MSG = "<b>URL:</b> {current} / {total}"
+    MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL limit exceeded: {count}/{limit}"
+    MULTI_URL_COMPLETED_MSG = "Processing completed"
     
     # Error messages
     ERROR_CHECK_SUPPORTED_SITES_MSG = "Check <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>here</a> if your site supported"
