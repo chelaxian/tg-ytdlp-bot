@@ -190,6 +190,19 @@ async def api_playlist_users(limit: int = 10):
     return stats_service.fetch_top_playlist_users(limit)
 
 
+@app.get("/api/top-multi-url-users")
+async def api_multi_url_users(
+    period: str = Query(default="today", regex="^(today|week|month|all)$"),
+    limit: int = 10,
+):
+    return stats_service.fetch_top_multi_url_users(period=period, limit=limit)
+
+
+@app.get("/api/format-users")
+async def api_format_users(limit: int = 20):
+    return stats_service.fetch_format_users(limit=limit)
+
+
 @app.get("/api/power-users")
 async def api_power_users(min_urls: int = 10, days: int = 7, limit: int = 10):
     return stats_service.fetch_power_users(min_urls=min_urls, days=days, limit=limit)

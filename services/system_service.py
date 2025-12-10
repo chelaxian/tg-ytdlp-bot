@@ -6,6 +6,7 @@ import subprocess
 import re
 import requests
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
@@ -260,37 +261,43 @@ def get_package_versions() -> Dict[str, str]:
 
 def rotate_ip() -> Dict[str, Any]:
     """Ротирует IP адрес через перезапуск WireGuard и возвращает новые IP."""
+    if not shutil.which("systemctl"):
+        return {"status": "error", "message": "systemctl is not available (likely running inside Docker)"}
     try:
+        cmd = ["systemctl", "restart", "wg-quick@wgcf"]
+        if shutil.which("sudo"):
+            cmd.insert(0, "sudo")
         result = subprocess.run(
-            ["sudo", "systemctl", "restart", "wg-quick@wgcf"],
+            cmd,
             capture_output=True,
             text=True,
             timeout=30,
             check=False,
         )
         if result.returncode == 0:
-            # Ждем немного для применения нового IP
-            import time
             time.sleep(2)
-            # Получаем новые IP адреса
             new_ips = get_external_ip()
             return {
                 "status": "ok",
                 "message": "IP rotated successfully",
                 "ipv4": new_ips.get("ipv4", "unknown"),
-                "ipv6": new_ips.get("ipv6", "unknown")
+                "ipv6": new_ips.get("ipv6", "unknown"),
             }
-        else:
-            return {"status": "error", "message": result.stderr or "Failed to rotate IP"}
+        return {"status": "error", "message": result.stderr or "Failed to rotate IP"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
 
 def restart_service() -> Dict[str, Any]:
     """Перезапускает сервис tg-ytdlp-bot."""
+    if not shutil.which("systemctl"):
+        return {"status": "error", "message": "systemctl is not available (likely running inside Docker)"}
     try:
+        cmd = ["systemctl", "restart", "tg-ytdlp-bot"]
+        if shutil.which("sudo"):
+            cmd.insert(0, "sudo")
         result = subprocess.run(
-            ["sudo", "systemctl", "restart", "tg-ytdlp-bot"],
+            cmd,
             capture_output=True,
             text=True,
             timeout=30,
@@ -298,8 +305,7 @@ def restart_service() -> Dict[str, Any]:
         )
         if result.returncode == 0:
             return {"status": "ok", "message": "Service restarted successfully"}
-        else:
-            return {"status": "error", "message": result.stderr or "Failed to restart service"}
+        return {"status": "error", "message": result.stderr or "Failed to restart service"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -307,9 +313,10 @@ def restart_service() -> Dict[str, Any]:
 def update_engines() -> Dict[str, Any]:
     """Обновляет движки через engines_updater.sh."""
     try:
+        base_dir = Path(__file__).resolve().parent.parent
         commands = [
-            ("yt-dlp/gdl", ["bash", "/root/Telegram/tg-ytdlp-bot/engines_updater.sh"]),
-            ("bgutil-provider", ["bash", "/root/Telegram/tg-ytdlp-bot/update_bgutil_provider.sh"]),
+            ("yt-dlp/gdl", ["bash", str(base_dir / "engines_updater.sh")]),
+            ("bgutil-provider", ["bash", str(base_dir / "update_bgutil_provider.sh")]),
         ]
         outputs = []
         for label, command in commands:
@@ -334,11 +341,15 @@ def update_engines() -> Dict[str, Any]:
 def cleanup_user_files() -> Dict[str, Any]:
     """Удаляет файлы из папок пользователей (кроме системных)."""
     try:
-        users_dir = "/root/Telegram/tg-ytdlp-bot/users"
+        base_dir = Path(__file__).resolve().parent.parent
+        users_dir = getattr(Config, "USERS_DIR", "users")
+        users_path = Path(users_dir)
+        if not users_path.is_absolute():
+            users_path = base_dir / users_path
         result = subprocess.run(
             [
                 "/usr/bin/find",
-                users_dir,
+                str(users_path),
                 "-type", "f",
                 "!", "-name", "lang.txt",
                 "!", "-name", "args.txt",

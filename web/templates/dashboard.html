@@ -46,7 +46,7 @@
     </nav>
 
     <section class="tab-panel active" data-tab-panel="activity">
-        <div class="grid">
+        <div class="grid" data-grid-layout="cards">
             <article class="card">
                 <header class="card__header-row">
                     <div>
@@ -106,11 +106,23 @@
                 <div id="suspicious-users-list" class="list" data-expand-limit="10"></div>
                 <button class="ghost" data-expand-button="suspicious-users-list">Show all</button>
             </article>
+
+            <article class="card">
+                <header class="card__header-row">
+                    <div>
+                        <h3 data-i18n="cards.format_users.title">Format command users</h3>
+                        <p data-i18n="cards.format_users.subtitle">Users with saved /format (not ALWAYS_ASK).</p>
+                    </div>
+                </header>
+                <input type="text" class="search-input" data-search-target="format-users-list" placeholder="Search...">
+                <div id="format-users-list" class="list" data-expand-limit="10"></div>
+                <button class="ghost" data-expand-button="format-users-list">Show all</button>
+            </article>
         </div>
     </section>
 
     <section class="tab-panel" data-tab-panel="users">
-        <div class="grid">
+        <div class="grid" data-grid-layout="cards">
             <article class="card" style="grid-column: 1 / -1;">
                 <header class="card__header-row">
                     <div>
@@ -161,6 +173,24 @@
             </article>
 
             <article class="card">
+                <header class="card__header-row">
+                    <div>
+                        <h3 data-i18n="cards.multi_url.title">Multi-URL users</h3>
+                        <p data-i18n="cards.multi_url.subtitle">Send multiple URLs in one message.</p>
+                    </div>
+                    <select id="multi-url-period" class="period-select">
+                        <option value="today" data-i18n="filters.today">Today</option>
+                        <option value="week" data-i18n="filters.week">Week</option>
+                        <option value="month" data-i18n="filters.month">Month</option>
+                        <option value="all" selected data-i18n="filters.all">All time</option>
+                    </select>
+                </header>
+                <input type="text" class="search-input" data-search-target="multi-url-users-list" placeholder="Search...">
+                <div id="multi-url-users-list" class="list" data-expand-limit="10"></div>
+                <button class="ghost" data-expand-button="multi-url-users-list">Show all</button>
+            </article>
+
+            <article class="card">
                 <header>
                     <h3 data-i18n="cards.power.title">Power users</h3>
                     <p data-i18n="cards.power.subtitle">Users who send many URLs consistently.</p>
@@ -179,7 +209,7 @@
     </section>
 
     <section class="tab-panel" data-tab-panel="content">
-        <div class="grid">
+        <div class="grid" data-grid-layout="cards">
             <article class="card">
                 <header class="card__header-row">
                     <div>
@@ -209,7 +239,7 @@
     </section>
 
     <section class="tab-panel" data-tab-panel="moderation">
-        <div class="grid">
+        <div class="grid" data-grid-layout="cards">
             <article class="card">
                 <header>
                     <h3 data-i18n="cards.blocked.title">Banned users</h3>
@@ -231,7 +261,7 @@
     </section>
 
     <section class="tab-panel" data-tab-panel="history">
-        <div class="grid">
+        <div class="grid" data-grid-layout="cards">
             <article class="card" style="grid-column: 1 / -1;">
                 <header class="card__header-row">
                     <div>
@@ -258,7 +288,7 @@
     </section>
 
     <section class="tab-panel" data-tab-panel="system">
-        <div class="grid">
+        <div class="grid" data-grid-layout="cards">
             <article class="card">
                 <header>
                     <h3 data-i18n="system.metrics">System Metrics</h3>
@@ -281,7 +311,7 @@
     </section>
 
     <section class="tab-panel" data-tab-panel="lists">
-        <div class="grid">
+        <div class="grid" data-grid-layout="cards">
             <article class="card">
                 <header>
                     <h3 data-i18n="lists.stats">File Statistics</h3>

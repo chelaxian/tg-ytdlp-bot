@@ -16,6 +16,7 @@ import os
 from pyrogram.types import ReplyParameters
 import hashlib
 import re
+import time
 
 # Get app instance for decorators
 app = get_app()
@@ -332,6 +333,23 @@ def video_url_extractor(app, message):
             app.send_message(user_id, error_msg, reply_parameters=ReplyParameters(message_id=message.id))
             logger.warning(f"User {user_id} attempted to use range syntax in URLs: {invalid_urls}")
             return
+        
+        # Log multi-url request to LOGS_ID channel
+        try:
+            user_name = getattr(message.from_user, "username", None) or getattr(message.chat, "first_name", "") or ""
+            format_used = saved_format if saved_format else "ALWAYS_ASK"
+            urls_text = ", ".join(all_urls)
+            log_text = f"[MULTI_URL] User: {user_name} ({user_id}) | format: {format_used} | urls: {urls_text}"
+            send_to_logger(message, log_text)
+        except Exception as log_e:
+            logger.error(f"Failed to log multi-url request: {log_e}")
+
+        # Фиксируем событие для дашборда (multi-url)
+        try:
+            from services.stats_collector import get_stats_collector
+            get_stats_collector()._register_multi_event(user_id=user_id, urls_count=len(all_urls), timestamp=int(time.time()))
+        except Exception as stats_err:
+            logger.debug(f"[stats] failed to record multi-url event: {stats_err}")
         
         logger.info(f"🔍 [DEBUG] video_extractor: Found {len(all_urls)} URLs, processing in queue mode")
         process_multiple_urls_queue(app, message, all_urls, saved_format, is_admin, is_group)

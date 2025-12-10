@@ -147,6 +147,24 @@ def _guess_age_from_text(text: Optional[str]) -> Optional[int]:
     return numbers[0] if numbers else None
 
 
+def _window_bounds(period: str) -> Tuple[int, Optional[int]]:
+    """
+    Возвращает (window_start_ts, window_end_ts|None) для периода.
+    all -> (0, None)
+    """
+    delta_map = {
+        "today": timedelta(days=1),
+        "week": timedelta(days=7),
+        "month": timedelta(days=30),
+        "all": None,
+    }
+    window_delta = delta_map.get(period)
+    if window_delta is None:
+        return 0, None
+    now = datetime.now(tz=timezone.utc)
+    return int((now - window_delta).timestamp()), int(now.timestamp())
+
+
 # --------------------------------------------------------------------------------------
 # Датаклассы
 # --------------------------------------------------------------------------------------
@@ -208,6 +226,7 @@ class DownloadRecord:
     domain: str
     is_nsfw: bool
     is_playlist: bool
+    multi_total: int = 1  # сколько URL было в исходном сообщении
 
 
 @dataclass
@@ -334,6 +353,8 @@ class StatsCollector:
         self._profiles: Dict[int, ProfileInfo] = {}
         self._blocked_users: Dict[int, BlockRecord] = {}
         self._channel_events: Deque[ChannelActivity] = deque(maxlen=500)
+        # multi-url события: список кортежей (user_id, urls_count, timestamp)
+        self._multi_url_events: List[Tuple[int, int, int]] = []
         # timestamp первой зафиксированной активности пользователя
         self._first_seen: Dict[int, int] = {}
         self._latest_dump_ts: int = 0
@@ -373,6 +394,13 @@ class StatsCollector:
             except Exception as exc:
                 logger.error(f"[stats] dump reload failed: {exc}")
 
+    def _register_multi_event(self, user_id: int, urls_count: int, timestamp: int) -> None:
+        """Запоминает факт множественной отправки URL в одном сообщении."""
+        if not user_id or urls_count <= 1:
+            return
+        with self._lock:
+            self._multi_url_events.append((user_id, urls_count, timestamp or int(time.time())))
+
     def reload_from_dump(self) -> None:
         if not os.path.exists(self.dump_path):
             return
@@ -391,6 +419,11 @@ class StatsCollector:
         blocked_users: Dict[int, BlockRecord] = {}
         channel_events: List[ChannelActivity] = []
         latest_ts = 0
+
+        # Сбрасываем multi-url события, но сохраним live-события, которые новее latest_ts
+        with self._lock:
+            prev_multi_events = list(self._multi_url_events)
+            self._multi_url_events = []
 
         logs = bot_root.get("logs")
         if isinstance(logs, dict):
@@ -455,6 +488,9 @@ class StatsCollector:
             self._blocked_users = blocked_users
             self._latest_dump_ts = latest_ts
             self._channel_events = deque(channel_events[-500:], maxlen=500)
+            # Добавляем live multi-url события, которые произошли после дампа
+            recent_live_multi = [ev for ev in prev_multi_events if ev[2] > self._latest_dump_ts]
+            self._multi_url_events.extend(recent_live_multi)
             self._last_reload_ts = time.time()
             # Сбрасываем live-записи, которые уже попали в дамп
             self._live_downloads = deque(
@@ -477,8 +513,19 @@ class StatsCollector:
         if not isinstance(payload, dict):
             return None
         user_id = _safe_int(user_id_str)
-        timestamp = _safe_int(ts_str or payload.get("timestamp"))
-        url = str(payload.get("urls") or payload.get("url") or "")
+        timestamp = _safe_int(ts_str or payload.get("timestamp")) or int(time.time())
+        urls_field = payload.get("urls") or payload.get("url")
+        multi_total = 1
+        url = ""
+        if isinstance(urls_field, list):
+            urls_list = [str(u) for u in urls_field if u]
+            if urls_list:
+                url = urls_list[0]
+            multi_total = max(1, len(urls_list))
+            if multi_total > 1:
+                self._register_multi_event(user_id, multi_total, timestamp)
+        else:
+            url = str(urls_field or "")
         title = str(payload.get("title") or "")
         if not user_id or not url:
             return None
@@ -491,6 +538,7 @@ class StatsCollector:
             domain=domain,
             is_nsfw=_is_nsfw(url, title),
             is_playlist=_is_playlist(url, title),
+            multi_total=multi_total,
         )
 
     def _get_all_downloads(self) -> List[DownloadRecord]:
@@ -1031,6 +1079,89 @@ class StatsCollector:
 
     def get_top_playlist_users(self, limit: int = 10) -> List[Dict[str, Any]]:
         return self._filter_downloads_by_flag(lambda rec: rec.is_playlist, limit=limit)
+
+    def get_top_multi_url_users(self, period: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Пользователи, которые чаще всего отправляют несколько URL в одном сообщении."""
+        window_start, window_end = _window_bounds(period)
+        with self._lock:
+            blocked_user_ids = set(self._blocked_users.keys())
+            events = list(self._multi_url_events)
+
+        filtered = []
+        for user_id, urls_count, ts in events:
+            if user_id in blocked_user_ids:
+                continue
+            if window_end is not None and ts < window_start:
+                continue
+            filtered.append((user_id, urls_count, ts))
+
+        # агрегируем по пользователям
+        per_user: Dict[int, Dict[str, Any]] = defaultdict(lambda: {"messages": 0, "total_urls": 0, "last_ts": 0})
+        for user_id, urls_count, ts in filtered:
+            agg = per_user[user_id]
+            agg["messages"] += 1
+            agg["total_urls"] += urls_count
+            agg["last_ts"] = max(agg["last_ts"], ts)
+
+        ranked = sorted(
+            per_user.items(),
+            key=lambda item: (-(item[1]["total_urls"]), -(item[1]["messages"]), -(item[1]["last_ts"])),
+        )
+
+        user_ids = [uid for uid, _ in ranked[:limit]]
+        fetched_profiles = self._profile_fetcher.batch_fetch_profiles(user_ids)
+        result = []
+        for user_id, stats in ranked[:limit]:
+            profile = fetched_profiles.get(user_id) or self._get_profile(user_id)
+            result.append(
+                {
+                    **profile.to_public_dict(),
+                    "messages": stats["messages"],
+                    "total_urls": stats["total_urls"],
+                    "last_event_ts": stats["last_ts"],
+                    "avg_urls": round(stats["total_urls"] / stats["messages"], 2) if stats["messages"] else stats["total_urls"],
+                }
+            )
+        return result
+
+    def get_format_users(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Пользователи с выбранным форматом (format.txt != ALWAYS_ASK).
+        Сортируем по времени изменения файла (свежее выше).
+        """
+        users_dir = Path(getattr(Config, "USERS_DIR", "users"))
+        if not users_dir.is_absolute():
+            users_dir = BASE_DIR / users_dir
+        if not users_dir.exists():
+            return []
+
+        entries: List[Tuple[int, float, str]] = []
+        for format_file in users_dir.glob("*/format.txt"):
+            try:
+                user_id = int(format_file.parent.name)
+            except Exception:
+                continue
+            try:
+                content = format_file.read_text(encoding="utf-8").strip()
+            except Exception:
+                continue
+            if not content or content.upper() == "ALWAYS_ASK":
+                continue
+            mtime = format_file.stat().st_mtime
+            entries.append((user_id, mtime, content))
+
+        entries.sort(key=lambda item: item[1], reverse=True)
+        result = []
+        for user_id, mtime, fmt in entries[:limit]:
+            profile = self._get_profile(user_id)
+            result.append(
+                {
+                    **profile.to_public_dict(),
+                    "format": fmt,
+                    "updated_ts": int(mtime),
+                }
+            )
+        return result
 
     def get_power_users(self, min_urls: int = 10, days: int = 7, limit: int = 10) -> List[Dict[str, Any]]:
         """Пользователи, которые N дней подряд отправляли >M ссылок."""

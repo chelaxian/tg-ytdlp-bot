@@ -58,6 +58,14 @@ def fetch_power_users(min_urls: int = 10, days: int = 7, limit: int = 10) -> Lis
     return get_stats_collector().get_power_users(min_urls=min_urls, days=days, limit=limit)
 
 
+def fetch_top_multi_url_users(period: str, limit: int = 10) -> List[Dict[str, Any]]:
+    return get_stats_collector().get_top_multi_url_users(period, limit)
+
+
+def fetch_format_users(limit: int = 20) -> List[Dict[str, Any]]:
+    return get_stats_collector().get_format_users(limit)
+
+
 def fetch_blocked_users(limit: int = 50) -> List[Dict[str, Any]]:
     return get_stats_collector().get_blocked_users(limit)
 

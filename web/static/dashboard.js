@@ -40,6 +40,10 @@
             "cards.domains.subtitle": "Where links come from.",
             "cards.nsfw_domains.title": "NSFW sites",
             "cards.nsfw_domains.subtitle": "Most requested NSFW domains.",
+            "cards.multi_url.title": "Multi-URL users",
+            "cards.multi_url.subtitle": "Send multiple URLs in one message (quality mode).",
+            "cards.format_users.title": "Format command users",
+            "cards.format_users.subtitle": "Users with saved /format (not ALWAYS_ASK).",
             "cards.blocked.title": "Banned users",
             "cards.blocked.subtitle": "Use ✅ to unblock.",
             "filters.today": "Today",
@@ -147,6 +151,10 @@
             "cards.domains.subtitle": "Источники ссылок.",
             "cards.nsfw_domains.title": "NSFW сайты",
             "cards.nsfw_domains.subtitle": "Самые популярные NSFW домены.",
+            "cards.multi_url.title": "Multi-URL пользователи",
+            "cards.multi_url.subtitle": "Отправляют несколько URL в одном сообщении (режим качества).",
+            "cards.format_users.title": "Пользователи /format",
+            "cards.format_users.subtitle": "Имеют сохранённый формат (не ALWAYS_ASK).",
             "cards.blocked.title": "Забаненные пользователи",
             "cards.blocked.subtitle": "Кнопка ✅ снимает бан.",
             "filters.today": "Сегодня",
@@ -303,6 +311,9 @@
         channelEvents: (hours = 48, limit = 200) => `/api/channel-events?hours=${hours}&limit=${limit}`,
         suspiciousUsers: (period = "today", limit = 50) => `/api/suspicious-users?period=${period}&limit=${limit}`,
         userHistory: (userId, period = "all", limit = 100) => `/api/user-history?user_id=${userId}&period=${period}&limit=${limit}`,
+        multiUrlUsers: (period = "today", limit = 50) =>
+            `/api/top-multi-url-users?period=${period}&limit=${limit}`,
+        formatUsers: (limit = 50) => `/api/format-users?limit=${limit}`,
     };
 
     function t(key) {
@@ -964,6 +975,39 @@
         });
     }
 
+    async function loadMultiUrlUsers(period = "today") {
+        const data = await fetchJSON(endpoints.multiUrlUsers(period));
+        const container = document.getElementById("multi-url-users-list");
+        const items = data || [];
+        container.__searchableFields = ["name", "username", "user_id"];
+        setListData(container, items, (item, parent) => {
+            parent.appendChild(
+                createUserRow(item, {
+                    meta: () =>
+                        `${formatUserMeta(item)} • ${item.messages ?? 0} msg • ${item.total_urls ?? 0} URLs`,
+                    extra: () => `avg ${item.avg_urls ?? 0}`,
+                    onRowClick: () => showUserDetailsModal(item),
+                })
+            );
+        });
+    }
+
+    async function loadFormatUsers(limit = 50) {
+        const data = await fetchJSON(endpoints.formatUsers(limit));
+        const container = document.getElementById("format-users-list");
+        const items = data || [];
+        container.__searchableFields = ["name", "username", "user_id", "format"];
+        setListData(container, items, (item, parent) => {
+            parent.appendChild(
+                createUserRow(item, {
+                    meta: () => formatUserMeta(item),
+                    extra: () => `${item.format || "unknown"}`,
+                    onRowClick: () => showUserDetailsModal(item),
+                })
+            );
+        });
+    }
+
     async function loadCountries(period) {
         const data = await fetchJSON(endpoints.countries(period));
         const container = document.getElementById("countries-list");
@@ -1138,7 +1182,24 @@
                 const target = button.dataset.tabTarget;
                 const panel = document.querySelector(`[data-tab-panel="${target}"]`);
                 if (panel) panel.classList.add("active");
+                applyAdaptiveGrid();
             });
+        });
+    }
+
+    function applyAdaptiveGrid() {
+        document.querySelectorAll("[data-grid-layout='cards']").forEach((grid) => {
+            const cards = grid.querySelectorAll(":scope > article.card");
+            const count = cards.length;
+            if (count <= 1) {
+                grid.style.gridTemplateColumns = "1fr";
+                return;
+            }
+            if (count % 2 === 0) {
+                grid.style.gridTemplateColumns = "repeat(2, minmax(320px, 1fr))";
+            } else {
+                grid.style.gridTemplateColumns = "repeat(3, minmax(280px, 1fr))";
+            }
         });
     }
 
@@ -1160,6 +1221,7 @@
         selectors.countries = document.getElementById("countries-period");
         selectors.domains = document.getElementById("domains-period");
         selectors.suspicious = document.getElementById("suspicious-period");
+        selectors.multiUrl = document.getElementById("multi-url-period");
         selectors.activePeriod = document.getElementById("active-users-period");
         selectors.activeCount = document.querySelector("[data-active-count]");
         themeToggleBtn = document.getElementById("theme-toggle");
@@ -1174,6 +1236,7 @@
         });
         selectors.domains?.addEventListener("change", (event) => loadDomains(event.target.value));
         selectors.suspicious?.addEventListener("change", (event) => loadSuspiciousUsers(event.target.value));
+        selectors.multiUrl?.addEventListener("change", (event) => loadMultiUrlUsers(event.target.value));
         if (selectors.activePeriod) {
             selectors.activePeriod.addEventListener("change", () => {
                 loadActiveUsers();
@@ -1803,11 +1866,14 @@
             loadDomains(domainsPeriod),
             loadNSFW(),
             loadPlaylistUsers(),
+            loadMultiUrlUsers(selectors.multiUrl?.value || "all"),
+            loadFormatUsers(),
             loadPowerUsers(),
             loadBlockedUsers(),
             loadChannelEvents(),
             loadSuspiciousUsers(suspiciousPeriod),
         ]);
+        applyAdaptiveGrid();
     }
 
     function setupTabHandlers() {
@@ -1865,6 +1931,7 @@
         setupThemeToggle();
         setupPowerUsersFilters();
         applyTranslations();
+        applyAdaptiveGrid();
         await refreshData();
     }
 
