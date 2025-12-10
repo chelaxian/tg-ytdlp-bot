@@ -400,6 +400,9 @@ class StatsCollector:
             return
         with self._lock:
             self._multi_url_events.append((user_id, urls_count, timestamp or int(time.time())))
+            # Ограничиваем размер, чтобы не росло бесконечно
+            if len(self._multi_url_events) > 5000:
+                self._multi_url_events = self._multi_url_events[-5000:]
 
     def reload_from_dump(self) -> None:
         if not os.path.exists(self.dump_path):
@@ -419,11 +422,6 @@ class StatsCollector:
         blocked_users: Dict[int, BlockRecord] = {}
         channel_events: List[ChannelActivity] = []
         latest_ts = 0
-
-        # Сбрасываем multi-url события, но сохраним live-события, которые новее latest_ts
-        with self._lock:
-            prev_multi_events = list(self._multi_url_events)
-            self._multi_url_events = []
 
         logs = bot_root.get("logs")
         if isinstance(logs, dict):
@@ -488,9 +486,6 @@ class StatsCollector:
             self._blocked_users = blocked_users
             self._latest_dump_ts = latest_ts
             self._channel_events = deque(channel_events[-500:], maxlen=500)
-            # Добавляем live multi-url события, которые произошли после дампа
-            recent_live_multi = [ev for ev in prev_multi_events if ev[2] > self._latest_dump_ts]
-            self._multi_url_events.extend(recent_live_multi)
             self._last_reload_ts = time.time()
             # Сбрасываем live-записи, которые уже попали в дамп
             self._live_downloads = deque(

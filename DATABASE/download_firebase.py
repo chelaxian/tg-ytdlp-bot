@@ -57,6 +57,7 @@ FIREBASE_CONFIG = getattr(Config, 'FIREBASE_CONF', None)
 FIREBASE_USER = getattr(Config, 'FIREBASE_USER', None)
 FIREBASE_PASSWORD = getattr(Config, 'FIREBASE_PASSWORD', None)
 OUTPUT_FILE = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
+TMP_OUTPUT_FILE = f"{OUTPUT_FILE}.tmp"
 
 if not FIREBASE_CONFIG or not FIREBASE_USER or not FIREBASE_PASSWORD:
     print(safe_get_messages().DB_NOT_ALL_PARAMETERS_SET_MSG)
@@ -76,12 +77,12 @@ def download_firebase_dump():
     # Timeout configuration (connect_timeout, read_timeout)
     AUTH_CONNECT_TIMEOUT = 30
     AUTH_READ_TIMEOUT = 180    # increase auth read timeout
-    DOWNLOAD_CONNECT_TIMEOUT = 30
-    DOWNLOAD_READ_TIMEOUT = 600  # increase dump read timeout
+    DOWNLOAD_CONNECT_TIMEOUT = 60
+    DOWNLOAD_READ_TIMEOUT = 1200  # allow long reads for large dumps
 
     # Retry configuration
     MAX_AUTH_RETRIES = 3
-    MAX_DOWNLOAD_RETRIES = 2
+    MAX_DOWNLOAD_RETRIES = 3
     RETRY_DELAY = 5
 
     try:
@@ -175,7 +176,14 @@ def download_firebase_dump():
         print("💾 Saving database dump to file...")
         bytes_written = 0
         chunk_count = 0
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        # Ensure old temp file is removed
+        if os.path.exists(TMP_OUTPUT_FILE):
+            try:
+                os.remove(TMP_OUTPUT_FILE)
+            except OSError:
+                pass
+
+        with open(TMP_OUTPUT_FILE, "w", encoding="utf-8") as f:
             for chunk in response.iter_content(chunk_size=1024 * 512, decode_unicode=True):
                 if chunk:
                     f.write(chunk)
@@ -185,6 +193,8 @@ def download_firebase_dump():
                         print(f"  📊 Progress: {bytes_written / (1024*1024):.2f} MB downloaded...")
 
         print(f"✅ Download complete: {bytes_written / (1024*1024):.2f} MB")
+        # Atomically replace the target file to avoid partial reads by other services
+        os.replace(TMP_OUTPUT_FILE, OUTPUT_FILE)
 
         data = None
         file_size = os.path.getsize(OUTPUT_FILE)

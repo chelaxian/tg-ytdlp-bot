@@ -394,6 +394,20 @@
         return `${minutes}m ${remaining}s`;
     }
 
+    function truncate(text, max = 32) {
+        if (!text) return "";
+        return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    }
+
+    function formatDateTime(ts) {
+        if (!ts) return t("misc.unknown");
+        try {
+            return new Date(ts * 1000).toLocaleString();
+        } catch (_) {
+            return t("misc.unknown");
+        }
+    }
+
     function formatGapLabel(seconds) {
         if (seconds === undefined || seconds === null) {
             return t("misc.unknown");
@@ -1001,8 +1015,27 @@
             parent.appendChild(
                 createUserRow(item, {
                     meta: () => formatUserMeta(item),
-                    extra: () => `${item.format || "unknown"}`,
-                    onRowClick: () => showUserDetailsModal(item),
+                    extra: () => truncate(item.format || "", 22),
+                    onRowClick: () =>
+                        openModal(
+                            `Format for ${item.username ? "@" + item.username : item.user_id}`,
+                            `
+                                <div class="list">
+                                    <div class="list-row">
+                                        <div class="list-row__info">
+                                            <span class="title">Format</span>
+                                            <span class="meta">${item.format || "unknown"}</span>
+                                        </div>
+                                    </div>
+                                    <div class="list-row">
+                                        <div class="list-row__info">
+                                            <span class="title">Updated</span>
+                                            <span class="meta">${formatDateTime(item.updated_ts)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        ),
                 })
             );
         });
