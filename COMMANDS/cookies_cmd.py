@@ -1,4 +1,3 @@
-
 # Command to Set Browser Cookies and Auto-Update YouTube Cookies
 from pyrogram import filters, enums
 from CONFIG.config import Config
@@ -1149,7 +1148,7 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
         duration = info.get('duration')
         if duration is not None and (duration <= 0 or duration > 86400):
             logger.warning(f"Invalid duration {duration} for cookie test, but continuing...")
-            
+            # Не возвращаем False, так как для Shorts это может быть нормально
         # Проверяем наличие форматов
         formats = info.get('formats', [])
         if len(formats) < 2:

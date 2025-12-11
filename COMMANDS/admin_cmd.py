@@ -178,7 +178,7 @@ def reload_firebase_cache_command(app, message):
         log_error_to_channel(message, error_msg)
         send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_ERROR_RELOADING_CACHE_LOG_MSG.format(error=str(e)))
 
-# SEND BRODCAST Message to All Users
+# SEND BRODCAST Message to All Users 
 
 def send_promo_message(app, message):
     messages = safe_get_messages(message.chat.id)
