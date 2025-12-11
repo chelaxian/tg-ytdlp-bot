@@ -24,7 +24,7 @@ from requests.adapters import HTTPAdapter
 import yt_dlp
 import random
 from HELPERS.pot_helper import add_pot_to_ytdl_opts
-from COMMANDS.proxy_cmd import add_proxy_to_ytdl_opts
+from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
 from URL_PARSERS.youtube import is_youtube_url
 
 # Get app instance for decorators
