@@ -1123,9 +1123,13 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
             'extractor_retries': 1,
         }
         
+        # Add proxy configuration (important for Docker)
         ydl_opts = add_proxy_to_ytdl_opts(ydl_opts, url, user_id=user_id)
         # Add PO token provider for YouTube domains
         ydl_opts = add_pot_to_ytdl_opts(ydl_opts, url)
+        # Add timeout for Docker network stability
+        if 'socket_timeout' not in ydl_opts:
+            ydl_opts['socket_timeout'] = 30
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -1136,9 +1140,15 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
             return False
             
         # Проверяем наличие основных полей
-        if not info.get('title') or not info.get('duration'):
+        # Для YouTube Shorts duration может отсутствовать, поэтому проверяем только title
+        if not info.get('title'):
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_MISSING_INFO_LOG_MSG.format(cookie_file_path=cookie_file_path))
             return False
+        
+        # Duration может отсутствовать для Shorts или live streams, это нормально
+        duration = info.get('duration')
+        if duration is not None and (duration <= 0 or duration > 86400):
+            logger.warning(f"Invalid duration {duration} for cookie test, but continuing...")
             
         # Проверяем наличие форматов
         formats = info.get('formats', [])
@@ -1186,25 +1196,39 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
             'extractor_retries': 2,
         }
         
+        # Add proxy configuration (important for Docker)
         ydl_opts = add_proxy_to_ytdl_opts(ydl_opts, test_url, user_id=user_id)
         # Add PO token provider for YouTube domains
         ydl_opts = add_pot_to_ytdl_opts(ydl_opts, test_url)
+        # Add timeout for Docker network stability
+        if 'socket_timeout' not in ydl_opts:
+            ydl_opts['socket_timeout'] = 30
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(test_url, download=False)
             
         # Проверяем, что получили полную информацию о видео
-        required_fields = ['title', 'duration', 'uploader', 'view_count', 'like_count', 'upload_date']
+        # Для YouTube Shorts некоторые поля могут отсутствовать (duration, upload_date и т.д.)
+        # Поэтому проверяем только критически важные поля
+        required_fields = ['title']  # title - обязательное поле
+        optional_fields = ['duration', 'uploader', 'view_count', 'like_count', 'upload_date']  # эти поля желательны, но не обязательны
+        
         if not info:
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_NO_INFO_RETURNED_LOG_MSG.format(cookie_file_path=cookie_file_path))
             return False
             
         # Проверяем наличие обязательных полей
-        missing_fields = [field for field in required_fields if field not in info or not info[field]]
-        if missing_fields:
-            logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_MISSING_FIELDS_LOG_MSG.format(missing_fields=missing_fields, cookie_file_path=cookie_file_path))
+        missing_required = [field for field in required_fields if field not in info or not info[field]]
+        if missing_required:
+            logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_MISSING_FIELDS_LOG_MSG.format(missing_fields=missing_required, cookie_file_path=cookie_file_path))
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_AVAILABLE_FIELDS_LOG_MSG.format(available_fields=list(info.keys())))
             return False
+        
+        # Проверяем наличие опциональных полей (для логирования)
+        missing_optional = [field for field in optional_fields if field not in info or not info[field]]
+        if missing_optional:
+            logger.info(f"Optional fields missing (this is OK for Shorts/live streams): {missing_optional}")
+            logger.info(f"Available fields: {list(info.keys())}")
             
         # Проверяем, что есть доступные форматы для скачивания
         # Note: formats might be empty if nsig extraction failed, but that's not necessarily a cookie issue
@@ -1216,8 +1240,8 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_NO_FORMATS_LOG_MSG.format(cookie_file_path=cookie_file_path))
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_INFO_KEYS_LOG_MSG.format(info_keys=list(info.keys())))
             # Don't fail immediately - check if we have enough info to consider cookies valid
-            # If we have title, duration, uploader, etc., cookies are likely working
-            if not all(field in info and info[field] for field in ['title', 'duration', 'uploader']):
+            # For Shorts/live streams, duration may be missing, so check only title
+            if not info.get('title'):
                 return False
             # If we have basic info but no formats, it might be a format extraction issue, not cookie issue
             # Log warning but don't fail - cookies might still be valid
@@ -1231,12 +1255,16 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_TITLE_LENGTH_LOG_MSG.format(title_length=len(title)))
             return False
             
-        # Проверяем, что duration разумная (не 0 и не слишком большая)
-        duration = info.get('duration', 0)
-        if duration and duration <= 0 or duration > 86400:  # Больше 24 часов
-            logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_INVALID_DURATION_LOG_MSG.format(duration=duration, cookie_file_path=cookie_file_path))
-            logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_DURATION_SECONDS_LOG_MSG.format(duration=duration))
-            return False
+        # Проверяем, что duration разумная (если присутствует)
+        # Для Shorts и live streams duration может отсутствовать - это нормально
+        duration = info.get('duration')
+        if duration is not None:
+            if duration <= 0 or duration > 86400:  # Больше 24 часов
+                logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_INVALID_DURATION_LOG_MSG.format(duration=duration, cookie_file_path=cookie_file_path))
+                logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_DURATION_SECONDS_LOG_MSG.format(duration=duration))
+                return False
+        else:
+            logger.info("Duration not available (likely Shorts or live stream), skipping duration validation")
             
         # Проверяем количество форматов (должно быть достаточно для выбора)
         # Only check if formats exist - if they don't, we already handled that above
