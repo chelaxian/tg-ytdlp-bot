@@ -1,1 +1,9 @@
-REDACTED
+:80 {
+  log {
+    output stderr
+    format console
+  }
+
+  root * /srv
+  file_server browse
+}

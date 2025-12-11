@@ -1,1 +1,2 @@
-REDACTED
+# This file ensures that the TXT directory is tracked by Git
+# even when it's empty
