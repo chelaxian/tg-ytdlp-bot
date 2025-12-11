@@ -1207,9 +1207,9 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(test_url, download=False)
             
-        # Проверяем, что получили полную информацию о видео
+        # Проверяем, что получили полную информацию о видео 
         # Для YouTube Shorts некоторые поля могут отсутствовать (duration, upload_date и т.д.)
-        # Поэтому проверяем только критически важные поля
+        # Поэтому проверяем только критически важные поля 
         required_fields = ['title']  # title - обязательное поле
         optional_fields = ['duration', 'uploader', 'view_count', 'like_count', 'upload_date']  # эти поля желательны, но не обязательны
         
