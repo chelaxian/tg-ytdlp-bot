@@ -38,7 +38,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Копируем и делаем исполняемым entrypoint скрипт
+# Конвертируем Windows окончания строк (CRLF) в Unix (LF) и делаем исполняемым
 COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 CMD ["/usr/local/bin/docker-entrypoint.sh"]
