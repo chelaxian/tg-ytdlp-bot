@@ -1196,11 +1196,11 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
             'extractor_retries': 2,
         }
         
-        # Add proxy configuration (important for Docker)
+        # Add proxy configuration (important for Docker) 
         ydl_opts = add_proxy_to_ytdl_opts(ydl_opts, test_url, user_id=user_id)
         # Add PO token provider for YouTube domains
         ydl_opts = add_pot_to_ytdl_opts(ydl_opts, test_url)
-        # Add timeout for Docker network stability
+        # Add timeout for Docker network stability 
         if 'socket_timeout' not in ydl_opts:
             ydl_opts['socket_timeout'] = 30
         
