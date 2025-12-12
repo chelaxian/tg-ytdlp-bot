@@ -4,6 +4,12 @@ set -e
 WG_DIR=/data
 WG_CONF=/etc/wireguard/wgcf.conf
 
+# Install procps if sysctl is missing (fallback if Dockerfile wasn't updated)
+if ! command -v sysctl >/dev/null 2>&1; then
+  echo "[+] Installing procps (sysctl missing)"
+  apt-get update -qq && apt-get install -y -qq procps >/dev/null 2>&1 || true
+fi
+
 mkdir -p /etc/wireguard "$WG_DIR"
 
 if [ ! -f "$WG_DIR/wgcf-account.toml" ]; then
