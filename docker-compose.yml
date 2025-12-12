@@ -11,7 +11,8 @@ x-default-logging: &default-logging
     compress: "false"
 
 services:
-  app:
+  bot:
+    container_name: tg-ytdlp-bot
     build:
       context: .
       dockerfile: Dockerfile
@@ -23,27 +24,58 @@ services:
     logging: *default-logging
     depends_on:
       - bgutil-provider
-      - configuration-webserver
+      - warp
     volumes:
       - .:/app
+    network_mode: "service:warp"
+
+  dashboard:
+    container_name: tg-ytdlp-dashboard
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        <<: *default-build-args
+    env_file:
+      - .env
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      - bot
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    command: ["python", "-m", "uvicorn", "web.dashboard_app:app", "--host", "0.0.0.0", "--port", "5555"]
     ports:
-      - "5555:5555"  # Панель управления (порт можно изменить в CONFIG/config.py как DASHBOARD_PORT)
+      - "5555:5555"
+    environment:
+      - BOT_CONTAINER_NAME=tg-ytdlp-bot
+      - WARP_CONTAINER_NAME=tg-ytdlp-warp
 
   bgutil-provider:
     image: brainicism/bgutil-ytdlp-pot-provider:latest
+    container_name: tg-ytdlp-bgutil-provider
     restart: unless-stopped
     logging: *default-logging
     expose:
       - "4416"
+    network_mode: "service:warp"
 
-  configuration-webserver:
-    image: caddy:2-alpine
+  warp:
+    image: ghcr.io/fscarmen/warp:latest
+    container_name: tg-ytdlp-warp
     restart: unless-stopped
     logging: *default-logging
     cap_add:
       - NET_ADMIN
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: 0
+      net.ipv4.conf.all.src_valid_mark: 1
+    environment:
+      - WARP_SLEEP=2
     volumes:
-      - ./docker/configuration-webserver/conf:/etc/caddy:ro
-      - ./docker/configuration-webserver/site:/srv:ro
-      - ./docker/configuration-webserver/data:/data
-      - ./docker/configuration-webserver/config:/config
+      - warp-data:/var/lib/wireguard
+
+volumes:
+  warp-data:

@@ -57,7 +57,7 @@ def create_telegram_thumbnail(cover_path, output_path, size=320):
             if img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Center-crop to a square (no padding)
+            # Center-crop to a square (no padding) 
             width, height = img.size
             side = min(width, height)
             left = (width - side) // 2
