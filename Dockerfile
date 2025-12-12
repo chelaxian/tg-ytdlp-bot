@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mediainfo \
     rsync \
     docker.io \
+    curl \
+    iputils-ping \
     fonts-noto-core \
     fonts-noto-extra \
     #fonts-kacst \
