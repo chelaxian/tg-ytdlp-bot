@@ -22,4 +22,3 @@ RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/entrypoint.sh"]
-
