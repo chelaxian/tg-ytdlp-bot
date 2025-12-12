@@ -61,7 +61,7 @@ services:
     network_mode: "service:warp"
 
   warp:
-    image: fscarmen/wgcf:latest
+    build: ./warp
     container_name: tg-ytdlp-warp
     restart: unless-stopped
     logging: *default-logging
@@ -72,6 +72,12 @@ services:
       net.ipv4.conf.all.src_valid_mark: 1
     volumes:
       - warp-data:/data
+    networks:
+      - warp-net
+
+networks:
+  warp-net:
+    driver: bridge
 
 volumes:
   warp-data:
