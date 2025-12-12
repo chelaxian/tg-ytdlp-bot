@@ -63,7 +63,7 @@ services:
     network_mode: "service:warp"
 
   warp:
-    image: ghcr.io/fscarmen/warp:latest
+    image: virb3/wgcf:latest
     container_name: tg-ytdlp-warp
     restart: unless-stopped
     logging: *default-logging
