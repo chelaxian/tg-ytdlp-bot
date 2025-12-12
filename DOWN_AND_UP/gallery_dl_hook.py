@@ -491,7 +491,7 @@ def download_image(url: str, user_id=None, use_proxy: bool = False, output_dir: 
             current_time = time.time()
             logger.info(safe_get_messages(user_id).GALLERY_DL_SEARCHING_DOWNLOADED_FILES_MSG)
 
-            # Сначала пытаемся найти файлы по именам из extractor
+            # Сначала пытаемся найти файлы по именам из extractor 
             try:
                 extractor = getattr(job, "extractor", None)
                 if extractor is not None:
