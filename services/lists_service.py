@@ -5,6 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Dict, Any, List
+import shutil
 
 from CONFIG.domains import DomainsConfig
 from CONFIG.config import Config
@@ -112,11 +113,43 @@ def update_domain_list(list_name: str, items: List[str]) -> bool:
 
 
 def update_lists() -> Dict[str, Any]:
-    """Обновляет списки через script.sh."""
+    """
+    Обновляет списки.
+    - Если есть docker и контейнер бота: просим ввод ссылок вручную (UI должен запросить .txt URLs).
+    - Иначе: запускаем локальный script.sh (старое поведение).
+    """
     try:
-        script_path = "/root/Telegram/tg-ytdlp-bot/script.sh"
+        def _has_docker() -> bool:
+            return bool(shutil.which("docker")) and Path("/var/run/docker.sock").exists()
+
+        def _container_exists(name: str) -> bool:
+            if not _has_docker():
+                return False
+            result = subprocess.run(
+                ["docker", "ps", "-a", "--filter", f"name={name}", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if result.returncode != 0:
+                return False
+            names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
+            return any(n == name for n in names)
+
+        # Docker режим: только запрос ручных ссылок
+        if _has_docker() and _container_exists("tg-ytdlp-bot"):
+            return {
+                "status": "error",
+                "message": "В Docker введите вручную .txt ссылки для porn_domains и porn_keywords в панели",
+            }
+
+        # Локальный режим — старое поведение
+        script_path = Path(__file__).resolve().parent.parent / "script.sh"
+        if not script_path.exists():
+            return {"status": "error", "message": f"{script_path} not found"}
         result = subprocess.run(
-            ["bash", script_path],
+            ["bash", str(script_path)],
             capture_output=True,
             text=True,
             timeout=300,  # 5 минут
