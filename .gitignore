@@ -81,7 +81,6 @@ replace_log.txt
 test_search_var.py
 auto_replace_unused.py
 replace_logger.py
-update_bgutil_provider.sh
 update-yt-dlp.sh
 .cursor/
 .cursor/commands/

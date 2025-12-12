@@ -304,6 +304,11 @@ class DomainListUpdateRequest(BaseModel):
     items: List[str] = Field(...)
 
 
+class ListsUpdateFromUrlsRequest(BaseModel):
+    porn_domains_url: str = ""
+    porn_keywords_url: str = ""
+
+
 @app.post("/api/update-domain-list")
 async def api_update_domain_list(payload: DomainListUpdateRequest):
     try:
@@ -338,6 +343,11 @@ async def api_cleanup_user_files():
 @app.post("/api/update-lists")
 async def api_update_lists():
     return lists_service.update_lists()
+
+
+@app.post("/api/update-lists-from-urls")
+async def api_update_lists_from_urls(payload: ListsUpdateFromUrlsRequest):
+    return lists_service.update_lists_from_urls(payload.porn_domains_url, payload.porn_keywords_url)
 
 
 @app.get("/health")

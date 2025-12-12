@@ -106,10 +106,37 @@ def get_network_speed() -> Dict[str, Any]:
 
 
 def get_external_ip() -> Dict[str, str]:
-    """Получает внешний IPv4 и IPv6 адреса."""
+    """Получает внешний IPv4 и IPv6 адреса через warp контейнер (если доступен) или напрямую."""
     ipv4 = "unknown"
     ipv6 = "unknown"
     
+    # Если есть Docker и контейнер warp, получаем IP через него
+    if _has_docker() and _container_exists(WARP_CONTAINER_NAME):
+        docker_path = shutil.which("docker")
+        try:
+            # Получаем IPv4 через warp контейнер
+            ipv4_result = _run_docker_cmd(
+                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-4", "https://ifconfig.io"],
+                timeout=10,
+            )
+            if ipv4_result.returncode == 0 and ipv4_result.stdout.strip():
+                ipv4 = ipv4_result.stdout.strip()
+            
+            # Получаем IPv6 через warp контейнер
+            ipv6_result = _run_docker_cmd(
+                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-6", "https://ifconfig.io"],
+                timeout=10,
+            )
+            if ipv6_result.returncode == 0 and ipv6_result.stdout.strip():
+                ipv6 = ipv6_result.stdout.strip()
+            
+            # Если получили IP через warp, возвращаем
+            if ipv4 != "unknown" or ipv6 != "unknown":
+                return {"ipv4": ipv4, "ipv6": ipv6}
+        except Exception:
+            pass
+    
+    # Fallback: получаем IP напрямую (локальный режим или если warp недоступен)
     try:
         # Получаем IPv4
         ipv4_services = [
@@ -307,21 +334,37 @@ def get_package_versions() -> Dict[str, str]:
 
 def rotate_ip() -> Dict[str, Any]:
     """Ротирует IP: если есть warp-контейнер, рестартуем его; иначе systemctl wgcf."""
+    # Docker режим: рестартуем warp контейнер
     if _has_docker() and _container_exists(WARP_CONTAINER_NAME):
         docker_path = shutil.which("docker")
         try:
             restart = _run_docker_cmd([docker_path, "restart", WARP_CONTAINER_NAME], timeout=40)
             if restart.returncode != 0:
                 return {"status": "error", "message": restart.stderr or "Не удалось перезапустить warp"}
-            time.sleep(3)
-            ip_check = _run_docker_cmd(
-                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "https://ifconfig.io"],
+            time.sleep(5)  # Даем время на переподключение
+            
+            # Получаем новый IP через warp контейнер
+            ipv4_result = _run_docker_cmd(
+                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-4", "https://ifconfig.io"],
                 timeout=10,
             )
-            ipv4 = ip_check.stdout.strip() if ip_check.returncode == 0 else "unknown"
-            return {"status": "ok", "message": "IP rotated successfully", "ipv4": ipv4, "ipv6": "unknown"}
+            ipv4 = ipv4_result.stdout.strip() if ipv4_result.returncode == 0 else "unknown"
+            
+            ipv6_result = _run_docker_cmd(
+                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-6", "https://ifconfig.io"],
+                timeout=10,
+            )
+            ipv6 = ipv6_result.stdout.strip() if ipv6_result.returncode == 0 else "unknown"
+            
+            return {
+                "status": "ok",
+                "message": "IP rotated successfully",
+                "ipv4": ipv4,
+                "ipv6": ipv6,
+            }
         except Exception as e:
             return {"status": "error", "message": str(e)}
+    
     # Локальный режим
     if not _systemctl_available():
         return {"status": "error", "message": "systemctl is not available (likely running inside Docker)"}
@@ -385,20 +428,55 @@ def restart_service() -> Dict[str, Any]:
 def update_engines() -> Dict[str, Any]:
     """Обновляет движки: если есть контейнер бота — docker exec; иначе локальные скрипты."""
     if _has_docker() and _container_exists(BOT_CONTAINER_NAME):
+        docker_path = shutil.which("docker")
+        outputs = []
         try:
+            # Обновляем yt-dlp и gallery-dl в контейнере бота
             result = _run_in_bot(["bash", "/app/engines_updater.sh"], timeout=300)
             if result.returncode != 0:
                 return {
                     "status": "error",
-                    "message": result.stderr or "Update failed",
+                    "message": f"yt-dlp/gallery-dl update failed: {result.stderr or 'Update failed'}",
                 }
+            outputs.append(f"yt-dlp/gallery-dl:\n{result.stdout.strip()}")
+            
+            # Обновляем bgutil-provider контейнер
+            bgutil_container = "tg-ytdlp-bgutil-provider"
+            if _container_exists(bgutil_container):
+                try:
+                    # Останавливаем и удаляем старый контейнер
+                    stop_result = _run_docker_cmd([docker_path, "stop", bgutil_container], timeout=30)
+                    rm_result = _run_docker_cmd([docker_path, "rm", bgutil_container], timeout=30)
+                    
+                    # Обновляем образ
+                    pull_result = _run_docker_cmd(
+                        [docker_path, "pull", "brainicism/bgutil-ytdlp-pot-provider:latest"],
+                        timeout=120,
+                    )
+                    if pull_result.returncode != 0:
+                        outputs.append(f"bgutil-provider: Failed to pull image: {pull_result.stderr}")
+                    else:
+                        # Запускаем новый контейнер через docker-compose или docker run
+                        # Используем docker-compose для правильной конфигурации
+                        compose_result = _run_docker_cmd(
+                            [docker_path, "compose", "up", "-d", "bgutil-provider"],
+                            timeout=60,
+                        )
+                        if compose_result.returncode == 0:
+                            outputs.append("bgutil-provider: Container updated and restarted")
+                        else:
+                            outputs.append(f"bgutil-provider: Warning - {compose_result.stderr}")
+                except Exception as e:
+                    outputs.append(f"bgutil-provider: Error - {str(e)}")
+            
             return {
                 "status": "ok",
                 "message": "Engines updated successfully",
-                "output": result.stdout.strip(),
+                "output": "\n\n".join(outputs),
             }
         except Exception as e:
             return {"status": "error", "message": str(e)}
+    
     # Локальный режим — старое поведение, проверяем наличие скриптов
     try:
         base_dir = Path(__file__).resolve().parent.parent

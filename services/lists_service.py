@@ -115,7 +115,7 @@ def update_domain_list(list_name: str, items: List[str]) -> bool:
 def update_lists() -> Dict[str, Any]:
     """
     Обновляет списки.
-    - Если есть docker и контейнер бота: просим ввод ссылок вручную (UI должен запросить .txt URLs).
+    - Если есть docker и контейнер бота: возвращает специальный статус для запроса URL.
     - Иначе: запускаем локальный script.sh (старое поведение).
     """
     try:
@@ -137,11 +137,11 @@ def update_lists() -> Dict[str, Any]:
             names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
             return any(n == name for n in names)
 
-        # Docker режим: только запрос ручных ссылок
+        # Docker режим: возвращаем специальный статус для запроса URL
         if _has_docker() and _container_exists("tg-ytdlp-bot"):
             return {
-                "status": "error",
-                "message": "В Docker введите вручную .txt ссылки для porn_domains и porn_keywords в панели",
+                "status": "need_urls",
+                "message": "Please provide .txt URLs for porn_domains and porn_keywords",
             }
 
         # Локальный режим — старое поведение
@@ -159,6 +159,44 @@ def update_lists() -> Dict[str, Any]:
             return {"status": "ok", "message": "Lists updated successfully", "output": result.stdout}
         else:
             return {"status": "error", "message": result.stderr or "Failed to update lists"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dict[str, Any]:
+    """
+    Обновляет списки из URL (для Docker режима).
+    Скачивает файлы по URL и сохраняет их в соответствующие файлы.
+    """
+    import requests
+    base_dir = Path(__file__).resolve().parent.parent
+    
+    try:
+        # Скачиваем porn_domains.txt
+        if porn_domains_url:
+            try:
+                response = requests.get(porn_domains_url, timeout=30)
+                response.raise_for_status()
+                domains_file = base_dir / Config.PORN_DOMAINS_FILE
+                domains_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(domains_file, "w", encoding="utf-8") as f:
+                    f.write(response.text)
+            except Exception as e:
+                return {"status": "error", "message": f"Failed to download porn_domains: {str(e)}"}
+        
+        # Скачиваем porn_keywords.txt
+        if porn_keywords_url:
+            try:
+                response = requests.get(porn_keywords_url, timeout=30)
+                response.raise_for_status()
+                keywords_file = base_dir / Config.PORN_KEYWORDS_FILE
+                keywords_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(keywords_file, "w", encoding="utf-8") as f:
+                    f.write(response.text)
+            except Exception as e:
+                return {"status": "error", "message": f"Failed to download porn_keywords: {str(e)}"}
+        
+        return {"status": "ok", "message": "Lists updated successfully from URLs"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
