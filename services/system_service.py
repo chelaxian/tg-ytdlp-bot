@@ -7,6 +7,7 @@ import re
 import requests
 import logging
 import shutil
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
@@ -16,6 +17,51 @@ from CONFIG.config import Config
 from DATABASE.cache_db import get_next_reload_time
 
 logger = logging.getLogger(__name__)
+BOT_CONTAINER_NAME = os.environ.get("BOT_CONTAINER_NAME", "tg-ytdlp-bot")
+WARP_CONTAINER_NAME = os.environ.get("WARP_CONTAINER_NAME", "tg-ytdlp-warp")
+
+
+def _has_docker() -> bool:
+    """Проверяет наличие docker CLI и сокета."""
+    docker_path = shutil.which("docker")
+    return bool(docker_path) and Path("/var/run/docker.sock").exists()
+
+def _container_exists(name: str) -> bool:
+    """Проверяет, что контейнер с именем name существует (docker ps -a)."""
+    if not _has_docker():
+        return False
+    result = _run_docker_cmd(
+        ["docker", "ps", "-a", "--filter", f"name={name}", "--format", "{{.Names}}"],
+        timeout=5,
+    )
+    if result.returncode != 0:
+        return False
+    names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
+    return any(n == name for n in names)
+
+
+def _systemctl_available() -> bool:
+    return bool(shutil.which("systemctl"))
+
+
+def _run_docker_cmd(cmd: list[str], timeout: int = 60):
+    """Запускает docker-cli команду и возвращает CompletedProcess."""
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def _run_in_bot(command: list[str], timeout: int = 300):
+    """Выполняет команду внутри контейнера с ботом через docker exec."""
+    docker_path = shutil.which("docker")
+    if not docker_path:
+        raise RuntimeError("docker CLI не найден внутри панели")
+    cmd = [docker_path, "exec", BOT_CONTAINER_NAME] + command
+    return _run_docker_cmd(cmd, timeout=timeout)
 
 # Кеш для скорости сети
 _network_speed_cache = {"last_check": 0, "last_sent": 0, "last_recv": 0, "speed_sent": 0, "speed_recv": 0}
@@ -260,8 +306,24 @@ def get_package_versions() -> Dict[str, str]:
 
 
 def rotate_ip() -> Dict[str, Any]:
-    """Ротирует IP адрес через перезапуск WireGuard и возвращает новые IP."""
-    if not shutil.which("systemctl"):
+    """Ротирует IP: если есть warp-контейнер, рестартуем его; иначе systemctl wgcf."""
+    if _has_docker() and _container_exists(WARP_CONTAINER_NAME):
+        docker_path = shutil.which("docker")
+        try:
+            restart = _run_docker_cmd([docker_path, "restart", WARP_CONTAINER_NAME], timeout=40)
+            if restart.returncode != 0:
+                return {"status": "error", "message": restart.stderr or "Не удалось перезапустить warp"}
+            time.sleep(3)
+            ip_check = _run_docker_cmd(
+                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "https://ifconfig.io"],
+                timeout=10,
+            )
+            ipv4 = ip_check.stdout.strip() if ip_check.returncode == 0 else "unknown"
+            return {"status": "ok", "message": "IP rotated successfully", "ipv4": ipv4, "ipv6": "unknown"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    # Локальный режим
+    if not _systemctl_available():
         return {"status": "error", "message": "systemctl is not available (likely running inside Docker)"}
     try:
         cmd = ["systemctl", "restart", "wg-quick@wgcf"]
@@ -289,8 +351,18 @@ def rotate_ip() -> Dict[str, Any]:
 
 
 def restart_service() -> Dict[str, Any]:
-    """Перезапускает сервис tg-ytdlp-bot."""
-    if not shutil.which("systemctl"):
+    """Перезапускает сервис: если есть контейнер бота — docker restart, иначе systemctl tg-ytdlp-bot."""
+    if _has_docker() and _container_exists(BOT_CONTAINER_NAME):
+        docker_path = shutil.which("docker")
+        try:
+            result = _run_docker_cmd([docker_path, "restart", BOT_CONTAINER_NAME], timeout=60)
+            if result.returncode == 0:
+                return {"status": "ok", "message": "Bot container restarted"}
+            return {"status": "error", "message": result.stderr or "Failed to restart bot"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    # Локальный режим
+    if not _systemctl_available():
         return {"status": "error", "message": "systemctl is not available (likely running inside Docker)"}
     try:
         cmd = ["systemctl", "restart", "tg-ytdlp-bot"]
@@ -311,12 +383,34 @@ def restart_service() -> Dict[str, Any]:
 
 
 def update_engines() -> Dict[str, Any]:
-    """Обновляет движки через engines_updater.sh."""
+    """Обновляет движки: если есть контейнер бота — docker exec; иначе локальные скрипты."""
+    if _has_docker() and _container_exists(BOT_CONTAINER_NAME):
+        try:
+            result = _run_in_bot(["bash", "/app/engines_updater.sh"], timeout=300)
+            if result.returncode != 0:
+                return {
+                    "status": "error",
+                    "message": result.stderr or "Update failed",
+                }
+            return {
+                "status": "ok",
+                "message": "Engines updated successfully",
+                "output": result.stdout.strip(),
+            }
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    # Локальный режим — старое поведение, проверяем наличие скриптов
     try:
         base_dir = Path(__file__).resolve().parent.parent
+        updater = base_dir / "engines_updater.sh"
+        provider = base_dir / "update_bgutil_provider.sh"
+        if not updater.exists():
+            return {"status": "error", "message": f"{updater} not found"}
+        if not provider.exists():
+            return {"status": "error", "message": f"{provider} not found"}
         commands = [
-            ("yt-dlp/gdl", ["bash", str(base_dir / "engines_updater.sh")]),
-            ("bgutil-provider", ["bash", str(base_dir / "update_bgutil_provider.sh")]),
+            ("yt-dlp/gdl", ["bash", str(updater)]),
+            ("bgutil-provider", ["bash", str(provider)]),
         ]
         outputs = []
         for label, command in commands:

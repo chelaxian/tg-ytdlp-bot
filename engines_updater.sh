@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# update yt-dlp
-source venv/bin/activate && pip install --upgrade --pre "yt-dlp[default,curl-cffi]"
+# Простое обновление без venv: используем системный python/pip внутри контейнера
+# yt-dlp
+python -m pip install --upgrade --pre "yt-dlp[default,curl-cffi]"
 
-# update gallery-dl
-venv/bin/python -m pip install -U --no-cache-dir --force-reinstall "git+https://github.com/mikf/gallery-dl.git@master"
+# gallery-dl
+python -m pip install -U --no-cache-dir --force-reinstall \
+  "git+https://github.com/mikf/gallery-dl.git@master"
 
-# update pyrogtgfork
-source venv/bin/activate && pip install --upgrade pyrotgfork
-source venv/bin/activate && pip install --upgrade TgCrypto
+# pyrogtgfork и TgCrypto
+python -m pip install --upgrade pyrotgfork
+python -m pip install --upgrade TgCrypto

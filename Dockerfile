@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     mediainfo \
     rsync \
+    docker.io \
     fonts-noto-core \
     fonts-noto-extra \
     #fonts-kacst \
