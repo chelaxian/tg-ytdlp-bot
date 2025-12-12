@@ -70,10 +70,8 @@ services:
     sysctls:
       net.ipv6.conf.all.disable_ipv6: 0
       net.ipv4.conf.all.src_valid_mark: 1
-    environment:
-      - WARP_SLEEP=2
     volumes:
-      - warp-data:/var/lib/wireguard
+      - warp-data:/data
 
 volumes:
   warp-data:
