@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-default-build-args: &default-build-args
   TZ: "${TZ}"
 
@@ -58,7 +56,9 @@ services:
     container_name: tg-ytdlp-bgutil-provider
     restart: unless-stopped
     logging: *default-logging
-    network_mode: "service:warp"
+    network_mode: "container:tg-ytdlp-warp"
+    ports: []
+    expose: []
 
   warp:
     build: ./warp

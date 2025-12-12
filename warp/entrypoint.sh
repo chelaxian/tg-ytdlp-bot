@@ -24,4 +24,3 @@ echo "[+] Starting WireGuard"
 wg-quick up wgcf
 echo "[+] WireGuard is up"
 tail -f /dev/null
-
