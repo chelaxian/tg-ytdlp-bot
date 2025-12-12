@@ -58,8 +58,6 @@ services:
     container_name: tg-ytdlp-bgutil-provider
     restart: unless-stopped
     logging: *default-logging
-    expose:
-      - "4416"
     network_mode: "service:warp"
 
   warp:
