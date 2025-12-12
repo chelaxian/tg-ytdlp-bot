@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Base deps
 RUN apt-get update && apt-get install -y \
-    wireguard iproute2 iptables curl ca-certificates openresolv dumb-init procps \
+    wireguard iproute2 iptables curl ca-certificates openresolv dumb-init procps dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install wgcf (multi-arch)
