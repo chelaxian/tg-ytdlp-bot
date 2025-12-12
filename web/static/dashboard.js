@@ -1786,12 +1786,43 @@
     }
 
     window.updateLists = async function() {
-        if (!confirm("Update lists? This may take several minutes.")) return;
         try {
             const data = await fetchJSON("/api/update-lists", { method: "POST" });
-            alert(data.message || (data.status === "ok" ? "Lists updated successfully" : "Failed to update lists"));
-            if (data.status === "ok") {
-                await loadListsStats();
+            
+            // Если нужны URL (Docker режим), показываем модальное окно
+            if (data.status === "need_urls") {
+                const pornDomainsUrl = prompt("Enter URL for porn_domains.txt:", "");
+                if (pornDomainsUrl === null) return; // Пользователь отменил
+                
+                const pornKeywordsUrl = prompt("Enter URL for porn_keywords.txt:", "");
+                if (pornKeywordsUrl === null) return; // Пользователь отменил
+                
+                if (!pornDomainsUrl && !pornKeywordsUrl) {
+                    alert("At least one URL is required");
+                    return;
+                }
+                
+                // Отправляем URL на сервер
+                const updateData = await fetchJSON("/api/update-lists-from-urls", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        porn_domains_url: pornDomainsUrl,
+                        porn_keywords_url: pornKeywordsUrl,
+                    }),
+                });
+                
+                alert(updateData.message || (updateData.status === "ok" ? "Lists updated successfully" : "Failed to update lists"));
+                if (updateData.status === "ok") {
+                    await loadListsStats();
+                }
+            } else {
+                // Локальный режим - обычное обновление
+                if (!confirm("Update lists? This may take several minutes.")) return;
+                alert(data.message || (data.status === "ok" ? "Lists updated successfully" : "Failed to update lists"));
+                if (data.status === "ok") {
+                    await loadListsStats();
+                }
             }
         } catch (e) {
             alert("Error: " + e.message);

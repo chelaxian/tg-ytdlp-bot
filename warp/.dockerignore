@@ -1,0 +1,16 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+README*
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+

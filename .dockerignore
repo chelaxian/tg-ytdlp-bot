@@ -1,0 +1,121 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+CONTRIBUTING.md
+*.md
+
+# Old/backup files
+_old/
+_backup/
+_cursor/
+_etc/
+
+# Tests
+tests/
+test*.py
+*_test.py
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+*.so
+
+# Virtual environments
+venv/
+benv/
+.venv/
+env/
+ENV/
+
+# Runtime files
+*.session
+*.session-*
+*.log
+*.pid
+bot.log
+runtime.log
+unknown_errors.txt
+dump.json
+firebase_cache.json
+
+# User data (mounted as volume)
+users/
+cookies/
+blocked_users.txt
+unblocked_users.txt
+
+# Temporary files
+*.part
+*.ytdl
+*.temp
+*.tmp
+*.backup_*
+
+# Scripts not needed in container
+git_update.*
+cleanup_git.*
+upload_warp.ps1
+porn.py
+porn.sh
+porn_req.txt
+script.sh
+update-yt-dlp.sh
+monitor_resources.py
+start_docker.sh
+delete_redacted.sh
+UPDATE.sh
+
+# Docker files (not needed inside)
+docker-compose.yml
+Dockerfile
+.dockerignore
+docker-entrypoint.sh
+
+# Config files with secrets (mounted as volume)
+.env
+CONFIG/config.py
+
+# Binary files
+yt-dlp
+
+# WARP directory (separate build context)
+warp/
+
+# Development files
+*.bat
+*.ps1
+generate_session_string.py
+restore_from_backup.py
+create_backup.py
+update_from_repo.py
+
+# PATCH files (if not needed at runtime)
+PATCH/
+
+# Session files
+channel_guard_session_string.txt
+channel_guard_user_session.session
+
+# Reports and analysis
+*_report.*
+*_analysis.*
+*_REPORT.*
+*_ANALYSIS.*
+
