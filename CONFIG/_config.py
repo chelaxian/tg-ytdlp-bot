@@ -11,7 +11,7 @@ from CONFIG.limits import LimitsConfig
 ###########################################################
 class Config(object):
     #######################################################    
-    # IMPORTANT (REQUIRED) SETTINGS - start filling settings here
+    # IMPORTANT (REQUIRED) SETTINGS - start filling settings here 
     #######################################################        
     # Your bot name - Required (str)
     BOT_NAME = "tgytdlp_test_bot"
