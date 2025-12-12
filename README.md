@@ -198,6 +198,7 @@ You can optionally change:
 **Step 3 – Start containers:**
 
 ```bash
+docker compose build warp
 docker compose up -d --build
 ```
 

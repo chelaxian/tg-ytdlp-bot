@@ -128,9 +128,10 @@ class Config(object):
     # PO Token Provider configuration for YouTube
     # Enable PO token provider for YouTube domains
     YOUTUBE_POT_ENABLED = True
-    # PO token provider server URL (Docker container)
-    # For Docker Compose, service name is "bgutil-provider"
-    YOUTUBE_POT_BASE_URL = "http://bgutil-provider:4416"
+    # PO token provider server URL
+    # В docker-compose с network_mode: service:warp используем localhost:4416 (общий namespace)
+    # Для локального запуска, если bgutil-provider запущен рядом, тоже подойдёт localhost:4416
+    YOUTUBE_POT_BASE_URL = "http://127.0.0.1:4416"
     # Disable innertube if tokens stop working
     YOUTUBE_POT_DISABLE_INNERTUBE = False
     ###########################################################
