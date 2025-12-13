@@ -73,7 +73,7 @@ The bot will process them in queue with progress status updates.
 - [Support](#-support)
 
 ---
-
+<a id="installation"></a>
 ## 🛠️ Installation
 
 ### 🚢 Docker Deployment (recommended for most users)
@@ -308,7 +308,7 @@ source venv/bin/activate
 # Start the bot
 python3 magic.py
 ```
-
+<a id="configuration"></a>
 ## ⚙️ Configuration
 
 ### Required Configuration
