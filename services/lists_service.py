@@ -120,25 +120,32 @@ def update_lists() -> Dict[str, Any]:
     """
     try:
         def _has_docker() -> bool:
-            return bool(shutil.which("docker")) and Path("/var/run/docker.sock").exists()
+            """Проверяет наличие docker CLI и сокета."""
+            docker_path = shutil.which("docker")
+            docker_sock = Path("/var/run/docker.sock")
+            return bool(docker_path) and docker_sock.exists()
 
-        def _container_exists(name: str) -> bool:
+        def _container_is_running(name: str) -> bool:
+            """Проверяет, что контейнер с именем name запущен (docker ps)."""
             if not _has_docker():
                 return False
-            result = subprocess.run(
-                ["docker", "ps", "-a", "--filter", f"name={name}", "--format", "{{.Names}}"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-            if result.returncode != 0:
+            try:
+                result = subprocess.run(
+                    ["docker", "ps", "--filter", f"name={name}", "--format", "{{.Names}}"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                )
+                if result.returncode != 0:
+                    return False
+                names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
+                return any(n == name for n in names)
+            except Exception:
                 return False
-            names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
-            return any(n == name for n in names)
 
-        # Docker режим: возвращаем специальный статус для запроса URL
-        if _has_docker() and _container_exists("tg-ytdlp-bot"):
+        # Docker режим: возвращаем специальный статус для запроса URL (только если контейнер запущен)
+        if _has_docker() and _container_is_running("tg-ytdlp-bot"):
             return {
                 "status": "need_urls",
                 "message": "Please provide .txt URLs for porn_domains and porn_keywords",
