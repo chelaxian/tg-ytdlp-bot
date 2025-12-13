@@ -63,8 +63,8 @@ The bot will process them in queue with progress status updates.
 
 ## 📋 Table of Contents
 
-- [Installation](#-installation)
-- [Configuration](#-configuration)
+- [Installation](#%EF%B8%8F-installation)
+- [Configuration](#%EF%B8%8F-configuration)
 - [User Commands](#-user-commands)
 - [Advanced Features](#-advanced-features)
 - [Admin Commands](#-admin-commands)
@@ -73,7 +73,7 @@ The bot will process them in queue with progress status updates.
 - [Support](#-support)
 
 ---
-<a id="installation"></a>
+
 ## 🛠️ Installation
 
 ### 🚢 Docker Deployment (recommended for most users)
@@ -308,7 +308,7 @@ source venv/bin/activate
 # Start the bot
 python3 magic.py
 ```
-<a id="configuration"></a>
+
 ## ⚙️ Configuration
 
 ### Required Configuration
