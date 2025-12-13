@@ -30,21 +30,64 @@ def _container_exists(name: str) -> bool:
     """Проверяет, что контейнер с именем name существует (docker ps -a)."""
     if not _has_docker():
         return False
-    result = _run_docker_cmd(
-        ["docker", "ps", "-a", "--filter", f"name={name}", "--format", "{{.Names}}"],
-        timeout=5,
-    )
-    if result.returncode != 0:
+    try:
+        result = _run_docker_cmd(
+            ["docker", "ps", "-a", "--filter", f"name={name}", "--format", "{{.Names}}"],
+            timeout=5,
+        )
+        if result.returncode != 0:
+            logger.warning(f"docker ps failed for container {name}: {result.stderr}")
+            return False
+        names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
+        found = any(n == name for n in names)
+        if not found:
+            logger.debug(f"Container {name} not found. Available containers: {names}")
+        return found
+    except Exception as e:
+        logger.error(f"Error checking container {name}: {e}")
         return False
-    names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
-    return any(n == name for n in names)
+
+
+def _container_is_running(name: str) -> bool:
+    """Проверяет, что контейнер с именем name запущен (docker ps)."""
+    if not _has_docker():
+        return False
+    try:
+        result = _run_docker_cmd(
+            ["docker", "ps", "--filter", f"name={name}", "--format", "{{.Names}}"],
+            timeout=5,
+        )
+        if result.returncode != 0:
+            return False
+        names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
+        return any(n == name for n in names)
+    except Exception as e:
+        logger.error(f"Error checking if container {name} is running: {e}")
+        return False
+
+
+def _is_running_in_docker() -> bool:
+    """Проверяет, запущен ли текущий процесс внутри Docker контейнера."""
+    # Проверяем наличие .dockerenv файла
+    if Path("/.dockerenv").exists():
+        return True
+    # Проверяем cgroup (более надежный способ)
+    try:
+        with open("/proc/self/cgroup", "r") as f:
+            content = f.read()
+            # Если находимся в Docker, в cgroup будет упоминание docker
+            if "docker" in content or "/docker/" in content:
+                return True
+    except Exception:
+        pass
+    return False
 
 
 def _systemctl_available() -> bool:
     return bool(shutil.which("systemctl"))
 
 
-def _run_docker_cmd(cmd: list[str], timeout: int = 60):
+def _run_docker_cmd(cmd: list[str], timeout: int = 60, cwd: str | None = None):
     """Запускает docker-cli команду и возвращает CompletedProcess."""
     return subprocess.run(
         cmd,
@@ -52,6 +95,7 @@ def _run_docker_cmd(cmd: list[str], timeout: int = 60):
         text=True,
         timeout=timeout,
         check=False,
+        cwd=cwd,
     )
 
 
@@ -110,31 +154,36 @@ def get_external_ip() -> Dict[str, str]:
     ipv4 = "unknown"
     ipv6 = "unknown"
     
-    # Если есть Docker и контейнер warp, получаем IP через него
-    if _has_docker() and _container_exists(WARP_CONTAINER_NAME):
+    # Если есть Docker и контейнер warp запущен, получаем IP через него
+    has_docker = _has_docker()
+    warp_running = _container_is_running(WARP_CONTAINER_NAME) if has_docker else False
+    
+    if has_docker and warp_running:
         docker_path = shutil.which("docker")
-        try:
-            # Получаем IPv4 через warp контейнер
-            ipv4_result = _run_docker_cmd(
-                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-4", "https://ifconfig.io"],
-                timeout=10,
-            )
-            if ipv4_result.returncode == 0 and ipv4_result.stdout.strip():
-                ipv4 = ipv4_result.stdout.strip()
-            
-            # Получаем IPv6 через warp контейнер
-            ipv6_result = _run_docker_cmd(
-                [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-6", "https://ifconfig.io"],
-                timeout=10,
-            )
-            if ipv6_result.returncode == 0 and ipv6_result.stdout.strip():
-                ipv6 = ipv6_result.stdout.strip()
-            
-            # Если получили IP через warp, возвращаем
-            if ipv4 != "unknown" or ipv6 != "unknown":
-                return {"ipv4": ipv4, "ipv6": ipv6}
-        except Exception:
-            pass
+        if docker_path:
+            try:
+                # Получаем IPv4 через warp контейнер
+                ipv4_result = _run_docker_cmd(
+                    [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-4", "https://ifconfig.io"],
+                    timeout=10,
+                )
+                if ipv4_result.returncode == 0 and ipv4_result.stdout.strip():
+                    ipv4 = ipv4_result.stdout.strip()
+                
+                # Получаем IPv6 через warp контейнер
+                ipv6_result = _run_docker_cmd(
+                    [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-6", "https://ifconfig.io"],
+                    timeout=10,
+                )
+                if ipv6_result.returncode == 0 and ipv6_result.stdout.strip():
+                    ipv6 = ipv6_result.stdout.strip()
+                
+                # Если получили IP через warp, возвращаем
+                if ipv4 != "unknown" or ipv6 != "unknown":
+                    return {"ipv4": ipv4, "ipv6": ipv6}
+            except Exception as e:
+                logger.warning(f"Failed to get IP from warp container: {e}")
+                pass
     
     # Fallback: получаем IP напрямую (локальный режим или если warp недоступен)
     try:
@@ -290,21 +339,28 @@ def _read_package_version(
 
 def _get_bgutil_provider_info() -> str:
     """Возвращает информацию о docker-контейнере bgutil-provider."""
+    # Проверяем Docker режим
+    if not _has_docker():
+        return "docker missing"
+    
+    bgutil_container = "tg-ytdlp-bgutil-provider"
     try:
-        result = subprocess.run(
+        # Проверяем существование контейнера
+        if not _container_exists(bgutil_container):
+            return "not running"
+        
+        # Получаем информацию о контейнере
+        result = _run_docker_cmd(
             [
                 "docker",
                 "ps",
                 "-a",
                 "--filter",
-                "name=bgutil-provider",
+                f"name={bgutil_container}",
                 "--format",
                 "{{.Names}}|{{.Image}}|{{.Status}}",
             ],
-            capture_output=True,
-            text=True,
             timeout=5,
-            check=False,
         )
         if result.returncode != 0:
             return "docker unavailable"
@@ -312,13 +368,12 @@ def _get_bgutil_provider_info() -> str:
         if not line:
             return "not running"
         parts = line.split("|")
-        name = parts[0] if len(parts) > 0 else "bgutil-provider"
+        name = parts[0] if len(parts) > 0 else bgutil_container
         image = parts[1] if len(parts) > 1 else "unknown image"
         status = parts[2] if len(parts) > 2 else "unknown status"
         return f"{name} ({image}) — {status}"
-    except FileNotFoundError:
-        return "docker missing"
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error getting bgutil-provider info: {e}")
         return "unknown"
 
 
@@ -334,9 +389,15 @@ def get_package_versions() -> Dict[str, str]:
 
 def rotate_ip() -> Dict[str, Any]:
     """Ротирует IP: если есть warp-контейнер, рестартуем его; иначе systemctl wgcf."""
-    # Docker режим: рестартуем warp контейнер
-    if _has_docker() and _container_exists(WARP_CONTAINER_NAME):
+    # Проверяем Docker режим: контейнер должен быть запущен, а не просто существовать
+    has_docker = _has_docker()
+    warp_running = _container_is_running(WARP_CONTAINER_NAME) if has_docker else False
+    
+    # Docker режим: рестартуем warp контейнер (только если он запущен)
+    if has_docker and warp_running:
         docker_path = shutil.which("docker")
+        if not docker_path:
+            return {"status": "error", "message": "docker CLI not found"}
         try:
             restart = _run_docker_cmd([docker_path, "restart", WARP_CONTAINER_NAME], timeout=40)
             if restart.returncode != 0:
@@ -363,9 +424,10 @@ def rotate_ip() -> Dict[str, Any]:
                 "ipv6": ipv6,
             }
         except Exception as e:
+            logger.error(f"Error rotating IP in Docker mode: {e}")
             return {"status": "error", "message": str(e)}
     
-    # Локальный режим
+    # Локальный режим - только если Docker точно недоступен
     if not _systemctl_available():
         return {"status": "error", "message": "systemctl is not available (likely running inside Docker)"}
     try:
@@ -395,16 +457,25 @@ def rotate_ip() -> Dict[str, Any]:
 
 def restart_service() -> Dict[str, Any]:
     """Перезапускает сервис: если есть контейнер бота — docker restart, иначе systemctl tg-ytdlp-bot."""
-    if _has_docker() and _container_exists(BOT_CONTAINER_NAME):
+    # Проверяем Docker режим: контейнер должен быть запущен, а не просто существовать
+    has_docker = _has_docker()
+    bot_running = _container_is_running(BOT_CONTAINER_NAME) if has_docker else False
+    
+    # Docker режим: перезапускаем контейнер бота (только если он запущен)
+    if has_docker and bot_running:
         docker_path = shutil.which("docker")
+        if not docker_path:
+            return {"status": "error", "message": "docker CLI not found"}
         try:
             result = _run_docker_cmd([docker_path, "restart", BOT_CONTAINER_NAME], timeout=60)
             if result.returncode == 0:
                 return {"status": "ok", "message": "Bot container restarted"}
             return {"status": "error", "message": result.stderr or "Failed to restart bot"}
         except Exception as e:
+            logger.error(f"Error restarting bot container: {e}")
             return {"status": "error", "message": str(e)}
-    # Локальный режим
+    
+    # Локальный режим - только если Docker точно недоступен
     if not _systemctl_available():
         return {"status": "error", "message": "systemctl is not available (likely running inside Docker)"}
     try:
@@ -427,8 +498,16 @@ def restart_service() -> Dict[str, Any]:
 
 def update_engines() -> Dict[str, Any]:
     """Обновляет движки: если есть контейнер бота — docker exec; иначе локальные скрипты."""
-    if _has_docker() and _container_exists(BOT_CONTAINER_NAME):
+    # Docker режим: обновляем через docker exec и docker pull
+    # Проверяем наличие Docker и что контейнер бота запущен
+    has_docker = _has_docker()
+    bot_running = _container_is_running(BOT_CONTAINER_NAME) if has_docker else False
+    
+    if has_docker and bot_running:
         docker_path = shutil.which("docker")
+        if not docker_path:
+            return {"status": "error", "message": "docker CLI not found"}
+        
         outputs = []
         try:
             # Обновляем yt-dlp и gallery-dl в контейнере бота
@@ -440,13 +519,19 @@ def update_engines() -> Dict[str, Any]:
                 }
             outputs.append(f"yt-dlp/gallery-dl:\n{result.stdout.strip()}")
             
-            # Обновляем bgutil-provider контейнер
+            # Обновляем bgutil-provider контейнер (он находится вне контейнера dashboard)
             bgutil_container = "tg-ytdlp-bgutil-provider"
             if _container_exists(bgutil_container):
                 try:
-                    # Останавливаем и удаляем старый контейнер
+                    # Останавливаем старый контейнер
                     stop_result = _run_docker_cmd([docker_path, "stop", bgutil_container], timeout=30)
+                    if stop_result.returncode != 0:
+                        logger.warning(f"Failed to stop bgutil-provider: {stop_result.stderr}")
+                    
+                    # Удаляем старый контейнер
                     rm_result = _run_docker_cmd([docker_path, "rm", bgutil_container], timeout=30)
+                    if rm_result.returncode != 0:
+                        logger.warning(f"Failed to remove bgutil-provider: {rm_result.stderr}")
                     
                     # Обновляем образ
                     pull_result = _run_docker_cmd(
@@ -456,18 +541,23 @@ def update_engines() -> Dict[str, Any]:
                     if pull_result.returncode != 0:
                         outputs.append(f"bgutil-provider: Failed to pull image: {pull_result.stderr}")
                     else:
-                        # Запускаем новый контейнер через docker-compose или docker run
-                        # Используем docker-compose для правильной конфигурации
+                        # Запускаем новый контейнер через docker-compose
+                        # Нужно перейти в директорию с docker-compose.yml
+                        compose_dir = Path(__file__).resolve().parent.parent
                         compose_result = _run_docker_cmd(
-                            [docker_path, "compose", "up", "-d", "bgutil-provider"],
+                            [docker_path, "compose", "-f", str(compose_dir / "docker-compose.yml"), "up", "-d", "bgutil-provider"],
                             timeout=60,
+                            cwd=str(compose_dir),
                         )
                         if compose_result.returncode == 0:
-                            outputs.append("bgutil-provider: Container updated and restarted")
+                            outputs.append("bgutil-provider: Container updated and restarted successfully")
                         else:
-                            outputs.append(f"bgutil-provider: Warning - {compose_result.stderr}")
+                            outputs.append(f"bgutil-provider: Warning - failed to restart: {compose_result.stderr}")
                 except Exception as e:
+                    logger.error(f"Error updating bgutil-provider: {e}")
                     outputs.append(f"bgutil-provider: Error - {str(e)}")
+            else:
+                outputs.append("bgutil-provider: Container not found, skipping update")
             
             return {
                 "status": "ok",
@@ -475,6 +565,7 @@ def update_engines() -> Dict[str, Any]:
                 "output": "\n\n".join(outputs),
             }
         except Exception as e:
+            logger.error(f"Error in update_engines (Docker mode): {e}")
             return {"status": "error", "message": str(e)}
     
     # Локальный режим — старое поведение, проверяем наличие скриптов
@@ -498,6 +589,7 @@ def update_engines() -> Dict[str, Any]:
                 text=True,
                 timeout=300,
                 check=False,
+                cwd=str(base_dir),
             )
             if result.returncode != 0:
                 return {
@@ -507,6 +599,7 @@ def update_engines() -> Dict[str, Any]:
             outputs.append(f"{label}:\n{result.stdout.strip()}")
         return {"status": "ok", "message": "Engines updated successfully", "output": "\n\n".join(outputs)}
     except Exception as e:
+        logger.error(f"Error in update_engines (local mode): {e}")
         return {"status": "error", "message": str(e)}
 
 

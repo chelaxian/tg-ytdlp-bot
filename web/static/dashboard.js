@@ -1791,31 +1791,10 @@
             
             // Если нужны URL (Docker режим), показываем модальное окно
             if (data.status === "need_urls") {
-                const pornDomainsUrl = prompt("Enter URL for porn_domains.txt:", "");
-                if (pornDomainsUrl === null) return; // Пользователь отменил
-                
-                const pornKeywordsUrl = prompt("Enter URL for porn_keywords.txt:", "");
-                if (pornKeywordsUrl === null) return; // Пользователь отменил
-                
-                if (!pornDomainsUrl && !pornKeywordsUrl) {
-                    alert("At least one URL is required");
-                    return;
-                }
-                
-                // Отправляем URL на сервер
-                const updateData = await fetchJSON("/api/update-lists-from-urls", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        porn_domains_url: pornDomainsUrl,
-                        porn_keywords_url: pornKeywordsUrl,
-                    }),
-                });
-                
-                alert(updateData.message || (updateData.status === "ok" ? "Lists updated successfully" : "Failed to update lists"));
-                if (updateData.status === "ok") {
-                    await loadListsStats();
-                }
+                showUpdateListsModal();
+            } else if (data.status === "error") {
+                // Ошибка (например, script.sh не найден в локальном режиме)
+                alert(data.message || "Failed to update lists");
             } else {
                 // Локальный режим - обычное обновление
                 if (!confirm("Update lists? This may take several minutes.")) return;
@@ -1828,6 +1807,124 @@
             alert("Error: " + e.message);
         }
     };
+
+    function showUpdateListsModal() {
+        const modalHtml = `
+            <div style="padding: 20px;">
+                <p style="margin-bottom: 20px; color: var(--text-secondary);">
+                    Please provide URLs for the list files (.txt format):
+                </p>
+                <div style="margin-bottom: 15px;">
+                    <label for="porn-domains-url" style="display: block; margin-bottom: 5px; font-weight: 500;">
+                        URL for porn_domains.txt:
+                    </label>
+                    <input 
+                        type="text" 
+                        id="porn-domains-url" 
+                        placeholder="https://example.com/porn_domains.txt"
+                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;"
+                    />
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label for="porn-keywords-url" style="display: block; margin-bottom: 5px; font-weight: 500;">
+                        URL for porn_keywords.txt:
+                    </label>
+                    <input 
+                        type="text" 
+                        id="porn-keywords-url" 
+                        placeholder="https://example.com/porn_keywords.txt"
+                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px;"
+                    />
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button 
+                        onclick="closeModal()" 
+                        style="padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer;"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        id="update-lists-submit-btn"
+                        style="padding: 8px 16px; border: none; border-radius: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; cursor: pointer; font-weight: 500;"
+                    >
+                        Update Lists
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        openModal("Update Lists", modalHtml);
+        
+        // Настраиваем обработчик для кнопки Submit
+        setTimeout(() => {
+            const submitBtn = document.getElementById("update-lists-submit-btn");
+            const domainsInput = document.getElementById("porn-domains-url");
+            const keywordsInput = document.getElementById("porn-keywords-url");
+            
+            if (submitBtn) {
+                submitBtn.addEventListener("click", async () => {
+                    const pornDomainsUrl = domainsInput.value.trim();
+                    const pornKeywordsUrl = keywordsInput.value.trim();
+                    
+                    if (!pornDomainsUrl && !pornKeywordsUrl) {
+                        alert("At least one URL is required");
+                        return;
+                    }
+                    
+                    // Отключаем кнопку на время запроса
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = "Updating...";
+                    
+                    try {
+                        const updateData = await fetchJSON("/api/update-lists-from-urls", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                porn_domains_url: pornDomainsUrl,
+                                porn_keywords_url: pornKeywordsUrl,
+                            }),
+                        });
+                        
+                        closeModal();
+                        
+                        if (updateData.status === "ok") {
+                            alert("Lists updated successfully");
+                            await loadListsStats();
+                        } else {
+                            alert(updateData.message || "Failed to update lists");
+                        }
+                    } catch (e) {
+                        closeModal();
+                        alert("Error: " + e.message);
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = "Update Lists";
+                    }
+                });
+            }
+            
+            // Разрешаем отправку по Enter
+            if (domainsInput) {
+                domainsInput.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        keywordsInput.focus();
+                    }
+                });
+            }
+            if (keywordsInput) {
+                keywordsInput.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter" && submitBtn) {
+                        submitBtn.click();
+                    }
+                });
+            }
+            
+            // Фокус на первом поле
+            if (domainsInput) {
+                domainsInput.focus();
+            }
+        }, 100);
+    }
 
     async function loadDomainLists() {
         const data = await fetchJSON("/api/domain-lists");
