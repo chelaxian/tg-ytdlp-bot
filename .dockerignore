@@ -86,7 +86,7 @@ UPDATE.sh
 docker-compose.yml
 Dockerfile
 .dockerignore
-docker-entrypoint.sh
+# Note: docker-entrypoint.sh is needed in the container, so it's not ignored
 
 # Config files with secrets (mounted as volume)
 .env
