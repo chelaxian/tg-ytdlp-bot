@@ -1360,16 +1360,34 @@ These commands integrate with the existing porn detection system:
 
 ## Updating the bot (updater scripts)
 
-You can update only Python files from the `main` branch of `chelaxian/tg-ytdlp-bot` using provided scripts. The updater will:
+You can update code from the `newdesign2` branch (or `main` branch) of `chelaxian/tg-ytdlp-bot` using provided scripts. The updater will:
 - Clone the repository to a temporary directory
-- Update only `*.py` files in your working directory
-- Preserve your `CONFIG/config.py` and other excluded files/directories
+- Update Python files (`.py`), shell scripts (`.sh`), Docker files (`Dockerfile`, `docker-compose.yml`, `.dockerignore`), and documentation (`.md`)
+- Preserve your `CONFIG/config.py`, `.env`, and other excluded files/directories with sensitive data
 - Make backups of changed files with suffix `.backup_YYYYMMDD_HHMM` and move them into `_backup/` (original structure preserved)
 - Ask for confirmation before applying changes
 
-### One-command update (recommended)
+### Files that will be updated:
+- ✅ All Python files (`.py`)
+- ✅ Shell scripts (`.sh`) - including `UPDATE_DOCKER.sh`, `UPDATE.sh`, `engines_updater.sh`, `update_bgutil_provider.sh`, `warp/entrypoint.sh`, etc. (except `script.sh` which is excluded)
+- ✅ Docker files - `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `docker-entrypoint.sh`, `warp/Dockerfile`, `warp/entrypoint.sh`
+- ✅ Documentation - `README.md`, `CONTRIBUTING.md`, `LICENSE`
+- ✅ Configuration templates - `requirements.txt`, `CONFIG/LANGUAGES/`, `web/` directory
+
+### Files that will NOT be updated (preserved):
+- ❌ `CONFIG/config.py` - your personal configuration
+- ❌ `CONFIG/domains.py` - your domain settings
+- ❌ `.env` - environment variables
+- ❌ `script.sh` - your custom update script
+- ❌ `TXT/` directory - your cookie files and lists
+- ❌ `users/`, `cookies/`, `_backup/` directories
+- ❌ Session files, logs, and runtime data
+
+### Updating Local Installation (without Docker)
+
+#### One-command update (recommended)
 ```bash
-./update.sh
+./UPDATE.sh
 ```
 - The script checks prerequisites and runs the Python updater.
 - After a successful update, restart the bot service (if you use systemd):
@@ -1378,10 +1396,99 @@ systemctl restart tg-ytdlp-bot
 journalctl -u tg-ytdlp-bot -f
 ```
 
-### Manual update via Python
+#### Manual update via Python
 ```bash
 python3 update_from_repo.py --show-excluded   # show excluded files/folders
 python3 update_from_repo.py                   # interactive update (prompts for confirmation)
+```
+
+### Updating Docker Installation
+
+#### Quick Update (recommended)
+Use the `UPDATE_DOCKER.sh` script for automated Docker environment updates:
+
+```bash
+# Make script executable (first time only)
+chmod +x UPDATE_DOCKER.sh
+
+# Full update: stop containers -> update code -> rebuild -> restart
+./UPDATE_DOCKER.sh
+
+# Skip code update, only rebuild and restart containers
+./UPDATE_DOCKER.sh --skip-update
+
+# Full update with clean build (no cache)
+./UPDATE_DOCKER.sh --no-cache
+
+# Show help
+./UPDATE_DOCKER.sh --help
+```
+
+**What `UPDATE_DOCKER.sh` does:**
+1. ✅ Stops and removes all Docker containers
+2. ✅ Updates code from repository (if not skipped)
+3. ✅ Rebuilds Docker images
+4. ✅ Starts all containers
+
+**Options:**
+- `--skip-update` - Skip code update, only rebuild and restart containers
+- `--no-cache` - Build images without using cache (clean build)
+- `--remove-volumes` - Remove volumes when stopping (⚠️ **WARNING**: This will delete `warp-data` volume with WireGuard configuration!)
+
+#### Manual Docker Update
+
+If you prefer to update manually:
+
+```bash
+# 1. Update code
+./UPDATE.sh
+
+# 2. Stop containers
+docker compose down
+
+# 3. Rebuild images
+docker compose build
+
+# 4. Start containers
+docker compose up -d
+
+# 5. Check status
+docker compose ps
+docker compose logs -f
+```
+
+#### Updating Specific Services
+
+To update only specific services without full rebuild:
+
+```bash
+# Rebuild and restart only bot and dashboard
+docker compose up -d --build bot dashboard
+
+# Rebuild only warp service
+docker compose build warp
+docker compose up -d warp
+
+# Pull latest bgutil-provider image
+docker compose pull bgutil-provider
+docker compose up -d bgutil-provider
+```
+
+#### After Update
+
+After updating, check that everything is working:
+
+```bash
+# Check container status
+docker compose ps
+
+# View logs
+docker compose logs -f bot
+docker compose logs -f dashboard
+docker compose logs -f warp
+
+# Check dashboard
+curl http://localhost:5555/health
 ```
 
 ---
@@ -1417,7 +1524,7 @@ systemctl restart tg-ytdlp-bot
 journalctl -u tg-ytdlp-bot -f
 ```
 
-## Link Command Pattern Spec
+## Link Command Pattern Spec 
 
 - **`https://example.com`** \
   Download the video with its original name. \

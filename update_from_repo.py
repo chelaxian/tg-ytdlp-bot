@@ -57,6 +57,20 @@ INCLUDE_DIRS = [
 
 ALWAYS_INCLUDE_FILES = [
     "requirements.txt",
+    # Docker files
+    "Dockerfile",
+    "docker-compose.yml",
+    ".dockerignore",
+    "docker-entrypoint.sh",
+    # Update scripts
+    "UPDATE.sh",
+    "UPDATE_DOCKER.sh",
+    "engines_updater.sh",
+    "update_bgutil_provider.sh",
+    # Other important files
+    "README.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
 ]
 
 
@@ -95,6 +109,26 @@ def should_update_file(file_path, exclude_include_dirs=False):
         return True
 
     if file_path.startswith('CONFIG/LANGUAGES/'):
+        return True
+
+    # Include shell scripts (except script.sh which is in EXCLUDED_FILES)
+    if file_path.endswith('.sh') and file_path not in EXCLUDED_FILES:
+        return True
+
+    # Include Docker-related files (including files in warp/ subdirectory)
+    if file_path in ['Dockerfile', 'docker-compose.yml', '.dockerignore', 'docker-entrypoint.sh']:
+        return True
+    if file_path.startswith('warp/'):
+        # Include all files in warp/ directory (Dockerfile, .sh scripts, .dockerignore)
+        if file_path.endswith('Dockerfile') or file_path.endswith('.sh') or file_path.endswith('.dockerignore'):
+            return True
+
+    # Include documentation files
+    if file_path.endswith('.md') and file_path not in EXCLUDED_FILES:
+        return True
+
+    # Include license file
+    if file_path == 'LICENSE':
         return True
 
     return False
