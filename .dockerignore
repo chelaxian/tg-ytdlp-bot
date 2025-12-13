@@ -82,11 +82,11 @@ start_docker.sh
 delete_redacted.sh
 UPDATE.sh
 
-# Docker files (not needed inside)
+# Docker files (not needed inside) 
 docker-compose.yml
 Dockerfile
 .dockerignore
-docker-entrypoint.sh
+# Note: docker-entrypoint.sh is needed in the container, so it's not ignored
 
 # Config files with secrets (mounted as volume)
 .env
