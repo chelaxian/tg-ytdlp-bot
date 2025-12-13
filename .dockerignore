@@ -82,7 +82,7 @@ start_docker.sh
 delete_redacted.sh
 UPDATE.sh
 
-# Docker files (not needed inside)
+# Docker files (not needed inside) 
 docker-compose.yml
 Dockerfile
 .dockerignore
