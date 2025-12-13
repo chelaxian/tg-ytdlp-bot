@@ -1500,6 +1500,29 @@ curl http://localhost:5555/health
 
 ---
 
+## (optional) Delete all project's docker containers and images
+
+```bash
+docker stop tg-ytdlp-warp
+docker stop tg-ytdlp-dashboard
+docker stop tg-ytdlp-bot
+docker stop tg-ytdlp-bgutil-provider
+
+docker rm tg-ytdlp-warp
+docker rm tg-ytdlp-dashboard
+docker rm tg-ytdlp-bot
+docker rm tg-ytdlp-bgutil-provider
+
+docker rmi tg-ytdlp-bot-bot
+docker rmi tg-ytdlp-bot-dashboard
+docker rmi tg-ytdlp-bot-warp
+docker rmi brainicism/bgutil-ytdlp-pot-provider
+
+docker system prune -a --volumes
+```
+
+---
+
 ## Restoring from backups
 
 When the updater changes files, it creates backups and moves them into the `_backup/` folder, preserving the original directory structure. Backup filenames have a suffix `.backup_YYYYMMDD_HHMM` (minute-level). The restore tool allows you to revert to a selected backup index.
