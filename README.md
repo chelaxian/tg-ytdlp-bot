@@ -41,6 +41,8 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 
 **Community Channel:** [@tg_ytdlp](https://t.me/tg_ytdlp)
 
+**Backup mirror (Redirector):** [@tgytdlp](https://t.me/tgytdlp)
+
 ### Basic Usage
 
 1. **Send a video URL** to the bot
@@ -63,11 +65,11 @@ The bot will process them in queue with progress status updates.
 
 ## 📋 Table of Contents
 
-- [Installation](#-installation)
-- [Configuration](#-configuration)
+- [Installation](#%EF%B8%8F-installation)
+- [Configuration](#%EF%B8%8F-configuration)
 - [User Commands](#-user-commands)
 - [Advanced Features](#-advanced-features)
-- [Admin Commands](#-admin-commands)
+- [Admin Commands](#%E2%80%8D-admin-commands)
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
 - [Support](#-support)
