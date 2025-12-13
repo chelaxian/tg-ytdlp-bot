@@ -1435,6 +1435,12 @@ chmod +x UPDATE_DOCKER.sh
 - `--no-cache` - Build images without using cache (clean build)
 - `--remove-volumes` - Remove volumes when stopping (⚠️ **WARNING**: This will delete `warp-data` volume with WireGuard configuration!)
 
+#### Clean unused Docker space
+To clean unused Docker space use following command:
+```bash
+docker system prune -a --volumes
+```
+
 #### Manual Docker Update
 
 If you prefer to update manually:
