@@ -40,6 +40,7 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 - 🇫🇷 [@tgytdlp_fr_bot](https://t.me/tgytdlp_fr_bot) - FR server
 
 **Community Channel:** [@tg_ytdlp](https://t.me/tg_ytdlp)
+
 **Backup mirror (Redirector):** [@tgytdlp](https://t.me/tgytdlp)
 
 ### Basic Usage
