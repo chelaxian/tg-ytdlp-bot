@@ -258,6 +258,7 @@ P.S. do not forget to add your bot to your channels with admin rights
 ```bash
 git clone https://github.com/chelaxian/tg-ytdlp-bot.git
 cd tg-ytdlp-bot
+chmod +x *.sh
 ```
 
 ### Step 2: Install Dependencies
@@ -1378,7 +1379,7 @@ You can update code from the `newdesign2` branch (or `main` branch) of `chelaxia
 - ❌ `CONFIG/config.py` - your personal configuration
 - ❌ `CONFIG/domains.py` - your domain settings
 - ❌ `.env` - environment variables
-- ❌ `script.sh` - your custom update script
+- ❌ `script.sh` - your custom update script for porn lists.
 - ❌ `TXT/` directory - your cookie files and lists
 - ❌ `users/`, `cookies/`, `_backup/` directories
 - ❌ Session files, logs, and runtime data
