@@ -148,22 +148,33 @@ def cleanup_media_in_download_folder(folder_path):
         for root, dirs, files in os.walk(folder_path):
             for filename in files:
                 file_path = os.path.join(root, filename)
-                
+
                 # Keep txt, json, jpg, jpeg, png files
                 if filename.endswith(('.txt', '.json', '.jpg', '.jpeg', '.png')):
                     continue
-                
+
                 # Always keep formats_cache files
                 if filename.startswith('formats_cache_') and filename.endswith('.json'):
                     continue
-                
-                # Remove media files
-                if filename.endswith(('.mp3', '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4a', '.aac', '.ogg', '.wav', '.part', '.ytdl', '.temp', '.tmp')):
+
+                # IMPORTANT:
+                # Do NOT delete final media files from the downloads/ subdirectories here.
+                # These folders are used to store already-downloaded videos (including
+                # playlist items). Removing .mp4/.mkv/etc. too aggressively may lead to
+                # situations where Pyrogram tries to send a file that has just been
+                # cleaned up, causing errors like:
+                #   "Failed to decode \".../downloads/.../file.mp4\". The value does not
+                #    represent an existing local file, HTTP URL, or valid file id."
+                #
+                # Therefore we only clean up *temporary/incomplete* artifacts here.
+
+                # Remove only temporary/partial download artifacts
+                if filename.endswith(('.part', '.ytdl', '.temp', '.tmp')):
                     try:
                         os.remove(file_path)
-                        logger.info(f"Removed media file: {file_path}")
+                        logger.info(f"Removed temporary download artifact: {file_path}")
                     except Exception as e:
-                        logger.error(f"Failed to remove media file {file_path}: {e}")
+                        logger.error(f"Failed to remove temporary download artifact {file_path}: {e}")
     except Exception as e:
         logger.error(f"Error cleaning media in download folder {folder_path}: {e}")
 

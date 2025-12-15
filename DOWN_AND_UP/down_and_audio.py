@@ -1124,8 +1124,27 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     # If detection is disabled, continue with live stream download
                     # This will be handled by the live stream download function
                 
-                # Check for postprocessing errors
-                if "Postprocessing" in error_text and "Error opening output files" in error_text:
+                # Check for postprocessing errors (including conversion failures)
+                if "Postprocessing" in error_text:
+                    # Check for conversion failed errors
+                    if "Conversion failed" in error_text:
+                        postprocessing_message = (
+                            safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
+                            "**Possible causes:**\n"
+                            "• Audio format conversion failed\n"
+                            "• Corrupted or incomplete download\n"
+                            "• Unsupported codec or format\n"
+                            "• Insufficient system resources\n\n"
+                            "**Solutions:**\n"
+                            "• Try downloading again - the system will retry automatically\n"
+                            "• Try a different quality or format\n"
+                            "• Check if you have enough disk space\n"
+                            "• If the problem persists, the audio source may be incompatible\n"
+                        )
+                        send_error_to_user(message, postprocessing_message)
+                        logger.error(f"Postprocessing conversion error: {error_text}")
+                        return "POSTPROCESSING_ERROR"
+                    elif "Error opening output files" in error_text:
                     postprocessing_message = (
                         safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                         "**Solutions:**\n"
