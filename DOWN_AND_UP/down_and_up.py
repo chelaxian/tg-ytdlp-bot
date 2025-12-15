@@ -1604,17 +1604,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Postprocessing conversion error: {error_message}")
                         return "POSTPROCESSING_ERROR"
                     elif "Error opening output files" in error_message:
-                    postprocessing_message = (
-                        safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
-                        "**Solutions:**\n"
-                        "• Try downloading again - the system will use a safer filename\n"
-                        "• If the problem persists, the video title may contain unsupported characters\n"
-                        "• Consider using a different video source if available\n\n"
-                        "The download will be retried automatically with a cleaned filename."
-                    )
-                    send_error_to_user(message, postprocessing_message)
-                    logger.error(f"Postprocessing error: {error_message}")
-                    return "POSTPROCESSING_ERROR"
+                        postprocessing_message = (
+                            safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
+                            "**Solutions:**\n"
+                            "• Try downloading again - the system will use a safer filename\n"
+                            "• If the problem persists, the video title may contain unsupported characters\n"
+                            "• Consider using a different video source if available\n\n"
+                            "The download will be retried automatically with a cleaned filename."
+                        )
+                        send_error_to_user(message, postprocessing_message)
+                        logger.error(f"Postprocessing error: {error_message}")
+                        return "POSTPROCESSING_ERROR"
                 
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_message and "Invalid argument" in error_message:
