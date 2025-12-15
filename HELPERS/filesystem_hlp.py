@@ -435,7 +435,7 @@ def sanitize_filename_strict(filename, max_length=100):
         name = "untitled"
     
     # Shorten if too long.
-    # NOTE: We keep a relatively small limit here because yt-dlp may append
+    # NOTE: We keep a relatively small limit here because yt-dlp may append 
     # additional suffixes to the filename (e.g. dash/fdash info, .part, etc.).
     # Long Unicode titles (Cyrillic, Asian scripts, etc.) can easily exceed
     # filesystem per‑component limits in bytes even if the character count
