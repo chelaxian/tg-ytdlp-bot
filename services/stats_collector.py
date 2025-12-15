@@ -425,7 +425,7 @@ class StatsCollector:
             with self._lock:
                 self._multi_url_events = events[-5000:]
         except Exception as exc:
-            logger.warning(f\"[stats] failed to load multi-url events: {exc}\")
+            logger.warning(f"[stats] failed to load multi-url events: {exc}")
 
     def _register_multi_event(self, user_id: int, urls_count: int, timestamp: int) -> None:
         """Запоминает факт множественной отправки URL в одном сообщении."""
@@ -443,7 +443,7 @@ class StatsCollector:
                 with self._multi_url_events_file.open("w", encoding="utf-8") as fh:
                     json.dump(self._multi_url_events, fh)
             except Exception as exc:
-                logger.debug(f\"[stats] failed to persist multi-url events: {exc}\")
+                logger.debug(f"[stats] failed to persist multi-url events: {exc}")
 
     def reload_from_dump(self) -> None:
         if not os.path.exists(self.dump_path):
