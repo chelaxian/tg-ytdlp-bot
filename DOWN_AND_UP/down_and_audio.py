@@ -193,6 +193,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     # Initialize retry guards early to avoid UnboundLocalError
     did_proxy_retry = False
     did_cookie_retry = False
+    did_live_from_start_retry = False
     is_hls = False
     
     # Determine forced NSFW via user tags
@@ -867,7 +868,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
         def try_download_audio(url, current_index):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata
+            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata
             # Use format_override if provided, otherwise use default 'ba'
             download_format = format_override if format_override else 'ba'
             
@@ -917,7 +918,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'referer': url,
                'geo_bypass': True,
                'check_certificate': False,
-               'live_from_start': True,
+               'live_from_start': True if not did_live_from_start_retry else False,
                'writethumbnail': True,  # Enable thumbnail writing for manual embedding
                'writesubtitles': False,  # Disable subtitles for audio
                'writeautomaticsub': False,  # Disable auto subtitles for audio
@@ -1141,6 +1142,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if "Postprocessing" in error_text and "Invalid argument" in error_text:
                     logger.error(f"Postprocessing error (Invalid argument): {error_text}")
                     return "POSTPROCESSING_ERROR"
+                
+                # Check for --live-from-start error and retry with --no-live-from-start
+                if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_text and not did_live_from_start_retry:
+                    logger.info(f"Live-from-start error detected for user {user_id}, retrying with --no-live-from-start")
+                    did_live_from_start_retry = True
+                    # Retry the download with live_from_start disabled
+                    retry_result = try_download_audio(url, current_index)
+                    if retry_result is not None:
+                        logger.info(f"Audio download retry with --no-live-from-start successful for user {user_id}")
+                        return retry_result
+                    else:
+                        logger.warning(f"Audio download retry with --no-live-from-start failed for user {user_id}")
+                        # Continue with normal error handling below
                 
                 # Auto-fallback to gallery-dl (/img) for all supported errors
                 # Но НЕ для аудио, так как gallery-dl не умеет скачивать аудио
@@ -1458,6 +1472,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Reset retry flags for each new item in playlist
             did_cookie_retry = False
             did_proxy_retry = False
+            did_live_from_start_retry = False
 
             # Для отрицательных индексов не используем reuse_range_download, скачиваем каждый индекс отдельно
             reuse_range_download = use_range_download and range_entries_metadata is not None and not has_negative_indices_for_download
@@ -1557,7 +1572,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                            'referer': url,
                            'geo_bypass': True,
                            'check_certificate': False,
-                           'live_from_start': True,
+                           'live_from_start': True if not did_live_from_start_retry else False,
                            'writethumbnail': True,
                            'writesubtitles': False,
                            'writeautomaticsub': False,
