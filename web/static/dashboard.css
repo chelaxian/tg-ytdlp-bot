@@ -237,6 +237,11 @@ body.theme-light .tab-button.active {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
+/* Users tab: 2x2 layout for NSFW / Playlists / Multi-URL / Power users */
+.users-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .card {
     background: #121a2c;
     border: 1px solid rgba(148, 163, 184, 0.2);
