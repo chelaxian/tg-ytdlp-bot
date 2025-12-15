@@ -19,6 +19,9 @@ from DATABASE.cache_db import get_next_reload_time
 logger = logging.getLogger(__name__)
 BOT_CONTAINER_NAME = os.environ.get("BOT_CONTAINER_NAME", "tg-ytdlp-bot")
 WARP_CONTAINER_NAME = os.environ.get("WARP_CONTAINER_NAME", "tg-ytdlp-warp")
+# Имя контейнера bgutil-provider должно совпадать с тем, что используется в скриптах / docker-compose.
+# По умолчанию это "bgutil-provider" (см. update_bgutil_provider.sh).
+BGUTIL_CONTAINER_NAME = os.environ.get("BGUTIL_CONTAINER_NAME", "bgutil-provider")
 
 
 def _has_docker() -> bool:
@@ -343,9 +346,10 @@ def _get_bgutil_provider_info() -> str:
     if not _has_docker():
         return "docker missing"
     
-    bgutil_container = "tg-ytdlp-bgutil-provider"
+    # Пытаемся определить контейнер с именем из настроек (по умолчанию "bgutil-provider")
+    bgutil_container = BGUTIL_CONTAINER_NAME
     try:
-        # Проверяем существование контейнера
+        # Проверяем существование контейнера (строгое совпадение имени)
         if not _container_exists(bgutil_container):
             return "not running"
         
@@ -519,8 +523,8 @@ def update_engines() -> Dict[str, Any]:
                 }
             outputs.append(f"yt-dlp/gallery-dl:\n{result.stdout.strip()}")
             
-            # Обновляем bgutil-provider контейнер (он находится вне контейнера dashboard)
-            bgutil_container = "tg-ytdlp-bgutil-provider"
+        # Обновляем bgutil-provider контейнер (он находится вне контейнера dashboard)
+        bgutil_container = BGUTIL_CONTAINER_NAME
             if _container_exists(bgutil_container):
                 try:
                     # Останавливаем старый контейнер
