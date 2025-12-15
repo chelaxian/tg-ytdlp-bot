@@ -395,7 +395,7 @@ def sanitize_filename(filename, max_length=150):
     
     return full_name
 
-def sanitize_filename_strict(filename, max_length=150):
+def sanitize_filename_strict(filename, max_length=100):
     """
     Strict sanitization for filenames - removes all characters except letters and numbers,
     replaces spaces with underscores. Used specifically for yt-dlp file downloads.
@@ -434,7 +434,12 @@ def sanitize_filename_strict(filename, max_length=150):
     if not name:
         name = "untitled"
     
-    # Shorten if too long
+    # Shorten if too long.
+    # NOTE: We keep a relatively small limit here because yt-dlp may append
+    # additional suffixes to the filename (e.g. dash/fdash info, .part, etc.).
+    # Long Unicode titles (Cyrillic, Asian scripts, etc.) can easily exceed
+    # filesystem per‑component limits in bytes even if the character count
+    # looks safe, so we enforce an aggressive cap.
     full_name = name + ext
     max_total = max_length
     if len(full_name) > max_total:
