@@ -203,6 +203,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # Initialize retry guards early to avoid UnboundLocalError
     did_proxy_retry = False
     did_cookie_retry = False
+    did_live_from_start_retry = False
     is_hls = False
     error_message_sent = False  # Flag to prevent duplicate error messages
     
@@ -1006,7 +1007,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         def try_download(url, attempt_opts):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata
+            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata
+            
+            # Ensure download directory exists before setting outtmpl
+            try:
+                os.makedirs(user_dir_name, exist_ok=True)
+            except Exception as e:
+                logger.error(f"Failed to create download directory {user_dir_name}: {e}")
             
             # Use original filename for first attempt
             original_outtmpl = os.path.join(user_dir_name, "%(title)s.%(ext)s")
@@ -1038,7 +1045,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'referer': url,
                 'geo_bypass': True,
                 'check_certificate': False,
-                'live_from_start': True
+                'live_from_start': True if not did_live_from_start_retry else False
                 #'socket_timeout': 60,  # Increase socket timeout
                 #'retries': 15,  # Increase retries
                 #'fragment_retries': 15,  # Increase fragment retries
@@ -1576,19 +1583,38 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # If detection is disabled, continue with live stream download
                     # This will be handled by the live stream download function
                 
-                # Check for postprocessing errors
-                if "Postprocessing" in error_message and "Error opening output files" in error_message:
-                    postprocessing_message = (
-                        safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
-                        "**Solutions:**\n"
-                        "• Try downloading again - the system will use a safer filename\n"
-                        "• If the problem persists, the video title may contain unsupported characters\n"
-                        "• Consider using a different video source if available\n\n"
-                        "The download will be retried automatically with a cleaned filename."
-                    )
-                    send_error_to_user(message, postprocessing_message)
-                    logger.error(f"Postprocessing error: {error_message}")
-                    return "POSTPROCESSING_ERROR"
+                # Check for postprocessing errors (including conversion failures for m3u8 streams)
+                if "Postprocessing" in error_message:
+                    # Check for conversion failed errors (common with m3u8 streams)
+                    if "Conversion failed" in error_message:
+                        postprocessing_message = (
+                            safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
+                            "**Possible causes:**\n"
+                            "• Video format conversion failed (common with HLS/m3u8 streams)\n"
+                            "• Corrupted or incomplete download\n"
+                            "• Unsupported codec or format\n"
+                            "• Insufficient system resources\n\n"
+                            "**Solutions:**\n"
+                            "• Try downloading again - the system will retry automatically\n"
+                            "• Try a different quality or format\n"
+                            "• Check if you have enough disk space\n"
+                            "• If the problem persists, the stream may be unstable or incompatible\n"
+                        )
+                        send_error_to_user(message, postprocessing_message)
+                        logger.error(f"Postprocessing conversion error: {error_message}")
+                        return "POSTPROCESSING_ERROR"
+                    elif "Error opening output files" in error_message:
+                        postprocessing_message = (
+                            safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
+                            "**Solutions:**\n"
+                            "• Try downloading again - the system will use a safer filename\n"
+                            "• If the problem persists, the video title may contain unsupported characters\n"
+                            "• Consider using a different video source if available\n\n"
+                            "The download will be retried automatically with a cleaned filename."
+                        )
+                        send_error_to_user(message, postprocessing_message)
+                        logger.error(f"Postprocessing error: {error_message}")
+                        return "POSTPROCESSING_ERROR"
                 
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_message and "Invalid argument" in error_message:
@@ -1600,6 +1626,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Format not available error: {error_message}")
                     return "FORMAT_NOT_AVAILABLE"
                 
+                # Check for --live-from-start error and retry with --no-live-from-start
+                if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_message and not did_live_from_start_retry:
+                    logger.info(f"Live-from-start error detected for user {user_id}, retrying with --no-live-from-start")
+                    did_live_from_start_retry = True
+                    # Retry the download with live_from_start disabled
+                    retry_result = try_download(url, attempt_opts)
+                    if retry_result is not None:
+                        logger.info(f"Download retry with --no-live-from-start successful for user {user_id}")
+                        return retry_result
+                    else:
+                        logger.warning(f"Download retry with --no-live-from-start failed for user {user_id}")
+                        # Continue with normal error handling below
                 
                 
                 # Auto-fallback to gallery-dl (/img) for all supported errors
@@ -1952,6 +1990,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Reset retry flags for each new item in playlist
             did_cookie_retry = False
             did_proxy_retry = False
+            did_live_from_start_retry = False
             error_message_sent = False  # Reset error message flag for each playlist item
 
             info_dict = None
@@ -2288,9 +2327,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     old_path = downloaded_abs_path or os.path.join(dir_path, downloaded_file)
                     new_path = os.path.join(dir_path, final_name)
                     try:
-                        if os.path.exists(new_path):
-                            os.remove(new_path)
-                        os.rename(old_path, new_path)
+                        # Check if source file exists before renaming
+                        if not os.path.exists(old_path):
+                            # Check if .part file exists and wait for it to complete
+                            part_path = old_path + '.part'
+                            if os.path.exists(part_path):
+                                logger.warning(f"Source file {old_path} not found, but .part file exists. Download may not be complete.")
+                                final_name = downloaded_file
+                            else:
+                                logger.error(f"Source file {old_path} not found for renaming")
+                                final_name = downloaded_file
+                        else:
+                            if os.path.exists(new_path):
+                                os.remove(new_path)
+                            os.rename(old_path, new_path)
                     except Exception as e:
                         logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
                         final_name = downloaded_file
@@ -2309,7 +2359,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Error removing existing file {new_path}: {e}")
 
                 try:
-                    os.rename(old_path, new_path)
+                    # Check if source file exists before renaming
+                    if not os.path.exists(old_path):
+                        # Check if .part file exists and wait for it to complete
+                        part_path = old_path + '.part'
+                        if os.path.exists(part_path):
+                            logger.warning(f"Source file {old_path} not found, but .part file exists. Download may not be complete.")
+                            final_name = downloaded_file
+                            caption_name = original_video_title
+                        else:
+                            logger.error(f"Source file {old_path} not found for renaming")
+                            final_name = downloaded_file
+                            caption_name = original_video_title
+                    else:
+                        os.rename(old_path, new_path)
                 except Exception as e:
                     logger.error(f"Error renaming file from {old_path} to {new_path}: {e}")
                     final_name = downloaded_file
@@ -2317,6 +2380,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             user_vid_path = os.path.join(dir_path, final_name)
             if final_name.lower().endswith((".webm", ".ts")):
+                # Check if source file exists before conversion
+                if not os.path.exists(user_vid_path):
+                    logger.error(f"Source file for conversion not found: {user_vid_path}")
+                    send_error_to_user(message, safe_get_messages(user_id).CONVERSION_TO_MP4_FAILED_MSG.format(error="Source file not found"))
+                    continue
+                
                 try:
                     safe_edit_message_text(user_id, proc_msg_id,
                         f"{info_text}\n{full_bar}   100.0%\nConverting video using ffmpeg... ⏳")
@@ -2333,22 +2402,60 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     send_error_to_user(message, safe_get_messages(user_id).FFMPEG_NOT_FOUND_MSG)
                     break
                 
-                ffmpeg_cmd = [
-                    ffmpeg_path,
-                    "-y",
-                    "-i", user_vid_path,
-                    "-c:v", "libx264",
-                    "-preset", "fast",
-                    "-crf", "23",
-                    "-c:a", "aac",
-                    "-b:a", "128k",
-                    mp4_file
-                ]
+                # For m3u8 streams, use more robust conversion options
+                is_m3u8 = final_name.lower().endswith(".ts") or ".m3u8" in url.lower()
+                if is_m3u8:
+                    ffmpeg_cmd = [
+                        ffmpeg_path,
+                        "-y",
+                        "-i", user_vid_path,
+                        "-c:v", "libx264",
+                        "-preset", "medium",
+                        "-crf", "23",
+                        "-c:a", "aac",
+                        "-b:a", "128k",
+                        "-movflags", "+faststart",
+                        "-fflags", "+genpts",
+                        mp4_file
+                    ]
+                else:
+                    ffmpeg_cmd = [
+                        ffmpeg_path,
+                        "-y",
+                        "-i", user_vid_path,
+                        "-c:v", "libx264",
+                        "-preset", "fast",
+                        "-crf", "23",
+                        "-c:a", "aac",
+                        "-b:a", "128k",
+                        mp4_file
+                    ]
                 try:
-                    result = subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
-                    os.remove(user_vid_path)
-                    user_vid_path = mp4_file
-                    final_name = mp4_basename
+                    result = subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=3600)
+                    # Verify output file was created and is not empty
+                    if os.path.exists(mp4_file) and os.path.getsize(mp4_file) > 0:
+                        try:
+                            os.remove(user_vid_path)
+                        except Exception as e:
+                            logger.warning(f"Failed to remove original file {user_vid_path}: {e}")
+                        user_vid_path = mp4_file
+                        final_name = mp4_basename
+                    else:
+                        raise subprocess.CalledProcessError(1, ffmpeg_cmd, "Output file not created or is empty")
+                except subprocess.TimeoutExpired:
+                    logger.error(f"FFmpeg conversion timeout for {user_vid_path}")
+                    error_message = safe_get_messages(user_id).DOWN_UP_VIDEO_CONVERSION_FAILED_MSG
+                    error_message += (
+                        "**Possible causes:**\n"
+                        "• Video file is too large or complex\n"
+                        "• Conversion process exceeded time limit\n"
+                        "• Insufficient system resources\n\n"
+                        "**Solutions:**\n"
+                        "• Try downloading with a different quality\n"
+                        "• The original file will be sent without conversion\n"
+                    )
+                    send_error_to_user(message, error_message)
+                    continue
                 except subprocess.CalledProcessError as e:
                     error_details = f"Return code: {e.returncode}"
                     if e.stderr:

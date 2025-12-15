@@ -367,6 +367,14 @@ class StatsCollector:
                 BASE_DIR / "CONFIG" / ".active_sessions.json",
             )
         )
+        # Файл для хранения multi-url событий, чтобы дашборд и бот делили одну статистику
+        self._multi_url_events_file = Path(
+            getattr(
+                Config,
+                "MULTI_URL_EVENTS_FILE",
+                BASE_DIR / "CONFIG" / ".multi_url_events.json",
+            )
+        )
         self._active_sessions_mtime: float = 0.0
         self._last_sessions_persist_ts: float = 0.0
 
@@ -381,6 +389,7 @@ class StatsCollector:
         except Exception as exc:
             logger.warning(f"[stats] initial dump load failed: {exc}")
         self._load_active_sessions_from_disk()
+        self._load_multi_url_events_from_disk()
 
     # ------------------------------------------------------------------
     # Вспомогательные методы
@@ -394,15 +403,47 @@ class StatsCollector:
             except Exception as exc:
                 logger.error(f"[stats] dump reload failed: {exc}")
 
+    def _load_multi_url_events_from_disk(self) -> None:
+        """Загружает multi-url события из файла, если он существует."""
+        try:
+            if not self._multi_url_events_file.exists():
+                return
+            with self._multi_url_events_file.open("r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            if not isinstance(data, list):
+                return
+            events: List[Tuple[int, int, int]] = []
+            for item in data:
+                if (
+                    isinstance(item, list)
+                    and len(item) == 3
+                    and isinstance(item[0], int)
+                    and isinstance(item[1], int)
+                    and isinstance(item[2], int)
+                ):
+                    events.append((item[0], item[1], item[2]))
+            with self._lock:
+                self._multi_url_events = events[-5000:]
+        except Exception as exc:
+            logger.warning(f"[stats] failed to load multi-url events: {exc}")
+
     def _register_multi_event(self, user_id: int, urls_count: int, timestamp: int) -> None:
         """Запоминает факт множественной отправки URL в одном сообщении."""
         if not user_id or urls_count <= 1:
             return
         with self._lock:
-            self._multi_url_events.append((user_id, urls_count, timestamp or int(time.time())))
+            ts = timestamp or int(time.time())
+            self._multi_url_events.append((user_id, urls_count, ts))
             # Ограничиваем размер, чтобы не росло бесконечно
             if len(self._multi_url_events) > 5000:
                 self._multi_url_events = self._multi_url_events[-5000:]
+            # Пишем на диск, чтобы дашборд видел эти события даже в другом процессе
+            try:
+                self._multi_url_events_file.parent.mkdir(parents=True, exist_ok=True)
+                with self._multi_url_events_file.open("w", encoding="utf-8") as fh:
+                    json.dump(self._multi_url_events, fh)
+            except Exception as exc:
+                logger.debug(f"[stats] failed to persist multi-url events: {exc}")
 
     def reload_from_dump(self) -> None:
         if not os.path.exists(self.dump_path):

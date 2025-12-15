@@ -1552,7 +1552,14 @@ def image_command(app, message):
             
             # Upper cap: if user provided end, respect it (but not above limit for non-admins)
             if original_manual_end_cap is not None:
-                manual_end_cap = original_manual_end_cap if is_admin else min(original_manual_end_cap, total_limit)
+                if is_admin:
+                    manual_end_cap = original_manual_end_cap
+                else:
+                    # Ensure total_limit is not None before comparison
+                    if total_limit is not None:
+                        manual_end_cap = min(original_manual_end_cap, total_limit)
+                    else:
+                        manual_end_cap = original_manual_end_cap
                 
                 # Для отрицательных индексов нужно получить общее количество постов и преобразовать их
                 if current_start < 0 or manual_end_cap < 0:

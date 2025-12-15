@@ -284,6 +284,43 @@ def move_backups_to_backup_dir():
         log(f"⚠️ Failed to move backups: {e}", "WARNING")
 
 
+def set_executable_flag_for_shell_scripts(base_dir: Path) -> None:
+    """
+    Гарантирует, что все *.sh скрипты имеют бит выполнения после обновления.
+    Это полезно, когда код редактируется под Windows и права исполняемых файлов теряются.
+    """
+    try:
+        for root, dirs, files in os.walk(base_dir):
+            # Пропускаем служебные директории
+            rel_root = os.path.relpath(root, base_dir)
+            if rel_root == ".":
+                rel_root = ""
+            skip_dir = False
+            for excluded_dir in EXCLUDED_DIRS:
+                if rel_root and rel_root.startswith(excluded_dir):
+                    skip_dir = True
+                    break
+            if skip_dir:
+                continue
+
+            for filename in files:
+                if not filename.endswith(".sh"):
+                    continue
+                rel_path = os.path.join(rel_root, filename) if rel_root else filename
+                # Не трогаем явно исключённые скрипты (например, script.sh)
+                if rel_path in EXCLUDED_FILES:
+                    continue
+                full_path = base_dir / rel_path
+                try:
+                    mode = full_path.stat().st_mode
+                    # Добавляем execute-бит для owner/group/others
+                    full_path.chmod(mode | 0o111)
+                except Exception as chmod_err:
+                    log(f"⚠️ Failed to set executable flag on {full_path}: {chmod_err}", "WARNING")
+        log("✅ Executable flag applied to all .sh scripts")
+    except Exception as e:
+        log(f"⚠️ Failed to process shell scripts permissions: {e}", "WARNING")
+
 def main():
     messages = safe_get_messages(None)
 
@@ -355,6 +392,10 @@ def main():
         log("=" * 50)
         log("📦 Syncing include directories (web/, etc.)...")
         sync_include_directories(temp_dir)
+
+        # После обновления файлов и синхронизации директорий восстанавливаем
+        # права исполнения для всех shell-скриптов в рабочем каталоге.
+        set_executable_flag_for_shell_scripts(Path('.'))
 
         # ============================
         # NEW: backup skip logic here

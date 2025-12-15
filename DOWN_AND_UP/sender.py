@@ -258,6 +258,9 @@ def send_videos(
             nonlocal was_paid
             # Для бесплатных сообщений — внешний превью без паддинга; для платных — обложка 320x320
             local_thumb_free = _gen_free_cover(video_abs_path)
+            # Ensure thumbnail exists before using it
+            if local_thumb_free and not os.path.exists(local_thumb_free):
+                local_thumb_free = None
             # Paid media only in private chats; in groups/channels send regular video
             try:
                 chat_type = getattr(message.chat, "type", None)
