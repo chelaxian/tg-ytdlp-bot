@@ -203,6 +203,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # Initialize retry guards early to avoid UnboundLocalError
     did_proxy_retry = False
     did_cookie_retry = False
+    did_live_from_start_retry = False
     is_hls = False
     error_message_sent = False  # Flag to prevent duplicate error messages
     
@@ -1006,7 +1007,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         def try_download(url, attempt_opts):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata
+            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata
             
             # Use original filename for first attempt
             original_outtmpl = os.path.join(user_dir_name, "%(title)s.%(ext)s")
@@ -1038,7 +1039,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'referer': url,
                 'geo_bypass': True,
                 'check_certificate': False,
-                'live_from_start': True
+                'live_from_start': True if not did_live_from_start_retry else False
                 #'socket_timeout': 60,  # Increase socket timeout
                 #'retries': 15,  # Increase retries
                 #'fragment_retries': 15,  # Increase fragment retries
@@ -1600,6 +1601,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Format not available error: {error_message}")
                     return "FORMAT_NOT_AVAILABLE"
                 
+                # Check for --live-from-start error and retry with --no-live-from-start
+                if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_message and not did_live_from_start_retry:
+                    logger.info(f"Live-from-start error detected for user {user_id}, retrying with --no-live-from-start")
+                    did_live_from_start_retry = True
+                    # Retry the download with live_from_start disabled
+                    retry_result = try_download(url, attempt_opts)
+                    if retry_result is not None:
+                        logger.info(f"Download retry with --no-live-from-start successful for user {user_id}")
+                        return retry_result
+                    else:
+                        logger.warning(f"Download retry with --no-live-from-start failed for user {user_id}")
+                        # Continue with normal error handling below
                 
                 
                 # Auto-fallback to gallery-dl (/img) for all supported errors
@@ -1952,6 +1965,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Reset retry flags for each new item in playlist
             did_cookie_retry = False
             did_proxy_retry = False
+            did_live_from_start_retry = False
             error_message_sent = False  # Reset error message flag for each playlist item
 
             info_dict = None

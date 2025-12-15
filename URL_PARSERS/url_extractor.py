@@ -1048,6 +1048,48 @@ def url_distractor(app, message):
     final_text = message.text if hasattr(message, 'text') and message.text else text
     if ("https://" in final_text) or ("http://" in final_text):
         if not is_user_blocked(message):
+            # "Защита от дурака": ранний отказ для явно неподдерживаемых типов файлов
+            try:
+                import re
+                from urllib.parse import urlparse
+                from HELPERS.logger import send_error_to_user
+
+                url_match = re.search(r"https?://\S+", final_text)
+                raw_url = url_match.group(0) if url_match else ""
+                parsed = urlparse(raw_url)
+                path_lower = (parsed.path or "").lower()
+
+                # Расширения, которые точно не поддерживаются yt-dlp / gallery-dl как видео/аудио
+                unsupported_exts = (
+                    ".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst",
+                    ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz",
+                    ".iso", ".img",
+                    ".dmg", ".pkg",
+                    ".exe", ".msi", ".msix", ".cab",
+                    ".apk", ".aab",
+                    ".deb", ".rpm"
+                )
+
+                if raw_url and any(path_lower.endswith(ext) for ext in unsupported_exts):
+                    logger.info(
+                        f"URL_EXTRACTOR: blocking unsupported file extension for URL '{raw_url}', path='{path_lower}'"
+                    )
+                    # Сообщение в едином формате с основным обработчиком ошибок, но без запуска yt-dlp/ffmpeg
+                    err_msg = (
+                        f"<blockquote>{safe_get_messages(user_id).ERROR_CHECK_SUPPORTED_SITES_MSG}</blockquote>\n"
+                        f"<blockquote>{safe_get_messages(user_id).ERROR_COOKIE_NEEDED_MSG}</blockquote>\n"
+                        f"<blockquote>{safe_get_messages(user_id).ERROR_COOKIE_INSTRUCTIONS_MSG}</blockquote>\n"
+                        f"────────────────\n"
+                        f"❌ <b>Error Code:</b> <code>UNSUPPORTED_FILE_EXTENSION</code>\n"
+                        f"📝 <b>Description:</b> This URL points to an archive/installer file which is not supported by yt-dlp or "
+                        f"gallery-dl as a video/audio source (e.g. .zip/.rar/.7z/.exe/.apk/.iso).\n"
+                        f"   Please send a direct video/audio link from a supported site instead."
+                    )
+                    send_error_to_user(message, err_msg, url=raw_url)
+                    return
+            except Exception as ext_check_error:
+                logger.error(f"URL_EXTRACTOR: failed to apply unsupported extension guard: {ext_check_error}")
+
             # Check rate limit before processing URL
             from HELPERS.rate_limiter import check_rate_limit
             allowed, rate_limit_msg = check_rate_limit(user_id, is_admin)
