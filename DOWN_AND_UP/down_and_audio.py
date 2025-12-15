@@ -1126,8 +1126,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Check for postprocessing errors (including conversion failures)
                 if "Postprocessing" in error_text:
-                    # Check for conversion failed errors
-                    if "Conversion failed" in error_text:
+                    error_lower = error_text.lower()
+                    # Check for conversion failed errors (case-insensitive)
+                    if "conversion failed" in error_lower:
                         postprocessing_message = (
                             safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Possible causes:**\n"
@@ -1144,18 +1145,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         send_error_to_user(message, postprocessing_message)
                         logger.error(f"Postprocessing conversion error: {error_text}")
                         return "POSTPROCESSING_ERROR"
-                    elif "Error opening output files" in error_text:
-                    postprocessing_message = (
-                        safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
-                        "**Solutions:**\n"
-                        "• Try downloading again - the system will use a safer filename\n"
-                        "• If the problem persists, the audio title may contain unsupported characters\n"
-                        "• Consider using a different audio source if available\n\n"
-                        "The download will be retried automatically with a cleaned filename."
-                    )
-                    send_error_to_user(message, postprocessing_message)
-                    logger.error(f"Postprocessing error: {error_text}")
-                    return "POSTPROCESSING_ERROR"
+                    elif "error opening output files" in error_lower:
+                        postprocessing_message = (
+                            safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
+                            "**Solutions:**\n"
+                            "• Try downloading again - the system will use a safer filename\n"
+                            "• If the problem persists, the audio title may contain unsupported characters\n"
+                            "• Consider using a different audio source if available\n\n"
+                            "The download will be retried automatically with a cleaned filename."
+                        )
+                        send_error_to_user(message, postprocessing_message)
+                        logger.error(f"Postprocessing error: {error_text}")
+                        return "POSTPROCESSING_ERROR"
                 
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_text and "Invalid argument" in error_text:
@@ -1319,6 +1320,21 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif "Unsupported URL" in error_text:
                         error_code = "UNSUPPORTED_URL"
                         error_description = "This URL is not supported by yt-dlp"
+                    elif "Postprocessing: audio conversion failed" in error_text or "received signal 2" in error_text:
+                        # FFmpeg/yt-dlp reported that audio conversion was interrupted by signal 2 (SIGINT)
+                        # Treat this as a known, user-visible error instead of UNKNOWN_ERROR
+                        error_code = "FFMPEG_INTERRUPTED"
+                        error_description = (
+                            "Audio conversion was interrupted by the system (signal 2).\n\n"
+                            "**Possible causes:**\n"
+                            "• Server or host stopped the conversion process\n"
+                            "• Resource/timeout limit was reached during ffmpeg processing\n"
+                            "• Bot was restarted or stopped while converting audio\n\n"
+                            "**What you can try:**\n"
+                            "• Send the link again and wait until conversion is finished\n"
+                            "• Try a different quality/format\n"
+                            "• If the error repeats, try later or use another source"
+                        )
                     elif "Network error" in error_text:
                         error_code = "NETWORK_ERROR"
                         error_description = "Network connection failed"

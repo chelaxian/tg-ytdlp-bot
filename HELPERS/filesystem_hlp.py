@@ -435,7 +435,7 @@ def sanitize_filename_strict(filename, max_length=100):
     # Replace all other characters (including spaces) with underscores
     name = re.sub(r'[^\w\-\.\(\)]', '_', name)
     
-    # Remove multiple consecutive underscores
+    # Remove multiple consecutive underscores 
     name = re.sub(r'_+', '_', name)
     
     # Remove leading/trailing underscores
