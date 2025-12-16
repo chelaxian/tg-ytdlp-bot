@@ -237,9 +237,46 @@ body.theme-light .tab-button.active {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
-/* Users tab: 2x2 layout for NSFW / Playlists / Multi-URL / Power users */
-.users-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Layout toggle (cards per row) */
+.layout-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.15rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.85);
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.35);
+}
+
+.layout-toggle__btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    cursor: pointer;
+    min-width: 28px;
+    text-align: center;
+}
+
+.layout-toggle__btn.active {
+    background: linear-gradient(135deg, #22d3ee, #6366f1);
+    color: #0f172a;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.45);
+}
+
+body.theme-light .layout-toggle {
+    background: #e5e7eb;
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.45);
+}
+
+body.theme-light .layout-toggle__btn {
+    color: #64748b;
+}
+
+body.theme-light .layout-toggle__btn.active {
+    color: #0f172a;
 }
 
 .card {
