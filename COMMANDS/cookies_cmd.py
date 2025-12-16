@@ -1112,8 +1112,9 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
             'no_warnings': True,
             'skip_download': True,
             'noplaylist': True,
-            'format': 'best',
-            'ignore_no_formats_error': False,
+            # Не указываем format, чтобы избежать "Requested format is not available"
+            # Нас интересует только возможность извлечь info с активными куками.
+            'ignore_no_formats_error': True,
             'cookiefile': cookie_file_path,
             'extractor_args': {
                 'youtube': {'player_client': ['tv']}
@@ -1149,16 +1150,27 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
         if duration is not None and (duration <= 0 or duration > 86400):
             logger.warning(f"Invalid duration {duration} for cookie test, but continuing...")
             # Не возвращаем False, так как для Shorts это может быть нормально
-        # Проверяем наличие форматов
+        
+        # Форматы здесь проверяем мягко: даже если их мало, это чаще проблема формата/PO,
+        # а не самих кук, поэтому не считаем это падением теста.
         formats = info.get('formats', [])
-        if len(formats) < 2:
+        if len(formats) < 1:
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_INSUFFICIENT_FORMATS_LOG_MSG.format(formats_count=len(formats), cookie_file_path=cookie_file_path))
-            return False
-            
+            # Но всё равно считаем куки рабочими, раз info извлекается.
+        
         logger.info(LoggerMsg.COOKIES_YOUTUBE_COOKIES_WORK_LOG_MSG.format(cookie_file_path=cookie_file_path))
         return True
         
     except Exception as e:
+        # Специальный кейс: ошибки формата НЕ считаем падением кук.
+        emsg = str(e)
+        if "Requested format is not available" in emsg or "Use --list-formats for a list of available formats" in emsg:
+            logger.warning(
+                f"YouTube cookie test on URL reported format error but cookies are likely fine: {emsg}. "
+                f"Treating cookies as working for {cookie_file_path}."
+            )
+            return True
+        
         logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_USER_URL_LOG_MSG.format(cookie_file_path=cookie_file_path, e=e))
         return False
 
