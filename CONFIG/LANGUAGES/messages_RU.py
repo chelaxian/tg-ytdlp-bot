@@ -1452,6 +1452,10 @@ class Messages(object):
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>Скачивание прямой трансляции завершено</b>"
     LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "Скачано частей: {chunks}"
     LIVE_STREAM_TOTAL_DURATION_MSG = "Общая длительность: {duration} сек"
+    LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>Скачивание прямой трансляции остановлено</b>"
+    LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "Директория пользователя была удалена (вероятно, командой /clean)"
+    LIVE_STREAM_FILE_DELETED_MSG = "Файл части был удален (вероятно, командой /clean)"
+    LIVE_STREAM_ENDED_MSG = "ℹ️ Трансляция завершена"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "Пожалуйста, выберите другой формат используя команду `/format`."
     
     # Direct Link Messages

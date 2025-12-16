@@ -1430,6 +1430,10 @@ class Messages(object):
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>اكتمل تحميل البث المباشر</b>"
     LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "تم تحميل {chunks} جزء(أجزاء)"
     LIVE_STREAM_TOTAL_DURATION_MSG = "المدة الإجمالية: {duration} ثانية"
+    LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>توقف تحميل البث المباشر</b>"
+    LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "تم حذف مجلد المستخدم (على الأرجح بواسطة أمر /clean)"
+    LIVE_STREAM_FILE_DELETED_MSG = "تم حذف ملف الجزء (على الأرجح بواسطة أمر /clean)"
+    LIVE_STREAM_ENDED_MSG = "ℹ️ انتهى البث"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "يرجى اختيار تنسيق مختلف باستخدام أمر `/format`."
     
     # Direct Link Messages

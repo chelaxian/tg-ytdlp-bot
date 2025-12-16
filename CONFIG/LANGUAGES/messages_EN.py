@@ -1452,6 +1452,10 @@ Use:
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>Live Stream Download Complete</b>"
     LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "Downloaded {chunks} chunk(s)"
     LIVE_STREAM_TOTAL_DURATION_MSG = "Total duration: {duration} sec"
+    LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>Live Stream Download Stopped</b>"
+    LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "User directory was deleted (probably by /clean command)"
+    LIVE_STREAM_FILE_DELETED_MSG = "Chunk file was deleted (probably by /clean command)"
+    LIVE_STREAM_ENDED_MSG = "ℹ️ Stream has ended"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "Please select a different format using `/format` command."
     
     # Direct Link Messages

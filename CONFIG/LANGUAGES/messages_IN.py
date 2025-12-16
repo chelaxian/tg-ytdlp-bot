@@ -1430,6 +1430,10 @@ class Messages(object):
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>लाइव स्ट्रीम डाउनलोड पूर्ण</b>"
     LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "{chunks} भाग डाउनलोड किए गए"
     LIVE_STREAM_TOTAL_DURATION_MSG = "कुल अवधि: {duration} सेकंड"
+    LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>लाइव स्ट्रीम डाउनलोड रोक दिया गया</b>"
+    LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "उपयोगकर्ता निर्देशिका हटा दी गई (शायद /clean कमांड द्वारा)"
+    LIVE_STREAM_FILE_DELETED_MSG = "भाग फ़ाइल हटा दी गई (शायद /clean कमांड द्वारा)"
+    LIVE_STREAM_ENDED_MSG = "ℹ️ स्ट्रीम समाप्त हो गई"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "कृपया `/format` कमांड का उपयोग करके एक अलग प्रारूप चुनें।"
     
     # Direct Link Messages
