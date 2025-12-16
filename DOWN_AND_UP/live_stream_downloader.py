@@ -263,6 +263,21 @@ def download_live_stream_chunked(
             }
             
             try:
+                # Check if user directory still exists (might have been deleted by /clean)
+                if not os.path.exists(user_dir_name):
+                    logger.warning(f"User directory was deleted (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_USER_DIRECTORY_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e:
+                        logger.error(f"Error updating progress: {e}")
+                    break
+                
                 with yt_dlp.YoutubeDL(chunk_opts) as ydl:
                     ydl.download([url])
                 
@@ -338,6 +353,21 @@ def download_live_stream_chunked(
                 if tags_text:
                     chunk_caption += f"\n{tags_text}"
                 
+                # Check if file still exists before sending (might have been deleted by /clean)
+                if not os.path.exists(chunk_file):
+                    logger.warning(f"Chunk file was deleted before sending (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_FILE_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e:
+                        logger.error(f"Error updating progress: {e}")
+                    break
+                
                 # Send chunk immediately
                 logger.info(f"Sending chunk {chunk_idx} to user: {chunk_file}")
                 
@@ -360,23 +390,114 @@ def download_live_stream_chunked(
                     logger.warning(f"Failed to send chunk {chunk_idx}")
                 
                 # Check if chunk reached size limit (if it's smaller, stream might have ended)
+                # Also check if file still exists (might have been deleted by /clean)
+                if not os.path.exists(chunk_file):
+                    logger.warning(f"Chunk file was deleted (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_FILE_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e:
+                        logger.error(f"Error updating progress: {e}")
+                    break
+                
                 chunk_size_bytes = os.path.getsize(chunk_file)
                 if chunk_size_bytes < max_chunk_size * 0.9:  # If chunk is less than 90% of max size
                     logger.info(f"Chunk {chunk_idx} is smaller than expected ({chunk_size_bytes} < {max_chunk_size * 0.9}), stream might have ended")
-                    # Continue to try next chunk, but if it also fails, we'll stop
+                    # If this is the second consecutive small chunk, assume stream ended
+                    if chunk_idx > 1:
+                        logger.info(f"Two consecutive small chunks detected, assuming stream has ended")
+                        try:
+                            from HELPERS.safe_messeger import safe_edit_message_text
+                            final_text = (
+                                f"{current_total_process}\n"
+                                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                                f"{messages.LIVE_STREAM_ENDED_MSG}"
+                            )
+                            safe_edit_message_text(user_id, proc_msg_id, final_text)
+                        except Exception as e:
+                            logger.error(f"Error updating final progress: {e}")
+                        return successful_chunks > 0
                 
                 # Clean up chunk file after sending to save space
-                try:
-                    os.remove(chunk_file)
-                    logger.info(f"Cleaned up chunk file: {chunk_file}")
-                except Exception as e:
-                    logger.error(f"Error cleaning up chunk file: {e}")
+                # Check if file still exists before trying to delete (might have been deleted by /clean)
+                if os.path.exists(chunk_file):
+                    try:
+                        os.remove(chunk_file)
+                        logger.info(f"Cleaned up chunk file: {chunk_file}")
+                    except Exception as e:
+                        logger.error(f"Error cleaning up chunk file: {e}")
+                else:
+                    logger.warning(f"Chunk file was already deleted: {chunk_file}")
                 
             except Exception as e:
                 error_text = str(e)
+                
+                # Check if user directory was deleted (probably by /clean)
+                if not os.path.exists(user_dir_name):
+                    logger.warning(f"User directory was deleted during download (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_USER_DIRECTORY_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e2:
+                        logger.error(f"Error updating progress: {e2}")
+                    break
+                
+                # Check for stream ended errors (transmission ended, video unavailable, etc.)
+                stream_ended_keywords = [
+                    "transmission ended",
+                    "video unavailable",
+                    "private video",
+                    "video is unavailable",
+                    "stream ended",
+                    "this live stream recording is not available",
+                    "live stream recording is not available",
+                    "HTTP Error 403",
+                    "HTTP Error 404",
+                    "unable to download video data",
+                    "no video formats found",
+                    "requested format is not available"
+                ]
+                
+                is_stream_ended = False
+                if isinstance(e, yt_dlp.utils.DownloadError):
+                    error_lower = error_text.lower()
+                    for keyword in stream_ended_keywords:
+                        if keyword.lower() in error_lower:
+                            is_stream_ended = True
+                            logger.info(f"Stream ended detected (keyword: '{keyword}'): {error_text}")
+                            break
+                
+                if is_stream_ended:
+                    logger.info(f"Live stream has ended, stopping download after {successful_chunks} chunks")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                            f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                            f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                            f"{messages.LIVE_STREAM_ENDED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e2:
+                        logger.error(f"Error updating final progress: {e2}")
+                    return successful_chunks > 0
+                
                 # Check for --live-from-start error and retry with --no-live-from-start
                 if isinstance(e, yt_dlp.utils.DownloadError) and "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_text and not did_live_from_start_retry:
-                    logger.info(f"Live-from-start error detected for chunk {chunk_idx + 1}, retrying with --no-live-from-start")
+                    logger.info(f"Live-from-start error detected for chunk {chunk_idx}, retrying with --no-live-from-start")
                     did_live_from_start_retry = True
                     # Update base_opts to disable live_from_start for retry
                     base_opts['live_from_start'] = False
@@ -390,7 +511,7 @@ def download_live_stream_chunked(
                         # Continue with the rest of the chunk processing (checking file, sending, etc.)
                         # We'll need to duplicate the logic here or extract it to a function
                         # For now, let's continue normally and let the retry succeed
-                        logger.info(f"Chunk {chunk_idx + 1} retry with --no-live-from-start successful")
+                        logger.info(f"Chunk {chunk_idx} retry with --no-live-from-start successful")
                         # Re-check file existence and continue processing
                         if os.path.exists(chunk_file):
                             # Continue with chunk processing below
@@ -476,22 +597,28 @@ def download_live_stream_chunked(
                         else:
                             logger.warning(f"Failed to send chunk {chunk_idx} after retry")
                         
+                        # Check if chunk file still exists
+                        if not os.path.exists(chunk_file):
+                            logger.warning(f"Chunk file was deleted after retry (probably by /clean), stopping")
+                            break
+                        
                         # Check if chunk reached size limit
                         chunk_size_bytes = os.path.getsize(chunk_file)
                         if chunk_size_bytes < max_chunk_size * 0.9:
                             logger.info(f"Chunk {chunk_idx} is smaller than expected after retry, stream might have ended")
                         
                         # Clean up chunk file after sending
-                        try:
-                            os.remove(chunk_file)
-                            logger.info(f"Cleaned up chunk file after retry: {chunk_file}")
-                        except Exception as e:
-                            logger.error(f"Error cleaning up chunk file after retry: {e}")
+                        if os.path.exists(chunk_file):
+                            try:
+                                os.remove(chunk_file)
+                                logger.info(f"Cleaned up chunk file after retry: {chunk_file}")
+                            except Exception as e:
+                                logger.error(f"Error cleaning up chunk file after retry: {e}")
                         
                         # Continue to next chunk
                         continue
                     except Exception as retry_e:
-                        logger.error(f"Retry with --no-live-from-start also failed for chunk {chunk_idx + 1}: {retry_e}")
+                        logger.error(f"Retry with --no-live-from-start also failed for chunk {chunk_idx}: {retry_e}")
                         # Continue with next chunk
                         continue
                 
