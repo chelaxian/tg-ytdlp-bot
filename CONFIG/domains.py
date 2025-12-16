@@ -43,6 +43,7 @@ class DomainsConfig(object):
         # Imageboards / archives / art communities largely covered by gallery-dl
         'vk.com/wall-',
         'vk.com/album-',
+        'instagram.com/p/',
     ]
 
     GALLERYDL_FALLBACK_DOMAINS = [

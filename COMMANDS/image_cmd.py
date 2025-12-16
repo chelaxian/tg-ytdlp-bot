@@ -3789,25 +3789,7 @@ def image_command(app, message):
 
             time.sleep(0.5)
 
-        # Update status to show completion
-        try:
-            if not completion_sent:
-                final_expected = total_expected or min(total_downloaded, total_limit)
-                safe_edit_message_text(
-                    user_id,
-                    status_msg.id,
-                    safe_get_messages(user_id).DOWNLOAD_COMPLETE_MSG +
-                    f"{safe_get_messages(user_id).DOWNLOADED_STATUS_MSG} <b>{total_downloaded}</b> / <b>{final_expected}</b>\n"
-                    f"{safe_get_messages(user_id).SENT_STATUS_MSG} <b>{total_sent}</b>",
-                    parse_mode=enums.ParseMode.HTML,
-                )
-                completion_sent = True
-        except Exception:
-            pass
-        if completion_sent:
-            return
-
-        # Send remaining files in buffer as final album
+        # Send remaining files in buffer as final album (if any)
         if photos_videos_buffer:
             media_group = []
             for p, t, _orig in photos_videos_buffer:
@@ -3917,6 +3899,22 @@ def image_command(app, message):
                     photos_videos_buffer = []
                 except Exception as e:
                     logger.error(f"Failed to send final media group: {e}")
+
+        # Update status to show completion (after sending all media)
+        try:
+            if not completion_sent:
+                final_expected = total_expected or min(total_downloaded, total_limit)
+                safe_edit_message_text(
+                    user_id,
+                    status_msg.id,
+                    safe_get_messages(user_id).DOWNLOAD_COMPLETE_MSG +
+                    f"{safe_get_messages(user_id).DOWNLOADED_STATUS_MSG} <b>{total_downloaded}</b> / <b>{final_expected}</b>\n"
+                    f"{safe_get_messages(user_id).SENT_STATUS_MSG} <b>{total_sent}</b>",
+                    parse_mode=enums.ParseMode.HTML,
+                )
+                completion_sent = True
+        except Exception:
+            pass
 
         # Messages are already forwarded to log channels during caching process above
 
