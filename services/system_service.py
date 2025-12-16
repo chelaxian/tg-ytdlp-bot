@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 BOT_CONTAINER_NAME = os.environ.get("BOT_CONTAINER_NAME", "tg-ytdlp-bot")
 WARP_CONTAINER_NAME = os.environ.get("WARP_CONTAINER_NAME", "tg-ytdlp-warp")
 # Имя контейнера bgutil-provider должно совпадать с тем, что используется в скриптах / docker-compose.
-# По умолчанию это "bgutil-provider" (см. update_bgutil_provider.sh) 
+# По умолчанию это "bgutil-provider" (см. update_bgutil_provider.sh)
 BGUTIL_CONTAINER_NAME = os.environ.get("BGUTIL_CONTAINER_NAME", "bgutil-provider")
 # Имена контейнера и systemd-сервиса панели управления (можно переопределить через переменные окружения)
 DASHBOARD_CONTAINER_NAME = os.environ.get("DASHBOARD_CONTAINER_NAME", "tg-ytdlp-dashboard")
