@@ -1127,6 +1127,32 @@ def url_distractor(app, message):
                     url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(message.text)
                     
                     if url:
+                        # Workaround for yt-dlp treating single URLs as playlists and raising
+                        # "Skipping unsupported file type in playlist at index 0/1".
+                        err_str = str(e)
+                        if (
+                            ("Skipping unsupported file type in playlist at index 0" in err_str)
+                            or ("Skipping unsupported file type in playlist at index 1" in err_str)
+                        ) and not is_playlist_with_range(message.text or ""):
+                            # Пользователь не просил диапазон, но yt-dlp думает, что это плейлист.
+                            # Принудительно добавляем *1*1 к URL и пробуем как одиночный элемент.
+                            try:
+                                # Берём только сам URL без тэгов/диапазонов и дописываем *1*1
+                                base_url = url.strip()
+                                forced_text = f"{base_url}*1*1"
+                                logger.info(
+                                    f"[PLAYLIST WORKAROUND] Forcing single-item range '*1*1' for URL '{base_url}' "
+                                    f"after unsupported playlist index error"
+                                )
+                                message.text = forced_text
+                                video_url_extractor(app, message)
+                                return
+                            except Exception as force_e:
+                                logger.error(
+                                    f"[PLAYLIST WORKAROUND] Failed to re-run video_url_extractor with *1*1: {force_e}"
+                                )
+                                # если воркэраунд не сработал — продолжаем обычный gallery-dl fallback ниже
+
                         # Create fallback command with range if available
                         if video_start_with and video_end_with and (video_start_with != 1 or video_end_with != 1):
                             fallback_text = f"/img {video_start_with}-{video_end_with} {url}"
