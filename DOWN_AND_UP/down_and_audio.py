@@ -195,6 +195,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     did_cookie_retry = False
     did_live_from_start_retry = False
     is_hls = False
+    unknown_error_message_sent = False  # Флаг для предотвращения спама сообщений об ошибках
     
     # Determine forced NSFW via user tags
     try:
@@ -868,7 +869,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
         def try_download_audio(url, current_index):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata
+            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata, unknown_error_message_sent
             # Use format_override if provided, otherwise use default 'ba'
             download_format = format_override if format_override else 'ba'
             
@@ -1396,7 +1397,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     return "SKIP"  # Skip this audio and continue with next
                 
                 else:
-                    send_to_user(message, safe_get_messages(user_id).ERROR_UNKNOWN_MSG.format(error=str(e)))
+                    # Отправляем сообщение об ошибке только один раз, чтобы избежать спама
+                    if not unknown_error_message_sent:
+                        send_to_user(message, safe_get_messages(user_id).ERROR_UNKNOWN_MSG.format(error=str(e)))
+                        unknown_error_message_sent = True
                 return None
 
         # Download thumbnail for embedding (only once for the URL)
@@ -1508,6 +1512,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             did_cookie_retry = False
             did_proxy_retry = False
             did_live_from_start_retry = False
+            unknown_error_message_sent = False  # Сбрасываем флаг для каждого нового элемента плейлиста
 
             # Для отрицательных индексов не используем reuse_range_download, скачиваем каждый индекс отдельно
             reuse_range_download = use_range_download and range_entries_metadata is not None and not has_negative_indices_for_download
