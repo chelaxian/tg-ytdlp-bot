@@ -1539,12 +1539,15 @@
     };
 
     window.restartPanel = async function() {
-        if (!confirm("Restart dashboard panel? You may need to reload this page after restart.")) return;
+        if (!confirm("Restart dashboard panel? The connection may drop, then you can reload the page.")) return;
         try {
-            const data = await fetchJSON("/api/restart-panel", { method: "POST" });
-            alert(data.message || (data.status === "ok" ? "Panel restarted successfully" : "Failed to restart panel"));
+            // Не используем fetchJSON здесь, т.к. сам процесс панели может завершиться
+            // до отправки корректного ответа (systemd перезапускает сервис).
+            await fetch("/api/restart-panel", { method: "POST" });
         } catch (e) {
-            alert("Error: " + e.message);
+            // Игнорируем сетевые ошибки: если панель перезапускается, соединение может оборваться.
+        } finally {
+            alert("Panel restart initiated. If the page stops responding, wait a few seconds and reload it.");
         }
     };
 
