@@ -1710,8 +1710,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         except Exception as call_e:
                             logger.error(f"Failed to trigger gallery-dl fallback: {call_e}")
                 
-                # Проверяем, связана ли ошибка с региональными ограничениями YouTube
+                # YouTube‑специфичные ошибки: сначала пробуем перебор кук, затем гео‑прокси
                 if is_youtube_url(url):
+                    # 1) Ошибки авторизации/куков (в т.ч. "Sign in to confirm you’re not a bot")
+                    if is_youtube_cookie_error(error_message):
+                        logger.info(f"YouTube cookie-related error detected for user {user_id}, attempting retry with different cookies")
+                        try:
+                            retry_result = retry_download_with_different_cookies(
+                                user_id, url, try_download, url, attempt_opts
+                            )
+                        except Exception as cookie_retry_error:
+                            logger.error(f"YouTube cookie retry failed with unexpected error for user {user_id}: {cookie_retry_error}")
+                            retry_result = None
+                        
+                        if retry_result is not None:
+                            logger.info(f"Download retry with different cookies successful for user {user_id}")
+                            return retry_result
+                        else:
+                            logger.warning(f"All YouTube cookie retry attempts failed for user {user_id}")
+                    
+                    # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси один раз
                     if is_youtube_geo_error(error_message) and not did_proxy_retry:
                         logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy")
                         
