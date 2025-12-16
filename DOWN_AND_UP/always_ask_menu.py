@@ -5598,24 +5598,43 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             logger.error(f"Error creating cached qualities menu: {cache_error}")
         
         # Если кэшированных качеств нет, показываем ошибку
-        error_text = f"{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG}\n<blockquote>{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG}</blockquote>\n\n{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
+        # ВАЖНО: для логов и отладки используем ПОЛНОЕ описание исключения, а не короткую заглушку.
+        short_error = safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG
+        detailed_error = f"{short_error}: {str(e)}"
+        # Для пользователя оставляем читаемое сообщение + технические детали отдельным блоком
+        error_text = (
+            f"{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG}"
+            f"\n<blockquote>{short_error}</blockquote>\n"
+            f"\n<code>{str(e)}</code>\n\n"
+            f"{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
+        )
         
         # Try to edit the processing message to show error first
         try:
             if proc_msg:
                 result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text, parse_mode=enums.ParseMode.HTML)
                 if result is not None:
-                    # Successfully edited the processing message, now log to channel
-                    log_error_to_channel(message, safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG), url)
+                    # Successfully edited the processing message, now log to channel (with full error text)
+                    log_error_to_channel(
+                        message,
+                        safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
+                        url,
+                    )
                     return
         except Exception as e2:
             logger.error(f"Error editing processing message: {e2}")
         
         # If editing failed or no proc_msg, send new message to user
-        logger.error(f"Always Ask menu error for user {user_id}: {safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG}")
+        # В лог пишем подробную ошибку, чтобы в LOG_EXCEPTION был понятный стек
+        logger.error(f"Always Ask menu error for user {user_id}: {detailed_error}")
         from HELPERS.safe_messeger import safe_send_message
         safe_send_message(user_id, error_text, parse_mode=enums.ParseMode.HTML, message=message)
-        log_error_to_channel(message, safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG), url)
+        # В канал логирования тоже отправляем полное описание исключения
+        log_error_to_channel(
+            message,
+            safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
+            url,
+        )
         return
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs, proc_msg=None):

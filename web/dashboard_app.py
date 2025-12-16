@@ -330,6 +330,10 @@ async def api_restart_service():
     return system_service.restart_service()
 
 
+@app.post("/api/restart-panel")
+async def api_restart_panel():
+    return system_service.restart_panel()
+
 @app.post("/api/update-engines")
 async def api_update_engines():
     return system_service.update_engines()

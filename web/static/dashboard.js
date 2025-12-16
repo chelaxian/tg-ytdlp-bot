@@ -69,6 +69,7 @@
             "system.config": "Configuration",
             "system.ip_rotate": "Rotate IP",
             "system.restart": "Restart Service",
+            "system.restart_panel": "Restart Panel",
             "system.cleanup": "Cleanup User Files",
             "system.update_engines": "Update Engines",
             "lists.stats": "File Statistics",
@@ -180,6 +181,7 @@
             "system.config": "Конфигурация",
             "system.ip_rotate": "Сменить IP",
             "system.restart": "Перезапустить сервис",
+            "system.restart_panel": "Перезапустить панель",
             "system.cleanup": "Очистить файлы пользователей",
             "system.update_engines": "Обновить движки",
             "lists.stats": "Статистика файлов",
@@ -1220,8 +1222,23 @@
         });
     }
 
+    let gridColumns = parseInt(localStorage.getItem("dashboardGridColumns") || "4", 10);
+
+    function applyGridPreference(grid) {
+        if (!Number.isInteger(gridColumns) || gridColumns < 1 || gridColumns > 4) {
+            return false;
+        }
+        const cards = grid.querySelectorAll(":scope > article.card");
+        const cols = Math.min(gridColumns, cards.length || gridColumns);
+        grid.style.gridTemplateColumns = `repeat(${cols}, minmax(280px, 1fr))`;
+        return true;
+    }
+
     function applyAdaptiveGrid() {
         document.querySelectorAll("[data-grid-layout='cards']").forEach((grid) => {
+            if (applyGridPreference(grid)) {
+                return;
+            }
             const cards = grid.querySelectorAll(":scope > article.card");
             const count = cards.length;
             if (count <= 1) {
@@ -1258,6 +1275,29 @@
         selectors.activePeriod = document.getElementById("active-users-period");
         selectors.activeCount = document.querySelector("[data-active-count]");
         themeToggleBtn = document.getElementById("theme-toggle");
+    }
+
+    function setupLayoutToggle() {
+        const container = document.getElementById("layout-toggle");
+        if (!container) return;
+        const buttons = container.querySelectorAll(".layout-toggle__btn");
+        const applyActive = () => {
+            buttons.forEach((btn) => {
+                const cols = parseInt(btn.dataset.cols || "0", 10);
+                btn.classList.toggle("active", cols === gridColumns);
+            });
+        };
+        buttons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const cols = parseInt(btn.dataset.cols || "0", 10);
+                if (!cols || cols < 1 || cols > 4) return;
+                gridColumns = cols;
+                localStorage.setItem("dashboardGridColumns", String(gridColumns));
+                applyActive();
+                applyAdaptiveGrid();
+            });
+        });
+        applyActive();
     }
 
     function setupSelectors() {
@@ -1450,6 +1490,7 @@
             <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <button class="action-button" onclick="rotateIP()" data-i18n="system.ip_rotate">Rotate IP</button>
                 <button class="action-button" onclick="restartService()" data-i18n="system.restart">Restart Service</button>
+                <button class="action-button" onclick="restartPanel()" data-i18n="system.restart_panel">Restart Panel</button>
                 <button class="action-button" onclick="cleanupUserFiles()" data-i18n="system.cleanup">Cleanup User Files</button>
             </div>
         `;
@@ -1494,6 +1535,19 @@
             alert(data.message || (data.status === "ok" ? "Service restarted successfully" : "Failed to restart service"));
         } catch (e) {
             alert("Error: " + e.message);
+        }
+    };
+
+    window.restartPanel = async function() {
+        if (!confirm("Restart dashboard panel? The connection may drop, then you can reload the page.")) return;
+        try {
+            // Не используем fetchJSON здесь, т.к. сам процесс панели может завершиться
+            // до отправки корректного ответа (systemd перезапускает сервис).
+            await fetch("/api/restart-panel", { method: "POST" });
+        } catch (e) {
+            // Игнорируем сетевые ошибки: если панель перезапускается, соединение может оборваться.
+        } finally {
+            alert("Panel restart initiated. If the page stops responding, wait a few seconds and reload it.");
         }
     };
 
@@ -2088,6 +2142,7 @@
         setupSelectors();
         setupLanguageSwitch();
         setupSearchFilters();
+        setupLayoutToggle();
         setupTabHandlers();
         setupThemeToggle();
         setupPowerUsersFilters();

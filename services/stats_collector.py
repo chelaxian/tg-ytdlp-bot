@@ -1123,13 +1123,22 @@ class StatsCollector:
             blocked_user_ids = set(self._blocked_users.keys())
             events = list(self._multi_url_events)
 
-        filtered = []
+        filtered: List[Tuple[int, int, int]] = []
         for user_id, urls_count, ts in events:
             if user_id in blocked_user_ids:
                 continue
             if window_end is not None and ts < window_start:
                 continue
             filtered.append((user_id, urls_count, ts))
+
+        # Если явных событий нет (старые дампы/версии), пытаемся восстановить статистику
+        # из исторических записей, используя поле multi_total > 1.
+        if not filtered:
+            for rec in self._filter_downloads(period):
+                if rec.user_id in blocked_user_ids:
+                    continue
+                if rec.multi_total and rec.multi_total > 1:
+                    filtered.append((rec.user_id, rec.multi_total, rec.timestamp))
 
         # агрегируем по пользователям
         per_user: Dict[int, Dict[str, Any]] = defaultdict(lambda: {"messages": 0, "total_urls": 0, "last_ts": 0})

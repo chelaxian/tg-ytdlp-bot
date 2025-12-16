@@ -157,11 +157,16 @@ def determine_need_subs(subs_enabled, found_type, user_id):
 
 #@reply_with_keyboard
 def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, clear_subs_cache_on_start=True):
-    # Сбрасываем кеш проверенных источников куки для новой задачи загрузки
+    # ВАЖНО: не сбрасываем источники YouTube‑куки без необходимости.
+    # Если пользователь уже получил рабочие куки и мы пришли из Always Ask меню
+    # (cookies_already_checked=True), повторный сброс и перебор источников только
+    # замедлит старт скачивания. Сбрасываем источники только для новых задач,
+    # когда куки ещё не проверялись.
     user_id = message.chat.id
-    from COMMANDS.cookies_cmd import reset_checked_cookie_sources
-    reset_checked_cookie_sources(user_id)
-    logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new download task for user {user_id}")
+    if not cookies_already_checked:
+        from COMMANDS.cookies_cmd import reset_checked_cookie_sources
+        reset_checked_cookie_sources(user_id)
+        logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new download task for user {user_id}")
     messages = safe_get_messages(message.chat.id)
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
@@ -1015,8 +1020,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             except Exception as e:
                 logger.error(f"Failed to create download directory {user_dir_name}: {e}")
             
-            # Use original filename for first attempt
-            original_outtmpl = os.path.join(user_dir_name, "%(title)s.%(ext)s")
+            # Use a very short, ID‑based filename for the first attempt to avoid
+            # hitting filesystem "File name too long" limits (especially with
+            # long Unicode titles and yt-dlp suffixes like dash/fdash, .part, etc.)
+            # We intentionally avoid using the video title in the filename here;
+            # the human‑readable title is still preserved separately in captions.
+            original_outtmpl = os.path.join(user_dir_name, "%(id)s.%(ext)s")
             
             # First try with original filename
             # Для отрицательных индексов используем весь диапазон сразу
@@ -1146,98 +1155,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 download_cookie_path = os.path.join(user_dir_name, "cookie.txt")
                 user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
                 
-                # For YouTube URLs, use optimized cookie logic - check existing first on user's URL, then retry if needed
+                # Для YouTube теперь не устраиваем тяжёлый повторный тест кук перед скачиванием.
+                # Логика такая:
+                #   * если у пользователя уже есть cookie.txt — просто используем его;
+                #   * если нет — скачивание пойдёт без кук, а при реальной cookie‑ошибке
+                #     перехватится в DownloadError и запустит retry_download_with_different_cookies.
                 if is_youtube_url(url):
-                    from COMMANDS.cookies_cmd import get_youtube_cookie_urls, test_youtube_cookies_on_url, _download_content
-                    
-                    # Always check existing cookies first on user's URL for maximum speed
                     if os.path.exists(user_cookie_path):
-                        logger.info(f"Checking existing YouTube cookies on user's URL for user {user_id}")
-                        if test_youtube_cookies_on_url(user_cookie_path, url, user_id):
-                            common_opts['cookiefile'] = user_cookie_path
-                            logger.info(f"Existing YouTube cookies work on user's URL for user {user_id} - using them")
-                        else:
-                            logger.info(f"Existing YouTube cookies failed on user's URL, trying to get new ones for user {user_id}")
-                            cookie_urls = get_youtube_cookie_urls()
-                            if cookie_urls:
-                                # Получаем только непроверенные источники для этого пользователя
-                                from COMMANDS.cookies_cmd import get_unchecked_cookie_sources, mark_cookie_source_checked
-                                unchecked_indices = get_unchecked_cookie_sources(user_id, cookie_urls)
-                                if not unchecked_indices:
-                                    logger.warning(f"All cookie sources have been checked for user {user_id}, no more sources to try")
-                                    common_opts['cookiefile'] = None
-                                else:
-                                    success = False
-                                    for i, idx in enumerate(unchecked_indices, 1):
-                                        cookie_url = cookie_urls[idx]
-                                        logger.info(f"Trying YouTube cookie source {idx + 1}/{len(cookie_urls)} for user {user_id}")
-                                        
-                                        # Отмечаем источник как проверенный
-                                        mark_cookie_source_checked(user_id, idx)
-                                        
-                                        try:
-                                            ok, status, content, err = _download_content(cookie_url, timeout=30, user_id=user_id)
-                                            if ok and content and len(content) <= 100 * 1024:
-                                                with open(user_cookie_path, "wb") as cf:
-                                                    cf.write(content)
-                                                if test_youtube_cookies_on_url(user_cookie_path, url, user_id):
-                                                    common_opts['cookiefile'] = user_cookie_path
-                                                    logger.info(f"YouTube cookies from source {idx + 1} work on user's URL for user {user_id} - saved to user folder")
-                                                    success = True
-                                                    break
-                                                else:
-                                                    if os.path.exists(user_cookie_path):
-                                                        os.remove(user_cookie_path)
-                                        except Exception as e:
-                                            logger.error(f"Error processing YouTube cookie source {idx + 1} for user {user_id}: {e}")
-                                            continue
-                                    if not success:
-                                        common_opts['cookiefile'] = None
-                                        logger.warning(f"All YouTube cookie sources failed for user {user_id}, will try without cookies")
-                            else:
-                                common_opts['cookiefile'] = None
-                                logger.warning(f"No YouTube cookie sources configured for user {user_id}, will try without cookies")
+                        common_opts['cookiefile'] = user_cookie_path
+                        logger.info(f"[YOUTUBE COOKIES] Using existing user cookie file for download: {user_cookie_path}")
                     else:
-                        logger.info(f"No YouTube cookies found for user {user_id}, attempting to get new ones")
-                        cookie_urls = get_youtube_cookie_urls()
-                        if cookie_urls:
-                            # Получаем только непроверенные источники для этого пользователя
-                            from COMMANDS.cookies_cmd import get_unchecked_cookie_sources, mark_cookie_source_checked
-                            unchecked_indices = get_unchecked_cookie_sources(user_id, cookie_urls)
-                            if not unchecked_indices:
-                                logger.warning(f"All cookie sources have been checked for user {user_id}, no more sources to try")
-                                common_opts['cookiefile'] = None
-                            else:
-                                success = False
-                                for i, idx in enumerate(unchecked_indices, 1):
-                                    cookie_url = cookie_urls[idx]
-                                    logger.info(f"Trying YouTube cookie source {idx + 1}/{len(cookie_urls)} for user {user_id}")
-                                    
-                                    # Отмечаем источник как проверенный
-                                    mark_cookie_source_checked(user_id, idx)
-                                    
-                                    try:
-                                        ok, status, content, err = _download_content(cookie_url, timeout=30, user_id=user_id)
-                                        if ok and content and len(content) <= 100 * 1024:
-                                            with open(user_cookie_path, "wb") as cf:
-                                                cf.write(content)
-                                            if test_youtube_cookies_on_url(user_cookie_path, url, user_id):
-                                                common_opts['cookiefile'] = user_cookie_path
-                                                logger.info(f"YouTube cookies from source {idx + 1} work on user's URL for user {user_id} - saved to user folder")
-                                                success = True
-                                                break
-                                            else:
-                                                if os.path.exists(user_cookie_path):
-                                                    os.remove(user_cookie_path)
-                                    except Exception as e:
-                                        logger.error(f"Error processing YouTube cookie source {idx + 1} for user {user_id}: {e}")
-                                        continue
-                                if not success:
-                                    common_opts['cookiefile'] = None
-                                    logger.warning(f"All YouTube cookie sources failed for user {user_id}, will try without cookies")
-                        else:
-                            common_opts['cookiefile'] = None
-                            logger.warning(f"No YouTube cookie sources configured for user {user_id}, will try without cookies")
+                        common_opts['cookiefile'] = None
+                        logger.info(f"[YOUTUBE COOKIES] No user cookie file found for download, starting without cookies")
                 else:
                     # For non-YouTube URLs, use new cookie fallback system
                     from COMMANDS.cookies_cmd import get_cookie_cache_result, try_non_youtube_cookie_fallback
@@ -1701,8 +1630,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         except Exception as call_e:
                             logger.error(f"Failed to trigger gallery-dl fallback: {call_e}")
                 
-                # Проверяем, связана ли ошибка с региональными ограничениями YouTube
+                # YouTube‑специфичные ошибки: сначала пробуем перебор кук, затем гео‑прокси
                 if is_youtube_url(url):
+                    # 1) Ошибки авторизации/куков (в т.ч. "Sign in to confirm you’re not a bot")
+                    if is_youtube_cookie_error(error_message):
+                        logger.info(f"YouTube cookie-related error detected for user {user_id}, attempting retry with different cookies")
+                        try:
+                            retry_result = retry_download_with_different_cookies(
+                                user_id, url, try_download, url, attempt_opts
+                            )
+                        except Exception as cookie_retry_error:
+                            logger.error(f"YouTube cookie retry failed with unexpected error for user {user_id}: {cookie_retry_error}")
+                            retry_result = None
+                        
+                        if retry_result is not None:
+                            logger.info(f"Download retry with different cookies successful for user {user_id}")
+                            return retry_result
+                        else:
+                            logger.warning(f"All YouTube cookie retry attempts failed for user {user_id}")
+                    
+                    # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси один раз
                     if is_youtube_geo_error(error_message) and not did_proxy_retry:
                         logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy")
                         
