@@ -196,6 +196,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     did_live_from_start_retry = False
     is_hls = False
     unknown_error_message_sent = False  # Флаг для предотвращения спама сообщений об ошибках
+    down_and_audio._error_message_sent = False  # Флаг для предотвращения спама yt-dlp ошибок
     
     # Determine forced NSFW via user tags
     try:
@@ -1513,6 +1514,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             did_proxy_retry = False
             did_live_from_start_retry = False
             unknown_error_message_sent = False  # Сбрасываем флаг для каждого нового элемента плейлиста
+            down_and_audio._error_message_sent = False  # Сбрасываем флаг для yt-dlp ошибок для каждого нового элемента плейлиста
 
             # Для отрицательных индексов не используем reuse_range_download, скачиваем каждый индекс отдельно
             reuse_range_download = use_range_download and range_entries_metadata is not None and not has_negative_indices_for_download
