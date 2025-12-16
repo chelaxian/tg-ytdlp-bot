@@ -1851,7 +1851,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.info(f"Skipping TikTok video at index {current_index} due to API error")
                     return "SKIP"  # Skip this video and continue with next
 
-                send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
+                # Отправляем сообщение об ошибке только один раз, чтобы избежать спама
+                if not error_message_sent:
+                    send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
+                    error_message_sent = True
                 return None
 
         # Для отрицательных индексов используем весь диапазон сразу, а не цикл
