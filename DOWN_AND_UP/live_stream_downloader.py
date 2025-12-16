@@ -1,5 +1,5 @@
 # Live Stream Downloader
-# Downloads live streams in chunks and sends them immediately
+# Downloads live streams in chunks by size and sends them immediately
 
 import os
 import yt_dlp
@@ -10,6 +10,7 @@ from CONFIG.messages import safe_get_messages
 from HELPERS.logger import logger
 from DOWN_AND_UP.sender import send_videos
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe
+from COMMANDS.split_sizer import get_user_split_size
 
 
 def download_live_stream_chunked(
@@ -19,7 +20,7 @@ def download_live_stream_chunked(
     format_override=None, quality_key=None
 ):
     """
-    Download live stream in chunks and send each chunk immediately.
+    Download live stream in chunks by size and send each chunk immediately.
     
     Args:
         app: Pyrogram app instance
@@ -38,12 +39,13 @@ def download_live_stream_chunked(
         bool: True if successful, False otherwise
     """
     try:
-        # Get configuration
-        split_hours = LimitsConfig.SPLIT_LIVE_STREAM_BY_HOURS
-        max_duration = LimitsConfig.MAX_LIVE_STREAM_DURATION
-        max_chunks = int(max_duration / (split_hours * 3600))
+        messages = safe_get_messages(user_id)
         
-        logger.info(f"Starting live stream download: url={url}, split_hours={split_hours}, max_duration={max_duration}s, max_chunks={max_chunks}")
+        # Get configuration
+        max_duration = LimitsConfig.MAX_LIVE_STREAM_DURATION
+        max_chunk_size = get_user_split_size(user_id)  # Get split size from /split command (default 1.95GB)
+        
+        logger.info(f"Starting live stream download: url={url}, max_chunk_size={max_chunk_size} bytes, max_duration={max_duration}s")
         
         # Get video title for filename
         video_title = info_dict.get('title', 'live_stream')
@@ -73,8 +75,8 @@ def download_live_stream_chunked(
         safe_channel = sanitize_filename_strict(channel)
         
         # Prepare base yt-dlp options
+        # Note: live_from_start will be set per chunk (True for first, False for subsequent)
         base_opts = {
-            'live_from_start': True,  # Start from beginning when DVR is available
             'concurrent_fragment_downloads': 4,  # -N 4
             'retries': float('inf'),  # -R infinite
             'fragment_retries': float('inf'),  # --fragment-retries infinite
@@ -198,30 +200,32 @@ def download_live_stream_chunked(
         from HELPERS.pot_helper import add_pot_to_ytdl_opts
         base_opts = add_pot_to_ytdl_opts(base_opts, url)
         
-        # Calculate segment time in seconds
-        segment_time = split_hours * 3600  # Convert hours to seconds
-        
-        # Download chunks sequentially
+        # Download chunks sequentially by size
         successful_chunks = 0
         start_time = time.time()
         did_live_from_start_retry = False
+        accumulated_duration = 0  # Track total duration downloaded
+        chunk_idx = 0
         
-        for chunk_idx in range(max_chunks):
+        while True:
             elapsed_time = time.time() - start_time
             if elapsed_time >= max_duration:
                 logger.info(f"Reached max duration limit ({max_duration}s), stopping live stream download")
                 break
             
-            logger.info(f"Downloading live stream chunk {chunk_idx + 1}/{max_chunks}")
+            chunk_idx += 1
+            logger.info(f"Downloading live stream chunk {chunk_idx}, max_size={max_chunk_size} bytes, accumulated_duration={accumulated_duration}s")
             
             # Update progress
             try:
                 from HELPERS.safe_messeger import safe_edit_message_text
+                from HELPERS.limitter import humanbytes
                 progress_text = (
                     f"{current_total_process}\n"
-                    f"📡 <b>Live Stream Download</b>\n"
-                    f"Chunk {chunk_idx + 1}/{max_chunks}\n"
-                    f"Duration: {split_hours} hour(s) per chunk"
+                    f"{messages.LIVE_STREAM_DOWNLOAD_PROGRESS_MSG}\n"
+                    f"{messages.LIVE_STREAM_CHUNK_NUMBER_MSG.format(chunk=chunk_idx)}\n"
+                    f"{messages.LIVE_STREAM_CHUNK_SIZE_MSG.format(size=humanbytes(max_chunk_size))}\n"
+                    f"{messages.LIVE_STREAM_ACCUMULATED_DURATION_MSG.format(duration=int(accumulated_duration))}"
                 )
                 safe_edit_message_text(user_id, proc_msg_id, progress_text)
             except Exception as e:
@@ -230,20 +234,28 @@ def download_live_stream_chunked(
             # Create yt-dlp options for this chunk
             chunk_opts = base_opts.copy()
             
+            # Use live_from_start only for the first chunk
+            # For subsequent chunks, don't use live_from_start to continue from current position
+            if chunk_idx == 1:
+                chunk_opts['live_from_start'] = True
+            else:
+                chunk_opts['live_from_start'] = False
+            
             # Prepare output filename for this chunk
             chunk_filename = f"{date_str}_{safe_channel}_{safe_title}_{chunk_idx:03d}.ts"
             chunk_file = os.path.join(user_dir_name, chunk_filename)
             chunk_opts['outtmpl'] = chunk_file.replace('.ts', '.%(ext)s')
             
-            # Prepare downloader args for ffmpeg to limit duration per chunk
-            # Input: limit to segment_time for this chunk
-            segment_hours = int(segment_time / 3600)
-            segment_minutes = int((segment_time % 3600) / 60)
-            segment_seconds = int(segment_time % 60)
-            ffmpeg_input_args = f"-t {segment_hours:02d}:{segment_minutes:02d}:{segment_seconds:02d}"
+            # Prepare downloader args for ffmpeg to limit size per chunk
+            # Use -fs (file size limit) in output args to limit file size
+            # Convert max_chunk_size to MB for ffmpeg (ffmpeg uses MB for -fs)
+            max_size_mb = max_chunk_size / (1024 * 1024)
             
-            # Output: use mpegts format for live streams
-            ffmpeg_output_args = "-f mpegts"
+            # Input: no time limit, let it download until size limit is reached
+            ffmpeg_input_args = ""
+            
+            # Output: use mpegts format for live streams and limit file size
+            ffmpeg_output_args = f"-f mpegts -fs {max_size_mb:.0f}M"
             
             chunk_opts['downloader_args'] = {
                 'ffmpeg_i': ffmpeg_input_args,
@@ -276,9 +288,27 @@ def download_live_stream_chunked(
                 # Get video info for the chunk
                 try:
                     _, _, duration = get_video_info_ffprobe(chunk_file)
+                    if duration:
+                        duration = float(duration)
+                    else:
+                        duration = 0
                 except Exception as e:
                     logger.error(f"Error getting video info: {e}")
-                    duration = segment_time
+                    duration = 0
+                
+                # Verify timing continuity: check that this chunk doesn't start from the beginning
+                # For chunks after the first, we expect them to continue from where previous ended
+                if chunk_idx > 1 and duration > 0:
+                    # Check if chunk file size matches expected (should be close to max_chunk_size)
+                    chunk_size = os.path.getsize(chunk_file)
+                    if chunk_size < max_chunk_size * 0.1:  # If chunk is less than 10% of expected size
+                        logger.warning(f"Chunk {chunk_idx} is suspiciously small ({chunk_size} bytes), might be starting from beginning")
+                        # This might indicate the chunk started from beginning, but we continue anyway
+                
+                # Update accumulated duration
+                if duration > 0:
+                    accumulated_duration += duration
+                    logger.info(f"Chunk {chunk_idx} duration: {duration}s, total accumulated: {accumulated_duration}s")
                 
                 # Get or create thumbnail
                 thumb_file = None
@@ -298,39 +328,49 @@ def download_live_stream_chunked(
                         thumb_file = thumb_path
                 
                 # Prepare caption
-                chunk_caption = f"📡 <b>Live Stream - Chunk {chunk_idx + 1}/{max_chunks}</b>\n"
-                chunk_caption += f"⏱ Duration: {split_hours} hour(s)\n"
+                from HELPERS.limitter import humanbytes
+                chunk_size_bytes = os.path.getsize(chunk_file)
+                chunk_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
+                    chunk=chunk_idx,
+                    duration=int(duration) if duration else 0,
+                    size=humanbytes(chunk_size_bytes)
+                )
                 if tags_text:
                     chunk_caption += f"\n{tags_text}"
                 
                 # Send chunk immediately
-                logger.info(f"Sending chunk {chunk_idx + 1} to user: {chunk_file}")
+                logger.info(f"Sending chunk {chunk_idx} to user: {chunk_file}")
                 
                 chunk_msg = send_videos(
                     message,
                     chunk_file,
                     chunk_caption,
-                    int(duration) if duration else segment_time,
+                    int(duration) if duration else 0,
                     thumb_file or "",
-                    f"Chunk {chunk_idx + 1}/{max_chunks}",
+                    messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx),
                     proc_msg_id,
-                    f"{video_title} - Chunk {chunk_idx + 1}",
+                    f"{video_title} - {messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx)}",
                     tags_text
                 )
                 
                 if chunk_msg:
                     successful_chunks += 1
-                    logger.info(f"Successfully sent chunk {chunk_idx + 1}")
+                    logger.info(f"Successfully sent chunk {chunk_idx}")
                 else:
-                    logger.warning(f"Failed to send chunk {chunk_idx + 1}")
+                    logger.warning(f"Failed to send chunk {chunk_idx}")
                 
-                # Clean up chunk file after sending (optional, to save space)
-                # Uncomment if you want to delete chunks after sending
-                # try:
-                #     os.remove(chunk_file)
-                #     logger.info(f"Cleaned up chunk file: {chunk_file}")
-                # except Exception as e:
-                #     logger.error(f"Error cleaning up chunk file: {e}")
+                # Check if chunk reached size limit (if it's smaller, stream might have ended)
+                chunk_size_bytes = os.path.getsize(chunk_file)
+                if chunk_size_bytes < max_chunk_size * 0.9:  # If chunk is less than 90% of max size
+                    logger.info(f"Chunk {chunk_idx} is smaller than expected ({chunk_size_bytes} < {max_chunk_size * 0.9}), stream might have ended")
+                    # Continue to try next chunk, but if it also fails, we'll stop
+                
+                # Clean up chunk file after sending to save space
+                try:
+                    os.remove(chunk_file)
+                    logger.info(f"Cleaned up chunk file: {chunk_file}")
+                except Exception as e:
+                    logger.error(f"Error cleaning up chunk file: {e}")
                 
             except Exception as e:
                 error_text = str(e)
@@ -376,9 +416,18 @@ def download_live_stream_chunked(
                         # Get video info for the chunk
                         try:
                             _, _, duration = get_video_info_ffprobe(chunk_file)
+                            if duration:
+                                duration = float(duration)
+                            else:
+                                duration = 0
                         except Exception as e2:
                             logger.error(f"Error getting video info: {e2}")
-                            duration = segment_time
+                            duration = 0
+                        
+                        # Update accumulated duration
+                        if duration > 0:
+                            accumulated_duration += duration
+                            logger.info(f"Chunk {chunk_idx} duration after retry: {duration}s, total accumulated: {accumulated_duration}s")
                         
                         # Get or create thumbnail
                         thumb_file = None
@@ -396,31 +445,49 @@ def download_live_stream_chunked(
                                 thumb_file = thumb_path
                         
                         # Prepare caption
-                        chunk_caption = f"📡 <b>Live Stream - Chunk {chunk_idx + 1}/{max_chunks}</b>\n"
-                        chunk_caption += f"⏱ Duration: {split_hours} hour(s)\n"
+                        from HELPERS.limitter import humanbytes
+                        chunk_size_bytes = os.path.getsize(chunk_file)
+                        chunk_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
+                            chunk=chunk_idx,
+                            duration=int(duration) if duration else 0,
+                            size=humanbytes(chunk_size_bytes)
+                        )
                         if tags_text:
                             chunk_caption += f"\n{tags_text}"
                         
                         # Send chunk immediately
-                        logger.info(f"Sending chunk {chunk_idx + 1} to user: {chunk_file}")
+                        logger.info(f"Sending chunk {chunk_idx} to user: {chunk_file}")
                         
                         chunk_msg = send_videos(
                             message,
                             chunk_file,
                             chunk_caption,
-                            int(duration) if duration else segment_time,
+                            int(duration) if duration else 0,
                             thumb_file or "",
-                            f"Chunk {chunk_idx + 1}/{max_chunks}",
+                            messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx),
                             proc_msg_id,
-                            f"{video_title} - Chunk {chunk_idx + 1}",
+                            f"{video_title} - {messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx)}",
                             tags_text
                         )
                         
                         if chunk_msg:
                             successful_chunks += 1
-                            logger.info(f"Successfully sent chunk {chunk_idx + 1} after retry")
+                            logger.info(f"Successfully sent chunk {chunk_idx} after retry")
                         else:
-                            logger.warning(f"Failed to send chunk {chunk_idx + 1} after retry")
+                            logger.warning(f"Failed to send chunk {chunk_idx} after retry")
+                        
+                        # Check if chunk reached size limit
+                        chunk_size_bytes = os.path.getsize(chunk_file)
+                        if chunk_size_bytes < max_chunk_size * 0.9:
+                            logger.info(f"Chunk {chunk_idx} is smaller than expected after retry, stream might have ended")
+                        
+                        # Clean up chunk file after sending
+                        try:
+                            os.remove(chunk_file)
+                            logger.info(f"Cleaned up chunk file after retry: {chunk_file}")
+                        except Exception as e:
+                            logger.error(f"Error cleaning up chunk file after retry: {e}")
+                        
                         # Continue to next chunk
                         continue
                     except Exception as retry_e:
@@ -428,16 +495,21 @@ def download_live_stream_chunked(
                         # Continue with next chunk
                         continue
                 
-                logger.error(f"Error downloading chunk {chunk_idx + 1}: {e}")
+                logger.error(f"Error downloading chunk {chunk_idx}: {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+                # If we've sent at least one chunk successfully, continue
+                # Otherwise, stop to avoid infinite loop
+                if successful_chunks == 0:
+                    logger.error(f"No successful chunks yet, stopping after error")
+                    break
                 # Continue with next chunk
                 continue
             
             # Check if we've reached max duration
             elapsed_time = time.time() - start_time
             if elapsed_time >= max_duration:
-                logger.info(f"Reached max duration limit, stopping")
+                logger.info(f"Reached max duration limit ({max_duration}s), stopping")
                 break
         
         # Final progress update
@@ -445,14 +517,15 @@ def download_live_stream_chunked(
             from HELPERS.safe_messeger import safe_edit_message_text
             final_text = (
                 f"{current_total_process}\n"
-                f"✅ <b>Live Stream Download Complete</b>\n"
-                f"Downloaded {successful_chunks} chunk(s)"
+                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}"
             )
             safe_edit_message_text(user_id, proc_msg_id, final_text)
         except Exception as e:
             logger.error(f"Error updating final progress: {e}")
         
-        logger.info(f"Live stream download completed: {successful_chunks} chunks downloaded")
+        logger.info(f"Live stream download completed: {successful_chunks} chunks downloaded, total duration: {accumulated_duration}s")
         return successful_chunks > 0
         
     except Exception as e:
