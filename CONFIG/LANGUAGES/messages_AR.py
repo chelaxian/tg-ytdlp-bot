@@ -1421,6 +1421,15 @@ class Messages(object):
     
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **تم اكتشاف بث مباشر**\n\nتحميل البث المباشر الجاري أو اللامحدود غير مسموح.\n\nيرجى انتظار انتهاء البث والمحاولة مرة أخرى عندما:\n• تصبح مدة البث معروفة\n• ينتهي البث\n"
+    LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>تحميل البث المباشر</b>"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "الجزء {chunk}"
+    LIVE_STREAM_CHUNK_SIZE_MSG = "الحجم الأقصى: {size}"
+    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "المدة الإجمالية: {duration} ثانية"
+    LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>البث المباشر - الجزء {chunk}</b>\n⏱ المدة: {duration} ثانية\n📦 الحجم: {size}"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "الجزء {chunk}"
+    LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>اكتمل تحميل البث المباشر</b>"
+    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "تم تحميل {chunks} جزء(أجزاء)"
+    LIVE_STREAM_TOTAL_DURATION_MSG = "المدة الإجمالية: {duration} ثانية"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "يرجى اختيار تنسيق مختلف باستخدام أمر `/format`."
     
     # Direct Link Messages
