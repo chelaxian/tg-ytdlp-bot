@@ -22,6 +22,9 @@ WARP_CONTAINER_NAME = os.environ.get("WARP_CONTAINER_NAME", "tg-ytdlp-warp")
 # Имя контейнера bgutil-provider должно совпадать с тем, что используется в скриптах / docker-compose.
 # По умолчанию это "bgutil-provider" (см. update_bgutil_provider.sh) 
 BGUTIL_CONTAINER_NAME = os.environ.get("BGUTIL_CONTAINER_NAME", "bgutil-provider")
+# Имена контейнера и systemd-сервиса панели управления (можно переопределить через переменные окружения)
+DASHBOARD_CONTAINER_NAME = os.environ.get("DASHBOARD_CONTAINER_NAME", "tg-ytdlp-dashboard")
+DASHBOARD_SERVICE_NAME = os.environ.get("DASHBOARD_SERVICE_NAME", "tg-ytdlp-dashboard")
 
 
 def _has_docker() -> bool:
@@ -500,6 +503,47 @@ def restart_service() -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 
+def restart_panel() -> Dict[str, Any]:
+    """
+    Перезапускает панель управления.
+    - В Docker-режиме: docker restart DASHBOARD_CONTAINER_NAME.
+    - В локальном режиме: systemctl restart tg-ytdlp-dashboard (или имя из DASHBOARD_SERVICE_NAME).
+    """
+    has_docker = _has_docker()
+    dashboard_running = _container_is_running(DASHBOARD_CONTAINER_NAME) if has_docker else False
+
+    if has_docker and dashboard_running:
+        docker_path = shutil.which("docker")
+        if not docker_path:
+            return {"status": "error", "message": "docker CLI not found"}
+        try:
+            result = _run_docker_cmd([docker_path, "restart", DASHBOARD_CONTAINER_NAME], timeout=60)
+            if result.returncode == 0:
+                return {"status": "ok", "message": "Dashboard container restarted"}
+            return {"status": "error", "message": result.stderr or "Failed to restart dashboard container"}
+        except Exception as e:
+            logger.error(f"Error restarting dashboard container: {e}")
+            return {"status": "error", "message": str(e)}
+
+    if not _systemctl_available():
+        return {"status": "error", "message": "systemctl is not available (likely running inside Docker without dedicated container)"}
+    try:
+        cmd = ["systemctl", "restart", DASHBOARD_SERVICE_NAME]
+        if shutil.which("sudo"):
+            cmd.insert(0, "sudo")
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if result.returncode == 0:
+            return {"status": "ok", "message": "Dashboard service restarted successfully"}
+        return {"status": "error", "message": result.stderr or "Failed to restart dashboard service"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 def update_engines() -> Dict[str, Any]:
     """Обновляет движки: если есть контейнер бота — docker exec; иначе локальные скрипты."""
     # Docker режим: обновляем через docker exec и docker pull
@@ -523,8 +567,8 @@ def update_engines() -> Dict[str, Any]:
                 }
             outputs.append(f"yt-dlp/gallery-dl:\n{result.stdout.strip()}")
             
-        # Обновляем bgutil-provider контейнер (он находится вне контейнера dashboard)
-        bgutil_container = BGUTIL_CONTAINER_NAME
+            # Обновляем bgutil-provider контейнер (он находится вне контейнера dashboard)
+            bgutil_container = BGUTIL_CONTAINER_NAME
             if _container_exists(bgutil_container):
                 try:
                     # Останавливаем старый контейнер
