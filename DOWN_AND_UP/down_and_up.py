@@ -157,11 +157,16 @@ def determine_need_subs(subs_enabled, found_type, user_id):
 
 #@reply_with_keyboard
 def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, clear_subs_cache_on_start=True):
-    # Сбрасываем кеш проверенных источников куки для новой задачи загрузки
+    # ВАЖНО: не сбрасываем источники YouTube‑куки без необходимости.
+    # Если пользователь уже получил рабочие куки и мы пришли из Always Ask меню
+    # (cookies_already_checked=True), повторный сброс и перебор источников только
+    # замедлит старт скачивания. Сбрасываем источники только для новых задач,
+    # когда куки ещё не проверялись.
     user_id = message.chat.id
-    from COMMANDS.cookies_cmd import reset_checked_cookie_sources
-    reset_checked_cookie_sources(user_id)
-    logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new download task for user {user_id}")
+    if not cookies_already_checked:
+        from COMMANDS.cookies_cmd import reset_checked_cookie_sources
+        reset_checked_cookie_sources(user_id)
+        logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new download task for user {user_id}")
     messages = safe_get_messages(message.chat.id)
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
@@ -1015,8 +1020,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             except Exception as e:
                 logger.error(f"Failed to create download directory {user_dir_name}: {e}")
             
-            # Use original filename for first attempt
-            original_outtmpl = os.path.join(user_dir_name, "%(title)s.%(ext)s")
+            # Use a very short, ID‑based filename for the first attempt to avoid
+            # hitting filesystem "File name too long" limits (especially with
+            # long Unicode titles and yt-dlp suffixes like dash/fdash, .part, etc.)
+            # We intentionally avoid using the video title in the filename here;
+            # the human‑readable title is still preserved separately in captions.
+            original_outtmpl = os.path.join(user_dir_name, "%(id)s.%(ext)s")
             
             # First try with original filename
             # Для отрицательных индексов используем весь диапазон сразу
