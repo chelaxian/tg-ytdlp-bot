@@ -345,10 +345,28 @@ def download_live_stream_chunked(
                     accumulated_duration += duration
                     logger.info(f"Chunk {chunk_idx} duration: {duration}s, total accumulated: {accumulated_duration}s")
                 
+                # Get or create thumbnail BEFORE split check (needed for split parts)
+                thumb_file = None
+                try:
+                    thumb_name = f"{safe_title}_chunk_{chunk_idx:03d}"
+                    result = get_duration_thumb(message, user_dir_name, chunk_file, thumb_name)
+                    if result:
+                        duration_from_thumb, thumb_file = result
+                        # Update duration if we got it from thumbnail extraction
+                        if duration_from_thumb:
+                            duration = duration_from_thumb
+                except Exception as e:
+                    logger.error(f"Error creating thumbnail: {e}")
+                    # Try to use video thumbnail if available
+                    thumb_path = os.path.join(user_dir_name, f"{safe_title}.jpg")
+                    if os.path.exists(thumb_path):
+                        thumb_file = thumb_path
+                
                 # --- HARD SIZE CHECK & OPTIONAL ADDITIONAL SPLIT ---
                 # На всякий случай ещё раз проверяем реальный размер файла.
                 from HELPERS.limitter import humanbytes
                 chunk_size_bytes = os.path.getsize(chunk_file)
+                chunk_was_split = False  # Флаг: был ли кусок разрезан и отправлен по частям
                 if chunk_size_bytes > max_chunk_size:
                     logger.warning(
                         f"Chunk {chunk_idx} size {chunk_size_bytes} bytes "
@@ -443,6 +461,7 @@ def download_live_stream_chunked(
                         
                         # Переходим к следующему куску
                         if sent_any:
+                            chunk_was_split = True  # Куск был успешно разрезан и отправлен
                             continue
                         else:
                             # Если не удалось отправить ни одной части — считаем это ошибкой и выходим
@@ -462,23 +481,11 @@ def download_live_stream_chunked(
                         logger.error(f"Error while additional splitting oversized chunk {chunk_idx}: {e}")
                         # Если доп. сплит сломался, продолжаем обычную логику ниже (попробуем отправить как есть)
                 
-                # --- THUMBNAIL & REGULAR SEND PATH ---
-                # Get or create thumbnail
-                thumb_file = None
-                try:
-                    thumb_name = f"{safe_title}_chunk_{chunk_idx:03d}"
-                    result = get_duration_thumb(message, user_dir_name, chunk_file, thumb_name)
-                    if result:
-                        duration_from_thumb, thumb_file = result
-                        # Update duration if we got it from thumbnail extraction
-                        if duration_from_thumb:
-                            duration = duration_from_thumb
-                except Exception as e:
-                    logger.error(f"Error creating thumbnail: {e}")
-                    # Try to use video thumbnail if available
-                    thumb_path = os.path.join(user_dir_name, f"{safe_title}.jpg")
-                    if os.path.exists(thumb_path):
-                        thumb_file = thumb_path
+                # --- REGULAR SEND PATH ---
+                # Пропускаем обычную отправку, если кусок уже был разрезан и отправлен по частям
+                if chunk_was_split:
+                    logger.info(f"Chunk {chunk_idx} was already split and sent, skipping regular send path")
+                    continue
                 
                 # Prepare caption
                 chunk_size_bytes = os.path.getsize(chunk_file)
