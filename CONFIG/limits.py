@@ -44,7 +44,7 @@ class LimitsConfig(object):
     MAX_ANIMATION_DURATION = 14400  # 4 hours
     
     # Maximum HTTP connection lifetime (4 hours) - connections are forcefully closed after this time
-    MAX_HTTP_CONNECTION_LIFETIME = 14400  # 4 hours 
+    MAX_HTTP_CONNECTION_LIFETIME = 14400  # 4 hours
     
     # HTTP session timeout for individual requests
     HTTP_REQUEST_TIMEOUT = 60  # 60 seconds
