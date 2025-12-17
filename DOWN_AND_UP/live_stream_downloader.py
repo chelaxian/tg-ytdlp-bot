@@ -9,7 +9,7 @@ from CONFIG.limits import LimitsConfig
 from CONFIG.messages import safe_get_messages
 from HELPERS.logger import logger
 from DOWN_AND_UP.sender import send_videos
-from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe
+from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, split_video_2
 from COMMANDS.split_sizer import get_user_split_size
 
 
@@ -43,9 +43,20 @@ def download_live_stream_chunked(
         
         # Get configuration
         max_duration = LimitsConfig.MAX_LIVE_STREAM_DURATION
-        max_chunk_size = get_user_split_size(user_id)  # Get split size from /split command (default 1.95GB)
+        # User‑configured split size (default ~1.95 GiB)
+        user_split_size = get_user_split_size(user_id)
+        # Hard Telegram limit ~2 GiB, оставим запас ~50 MiB
+        telegram_limit_bytes = (2 * 1024 * 1024 * 1024) - (50 * 1024 * 1024)
+        # Фактический лимит на размер одного файла/куска
+        max_chunk_size = min(user_split_size, telegram_limit_bytes)
         
-        logger.info(f"Starting live stream download: url={url}, max_chunk_size={max_chunk_size} bytes, max_duration={max_duration}s")
+        logger.info(
+            f"Starting live stream download: url={url}, "
+            f"user_split_size={user_split_size} bytes, "
+            f"telegram_limit={telegram_limit_bytes} bytes, "
+            f"effective_max_chunk_size={max_chunk_size} bytes, "
+            f"max_duration={max_duration}s"
+        )
         
         # Get video title for filename
         video_title = info_dict.get('title', 'live_stream')
@@ -325,6 +336,105 @@ def download_live_stream_chunked(
                     accumulated_duration += duration
                     logger.info(f"Chunk {chunk_idx} duration: {duration}s, total accumulated: {accumulated_duration}s")
                 
+                # --- HARD SIZE CHECK & OPTIONAL ADDITIONAL SPLIT ---
+                # На всякий случай ещё раз проверяем реальный размер файла.
+                from HELPERS.limitter import humanbytes
+                chunk_size_bytes = os.path.getsize(chunk_file)
+                if chunk_size_bytes > max_chunk_size:
+                    logger.warning(
+                        f"Chunk {chunk_idx} size {chunk_size_bytes} bytes "
+                        f"exceeds effective max_chunk_size {max_chunk_size} bytes, "
+                        f"running additional split_video_2"
+                    )
+                    try:
+                        # Используем split_video_2, чтобы порезать файл на части < max_chunk_size.
+                        base_name = f"{safe_title}_chunk_{chunk_idx:03d}"
+                        split_result = split_video_2(
+                            user_dir_name,
+                            base_name,
+                            chunk_file,
+                            chunk_size_bytes,
+                            max_chunk_size,
+                            int(duration) if duration else int(accumulated_duration) or 0,
+                            user_id
+                        )
+                        part_captions = split_result.get("video") or []
+                        part_paths = split_result.get("path") or []
+                        
+                        # Отправляем каждую часть по очереди и сразу удаляем
+                        sent_any = False
+                        for i, part_path in enumerate(part_paths):
+                            if not os.path.exists(part_path):
+                                logger.warning(f"Split part not found: {part_path}")
+                                continue
+                            
+                            # Получаем длительность части
+                            try:
+                                _, _, part_duration = get_video_info_ffprobe(part_path)
+                                part_duration = int(part_duration) if part_duration else 0
+                            except Exception as e:
+                                logger.error(f"Error getting split part video info: {e}")
+                                part_duration = 0
+                            
+                            part_size_bytes = os.path.getsize(part_path)
+                            part_label = f"{chunk_idx}.{i+1}"
+                            
+                            part_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
+                                chunk=part_label,
+                                duration=part_duration,
+                                size=humanbytes(part_size_bytes)
+                            )
+                            if tags_text:
+                                part_caption += f"\n{tags_text}"
+                            
+                            # Пытаемся использовать тот же thumb_file, нового уже не делаем
+                            logger.info(f"Sending split part {part_label} to user: {part_path}")
+                            part_msg = send_videos(
+                                message,
+                                part_path,
+                                part_caption,
+                                part_duration,
+                                thumb_file or "",
+                                messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=part_label),
+                                proc_msg_id,
+                                f"{video_title} - {messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=part_label)}",
+                                tags_text
+                            )
+                            
+                            if part_msg:
+                                successful_chunks += 1
+                                sent_any = True
+                                logger.info(f"Successfully sent split part {part_label}")
+                            else:
+                                logger.warning(f"Failed to send split part {part_label}")
+                            
+                            # Удаляем часть после отправки
+                            try:
+                                os.remove(part_path)
+                                logger.info(f"Cleaned up split part file: {part_path}")
+                            except Exception as e:
+                                logger.error(f"Error cleaning up split part file: {e}")
+                        
+                        # Удаляем исходный крупный файл
+                        try:
+                            if os.path.exists(chunk_file):
+                                os.remove(chunk_file)
+                                logger.info(f"Cleaned up original oversized chunk file: {chunk_file}")
+                        except Exception as e:
+                            logger.error(f"Error cleaning up original oversized chunk file: {e}")
+                        
+                        # Переходим к следующему куску
+                        if sent_any:
+                            continue
+                        else:
+                            # Если не удалось отправить ни одной части — считаем это ошибкой и выходим
+                            logger.error(f"No split parts were sent successfully for chunk {chunk_idx}, stopping")
+                            return successful_chunks > 0
+                    except Exception as e:
+                        logger.error(f"Error while additional splitting oversized chunk {chunk_idx}: {e}")
+                        # Если доп. сплит сломался, продолжаем обычную логику ниже (попробуем отправить как есть)
+                
+                # --- THUMBNAIL & REGULAR SEND PATH ---
                 # Get or create thumbnail
                 thumb_file = None
                 try:
@@ -343,7 +453,6 @@ def download_live_stream_chunked(
                         thumb_file = thumb_path
                 
                 # Prepare caption
-                from HELPERS.limitter import humanbytes
                 chunk_size_bytes = os.path.getsize(chunk_file)
                 chunk_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
                     chunk=chunk_idx,
