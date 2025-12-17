@@ -517,6 +517,23 @@ def download_live_stream_chunked(
                 chunk_size_bytes = os.path.getsize(chunk_file)
                 if chunk_size_bytes < max_chunk_size * 0.9:  # If chunk is less than 90% of max size
                     logger.info(f"Chunk {chunk_idx} is smaller than expected ({chunk_size_bytes} < {max_chunk_size * 0.9}), stream might have ended")
+                    # Если первый же кусок заметно меньше лимита, скорее всего, это уже полностью завершившийся стрим/VOD,
+                    # который целиком поместился в один файл — дополнительных кусков не нужно.
+                    if chunk_idx == 1:
+                        logger.info("First chunk is significantly smaller than max_chunk_size; assuming full recording fits into a single file")
+                        try:
+                            from HELPERS.safe_messeger import safe_edit_message_text
+                            final_text = (
+                                f"{current_total_process}\n"
+                                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                                f"{messages.LIVE_STREAM_ENDED_MSG}"
+                            )
+                            safe_edit_message_text(user_id, proc_msg_id, final_text)
+                        except Exception as e:
+                            logger.error(f"Error updating final progress: {e}")
+                        return successful_chunks > 0
                     # If this is the second consecutive small chunk, assume stream ended
                     if chunk_idx > 1:
                         logger.info(f"Two consecutive small chunks detected, assuming stream has ended")
