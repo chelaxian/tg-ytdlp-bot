@@ -41,7 +41,7 @@ class LimitsConfig(object):
     # Animation and HTTP connection limits (prevents hanging)
     #######################################################
     # Maximum animation duration (4 hours) - after this time animation is forcefully stopped
-    MAX_ANIMATION_DURATION = 14400  # 4 hours 
+    MAX_ANIMATION_DURATION = 14400  # 4 hours
     
     # Maximum HTTP connection lifetime (4 hours) - connections are forcefully closed after this time
     MAX_HTTP_CONNECTION_LIFETIME = 14400  # 4 hours
