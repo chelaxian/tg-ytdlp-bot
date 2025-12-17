@@ -7,9 +7,11 @@ import time
 from datetime import datetime
 from CONFIG.limits import LimitsConfig
 from CONFIG.messages import safe_get_messages
-from HELPERS.logger import logger
+from HELPERS.logger import logger, get_log_channel
+from HELPERS.safe_messeger import safe_forward_messages
 from DOWN_AND_UP.sender import send_videos
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, split_video_2
+from DOWN_AND_UP.down_and_up import _save_video_cache_with_logging
 from COMMANDS.split_sizer import get_user_split_size
 
 
@@ -57,6 +59,8 @@ def download_live_stream_chunked(
             f"effective_max_chunk_size={max_chunk_size} bytes, "
             f"max_duration={max_duration}s"
         )
+        # Safe quality key for cache (reuse same semantics as in down_and_up)
+        safe_quality_key = quality_key if quality_key is not None else "best"
         
         # Get video title for filename
         video_title = info_dict.get('title', 'live_stream')
@@ -217,6 +221,11 @@ def download_live_stream_chunked(
         did_live_from_start_retry = False
         accumulated_duration = 0  # Track total duration downloaded
         chunk_idx = 0
+        # Для защиты от дубликатов запоминаем параметры последнего реально отправленного куска
+        last_sent_duration = None
+        last_sent_size = None
+        # Для кэша: список ID сообщений в лог‑канале (все куски/подкуски)
+        cache_message_ids = []
         
         while True:
             elapsed_time = time.time() - start_time
@@ -405,6 +414,15 @@ def download_live_stream_chunked(
                                 successful_chunks += 1
                                 sent_any = True
                                 logger.info(f"Successfully sent split part {part_label}")
+                                # Пробуем переслать в лог‑канал для кэша
+                                try:
+                                    log_channel = get_log_channel("video")
+                                    if log_channel:
+                                        forwarded = safe_forward_messages(log_channel, user_id, [part_msg.id])
+                                        if forwarded:
+                                            cache_message_ids.extend([m.id for m in forwarded])
+                                except Exception as e:
+                                    logger.error(f"Error forwarding split part {part_label} to log channel: {e}")
                             else:
                                 logger.warning(f"Failed to send split part {part_label}")
                             
@@ -429,6 +447,16 @@ def download_live_stream_chunked(
                         else:
                             # Если не удалось отправить ни одной части — считаем это ошибкой и выходим
                             logger.error(f"No split parts were sent successfully for chunk {chunk_idx}, stopping")
+                            # Перед выходом пробуем сохранить то, что уже есть, в кэш
+                            try:
+                                if cache_message_ids and safe_quality_key:
+                                    original_text = message.text or message.caption or ""
+                                    _save_video_cache_with_logging(
+                                        url, safe_quality_key, cache_message_ids,
+                                        original_text=original_text, user_id=user_id
+                                    )
+                            except Exception as e2:
+                                logger.error(f\"Error saving live stream cache on split failure: {e2}\")
                             return successful_chunks > 0
                     except Exception as e:
                         logger.error(f"Error while additional splitting oversized chunk {chunk_idx}: {e}")
@@ -454,6 +482,36 @@ def download_live_stream_chunked(
                 
                 # Prepare caption
                 chunk_size_bytes = os.path.getsize(chunk_file)
+
+                # --- SIMPLE DEDUP GUARD ---
+                # Если текущий кусок по длительности и размеру практически совпадает
+                # с уже отправленным последним куском, считаем, что это дубликат
+                # (например, перезапуск того же VOD) и выходим без повторной отправки.
+                if last_sent_duration is not None and last_sent_size is not None:
+                    dur_diff = abs(int(duration or 0) - int(last_sent_duration))
+                    # допустимая погрешность по размеру ~5%
+                    size_diff_ratio = abs(chunk_size_bytes - last_sent_size) / max(last_sent_size, 1)
+                    if dur_diff <= 5 and size_diff_ratio <= 0.05:
+                        logger.info(
+                            f\"Detected duplicate live chunk (idx={chunk_idx}, "
+                            f"duration={duration}s, size={chunk_size_bytes} bytes) "
+                            f"similar to last sent (duration={last_sent_duration}s, "
+                            f"size={last_sent_size} bytes); stopping to avoid duplicates\"
+                        )
+                        try:
+                            from HELPERS.safe_messeger import safe_edit_message_text
+                            final_text = (
+                                f\"{current_total_process}\\n\"
+                                f\"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\\n\"
+                                f\"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\\n\"
+                                f\"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\\n\"
+                                f\"{messages.LIVE_STREAM_ENDED_MSG}\"
+                            )
+                            safe_edit_message_text(user_id, proc_msg_id, final_text)
+                        except Exception as e:
+                            logger.error(f\"Error updating final progress after duplicate detection: {e}\")
+                        return successful_chunks > 0
+
                 chunk_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
                     chunk=chunk_idx,
                     duration=int(duration) if duration else 0,
@@ -494,7 +552,19 @@ def download_live_stream_chunked(
                 
                 if chunk_msg:
                     successful_chunks += 1
+                    # Обновляем сигнатуру последнего реально отправленного куска
+                    last_sent_duration = int(duration) if duration else 0
+                    last_sent_size = chunk_size_bytes
                     logger.info(f"Successfully sent chunk {chunk_idx}")
+                    # Пробуем переслать в лог‑канал для кэша (регулярный канал, без NSFW/PAID)
+                    try:
+                        log_channel = get_log_channel("video")
+                        if log_channel:
+                            forwarded = safe_forward_messages(log_channel, user_id, [chunk_msg.id])
+                            if forwarded:
+                                cache_message_ids.extend([m.id for m in forwarded])
+                    except Exception as e:
+                        logger.error(f"Error forwarding live chunk {chunk_idx} to log channel: {e}")
                 else:
                     logger.warning(f"Failed to send chunk {chunk_idx}")
                 
@@ -519,21 +589,31 @@ def download_live_stream_chunked(
                     logger.info(f"Chunk {chunk_idx} is smaller than expected ({chunk_size_bytes} < {max_chunk_size * 0.9}), stream might have ended")
                     # Если первый же кусок заметно меньше лимита, скорее всего, это уже полностью завершившийся стрим/VOD,
                     # который целиком поместился в один файл — дополнительных кусков не нужно.
-                    if chunk_idx == 1:
+                        if chunk_idx == 1:
                         logger.info("First chunk is significantly smaller than max_chunk_size; assuming full recording fits into a single file")
                         try:
-                            from HELPERS.safe_messeger import safe_edit_message_text
-                            final_text = (
-                                f"{current_total_process}\n"
-                                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
-                                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
-                                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
-                                f"{messages.LIVE_STREAM_ENDED_MSG}"
-                            )
-                            safe_edit_message_text(user_id, proc_msg_id, final_text)
-                        except Exception as e:
-                            logger.error(f"Error updating final progress: {e}")
-                        return successful_chunks > 0
+                                from HELPERS.safe_messeger import safe_edit_message_text
+                                final_text = (
+                                    f"{current_total_process}\n"
+                                    f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                                    f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                                    f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                                    f"{messages.LIVE_STREAM_ENDED_MSG}"
+                                )
+                                safe_edit_message_text(user_id, proc_msg_id, final_text)
+                            except Exception as e:
+                                logger.error(f"Error updating final progress: {e}")
+                            # Сохраняем уже отправленные куски в кэш
+                            try:
+                                if cache_message_ids and safe_quality_key:
+                                    original_text = message.text or message.caption or ""
+                                    _save_video_cache_with_logging(
+                                        url, safe_quality_key, cache_message_ids,
+                                        original_text=original_text, user_id=user_id
+                                    )
+                            except Exception as e2:
+                                logger.error(f"Error saving live stream cache on early end (single chunk): {e2}")
+                            return successful_chunks > 0
                     # If this is the second consecutive small chunk, assume stream ended
                     if chunk_idx > 1:
                         logger.info(f"Two consecutive small chunks detected, assuming stream has ended")
@@ -549,6 +629,16 @@ def download_live_stream_chunked(
                             safe_edit_message_text(user_id, proc_msg_id, final_text)
                         except Exception as e:
                             logger.error(f"Error updating final progress: {e}")
+                        # Сохраняем уже отправленные куски в кэш
+                        try:
+                            if cache_message_ids and safe_quality_key:
+                                original_text = message.text or message.caption or ""
+                                _save_video_cache_with_logging(
+                                    url, safe_quality_key, cache_message_ids,
+                                    original_text=original_text, user_id=user_id
+                                )
+                        except Exception as e2:
+                            logger.error(f"Error saving live stream cache on early end (two small chunks): {e2}")
                         return successful_chunks > 0
                 
                 # Clean up chunk file after sending to save space
@@ -619,6 +709,16 @@ def download_live_stream_chunked(
                         safe_edit_message_text(user_id, proc_msg_id, final_text)
                     except Exception as e2:
                         logger.error(f"Error updating final progress: {e2}")
+                    # Сохраняем уже отправленные куски в кэш
+                    try:
+                        if cache_message_ids and safe_quality_key:
+                            original_text = message.text or message.caption or ""
+                            _save_video_cache_with_logging(
+                                url, safe_quality_key, cache_message_ids,
+                                original_text=original_text, user_id=user_id
+                            )
+                    except Exception as e3:
+                        logger.error(f"Error saving live stream cache on stream-ended error: {e3}")
                     return successful_chunks > 0
                 
                 # Check for --live-from-start error and retry with --no-live-from-start
@@ -755,6 +855,16 @@ def download_live_stream_chunked(
                 # Otherwise, stop to avoid infinite loop
                 if successful_chunks == 0:
                     logger.error(f"No successful chunks yet, stopping after error")
+                    # Перед выходом пробуем сохранить то, что уже есть, в кэш
+                    try:
+                        if cache_message_ids and safe_quality_key:
+                            original_text = message.text or message.caption or ""
+                            _save_video_cache_with_logging(
+                                url, safe_quality_key, cache_message_ids,
+                                original_text=original_text, user_id=user_id
+                            )
+                    except Exception as e2:
+                        logger.error(f"Error saving live stream cache on first-chunk error: {e2}")
                     break
                 # Continue with next chunk
                 continue
@@ -777,6 +887,18 @@ def download_live_stream_chunked(
             safe_edit_message_text(user_id, proc_msg_id, final_text)
         except Exception as e:
             logger.error(f"Error updating final progress: {e}")
+        
+        # Сохраняем все присланные куски (и подкуски) в видеокэш,
+        # чтобы при повторном присылании того же URL они репостились из лог‑канала.
+        try:
+            if cache_message_ids and safe_quality_key:
+                original_text = message.text or message.caption or ""
+                _save_video_cache_with_logging(
+                    url, safe_quality_key, cache_message_ids,
+                    original_text=original_text, user_id=user_id
+                )
+        except Exception as e:
+            logger.error(f"Error saving live stream cache in finalizer: {e}")
         
         logger.info(f"Live stream download completed: {successful_chunks} chunks downloaded, total duration: {accumulated_duration}s")
         return successful_chunks > 0
