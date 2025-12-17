@@ -2282,8 +2282,33 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Check if .part file exists and wait for it to complete
                             part_path = old_path + '.part'
                             if os.path.exists(part_path):
-                                logger.warning(f"Source file {old_path} not found, but .part file exists. Download may not be complete.")
-                                final_name = downloaded_file
+                                logger.info(f"Source file {old_path} not found, but .part file exists. Waiting for download to complete...")
+                                # Wait for .part file to be renamed by yt-dlp (max 30 seconds)
+                                max_wait = 30
+                                wait_interval = 0.5
+                                waited = 0
+                                while waited < max_wait:
+                                    if os.path.exists(old_path):
+                                        logger.info(f"File {old_path} appeared after waiting {waited} seconds")
+                                        break
+                                    time.sleep(wait_interval)
+                                    waited += wait_interval
+                                
+                                # If file still doesn't exist, try to rename .part file directly
+                                if not os.path.exists(old_path) and os.path.exists(part_path):
+                                    try:
+                                        logger.info(f"Attempting to rename .part file directly: {part_path} -> {old_path}")
+                                        os.rename(part_path, old_path)
+                                        logger.info(f"Successfully renamed .part file to {old_path}")
+                                    except Exception as rename_e:
+                                        logger.error(f"Failed to rename .part file: {rename_e}")
+                                        final_name = downloaded_file
+                                        caption_name = original_video_title
+                                else:
+                                    if not os.path.exists(old_path):
+                                        logger.warning(f"File {old_path} still not found after waiting. Using original filename.")
+                                        final_name = downloaded_file
+                                        caption_name = original_video_title
                             else:
                                 logger.error(f"Source file {old_path} not found for renaming")
                                 final_name = downloaded_file
@@ -2314,9 +2339,33 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # Check if .part file exists and wait for it to complete
                         part_path = old_path + '.part'
                         if os.path.exists(part_path):
-                            logger.warning(f"Source file {old_path} not found, but .part file exists. Download may not be complete.")
-                            final_name = downloaded_file
-                            caption_name = original_video_title
+                            logger.info(f"Source file {old_path} not found, but .part file exists. Waiting for download to complete...")
+                            # Wait for .part file to be renamed by yt-dlp (max 30 seconds)
+                            max_wait = 30
+                            wait_interval = 0.5
+                            waited = 0
+                            while waited < max_wait:
+                                if os.path.exists(old_path):
+                                    logger.info(f"File {old_path} appeared after waiting {waited} seconds")
+                                    break
+                                time.sleep(wait_interval)
+                                waited += wait_interval
+                            
+                            # If file still doesn't exist, try to rename .part file directly
+                            if not os.path.exists(old_path) and os.path.exists(part_path):
+                                try:
+                                    logger.info(f"Attempting to rename .part file directly: {part_path} -> {old_path}")
+                                    os.rename(part_path, old_path)
+                                    logger.info(f"Successfully renamed .part file to {old_path}")
+                                except Exception as rename_e:
+                                    logger.error(f"Failed to rename .part file: {rename_e}")
+                                    final_name = downloaded_file
+                                    caption_name = original_video_title
+                            else:
+                                if not os.path.exists(old_path):
+                                    logger.warning(f"File {old_path} still not found after waiting. Using original filename.")
+                                    final_name = downloaded_file
+                                    caption_name = original_video_title
                         else:
                             logger.error(f"Source file {old_path} not found for renaming")
                             final_name = downloaded_file

@@ -217,12 +217,58 @@ def extract_url_range_tags(text: str):
         playlist_name = playlist_match.group(1)
         after_range = after_range[playlist_match.end():]
     # New way: Looking for everything #tags throughout the text (multi -line)
+    # But only if they are separated from URLs (by spaces, start/end of line)
     tags = []
     tags_text = ''
     error_tag = None
     error_tag_example = None
+    
+    # First, extract URL to exclude tags that are part of URL
+    url_match = re.search(r'https?://[^\s\*#]+', text)
+    url_start = url_match.start() if url_match else -1
+    url_end = url_match.end() if url_match else -1
+    
     # We collect everything #tags from the whole text (multi -line)
+    # But skip tags that are inside URL boundaries
     for raw in re.finditer(r'#([^#\s]+)', text, re.UNICODE):
+        tag_start = raw.start()
+        tag_end = raw.end()
+        
+        # Skip if tag is inside URL
+        if url_start != -1 and url_end != -1 and url_start <= tag_start < url_end:
+            continue
+        
+        # Check if tag is separated from surrounding text (not part of URL or other text)
+        # Tag should be at start of text, end of text, or surrounded by whitespace/newlines
+        is_separated = False
+        if tag_start == 0:
+            # Tag at start of text
+            is_separated = True
+        elif tag_end == len(text):
+            # Tag at end of text
+            is_separated = True
+        else:
+            # Check characters before and after tag
+            char_before = text[tag_start - 1] if tag_start > 0 else ' '
+            char_after = text[tag_end] if tag_end < len(text) else ' '
+            # Tag is separated if surrounded by whitespace or at boundaries
+            if char_before.isspace() or char_before in '\n\r\t':
+                is_separated = True
+            elif char_after.isspace() or char_after in '\n\r\t':
+                is_separated = True
+            # Also check if before tag is end of URL (space, newline, or end of text)
+            # and after tag is not part of URL continuation
+            elif tag_start > 0:
+                # Check if we're right after URL (after space/newline after URL)
+                if url_end != -1 and tag_start > url_end:
+                    # Check if there's whitespace between URL end and tag
+                    between_text = text[url_end:tag_start]
+                    if between_text.strip() == '' or between_text.strip().isspace():
+                        is_separated = True
+        
+        if not is_separated:
+            continue
+        
         tag = raw.group(1)
         if not re.fullmatch(r'[\w\d_]+', tag, re.UNICODE):
             error_tag = tag
