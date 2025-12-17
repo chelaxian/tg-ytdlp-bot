@@ -493,23 +493,23 @@ def download_live_stream_chunked(
                     size_diff_ratio = abs(chunk_size_bytes - last_sent_size) / max(last_sent_size, 1)
                     if dur_diff <= 5 and size_diff_ratio <= 0.05:
                         logger.info(
-                            f\"Detected duplicate live chunk (idx={chunk_idx}, "
+                            f"Detected duplicate live chunk (idx={chunk_idx}, "
                             f"duration={duration}s, size={chunk_size_bytes} bytes) "
                             f"similar to last sent (duration={last_sent_duration}s, "
-                            f"size={last_sent_size} bytes); stopping to avoid duplicates\"
+                            f"size={last_sent_size} bytes); stopping to avoid duplicates"
                         )
                         try:
                             from HELPERS.safe_messeger import safe_edit_message_text
                             final_text = (
-                                f\"{current_total_process}\\n\"
-                                f\"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\\n\"
-                                f\"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\\n\"
-                                f\"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\\n\"
-                                f\"{messages.LIVE_STREAM_ENDED_MSG}\"
+                                f"{current_total_process}\n"
+                                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                                f"{messages.LIVE_STREAM_ENDED_MSG}"
                             )
                             safe_edit_message_text(user_id, proc_msg_id, final_text)
                         except Exception as e:
-                            logger.error(f\"Error updating final progress after duplicate detection: {e}\")
+                            logger.error(f"Error updating final progress after duplicate detection: {e}")
                         return successful_chunks > 0
 
                 chunk_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
