@@ -49,6 +49,7 @@ unknown_errors.txt
 
 # yt-dlp binaries / temp downloads
 yt-dlp
+yt-dlp.1
 *.part
 *.ytdl
 *.temp
