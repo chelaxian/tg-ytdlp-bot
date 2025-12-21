@@ -1629,7 +1629,7 @@ class Messages(object):
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "خطأ في إرسال رسالة انتهاء الوقت: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>اختر اللغة</b>\n\n🇺🇸 الإنجليزية\n🇷🇺 الروسية\n🇸🇦 العربية\n🇮🇳 الهندية"
+    LANG_SELECTION_MSG = "🌍 <b>اختر اللغة</b>"
     LANG_CHANGED_MSG = "✅ تم تغيير اللغة إلى {lang_name}"
     LANG_ERROR_MSG = "❌ خطأ في تغيير اللغة"
     LANG_CLOSED_MSG = "تم إغلاق اختيار اللغة"
