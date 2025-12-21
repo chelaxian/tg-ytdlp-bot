@@ -930,12 +930,12 @@ class Messages(object):
     
     # Args command short descriptions
     ARGS_IMPERSONATE_SHORT_MSG = "Имитация"
-    ARGS_REFERER_SHORT_MSG = "Referer"
+    ARGS_REFERER_SHORT_MSG = "Реферер"
     ARGS_GEO_BYPASS_SHORT_MSG = "Гео Обход"
     ARGS_CHECK_CERTIFICATE_SHORT_MSG = "Проверка Сертификата"
     ARGS_LIVE_FROM_START_SHORT_MSG = "Прямая с Начала"
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "Без Прямой с Начала"
-    ARGS_USER_AGENT_SHORT_MSG = "User Agent"
+    ARGS_USER_AGENT_SHORT_MSG = "User-Agent"
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
     ARGS_NO_PLAYLIST_SHORT_MSG = "Без Плейлиста"
     ARGS_NO_PART_SHORT_MSG = "Без Частей"
@@ -1443,6 +1443,19 @@ class Messages(object):
     
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **Обнаружена прямая трансляция**\n\nСкачивание текущих или бесконечных прямых трансляций не разрешено.\n\nПожалуйста, дождитесь окончания трансляции и попробуйте скачать снова, когда:\n• Длительность трансляции известна\n• Трансляция завершена\n"
+    LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>Скачивание прямой трансляции</b>"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "Часть {chunk}"
+    LIVE_STREAM_CHUNK_SIZE_MSG = "Макс. размер: {size}"
+    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "Общая длительность: {duration} сек"
+    LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>Прямая трансляция - Часть {chunk}</b>\n⏱ Длительность: {duration} сек\n📦 Размер: {size}"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "Часть {chunk}"
+    LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>Скачивание прямой трансляции завершено</b>"
+    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "Скачано частей: {chunks}"
+    LIVE_STREAM_TOTAL_DURATION_MSG = "Общая длительность: {duration} сек"
+    LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>Скачивание прямой трансляции остановлено</b>"
+    LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "Директория пользователя была удалена (вероятно, командой /clean)"
+    LIVE_STREAM_FILE_DELETED_MSG = "Файл части был удален (вероятно, командой /clean)"
+    LIVE_STREAM_ENDED_MSG = "ℹ️ Трансляция завершена"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "Пожалуйста, выберите другой формат используя команду `/format`."
     
     # Direct Link Messages
@@ -1638,7 +1651,7 @@ class Messages(object):
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Ошибка отправки сообщения о таймауте: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>Выберите язык</b>\n\n🇺🇸 English\n🇷🇺 Русский\n🇸🇦 العربية\n🇮🇳 हिन्दी"
+    LANG_SELECTION_MSG = "🌍 <b>Выберите язык</b>"
     LANG_CHANGED_MSG = "✅ Язык изменен на {lang_name}"
     LANG_ERROR_MSG = "❌ Ошибка изменения языка"
     LANG_CLOSED_MSG = "Выбор языка закрыт"
@@ -2010,7 +2023,7 @@ class Messages(object):
     URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Примеры:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (прямой порядок)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (обратный порядок)"
     URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Также смотрите: /audio, /img, /help, /playlist, /settings"
-    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
+    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "Пользователь {user_id} закрыл команду add_bot_to_group"
 
     # YouTube messages
     YOUTUBE_FAILED_EXTRACT_ID_MSG = "Не удалось извлечь YouTube ID"

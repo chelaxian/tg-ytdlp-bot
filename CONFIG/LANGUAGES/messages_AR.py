@@ -1421,6 +1421,19 @@ class Messages(object):
     
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **تم اكتشاف بث مباشر**\n\nتحميل البث المباشر الجاري أو اللامحدود غير مسموح.\n\nيرجى انتظار انتهاء البث والمحاولة مرة أخرى عندما:\n• تصبح مدة البث معروفة\n• ينتهي البث\n"
+    LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>تحميل البث المباشر</b>"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "الجزء {chunk}"
+    LIVE_STREAM_CHUNK_SIZE_MSG = "الحجم الأقصى: {size}"
+    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "المدة الإجمالية: {duration} ثانية"
+    LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>البث المباشر - الجزء {chunk}</b>\n⏱ المدة: {duration} ثانية\n📦 الحجم: {size}"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "الجزء {chunk}"
+    LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>اكتمل تحميل البث المباشر</b>"
+    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "تم تحميل {chunks} جزء(أجزاء)"
+    LIVE_STREAM_TOTAL_DURATION_MSG = "المدة الإجمالية: {duration} ثانية"
+    LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>توقف تحميل البث المباشر</b>"
+    LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "تم حذف مجلد المستخدم (على الأرجح بواسطة أمر /clean)"
+    LIVE_STREAM_FILE_DELETED_MSG = "تم حذف ملف الجزء (على الأرجح بواسطة أمر /clean)"
+    LIVE_STREAM_ENDED_MSG = "ℹ️ انتهى البث"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "يرجى اختيار تنسيق مختلف باستخدام أمر `/format`."
     
     # Direct Link Messages
@@ -1616,7 +1629,7 @@ class Messages(object):
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "خطأ في إرسال رسالة انتهاء الوقت: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>اختر اللغة</b>\n\n🇺🇸 الإنجليزية\n🇷🇺 الروسية\n🇸🇦 العربية\n🇮🇳 الهندية"
+    LANG_SELECTION_MSG = "🌍 <b>اختر اللغة</b>"
     LANG_CHANGED_MSG = "✅ تم تغيير اللغة إلى {lang_name}"
     LANG_ERROR_MSG = "❌ خطأ في تغيير اللغة"
     LANG_CLOSED_MSG = "تم إغلاق اختيار اللغة"

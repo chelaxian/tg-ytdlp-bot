@@ -31,12 +31,19 @@ def lang_command_handler(update, context):
     if args and len(args) >= 1:
         lang_arg = args[0].lower()
         
-        # Supported language codes
+        # Supported language codes 
         supported_langs = {
             'en': 'English',
             'ru': 'Русский', 
             'ar': 'العربية',
-            'in': 'हिन्दी'
+            'in': 'हिन्दी',
+            'zh': '中文',
+            'es': 'Español',
+            'fr': 'Français',
+            'bn': 'বাংলা',
+            'pt': 'Português',
+            'ur': 'اردو',
+            'id': 'Bahasa Indonesia'
         }
         
         if lang_arg in supported_langs:
@@ -73,7 +80,7 @@ def lang_command_handler(update, context):
             # Invalid language code
             messages = get_messages(user_id)
             error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG', 
-                "❌ Invalid language code. Supported: en, ru, ar, in"
+                "❌ Invalid language code. Supported: en, ru, ar, in, zh, es, fr, bn, pt, ur, id"
             )
             update.message.reply_text(error_msg)
             return
@@ -115,7 +122,14 @@ def lang_command_handler(update, context):
         "🇺🇸 English\n"
         "🇷🇺 Русский\n" 
         "🇸🇦 العربية\n"
-        "🇮🇳 हिन्दी"
+        "🇮🇳 हिन्दी\n"
+        "🇨🇳 中文\n"
+        "🇪🇸 Español\n"
+        "🇫🇷 Français\n"
+        "🇧🇩 বাংলা\n"
+        "🇵🇹 Português\n"
+        "🇵🇰 اردو\n"
+        "🇮🇩 Bahasa Indonesia"
     )
     
     update.message.reply_text(
@@ -147,7 +161,14 @@ def lang_command(app, message):
             'en': 'English',
             'ru': 'Русский', 
             'ar': 'العربية',
-            'in': 'हिन्दी'
+            'in': 'हिन्दी',
+            'zh': '中文',
+            'es': 'Español',
+            'fr': 'Français',
+            'bn': 'বাংলা',
+            'pt': 'Português',
+            'ur': 'اردو',
+            'id': 'Bahasa Indonesia'
         }
         
         if lang_arg in supported_langs:
@@ -186,7 +207,7 @@ def lang_command(app, message):
             # Invalid language code
             messages = safe_get_messages(user_id)
             error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG', 
-                "❌ Invalid language code. Supported: en, ru, ar, in"
+                "❌ Invalid language code. Supported: en, ru, ar, in, zh, es, fr, bn, pt, ur, id"
             )
             safe_send_message(user_id, error_msg, message=message)
             return
@@ -222,11 +243,7 @@ def lang_command(app, message):
     
     # Send language selection message
     lang_selection_msg = getattr(messages, 'LANG_SELECTION_MSG', 
-        "🌍 <b>Выберите язык / Select Language</b>\n\n"
-        "🇺🇸 English\n"
-        "🇷🇺 Русский\n" 
-        "🇸🇦 العربية\n"
-        "🇮🇳 हिन्दी"
+        "🌍 <b>Выберите язык / Select Language</b>"
     )
     
     safe_send_message(

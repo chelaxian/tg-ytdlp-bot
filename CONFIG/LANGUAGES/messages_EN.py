@@ -1443,6 +1443,19 @@ Use:
     
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **Live Stream Detected**\n\nDownloading of ongoing or infinite live streams is not allowed.\n\nPlease wait for the stream to end and try downloading again when:\n• The stream duration is known\n• The stream has finished\n"
+    LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>Live Stream Download</b>"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "Chunk {chunk}"
+    LIVE_STREAM_CHUNK_SIZE_MSG = "Max size: {size}"
+    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "Total duration: {duration} sec"
+    LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>Live Stream - Chunk {chunk}</b>\n⏱ Duration: {duration} sec\n📦 Size: {size}"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "Chunk {chunk}"
+    LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>Live Stream Download Complete</b>"
+    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "Downloaded {chunks} chunk(s)"
+    LIVE_STREAM_TOTAL_DURATION_MSG = "Total duration: {duration} sec"
+    LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>Live Stream Download Stopped</b>"
+    LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "User directory was deleted (probably by /clean command)"
+    LIVE_STREAM_FILE_DELETED_MSG = "Chunk file was deleted (probably by /clean command)"
+    LIVE_STREAM_ENDED_MSG = "ℹ️ Stream has ended"
     AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG = "Please select a different format using `/format` command."
     
     # Direct Link Messages
@@ -1638,7 +1651,7 @@ Use:
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Error sending timeout message: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>Choose language</b>\n\n🇺🇸 English\n🇷🇺 Русский\n🇸🇦 العربية\n🇮🇳 हिन्दी"
+    LANG_SELECTION_MSG = "🌍 <b>Choose language</b>"
     LANG_CHANGED_MSG = "✅ Language changed to {lang_name}"
     LANG_ERROR_MSG = "❌ Error changing language"
     LANG_CLOSED_MSG = "Language selection closed"

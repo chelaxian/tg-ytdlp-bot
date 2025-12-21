@@ -41,6 +41,59 @@ from HELPERS.safe_messeger import fake_message
 # Get app instance for decorators
 app = get_app()
 
+def is_command_separated(text: str, command: str) -> bool:
+    """
+    Проверяет, что команда отделена от остального текста (пробелами, началом/концом строки).
+    Не срабатывает, если команда является частью URL или другого текста.
+    """
+    if not text or not command:
+        return False
+    
+    # Проверяем, что текст начинается с команды (самый частый случай)
+    if text.startswith(command):
+        # Проверяем, что после команды есть разделитель или конец строки
+        if len(text) == len(command):
+            return True
+        char_after = text[len(command)]
+        # Если после команды пробел, новая строка или конец - это команда
+        if char_after.isspace() or char_after in '\n\r\t':
+            return True
+        # Если после команды есть символы, которые могут быть частью URL - это не команда
+        if char_after.isalnum() or char_after in '/.-_@':
+            return False
+        return True
+    
+    # Ищем команду в тексте (не в начале)
+    idx = text.find(command)
+    if idx == -1:
+        return False
+    
+    # Проверяем, что перед командой есть разделитель (пробел, начало строки, новая строка)
+    if idx > 0:
+        char_before = text[idx - 1]
+        # Если перед командой нет пробела/новой строки - это часть URL/текста
+        if not (char_before.isspace() or char_before in '\n\r\t'):
+            return False
+    
+    # Проверяем, что после команды есть разделитель (пробел, конец строки, или начало аргументов)
+    end_idx = idx + len(command)
+    if end_idx < len(text):
+        char_after = text[end_idx]
+        # Если после команды есть буква, цифра, слэш, точка, дефис, подчеркивание без пробела - это часть URL/текста
+        if char_after.isalnum() or char_after in '/.-_@':
+            return False
+    
+    # Дополнительная проверка: если команда находится внутри URL (между http:// и пробелом/концом)
+    url_pattern = r'https?://[^\s]+'
+    for url_match in re.finditer(url_pattern, text):
+        url_start = url_match.start()
+        url_end = url_match.end()
+        # Если команда находится внутри URL - это не команда
+        if url_start <= idx < url_end:
+            return False
+    
+    return True
+
 @app.on_message(filters.text & filters.private)
 @reply_with_keyboard
 @background_handler(label="url_distractor")
@@ -336,35 +389,35 @@ def url_distractor(app, message):
     # ----- Admin-only denial for non-admins -----
     if not is_admin:
         # /uncache
-        if text.startswith(Config.UNCACHE_COMMAND):
+        if is_command_separated(text, Config.UNCACHE_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /auto_cache
-        if text.startswith(Config.AUTO_CACHE_COMMAND):
+        if is_command_separated(text, Config.AUTO_CACHE_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /all_* (user details)
-        if Config.GET_USER_DETAILS_COMMAND in text:
+        if is_command_separated(text, Config.GET_USER_DETAILS_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /unblock_user
-        if Config.UNBLOCK_USER_COMMAND in text:
+        if is_command_separated(text, Config.UNBLOCK_USER_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /block_user
-        if Config.BLOCK_USER_COMMAND in text:
+        if is_command_separated(text, Config.BLOCK_USER_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /broadcast
-        if text.startswith(Config.BROADCAST_MESSAGE):
+        if is_command_separated(text, Config.BROADCAST_MESSAGE):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /log (user logs)
-        if Config.GET_USER_LOGS_COMMAND in text:
+        if is_command_separated(text, Config.GET_USER_LOGS_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /reload_cache
-        if text.startswith(Config.RELOAD_CACHE_COMMAND):
+        if is_command_separated(text, Config.RELOAD_CACHE_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
 
@@ -923,7 +976,7 @@ def url_distractor(app, message):
             return
 
     # /USAGE Command
-    if Config.USAGE_COMMAND in text:
+    if is_command_separated(text, Config.USAGE_COMMAND):
         from COMMANDS.admin_cmd import get_user_usage_stats
         logger.info(f"📃 Emoji triggered - showing usage stats for user {user_id}")
         get_user_usage_stats(app, message)
@@ -932,7 +985,7 @@ def url_distractor(app, message):
 
 
     # /tags Command
-    if Config.TAGS_COMMAND in text:
+    if is_command_separated(text, Config.TAGS_COMMAND):
         from COMMANDS.tag_cmd import tags_command
         tags_command(app, message)
         return
@@ -1187,37 +1240,37 @@ def url_distractor(app, message):
             return
 
         # /Block_user Command
-        if Config.BLOCK_USER_COMMAND in text:
+        if is_command_separated(text, Config.BLOCK_USER_COMMAND):
             block_user(app, message)
             return
 
         # /unblock_user Command
-        if Config.UNBLOCK_USER_COMMAND in text:
+        if is_command_separated(text, Config.UNBLOCK_USER_COMMAND):
             unblock_user(app, message)
             return
 
         # /ban_time Command
-        if Config.BAN_TIME_COMMAND in text:
+        if is_command_separated(text, Config.BAN_TIME_COMMAND):
             ban_time_command(app, message)
             return
 
         # /Run_Time Command
-        if Config.RUN_TIME in text:
+        if is_command_separated(text, Config.RUN_TIME):
             check_runtime(message)
             return
 
         # /All Command for User Details
-        if Config.GET_USER_DETAILS_COMMAND in text:
+        if is_command_separated(text, Config.GET_USER_DETAILS_COMMAND):
             get_user_details(app, message)
             return
 
         # /log Command for User Logs
-        if Config.GET_USER_LOGS_COMMAND in text:
+        if is_command_separated(text, Config.GET_USER_LOGS_COMMAND):
             get_user_log(app, message)
             return
 
         # /uncache Command - Clear cache for URL
-        if Config.UNCACHE_COMMAND in text:
+        if is_command_separated(text, Config.UNCACHE_COMMAND):
             uncache_command(app, message)
             return
 

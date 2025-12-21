@@ -1,5 +1,5 @@
 # Live Stream Downloader
-# Downloads live streams in chunks and sends them immediately
+# Downloads live streams in chunks by size and sends them immediately
 
 import os
 import yt_dlp
@@ -7,9 +7,12 @@ import time
 from datetime import datetime
 from CONFIG.limits import LimitsConfig
 from CONFIG.messages import safe_get_messages
-from HELPERS.logger import logger
+from HELPERS.logger import logger, get_log_channel
+from HELPERS.safe_messeger import safe_forward_messages
 from DOWN_AND_UP.sender import send_videos
-from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe
+from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, split_video_2
+from DOWN_AND_UP.down_and_up import _save_video_cache_with_logging
+from COMMANDS.split_sizer import get_user_split_size
 
 
 def download_live_stream_chunked(
@@ -19,7 +22,7 @@ def download_live_stream_chunked(
     format_override=None, quality_key=None
 ):
     """
-    Download live stream in chunks and send each chunk immediately.
+    Download live stream in chunks by size and send each chunk immediately.
     
     Args:
         app: Pyrogram app instance
@@ -38,12 +41,26 @@ def download_live_stream_chunked(
         bool: True if successful, False otherwise
     """
     try:
-        # Get configuration
-        split_hours = LimitsConfig.SPLIT_LIVE_STREAM_BY_HOURS
-        max_duration = LimitsConfig.MAX_LIVE_STREAM_DURATION
-        max_chunks = int(max_duration / (split_hours * 3600))
+        messages = safe_get_messages(user_id)
         
-        logger.info(f"Starting live stream download: url={url}, split_hours={split_hours}, max_duration={max_duration}s, max_chunks={max_chunks}")
+        # Get configuration
+        max_duration = LimitsConfig.MAX_LIVE_STREAM_DURATION
+        # User‑configured split size (default ~1.95 GiB)
+        user_split_size = get_user_split_size(user_id)
+        # Hard Telegram limit ~2 GiB, оставим запас ~50 MiB
+        telegram_limit_bytes = (2 * 1024 * 1024 * 1024) - (50 * 1024 * 1024)
+        # Фактический лимит на размер одного файла/куска
+        max_chunk_size = min(user_split_size, telegram_limit_bytes)
+        
+        logger.info(
+            f"Starting live stream download: url={url}, "
+            f"user_split_size={user_split_size} bytes, "
+            f"telegram_limit={telegram_limit_bytes} bytes, "
+            f"effective_max_chunk_size={max_chunk_size} bytes, "
+            f"max_duration={max_duration}s"
+        )
+        # Safe quality key for cache (reuse same semantics as in down_and_up)
+        safe_quality_key = quality_key if quality_key is not None else "best"
         
         # Get video title for filename
         video_title = info_dict.get('title', 'live_stream')
@@ -73,8 +90,8 @@ def download_live_stream_chunked(
         safe_channel = sanitize_filename_strict(channel)
         
         # Prepare base yt-dlp options
+        # Note: live_from_start will be set per chunk (True for first, False for subsequent)
         base_opts = {
-            'live_from_start': True,  # Start from beginning when DVR is available
             'concurrent_fragment_downloads': 4,  # -N 4
             'retries': float('inf'),  # -R infinite
             'fragment_retries': float('inf'),  # --fragment-retries infinite
@@ -198,30 +215,37 @@ def download_live_stream_chunked(
         from HELPERS.pot_helper import add_pot_to_ytdl_opts
         base_opts = add_pot_to_ytdl_opts(base_opts, url)
         
-        # Calculate segment time in seconds
-        segment_time = split_hours * 3600  # Convert hours to seconds
-        
-        # Download chunks sequentially
+        # Download chunks sequentially by size
         successful_chunks = 0
         start_time = time.time()
         did_live_from_start_retry = False
+        accumulated_duration = 0  # Track total duration downloaded
+        chunk_idx = 0
+        # Для защиты от дубликатов запоминаем параметры последнего реально отправленного куска
+        last_sent_duration = None
+        last_sent_size = None
+        # Для кэша: список ID сообщений в лог‑канале (все куски/подкуски)
+        cache_message_ids = []
         
-        for chunk_idx in range(max_chunks):
+        while True:
             elapsed_time = time.time() - start_time
             if elapsed_time >= max_duration:
                 logger.info(f"Reached max duration limit ({max_duration}s), stopping live stream download")
                 break
             
-            logger.info(f"Downloading live stream chunk {chunk_idx + 1}/{max_chunks}")
+            chunk_idx += 1
+            logger.info(f"Downloading live stream chunk {chunk_idx}, max_size={max_chunk_size} bytes, accumulated_duration={accumulated_duration}s")
             
             # Update progress
             try:
                 from HELPERS.safe_messeger import safe_edit_message_text
+                from HELPERS.limitter import humanbytes
                 progress_text = (
                     f"{current_total_process}\n"
-                    f"📡 <b>Live Stream Download</b>\n"
-                    f"Chunk {chunk_idx + 1}/{max_chunks}\n"
-                    f"Duration: {split_hours} hour(s) per chunk"
+                    f"{messages.LIVE_STREAM_DOWNLOAD_PROGRESS_MSG}\n"
+                    f"{messages.LIVE_STREAM_CHUNK_NUMBER_MSG.format(chunk=chunk_idx)}\n"
+                    f"{messages.LIVE_STREAM_CHUNK_SIZE_MSG.format(size=humanbytes(max_chunk_size))}\n"
+                    f"{messages.LIVE_STREAM_ACCUMULATED_DURATION_MSG.format(duration=int(accumulated_duration))}"
                 )
                 safe_edit_message_text(user_id, proc_msg_id, progress_text)
             except Exception as e:
@@ -230,20 +254,28 @@ def download_live_stream_chunked(
             # Create yt-dlp options for this chunk
             chunk_opts = base_opts.copy()
             
+            # Use live_from_start only for the first chunk
+            # For subsequent chunks, don't use live_from_start to continue from current position
+            if chunk_idx == 1:
+                chunk_opts['live_from_start'] = True
+            else:
+                chunk_opts['live_from_start'] = False
+            
             # Prepare output filename for this chunk
             chunk_filename = f"{date_str}_{safe_channel}_{safe_title}_{chunk_idx:03d}.ts"
             chunk_file = os.path.join(user_dir_name, chunk_filename)
             chunk_opts['outtmpl'] = chunk_file.replace('.ts', '.%(ext)s')
             
-            # Prepare downloader args for ffmpeg to limit duration per chunk
-            # Input: limit to segment_time for this chunk
-            segment_hours = int(segment_time / 3600)
-            segment_minutes = int((segment_time % 3600) / 60)
-            segment_seconds = int(segment_time % 60)
-            ffmpeg_input_args = f"-t {segment_hours:02d}:{segment_minutes:02d}:{segment_seconds:02d}"
+            # Prepare downloader args for ffmpeg to limit size per chunk
+            # Use -fs (file size limit) in output args to limit file size
+            # Convert max_chunk_size to MB for ffmpeg (ffmpeg uses MB for -fs)
+            max_size_mb = max_chunk_size / (1024 * 1024)
             
-            # Output: use mpegts format for live streams
-            ffmpeg_output_args = "-f mpegts"
+            # Input: no time limit, let it download until size limit is reached
+            ffmpeg_input_args = ""
+            
+            # Output: use mpegts format for live streams and limit file size
+            ffmpeg_output_args = f"-f mpegts -fs {max_size_mb:.0f}M"
             
             chunk_opts['downloader_args'] = {
                 'ffmpeg_i': ffmpeg_input_args,
@@ -251,6 +283,21 @@ def download_live_stream_chunked(
             }
             
             try:
+                # Check if user directory still exists (might have been deleted by /clean)
+                if not os.path.exists(user_dir_name):
+                    logger.warning(f"User directory was deleted (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_USER_DIRECTORY_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e:
+                        logger.error(f"Error updating progress: {e}")
+                    break
+                
                 with yt_dlp.YoutubeDL(chunk_opts) as ydl:
                     ydl.download([url])
                 
@@ -276,11 +323,29 @@ def download_live_stream_chunked(
                 # Get video info for the chunk
                 try:
                     _, _, duration = get_video_info_ffprobe(chunk_file)
+                    if duration:
+                        duration = float(duration)
+                    else:
+                        duration = 0
                 except Exception as e:
                     logger.error(f"Error getting video info: {e}")
-                    duration = segment_time
+                    duration = 0
                 
-                # Get or create thumbnail
+                # Verify timing continuity: check that this chunk doesn't start from the beginning
+                # For chunks after the first, we expect them to continue from where previous ended
+                if chunk_idx > 1 and duration > 0:
+                    # Check if chunk file size matches expected (should be close to max_chunk_size)
+                    chunk_size = os.path.getsize(chunk_file)
+                    if chunk_size < max_chunk_size * 0.1:  # If chunk is less than 10% of expected size
+                        logger.warning(f"Chunk {chunk_idx} is suspiciously small ({chunk_size} bytes), might be starting from beginning")
+                        # This might indicate the chunk started from beginning, but we continue anyway
+                
+                # Update accumulated duration
+                if duration > 0:
+                    accumulated_duration += duration
+                    logger.info(f"Chunk {chunk_idx} duration: {duration}s, total accumulated: {accumulated_duration}s")
+                
+                # Get or create thumbnail BEFORE split check (needed for split parts)
                 thumb_file = None
                 try:
                     thumb_name = f"{safe_title}_chunk_{chunk_idx:03d}"
@@ -297,46 +362,375 @@ def download_live_stream_chunked(
                     if os.path.exists(thumb_path):
                         thumb_file = thumb_path
                 
+                # --- HARD SIZE CHECK & OPTIONAL ADDITIONAL SPLIT ---
+                # На всякий случай ещё раз проверяем реальный размер файла.
+                from HELPERS.limitter import humanbytes
+                chunk_size_bytes = os.path.getsize(chunk_file)
+                chunk_was_split = False  # Флаг: был ли кусок разрезан и отправлен по частям
+                if chunk_size_bytes > max_chunk_size:
+                    logger.warning(
+                        f"Chunk {chunk_idx} size {chunk_size_bytes} bytes "
+                        f"exceeds effective max_chunk_size {max_chunk_size} bytes, "
+                        f"running additional split_video_2"
+                    )
+                    try:
+                        # Используем split_video_2, чтобы порезать файл на части < max_chunk_size.
+                        base_name = f"{safe_title}_chunk_{chunk_idx:03d}"
+                        split_result = split_video_2(
+                            user_dir_name,
+                            base_name,
+                            chunk_file,
+                            chunk_size_bytes,
+                            max_chunk_size,
+                            int(duration) if duration else int(accumulated_duration) or 0,
+                            user_id
+                        )
+                        part_captions = split_result.get("video") or []
+                        part_paths = split_result.get("path") or []
+                        
+                        # Отправляем каждую часть по очереди и сразу удаляем
+                        sent_any = False
+                        for i, part_path in enumerate(part_paths):
+                            if not os.path.exists(part_path):
+                                logger.warning(f"Split part not found: {part_path}")
+                                continue
+                            
+                            # Получаем длительность части
+                            try:
+                                _, _, part_duration = get_video_info_ffprobe(part_path)
+                                part_duration = int(part_duration) if part_duration else 0
+                            except Exception as e:
+                                logger.error(f"Error getting split part video info: {e}")
+                                part_duration = 0
+                            
+                            part_size_bytes = os.path.getsize(part_path)
+                            part_label = f"{chunk_idx}.{i+1}"
+                            
+                            part_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
+                                chunk=part_label,
+                                duration=part_duration,
+                                size=humanbytes(part_size_bytes)
+                            )
+                            if tags_text:
+                                part_caption += f"\n{tags_text}"
+                            
+                            # Пытаемся использовать тот же thumb_file, нового уже не делаем
+                            logger.info(f"Sending split part {part_label} to user: {part_path}")
+                            part_msg = send_videos(
+                                message,
+                                part_path,
+                                part_caption,
+                                part_duration,
+                                thumb_file or "",
+                                messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=part_label),
+                                proc_msg_id,
+                                f"{video_title} - {messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=part_label)}",
+                                tags_text
+                            )
+                            
+                            if part_msg:
+                                successful_chunks += 1
+                                sent_any = True
+                                logger.info(f"Successfully sent split part {part_label}")
+                                # Пробуем переслать в лог‑канал для кэша
+                                try:
+                                    log_channel = get_log_channel("video")
+                                    if log_channel:
+                                        forwarded = safe_forward_messages(log_channel, user_id, [part_msg.id])
+                                        if forwarded:
+                                            cache_message_ids.extend([m.id for m in forwarded])
+                                except Exception as e:
+                                    logger.error(f"Error forwarding split part {part_label} to log channel: {e}")
+                            else:
+                                logger.warning(f"Failed to send split part {part_label}")
+                            
+                            # Удаляем часть после отправки
+                            try:
+                                os.remove(part_path)
+                                logger.info(f"Cleaned up split part file: {part_path}")
+                            except Exception as e:
+                                logger.error(f"Error cleaning up split part file: {e}")
+                        
+                        # Удаляем исходный крупный файл
+                        try:
+                            if os.path.exists(chunk_file):
+                                os.remove(chunk_file)
+                                logger.info(f"Cleaned up original oversized chunk file: {chunk_file}")
+                        except Exception as e:
+                            logger.error(f"Error cleaning up original oversized chunk file: {e}")
+                        
+                        # Переходим к следующему куску
+                        if sent_any:
+                            chunk_was_split = True  # Куск был успешно разрезан и отправлен
+                            continue
+                        else:
+                            # Если не удалось отправить ни одной части — считаем это ошибкой и выходим
+                            logger.error(f"No split parts were sent successfully for chunk {chunk_idx}, stopping")
+                            # Перед выходом пробуем сохранить то, что уже есть, в кэш
+                            try:
+                                if cache_message_ids and safe_quality_key:
+                                    original_text = message.text or message.caption or ""
+                                    _save_video_cache_with_logging(
+                                        url, safe_quality_key, cache_message_ids,
+                                        original_text=original_text, user_id=user_id
+                                    )
+                            except Exception as e2:
+                                logger.error(f"Error saving live stream cache on split failure: {e2}")
+                            return successful_chunks > 0
+                    except Exception as e:
+                        logger.error(f"Error while additional splitting oversized chunk {chunk_idx}: {e}")
+                        # Если доп. сплит сломался, продолжаем обычную логику ниже (попробуем отправить как есть)
+                
+                # --- REGULAR SEND PATH ---
+                # Пропускаем обычную отправку, если кусок уже был разрезан и отправлен по частям
+                if chunk_was_split:
+                    logger.info(f"Chunk {chunk_idx} was already split and sent, skipping regular send path")
+                    continue
+                
                 # Prepare caption
-                chunk_caption = f"📡 <b>Live Stream - Chunk {chunk_idx + 1}/{max_chunks}</b>\n"
-                chunk_caption += f"⏱ Duration: {split_hours} hour(s)\n"
+                chunk_size_bytes = os.path.getsize(chunk_file)
+
+                # --- SIMPLE DEDUP GUARD ---
+                # Если текущий кусок по длительности и размеру практически совпадает
+                # с уже отправленным последним куском, считаем, что это дубликат
+                # (например, перезапуск того же VOD) и выходим без повторной отправки.
+                if last_sent_duration is not None and last_sent_size is not None:
+                    dur_diff = abs(int(duration or 0) - int(last_sent_duration))
+                    # допустимая погрешность по размеру ~5%
+                    size_diff_ratio = abs(chunk_size_bytes - last_sent_size) / max(last_sent_size, 1)
+                    if dur_diff <= 5 and size_diff_ratio <= 0.05:
+                        logger.info(
+                            f"Detected duplicate live chunk (idx={chunk_idx}, "
+                            f"duration={duration}s, size={chunk_size_bytes} bytes) "
+                            f"similar to last sent (duration={last_sent_duration}s, "
+                            f"size={last_sent_size} bytes); stopping to avoid duplicates"
+                        )
+                        try:
+                            from HELPERS.safe_messeger import safe_edit_message_text
+                            final_text = (
+                                f"{current_total_process}\n"
+                                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                                f"{messages.LIVE_STREAM_ENDED_MSG}"
+                            )
+                            safe_edit_message_text(user_id, proc_msg_id, final_text)
+                        except Exception as e:
+                            logger.error(f"Error updating final progress after duplicate detection: {e}")
+                        return successful_chunks > 0
+
+                chunk_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
+                    chunk=chunk_idx,
+                    duration=int(duration) if duration else 0,
+                    size=humanbytes(chunk_size_bytes)
+                )
                 if tags_text:
                     chunk_caption += f"\n{tags_text}"
                 
+                # Check if file still exists before sending (might have been deleted by /clean)
+                if not os.path.exists(chunk_file):
+                    logger.warning(f"Chunk file was deleted before sending (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_FILE_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e:
+                        logger.error(f"Error updating progress: {e}")
+                    break
+                
                 # Send chunk immediately
-                logger.info(f"Sending chunk {chunk_idx + 1} to user: {chunk_file}")
+                logger.info(f"Sending chunk {chunk_idx} to user: {chunk_file}")
                 
                 chunk_msg = send_videos(
                     message,
                     chunk_file,
                     chunk_caption,
-                    int(duration) if duration else segment_time,
+                    int(duration) if duration else 0,
                     thumb_file or "",
-                    f"Chunk {chunk_idx + 1}/{max_chunks}",
+                    messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx),
                     proc_msg_id,
-                    f"{video_title} - Chunk {chunk_idx + 1}",
+                    f"{video_title} - {messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx)}",
                     tags_text
                 )
                 
                 if chunk_msg:
                     successful_chunks += 1
-                    logger.info(f"Successfully sent chunk {chunk_idx + 1}")
+                    # Обновляем сигнатуру последнего реально отправленного куска
+                    last_sent_duration = int(duration) if duration else 0
+                    last_sent_size = chunk_size_bytes
+                    logger.info(f"Successfully sent chunk {chunk_idx}")
+                    # Пробуем переслать в лог‑канал для кэша (регулярный канал, без NSFW/PAID)
+                    try:
+                        log_channel = get_log_channel("video")
+                        if log_channel:
+                            forwarded = safe_forward_messages(log_channel, user_id, [chunk_msg.id])
+                            if forwarded:
+                                cache_message_ids.extend([m.id for m in forwarded])
+                    except Exception as e:
+                        logger.error(f"Error forwarding live chunk {chunk_idx} to log channel: {e}")
                 else:
-                    logger.warning(f"Failed to send chunk {chunk_idx + 1}")
+                    logger.warning(f"Failed to send chunk {chunk_idx}")
                 
-                # Clean up chunk file after sending (optional, to save space)
-                # Uncomment if you want to delete chunks after sending
-                # try:
-                #     os.remove(chunk_file)
-                #     logger.info(f"Cleaned up chunk file: {chunk_file}")
-                # except Exception as e:
-                #     logger.error(f"Error cleaning up chunk file: {e}")
+                # Check if chunk reached size limit (if it's smaller, stream might have ended)
+                # Also check if file still exists (might have been deleted by /clean)
+                if not os.path.exists(chunk_file):
+                    logger.warning(f"Chunk file was deleted (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_FILE_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e:
+                        logger.error(f"Error updating progress: {e}")
+                    break
+                
+                chunk_size_bytes = os.path.getsize(chunk_file)
+                if chunk_size_bytes < max_chunk_size * 0.9:  # If chunk is less than 90% of max size
+                    logger.info(f"Chunk {chunk_idx} is smaller than expected ({chunk_size_bytes} < {max_chunk_size * 0.9}), stream might have ended")
+                    # Если первый же кусок заметно меньше лимита, скорее всего, это уже полностью завершившийся стрим/VOD,
+                    # который целиком поместился в один файл — дополнительных кусков не нужно.
+                    if chunk_idx == 1:
+                        logger.info("First chunk is significantly smaller than max_chunk_size; assuming full recording fits into a single file")
+                        try:
+                            from HELPERS.safe_messeger import safe_edit_message_text
+                            final_text = (
+                                f"{current_total_process}\n"
+                                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                                f"{messages.LIVE_STREAM_ENDED_MSG}"
+                            )
+                            safe_edit_message_text(user_id, proc_msg_id, final_text)
+                        except Exception as e:
+                            logger.error(f"Error updating final progress: {e}")
+                        # Сохраняем уже отправленные куски в кэш
+                        try:
+                            if cache_message_ids and safe_quality_key:
+                                original_text = message.text or message.caption or ""
+                                _save_video_cache_with_logging(
+                                    url, safe_quality_key, cache_message_ids,
+                                    original_text=original_text, user_id=user_id
+                                )
+                        except Exception as e2:
+                            logger.error(f"Error saving live stream cache on early end (single chunk): {e2}")
+                        return successful_chunks > 0
+                    # If this is the second consecutive small chunk, assume stream ended
+                    if chunk_idx > 1:
+                        logger.info(f"Two consecutive small chunks detected, assuming stream has ended")
+                        try:
+                            from HELPERS.safe_messeger import safe_edit_message_text
+                            final_text = (
+                                f"{current_total_process}\n"
+                                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                                f"{messages.LIVE_STREAM_ENDED_MSG}"
+                            )
+                            safe_edit_message_text(user_id, proc_msg_id, final_text)
+                        except Exception as e:
+                            logger.error(f"Error updating final progress: {e}")
+                        # Сохраняем уже отправленные куски в кэш
+                        try:
+                            if cache_message_ids and safe_quality_key:
+                                original_text = message.text or message.caption or ""
+                                _save_video_cache_with_logging(
+                                    url, safe_quality_key, cache_message_ids,
+                                    original_text=original_text, user_id=user_id
+                                )
+                        except Exception as e2:
+                            logger.error(f"Error saving live stream cache on early end (two small chunks): {e2}")
+                        return successful_chunks > 0
+                
+                # Clean up chunk file after sending to save space
+                # Check if file still exists before trying to delete (might have been deleted by /clean)
+                if os.path.exists(chunk_file):
+                    try:
+                        os.remove(chunk_file)
+                        logger.info(f"Cleaned up chunk file: {chunk_file}")
+                    except Exception as e:
+                        logger.error(f"Error cleaning up chunk file: {e}")
+                else:
+                    logger.warning(f"Chunk file was already deleted: {chunk_file}")
                 
             except Exception as e:
                 error_text = str(e)
+                
+                # Check if user directory was deleted (probably by /clean)
+                if not os.path.exists(user_dir_name):
+                    logger.warning(f"User directory was deleted during download (probably by /clean), stopping live stream download")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                            f"{messages.LIVE_STREAM_USER_DIRECTORY_DELETED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e2:
+                        logger.error(f"Error updating progress: {e2}")
+                    break
+                
+                # Check for stream ended errors (transmission ended, video unavailable, etc.)
+                stream_ended_keywords = [
+                    "transmission ended",
+                    "video unavailable",
+                    "private video",
+                    "video is unavailable",
+                    "stream ended",
+                    "this live stream recording is not available",
+                    "live stream recording is not available",
+                    "HTTP Error 403",
+                    "HTTP Error 404",
+                    "unable to download video data",
+                    "no video formats found",
+                    "requested format is not available"
+                ]
+                
+                is_stream_ended = False
+                if isinstance(e, yt_dlp.utils.DownloadError):
+                    error_lower = error_text.lower()
+                    for keyword in stream_ended_keywords:
+                        if keyword.lower() in error_lower:
+                            is_stream_ended = True
+                            logger.info(f"Stream ended detected (keyword: '{keyword}'): {error_text}")
+                            break
+                
+                if is_stream_ended:
+                    logger.info(f"Live stream has ended, stopping download after {successful_chunks} chunks")
+                    try:
+                        from HELPERS.safe_messeger import safe_edit_message_text
+                        final_text = (
+                            f"{current_total_process}\n"
+                            f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                            f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                            f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}\n"
+                            f"{messages.LIVE_STREAM_ENDED_MSG}"
+                        )
+                        safe_edit_message_text(user_id, proc_msg_id, final_text)
+                    except Exception as e2:
+                        logger.error(f"Error updating final progress: {e2}")
+                    # Сохраняем уже отправленные куски в кэш
+                    try:
+                        if cache_message_ids and safe_quality_key:
+                            original_text = message.text or message.caption or ""
+                            _save_video_cache_with_logging(
+                                url, safe_quality_key, cache_message_ids,
+                                original_text=original_text, user_id=user_id
+                            )
+                    except Exception as e3:
+                        logger.error(f"Error saving live stream cache on stream-ended error: {e3}")
+                    return successful_chunks > 0
+                
                 # Check for --live-from-start error and retry with --no-live-from-start
                 if isinstance(e, yt_dlp.utils.DownloadError) and "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_text and not did_live_from_start_retry:
-                    logger.info(f"Live-from-start error detected for chunk {chunk_idx + 1}, retrying with --no-live-from-start")
+                    logger.info(f"Live-from-start error detected for chunk {chunk_idx}, retrying with --no-live-from-start")
                     did_live_from_start_retry = True
                     # Update base_opts to disable live_from_start for retry
                     base_opts['live_from_start'] = False
@@ -350,7 +744,7 @@ def download_live_stream_chunked(
                         # Continue with the rest of the chunk processing (checking file, sending, etc.)
                         # We'll need to duplicate the logic here or extract it to a function
                         # For now, let's continue normally and let the retry succeed
-                        logger.info(f"Chunk {chunk_idx + 1} retry with --no-live-from-start successful")
+                        logger.info(f"Chunk {chunk_idx} retry with --no-live-from-start successful")
                         # Re-check file existence and continue processing
                         if os.path.exists(chunk_file):
                             # Continue with chunk processing below
@@ -376,9 +770,18 @@ def download_live_stream_chunked(
                         # Get video info for the chunk
                         try:
                             _, _, duration = get_video_info_ffprobe(chunk_file)
+                            if duration:
+                                duration = float(duration)
+                            else:
+                                duration = 0
                         except Exception as e2:
                             logger.error(f"Error getting video info: {e2}")
-                            duration = segment_time
+                            duration = 0
+                        
+                        # Update accumulated duration
+                        if duration > 0:
+                            accumulated_duration += duration
+                            logger.info(f"Chunk {chunk_idx} duration after retry: {duration}s, total accumulated: {accumulated_duration}s")
                         
                         # Get or create thumbnail
                         thumb_file = None
@@ -396,48 +799,87 @@ def download_live_stream_chunked(
                                 thumb_file = thumb_path
                         
                         # Prepare caption
-                        chunk_caption = f"📡 <b>Live Stream - Chunk {chunk_idx + 1}/{max_chunks}</b>\n"
-                        chunk_caption += f"⏱ Duration: {split_hours} hour(s)\n"
+                        from HELPERS.limitter import humanbytes
+                        chunk_size_bytes = os.path.getsize(chunk_file)
+                        chunk_caption = messages.LIVE_STREAM_CHUNK_CAPTION_MSG.format(
+                            chunk=chunk_idx,
+                            duration=int(duration) if duration else 0,
+                            size=humanbytes(chunk_size_bytes)
+                        )
                         if tags_text:
                             chunk_caption += f"\n{tags_text}"
                         
                         # Send chunk immediately
-                        logger.info(f"Sending chunk {chunk_idx + 1} to user: {chunk_file}")
+                        logger.info(f"Sending chunk {chunk_idx} to user: {chunk_file}")
                         
                         chunk_msg = send_videos(
                             message,
                             chunk_file,
                             chunk_caption,
-                            int(duration) if duration else segment_time,
+                            int(duration) if duration else 0,
                             thumb_file or "",
-                            f"Chunk {chunk_idx + 1}/{max_chunks}",
+                            messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx),
                             proc_msg_id,
-                            f"{video_title} - Chunk {chunk_idx + 1}",
+                            f"{video_title} - {messages.LIVE_STREAM_CHUNK_TITLE_MSG.format(chunk=chunk_idx)}",
                             tags_text
                         )
                         
                         if chunk_msg:
                             successful_chunks += 1
-                            logger.info(f"Successfully sent chunk {chunk_idx + 1} after retry")
+                            logger.info(f"Successfully sent chunk {chunk_idx} after retry")
                         else:
-                            logger.warning(f"Failed to send chunk {chunk_idx + 1} after retry")
+                            logger.warning(f"Failed to send chunk {chunk_idx} after retry")
+                        
+                        # Check if chunk file still exists
+                        if not os.path.exists(chunk_file):
+                            logger.warning(f"Chunk file was deleted after retry (probably by /clean), stopping")
+                            break
+                        
+                        # Check if chunk reached size limit
+                        chunk_size_bytes = os.path.getsize(chunk_file)
+                        if chunk_size_bytes < max_chunk_size * 0.9:
+                            logger.info(f"Chunk {chunk_idx} is smaller than expected after retry, stream might have ended")
+                        
+                        # Clean up chunk file after sending
+                        if os.path.exists(chunk_file):
+                            try:
+                                os.remove(chunk_file)
+                                logger.info(f"Cleaned up chunk file after retry: {chunk_file}")
+                            except Exception as e:
+                                logger.error(f"Error cleaning up chunk file after retry: {e}")
+                        
                         # Continue to next chunk
                         continue
                     except Exception as retry_e:
-                        logger.error(f"Retry with --no-live-from-start also failed for chunk {chunk_idx + 1}: {retry_e}")
+                        logger.error(f"Retry with --no-live-from-start also failed for chunk {chunk_idx}: {retry_e}")
                         # Continue with next chunk
                         continue
                 
-                logger.error(f"Error downloading chunk {chunk_idx + 1}: {e}")
+                logger.error(f"Error downloading chunk {chunk_idx}: {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+                # If we've sent at least one chunk successfully, continue
+                # Otherwise, stop to avoid infinite loop
+                if successful_chunks == 0:
+                    logger.error(f"No successful chunks yet, stopping after error")
+                    # Перед выходом пробуем сохранить то, что уже есть, в кэш
+                    try:
+                        if cache_message_ids and safe_quality_key:
+                            original_text = message.text or message.caption or ""
+                            _save_video_cache_with_logging(
+                                url, safe_quality_key, cache_message_ids,
+                                original_text=original_text, user_id=user_id
+                            )
+                    except Exception as e2:
+                        logger.error(f"Error saving live stream cache on first-chunk error: {e2}")
+                    break
                 # Continue with next chunk
                 continue
             
             # Check if we've reached max duration
             elapsed_time = time.time() - start_time
             if elapsed_time >= max_duration:
-                logger.info(f"Reached max duration limit, stopping")
+                logger.info(f"Reached max duration limit ({max_duration}s), stopping")
                 break
         
         # Final progress update
@@ -445,14 +887,27 @@ def download_live_stream_chunked(
             from HELPERS.safe_messeger import safe_edit_message_text
             final_text = (
                 f"{current_total_process}\n"
-                f"✅ <b>Live Stream Download Complete</b>\n"
-                f"Downloaded {successful_chunks} chunk(s)"
+                f"{messages.LIVE_STREAM_DOWNLOAD_COMPLETE_MSG}\n"
+                f"{messages.LIVE_STREAM_CHUNKS_DOWNLOADED_MSG.format(chunks=successful_chunks)}\n"
+                f"{messages.LIVE_STREAM_TOTAL_DURATION_MSG.format(duration=int(accumulated_duration))}"
             )
             safe_edit_message_text(user_id, proc_msg_id, final_text)
         except Exception as e:
             logger.error(f"Error updating final progress: {e}")
         
-        logger.info(f"Live stream download completed: {successful_chunks} chunks downloaded")
+        # Сохраняем все присланные куски (и подкуски) в видеокэш,
+        # чтобы при повторном присылании того же URL они репостились из лог‑канала.
+        try:
+            if cache_message_ids and safe_quality_key:
+                original_text = message.text or message.caption or ""
+                _save_video_cache_with_logging(
+                    url, safe_quality_key, cache_message_ids,
+                    original_text=original_text, user_id=user_id
+                )
+        except Exception as e:
+            logger.error(f"Error saving live stream cache in finalizer: {e}")
+        
+        logger.info(f"Live stream download completed: {successful_chunks} chunks downloaded, total duration: {accumulated_duration}s")
         return successful_chunks > 0
         
     except Exception as e:

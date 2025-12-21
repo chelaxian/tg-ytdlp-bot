@@ -20,7 +20,14 @@ class LanguageRouter:
             'en': 'messages_EN.py',
             'ru': 'messages_RU.py', 
             'ar': 'messages_AR.py',
-            'in': 'messages_IN.py'
+            'in': 'messages_IN.py',
+            'zh': 'messages_ZH.py',
+            'es': 'messages_ES.py',
+            'fr': 'messages_FR.py',
+            'bn': 'messages_BN.py',
+            'pt': 'messages_PT.py',
+            'ur': 'messages_UR.py',
+            'id': 'messages_ID.py'
         }
         self.default_language = 'en'
         self._cached_messages = {}
@@ -127,7 +134,14 @@ class LanguageRouter:
             'en': '🇺🇸 English',
             'ru': '🇷🇺 Русский', 
             'ar': '🇸🇦 العربية',
-            'in': '🇮🇳 हिन्दी'
+            'in': '🇮🇳 हिन्दी',
+            'zh': '🇨🇳 中文',
+            'es': '🇪🇸 Español',
+            'fr': '🇫🇷 Français',
+            'bn': '🇧🇩 বাংলা',
+            'pt': '🇵🇹 Português',
+            'ur': '🇵🇰 اردو',
+            'id': '🇮🇩 Bahasa Indonesia'
         }
     
     def _load_messages_with_ast(self, messages_path: str) -> Dict[str, Any]:
