@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Папка, где выполняется скрипт
-#cd /mnt/c/Users/chelaxian/Desktop/tg-ytdlp-NEW || exit 1
+#cd /mnt/c/Users/chelaxian/Desktop/tg-ytdlp-NEW || exit 1 
 
 echo "[$(date)] Stopping and removing old container..."
 docker stop bgutil-provider >/dev/null 2>&1
