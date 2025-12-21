@@ -14,7 +14,7 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 ## ✨ Features
 
 - 🎬 **1500+ Platforms**: YouTube, TikTok, Instagram, Twitter, Facebook, and many more
-- 🌍 **Multi-Language Support**: 4 languages - 🇺🇸 English, 🇷🇺 Русский, 🇸🇦 العربية, 🇮🇳 हिन्दी
+- 🌍 **Multi-Language Support**: 11 languages - 🇺🇸 English, 🇷🇺 Русский, 🇸🇦 العربية, 🇮🇳 हिन्दी, 🇨🇳 中文, 🇪🇸 Español, 🇫🇷 Français, 🇧🇩 বাংলা, 🇵🇹 Português, 🇵🇰 اردو, 🇮🇩 Bahasa Indonesia
 - 🍪 **Cookie Support**: Download private/age-restricted content with your own cookies
 - 🎯 **Smart Format Selection**: Advanced codec support (H.264/AVC, AV1, VP9) with container preferences
 - 📱 **Interactive Menus**: Always Ask quality selection with real-time filtering
@@ -685,6 +685,13 @@ Many commands support direct arguments for quick configuration:
 /lang ru         # 🇷🇺 Set to Russian
 /lang ar         # 🇸🇦 Set to Arabic
 /lang in         # 🇮🇳 Set to Hindi
+/lang zh         # 🇨🇳 Set to Chinese
+/lang es         # 🇪🇸 Set to Spanish
+/lang fr         # 🇫🇷 Set to French
+/lang bn         # 🇧🇩 Set to Bengali
+/lang pt         # 🇵🇹 Set to Portuguese
+/lang ur         # 🇵🇰 Set to Urdu
+/lang id         # 🇮🇩 Set to Indonesian
 
 # Clean specific settings
 /clean args      # Clear yt-dlp arguments
@@ -704,7 +711,7 @@ Many commands support direct arguments for quick configuration:
 
 ## 🌍 Multi-Language Support
 
-The bot supports 4 languages with full interface translation:
+The bot supports 11 languages with full interface translation:
 
 ### Supported Languages
 
@@ -714,6 +721,13 @@ The bot supports 4 languages with full interface translation:
 | 🇷🇺 Russian | `ru` | Русский | 🇷🇺 |
 | 🇸🇦 Arabic | `ar` | العربية | 🇸🇦 |
 | 🇮🇳 Hindi | `in` | हिन्दी | 🇮🇳 |
+| 🇨🇳 Chinese | `zh` | 中文 | 🇨🇳 |
+| 🇪🇸 Spanish | `es` | Español | 🇪🇸 |
+| 🇫🇷 French | `fr` | Français | 🇫🇷 |
+| 🇧🇩 Bengali | `bn` | বাংলা | 🇧🇩 |
+| 🇵🇹 Portuguese | `pt` | Português | 🇵🇹 |
+| 🇵🇰 Urdu | `ur` | اردو | 🇵🇰 |
+| 🇮🇩 Indonesian | `id` | Bahasa Indonesia | 🇮🇩 |
 
 ### Language Commands
 
@@ -724,6 +738,13 @@ The bot supports 4 languages with full interface translation:
 | `/lang ru` | 🇷🇺 Quick switch to Russian | `/lang ru` |
 | `/lang ar` | 🇸🇦 Quick switch to Arabic | `/lang ar` |
 | `/lang in` | 🇮🇳 Quick switch to Hindi | `/lang in` |
+| `/lang zh` | 🇨🇳 Quick switch to Chinese | `/lang zh` |
+| `/lang es` | 🇪🇸 Quick switch to Spanish | `/lang es` |
+| `/lang fr` | 🇫🇷 Quick switch to French | `/lang fr` |
+| `/lang bn` | 🇧🇩 Quick switch to Bengali | `/lang bn` |
+| `/lang pt` | 🇵🇹 Quick switch to Portuguese | `/lang pt` |
+| `/lang ur` | 🇵🇰 Quick switch to Urdu | `/lang ur` |
+| `/lang id` | 🇮🇩 Quick switch to Indonesian | `/lang id` |
 
 ### Language Features
 
@@ -741,6 +762,13 @@ CONFIG/LANGUAGES/
 ├── messages_RU.py    # Russian messages  
 ├── messages_AR.py    # Arabic messages
 ├── messages_IN.py    # Hindi messages
+├── messages_ZH.py    # Chinese messages
+├── messages_ES.py    # Spanish messages
+├── messages_FR.py    # French messages
+├── messages_BN.py    # Bengali messages
+├── messages_PT.py    # Portuguese messages
+├── messages_UR.py    # Urdu messages
+├── messages_ID.py    # Indonesian messages
 └── language_router.py # Language routing system
 ```
 
@@ -1793,7 +1821,7 @@ Notes:
 
 **Solutions:**
 1. Check if language file exists in `CONFIG/LANGUAGES/`
-2. Verify language code is supported (en, ru, ar, in)
+2. Verify language code is supported (en, ru, ar, in, zh, es, fr, bn, pt, ur, id)
 3. Use `/lang` command to reset language
 4. Check user's `lang.txt` file in user directory
 5. Restart bot if language files were updated
