@@ -29,6 +29,7 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 - 🖼️ **Image Support**: Download images from various platforms using gallery-dl
 - 🔞 **NSFW Content Management**: Advanced NSFW detection and content filtering
 - ⏱️ **Flood Wait Protection**: Smart rate limiting and flood wait handling
+
 ![photo_2025-12-22_00-47-22](https://github.com/user-attachments/assets/c88dd650-92d6-4718-ab1e-288731099066)
 
 ## 🚀 Quick Start
