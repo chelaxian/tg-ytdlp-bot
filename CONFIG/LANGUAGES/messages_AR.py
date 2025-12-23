@@ -1257,6 +1257,11 @@ class Messages(object):
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 جاري الحصول على الرابط المباشر..."
     ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 جاري الحصول على التنسيقات المتاحة..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 جاري الحصول على وصف الفيديو..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ خطأ في الحصول على الوصف: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ وصف الفيديو غير متاح"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ خطأ في إرسال الوصف: {error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 تم إرسال وصف الفيديو للمستخدم {user_id} لـ {url} ({title})"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 بدء gallery-dl…"
     
     # Always Ask Menu F-String Messages
@@ -1304,7 +1309,7 @@ class Messages(object):
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞المحتوى غير المناسب مدفوع (⭐️$0.02)"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — اختر جودة التحميل"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — تحميل الصورة (gallery-dl)"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — مشاهدة الفيديو في poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — مشاهدة الفيديو في poketube"  # معطل مؤقتًا: خدمة poketube معطلة
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — الحصول على رابط مباشر للفيديو"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — عرض قائمة التنسيقات المتاحة"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — تغيير امتداد/ترميز الفيديو"
@@ -1312,7 +1317,7 @@ class Messages(object):
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — استخراج الصوت فقط"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞المحتوى للبالغين مدفوع (⭐️$0.02)"
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — إعادة نشر فورية من التخزين المؤقت"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — مشاهدة الفيديو في poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — مشاهدة الفيديو في poketube"  # معطل مؤقتًا: خدمة poketube معطلة
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — اختيار لغة الصوت"
     ALWAYS_ASK_BEST_BUTTON_MSG = "الأفضل"
     ALWAYS_ASK_OTHER_LABEL_MSG = "🎛أخرى"
@@ -2193,7 +2198,8 @@ class Messages(object):
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗رابط"
-    ALWAYS_ASK_WATCH_BUTTON_MSG = "👁مشاهدة"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁مشاهدة"  # معطل مؤقتًا: خدمة poketube معطلة
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝الوصف"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ مكتمل جزئياً - {successful_uploads}/{total_files} ملف صوتي تم رفعه."
