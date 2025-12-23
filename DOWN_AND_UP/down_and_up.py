@@ -1091,7 +1091,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Then apply domain-specific filtering
                 if not is_no_filter_domain(url):
-                    return create_smart_match_filter()(info)
+                    return create_smart_match_filter(user_id=user_id, message=message)(info)
                 else:
                     logger.info(f"Skipping domain filter for domain in NO_FILTER_DOMAINS: {url}")
                     return None  # Allow download
@@ -1499,6 +1499,27 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
+                # Special handling for HLS streams: check if file was actually created despite the error
+                hls_file_found = False
+                if is_hls and "No such file or directory" in error_message and (".part" in error_message or ".mp4" in error_message):
+                    logger.info(f"[HLS] DownloadError reported missing file, checking if actual file exists...")
+                    video_id = info_dict.get('id') if info_dict else ''
+                    if video_id:
+                        # Check for files with video ID and HLS extensions
+                        try:
+                            allfiles = os.listdir(user_dir_name)
+                            hls_files = [f for f in allfiles if f.startswith(video_id) and f.endswith(('.mpegts', '.ts', '.mp4'))]
+                            if hls_files:
+                                logger.info(f"[HLS] Found file(s) despite DownloadError: {hls_files}")
+                                # File exists, so download actually succeeded - continue processing
+                                # We'll find it in the file search logic below
+                                logger.info(f"[HLS] Ignoring DownloadError - file exists, continuing...")
+                                # Return info_dict to continue processing (file will be found later)
+                                logger.info(f"[HLS] Returning info_dict to continue processing...")
+                                return info_dict
+                        except Exception as check_e:
+                            logger.error(f"[HLS] Error checking for existing file: {check_e}")
+                
                 # Check for live stream detection (only if detection is enabled)
                 if "LIVE_STREAM_DETECTED" in error_message:
                     if LimitsConfig.ENABLE_LIVE_STREAM_BLOCKING:
@@ -1851,11 +1872,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.info(f"Skipping TikTok video at index {current_index} due to API error")
                     return "SKIP"  # Skip this video and continue with next
 
-                # Отправляем сообщение об ошибке только один раз, чтобы избежать спама
-                if not error_message_sent:
-                    send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
-                    error_message_sent = True
-                return None
+                # If HLS file was found, don't return error - continue processing
+                if hls_file_found:
+                    logger.info(f"[HLS] File found despite DownloadError, continuing processing...")
+                    # Don't return None - let the code continue to process the file
+                    # The file will be found in the file search logic below
+                else:
+                    # Отправляем сообщение об ошибке только один раз, чтобы избежать спама
+                    if not error_message_sent:
+                        send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
+                        error_message_sent = True
+                    return None
 
         # Для отрицательных индексов используем весь диапазон сразу, а не цикл
         # use_range_download уже объявлена выше (строка 325)
@@ -2194,8 +2221,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             elif target_format == 'asf':
                 video_extensions = ('.asf',)
             else:
-                # Fallback to all supported formats
-                video_extensions = ('.mp4', '.mkv', '.webm', '.ts', '.avi', '.mov', '.flv', '.3gp', '.ogv', '.wmv', '.asf')
+                # Fallback to all supported formats (including .mpegts for HLS streams)
+                video_extensions = ('.mp4', '.mkv', '.webm', '.ts', '.mpegts', '.avi', '.mov', '.flv', '.3gp', '.ogv', '.wmv', '.asf')
             
             # Try to use exact filename from yt-dlp metadata first
             filename_hints = []
@@ -2221,26 +2248,42 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             if not downloaded_file:
                 allfiles = os.listdir(dir_path)
                 
-                files = [fname for fname in allfiles if fname.endswith(video_extensions)]
-                files.sort()
+                # For HLS streams, also check for files matching the video ID (in case yt-dlp didn't report the path correctly)
+                video_id = info_dict.get('id') or ''
+                if video_id and is_hls:
+                    logger.info(f"[HLS] Searching for files matching video ID: {video_id}")
+                    # Check for files starting with video ID (common pattern for HLS downloads)
+                    id_matching_files = [fname for fname in allfiles if fname.startswith(video_id) and not fname.endswith(('.txt', '.json', '.jpg', '.jpeg', '.png'))]
+                    if id_matching_files:
+                        logger.info(f"[HLS] Found files matching video ID: {id_matching_files}")
+                        # Prefer .mpegts or .ts files for HLS
+                        hls_files = [f for f in id_matching_files if f.endswith(('.mpegts', '.ts', '.mp4'))]
+                        if hls_files:
+                            downloaded_file = hls_files[0]
+                            downloaded_abs_path = os.path.abspath(os.path.join(dir_path, downloaded_file))
+                            logger.info(f"[HLS] Using file matching video ID: {downloaded_file}")
                 
-                # Log all found files for debugging
-                logger.info(f"Found video files in {dir_path}: {files}")
-                
-                # If no files found with preferred format, try to find any video file
-                if not files:
-                    logger.warning(f"No files found with preferred format {target_format}, searching for any video file")
-                    fallback_extensions = ('.mp4', '.mkv', '.webm', '.ts', '.avi', '.mov', '.flv', '.3gp', '.ogv', '.wmv', '.asf', '.m4v')
-                    files = [fname for fname in allfiles if fname.endswith(fallback_extensions)]
+                if not downloaded_file:
+                    files = [fname for fname in allfiles if fname.endswith(video_extensions)]
                     files.sort()
-                    logger.info(f"Found video files with fallback search: {files}")
-                
-                if not files:
-                    send_error_to_user(message, safe_get_messages(user_id).SKIPPING_UNSUPPORTED_FILE_TYPE_MSG.format(index=current_index))
-                    continue
+                    
+                    # Log all found files for debugging
+                    logger.info(f"Found video files in {dir_path}: {files}")
+                    
+                    # If no files found with preferred format, try to find any video file
+                    if not files:
+                        logger.warning(f"No files found with preferred format {target_format}, searching for any video file")
+                        fallback_extensions = ('.mp4', '.mkv', '.webm', '.ts', '.mpegts', '.avi', '.mov', '.flv', '.3gp', '.ogv', '.wmv', '.asf', '.m4v')
+                        files = [fname for fname in allfiles if fname.endswith(fallback_extensions)]
+                        files.sort()
+                        logger.info(f"Found video files with fallback search: {files}")
+                    
+                    if not files:
+                        send_error_to_user(message, safe_get_messages(user_id).SKIPPING_UNSUPPORTED_FILE_TYPE_MSG.format(index=current_index))
+                        continue
 
-                downloaded_file = files[0]
-                downloaded_abs_path = os.path.abspath(os.path.join(dir_path, downloaded_file))
+                    downloaded_file = files[0]
+                    downloaded_abs_path = os.path.abspath(os.path.join(dir_path, downloaded_file))
             
             logger.info(f"Selected downloaded file: {downloaded_file}")
             write_logs(message, url, downloaded_file)
@@ -2378,7 +2421,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     caption_name = original_video_title  # Original title for caption
 
             user_vid_path = os.path.join(dir_path, final_name)
-            if final_name.lower().endswith((".webm", ".ts")):
+            if final_name.lower().endswith((".webm", ".ts", ".mpegts")):
                 # Check if source file exists before conversion
                 if not os.path.exists(user_vid_path):
                     logger.error(f"Source file for conversion not found: {user_vid_path}")
@@ -2402,7 +2445,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     break
                 
                 # For m3u8 streams, use more robust conversion options
-                is_m3u8 = final_name.lower().endswith(".ts") or ".m3u8" in url.lower()
+                is_m3u8 = final_name.lower().endswith((".ts", ".mpegts")) or ".m3u8" in url.lower() or is_hls
                 if is_m3u8:
                     ffmpeg_cmd = [
                         ffmpeg_path,
@@ -2965,7 +3008,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         'filesize_approx': real_file_size
                                     }
                                     
-                                    if check_subs_limits(real_info, safe_quality_key):
+                                    if check_subs_limits(real_info, safe_quality_key, message=message, user_id=user_id):
                                         status_msg = app.send_message(user_id, safe_get_messages(user_id).EMBEDDING_SUBTITLES_WARNING_MSG)
                                         def tg_update_callback(progress, eta):
                                             messages = safe_get_messages(user_id)
@@ -3048,10 +3091,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 ) or (getattr(video_msg, "paid_media", None) is not None)
                             except Exception:
                                 msg_is_paid = False
-                            is_paid = msg_is_paid or (is_nsfw and is_private_chat)
+                            # Для логирования используем is_nsfw and is_private_chat (без учета админа)
+                            # чтобы логирование оставалось как для всех остальных
+                            # Важно: используем is_nsfw and is_private_chat, а не msg_is_paid,
+                            # так как админы с TURN_OFF_LIMITS_FOR_ADMINS = True получают открытый контент
+                            is_paid_for_logging = is_nsfw and is_private_chat
+                            # Для отправки пользователю проверяем админа
+                            from HELPERS.limitter import should_apply_limits_to_admin
+                            is_paid_for_user = is_paid_for_logging and should_apply_limits_to_admin(user_id=user_id, message=message)
                             
                             # Handle different content types according to new logic
-                            if is_paid:
+                            # Используем is_paid_for_logging для логирования (чтобы логирование было как для всех)
+                            if is_paid_for_logging:
                                 # For NSFW content in private chat, send_videos already sent paid media to user
                                 # Send paid copy to LOGS_PAID_ID and open copy to LOGS_NSFW_ID for history
                                 

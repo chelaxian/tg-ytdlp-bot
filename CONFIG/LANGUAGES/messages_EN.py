@@ -1501,7 +1501,7 @@ Use:
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "User entered a porn content. Cannot be downloaded."
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "User entered forbidden content. Cannot be downloaded."
     
     # Additional Log Messages
     NSFW_BLUR_SET_COMMAND_LOG_MSG = "NSFW blur set via command: {arg}"

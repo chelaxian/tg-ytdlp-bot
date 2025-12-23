@@ -1479,7 +1479,7 @@ class Messages(object):
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "دخل المستخدم محتوى إباحي. لا يمكن تحميله."
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "دخل المستخدم محتوى محظور. لا يمكن تحميله."
     
     # Additional Log Messages
     NSFW_BLUR_SET_COMMAND_LOG_MSG = "تم تعيين ضبابية المحتوى غير المناسب عبر الأمر: {arg}"

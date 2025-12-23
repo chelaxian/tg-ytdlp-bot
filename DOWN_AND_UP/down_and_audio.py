@@ -948,7 +948,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             
             # Add match_filter for domain filtering only (no title sanitization needed)
             if not is_no_filter_domain(url):
-                ytdl_opts['match_filter'] = create_smart_match_filter()
+                ytdl_opts['match_filter'] = create_smart_match_filter(user_id=user_id, message=message)
             else:
                 logger.info(f"Skipping domain filter for domain in NO_FILTER_DOMAINS: {url}")
             
@@ -1622,7 +1622,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         
                         # Add match_filter only if domain is not in NO_FILTER_DOMAINS
                         if not is_no_filter_domain(url):
-                            ytdl_opts['match_filter'] = create_smart_match_filter()
+                            ytdl_opts['match_filter'] = create_smart_match_filter(user_id=user_id, message=message)
                         
                         # Add user's custom yt-dlp arguments
                         if user_args:
@@ -1894,13 +1894,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
                 logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                 is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
-                is_paid = is_nsfw and is_private_chat
+                # Для логирования используем is_nsfw and is_private_chat (без учета админа)
+                # чтобы логирование оставалось как для всех остальных
+                is_paid_for_logging = is_nsfw and is_private_chat
+                # Для отправки пользователю проверяем админа
+                from HELPERS.limitter import should_apply_limits_to_admin
+                is_paid_for_user = is_paid_for_logging and should_apply_limits_to_admin(user_id=user_id, message=message)
                 
                 # Determine file extension to decide how to send it
                 file_ext = os.path.splitext(audio_file)[1].lower()
                 
                 # Send audio with appropriate method based on content type and file format
-                if is_paid:
+                # Используем is_paid_for_user для отправки (админы получают открытый контент)
+                if is_paid_for_user:
                     # Send paid audio for NSFW content in private chats
                     try:
                         from pyrogram.types import InputPaidMediaAudio
@@ -1981,9 +1987,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Use already determined content type
                 
                 # Handle different content types according to new logic
-                if is_paid:
-                    # For NSFW content in private chat, paid audio already sent to user
-                    # We need to send paid copy to LOGS_PAID_ID and open copy to LOGS_NSWF_ID for history
+                # Используем is_paid_for_logging для логирования (чтобы логирование было как для всех)
+                if is_paid_for_logging:
+                    # For NSFW content in private chat, paid audio already sent to user (if is_paid_for_user)
+                    # We need to send paid copy to LOGS_PAID_ID and open copy to LOGS_NSFW_ID for history
                     
                     # Send paid copy to LOGS_PAID_ID
                     log_channel_paid = get_log_channel("video", paid=True)

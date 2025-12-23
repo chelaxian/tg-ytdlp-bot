@@ -138,9 +138,10 @@ def check_command_limit(user_id: int, is_admin: bool = False) -> Tuple[bool, Opt
     Returns (allowed: bool, message: Optional[str])
     If not allowed, message contains cooldown info.
     """
-    # Admins bypass command limits
+    # Проверяем, должны ли применяться ограничения к админу
     if is_admin:
-        return (True, None)
+        if LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
+            return (True, None)  # Админы с отключенными ограничениями обходят command limits
     
     current_time = time.time()
     

@@ -76,7 +76,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
     # Add match_filter only if domain is not in NO_FILTER_DOMAINS
     if not is_no_filter_domain(url):
         # Use smart filter that allows downloads when duration is unknown
-        ytdl_opts['match_filter'] = create_smart_match_filter()
+        ytdl_opts['match_filter'] = create_smart_match_filter(user_id=user_id)
     else:
         logger.info(safe_get_messages(user_id).YTDLP_SKIPPING_MATCH_FILTER_MSG.format(url=url))
     
