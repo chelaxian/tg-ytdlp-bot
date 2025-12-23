@@ -1279,6 +1279,11 @@ class Messages(object):
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Получение прямой ссылки..."
     ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Получение доступных форматов..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Получение описания видео..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ Ошибка получения описания: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Описание видео недоступно"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ Ошибка отправки описания: {error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 Описание видео отправлено пользователю {user_id} для {url} ({title})"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Запуск gallery-dl…"
     
     # Always Ask Menu F-String Messages
@@ -1326,7 +1331,7 @@ class Messages(object):
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW платный (⭐️$0.02)"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Выберите качество загрузки"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Скачать изображение (gallery-dl)"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Смотреть видео в poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Смотреть видео в poketube"  # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Получить прямую ссылку на видео"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Показать список доступных форматов"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Изменить расширение/кодек видео"
@@ -1334,7 +1339,7 @@ class Messages(object):
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Извлечь только аудио"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW платный (⭐️$0.02)"
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Мгновенный репост из кэша"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Смотреть видео в poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Смотреть видео в poketube"  # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Выбрать язык аудио"
     ALWAYS_ASK_BEST_BUTTON_MSG = "Лучшее"
     ALWAYS_ASK_OTHER_LABEL_MSG = "🎛Другое"
@@ -2216,7 +2221,8 @@ class Messages(object):
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Ссылка"
-    ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Смотреть"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Смотреть"  # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Описание"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Частично завершено - {successful_uploads}/{total_files} аудио файлов загружено."

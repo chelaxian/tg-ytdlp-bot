@@ -1279,6 +1279,11 @@ Use:
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Getting direct link..."
     ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Getting available formats..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Getting video description..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ Error getting description: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Video description is not available"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ Error sending description: {error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 Video description sent to user {user_id} for {url} ({title})"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Starting gallery-dl…"
     
     # Always Ask Menu F-String Messages
@@ -1326,7 +1331,7 @@ Use:
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW is paid (⭐️$0.02)"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Choose download quality"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Download image (gallery-dl)"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Get direct link to video"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Show available formats list"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Change video ext/codec"
@@ -1334,7 +1339,7 @@ Use:
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Extract only audio"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW is paid (⭐️$0.02)"
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Instant repost from cache"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Choose audio language"
     ALWAYS_ASK_BEST_BUTTON_MSG = "Best"
     ALWAYS_ASK_OTHER_LABEL_MSG = "🎛Other"
@@ -2215,7 +2220,8 @@ Use:
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
-    ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."

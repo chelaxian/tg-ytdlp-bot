@@ -1279,6 +1279,11 @@ class Messages(object):
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 正在获取直接链接..."
     ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 正在获取可用格式..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 正在获取视频描述..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ 获取描述时出错: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ 视频描述不可用"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ 发送描述时出错: {error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 视频描述已发送给用户 {user_id}，URL: {url} ({title})"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 正在启动gallery-dl…"
     
     # Always Ask Menu F-String Messages
@@ -1326,7 +1331,7 @@ class Messages(object):
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW是付费的（⭐️$0.02）"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — 选择下载质量"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — 下载图片（gallery-dl）"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — 在poketube中观看视频"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — 在poketube中观看视频"  # 暂时禁用：poketube服务已关闭
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — 获取视频的直接链接"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — 显示可用格式列表"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — 更改视频扩展名/编解码器"
@@ -1334,7 +1339,7 @@ class Messages(object):
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — 仅提取音频"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW是付费的（⭐️$0.02）"
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — 从缓存即时重新发布"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — 在poketube中观看视频"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — 在poketube中观看视频"  # 暂时禁用：poketube服务已关闭
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — 选择音频语言"
     ALWAYS_ASK_BEST_BUTTON_MSG = "最佳"
     ALWAYS_ASK_OTHER_LABEL_MSG = "🎛其他"
@@ -2215,7 +2220,8 @@ class Messages(object):
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗链接"
-    ALWAYS_ASK_WATCH_BUTTON_MSG = "👁观看"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁观看"  # 暂时禁用：poketube服务已关闭
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝描述"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 部分完成 - 已上传 {successful_uploads}/{total_files} 个音频文件。"
