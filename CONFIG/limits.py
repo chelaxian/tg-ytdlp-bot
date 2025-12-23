@@ -3,6 +3,7 @@
 class LimitsConfig(object):
     #######################################################
     # Limits and restrictions
+    TURN_OFF_LIMITS_FOR_ADMINS = True
     #######################################################
     MAX_FILE_SIZE_GB = 8  # GiB
     # Download timeout in seconds (2 hours = 7200 seconds)

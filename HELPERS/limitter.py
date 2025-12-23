@@ -11,6 +11,50 @@ from CONFIG.limits import LimitsConfig
 from pyrogram import enums
 from CONFIG.LANGUAGES.language_router import language_router
 
+def should_apply_limits_to_admin(user_id=None, message=None):
+    """
+    Проверяет, должны ли применяться ограничения к админу или группе из ADMIN_GROUP.
+    Возвращает True, если ограничения должны применяться, False если нет.
+    
+    Args:
+        user_id: ID пользователя или группы (опционально)
+        message: Объект сообщения (опционально, используется для получения user_id/chat_id)
+    
+    Returns:
+        bool: True если ограничения должны применяться, False если нет
+    """
+    chat_id = None
+    if user_id is None:
+        if message:
+            chat_id = message.chat.id if hasattr(message, 'chat') else None
+            user_id = chat_id
+        else:
+            return True  # Если нет информации о пользователе, применяем ограничения
+    else:
+        chat_id = user_id
+    
+    if chat_id is None:
+        return True
+    
+    chat_id_int = int(chat_id)
+    
+    # Проверяем, является ли чат группой из ADMIN_GROUP
+    admin_groups = getattr(Config, 'ADMIN_GROUP', [])
+    if admin_groups and chat_id_int in admin_groups:
+        # Для групп из ADMIN_GROUP проверяем настройку TURN_OFF_LIMITS_FOR_ADMINS
+        # Если True - не применяем ограничения, если False - применяем
+        return not LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS
+    
+    # Проверяем, является ли пользователь админом
+    is_admin = chat_id_int in Config.ADMIN
+    
+    if not is_admin:
+        return True  # Для не-админов всегда применяем ограничения
+    
+    # Для админов проверяем настройку TURN_OFF_LIMITS_FOR_ADMINS
+    # Если True - не применяем ограничения, если False - применяем
+    return not LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS
+
 def create_language_keyboard():
     """
     Create keyboard with language selection buttons (2 per row)
@@ -68,9 +112,10 @@ def TimeFormatter(milliseconds: int) -> str:
 
 def is_user_in_channel(app, message):
     messages = safe_get_messages(message.chat.id)
-    # Bypass subscription checks for explicitly allowed groups
+    # Bypass subscription checks for explicitly allowed groups and admin groups
     try:
-        if int(getattr(message.chat, 'id', 0)) in getattr(Config, 'ALLOWED_GROUP', []):
+        chat_id = int(getattr(message.chat, 'id', 0))
+        if chat_id in getattr(Config, 'ALLOWED_GROUP', []) or chat_id in getattr(Config, 'ADMIN_GROUP', []):
             return True
     except Exception:
         pass
@@ -140,8 +185,9 @@ def check_user(message):
     if not os.path.exists(user_dir):
         os.makedirs(user_dir, exist_ok=True)
     
-    # Check if user is in channel (for non-admins), but always allow in allowed groups
-    if int(message.chat.id) not in Config.ADMIN and int(message.chat.id) not in getattr(Config, 'ALLOWED_GROUP', []):
+    # Check if user is in channel (for non-admins), but always allow in allowed groups and admin groups
+    chat_id = int(message.chat.id)
+    if chat_id not in Config.ADMIN and chat_id not in getattr(Config, 'ALLOWED_GROUP', []) and chat_id not in getattr(Config, 'ADMIN_GROUP', []):
         app = get_app()
         if app is None:
             logger.error(safe_get_messages(message.chat.id).HELPER_APP_INSTANCE_NONE_MSG)
@@ -153,13 +199,13 @@ def check_user(message):
 def ensure_group_admin(app, message):
     messages = safe_get_messages(getattr(message.chat, 'id', None))
     """
-    For allowed groups, ensure the bot has admin rights. If not, ask to grant admin.
+    For allowed groups and admin groups, ensure the bot has admin rights. If not, ask to grant admin.
     Returns True if ok to proceed, False if should stop.
     """
     try:
         chat = getattr(message, 'chat', None)
         chat_id = int(getattr(chat, 'id', 0)) if chat else 0
-        if chat_id in getattr(Config, 'ALLOWED_GROUP', []):
+        if chat_id in getattr(Config, 'ALLOWED_GROUP', []) or chat_id in getattr(Config, 'ADMIN_GROUP', []):
             try:
                 me = app.get_me()
                 member = app.get_chat_member(chat_id, me.id)
@@ -183,13 +229,20 @@ def check_file_size_limit(info_dict, max_size_bytes=None, message=None):
     """
     user_id = message.chat.id if message else None
     messages = safe_get_messages(user_id)
+    
+    # Проверяем, должны ли применяться ограничения к админу
+    if not should_apply_limits_to_admin(user_id=user_id, message=message):
+        return True  # Для админов с отключенными ограничениями всегда разрешаем
+    
     if max_size_bytes is None:
         max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 8)  # GiB
-        # Apply group multiplier for groups/channels
+        # Apply group multiplier for groups/channels (но не для ADMIN_GROUP с отключенными ограничениями)
         try:
             if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-                max_size_gb = int(max_size_gb * mult)
+                # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
+                if should_apply_limits_to_admin(user_id=user_id, message=message):
+                    mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                    max_size_gb = int(max_size_gb * mult)
         except Exception:
             pass
         max_size_bytes = int(max_size_gb * 1024 ** 3)
@@ -245,17 +298,27 @@ def check_file_size_limit(info_dict, max_size_bytes=None, message=None):
     return size_bytes <= max_size_bytes
 
     
-def check_subs_limits(info_dict, quality_key=None):
+def check_subs_limits(info_dict, quality_key=None, message=None, user_id=None):
     """
     Checks restrictions for embedding subtitles
     Returns True if subtitles can be built, false if limits are exceeded
+    
+    Args:
+        info_dict: Словарь с информацией о видео
+        quality_key: Ключ качества (опционально)
+        message: Объект сообщения (опционально, для определения user_id)
+        user_id: ID пользователя (опционально)
     """
-    messages = safe_get_messages(None)
+    messages = safe_get_messages(user_id if user_id else (message.chat.id if message else None))
     try:
         # Check if info_dict is None
         if info_dict is None:
             logger.warning(safe_get_messages(None).HELPER_CHECK_SUBS_LIMITS_INFO_DICT_NONE_MSG)
             return True
+        
+        # Проверяем, должны ли применяться ограничения к админу
+        if not should_apply_limits_to_admin(user_id=user_id, message=message):
+            return True  # Для админов с отключенными ограничениями всегда разрешаем
             
         # We get the parameters from the config
         max_quality = Config.MAX_SUB_QUALITY
@@ -323,6 +386,10 @@ def check_playlist_range_limits(url, video_start_with, video_end_with, app, mess
     if video_start_with == 1 and video_end_with == 1:
         return True
 
+    # Проверяем, должны ли применяться ограничения к админу
+    if not should_apply_limits_to_admin(user_id=user_id, message=message):
+        return True  # Для админов с отключенными ограничениями всегда разрешаем
+
     url_l = str(url).lower() if url else ''
     if 'tiktok.com' in url_l:
         max_count = Config.MAX_TIKTOK_COUNT
@@ -334,11 +401,13 @@ def check_playlist_range_limits(url, video_start_with, video_end_with, app, mess
         max_count = Config.MAX_PLAYLIST_COUNT
         service = 'playlist'
     
-    # Apply group multiplier for groups/channels
+    # Apply group multiplier for groups/channels (но не для ADMIN_GROUP с отключенными ограничениями)
     try:
         if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-            mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-            max_count = int(max_count * mult)
+            # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
+            if should_apply_limits_to_admin(user_id=user_id, message=message):
+                mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                max_count = int(max_count * mult)
     except Exception:
         pass
 

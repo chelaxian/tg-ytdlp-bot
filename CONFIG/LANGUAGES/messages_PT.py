@@ -1501,7 +1501,7 @@ Use:
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "Usuário inseriu conteúdo pornográfico. Não pode ser baixado."
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "Usuário inseriu conteúdo proibido. Não pode ser baixado."
     
     # Additional Log Messages
     NSFW_BLUR_SET_COMMAND_LOG_MSG = "Desfoque NSFW definido via comando: {arg}"

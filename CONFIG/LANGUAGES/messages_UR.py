@@ -1501,7 +1501,7 @@ Use:
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "صارف نے پورن مواد داخل کیا۔ ڈاؤن لوڈ نہیں کیا جا سکتا۔"
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "صارف نے ممنوعہ مواد داخل کیا۔ ڈاؤن لوڈ نہیں کیا جا سکتا۔"
     
     # Additional Log Messages
     NSFW_BLUR_SET_COMMAND_LOG_MSG = "NSFW blur کمانڈ کے ذریعے سیٹ کیا گیا: {arg}"

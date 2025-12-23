@@ -1501,7 +1501,7 @@ class Messages(object):
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "Пользователь ввел порнографический контент. Не может быть скачан."
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "Пользователь ввел запрещенный контент. Не может быть скачан."
     
     # Additional Log Messages
     NSFW_BLUR_SET_COMMAND_LOG_MSG = "Размытие NSFW установлено через команду: {arg}"

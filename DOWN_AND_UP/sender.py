@@ -267,7 +267,10 @@ def send_videos(
                 is_private_chat = chat_type == enums.ChatType.PRIVATE
             except Exception:
                 is_private_chat = True
-            if is_spoiler and is_private_chat:
+            # Проверяем, должен ли админ получать платный контент
+            from HELPERS.limitter import should_apply_limits_to_admin
+            should_send_paid = is_spoiler and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            if should_send_paid:
                 try:
                     # Пробиваем метаданные и добавляем корректный cover и параметры
                     try:
@@ -377,7 +380,10 @@ def send_videos(
                 is_private_chat = chat_type == enums.ChatType.PRIVATE
             except Exception:
                 is_private_chat = True
-            if is_spoiler and is_private_chat:
+            # Проверяем, должен ли админ получать платный контент
+            from HELPERS.limitter import should_apply_limits_to_admin
+            should_send_paid = is_spoiler and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            if should_send_paid:
                 try:
                     try:
                         v_w, v_h, v_dur = get_video_info_ffprobe(video_abs_path)

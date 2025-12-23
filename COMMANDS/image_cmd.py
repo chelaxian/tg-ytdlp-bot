@@ -901,40 +901,49 @@ def image_command(app, message):
         
         # Only check limits if we have a specific range count
         if range_count is not None:
-            # Use TikTok limit if URL is TikTok, otherwise use general image limit
-            if 'tiktok.com' in url.lower():
-                max_img_files = LimitsConfig.MAX_TIKTOK_COUNT
-            else:
-                max_img_files = LimitsConfig.MAX_IMG_FILES
-            # Apply group multiplier for groups/channels
-            try:
-                if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                    mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-                    max_img_files = int(max_img_files * mult)
-            except Exception:
+            # Проверяем, должны ли применяться ограничения к админу
+            from HELPERS.limitter import should_apply_limits_to_admin
+            if not should_apply_limits_to_admin(user_id=user_id, message=message):
+                # Для админов с отключенными ограничениями пропускаем проверку
                 pass
-            
-            if range_count and range_count > max_img_files:
-                # Create alternative commands preserving the original start range
-                start_range = manual_range[0]
-                end_range = start_range + max_img_files - 1
-                suggested_command_url_format = f"{url}*{start_range}*{end_range}"
+            else:
+                # Use TikTok limit if URL is TikTok, otherwise use general image limit
+                if 'tiktok.com' in url.lower():
+                    max_img_files = LimitsConfig.MAX_TIKTOK_COUNT
+                else:
+                    max_img_files = LimitsConfig.MAX_IMG_FILES
+                # Apply group multiplier for groups/channels (но не для ADMIN_GROUP с отключенными ограничениями)
+                try:
+                    if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
+                        # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
+                        from HELPERS.limitter import should_apply_limits_to_admin
+                        if should_apply_limits_to_admin(user_id=user_id, message=message):
+                            mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                            max_img_files = int(max_img_files * mult)
+                except Exception:
+                    pass
                 
-                safe_send_message(
-                    chat_id,
-                    safe_get_messages(user_id).IMG_RANGE_LIMIT_EXCEEDED_MSG.format(
-                        range_count=range_count,
-                        max_img_files=max_img_files,
-                        start_range=start_range,
-                        end_range=end_range,
-                        url=url,
-                        suggested_command_url_format=suggested_command_url_format
-                    ),
-                    parse_mode=enums.ParseMode.HTML,
-                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                    message=message
-                )
-                return
+                if range_count and range_count > max_img_files:
+                    # Create alternative commands preserving the original start range
+                    start_range = manual_range[0]
+                    end_range = start_range + max_img_files - 1
+                    suggested_command_url_format = f"{url}*{start_range}*{end_range}"
+                    
+                    safe_send_message(
+                        chat_id,
+                        safe_get_messages(user_id).IMG_RANGE_LIMIT_EXCEEDED_MSG.format(
+                            range_count=range_count,
+                            max_img_files=max_img_files,
+                            start_range=start_range,
+                            end_range=end_range,
+                            url=url,
+                            suggested_command_url_format=suggested_command_url_format
+                        ),
+                        parse_mode=enums.ParseMode.HTML,
+                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                        message=message
+                    )
+                    return
     
     # Check if user has proxy enabled
     use_proxy = is_proxy_enabled(user_id)
@@ -1184,13 +1193,20 @@ def image_command(app, message):
                 # BUT ONLY if manual_range is not already set by user
                 if manual_range is None:
                     # Calculate total_limit for fallback
-                    fallback_limit = LimitsConfig.MAX_IMG_FILES
-                    try:
-                        if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                            mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-                            fallback_limit = int(fallback_limit * mult)
-                    except Exception:
-                        pass
+                    from HELPERS.limitter import should_apply_limits_to_admin
+                    if not should_apply_limits_to_admin(user_id=user_id, message=message):
+                        fallback_limit = 0  # Неограниченно для админов с отключенными ограничениями
+                    else:
+                        fallback_limit = LimitsConfig.MAX_IMG_FILES
+                        try:
+                            if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
+                                # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
+                                from HELPERS.limitter import should_apply_limits_to_admin
+                                if should_apply_limits_to_admin(user_id=user_id, message=message):
+                                    mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                                    fallback_limit = int(fallback_limit * mult)
+                        except Exception:
+                            pass
                     
                     logger.info(f"[IMG FALLBACK] No image_info and no detected_total, using fallback with max range: {fallback_limit}")
                     
@@ -1238,16 +1254,25 @@ def image_command(app, message):
         # Create user directory
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
-        # All users have MAX_IMG_FILES limit (including admins for testing)
-        total_limit = LimitsConfig.MAX_IMG_FILES
-        
-        # Apply group multiplier for groups/channels
-        try:
-            if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-                total_limit = int(total_limit * mult)
-        except Exception:
-            pass
+        # Проверяем, должны ли применяться ограничения к админу
+        from HELPERS.limitter import should_apply_limits_to_admin
+        if not should_apply_limits_to_admin(user_id=user_id, message=message):
+            # Для админов с отключенными ограничениями устанавливаем неограниченный лимит
+            total_limit = 0  # 0 означает неограниченно
+        else:
+            # All users have MAX_IMG_FILES limit
+            total_limit = LimitsConfig.MAX_IMG_FILES
+            
+            # Apply group multiplier for groups/channels (но не для ADMIN_GROUP с отключенными ограничениями)
+            try:
+                if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
+                    # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
+                    from HELPERS.limitter import should_apply_limits_to_admin
+                    if should_apply_limits_to_admin(user_id=user_id, message=message):
+                        mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                        total_limit = int(total_limit * mult)
+            except Exception:
+                pass
         
         # Check if domain should skip simulation and go to fallback (before any other logic)
         should_skip_simulation = any(domain in url.lower() for domain in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS)
@@ -1377,13 +1402,17 @@ def image_command(app, message):
         if should_skip_simulation and manual_range is None:
             logger.info(f"[IMG FALLBACK DOMAIN] Domain in GALLERYDL_FALLBACK_DOMAINS, skipping simulation, using fallback")
             # Use fallback immediately for these domains
-            fallback_limit = LimitsConfig.MAX_IMG_FILES
-            try:
-                if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                    mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-                    fallback_limit = int(fallback_limit * mult)
-            except Exception:
-                pass
+            from HELPERS.limitter import should_apply_limits_to_admin
+            if not should_apply_limits_to_admin(user_id=user_id, message=message):
+                fallback_limit = 0  # Неограниченно для админов с отключенными ограничениями
+            else:
+                fallback_limit = LimitsConfig.MAX_IMG_FILES
+                try:
+                    if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
+                        mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                        fallback_limit = int(fallback_limit * mult)
+                except Exception:
+                    pass
             
             # Set manual range to max allowed range for fallback only if not already set
             if manual_range is None:
@@ -1413,18 +1442,27 @@ def image_command(app, message):
         
         # Check limits after detecting total media count
         if detected_total and detected_total > 0:
-            # Use TikTok limit if URL is TikTok, otherwise use general image limit
-            if 'tiktok.com' in url.lower():
-                max_img_files = LimitsConfig.MAX_TIKTOK_COUNT
+            # Проверяем, должны ли применяться ограничения к админу
+            from HELPERS.limitter import should_apply_limits_to_admin
+            if not should_apply_limits_to_admin(user_id=user_id, message=message):
+                # Для админов с отключенными ограничениями пропускаем проверку
+                max_img_files = 0  # 0 означает неограниченно
             else:
-                max_img_files = LimitsConfig.MAX_IMG_FILES
-            # Apply group multiplier for groups/channels
-            try:
-                if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                    mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-                    max_img_files = int(max_img_files * mult)
-            except Exception:
-                pass
+                # Use TikTok limit if URL is TikTok, otherwise use general image limit
+                if 'tiktok.com' in url.lower():
+                    max_img_files = LimitsConfig.MAX_TIKTOK_COUNT
+                else:
+                    max_img_files = LimitsConfig.MAX_IMG_FILES
+                # Apply group multiplier for groups/channels (но не для ADMIN_GROUP с отключенными ограничениями)
+                try:
+                    if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
+                        # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
+                        from HELPERS.limitter import should_apply_limits_to_admin
+                        if should_apply_limits_to_admin(user_id=user_id, message=message):
+                            mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                            max_img_files = int(max_img_files * mult)
+                except Exception:
+                    pass
             
             # If total exceeds limit, show error and suggest manual range
             if detected_total and detected_total > max_img_files:
@@ -1978,7 +2016,14 @@ def image_command(app, message):
                             
                             # MAIN SENDING LOGIC - separate try-catch to prevent logging errors from triggering fallback
                             try:
-                                if nsfw_flag and is_private_chat:
+                                # Для логирования используем nsfw_flag and is_private_chat (без учета админа)
+                                # чтобы логирование оставалось как для всех остальных
+                                is_paid_for_logging = nsfw_flag and is_private_chat
+                                # Для отправки пользователю проверяем админа
+                                from HELPERS.limitter import should_apply_limits_to_admin
+                                is_paid_for_user = is_paid_for_logging and should_apply_limits_to_admin(user_id=user_id, message=message)
+                                
+                                if is_paid_for_user:
                                     logger.info(LoggerMsg.IMG_MAIN_PAID_LOGIC_LOG_MSG.format(item_count=len(media_group)))
                                     # Send as paid media album (up to 10 media files)
                                     try:
@@ -2285,10 +2330,13 @@ def image_command(app, message):
                                         # Если chat_id начинается с -100, это группа/канал (не приватный чат)
                                         is_private_chat = not (str(original_chat_id).startswith('-100') or str(original_chat_id).startswith('-'))
                                         logger.info(LoggerMsg.IMG_LOG_FAKE_MESSAGE_DETECTED_LOG_MSG.format(original_chat_id=original_chat_id, is_private_chat=is_private_chat))
-                                    is_paid_media = nsfw_flag and is_private_chat
+                                    # Для логирования используем nsfw_flag and is_private_chat (без учета админа)
+                                    # чтобы логирование оставалось как для всех остальных
+                                    is_paid_media_for_logging = nsfw_flag and is_private_chat
                                     
                                     #  Отправка в лог-каналы должна быть ВНЕ цикла, только один раз для всего альбома
-                                    if is_paid_media:
+                                    # Используем is_paid_media_for_logging для логирования (чтобы логирование было как для всех)
+                                    if is_paid_media_for_logging:
                                         # For NSFW content in private chat, send to both channels but don't cache
                                         # Add delay to allow Telegram to process paid media before sending to log channels
                                         time.sleep(2.0)
@@ -2481,7 +2529,13 @@ def image_command(app, message):
                                     is_private_chat = not (str(original_chat_id).startswith('-100') or str(original_chat_id).startswith('-'))
                                     logger.info(f"[IMG FALLBACK] FAKE MESSAGE DETECTED - original_chat_id={original_chat_id}, is_private_chat={is_private_chat}")
                                 logger.info(f"[IMG FALLBACK] nsfw_flag={nsfw_flag}, is_private_chat={is_private_chat}, len(fallback)={len(fallback)}")
-                                if nsfw_flag and is_private_chat and len(fallback) > 1:
+                                # Для логирования используем nsfw_flag and is_private_chat (без учета админа)
+                                # чтобы логирование оставалось как для всех остальных
+                                is_paid_for_logging_fallback = nsfw_flag and is_private_chat
+                                # Для отправки пользователю проверяем админа
+                                from HELPERS.limitter import should_apply_limits_to_admin
+                                is_paid_for_user_fallback = is_paid_for_logging_fallback and should_apply_limits_to_admin(user_id=user_id, message=message)
+                                if is_paid_for_user_fallback and len(fallback) > 1:
                                     # Try to send as paid media album first
                                     try:
                                         paid_media_list = []
@@ -2746,7 +2800,10 @@ def image_command(app, message):
                                     
                                     # Create media group for this album
                                     try:
-                                        if nsfw_flag and is_private_chat:
+                                        # Для отправки пользователю проверяем админа
+                                        from HELPERS.limitter import should_apply_limits_to_admin
+                                        should_send_paid_album = nsfw_flag and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+                                        if should_send_paid_album:
                                             # NSFW content in private chat - send as paid media album
                                             paid_media_list = []
                                             for p, t, orig in album_items:
@@ -2825,11 +2882,14 @@ def image_command(app, message):
                                         
                                         # Determine correct log channel based on media type and chat type
                                         is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
-                                        is_paid_media = nsfw_flag and is_private_chat
+                                        # Для логирования используем nsfw_flag and is_private_chat (без учета админа)
+                                        # чтобы логирование оставалось как для всех остальных
+                                        is_paid_media_for_logging_fallback = nsfw_flag and is_private_chat
                                         
                                         for _mid in orig_ids:
                                             try:
-                                                if is_paid_media:
+                                                # Используем is_paid_media_for_logging_fallback для логирования (чтобы логирование было как для всех)
+                                                if is_paid_media_for_logging_fallback:
                                                     # For NSFW content in private chat, send to both channels but don't cache
                                                     # Add delay to allow Telegram to process paid media before sending to log channels
                                                     time.sleep(2.0)
@@ -3091,7 +3151,13 @@ def image_command(app, message):
                             # Если chat_id начинается с -100, это группа/канал (не приватный чат)
                             is_private_chat = not (str(original_chat_id).startswith('-100') or str(original_chat_id).startswith('-'))
                             logger.info(f"[IMG TAIL] FAKE MESSAGE DETECTED - original_chat_id={original_chat_id}, is_private_chat={is_private_chat}")
-                        if nsfw_flag and is_private_chat:
+                        # Для логирования используем nsfw_flag and is_private_chat (без учета админа)
+                        # чтобы логирование оставалось как для всех остальных
+                        is_paid_for_logging_tail = nsfw_flag and is_private_chat
+                        # Для отправки пользователю проверяем админа
+                        from HELPERS.limitter import should_apply_limits_to_admin
+                        is_paid_for_user_tail = is_paid_for_logging_tail and should_apply_limits_to_admin(user_id=user_id, message=message)
+                        if is_paid_for_user_tail:
                             # Send as paid media album (up to 10 media files)
                             sent = []  # Initialize sent variable
                             try:

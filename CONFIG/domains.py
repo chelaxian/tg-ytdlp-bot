@@ -5,7 +5,80 @@ class DomainsConfig(object):
     #######################################################
     # Restricted content site lists
     #######################################################
-    BLACK_LIST = []
+    BLACK_LIST = [
+        # DRM / платные стриминги
+        'netflix.com',
+        'primevideo.com',
+        'disneyplus.com',
+        'apple.com',
+        'hbomax.com',
+        'hulu.com',
+        'paramountplus.com',
+        'peacocktv.com',
+        'ivi.ru',
+        'okko.tv',
+        'amediateka.ru',
+        'start.ru',
+        'megogo.net',
+        'megogo.ru',
+
+        # Мессенджеры / закрытые соцсети
+        'whatsapp.com',
+        'web.whatsapp.com',
+        'telegram.org',
+        't.me',
+        'viber.com',
+        'wechat.com',
+        'line.me',
+
+        # Банки и госуслуги
+        'sberbank.ru',
+        'online.sberbank.ru',
+        'tinkoff.ru',
+        'alfabank.ru',
+        'gosuslugi.ru',
+        'raiffeisen.ru',
+        'pochtabank.ru',
+
+        # Динамические/платформенные (не медиа)
+        'canva.com',
+        'figma.com',
+        'miro.com',
+        'prezi.com',
+
+        # Маркетплейсы
+        'wildberries.ru',
+        'ozon.ru',
+        #'yandex.ru',
+        'market.yandex.ru',
+        'lamoda.ru',
+        'dns-shop.ru',
+        'citilink.ru',
+
+        # Новостники/медиа с закрытым CDN
+        'rbc.ru',
+        'tass.ru',
+        'iz.ru',
+        'ria.ru',
+
+        # NSFW private/закрытый контент
+        'onlyfans.com',
+        'fansly.com',
+        'fanvue.com',
+        #'manyvids.com',
+        #'boosty.to',
+
+        # Нерелевантный контент
+        'stackoverflow.com',
+        'stackexchange.com',
+        'github.com',
+        'wikipedia.org',
+        'habr.com',
+        'hh.ru',
+        'avito.ru',
+        'youla.ru',
+        'drive2.ru'
+    ]
     #BLACK_LIST = ["pornhub", "phncdn.com", "xvideos", "xhcdn.com", "xhamster"]
     # Paths to domain and keyword lists
     PORN_DOMAINS_FILE = "TXT/porn_domains.txt"
