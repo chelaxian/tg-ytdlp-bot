@@ -14,7 +14,7 @@ def safe_callback_answer(callback_query, text, show_alert=False):
     try:
         callback_query.answer(text, show_alert=show_alert)
     except Exception:
-        pass  # Query ID might be invalid after long operation
+        pass  # Query ID might be invalid after long operation 
 
 from HELPERS.app_instance import get_app
 from HELPERS.decorators import get_main_reply_keyboard
@@ -23,7 +23,7 @@ from HELPERS.safe_messeger import safe_send_message, safe_delete_messages
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.qualifier import get_quality_by_min_side, get_real_height_for_quality
-from HELPERS.limitter import check_subs_limits, check_playlist_range_limits, TimeFormatter
+from HELPERS.limitter import check_subs_limits, check_playlist_range_limits, TimeFormatter, should_apply_limits_to_admin
 
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
@@ -1018,8 +1018,10 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
             except Exception:
                 is_cached_mp3 = False
         
+        # Проверяем, должен ли админ видеть звездочки для NSFW
+        should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id)
         mp3_label = (
-            f"1⭐️{audio_format}" if (is_nsfw and is_private_chat)
+            f"1⭐️{audio_format}" if should_show_star
             else (f"🚀{audio_format}" if is_cached_mp3 else f"🎧{audio_format}")
         )
         
@@ -1100,8 +1102,10 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
         except Exception:
             is_cached_mp3 = False
     
+    # Проверяем, должен ли админ видеть звездочки для NSFW
+    should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id)
     mp3_label = (
-        f"1⭐️{audio_format}" if (is_nsfw and is_private_chat)
+        f"1⭐️{audio_format}" if should_show_star
         else (f"🚀{audio_format}" if is_cached_mp3 else f"🎧{audio_format}")
     )
     # Build rows based on whether format is fixed
@@ -1278,6 +1282,111 @@ def askq_callback(app, callback_query):
             )
             
             log_error_to_channel(original_message, safe_get_messages(user_id).DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG.format(user_id=user_id, url=url, error=error_msg), url)
+        
+        # Удаляем Always Ask меню после обработки
+        try:
+            safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
+        except Exception as e:
+            logger.warning(f"{LoggerMsg.ALWAYS_ASK_FAILED_TO_DELETE_ALWAYS_ASK_MENU_LOG_MSG}: {e}")
+        return
+
+    # Handle CAPTION button - send video description as text file
+    if data == "caption":
+        # Get original URL from the reply message
+        original_message = callback_query.message.reply_to_message
+        if not original_message:
+            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            return
+            
+        url_text = original_message.text or (original_message.caption or "")
+        import re as _re
+        m = _re.search(r'https?://[^\s\*#]+', url_text)
+        url = m.group(0) if m else url_text
+        
+        try:
+            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_GETTING_CAPTION_MSG)
+        except Exception:
+            pass
+        
+        # Load video info from cache
+        info = load_ask_info(user_id, url)
+        
+        # Cache doesn't store description, so we need to get full info if description is needed
+        # Check if we have description in cache (it won't be there, but check anyway)
+        if not info or not info.get("description"):
+            # Cache doesn't have description, get full info from yt-dlp
+            try:
+                from DOWN_AND_UP.yt_dlp_hook import get_video_formats
+                info = get_video_formats(url, user_id, cookies_already_checked=True)
+                logger.info(f"Got full video info for caption (description available)")
+            except Exception as e:
+                logger.error(f"Error getting video info for caption: {e}")
+                app.send_message(
+                    user_id,
+                    safe_get_messages(user_id).AA_ERROR_GETTING_CAPTION_MSG.format(error_msg=str(e)),
+                    reply_parameters=ReplyParameters(message_id=original_message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+                return
+        
+        # Get description from info - use same logic as in down_and_up.py
+        # First try to get original_title (saved before sanitization), then title, then description
+        original_title = info.get("original_title") or info.get("title", "")
+        description = info.get("description", original_title)
+        title = info.get("title", "Video")
+        
+        # If description is still empty, try to use title as fallback (same as down_and_up.py)
+        if not description:
+            description = original_title or title
+        
+        # Log for debugging
+        logger.info(f"Caption button: url={url}, has_description={bool(info.get('description'))}, description_length={len(description) if description else 0}, title={title}")
+        
+        if not description:
+            app.send_message(
+                user_id,
+                safe_get_messages(user_id).AA_NO_DESCRIPTION_AVAILABLE_MSG,
+                reply_parameters=ReplyParameters(message_id=original_message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return
+        
+        # Create temporary file with description
+        temp_desc_path = None
+        try:
+            # Create temp file
+            user_dir = os.path.join("users", str(user_id))
+            create_directory(user_dir)
+            temp_desc_path = os.path.join(user_dir, "caption_description.txt")
+            
+            with open(temp_desc_path, "w", encoding="utf-8") as f:
+                f.write(description)
+            
+            # Send description as document
+            app.send_document(
+                chat_id=user_id,
+                document=temp_desc_path,
+                caption=safe_get_messages(user_id).CHANGE_CAPTION_HINT_MSG,
+                reply_parameters=ReplyParameters(message_id=original_message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            
+            send_to_logger(original_message, safe_get_messages(user_id).CAPTION_SENT_LOG_MSG.format(user_id=user_id, url=url, title=title))
+        except Exception as e:
+            logger.error(f"Error sending caption: {e}")
+            app.send_message(
+                user_id,
+                safe_get_messages(user_id).AA_ERROR_SENDING_CAPTION_MSG.format(error_msg=str(e)),
+                reply_parameters=ReplyParameters(message_id=original_message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+        finally:
+            # Clean up temp file
+            if temp_desc_path and os.path.exists(temp_desc_path):
+                try:
+                    os.remove(temp_desc_path)
+                except Exception as e:
+                    logger.error(f"Error removing temp caption file: {e}")
         
         # Удаляем Always Ask меню после обработки
         try:
@@ -2642,11 +2751,15 @@ def show_manual_quality_menu(app, callback_query):
                 indices = list(range(start, end + 1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality, indices)
             total = len(indices)
-            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+            # Проверяем, должен ли админ видеть звездочки для NSFW
+            should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
             postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
             button_text = f"{icon}{quality}{postfix}"
         else:
-            icon = "🚀" if (quality in cached_qualities and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+            # Проверяем, должен ли админ видеть звездочки для NSFW
+            should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+            icon = "🚀" if (quality in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
             button_text = f"{icon}{quality}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality}"))
 
@@ -2665,11 +2778,15 @@ def show_manual_quality_menu(app, callback_query):
             indices = list(range(start, end + 1))
         n_cached = get_cached_playlist_count(get_clean_playlist_url(url), "best", indices)
         total = len(indices)
-        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+        # Проверяем, должен ли админ видеть звездочки для NSFW
+        should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
         postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
         button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality{postfix}"
     else:
-        icon = "🚀" if ("best" in cached_qualities and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+        # Проверяем, должен ли админ видеть звездочки для NSFW
+        should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+        icon = "🚀" if ("best" in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
         button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality"
     buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_best"))
     
@@ -2694,11 +2811,15 @@ def show_manual_quality_menu(app, callback_query):
             indices = list(range(start, end + 1))
         n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
         total = len(indices)
-        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "🎧")
+        # Проверяем, должен ли админ видеть звездочки для NSFW
+        should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "🎧")
         postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
         button_text = f"{icon} audio (mp3){postfix}"
     else:
-        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "🎧")
+        # Проверяем, должен ли админ видеть звездочки для NSFW
+        should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "🎧")
         button_text = f"{icon} audio (mp3)"
     keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality_key}")])
     
@@ -2743,9 +2864,11 @@ def show_manual_quality_menu(app, callback_query):
         is_nsfw = isinstance(tags_text, str) and ('#nsfw' in tags_text.lower())
     except Exception:
         is_nsfw = False
-    if is_nsfw and is_private_chat:
+    # Проверяем, должен ли админ видеть предупреждение о платном NSFW
+    should_show_paid_warning = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+    if should_show_paid_warning:
         cap += "\n<b>⭐️ — 🔞NSFW is paid (⭐️$0.02)</b>\n"
-    if is_nsfw and is_private_chat:
+    if should_show_paid_warning:
         cap += "\n<b>⭐️ — 🔞NSFW is paid (⭐️$0.02)</b>\n"
     cap += f"\n<b>{safe_get_messages(user_id).ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG}</b>\n"
     cap += f"\n<i>{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG}</i>\n"
@@ -2918,7 +3041,9 @@ def show_other_qualities_menu(app, callback_query, page=0):
     cap = f"<b>{video_title}</b>\n"
     if tags_text:
         cap += f"{tags_text}"
-    if is_nsfw and is_private_chat:
+    # Проверяем, должен ли админ видеть предупреждение о платном NSFW
+    should_show_paid_warning = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+    if should_show_paid_warning:
         cap += "\n<b>⭐️ — 🔞NSFW is paid (⭐️$0.02)</b>\n"
     cap += f"\n<b>{safe_get_messages(user_id).ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG}</b>\n"
     cap += f"\n<i>{safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1)}</i>\n"
@@ -3231,7 +3356,9 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
     is_nsfw = isinstance(orig_text, str) and ('#nsfw' in orig_text.lower())
     # Check if we're in a private chat (paid media only works in private chats)
     is_private_chat = getattr(callback_query.message.chat, "type", None) == enums.ChatType.PRIVATE
-    if isinstance(url, str) and is_nsfw and is_private_chat:
+    # Проверяем, должен ли админ видеть предупреждение о платном NSFW
+    should_show_paid_warning = isinstance(url, str) and is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
+    if should_show_paid_warning:
         cap += "\n<b>⭐️ — 🔞NSFW is paid (⭐️$0.02)</b>\n"
     cap += f"\n<i>{safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1)}</i>\n"
     
@@ -3271,9 +3398,11 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
                 button_text = ' | '.join(button_parts)
                 
                 # Add rocket emoji if format is cached, or paid emoji for NSFW
+                # Проверяем, должен ли админ видеть звездочки для NSFW
+                should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
                 if format_id in cached_qualities and not is_nsfw:
                     button_text = f"🚀 {button_text}"
-                elif is_nsfw and is_private_chat:
+                elif should_show_star:
                     button_text = f"1⭐️ {button_text}"
                 
                 # Limit button text length
@@ -3423,7 +3552,9 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
         cap = f"<b>{title}</b>\n"
         if tags_text:
             cap += f"{tags_text}"
-        if is_nsfw and is_private_chat:
+        # Проверяем, должен ли админ видеть предупреждение о платном NSFW
+        should_show_paid_warning = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+        if should_show_paid_warning:
             cap += "\n<b>⭐️ — 🔞NSFW is paid (⭐️$0.02)</b>\n"
         if user_fixed_format:
                 cap += f"\n<b>{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG}: {user_fixed_format.upper()}</b>\n"
@@ -3539,20 +3670,28 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
         # Добавляем WATCH кнопку для YouTube
         # - в личке: WebApp (удобный просмотр)
         # - в группах: обычная URL-кнопка (WebApp может давать BUTTON_TYPE_INVALID в некоторых контекстах)
+        # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
+        # try:
+        #     if is_youtube_url(url):
+        #         piped_url = youtube_to_piped_url(url)
+        #         try:
+        #             is_group = isinstance(user_id, int) and user_id < 0
+        #         except Exception:
+        #             is_group = False
+        #         if is_group:
+        #             action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, url=piped_url))
+        #         else:
+        #             wa = WebAppInfo(url=piped_url)
+        #             action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, web_app=wa))
+        # except Exception as e:
+        #     logger.error(f"Error adding WATCH button: {e}")
+        
+        # Добавляем CAPTION кнопку для получения описания видео
         try:
             if is_youtube_url(url):
-                piped_url = youtube_to_piped_url(url)
-                try:
-                    is_group = isinstance(user_id, int) and user_id < 0
-                except Exception:
-                    is_group = False
-                if is_group:
-                    action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, url=piped_url))
-                else:
-                    wa = WebAppInfo(url=piped_url)
-                    action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, web_app=wa))
+                action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_CAPTION_BUTTON_MSG, callback_data="askq|caption"))
         except Exception as e:
-            logger.error(f"Error adding WATCH button: {e}")
+            logger.error(f"Error adding CAPTION button: {e}")
         
         # Группируем action buttons
         if action_buttons:
@@ -4229,7 +4368,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                                 'filesize': filesize,
                                 'filesize_approx': filesize
                             }
-                            if check_subs_limits(temp_info, q):
+                            if check_subs_limits(temp_info, q, user_id=user_id):
                                 subs_available = "💬"
                 # Cache/icon (skip if send_as_file is enabled)
                 if send_as_file:
@@ -4878,8 +5017,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         repost_line = f"\n{safe_get_messages(user_id).ALWAYS_ASK_INSTANT_REPOST_MSG}" if show_repost_hint else ""
         # Add DUBS hint if available
         dubs_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG}" if get_filters(user_id).get("has_dubs") else ""
-        # Replace quality hint with paid note for NSFW
-        paid_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_NSFW_IS_PAID_MSG}" if (is_nsfw and is_private_chat) else f"\n{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG}"
+        # Replace quality hint with paid note for NSFW (только если админ не имеет отключенных ограничений)
+        should_show_paid_hint = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+        paid_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_NSFW_IS_PAID_MSG}" if should_show_paid_hint else f"\n{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG}"
         # Hints tied to optional buttons
         image_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOAD_IMAGE_MSG}" if not found_quality_keys else ""
         watch_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_WATCH_VIDEO_MSG}" if is_youtube_url(url) else ""
@@ -4895,8 +5035,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # Always show format change hint (📼) - this is always available
             hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG}")
             
-            # Quality hint (📹) - always shown unless NSFW
-            if is_nsfw and is_private_chat:
+            # Quality hint (📹) - always shown unless NSFW (только если админ не имеет отключенных ограничений)
+            should_show_paid_hint = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            if should_show_paid_hint:
                 hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_NSFW_IS_PAID_MSG}")
             else:
                 hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG}")
@@ -4990,7 +5131,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                                     'filesize': filesize,
                                     'filesize_approx': filesize
                                 }
-                                if check_subs_limits(temp_info, quality_key):
+                                if check_subs_limits(temp_info, quality_key, user_id=user_id):
                                     subs_available = "💬"
                         else:
                             # In manual mode, respect user's auto_mode setting
@@ -5000,7 +5141,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                                     'filesize': filesize,
                                     'filesize_approx': filesize
                                 }
-                                if check_subs_limits(temp_info, quality_key):
+                                if check_subs_limits(temp_info, quality_key, user_id=user_id):
                                     subs_available = "💬"
                 
                 # Cache/icon (skip if send_as_file is enabled)
@@ -5090,7 +5231,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         indices = list(range(start, end + 1))
                     n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                     total = len(indices)
-                    icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    # Проверяем, должен ли админ видеть звездочки для NSFW
+                    should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+                    icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
                     postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
                     button_text = f"{icon}{quality_key}{postfix}"
                 else:
@@ -5116,7 +5259,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         except Exception as e:
                             logger.warning(f"⚠️ [CACHE] Ошибка при проверке кэша для одиночного видео: {e}")
                     
-                    icon = "🚀" if (is_cached and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    # Проверяем, должен ли админ видеть звездочки для NSFW
+                    should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+                    icon = "🚀" if (is_cached and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
                     button_text = f"{icon}{quality_key}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
 
@@ -5136,11 +5281,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 indices = list(range(start, end + 1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
             total = len(indices)
-            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+            # Проверяем, должен ли админ видеть звездочки для NSFW
+            should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
             postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
             button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
         else:
-            icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+            # Проверяем, должен ли админ видеть звездочки для NSFW
+            should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
             button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
@@ -5197,24 +5346,35 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     keyboard_rows.append(buttons[i:i+3])
         
         # Add WATCH button for YouTube links - always add to action_buttons for consistent placement
+        # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
+        # try:
+        #     if is_youtube_url(url):
+        #         logger.info(f"Processing YouTube URL for WATCH button: {url}")
+        #         piped_url = youtube_to_piped_url(url)
+        #         logger.info(f"Converted to Piped URL: {piped_url}")
+        #         # Check if this is a group (negative user_id)
+        #         try:
+        #             is_group = isinstance(user_id, int) and user_id < 0
+        #         except Exception:
+        #             is_group = False
+        #         if is_group:
+        #             action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, url=piped_url))
+        #         else:
+        #             wa = WebAppInfo(url=piped_url)
+        #             action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, web_app=wa))
+        #         logger.info(f"Added WATCH button to action_buttons for user {user_id}")
+        # except Exception as e:
+        #     logger.error(f"Error adding WATCH button for user {user_id}: {e}")
+        #     pass
+        
+        # Add CAPTION button for YouTube links - get video description
         try:
             if is_youtube_url(url):
-                logger.info(f"Processing YouTube URL for WATCH button: {url}")
-                piped_url = youtube_to_piped_url(url)
-                logger.info(f"Converted to Piped URL: {piped_url}")
-                # Check if this is a group (negative user_id)
-                try:
-                    is_group = isinstance(user_id, int) and user_id < 0
-                except Exception:
-                    is_group = False
-                if is_group:
-                    action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, url=piped_url))
-                else:
-                    wa = WebAppInfo(url=piped_url)
-                    action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, web_app=wa))
-                logger.info(f"Added WATCH button to action_buttons for user {user_id}")
+                logger.info(f"Processing YouTube URL for CAPTION button: {url}")
+                action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_CAPTION_BUTTON_MSG, callback_data="askq|caption"))
+                logger.info(f"Added CAPTION button to action_buttons for user {user_id}")
         except Exception as e:
-            logger.error(f"Error adding WATCH button for user {user_id}: {e}")
+            logger.error(f"Error adding CAPTION button for user {user_id}: {e}")
             pass
         
         # --- button subtitles only ---

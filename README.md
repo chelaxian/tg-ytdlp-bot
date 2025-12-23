@@ -69,10 +69,43 @@ The bot will process them in queue with progress status updates.
 ## 📋 Table of Contents
 
 - [Installation](#%EF%B8%8F-installation)
+  - [Docker Deployment](#-docker-deployment-recommended-for-most-users)
+  - [Manual Installation](#manual-installation-without-docker)
 - [Configuration](#%EF%B8%8F-configuration)
+  - [Required Configuration](#required-configuration)
+  - [Optional Configuration](#optional-configuration)
+  - [Admin Limits Configuration](#-admin-limits-configuration)
+  - [Getting API Credentials](#getting-api-credentials)
+  - [Firebase Setup](#firebase-setup)
+  - [Cookie Setup](#cookie-setup)
+- [Limits & Cooldowns](#-limits--cooldowns-configlimitspy)
 - [User Commands](#-user-commands)
+  - [Basic Commands](#basic-commands)
+  - [Download Commands](#download-commands)
+  - [Format & Quality Commands](#format--quality-commands)
+  - [Subtitle Commands](#subtitle-commands)
+  - [Cookie Commands](#cookie-commands)
+  - [Advanced Commands](#advanced-commands)
 - [Advanced Features](#-advanced-features)
+  - [Multiple URLs Support](#-multiple-urls-support)
+  - [Always Ask Menu](#-always-ask-menu)
+  - [Advanced Cookie Management](#-advanced-cookie-management)
+  - [Proxy Support](#-proxy-support)
+  - [Direct Link Extraction](#-direct-link-extraction)
+  - [Tag System](#-tag-system)
+  - [Image Download Support](#-image-download-support)
+  - [NSFW Content Management](#-nsfw-content-management)
+  - [Flood Wait Protection](#-flood-wait-protection)
 - [Admin Commands](#%E2%80%8D-admin-commands)
+  - [User Management](#user-management)
+  - [System Management](#system-management)
+  - [Content Management](#content-management)
+  - [Language Management](#language-management)
+  - [System Monitoring](#system-monitoring)
+- [Paid Posts and Group Mode](#paid-posts-telegram-stars-and-group-mode)
+- [Auto Cache](#auto-cache--how-it-works-onoffn)
+- [Porn Detection Management](#porn-detection-management)
+- [Updating the Bot](#updating-the-bot-updater-scripts)
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
 - [Support](#-support)
@@ -588,6 +621,96 @@ Also you may fill in `porn_domains.txt` `porn_keywords.txt` files in `TXT` folde
 - **NSFW monetization:** `NSFW_STAR_COST` defines the Telegram Stars price for paid NSFW posts and can be adjusted at any time.
 
 After changing this file, restart the bot so new limits are applied. If you run multiple instances with different limits, keep separate copies of `CONFIG/limits.py` and mount them via `systemd` or Docker volumes.
+
+### 👑 Admin Limits Configuration
+
+The bot supports disabling all limits and restrictions for administrators and admin groups. This feature allows admins to bypass file size limits, video duration limits, playlist count limits, rate limits, and NSFW paid content restrictions.
+
+**Configuration in `CONFIG/config.py`:**
+
+```python
+# List of admin user IDs
+ADMIN = [123456789, 987654321]  # Your admin user IDs
+
+# List of admin group IDs (groups that bypass all limits)
+ADMIN_GROUP = [-1001234567890, -1001234567891]  # Admin group IDs
+
+# List of allowed groups (groups with increased limits via GROUP_MULTIPLIER)
+ALLOWED_GROUP = [-1001234567890, -1001234567891]  # Allowed group IDs
+```
+
+**Configuration in `CONFIG/limits.py`:**
+
+```python
+class LimitsConfig(object):
+    # Enable/disable limits for admins and admin groups
+    TURN_OFF_LIMITS_FOR_ADMINS = True  # Set to False to apply limits to admins
+```
+
+**How It Works:**
+
+**When `TURN_OFF_LIMITS_FOR_ADMINS = True`:**
+
+- **Individual Admins** (users in `ADMIN` list):
+  - ✅ No file size limits
+  - ✅ No video duration limits
+  - ✅ No playlist count limits
+  - ✅ No rate limits (URLs per minute/hour/day)
+  - ✅ No command limits
+  - ✅ No image file count limits
+  - ✅ No live stream duration limits
+  - ✅ **NSFW content is free** (no Telegram Stars required)
+  - ✅ Always Ask menu shows **no star icons** for NSFW content
+
+- **Admin Groups** (groups in `ADMIN_GROUP` list):
+  - ✅ All the same benefits as individual admins
+  - ✅ No `GROUP_MULTIPLIER` applied (limits are completely disabled)
+  - ✅ Subscription check bypassed
+
+**When `TURN_OFF_LIMITS_FOR_ADMINS = False`:**
+
+- Admins and admin groups are subject to the same limits as regular users
+- `GROUP_MULTIPLIER` applies to admin groups (same as `ALLOWED_GROUP`)
+
+**Admin Groups vs Allowed Groups:**
+
+- **`ADMIN_GROUP`**: Groups that bypass **all limits** when `TURN_OFF_LIMITS_FOR_ADMINS = True`
+- **`ALLOWED_GROUP`**: Groups with **increased limits** via `GROUP_MULTIPLIER` (default: 2x)
+  - NSFW content is free in groups (always)
+  - Limits are multiplied by `GROUP_MULTIPLIER`
+  - Subscription check bypassed
+
+**Note:** If a group is listed in both `ADMIN_GROUP` and `ALLOWED_GROUP`, `ADMIN_GROUP` takes priority (all limits disabled).
+
+**NSFW Content Behavior:**
+
+**For Admins (when limits are disabled):**
+- NSFW content is sent as **regular video** (no Telegram Stars)
+- Always Ask menu shows **no star icons** (⭐️)
+- Content is still logged to both `LOGS_PAID_ID` and `LOGS_NSFW_ID` channels (same as regular users)
+
+**For Regular Users:**
+- NSFW content requires Telegram Stars (paid media)
+- Always Ask menu shows star icons (⭐️) for NSFW content
+- Content is logged to `LOGS_PAID_ID` (paid copy) and `LOGS_NSFW_ID` (open copy)
+
+**Example Configuration:**
+
+```python
+# CONFIG/config.py
+ADMIN = [123456789]  # Your user ID
+ADMIN_GROUP = [-1001234567890]  # Your admin group ID
+ALLOWED_GROUP = [-1001234567891]  # Regular allowed group ID
+
+# CONFIG/limits.py
+TURN_OFF_LIMITS_FOR_ADMINS = True  # Enable unlimited access for admins
+GROUP_MULTIPLIER = 2  # 2x limits for ALLOWED_GROUP
+```
+
+**Result:**
+- User `123456789` has no limits
+- Group `-1001234567890` has no limits
+- Group `-1001234567891` has 2x limits (via `GROUP_MULTIPLIER`)
 
 ---
 

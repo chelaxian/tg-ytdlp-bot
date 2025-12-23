@@ -87,8 +87,11 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
     messages = safe_get_messages(user_id)
     
     # Calculate limit
-    if is_admin:
-        url_limit = 0  # 0 means unlimited
+    # Проверяем, должны ли применяться ограничения к админу или группе из ADMIN_GROUP
+    from CONFIG.limits import LimitsConfig
+    from HELPERS.limitter import should_apply_limits_to_admin
+    if not should_apply_limits_to_admin(user_id=user_id, message=message):
+        url_limit = 0  # 0 means unlimited для админов/ADMIN_GROUP с отключенными ограничениями
     elif is_group:
         url_limit = LimitsConfig.MAX_MULTI_URL_LIMIT * LimitsConfig.GROUP_MULTIPLIER
     else:

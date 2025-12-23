@@ -36,6 +36,7 @@ EXCLUDED_FILES = [
     "magic.session-journal",
     "dump.json",
     "script.sh",
+    "engines_updater.sh",
 ]
 
 EXCLUDED_DIRS = [

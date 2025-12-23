@@ -44,7 +44,12 @@ def download_live_stream_chunked(
         messages = safe_get_messages(user_id)
         
         # Get configuration
-        max_duration = LimitsConfig.MAX_LIVE_STREAM_DURATION
+        # Проверяем, должны ли применяться ограничения к админу
+        from HELPERS.limitter import should_apply_limits_to_admin
+        if not should_apply_limits_to_admin(user_id=user_id, message=message):
+            max_duration = None  # Неограниченно для админов с отключенными ограничениями
+        else:
+            max_duration = LimitsConfig.MAX_LIVE_STREAM_DURATION
         # User‑configured split size (default ~1.95 GiB)
         user_split_size = get_user_split_size(user_id)
         # Hard Telegram limit ~2 GiB, оставим запас ~50 MiB
@@ -229,7 +234,7 @@ def download_live_stream_chunked(
         
         while True:
             elapsed_time = time.time() - start_time
-            if elapsed_time >= max_duration:
+            if max_duration is not None and elapsed_time >= max_duration:
                 logger.info(f"Reached max duration limit ({max_duration}s), stopping live stream download")
                 break
             

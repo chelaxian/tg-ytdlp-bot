@@ -106,6 +106,70 @@ app = Client(
 # Set global app instance BEFORE importing handlers
 set_app(app)
 
+# Кэш для username бота (будет заполнен после старта)
+_bot_username_cache = None
+
+def _get_bot_username():
+    """Получить username текущего бота (с кэшированием)"""
+    global _bot_username_cache
+    if _bot_username_cache is None:
+        try:
+            bot_info = app.get_me()
+            _bot_username_cache = bot_info.username.lower() if bot_info.username else None
+        except Exception:
+            # Fallback на Config.BOT_NAME если не удалось получить через API
+            bot_name = getattr(Config, 'BOT_NAME', '').strip()
+            _bot_username_cache = bot_name.lower().replace('@', '') if bot_name else None
+    return _bot_username_cache
+
+def _should_handle_group_command(app, message):
+    """
+    Проверяет, должен ли бот обрабатывать команду в группе.
+    
+    Правила:
+    - В личных чатах: всегда обрабатывать
+    - В группах:
+      - Если команда содержит @mention и это не имя текущего бота - НЕ обрабатывать
+      - Если команда содержит @mention и это имя текущего бота - обрабатывать
+      - Если команда НЕ содержит @mention - обрабатывать (любой бот может ответить)
+    
+    Returns:
+        bool: True если команда должна быть обработана, False иначе
+    """
+    # В личных чатах всегда обрабатываем
+    if message.chat.type in (enums.ChatType.PRIVATE, enums.ChatType.BOT):
+        return True
+    
+    # В группах проверяем @mention
+    if message.chat.type in (enums.ChatType.GROUP, enums.ChatType.SUPERGROUP, enums.ChatType.CHANNEL):
+        text = (message.text or "").strip()
+        
+        # Проверяем наличие @mention в команде
+        # Формат команды: /vid@bot_name URL или /vid @bot_name URL
+        mention_pattern = r'@(\w+)'
+        mentions = re.findall(mention_pattern, text)
+        
+        if mentions:
+            # Если есть упоминания, проверяем, есть ли среди них имя текущего бота
+            bot_username = _get_bot_username()
+            if bot_username:
+                # Проверяем, есть ли упоминание текущего бота
+                for mention in mentions:
+                    if mention.lower() == bot_username.lower():
+                        # Упоминание текущего бота найдено - обрабатываем
+                        return True
+                # Упоминания есть, но не текущего бота - не обрабатываем
+                return False
+            else:
+                # Не удалось получить username бота - обрабатываем для совместимости
+                return True
+        
+        # Нет упоминаний - любой бот может обработать
+        return True
+    
+    # Для других типов чатов обрабатываем
+    return True
+
 # DATABASE (без обработчиков)
 from DATABASE.cache_db import *
 from DATABASE.download_firebase import *
@@ -206,34 +270,46 @@ def _is_allowed_group(message):
         return False
 
 if _allowed_groups:
-    app.on_message(filters.group & filters.command("img"))(_wrap_group(lambda a, m: image_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("mediainfo"))(_wrap_group(lambda a, m: mediainfo_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("nsfw"))(_wrap_group(lambda a, m: nsfw_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("proxy"))(_wrap_group(lambda a, m: proxy_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("settings"))(_wrap_group(lambda a, m: settings_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("format"))(_wrap_group(lambda a, m: set_format(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("split"))(_wrap_group(lambda a, m: split_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("link"))(_wrap_group(lambda a, m: link_command_handler(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("tags"))(_wrap_group(lambda a, m: tags_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("audio"))(_wrap_group(lambda a, m: audio_command_handler(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("playlist"))(_wrap_group(lambda a, m: playlist_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("subs"))(_wrap_group(lambda a, m: subs_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("args"))(_wrap_group(lambda a, m: args_cmd.args_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("list"))(_wrap_group(lambda a, m: list_command(a, m) if _is_allowed_group(m) else None))
-    app.on_message(filters.group & filters.command("cookies_from_browser"))(_wrap_group(lambda a, m: cookies_from_browser(a, m) if _is_allowed_group(m) else None))
+    app.on_message(filters.group & filters.command("img"))(_wrap_group(lambda a, m: image_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("mediainfo"))(_wrap_group(lambda a, m: mediainfo_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("nsfw"))(_wrap_group(lambda a, m: nsfw_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("proxy"))(_wrap_group(lambda a, m: proxy_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("settings"))(_wrap_group(lambda a, m: settings_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("format"))(_wrap_group(lambda a, m: set_format(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("split"))(_wrap_group(lambda a, m: split_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("link"))(_wrap_group(lambda a, m: link_command_handler(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("tags"))(_wrap_group(lambda a, m: tags_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("audio"))(_wrap_group(lambda a, m: audio_command_handler(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("playlist"))(_wrap_group(lambda a, m: playlist_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("subs"))(_wrap_group(lambda a, m: subs_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("args"))(_wrap_group(lambda a, m: args_cmd.args_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("list"))(_wrap_group(lambda a, m: list_command(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
+    app.on_message(filters.group & filters.command("cookies_from_browser"))(_wrap_group(lambda a, m: cookies_from_browser(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
 
     # Text/url handler in allowed groups (topic-aware)
     # Text/url handler in allowed groups (topic-aware) including mentions
     def _guarded_text(a, m):
-        if _is_allowed_group(m):
-            return url_distractor(a, m)
-        # If not allowed, do nothing (deny service silently)
-        return None
+        if not _is_allowed_group(m):
+            return None
+        
+        # Проверяем, является ли сообщение командой
+        text = (m.text or "").strip()
+        is_command = text.startswith('/') or text in [
+            "🧹", "🍪", "⚙️", "🔍", "🌐", "🔗", "📼", "📊", "✂️", "🎧", "💬", 
+            "#️⃣", "🆘", "📃", "⏯️", "🎹", "🌎", "✅", "🖼", "🧰", "🔞", "🧾"
+        ]
+        
+        # Для команд проверяем @mention, для обычных текстов - всегда обрабатываем
+        if is_command:
+            if not _should_handle_group_command(a, m):
+                return None
+        
+        return url_distractor(a, m)
     app.on_message(filters.group & filters.text)(_wrap_group(_guarded_text))
 
     # Map basic commands to url_distractor to mimic private behavior
     for _cmd in ("start", "help", "keyboard", "clean", "search", "usage", "check_cookie", "save_as_cookie"):
-        app.on_message(filters.group & filters.command(_cmd))(_wrap_group(lambda a, m, __c=_cmd: url_distractor(a, m) if _is_allowed_group(m) else None))
+        app.on_message(filters.group & filters.command(_cmd))(_wrap_group(lambda a, m, __c=_cmd: url_distractor(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
 
 ###########################################################
 #        /vid command (private and groups)
@@ -322,7 +398,7 @@ def _vid_handler(app, message):
 # Register /vid in private and allowed groups
 app.on_message(filters.command("vid") & filters.private)(_vid_handler)
 if _allowed_groups:
-    app.on_message(filters.group & filters.command("vid"))(_wrap_group(lambda a, m: _vid_handler(a, m) if _is_allowed_group(m) else None))
+    app.on_message(filters.group & filters.command("vid"))(_wrap_group(lambda a, m: _vid_handler(a, m) if _is_allowed_group(m) and _should_handle_group_command(a, m) else None))
 
 # Help close handler for /vid
 @app.on_callback_query(filters.regex(r"^vid_help\|"))

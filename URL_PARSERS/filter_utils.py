@@ -4,12 +4,16 @@ from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
 from HELPERS.logger import logger
 
-def create_smart_match_filter():
+def create_smart_match_filter(user_id=None, message=None):
     """
     Создает умный match_filter, который разрешает скачивание если:
     1. Видео не является живым (!is_live) - только если ENABLE_LIVE_STREAM_BLOCKING = True
-    2. Длительность определена и <= MAX_VIDEO_DURATION
+    2. Длительность определена и <= MAX_VIDEO_DURATION (если ограничения применяются)
     3. Длительность не определена (duration is None) - разрешаем скачивание
+    
+    Args:
+        user_id: ID пользователя (опционально)
+        message: Объект сообщения (опционально)
     
     Returns:
         function: Функция фильтра для yt-dlp
@@ -48,9 +52,12 @@ def create_smart_match_filter():
                 logger.info(f"Completed live stream detected (duration: {duration}s), allowing download")
                 return None
             
-            # Если длительность определена, проверяем лимит
-            if duration and duration > Config.MAX_VIDEO_DURATION:
-                return f"Video too long: {duration}s > {Config.MAX_VIDEO_DURATION}s"
+            # Проверяем, должны ли применяться ограничения к админу
+            from HELPERS.limitter import should_apply_limits_to_admin
+            if should_apply_limits_to_admin(user_id=user_id, message=message):
+                # Если длительность определена, проверяем лимит
+                if duration and duration > Config.MAX_VIDEO_DURATION:
+                    return f"Video too long: {duration}s > {Config.MAX_VIDEO_DURATION}s"
             
             # Все проверки пройдены
             return None
@@ -62,14 +69,27 @@ def create_smart_match_filter():
     
     return match_filter
 
-def create_legacy_match_filter():
+def create_legacy_match_filter(user_id=None, message=None):
     """
     Создает стандартный match_filter для обратной совместимости
     Учитывает ENABLE_LIVE_STREAM_BLOCKING
     
+    Args:
+        user_id: ID пользователя (опционально)
+        message: Объект сообщения (опционально)
+    
     Returns:
         function: Функция фильтра для yt-dlp
     """
+    # Проверяем, должны ли применяться ограничения к админу
+    from HELPERS.limitter import should_apply_limits_to_admin
+    if not should_apply_limits_to_admin(user_id=user_id, message=message):
+        # Для админов с отключенными ограничениями не проверяем длительность
+        if LimitsConfig.ENABLE_LIVE_STREAM_BLOCKING:
+            return yt_dlp.utils.match_filter_func('!is_live')
+        else:
+            return lambda x: None  # Разрешаем все
+    
     if LimitsConfig.ENABLE_LIVE_STREAM_BLOCKING:
         return yt_dlp.utils.match_filter_func(f'!is_live & duration <= {Config.MAX_VIDEO_DURATION}')
     else:

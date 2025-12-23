@@ -1279,6 +1279,11 @@ Use:
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Getting direct link..."
     ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Getting available formats..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Mendapatkan deskripsi video..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ Error mendapatkan deskripsi: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Deskripsi video tidak tersedia"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ Error mengirim deskripsi: {error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 Deskripsi video dikirim ke pengguna {user_id} untuk {url} ({title})"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Starting gallery-dl…"
     
     # Always Ask Menu F-String Messages
@@ -1326,7 +1331,7 @@ Use:
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW berbayar (⭐️$0.02)"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Pilih kualitas unduhan"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Unduh gambar (gallery-dl)"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Tonton video di poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Tonton video di poketube"  # SEMENTARA DINONAKTIFKAN: layanan poketube sedang down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Dapatkan tautan langsung ke video"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Tampilkan daftar format yang tersedia"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Ubah ekstensi/codec video"
@@ -1334,7 +1339,7 @@ Use:
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Ekstrak hanya audio"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW berbayar (⭐️$0.02)"
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Repost instan dari cache"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Tonton video di poketube"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Tonton video di poketube"  # SEMENTARA DINONAKTIFKAN: layanan poketube sedang down
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Pilih bahasa audio"
     ALWAYS_ASK_BEST_BUTTON_MSG = "Terbaik"
     ALWAYS_ASK_OTHER_LABEL_MSG = "🎛Lainnya"
@@ -1501,7 +1506,7 @@ Use:
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "User entered a porn content. Cannot be downloaded."
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "User entered forbidden content. Cannot be downloaded."
     
     # Additional Log Messages
     NSFW_BLUR_SET_COMMAND_LOG_MSG = "NSFW blur set via command: {arg}"
@@ -2215,7 +2220,8 @@ Use:
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Tautan"
-    ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Tonton"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Tonton"  # SEMENTARA DINONAKTIFKAN: layanan poketube sedang down
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Deskripsi"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Selesai sebagian - {successful_uploads}/{total_files} file audio diunggah."

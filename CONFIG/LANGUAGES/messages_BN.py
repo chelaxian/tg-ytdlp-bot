@@ -1279,6 +1279,11 @@ class Messages(object):
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 সরাসরি লিঙ্ক পাওয়া হচ্ছে..."
     ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 উপলব্ধ ফরম্যাট পাওয়া হচ্ছে..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 ভিডিও বিবরণ পাওয়া হচ্ছে..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ বিবরণ পাওয়ার সময় ত্রুটি: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ ভিডিও বিবরণ উপলব্ধ নয়"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ বিবরণ পাঠানোর সময় ত্রুটি: {error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 ভিডিও বিবরণ ব্যবহারকারী {user_id} কে {url} ({title}) এর জন্য পাঠানো হয়েছে"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 gallery-dl শুরু করা হচ্ছে…"
     
     # Always Ask Menu F-String Messages
@@ -1326,7 +1331,7 @@ class Messages(object):
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW পেইড (⭐️$0.02)"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — ডাউনলোড মান নির্বাচন করুন"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — ছবি ডাউনলোড করুন (gallery-dl)"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketube এ ভিডিও দেখুন"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketube এ ভিডিও দেখুন"  # সাময়িকভাবে নিষ্ক্রিয়: poketube পরিষেবা ডাউন
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — ভিডিওতে সরাসরি লিঙ্ক পান"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — উপলব্ধ ফরম্যাট তালিকা দেখান"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — ভিডিও ext/codec পরিবর্তন করুন"
@@ -1334,7 +1339,7 @@ class Messages(object):
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — শুধুমাত্র অডিও এক্সট্র্যাক্ট করুন"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW পেইড (⭐️$0.02)"
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — ক্যাশ থেকে তাত্ক্ষণিক রিপোস্ট"
-    ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketube এ ভিডিও দেখুন"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketube এ ভিডিও দেখুন"  # সাময়িকভাবে নিষ্ক্রিয়: poketube পরিষেবা ডাউন
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — অডিও ভাষা নির্বাচন করুন"
     ALWAYS_ASK_BEST_BUTTON_MSG = "সেরা"
     ALWAYS_ASK_OTHER_LABEL_MSG = "🎛অন্যান্য"
@@ -1501,7 +1506,7 @@ class Messages(object):
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "ব্যবহারকারী একটি পর্ন কন্টেন্ট প্রবেশ করেছেন। ডাউনলোড করা যাবে না।"
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "ব্যবহারকারী একটি নিষিদ্ধ কন্টেন্ট প্রবেশ করেছেন। ডাউনলোড করা যাবে না।"
     
     # Additional Log Messages
     NSFW_BLUR_SET_COMMAND_LOG_MSG = "কমান্ডের মাধ্যমে NSFW blur সেট করা হয়েছে: {arg}"
@@ -2215,7 +2220,8 @@ class Messages(object):
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
-    ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # সাময়িকভাবে নিষ্ক্রিয়: poketube পরিষেবা ডাউন
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝বিবরণ"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ আংশিক সম্পন্ন - {successful_uploads}/{total_files} অডিও ফাইল আপলোড করা হয়েছে।"
