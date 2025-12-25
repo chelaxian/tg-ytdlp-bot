@@ -2059,7 +2059,7 @@ Use:
     DOWNLOAD_STARTED_MSG = "<b>▶️ Tải xuống đã bắt đầu</b>"
     
     # Split command constants
-    SPLIT_CLOSE_BUTTON_MSG = "🔚Close"
+    SPLIT_CLOSE_BUTTON_MSG = "🔚Đóng"
     
     # Always ask menu constants
     
@@ -2068,174 +2068,174 @@ Use:
     # List command constants
     
     # Magic.py messages
-    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Video Download Command</b>\n\n"
-    MAGIC_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>\n\n"
-    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Examples:</b>\n"
+    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Lệnh Tải Video</b>\n\n"
+    MAGIC_VID_HELP_USAGE_MSG = "Sử dụng: <code>/vid URL</code>\n\n"
+    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Ví dụ:</b>\n"
     MAGIC_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid https://youtube.com/watch?v=123abc</code>\n"
     MAGIC_VID_HELP_EXAMPLE_2_MSG = "• <code>/vid https://youtube.com/playlist?list=123abc*1*5</code>\n"
     MAGIC_VID_HELP_EXAMPLE_3_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code>\n\n"
-    MAGIC_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    MAGIC_VID_HELP_ALSO_SEE_MSG = "Xem thêm: /audio, /img, /help, /playlist, /settings"
     
     # Flood limit messages
-    FLOOD_LIMIT_TRY_LATER_FALLBACK_MSG = "⏳ Flood limit. Try later."
+    FLOOD_LIMIT_TRY_LATER_FALLBACK_MSG = "⏳ Giới hạn flood. Thử lại sau."
     
     # Cookie command usage messages
-    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Cookie Command Usage</b>
+    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Cách Sử Dụng Lệnh Cookie</b>
 
-<code>/cookie</code> - Show cookie menu
-<code>/cookie youtube</code> - Download YouTube cookies
-<code>/cookie instagram</code> - Download Instagram cookies
-<code>/cookie tiktok</code> - Download TikTok cookies
-<code>/cookie x</code> or <code>/cookie twitter</code> - Download Twitter/X cookies
-<code>/cookie facebook</code> - Download Facebook cookies
-<code>/cookie custom</code> - Show custom cookie instructions
+<code>/cookie</code> - Hiển thị menu cookie
+<code>/cookie youtube</code> - Tải cookie YouTube
+<code>/cookie instagram</code> - Tải cookie Instagram
+<code>/cookie tiktok</code> - Tải cookie TikTok
+<code>/cookie x</code> hoặc <code>/cookie twitter</code> - Tải cookie Twitter/X
+<code>/cookie facebook</code> - Tải cookie Facebook
+<code>/cookie custom</code> - Hiển thị hướng dẫn cookie tùy chỉnh
 
-<i>Available services depend on bot configuration.</i>"""
+<i>Các dịch vụ có sẵn phụ thuộc vào cấu hình bot.</i>"""
     
     # Cookie cache messages
-    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Cookie file removed and cache cleared."
+    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Tệp cookie đã được xóa và cache đã được xóa."
     
     # Subtitles Command Messages
-    SUBS_PREV_BUTTON_MSG = "⬅️ Prev"
-    SUBS_BACK_BUTTON_MSG = "🔙Back"
-    SUBS_OFF_BUTTON_MSG = "🚫 OFF"
-    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - set language"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
-    SUBS_VALID_OPTIONS_MSG = "Valid options:"
+    SUBS_PREV_BUTTON_MSG = "⬅️ Trước"
+    SUBS_BACK_BUTTON_MSG = "🔙Quay lại"
+    SUBS_OFF_BUTTON_MSG = "🚫 TẮT"
+    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - đặt ngôn ngữ"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - đặt ngôn ngữ với AUTO/TRANS"
+    SUBS_VALID_OPTIONS_MSG = "Tùy chọn hợp lệ:"
     
     # Settings Command Messages
-    SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 LANGUAGE"
+    SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 NGÔN NGỮ"
     SETTINGS_DEV_GITHUB_BUTTON_MSG = "🛠 Dev GitHub"
     SETTINGS_CONTR_GITHUB_BUTTON_MSG = "🛠 Contr GitHub"
-    SETTINGS_CLEAN_BUTTON_MSG = "🧹 CLEAN"
-    SETTINGS_COOKIES_BUTTON_MSG = "🍪 COOKIES"
-    SETTINGS_MEDIA_BUTTON_MSG = "🎞 MEDIA"
-    SETTINGS_INFO_BUTTON_MSG = "📖 INFO"
-    SETTINGS_MORE_BUTTON_MSG = "⚙️ MORE"
-    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Cookies only"
-    SETTINGS_LOGS_BUTTON_MSG = "📃 Logs "
-    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Tags"
-    SETTINGS_FORMAT_BUTTON_MSG = "📼 Format"
-    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Split"
+    SETTINGS_CLEAN_BUTTON_MSG = "🧹 DỌN DẸP"
+    SETTINGS_COOKIES_BUTTON_MSG = "🍪 COOKIE"
+    SETTINGS_MEDIA_BUTTON_MSG = "🎞 PHƯƠNG TIỆN"
+    SETTINGS_INFO_BUTTON_MSG = "📖 THÔNG TIN"
+    SETTINGS_MORE_BUTTON_MSG = "⚙️ THÊM"
+    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Chỉ Cookie"
+    SETTINGS_LOGS_BUTTON_MSG = "📃 Log "
+    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Thẻ"
+    SETTINGS_FORMAT_BUTTON_MSG = "📼 Định Dạng"
+    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Chia"
     SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 Mediainfo"
-    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Subtitles"
-    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Keyboard"
+    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Phụ Đề"
+    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Bàn Phím"
     SETTINGS_ARGS_BUTTON_MSG = "⚙️ Args"
     SETTINGS_NSFW_BUTTON_MSG = "🔞 NSFW"
     SETTINGS_PROXY_BUTTON_MSG = "🌎 Proxy"
     SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Flood wait"
-    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  All files"
-    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Download my 5 cookies"
-    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Get browser's YT-cookie"
-    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Validate your cookie file"
-    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Upload custom cookie"
-    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Change quality & format"
-    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - Turn ON / OFF MediaInfo"
-    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Change split video part size"
-    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Download video as audio"
-    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Subtitles language settings"
-    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - How to download playlists"
-    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Download images via gallery-dl"
-    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Send your #tags"
-    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Get instructions"
-    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage -Send your logs"
-    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Playlist's help"
-    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - howto"
-    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Get direct video links"
-    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Enable/disable proxy"
-    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Keyboard layout"
-    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Inline search helper"
-    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - yt-dlp arguments"
-    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - NSFW blur settings"
-    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
-    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
+    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  Tất cả tệp"
+    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Tải 5 cookie của tôi"
+    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Lấy cookie YT từ trình duyệt"
+    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Xác thực tệp cookie của bạn"
+    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Tải lên cookie tùy chỉnh"
+    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Thay đổi chất lượng & định dạng"
+    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - Bật / Tắt MediaInfo"
+    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Thay đổi kích thước phần video chia"
+    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Tải video dưới dạng âm thanh"
+    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Cài đặt ngôn ngữ phụ đề"
+    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Cách tải danh sách phát"
+    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Tải hình ảnh qua gallery-dl"
+    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Gửi #thẻ của bạn"
+    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Lấy hướng dẫn"
+    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage - Gửi log của bạn"
+    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Trợ giúp danh sách phát"
+    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - hướng dẫn"
+    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Lấy liên kết video trực tiếp"
+    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Bật/tắt proxy"
+    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Bố cục bàn phím"
+    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Trợ giúp tìm kiếm nội tuyến"
+    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - đối số yt-dlp"
+    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - Cài đặt làm mờ NSFW"
+    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Tùy Chọn Dọn Dẹp</b>\n\nChọn những gì cần dọn dẹp:"
+    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Di động: Kích hoạt tìm kiếm @vid"
     
     # Search Command Messages
-    SEARCH_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
+    SEARCH_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Di động: Kích hoạt tìm kiếm @vid"
     
     # Keyboard Command Messages
-    KEYBOARD_OFF_BUTTON_MSG = "🔴 OFF"
-    KEYBOARD_FULL_BUTTON_MSG = "🔣 FULL"
+    KEYBOARD_OFF_BUTTON_MSG = "🔴 TẮT"
+    KEYBOARD_FULL_BUTTON_MSG = "🔣 ĐẦY ĐỦ"
     KEYBOARD_1X3_BUTTON_MSG = "📱 1x3"
     KEYBOARD_2X3_BUTTON_MSG = "📱 2x3"
     
     # Image Command Messages
-    IMAGE_URL_CAPTION_MSG = "🔗[Images URL]({url})"
-    IMAGE_ERROR_MSG = "❌ Error: {str(e)}"
+    IMAGE_URL_CAPTION_MSG = "🔗[URL Hình ảnh]({url})"
+    IMAGE_ERROR_MSG = "❌ Lỗi: {str(e)}"
     
     # Format Command Messages
-    FORMAT_BACK_BUTTON_MSG = "🔙Back"
-    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format"
-    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p quality"
-    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K quality"
-    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K quality"
-    FORMAT_ID_MSG = "• <code>/format id 401</code> - specific format ID"
-    FORMAT_ASK_MSG = "• <code>/format ask</code> - always show menu"
-    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/best quality"
-    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Always Ask (menu + buttons)"
-    FORMAT_OTHERS_BUTTON_MSG = "🎛 Others (144p - 4320p)"
-    FORMAT_4K_PC_BUTTON_MSG = "💻4k (best for PC/Mac Telegram)"
-    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (best for mobile Telegram)"
-    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (MAX quality)"
-    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (enter your own)"
+    FORMAT_BACK_BUTTON_MSG = "🔙Quay lại"
+    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - định dạng tùy chỉnh"
+    FORMAT_720P_MSG = "• <code>/format 720</code> - chất lượng 720p"
+    FORMAT_4K_MSG = "• <code>/format 4k</code> - chất lượng 4K"
+    FORMAT_8K_MSG = "• <code>/format 8k</code> - chất lượng 8K"
+    FORMAT_ID_MSG = "• <code>/format id 401</code> - ID định dạng cụ thể"
+    FORMAT_ASK_MSG = "• <code>/format ask</code> - luôn hiển thị menu"
+    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/chất lượng tốt nhất"
+    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Luôn Hỏi (menu + nút)"
+    FORMAT_OTHERS_BUTTON_MSG = "🎛 Khác (144p - 4320p)"
+    FORMAT_4K_PC_BUTTON_MSG = "💻4k (tốt nhất cho PC/Mac Telegram)"
+    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (tốt nhất cho Telegram di động)"
+    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (chất lượng TỐI ĐA)"
+    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Tùy chỉnh (nhập của riêng bạn)"
     
     # Cookies Command Messages
     COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1-{max})"
-    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 From Browser"
+    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 Từ Trình Duyệt"
     COOKIES_TWITTER_BUTTON_MSG = "🐦 Twitter/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"
     COOKIES_VK_BUTTON_MSG = "📘 Vkontakte"
     COOKIES_INSTAGRAM_BUTTON_MSG = "📷 Instagram"
-    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Your Own"
+    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Của Riêng Bạn"
     
     # Args Command Messages
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Reset All"
-    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 View Current"
-    ARGS_BACK_BUTTON_MSG = "🔙 Back"
-    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_NO_SETTINGS_MSG = "📋 Current yt-dlp Arguments:\n\nNo custom settings configured.\n\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Current yt-dlp Arguments:\n\n"
-    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Export Settings"
-    ARGS_SETTINGS_READY_MSG = "Settings ready for export! Forward this message to favorites to save."
-    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Current yt-dlp Arguments:"
-    ARGS_FAILED_RECOGNIZE_MSG = "❌ Failed to recognize settings in message. Make sure you sent a correct settings template."
-    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Settings successfully imported!\n\nApplied parameters: {applied_count}\n\n"
-    ARGS_KEY_SETTINGS_MSG = "Key settings:\n"
-    ARGS_ERROR_SAVING_MSG = "❌ Error saving imported settings."
-    ARGS_ERROR_IMPORTING_MSG = "❌ An error occurred while importing settings."
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Chế độ nhập tự động đóng do không hoạt động (5 phút)."
+    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Đặt Lại Tất Cả"
+    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 Xem Hiện Tại"
+    ARGS_BACK_BUTTON_MSG = "🔙 Quay lại"
+    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Chuyển tiếp tin nhắn này đến mục yêu thích của bạn để lưu các cài đặt này dưới dạng mẫu.</i> \n\n<i>Chuyển tiếp tin nhắn này trở lại đây để áp dụng các cài đặt này.</i>"
+    ARGS_NO_SETTINGS_MSG = "📋 Đối Số yt-dlp Hiện Tại:\n\nKhông có cài đặt tùy chỉnh được cấu hình.\n\n---\n\n<i>Chuyển tiếp tin nhắn này đến mục yêu thích của bạn để lưu các cài đặt này dưới dạng mẫu.</i> \n\n<i>Chuyển tiếp tin nhắn này trở lại đây để áp dụng các cài đặt này.</i>"
+    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Đối Số yt-dlp Hiện Tại:\n\n"
+    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Xuất Cài Đặt"
+    ARGS_SETTINGS_READY_MSG = "Cài đặt sẵn sàng để xuất! Chuyển tiếp tin nhắn này đến mục yêu thích để lưu."
+    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Đối Số yt-dlp Hiện Tại:"
+    ARGS_FAILED_RECOGNIZE_MSG = "❌ Không thể nhận dạng cài đặt trong tin nhắn. Đảm bảo bạn đã gửi mẫu cài đặt đúng."
+    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Cài đặt đã được nhập thành công!\n\nTham số đã áp dụng: {applied_count}\n\n"
+    ARGS_KEY_SETTINGS_MSG = "Cài đặt chính:\n"
+    ARGS_ERROR_SAVING_MSG = "❌ Lỗi khi lưu cài đặt đã nhập."
+    ARGS_ERROR_IMPORTING_MSG = "❌ Đã xảy ra lỗi khi nhập cài đặt."
 
     # Cookie command menu messages
-    COOKIE_MENU_TITLE_MSG = "🍪 <b>Download Cookie Files</b>"
-    COOKIE_MENU_DESCRIPTION_MSG = "Choose a service to download the cookie file."
-    COOKIE_MENU_SAVE_INFO_MSG = "Cookie files will be saved as cookie.txt in your folder."
-    COOKIE_MENU_TIP_HEADER_MSG = "Tip: You can also use direct command:"
-    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – download and validate cookies"
-    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – use a specific source by index (1–{max_index})"
-    COOKIE_MENU_TIP_VERIFY_MSG = "Then verify with <code>/check_cookie</code> (tests on RickRoll)."
+    COOKIE_MENU_TITLE_MSG = "🍪 <b>Tải Tệp Cookie</b>"
+    COOKIE_MENU_DESCRIPTION_MSG = "Chọn một dịch vụ để tải tệp cookie."
+    COOKIE_MENU_SAVE_INFO_MSG = "Tệp cookie sẽ được lưu dưới dạng cookie.txt trong thư mục của bạn."
+    COOKIE_MENU_TIP_HEADER_MSG = "Mẹo: Bạn cũng có thể sử dụng lệnh trực tiếp:"
+    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – tải và xác thực cookie"
+    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – sử dụng nguồn cụ thể theo chỉ mục (1–{max_index})"
+    COOKIE_MENU_TIP_VERIFY_MSG = "Sau đó xác minh bằng <code>/check_cookie</code> (kiểm tra trên RickRoll)."
 
     # Subs command button messages
-    SUBS_ALWAYS_ASK_BUTTON_MSG = "Always Ask"
+    SUBS_ALWAYS_ASK_BUTTON_MSG = "Luôn Hỏi"
     SUBS_AUTO_TRANS_BUTTON_MSG = "AUTO/TRANS"
 
     # Always Ask menu button messages
-    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
+    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Liên kết"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Chú thích"
 
     # Audio upload completion messages
-    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."
-    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Audio successfully downloaded and sent - {total_files} files uploaded."
+    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Hoàn thành một phần - {successful_uploads}/{total_files} tệp âm thanh đã được tải lên."
+    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Âm thanh đã được tải xuống và gửi thành công - {total_files} tệp đã được tải lên."
 
     # TikTok private account messages
     TIKTOK_PRIVATE_ACCOUNT_MSG = (
-        "🔒 <b>Private TikTok Account</b>\n\n"
-        "This TikTok account is private or all videos are private.\n\n"
-        "<b>💡 Solution:</b>\n"
-        "1. Follow the account @{username}\n"
-        "2. Send your cookies to the bot using <code>/cookie</code> command\n"
-        "3. Try again\n\n"
-        "<b>After updating cookies, try again!</b>"
+        "🔒 <b>Tài Khoản TikTok Riêng Tư</b>\n\n"
+        "Tài khoản TikTok này là riêng tư hoặc tất cả video đều riêng tư.\n\n"
+        "<b>💡 Giải Pháp:</b>\n"
+        "1. Theo dõi tài khoản @{username}\n"
+        "2. Gửi cookie của bạn cho bot bằng lệnh <code>/cookie</code>\n"
+        "3. Thử lại\n\n"
+        "<b>Sau khi cập nhật cookie, thử lại!</b>"
     )
 
     #######################################################
