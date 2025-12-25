@@ -673,33 +673,33 @@ Gamitin:
     LIST_ERROR_GETTING_MSG = "❌ Failed to get formats:\n<code>{error}</code>"
     LIST_ERROR_OCCURRED_MSG = "❌ An error occurred while processing the command"
     LIST_ERROR_CALLBACK_MSG = "May naganap na error"
-    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 How to use format IDs:\n"
-    LIST_FORMAT_USAGE_INSTRUCTIONS = "After getting the list, use specific format ID:\n"
-    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - download format 401\n"
-    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - same as above\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - download format 140 as MP3 audio\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - same as above\n"
-    LIST_AUDIO_FORMATS_DETECTED = "🎵 Audio-only formats detected: {formats}\n"
-    LIST_AUDIO_FORMATS_NOTE = "These formats will be downloaded as MP3 audio files.\n"
+    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 Paano gamitin ang format IDs:\n"
+    LIST_FORMAT_USAGE_INSTRUCTIONS = "Pagkatapos makuha ang listahan, gamitin ang partikular na format ID:\n"
+    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - i-download ang format 401\n"
+    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - pareho sa itaas\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - i-download ang format 140 bilang MP3 audio\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - pareho sa itaas\n"
+    LIST_AUDIO_FORMATS_DETECTED = "🎵 Natuklasan ang audio-only formats: {formats}\n"
+    LIST_AUDIO_FORMATS_NOTE = "Ang mga format na ito ay maa-download bilang MP3 audio files.\n"
     LIST_VIDEO_ONLY_FORMATS_MSG = "🎬 <b>Video-only formats:</b> {formats}\n"
-    LIST_USE_FORMAT_ID_MSG = "📋 Use format ID from the list above"
+    LIST_USE_FORMAT_ID_MSG = "📋 Gamitin ang format ID mula sa listahan sa itaas"
     
     # Link command messages
     LINK_USAGE_MSG = (
-        "🔗 <b>Usage:</b>\n"
+        "🔗 <b>Paggamit:</b>\n"
         "<code>/link [quality] URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>Mga halimbawa:</b>\n"
         "<blockquote>"
-        "• /link https://youtube.com/watch?v=... - best quality\n"
-        "• /link 720 https://youtube.com/watch?v=... - 720p or lower\n"
-        "• /link 720p https://youtube.com/watch?v=... - same as above\n"
-        "• /link 4k https://youtube.com/watch?v=... - 4K or lower\n"
-        "• /link 8k https://youtube.com/watch?v=... - 8K or lower"
+        "• /link https://youtube.com/watch?v=... - pinakamahusay na kalidad\n"
+        "• /link 720 https://youtube.com/watch?v=... - 720p o mas mababa\n"
+        "• /link 720p https://youtube.com/watch?v=... - pareho sa itaas\n"
+        "• /link 4k https://youtube.com/watch?v=... - 4K o mas mababa\n"
+        "• /link 8k https://youtube.com/watch?v=... - 8K o mas mababa"
         "</blockquote>\n\n"
-        "<b>Quality:</b> from 1 to 10000 (e.g., 144, 240, 720, 1080)"
+        "<b>Kalidad:</b> mula 1 hanggang 10000 (hal., 144, 240, 720, 1080)"
     )
-    LINK_INVALID_URL_MSG = "❌ Please provide a valid URL"
-    LINK_PROCESSING_MSG = "🔗 Getting direct link..."
+    LINK_INVALID_URL_MSG = "❌ Mangyaring magbigay ng wastong URL"
+    LINK_PROCESSING_MSG = "🔗 Kumukuha ng direktang link..."
     LINK_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
     LINK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
     LINK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
@@ -722,7 +722,7 @@ Gamitin:
     KEYBOARD_1X3_ACTIVATED_MSG = "📱 1x3 keyboard activated!"
     KEYBOARD_2X3_ACTIVATED_MSG = "📱 2x3 keyboard activated!"
     KEYBOARD_EMOJI_ACTIVATED_MSG = "🔣 Emoji keyboard activated!"
-    KEYBOARD_ERROR_APPLYING_MSG = "Error applying keyboard setting {setting}: {error}"
+    KEYBOARD_ERROR_APPLYING_MSG = "Error sa pag-apply ng keyboard setting {setting}: {error}"
     
     # Format command messages
     FORMAT_ALWAYS_ASK_SET_MSG = "✅ Format set to: Always Ask. You will be prompted for quality each time you send a URL."
@@ -2069,12 +2069,12 @@ Gamitin:
     
     # Magic.py messages
     MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Video Download Command</b>\n\n"
-    MAGIC_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>\n\n"
-    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Examples:</b>\n"
+    MAGIC_VID_HELP_USAGE_MSG = "Paggamit: <code>/vid URL</code>\n\n"
+    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Mga halimbawa:</b>\n"
     MAGIC_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid https://youtube.com/watch?v=123abc</code>\n"
     MAGIC_VID_HELP_EXAMPLE_2_MSG = "• <code>/vid https://youtube.com/playlist?list=123abc*1*5</code>\n"
     MAGIC_VID_HELP_EXAMPLE_3_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code>\n\n"
-    MAGIC_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    MAGIC_VID_HELP_ALSO_SEE_MSG = "Tingnan din: /audio, /img, /help, /playlist, /settings"
     
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_FALLBACK_MSG = "⏳ Flood limit. Try later."
@@ -2082,26 +2082,26 @@ Gamitin:
     # Cookie command usage messages
     COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Cookie Command Usage</b>
 
-<code>/cookie</code> - Show cookie menu
-<code>/cookie youtube</code> - Download YouTube cookies
-<code>/cookie instagram</code> - Download Instagram cookies
-<code>/cookie tiktok</code> - Download TikTok cookies
-<code>/cookie x</code> or <code>/cookie twitter</code> - Download Twitter/X cookies
-<code>/cookie facebook</code> - Download Facebook cookies
-<code>/cookie custom</code> - Show custom cookie instructions
+<code>/cookie</code> - Ipakita ang cookie menu
+<code>/cookie youtube</code> - I-download ang YouTube cookies
+<code>/cookie instagram</code> - I-download ang Instagram cookies
+<code>/cookie tiktok</code> - I-download ang TikTok cookies
+<code>/cookie x</code> o <code>/cookie twitter</code> - I-download ang Twitter/X cookies
+<code>/cookie facebook</code> - I-download ang Facebook cookies
+<code>/cookie custom</code> - Ipakita ang custom cookie instructions
 
-<i>Available services depend on bot configuration.</i>"""
+<i>Ang available na serbisyo ay depende sa bot configuration.</i>"""
     
     # Cookie cache messages
-    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Cookie file removed and cache cleared."
+    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Natanggal ang cookie file at na-clear ang cache."
     
     # Subtitles Command Messages
-    SUBS_PREV_BUTTON_MSG = "⬅️ Prev"
-    SUBS_BACK_BUTTON_MSG = "🔙Back"
+    SUBS_PREV_BUTTON_MSG = "⬅️ Nakaraan"
+    SUBS_BACK_BUTTON_MSG = "🔙Bumalik"
     SUBS_OFF_BUTTON_MSG = "🚫 OFF"
-    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - set language"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
-    SUBS_VALID_OPTIONS_MSG = "Valid options:"
+    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - itakda ang wika"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - itakda ang wika gamit ang AUTO/TRANS"
+    SUBS_VALID_OPTIONS_MSG = "Wastong opsyon:"
     
     # Settings Command Messages
     SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 LANGUAGE"
@@ -2112,43 +2112,43 @@ Gamitin:
     SETTINGS_MEDIA_BUTTON_MSG = "🎞 MEDIA"
     SETTINGS_INFO_BUTTON_MSG = "📖 INFO"
     SETTINGS_MORE_BUTTON_MSG = "⚙️ MORE"
-    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Cookies only"
+    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Cookies lang"
     SETTINGS_LOGS_BUTTON_MSG = "📃 Logs "
     SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Tags"
     SETTINGS_FORMAT_BUTTON_MSG = "📼 Format"
-    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Split"
-    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 Mediainfo"
+    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Hatiin"
+    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 MediaInfo"
     SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Subtitles"
     SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Keyboard"
     SETTINGS_ARGS_BUTTON_MSG = "⚙️ Args"
     SETTINGS_NSFW_BUTTON_MSG = "🔞 NSFW"
     SETTINGS_PROXY_BUTTON_MSG = "🌎 Proxy"
     SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Flood wait"
-    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  All files"
-    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Download my 5 cookies"
-    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Get browser's YT-cookie"
-    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Validate your cookie file"
-    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Upload custom cookie"
-    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Change quality & format"
-    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - Turn ON / OFF MediaInfo"
-    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Change split video part size"
-    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Download video as audio"
+    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  Lahat ng files"
+    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - I-download ang aking 5 cookies"
+    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Kunin ang browser's YT-cookie"
+    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - I-validate ang iyong cookie file"
+    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - I-upload ang custom cookie"
+    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Baguhin ang kalidad at format"
+    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - I-ON / I-OFF ang MediaInfo"
+    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Baguhin ang split video part size"
+    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - I-download ang video bilang audio"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Subtitles language settings"
-    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - How to download playlists"
-    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Download images via gallery-dl"
-    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Send your #tags"
-    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Get instructions"
-    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage -Send your logs"
+    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Paano i-download ang playlists"
+    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - I-download ang images via gallery-dl"
+    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Ipadala ang iyong #tags"
+    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Kumuha ng instructions"
+    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage - Ipadala ang iyong logs"
     SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Playlist's help"
-    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - howto"
-    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Get direct video links"
-    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Enable/disable proxy"
+    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - paano"
+    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Kumuha ng direct video links"
+    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - I-enable/disable ang proxy"
     SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Keyboard layout"
     SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Inline search helper"
     SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - yt-dlp arguments"
     SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - NSFW blur settings"
-    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
-    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
+    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Clean Options</b>\n\nPumili kung ano ang lilinisin:"
+    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: I-activate ang @vid search"
     
     # Search Command Messages
     SEARCH_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
@@ -2164,78 +2164,78 @@ Gamitin:
     IMAGE_ERROR_MSG = "❌ Error: {str(e)}"
     
     # Format Command Messages
-    FORMAT_BACK_BUTTON_MSG = "🔙Back"
+    FORMAT_BACK_BUTTON_MSG = "🔙Bumalik"
     FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format"
-    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p quality"
-    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K quality"
-    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K quality"
-    FORMAT_ID_MSG = "• <code>/format id 401</code> - specific format ID"
-    FORMAT_ASK_MSG = "• <code>/format ask</code> - always show menu"
-    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/best quality"
-    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Always Ask (menu + buttons)"
-    FORMAT_OTHERS_BUTTON_MSG = "🎛 Others (144p - 4320p)"
-    FORMAT_4K_PC_BUTTON_MSG = "💻4k (best for PC/Mac Telegram)"
-    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (best for mobile Telegram)"
-    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (MAX quality)"
-    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (enter your own)"
+    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p kalidad"
+    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K kalidad"
+    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K kalidad"
+    FORMAT_ID_MSG = "• <code>/format id 401</code> - partikular na format ID"
+    FORMAT_ASK_MSG = "• <code>/format ask</code> - laging ipakita ang menu"
+    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/pinakamahusay na kalidad"
+    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Laging Magtanong (menu + buttons)"
+    FORMAT_OTHERS_BUTTON_MSG = "🎛 Iba pa (144p - 4320p)"
+    FORMAT_4K_PC_BUTTON_MSG = "💻4k (pinakamahusay para sa PC/Mac Telegram)"
+    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (pinakamahusay para sa mobile Telegram)"
+    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (MAX kalidad)"
+    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (ilagay ang iyong sarili)"
     
     # Cookies Command Messages
     COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1-{max})"
-    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 From Browser"
+    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 Mula sa Browser"
     COOKIES_TWITTER_BUTTON_MSG = "🐦 Twitter/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"
     COOKIES_VK_BUTTON_MSG = "📘 Vkontakte"
     COOKIES_INSTAGRAM_BUTTON_MSG = "📷 Instagram"
-    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Your Own"
+    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Sarili mo"
     
     # Args Command Messages
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Reset All"
-    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 View Current"
-    ARGS_BACK_BUTTON_MSG = "🔙 Back"
-    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_NO_SETTINGS_MSG = "📋 Current yt-dlp Arguments:\n\nNo custom settings configured.\n\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Current yt-dlp Arguments:\n\n"
-    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Export Settings"
-    ARGS_SETTINGS_READY_MSG = "Settings ready for export! Forward this message to favorites to save."
-    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Current yt-dlp Arguments:"
-    ARGS_FAILED_RECOGNIZE_MSG = "❌ Failed to recognize settings in message. Make sure you sent a correct settings template."
-    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Settings successfully imported!\n\nApplied parameters: {applied_count}\n\n"
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Awtomatik na nagsara ang input mode dahil sa kawalan ng aktibidad (5 minuto)."
+    ARGS_RESET_ALL_BUTTON_MSG = "🔄 I-reset Lahat"
+    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 Tingnan ang Kasalukuyan"
+    ARGS_BACK_BUTTON_MSG = "🔙 Bumalik"
+    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>I-forward ang mensaheng ito sa iyong favorites upang i-save ang mga settings na ito bilang template.</i> \n\n<i>I-forward ang mensaheng ito pabalik dito upang i-apply ang mga settings na ito.</i>"
+    ARGS_NO_SETTINGS_MSG = "📋 Kasalukuyang yt-dlp Arguments:\n\nWalang naka-configure na custom settings.\n\n---\n\n<i>I-forward ang mensaheng ito sa iyong favorites upang i-save ang mga settings na ito bilang template.</i> \n\n<i>I-forward ang mensaheng ito pabalik dito upang i-apply ang mga settings na ito.</i>"
+    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Kasalukuyang yt-dlp Arguments:\n\n"
+    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 I-export ang Settings"
+    ARGS_SETTINGS_READY_MSG = "Handa na ang settings para sa export! I-forward ang mensaheng ito sa favorites upang i-save."
+    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Kasalukuyang yt-dlp Arguments:"
+    ARGS_FAILED_RECOGNIZE_MSG = "❌ Nabigo na makilala ang settings sa mensahe. Siguraduhing nagpadala ka ng tamang settings template."
+    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Matagumpay na na-import ang settings!\n\nIn-apply na parameters: {applied_count}\n\n"
     ARGS_KEY_SETTINGS_MSG = "Key settings:\n"
-    ARGS_ERROR_SAVING_MSG = "❌ Error saving imported settings."
-    ARGS_ERROR_IMPORTING_MSG = "❌ An error occurred while importing settings."
+    ARGS_ERROR_SAVING_MSG = "❌ Error sa pag-save ng imported settings."
+    ARGS_ERROR_IMPORTING_MSG = "❌ May naganap na error habang nag-i-import ng settings."
 
     # Cookie command menu messages
-    COOKIE_MENU_TITLE_MSG = "🍪 <b>Download Cookie Files</b>"
-    COOKIE_MENU_DESCRIPTION_MSG = "Choose a service to download the cookie file."
-    COOKIE_MENU_SAVE_INFO_MSG = "Cookie files will be saved as cookie.txt in your folder."
-    COOKIE_MENU_TIP_HEADER_MSG = "Tip: You can also use direct command:"
-    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – download and validate cookies"
-    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – use a specific source by index (1–{max_index})"
-    COOKIE_MENU_TIP_VERIFY_MSG = "Then verify with <code>/check_cookie</code> (tests on RickRoll)."
+    COOKIE_MENU_TITLE_MSG = "🍪 <b>I-download ang Cookie Files</b>"
+    COOKIE_MENU_DESCRIPTION_MSG = "Pumili ng serbisyo upang i-download ang cookie file."
+    COOKIE_MENU_SAVE_INFO_MSG = "Ang cookie files ay ma-save bilang cookie.txt sa iyong folder."
+    COOKIE_MENU_TIP_HEADER_MSG = "Tip: Maaari mo ring gamitin ang direct command:"
+    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – i-download at i-validate ang cookies"
+    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – gumamit ng partikular na source ayon sa index (1–{max_index})"
+    COOKIE_MENU_TIP_VERIFY_MSG = "Pagkatapos ay i-verify gamit ang <code>/check_cookie</code> (nagte-test sa RickRoll)."
 
     # Subs command button messages
-    SUBS_ALWAYS_ASK_BUTTON_MSG = "Always Ask"
+    SUBS_ALWAYS_ASK_BUTTON_MSG = "Laging Magtanong"
     SUBS_AUTO_TRANS_BUTTON_MSG = "AUTO/TRANS"
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
-    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Panoorin"  # PANSAMANTALANG NAKA-DISABLE: down ang poketube service
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
 
     # Audio upload completion messages
-    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."
-    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Audio successfully downloaded and sent - {total_files} files uploaded."
+    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Bahagyang nakumpleto - {successful_uploads}/{total_files} audio files na na-upload."
+    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Matagumpay na na-download at naipadala ang audio - {total_files} files na na-upload."
 
     # TikTok private account messages
     TIKTOK_PRIVATE_ACCOUNT_MSG = (
-        "🔒 <b>Private TikTok Account</b>\n\n"
-        "This TikTok account is private or all videos are private.\n\n"
-        "<b>💡 Solution:</b>\n"
-        "1. Follow the account @{username}\n"
-        "2. Send your cookies to the bot using <code>/cookie</code> command\n"
-        "3. Try again\n\n"
-        "<b>After updating cookies, try again!</b>"
+        "🔒 <b>Pribadong TikTok Account</b>\n\n"
+        "Ang TikTok account na ito ay pribado o lahat ng videos ay pribado.\n\n"
+        "<b>💡 Solusyon:</b>\n"
+        "1. Sundin ang account @{username}\n"
+        "2. Ipadala ang iyong cookies sa bot gamit ang <code>/cookie</code> command\n"
+        "3. Subukan muli\n\n"
+        "<b>Pagkatapos i-update ang cookies, subukan muli!</b>"
     )
 
     #######################################################

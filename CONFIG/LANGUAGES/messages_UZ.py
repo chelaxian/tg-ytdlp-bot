@@ -935,7 +935,7 @@ Ishlating:
     ARGS_CHECK_CERTIFICATE_SHORT_MSG = "Sertifikatni tekshirish"
     ARGS_LIVE_FROM_START_SHORT_MSG = "Jonli boshidan"
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "Jonli boshidan yo'q"
-    ARGS_USER_AGENT_SHORT_MSG = "User Agent"
+    ARGS_USER_AGENT_SHORT_MSG = "User Agent"  # User-Agent is a technical term, can remain
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
     ARGS_NO_PLAYLIST_SHORT_MSG = "Ro'yxat yo'q"
     ARGS_NO_PART_SHORT_MSG = "Qism yo'q"
@@ -1140,7 +1140,7 @@ Ishlating:
     SUBS_MENU_OPENED_LOG_MSG = "User opened /subs menu."
     SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "User set subtitle language to: {lang_code}"
     SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "User toggled AUTO/TRANS mode to: {new_auto}"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Foydalanuvchi Always Ask rejimini o'zgartirdi: {new_always_ask}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Foydalanuvchi Har doim so'rash rejimini o'zgartirdi: {new_always_ask}"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "User requested cookies from browser."
@@ -1240,10 +1240,10 @@ Ishlating:
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direct link menu created via LINK button for user {user_id} from {url}"
     DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link via LINK button for user {user_id} from {url}: {error}"
     LIST_COMMAND_EXECUTED_LOG_MSG = "LIST command executed for user {user_id}, url: {url}"
-    QUICK_EMBED_LOG_MSG = "Quick Embed: {embed_url}"
-    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Always Ask menu sent for {url}"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Created cached qualities menu for user {user_id} after error: {error}"
-    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Always Ask menu error for {url}: {error}"
+    QUICK_EMBED_LOG_MSG = "Tezkor Embed: {embed_url}"
+    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Har doim so'rash menyusi {url} uchun yuborildi"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Xato keyin foydalanuvchi {user_id} uchun keshlangan sifatlar menyusi yaratildi: {error}"
+    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Har doim so'rash menyusi xatosi {url} uchun: {error}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Format is fixed via /args settings"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Audio"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "Video"

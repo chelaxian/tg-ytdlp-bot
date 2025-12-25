@@ -722,38 +722,38 @@ class Messages(object):
     KEYBOARD_1X3_ACTIVATED_MSG = "📱 1x3 keyboard activated!"
     KEYBOARD_2X3_ACTIVATED_MSG = "📱 2x3 keyboard activated!"
     KEYBOARD_EMOJI_ACTIVATED_MSG = "🔣 Emoji keyboard activated!"
-    KEYBOARD_ERROR_APPLYING_MSG = "Error applying keyboard setting {setting}: {error}"
+    KEYBOARD_ERROR_APPLYING_MSG = "Помилка застосування налаштування клавіатури {setting}: {error}"
     
     # Format command messages
     FORMAT_ALWAYS_ASK_SET_MSG = "✅ Формат встановлено на: Always Ask. Вас запитують про якість кожного разу, коли ви надсилаєте URL."
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Формат встановлено на: Always Ask. Тепер вас запитують про якість кожного разу, коли ви надсилаєте URL."
-    FORMAT_BEST_UPDATED_MSG = "✅ Format updated to best quality (AVC+MP4 priority):\n{format}"
-    FORMAT_ID_UPDATED_MSG = "✅ Format updated to ID {id}:\n{format}\n\n💡 <b>Note:</b> If this is an audio-only format, it will be downloaded as MP3 audio file."
-    FORMAT_ID_AUDIO_UPDATED_MSG = "✅ Format updated to ID {id} (audio-only):\n{format}\n\n💡 This will be downloaded as MP3 audio file."
-    FORMAT_QUALITY_UPDATED_MSG = "✅ Format updated to quality {quality}:\n{format}"
-    FORMAT_CUSTOM_UPDATED_MSG = "✅ Format updated to:\n{format}"
+    FORMAT_BEST_UPDATED_MSG = "✅ Формат оновлено до найкращої якості (пріоритет AVC+MP4):\n{format}"
+    FORMAT_ID_UPDATED_MSG = "✅ Формат оновлено до ID {id}:\n{format}\n\n💡 <b>Примітка:</b> Якщо це аудіо-формат, він буде завантажено як MP3 аудіо файл."
+    FORMAT_ID_AUDIO_UPDATED_MSG = "✅ Формат оновлено до ID {id} (тільки аудіо):\n{format}\n\n💡 Це буде завантажено як MP3 аудіо файл."
+    FORMAT_QUALITY_UPDATED_MSG = "✅ Формат оновлено до якості {quality}:\n{format}"
+    FORMAT_CUSTOM_UPDATED_MSG = "✅ Формат оновлено до:\n{format}"
     FORMAT_MENU_MSG = (
-        "Select a format option or send a custom one using:\n"
-        "• <code>/format &lt;format_string&gt;</code> - custom format\n"
-        "• <code>/format 720</code> - 720p quality\n"
-        "• <code>/format 4k</code> - 4K quality\n"
-        "• <code>/format 8k</code> - 8K quality\n"
-        "• <code>/format id 401</code> - specific format ID\n"
-        "• <code>/format ask</code> - always show menu\n"
-        "• <code>/format best</code> - bv+ba/best quality"
+        "Виберіть опцію формату або надішліть власну, використовуючи:\n"
+        "• <code>/format &lt;format_string&gt;</code> - власний формат\n"
+        "• <code>/format 720</code> - якість 720p\n"
+        "• <code>/format 4k</code> - якість 4K\n"
+        "• <code>/format 8k</code> - якість 8K\n"
+        "• <code>/format id 401</code> - конкретний ID формату\n"
+        "• <code>/format ask</code> - завжди показувати меню\n"
+        "• <code>/format best</code> - bv+ba/найкраща якість"
     )
     FORMAT_CUSTOM_HINT_MSG = (
-        "To use a custom format, send the command in the following form:\n\n"
+        "Щоб використати власний формат, надішліть команду в такому вигляді:\n\n"
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
-        "Replace <code>bestvideo+bestaudio/best</code> with your desired format string."
+        "Замініть <code>bestvideo+bestaudio/best</code> на потрібний рядок формату."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Select your desired resolution and codec:"
-    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
-    FORMAT_UPDATED_MSG = "✅ Format updated to:\n{format}"
-    FORMAT_SAVED_MSG = "✅ Format saved."
-    FORMAT_CHOICE_UPDATED_MSG = "✅ Format choice updated."
+    FORMAT_RESOLUTION_MENU_MSG = "Виберіть бажану роздільну здатність та кодек:"
+    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Формат встановлено на: Always Ask. Тепер вас запитують про якість кожного разу, коли ви надсилаєте URL."
+    FORMAT_UPDATED_MSG = "✅ Формат оновлено до:\n{format}"
+    FORMAT_SAVED_MSG = "✅ Формат збережено."
+    FORMAT_CHOICE_UPDATED_MSG = "✅ Вибір формату оновлено."
     FORMAT_CUSTOM_MENU_CLOSED_MSG = "Меню користувацького формату закрито"
-    FORMAT_CODEC_SET_MSG = "✅ Codec set to {codec}"
+    FORMAT_CODEC_SET_MSG = "✅ Кодек встановлено на {codec}"
     
     # Cookies command messages
     COOKIES_BROWSER_CHOICE_UPDATED_MSG = "✅ Browser choice updated."
@@ -763,7 +763,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
     ACCESS_DENIED_ADMIN = "❌ Access denied. Admin only."
-    WELCOME_MASTER = "Welcome Master 🥷"
+    WELCOME_MASTER = "Ласкаво просимо, Майстре 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Sorry... Some error occurred during download."
     SIZE_LIMIT_EXCEEDED = "❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size."
     ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ Script not found: {script_path}"
@@ -2068,40 +2068,40 @@ class Messages(object):
     # List command constants
     
     # Magic.py messages
-    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Video Download Command</b>\n\n"
-    MAGIC_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>\n\n"
-    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Examples:</b>\n"
+    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Команда завантаження відео</b>\n\n"
+    MAGIC_VID_HELP_USAGE_MSG = "Використання: <code>/vid URL</code>\n\n"
+    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Приклади:</b>\n"
     MAGIC_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid https://youtube.com/watch?v=123abc</code>\n"
     MAGIC_VID_HELP_EXAMPLE_2_MSG = "• <code>/vid https://youtube.com/playlist?list=123abc*1*5</code>\n"
     MAGIC_VID_HELP_EXAMPLE_3_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code>\n\n"
-    MAGIC_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    MAGIC_VID_HELP_ALSO_SEE_MSG = "Див. також: /audio, /img, /help, /playlist, /settings"
     
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_FALLBACK_MSG = "⏳ Flood limit. Try later."
     
     # Cookie command usage messages
-    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Cookie Command Usage</b>
+    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Використання команди Cookie</b>
 
-<code>/cookie</code> - Show cookie menu
-<code>/cookie youtube</code> - Download YouTube cookies
-<code>/cookie instagram</code> - Download Instagram cookies
-<code>/cookie tiktok</code> - Download TikTok cookies
-<code>/cookie x</code> or <code>/cookie twitter</code> - Download Twitter/X cookies
-<code>/cookie facebook</code> - Download Facebook cookies
-<code>/cookie custom</code> - Show custom cookie instructions
+<code>/cookie</code> - Показати меню cookie
+<code>/cookie youtube</code> - Завантажити YouTube cookies
+<code>/cookie instagram</code> - Завантажити Instagram cookies
+<code>/cookie tiktok</code> - Завантажити TikTok cookies
+<code>/cookie x</code> або <code>/cookie twitter</code> - Завантажити Twitter/X cookies
+<code>/cookie facebook</code> - Завантажити Facebook cookies
+<code>/cookie custom</code> - Показати інструкції для власних cookies
 
-<i>Available services depend on bot configuration.</i>"""
+<i>Доступні сервіси залежать від конфігурації бота.</i>"""
     
     # Cookie cache messages
-    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Cookie file removed and cache cleared."
+    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Файл cookie видалено та кеш очищено."
     
     # Subtitles Command Messages
-    SUBS_PREV_BUTTON_MSG = "⬅️ Prev"
-    SUBS_BACK_BUTTON_MSG = "🔙Back"
-    SUBS_OFF_BUTTON_MSG = "🚫 OFF"
-    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - set language"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
-    SUBS_VALID_OPTIONS_MSG = "Valid options:"
+    SUBS_PREV_BUTTON_MSG = "⬅️ Попереднє"
+    SUBS_BACK_BUTTON_MSG = "🔙Назад"
+    SUBS_OFF_BUTTON_MSG = "🚫 ВИМК"
+    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - встановити мову"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - встановити мову з AUTO/TRANS"
+    SUBS_VALID_OPTIONS_MSG = "Дійсні опції:"
     
     # Settings Command Messages
     SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 LANGUAGE"
@@ -2112,43 +2112,43 @@ class Messages(object):
     SETTINGS_MEDIA_BUTTON_MSG = "🎞 MEDIA"
     SETTINGS_INFO_BUTTON_MSG = "📖 INFO"
     SETTINGS_MORE_BUTTON_MSG = "⚙️ MORE"
-    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Cookies only"
-    SETTINGS_LOGS_BUTTON_MSG = "📃 Logs "
-    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Tags"
-    SETTINGS_FORMAT_BUTTON_MSG = "📼 Format"
-    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Split"
-    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 Mediainfo"
-    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Subtitles"
-    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Keyboard"
-    SETTINGS_ARGS_BUTTON_MSG = "⚙️ Args"
+    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Тільки cookies"
+    SETTINGS_LOGS_BUTTON_MSG = "📃 Логи "
+    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Теги"
+    SETTINGS_FORMAT_BUTTON_MSG = "📼 Формат"
+    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Розділити"
+    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 MediaInfo"
+    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Субтитри"
+    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Клавіатура"
+    SETTINGS_ARGS_BUTTON_MSG = "⚙️ Аргументи"
     SETTINGS_NSFW_BUTTON_MSG = "🔞 NSFW"
-    SETTINGS_PROXY_BUTTON_MSG = "🌎 Proxy"
+    SETTINGS_PROXY_BUTTON_MSG = "🌎 Проксі"
     SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Flood wait"
-    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  All files"
-    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Download my 5 cookies"
-    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Get browser's YT-cookie"
-    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Validate your cookie file"
-    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Upload custom cookie"
-    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Change quality & format"
-    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - Turn ON / OFF MediaInfo"
-    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Change split video part size"
-    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Download video as audio"
-    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Subtitles language settings"
-    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - How to download playlists"
-    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Download images via gallery-dl"
-    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Send your #tags"
-    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Get instructions"
-    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage -Send your logs"
-    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Playlist's help"
-    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - howto"
-    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Get direct video links"
-    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Enable/disable proxy"
-    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Keyboard layout"
-    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Inline search helper"
-    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - yt-dlp arguments"
-    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - NSFW blur settings"
-    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
-    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
+    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  Всі файли"
+    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Завантажити мої 5 cookies"
+    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Отримати YT-cookie браузера"
+    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Перевірити файл cookie"
+    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Завантажити власний cookie"
+    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Змінити якість та формат"
+    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - Увімкнути/вимкнути MediaInfo"
+    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Змінити розмір частини відео"
+    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Завантажити відео як аудіо"
+    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Налаштування мови субтитрів"
+    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Як завантажувати плейлисти"
+    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Завантажити зображення через gallery-dl"
+    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Надіслати ваші #теги"
+    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Отримати інструкції"
+    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage - Надіслати ваші логи"
+    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Довідка плейлиста"
+    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - як це зробити"
+    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Отримати прямі посилання на відео"
+    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Увімкнути/вимкнути проксі"
+    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Розкладка клавіатури"
+    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Інлайн пошуковий помічник"
+    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - аргументи yt-dlp"
+    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - Налаштування розмиття NSFW"
+    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Опції очищення</b>\n\nВиберіть, що очистити:"
+    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Мобільний: Активувати @vid пошук"
     
     # Search Command Messages
     SEARCH_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
@@ -2164,78 +2164,78 @@ class Messages(object):
     IMAGE_ERROR_MSG = "❌ Error: {str(e)}"
     
     # Format Command Messages
-    FORMAT_BACK_BUTTON_MSG = "🔙Back"
-    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format"
-    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p quality"
-    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K quality"
-    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K quality"
-    FORMAT_ID_MSG = "• <code>/format id 401</code> - specific format ID"
-    FORMAT_ASK_MSG = "• <code>/format ask</code> - always show menu"
-    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/best quality"
-    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Always Ask (menu + buttons)"
-    FORMAT_OTHERS_BUTTON_MSG = "🎛 Others (144p - 4320p)"
-    FORMAT_4K_PC_BUTTON_MSG = "💻4k (best for PC/Mac Telegram)"
-    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (best for mobile Telegram)"
-    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (MAX quality)"
-    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (enter your own)"
+    FORMAT_BACK_BUTTON_MSG = "🔙Назад"
+    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - власний формат"
+    FORMAT_720P_MSG = "• <code>/format 720</code> - якість 720p"
+    FORMAT_4K_MSG = "• <code>/format 4k</code> - якість 4K"
+    FORMAT_8K_MSG = "• <code>/format 8k</code> - якість 8K"
+    FORMAT_ID_MSG = "• <code>/format id 401</code> - конкретний ID формату"
+    FORMAT_ASK_MSG = "• <code>/format ask</code> - завжди показувати меню"
+    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/найкраща якість"
+    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Завжди питати (меню + кнопки)"
+    FORMAT_OTHERS_BUTTON_MSG = "🎛 Інші (144p - 4320p)"
+    FORMAT_4K_PC_BUTTON_MSG = "💻4k (найкраще для PC/Mac Telegram)"
+    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (найкраще для мобільного Telegram)"
+    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (МАКС якість)"
+    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Власний (введіть свій)"
     
     # Cookies Command Messages
     COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1-{max})"
-    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 From Browser"
+    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 З браузера"
     COOKIES_TWITTER_BUTTON_MSG = "🐦 Twitter/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"
     COOKIES_VK_BUTTON_MSG = "📘 Vkontakte"
     COOKIES_INSTAGRAM_BUTTON_MSG = "📷 Instagram"
-    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Your Own"
+    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Власний"
     
     # Args Command Messages
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Reset All"
-    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 View Current"
-    ARGS_BACK_BUTTON_MSG = "🔙 Back"
-    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_NO_SETTINGS_MSG = "📋 Current yt-dlp Arguments:\n\nNo custom settings configured.\n\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Current yt-dlp Arguments:\n\n"
-    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Export Settings"
-    ARGS_SETTINGS_READY_MSG = "Settings ready for export! Forward this message to favorites to save."
-    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Current yt-dlp Arguments:"
-    ARGS_FAILED_RECOGNIZE_MSG = "❌ Failed to recognize settings in message. Make sure you sent a correct settings template."
-    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Settings successfully imported!\n\nApplied parameters: {applied_count}\n\n"
-    ARGS_KEY_SETTINGS_MSG = "Key settings:\n"
-    ARGS_ERROR_SAVING_MSG = "❌ Error saving imported settings."
-    ARGS_ERROR_IMPORTING_MSG = "❌ An error occurred while importing settings."
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Режим введення автоматично закрито через неактивність (5 хвилин)."
+    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Скинути все"
+    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 Переглянути поточні"
+    ARGS_BACK_BUTTON_MSG = "🔙 Назад"
+    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Переслайте це повідомлення до ваших обраних, щоб зберегти ці налаштування як шаблон.</i> \n\n<i>Переслайте це повідомлення сюди назад, щоб застосувати ці налаштування.</i>"
+    ARGS_NO_SETTINGS_MSG = "📋 Поточні аргументи yt-dlp:\n\nНемає налаштованих власних налаштувань.\n\n---\n\n<i>Переслайте це повідомлення до ваших обраних, щоб зберегти ці налаштування як шаблон.</i> \n\n<i>Переслайте це повідомлення сюди назад, щоб застосувати ці налаштування.</i>"
+    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Поточні аргументи yt-dlp:\n\n"
+    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Експортувати налаштування"
+    ARGS_SETTINGS_READY_MSG = "Налаштування готові до експорту! Переслайте це повідомлення до обраних, щоб зберегти."
+    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Поточні аргументи yt-dlp:"
+    ARGS_FAILED_RECOGNIZE_MSG = "❌ Не вдалося розпізнати налаштування в повідомленні. Переконайтеся, що ви надіслали правильний шаблон налаштувань."
+    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Налаштування успішно імпортовано!\n\nЗастосовані параметри: {applied_count}\n\n"
+    ARGS_KEY_SETTINGS_MSG = "Ключові налаштування:\n"
+    ARGS_ERROR_SAVING_MSG = "❌ Помилка збереження імпортованих налаштувань."
+    ARGS_ERROR_IMPORTING_MSG = "❌ Під час імпорту налаштувань сталася помилка."
 
     # Cookie command menu messages
-    COOKIE_MENU_TITLE_MSG = "🍪 <b>Download Cookie Files</b>"
-    COOKIE_MENU_DESCRIPTION_MSG = "Choose a service to download the cookie file."
-    COOKIE_MENU_SAVE_INFO_MSG = "Cookie files will be saved as cookie.txt in your folder."
-    COOKIE_MENU_TIP_HEADER_MSG = "Tip: You can also use direct command:"
-    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – download and validate cookies"
-    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – use a specific source by index (1–{max_index})"
-    COOKIE_MENU_TIP_VERIFY_MSG = "Then verify with <code>/check_cookie</code> (tests on RickRoll)."
+    COOKIE_MENU_TITLE_MSG = "🍪 <b>Завантажити файли Cookie</b>"
+    COOKIE_MENU_DESCRIPTION_MSG = "Виберіть сервіс для завантаження файлу cookie."
+    COOKIE_MENU_SAVE_INFO_MSG = "Файли cookie будуть збережені як cookie.txt у вашій папці."
+    COOKIE_MENU_TIP_HEADER_MSG = "Порада: Ви також можете використати пряму команду:"
+    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – завантажити та перевірити cookies"
+    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – використати конкретне джерело за індексом (1–{max_index})"
+    COOKIE_MENU_TIP_VERIFY_MSG = "Потім перевірте за допомогою <code>/check_cookie</code> (тестує на RickRoll)."
 
     # Subs command button messages
-    SUBS_ALWAYS_ASK_BUTTON_MSG = "Always Ask"
-    SUBS_AUTO_TRANS_BUTTON_MSG = "AUTO/TRANS"
+    SUBS_ALWAYS_ASK_BUTTON_MSG = "Завжди питати"
+    SUBS_AUTO_TRANS_BUTTON_MSG = "АВТО/ПЕРЕКЛАД"
 
     # Always Ask menu button messages
-    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
-    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
+    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Посилання"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Дивитися"  # ТИМЧАСОВО ВИМКНЕНО: сервіс poketube не працює
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Опис"
 
     # Audio upload completion messages
-    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."
-    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Audio successfully downloaded and sent - {total_files} files uploaded."
+    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Частково завершено - {successful_uploads}/{total_files} аудіо файлів завантажено."
+    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Аудіо успішно завантажено та надіслано - {total_files} файлів завантажено."
 
     # TikTok private account messages
     TIKTOK_PRIVATE_ACCOUNT_MSG = (
-        "🔒 <b>Private TikTok Account</b>\n\n"
-        "This TikTok account is private or all videos are private.\n\n"
-        "<b>💡 Solution:</b>\n"
-        "1. Follow the account @{username}\n"
-        "2. Send your cookies to the bot using <code>/cookie</code> command\n"
-        "3. Try again\n\n"
-        "<b>After updating cookies, try again!</b>"
+        "🔒 <b>Приватний обліковий запис TikTok</b>\n\n"
+        "Цей обліковий запис TikTok є приватним або всі відео є приватним.\n\n"
+        "<b>💡 Рішення:</b>\n"
+        "1. Підпишіться на обліковий запис @{username}\n"
+        "2. Надішліть ваші cookies боту, використовуючи команду <code>/cookie</code>\n"
+        "3. Спробуйте знову\n\n"
+        "<b>Після оновлення cookies, спробуйте знову!</b>"
     )
 
     #######################################################

@@ -763,7 +763,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
     ACCESS_DENIED_ADMIN = "❌ Access denied. Admin only."
-    WELCOME_MASTER = "Welcome Master 🥷"
+    WELCOME_MASTER = "خوش آمدید ارباب 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Sorry... Some error occurred during download."
     SIZE_LIMIT_EXCEEDED = "❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size."
     ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ Script not found: {script_path}"

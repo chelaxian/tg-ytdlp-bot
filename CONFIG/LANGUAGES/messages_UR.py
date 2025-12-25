@@ -2003,30 +2003,30 @@ Use:
     HELPER_PROXY_COOKIE_PATH_MSG = "users/{user_id}/cookie.txt"
     
     # URL extractor messages
-    URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG = "🔚Close"
-    URL_EXTRACTOR_ADD_GROUP_CLOSE_BUTTON_MSG = "🔚Close"
+    URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG = "🔚بند کریں"
+    URL_EXTRACTOR_ADD_GROUP_CLOSE_BUTTON_MSG = "🔚بند کریں"
     URL_EXTRACTOR_COOKIE_ARGS_YOUTUBE_MSG = "youtube"
     URL_EXTRACTOR_COOKIE_ARGS_TIKTOK_MSG = "tiktok"
     URL_EXTRACTOR_COOKIE_ARGS_INSTAGRAM_MSG = "instagram"
     URL_EXTRACTOR_COOKIE_ARGS_TWITTER_MSG = "twitter"
     URL_EXTRACTOR_COOKIE_ARGS_CUSTOM_MSG = "custom"
-    URL_EXTRACTOR_SAVE_AS_COOKIE_HINT_CLOSE_BUTTON_MSG = "🔚Close"
-    URL_EXTRACTOR_CLEAN_LOGS_FILE_REMOVED_MSG = "🗑 Logs file removed."
-    URL_EXTRACTOR_CLEAN_TAGS_FILE_REMOVED_MSG = "🗑 Tags file removed."
-    URL_EXTRACTOR_CLEAN_FORMAT_FILE_REMOVED_MSG = "🗑 Format file removed."
-    URL_EXTRACTOR_CLEAN_SPLIT_FILE_REMOVED_MSG = "🗑 Split file removed."
-    URL_EXTRACTOR_CLEAN_MEDIAINFO_FILE_REMOVED_MSG = "🗑 Mediainfo file removed."
-    URL_EXTRACTOR_CLEAN_SUBS_SETTINGS_REMOVED_MSG = "🗑 Subtitle settings removed."
-    URL_EXTRACTOR_CLEAN_KEYBOARD_SETTINGS_REMOVED_MSG = "🗑 Keyboard settings removed."
-    URL_EXTRACTOR_CLEAN_ARGS_SETTINGS_REMOVED_MSG = "🗑 Args settings removed."
-    URL_EXTRACTOR_CLEAN_NSFW_SETTINGS_REMOVED_MSG = "🗑 NSFW settings removed."
-    URL_EXTRACTOR_CLEAN_PROXY_SETTINGS_REMOVED_MSG = "🗑 Proxy settings removed."
-    URL_EXTRACTOR_CLEAN_FLOOD_WAIT_SETTINGS_REMOVED_MSG = "🗑 Flood wait settings removed."
-    URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
-    URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
-    URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
-    URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
+    URL_EXTRACTOR_SAVE_AS_COOKIE_HINT_CLOSE_BUTTON_MSG = "🔚بند کریں"
+    URL_EXTRACTOR_CLEAN_LOGS_FILE_REMOVED_MSG = "🗑 لاگز فائل ہٹا دی گئی۔"
+    URL_EXTRACTOR_CLEAN_TAGS_FILE_REMOVED_MSG = "🗑 ٹیگز فائل ہٹا دی گئی۔"
+    URL_EXTRACTOR_CLEAN_FORMAT_FILE_REMOVED_MSG = "🗑 فارمیٹ فائل ہٹا دی گئی۔"
+    URL_EXTRACTOR_CLEAN_SPLIT_FILE_REMOVED_MSG = "🗑 اسپلٹ فائل ہٹا دی گئی۔"
+    URL_EXTRACTOR_CLEAN_MEDIAINFO_FILE_REMOVED_MSG = "🗑 میڈیا انفو فائل ہٹا دی گئی۔"
+    URL_EXTRACTOR_CLEAN_SUBS_SETTINGS_REMOVED_MSG = "🗑 سب ٹائٹل کی ترتیبات ہٹا دی گئیں۔"
+    URL_EXTRACTOR_CLEAN_KEYBOARD_SETTINGS_REMOVED_MSG = "🗑 کی بورڈ کی ترتیبات ہٹا دی گئیں۔"
+    URL_EXTRACTOR_CLEAN_ARGS_SETTINGS_REMOVED_MSG = "🗑 آرگس کی ترتیبات ہٹا دی گئیں۔"
+    URL_EXTRACTOR_CLEAN_NSFW_SETTINGS_REMOVED_MSG = "🗑 NSFW کی ترتیبات ہٹا دی گئیں۔"
+    URL_EXTRACTOR_CLEAN_PROXY_SETTINGS_REMOVED_MSG = "🗑 پروکسی کی ترتیبات ہٹا دی گئیں۔"
+    URL_EXTRACTOR_CLEAN_FLOOD_WAIT_SETTINGS_REMOVED_MSG = "🗑 فلڈ ویٹ کی ترتیبات ہٹا دی گئیں۔"
+    URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚بند کریں"
+    URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 ویڈیو ڈاؤن لوڈ کمانڈ"
+    URL_EXTRACTOR_VID_HELP_USAGE_MSG = "استعمال: <code>/vid URL</code>"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "مثالیں:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (سیدھا ترتیب)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (الٹا ترتیب)"
     URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "یہ بھی دیکھیں: /audio, /img, /help, /playlist, /settings"
     URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "صارف {user_id} نے add_bot_to_group کمانڈ بند کی"
 
@@ -2056,7 +2056,7 @@ Use:
     GALLERY_DL_UNKNOWN_ERROR_MSG = "نامعلوم خرابی"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ Download started</b>"
+    DOWNLOAD_STARTED_MSG = "<b>▶️ ڈاؤن لوڈ شروع ہو گیا</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚بند کریں"
@@ -2068,7 +2068,7 @@ Use:
     # List command constants
     
     # Magic.py messages
-    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Video Download Command</b>\n\n"
+    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 ویڈیو ڈاؤن لوڈ کمانڈ</b>\n\n"
     MAGIC_VID_HELP_USAGE_MSG = "استعمال: <code>/vid URL</code>\n\n"
     MAGIC_VID_HELP_EXAMPLES_MSG = "<b>مثالیں:</b>\n"
     MAGIC_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid https://youtube.com/watch?v=123abc</code>\n"
@@ -2080,28 +2080,28 @@ Use:
     FLOOD_LIMIT_TRY_LATER_FALLBACK_MSG = "⏳ Flood limit. بعد میں کوشش کریں۔"
     
     # Cookie command usage messages
-    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Cookie Command Usage</b>
+    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 کوکی کمانڈ کا استعمال</b>
 
-<code>/cookie</code> - Show cookie menu
-<code>/cookie youtube</code> - Download YouTube cookies
-<code>/cookie instagram</code> - Download Instagram cookies
-<code>/cookie tiktok</code> - Download TikTok cookies
-<code>/cookie x</code> or <code>/cookie twitter</code> - Download Twitter/X cookies
-<code>/cookie facebook</code> - Download Facebook cookies
-<code>/cookie custom</code> - Show custom cookie instructions
+<code>/cookie</code> - کوکی مینو دکھائیں
+<code>/cookie youtube</code> - YouTube کوکیز ڈاؤن لوڈ کریں
+<code>/cookie instagram</code> - Instagram کوکیز ڈاؤن لوڈ کریں
+<code>/cookie tiktok</code> - TikTok کوکیز ڈاؤن لوڈ کریں
+<code>/cookie x</code> یا <code>/cookie twitter</code> - Twitter/X کوکیز ڈاؤن لوڈ کریں
+<code>/cookie facebook</code> - Facebook کوکیز ڈاؤن لوڈ کریں
+<code>/cookie custom</code> - اپنی کوکی کی ہدایات دکھائیں
 
-<i>Available services depend on bot configuration.</i>"""
+<i>دستیاب خدمات بوٹ کی ترتیب پر منحصر ہیں۔</i>"""
     
     # Cookie cache messages
-    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Cookie file removed and cache cleared."
+    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 کوکی فائل ہٹا دی گئی اور کیش صاف کر دی گئی۔"
     
     # Subtitles Command Messages
-    SUBS_PREV_BUTTON_MSG = "⬅️ Prev"
-    SUBS_BACK_BUTTON_MSG = "🔙Back"
-    SUBS_OFF_BUTTON_MSG = "🚫 OFF"
-    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - set language"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
-    SUBS_VALID_OPTIONS_MSG = "Valid options:"
+    SUBS_PREV_BUTTON_MSG = "⬅️ پچھلا"
+    SUBS_BACK_BUTTON_MSG = "🔙واپس"
+    SUBS_OFF_BUTTON_MSG = "🚫 بند"
+    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - زبان سیٹ کریں"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - AUTO/TRANS کے ساتھ زبان سیٹ کریں"
+    SUBS_VALID_OPTIONS_MSG = "درست اختیارات:"
     
     # Settings Command Messages
     SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 LANGUAGE"
@@ -2112,43 +2112,43 @@ Use:
     SETTINGS_MEDIA_BUTTON_MSG = "🎞 MEDIA"
     SETTINGS_INFO_BUTTON_MSG = "📖 INFO"
     SETTINGS_MORE_BUTTON_MSG = "⚙️ MORE"
-    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Cookies only"
-    SETTINGS_LOGS_BUTTON_MSG = "📃 Logs "
-    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Tags"
-    SETTINGS_FORMAT_BUTTON_MSG = "📼 Format"
-    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Split"
-    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 Mediainfo"
-    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Subtitles"
-    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Keyboard"
-    SETTINGS_ARGS_BUTTON_MSG = "⚙️ Args"
+    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 صرف کوکیز"
+    SETTINGS_LOGS_BUTTON_MSG = "📃 لاگز "
+    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ ٹیگز"
+    SETTINGS_FORMAT_BUTTON_MSG = "📼 فارمیٹ"
+    SETTINGS_SPLIT_BUTTON_MSG = "✂️ تقسیم"
+    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 میڈیا انفو"
+    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 سب ٹائٹلز"
+    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 کی بورڈ"
+    SETTINGS_ARGS_BUTTON_MSG = "⚙️ آرگس"
     SETTINGS_NSFW_BUTTON_MSG = "🔞 NSFW"
-    SETTINGS_PROXY_BUTTON_MSG = "🌎 Proxy"
-    SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Flood wait"
-    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  All files"
-    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Download my 5 cookies"
-    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Get browser's YT-cookie"
-    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Validate your cookie file"
-    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Upload custom cookie"
-    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Change quality & format"
-    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - Turn ON / OFF MediaInfo"
-    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Change split video part size"
-    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Download video as audio"
-    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Subtitles language settings"
-    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - How to download playlists"
-    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Download images via gallery-dl"
-    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Send your #tags"
-    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Get instructions"
-    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage -Send your logs"
-    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Playlist's help"
-    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - howto"
-    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Get direct video links"
-    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Enable/disable proxy"
-    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Keyboard layout"
-    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Inline search helper"
-    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - yt-dlp arguments"
-    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - NSFW blur settings"
-    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
-    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
+    SETTINGS_PROXY_BUTTON_MSG = "🌎 پروکسی"
+    SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 فلڈ ویٹ"
+    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  تمام فائلیں"
+    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - میری 5 کوکیز ڈاؤن لوڈ کریں"
+    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - براؤزر کی YT-کوکی حاصل کریں"
+    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - اپنی کوکی فائل کی تصدیق کریں"
+    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - اپنی کوکی اپ لوڈ کریں"
+    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - کوالٹی اور فارمیٹ تبدیل کریں"
+    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - MediaInfo آن/آف کریں"
+    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - ویڈیو پارٹ سائز تبدیل کریں"
+    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ویڈیو کو آڈیو کے طور پر ڈاؤن لوڈ کریں"
+    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - سب ٹائٹل زبان کی ترتیبات"
+    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - پلے لسٹ کیسے ڈاؤن لوڈ کریں"
+    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl کے ذریعے تصاویر ڈاؤن لوڈ کریں"
+    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - اپنے #tags بھیجیں"
+    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - ہدایات حاصل کریں"
+    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage - اپنے لاگز بھیجیں"
+    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - پلے لسٹ کی مدد"
+    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - کیسے"
+    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - براہ راست ویڈیو لنکس حاصل کریں"
+    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - پروکسی فعال/غیر فعال کریں"
+    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - کی بورڈ لی آؤٹ"
+    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - ان لائن سرچ ہیلپر"
+    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - yt-dlp آرگومنٹس"
+    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - NSFW بلر کی ترتیبات"
+    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 صفائی کے اختیارات</b>\n\nمنتخب کریں کہ کیا صاف کرنا ہے:"
+    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 موبائل: @vid سرچ چالو کریں"
     
     # Search Command Messages
     SEARCH_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
@@ -2164,55 +2164,55 @@ Use:
     IMAGE_ERROR_MSG = "❌ Error: {str(e)}"
     
     # Format Command Messages
-    FORMAT_BACK_BUTTON_MSG = "🔙Back"
-    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format"
-    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p quality"
-    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K quality"
-    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K quality"
-    FORMAT_ID_MSG = "• <code>/format id 401</code> - specific format ID"
-    FORMAT_ASK_MSG = "• <code>/format ask</code> - always show menu"
-    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/best quality"
-    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Always Ask (menu + buttons)"
-    FORMAT_OTHERS_BUTTON_MSG = "🎛 Others (144p - 4320p)"
-    FORMAT_4K_PC_BUTTON_MSG = "💻4k (best for PC/Mac Telegram)"
-    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (best for mobile Telegram)"
-    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (MAX quality)"
-    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (enter your own)"
+    FORMAT_BACK_BUTTON_MSG = "🔙واپس"
+    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - اپنا فارمیٹ"
+    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p کوالٹی"
+    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K کوالٹی"
+    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K کوالٹی"
+    FORMAT_ID_MSG = "• <code>/format id 401</code> - مخصوص فارمیٹ ID"
+    FORMAT_ASK_MSG = "• <code>/format ask</code> - ہمیشہ مینو دکھائیں"
+    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/best کوالٹی"
+    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ ہمیشہ پوچھیں (مینو + بٹن)"
+    FORMAT_OTHERS_BUTTON_MSG = "🎛 دوسرے (144p - 4320p)"
+    FORMAT_4K_PC_BUTTON_MSG = "💻4k (PC/Mac Telegram کے لیے بہترین)"
+    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (موبائل Telegram کے لیے بہترین)"
+    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (زیادہ سے زیادہ کوالٹی)"
+    FORMAT_CUSTOM_BUTTON_MSG = "🎚 اپنا (اپنا داخل کریں)"
     
     # Cookies Command Messages
     COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1-{max})"
-    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 From Browser"
+    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 براؤزر سے"
     COOKIES_TWITTER_BUTTON_MSG = "🐦 Twitter/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"
     COOKIES_VK_BUTTON_MSG = "📘 Vkontakte"
     COOKIES_INSTAGRAM_BUTTON_MSG = "📷 Instagram"
-    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Your Own"
+    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 اپنی"
     
     # Args Command Messages
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Reset All"
-    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 View Current"
-    ARGS_BACK_BUTTON_MSG = "🔙 Back"
-    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_NO_SETTINGS_MSG = "📋 Current yt-dlp Arguments:\n\nNo custom settings configured.\n\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Current yt-dlp Arguments:\n\n"
-    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Export Settings"
-    ARGS_SETTINGS_READY_MSG = "Settings ready for export! Forward this message to favorites to save."
-    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Current yt-dlp Arguments:"
-    ARGS_FAILED_RECOGNIZE_MSG = "❌ Failed to recognize settings in message. Make sure you sent a correct settings template."
-    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Settings successfully imported!\n\nApplied parameters: {applied_count}\n\n"
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ غیر فعالی کی وجہ سے ان پٹ موڈ خود بخود بند ہو گیا (5 منٹ)۔"
+    ARGS_RESET_ALL_BUTTON_MSG = "🔄 سب ری سیٹ کریں"
+    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 موجودہ دیکھیں"
+    ARGS_BACK_BUTTON_MSG = "🔙 واپس"
+    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>ان ترتیبات کو ٹیمپلیٹ کے طور پر محفوظ کرنے کے لیے اس پیغام کو اپنے پسندیدہ میں فارورڈ کریں۔</i> \n\n<i>ان ترتیبات کو لاگو کرنے کے لیے اس پیغام کو یہاں واپس فارورڈ کریں۔</i>"
+    ARGS_NO_SETTINGS_MSG = "📋 موجودہ yt-dlp آرگومنٹس:\n\nکوئی اپنی ترتیبات ترتیب نہیں دی گئیں۔\n\n---\n\n<i>ان ترتیبات کو ٹیمپلیٹ کے طور پر محفوظ کرنے کے لیے اس پیغام کو اپنے پسندیدہ میں فارورڈ کریں۔</i> \n\n<i>ان ترتیبات کو لاگو کرنے کے لیے اس پیغام کو یہاں واپس فارورڈ کریں۔</i>"
+    ARGS_CURRENT_ARGUMENTS_MSG = "📋 موجودہ yt-dlp آرگومنٹس:\n\n"
+    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 ترتیبات برآمد کریں"
+    ARGS_SETTINGS_READY_MSG = "ترتیبات برآمد کے لیے تیار ہیں! اس پیغام کو پسندیدہ میں فارورڈ کریں تاکہ محفوظ کریں۔"
+    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 موجودہ yt-dlp آرگومنٹس:"
+    ARGS_FAILED_RECOGNIZE_MSG = "❌ پیغام میں ترتیبات پہچاننے میں ناکام۔ یقینی بنائیں کہ آپ نے صحیح ترتیبات کا ٹیمپلیٹ بھیجا ہے۔"
+    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ ترتیبات کامیابی سے درآمد کی گئیں!\n\nلاگو کردہ پیرامیٹرز: {applied_count}\n\n"
     ARGS_KEY_SETTINGS_MSG = "کلیدی ترتیبات:\n"
-    ARGS_ERROR_SAVING_MSG = "❌ Error saving imported settings."
-    ARGS_ERROR_IMPORTING_MSG = "❌ An error occurred while importing settings."
+    ARGS_ERROR_SAVING_MSG = "❌ درآمد شدہ ترتیبات محفوظ کرنے میں خرابی۔"
+    ARGS_ERROR_IMPORTING_MSG = "❌ ترتیبات درآمد کرتے وقت ایک خرابی پیش آئی۔"
 
     # Cookie command menu messages
-    COOKIE_MENU_TITLE_MSG = "🍪 <b>Download Cookie Files</b>"
-    COOKIE_MENU_DESCRIPTION_MSG = "Choose a service to download the cookie file."
-    COOKIE_MENU_SAVE_INFO_MSG = "Cookie files will be saved as cookie.txt in your folder."
-    COOKIE_MENU_TIP_HEADER_MSG = "Tip: You can also use direct command:"
-    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – download and validate cookies"
-    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – use a specific source by index (1–{max_index})"
-    COOKIE_MENU_TIP_VERIFY_MSG = "Then verify with <code>/check_cookie</code> (tests on RickRoll)."
+    COOKIE_MENU_TITLE_MSG = "🍪 <b>کوکی فائلیں ڈاؤن لوڈ کریں</b>"
+    COOKIE_MENU_DESCRIPTION_MSG = "کوکی فائل ڈاؤن لوڈ کرنے کے لیے ایک سروس منتخب کریں۔"
+    COOKIE_MENU_SAVE_INFO_MSG = "کوکی فائلیں آپ کے فولڈر میں cookie.txt کے طور پر محفوظ کی جائیں گی۔"
+    COOKIE_MENU_TIP_HEADER_MSG = "نصیحت: آپ براہ راست کمانڈ بھی استعمال کر سکتے ہیں:"
+    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – کوکیز ڈاؤن لوڈ اور تصدیق کریں"
+    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – انڈیکس کے ذریعے مخصوص ماخذ استعمال کریں (1–{max_index})"
+    COOKIE_MENU_TIP_VERIFY_MSG = "پھر <code>/check_cookie</code> کے ساتھ تصدیق کریں (RickRoll پر ٹیسٹ کرتا ہے)۔"
 
     # Subs command button messages
     SUBS_ALWAYS_ASK_BUTTON_MSG = "ہمیشہ پوچھیں"
@@ -2224,18 +2224,18 @@ Use:
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝تفصیل"
 
     # Audio upload completion messages
-    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."
-    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Audio successfully downloaded and sent - {total_files} files uploaded."
+    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ جزوی طور پر مکمل - {successful_uploads}/{total_files} آڈیو فائلیں اپ لوڈ کی گئیں۔"
+    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ آڈیو کامیابی سے ڈاؤن لوڈ اور بھیج دی گئی - {total_files} فائلیں اپ لوڈ کی گئیں۔"
 
     # TikTok private account messages
     TIKTOK_PRIVATE_ACCOUNT_MSG = (
-        "🔒 <b>Private TikTok Account</b>\n\n"
-        "This TikTok account is private or all videos are private.\n\n"
-        "<b>💡 Solution:</b>\n"
-        "1. Follow the account @{username}\n"
-        "2. Send your cookies to the bot using <code>/cookie</code> command\n"
-        "3. Try again\n\n"
-        "<b>After updating cookies, try again!</b>"
+        "🔒 <b>نجی TikTok اکاؤنٹ</b>\n\n"
+        "یہ TikTok اکاؤنٹ نجی ہے یا تمام ویڈیوز نجی ہیں۔\n\n"
+        "<b>💡 حل:</b>\n"
+        "1. اکاؤنٹ @{username} کو فالو کریں\n"
+        "2. <code>/cookie</code> کمانڈ کا استعمال کرتے ہوئے اپنی کوکیز بوٹ کو بھیجیں\n"
+        "3. دوبارہ کوشش کریں\n\n"
+        "<b>کوکیز اپ ڈیٹ کرنے کے بعد، دوبارہ کوشش کریں!</b>"
     )
 
     #######################################################

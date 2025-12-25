@@ -306,12 +306,12 @@ Use:
     
     # UI Messages - Status and Progress
     CHECKING_CACHE_MSG = "🔄 <b>Checking cache...</b>\n\n<code>{url}</code>"
-    PROCESSING_MSG = "🔄 Processing..."
-    DOWNLOADING_MSG = "📥 <b>Downloading media...</b>\n\n"
+    PROCESSING_MSG = "🔄 Đang xử lý..."
+    DOWNLOADING_MSG = "📥 <b>Đang tải xuống phương tiện...</b>\n\n"
 
-    DOWNLOADING_IMAGE_MSG = "📥 <b>Downloading image...</b>\n\n"
+    DOWNLOADING_IMAGE_MSG = "📥 <b>Đang tải xuống hình ảnh...</b>\n\n"
 
-    DOWNLOAD_COMPLETE_MSG = "✅ <b>Download complete</b>\n\n"
+    DOWNLOAD_COMPLETE_MSG = "✅ <b>Tải xuống hoàn tất</b>\n\n"
     
     # Download status messages
     DOWNLOADED_STATUS_MSG = "Đã tải xuống:"
@@ -935,7 +935,7 @@ Use:
     ARGS_CHECK_CERTIFICATE_SHORT_MSG = "Kiểm tra Chứng chỉ"
     ARGS_LIVE_FROM_START_SHORT_MSG = "Trực tiếp Từ đầu"
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "Không Trực tiếp Từ đầu"
-    ARGS_USER_AGENT_SHORT_MSG = "User Agent"
+    ARGS_USER_AGENT_SHORT_MSG = "User Agent"  # User-Agent is a technical term, can remain
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
     ARGS_NO_PLAYLIST_SHORT_MSG = "Không Danh sách phát"
     ARGS_NO_PART_SHORT_MSG = "Không Phần"
@@ -1240,7 +1240,7 @@ Use:
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Menu liên kết trực tiếp đã được tạo qua nút LINK cho người dùng {user_id} từ {url}"
     DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Không thể trích xuất liên kết trực tiếp qua nút LINK cho người dùng {user_id} từ {url}: {error}"
     LIST_COMMAND_EXECUTED_LOG_MSG = "Lệnh LIST đã được thực thi cho người dùng {user_id}, url: {url}"
-    QUICK_EMBED_LOG_MSG = "Quick Embed: {embed_url}"
+    QUICK_EMBED_LOG_MSG = "Nhúng Nhanh: {embed_url}"
     ALWAYS_ASK_MENU_SENT_LOG_MSG = "Menu Luôn Hỏi đã được gửi cho {url}"
     CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Đã tạo menu chất lượng cache cho người dùng {user_id} sau lỗi: {error}"
     ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Lỗi menu Luôn Hỏi cho {url}: {error}"
