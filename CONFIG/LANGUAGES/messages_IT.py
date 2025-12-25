@@ -158,9 +158,9 @@ Usa <code>/img URL</code> per scaricare immagini/foto/album da molte piattaforme
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
     SAVE_AS_COOKIE_HINT = (
-        "Just save your cookie as <b><u>cookie.txt</u></b> and send it to bot as a document.\n\n"
-        "You can also send cookies as plain text with <b><u>/save_as_cookie</u></b> command.\n"
-        "<b>Usage of <b><u>/save_as_cookie</u></b>:</b>\n\n"
+        "Salva semplicemente il tuo cookie come <b><u>cookie.txt</u></b> e invialo al bot come documento.\n\n"
+        "Puoi anche inviare i cookie come testo normale con il comando <b><u>/save_as_cookie</u></b>.\n"
+        "<b>Utilizzo di <b><u>/save_as_cookie</u></b>:</b>\n\n"
         "<pre>"
         "/save_as_cookie\n"
         "# Netscape HTTP Cookie File\n"
@@ -171,193 +171,193 @@ Usa <code>/img URL</code> per scaricare immagini/foto/album da molte piattaforme
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
         "<blockquote>"
-        "<b><u>Instructions:</u></b>\n"
+        "<b><u>Istruzioni:</u></b>\n"
         "https://t.me/tg_ytdlp/203 \n"
         "https://t.me/tg_ytdlp/214 "
         "</blockquote>"
     )
     
-    # Search command message (English)
+    # Search command message
     SEARCH_MSG = """
-🔍 <b>Video search</b>
+🔍 <b>Ricerca video</b>
 
-Press the button below to activate inline search via @vid.
+Premi il pulsante qui sotto per attivare la ricerca inline tramite @vid.
 
-<blockquote>On PC just type <b>"@vid Your_Search_Query"</b> in any chat.</blockquote>
+<blockquote>Sul PC digita semplicemente <b>"@vid Your_Search_Query"</b> in qualsiasi chat.</blockquote>
     """
     
-    # Settings and Hints (English)
+    # Settings and Hints
     
     
     IMG_HELP_MSG = (
-        "<b>🖼 Image Download Command</b>\n\n"
-        "Usage: <code>/img URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>🖼 Comando Download Immagini</b>\n\n"
+        "Utilizzo: <code>/img URL</code>\n\n"
+        "<b>Esempi:</b>\n"
         "• <code>/img https://example.com/image.jpg</code>\n"
         "• <code>/img 11-20 https://example.com/album</code>\n"
         "• <code>/img 11- https://example.com/album</code>\n"
         "• <code>/img https://vk.com/wall-160916577_408508</code>\n"
         "• <code>/img https://2ch.hk/fd/res/1747651.html</code>\n"
         "• <code>/img https://imgur.com/abc123</code>\n\n"
-        "<b>Supported platforms (examples):</b>\n"
-        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, etc. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">full list</a></blockquote>"
-        "Also see: "
+        "<b>Piattaforme supportate (esempi):</b>\n"
+        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, ecc. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">elenco completo</a></blockquote>"
+        "Vedi anche: "
     )
     
     LINK_HINT_MSG = (
-        "Get direct video links with quality selection.\n\n"
-        "Usage: /link + URL \n\n"
-        "(ex. /link https://youtu.be/abc123)\n"
-        "(ex. /link 720 https://youtu.be/abc123)"
+        "Ottieni link video diretti con selezione qualità.\n\n"
+        "Utilizzo: /link + URL \n\n"
+        "(es. /link https://youtu.be/abc123)\n"
+        "(es. /link 720 https://youtu.be/abc123)"
     )
     
     # Add bot to group command message
     ADD_BOT_TO_GROUP_MSG = """
-🤖 <b>Add Bot to Group</b>
+🤖 <b>Aggiungi Bot al Gruppo</b>
 
-Add my bots to your groups to get enhanced features and higher limits!
+Aggiungi i miei bot ai tuoi gruppi per ottenere funzionalità avanzate e limiti più alti!
 ————————————
-📊 <b>Current FREE Limits (in Bot's DM):</b>
-<blockquote>•🗑 Messy junk from all the files unsorted 👎
-• Max 1 file size: <b>8 GB </b>
-• Max 1 file quality: <b>UNLIM</b>
-• Max 1 file duration: <b>UNLIM</b>
-• Max number of downloads: <b>UNLIM</b>
-• Max URLs in one message: <b>10</b> (only in quality selection mode)
-• Max playlist items per 1 time: <b>50</b>
-• Max TikTok videos per 1 time: <b>500</b>
-• Max images per 1 time: <b>1000</b>
-• URL rate limits: <b>5/min, 60/hour, 1000/day</b>
-• Command limit: <b>20/min</b>
-• 1 Download max time: <b>2 hours</b>
-• 🔞 NSFW content is paid! 1⭐️ = $0.02
-• 🆓 ALL OTHER MEDIA ARE TOTALY FREE
-• 📝 All content logs & caching to my log-channels for instant repost when re-downloading</blockquote>
+📊 <b>Limiti GRATUITI Attuali (nella DM del Bot):</b>
+<blockquote>•🗑 Disordine da tutti i file non ordinati 👎
+• Dimensione max 1 file: <b>8 GB </b>
+• Qualità max 1 file: <b>ILLIMITATA</b>
+• Durata max 1 file: <b>ILLIMITATA</b>
+• Numero max di download: <b>ILLIMITATO</b>
+• Max URL in un messaggio: <b>10</b> (solo in modalità selezione qualità)
+• Max elementi playlist per 1 volta: <b>50</b>
+• Max video TikTok per 1 volta: <b>500</b>
+• Max immagini per 1 volta: <b>1000</b>
+• Limiti rate URL: <b>5/min, 60/ora, 1000/giorno</b>
+• Limite comandi: <b>20/min</b>
+• 1 Download tempo max: <b>2 ore</b>
+• 🔞 I contenuti NSFW sono a pagamento! 1⭐️ = $0.02
+• 🆓 TUTTI GLI ALTRI MEDIA SONO TOTALMENTE GRATUITI
+• 📝 Tutti i log dei contenuti e cache ai miei log-channels per repost istantaneo quando si ri-scarica</blockquote>
 
-💬<b>This limits only for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>1.5 hours</b>
-• Max video+subs file size: <b>500 MB</b>
-• Max video+subs quality: <b>720p</b></blockquote>
+💬<b>Questi limiti solo per video con sottotitoli:</b>
+<blockquote>• Durata max video+sottotitoli: <b>1.5 ore</b>
+• Dimensione max file video+sottotitoli: <b>500 MB</b>
+• Qualità max video+sottotitoli: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Paid Group Benefits (2️⃣x Limits):</b>
-<blockquote>•  🗂 Structured neat media vault sorted by topics 👍
-•  📁 Bots reply in the topic you call them
-•  📌 Auto pin status message with download progress
-•  🖼 /img command downloads media as 10-item albums
-• Max 1 file size: <b>16 GB</b> ⬆️
-• Max URLs in one message: <b>20</b> ⬆️ (only in quality selection mode)
-• Max playlist items per 1 time: <b>100</b> ⬆️
-• Max TikTok videos per 1 time: 1000 ⬆️
-• Max images per 1 time: 2000 ⬆️
-• URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
-• Command limit: <b>40/min</b> ⬆️
-• 1 Download max time: <b>4 hours</b> ⬆️
-• 🔞 NSFW content: Free with full metadata 🆓
-• 📢 No need to subscribe to my channel for groups
-• 👥 All group members will have access to paid functions!
-• 🗒 No logs / no cache to my log-channels! You can reject copy/repost in group settings</blockquote>
+🚀 <b>Vantaggi Gruppo a Pagamento (2️⃣x Limiti):</b>
+<blockquote>•  🗂 Vault media strutturato ordinato per argomenti 👍
+•  📁 I bot rispondono nell'argomento in cui li chiami
+•  📌 Auto pin messaggio di stato con progresso download
+•  🖼 Il comando /img scarica i media come album da 10 elementi
+• Dimensione max 1 file: <b>16 GB</b> ⬆️
+• Max URL in un messaggio: <b>20</b> ⬆️ (solo in modalità selezione qualità)
+• Max elementi playlist per 1 volta: <b>100</b> ⬆️
+• Max video TikTok per 1 volta: 1000 ⬆️
+• Max immagini per 1 volta: 2000 ⬆️
+• Limiti rate URL: <b>10/min, 120/ora, 2000/giorno</b> ⬆️
+• Limite comandi: <b>40/min</b> ⬆️
+• 1 Download tempo max: <b>4 ore</b> ⬆️
+• 🔞 Contenuti NSFW: Gratuiti con metadati completi 🆓
+• 📢 Non serve iscriversi al mio canale per i gruppi
+• 👥 Tutti i membri del gruppo avranno accesso alle funzioni a pagamento!
+• 🗒 Nessun log / nessuna cache ai miei log-channels! Puoi rifiutare copia/repost nelle impostazioni del gruppo</blockquote>
 
-💬 <b>2️⃣x limits for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>3 hours</b> ⬆️
-• Max video+subs file size: <b>1000 MB</b> ⬆️
-• Max video+subs quality: <b>1080p</b> ⬆️</blockquote>
+💬 <b>Limiti 2️⃣x per video con sottotitoli:</b>
+<blockquote>• Durata max video+sottotitoli: <b>3 ore</b> ⬆️
+• Dimensione max file video+sottotitoli: <b>1000 MB</b> ⬆️
+• Qualità max video+sottotitoli: <b>1080p</b> ⬆️</blockquote>
 ————————————
-💰 <b>Pricing & Setup:</b>
-<blockquote>• Price: <b>$5/month</b> per 1 bot in group
-• Setup: Contact @iilililiiillliiliililliilliliiil
-• Payment: 💎TON or other methods💲
-• Support: Full technical support included</blockquote>
+💰 <b>Prezzi e Configurazione:</b>
+<blockquote>• Prezzo: <b>$5/mese</b> per 1 bot nel gruppo
+• Configurazione: Contatta @iilililiiillliiliililliilliliiil
+• Pagamento: 💎TON o altri metodi💲
+• Supporto: Supporto tecnico completo incluso</blockquote>
 ————————————
-You can add my bots to your group to unblock free 🔞<b>NSFW</b> and to double (x2️⃣) all limits.
-Contact me if you want me to allow your group to use my bots @iilililiiillliiliililliilliliiil
+Puoi aggiungere i miei bot al tuo gruppo per sbloccare gratuitamente 🔞<b>NSFW</b> e raddoppiare (x2️⃣) tutti i limiti.
+Contattami se vuoi che permetta al tuo gruppo di usare i miei bot @iilililiiillliiliililliilliliiil
 ————————————
-💡<b>TIP:</b> <blockquote>You can chip in money with any amount of your friends (for example 100 people) and made 1 purchase for whole group - ALL GROUP MEMBERS WILL HAVE FULL UNLIMITED ACCESS to all bots functions in that group for just <b>0.05$</b></blockquote>
+💡<b>SUGGERIMENTO:</b> <blockquote>Puoi mettere insieme i soldi con qualsiasi numero di tuoi amici (ad esempio 100 persone) e fare 1 acquisto per tutto il gruppo - TUTTI I MEMBRI DEL GRUPPO AVRANNO ACCESSO ILLIMITATO COMPLETO a tutte le funzioni dei bot in quel gruppo per soli <b>$0.05</b></blockquote>
     """
     
     # NSFW Command Messages
     NSFW_ON_MSG = """
-🔞 <b>NSFW Mode: ON✅</b>
+🔞 <b>Modalità NSFW: ON✅</b>
 
-• NSFW content will be displayed without blurring.
-• Spoilers will not apply to NSFW media.
-• The content will be visible immediately
+• I contenuti NSFW verranno visualizzati senza sfocatura.
+• Gli spoiler non si applicheranno ai media NSFW.
+• Il contenuto sarà visibile immediatamente
 
-<i>Use /nsfw off to enable blur</i>
+<i>Usa /nsfw off per abilitare la sfocatura</i>
     """
     
     NSFW_OFF_MSG = """
-🔞 <b>NSFW Mode: OFF</b>
+🔞 <b>Modalità NSFW: OFF</b>
 
-⚠️ <b>Blur enabled</b>
-• NSFW content will be hidden under spoiler   
-• To view, you will need to click on the media
-• Spoilers will apply to NSFW media.
+⚠️ <b>Sfocatura abilitata</b>
+• I contenuti NSFW saranno nascosti sotto spoiler   
+• Per visualizzare, dovrai cliccare sul media
+• Gli spoiler si applicheranno ai media NSFW.
 
-<i>Use /nsfw on to disable blur</i>
+<i>Usa /nsfw on per disabilitare la sfocatura</i>
     """
     
     NSFW_INVALID_MSG = """
-❌ <b>Invalid parameter</b>
+❌ <b>Parametro non valido</b>
 
-Use:
-• <code>/nsfw on</code> - disable blur
-• <code>/nsfw off</code> - enable blur
+Usa:
+• <code>/nsfw on</code> - disabilita sfocatura
+• <code>/nsfw off</code> - abilita sfocatura
     """
     
     # UI Messages - Status and Progress
-    CHECKING_CACHE_MSG = "🔄 <b>Checking cache...</b>\n\n<code>{url}</code>"
-    PROCESSING_MSG = "🔄 Processing..."
-    DOWNLOADING_MSG = "📥 <b>Downloading media...</b>\n\n"
+    CHECKING_CACHE_MSG = "🔄 <b>Controllo cache...</b>\n\n<code>{url}</code>"
+    PROCESSING_MSG = "🔄 Elaborazione..."
+    DOWNLOADING_MSG = "📥 <b>Download media...</b>\n\n"
 
-    DOWNLOADING_IMAGE_MSG = "📥 <b>Downloading image...</b>\n\n"
+    DOWNLOADING_IMAGE_MSG = "📥 <b>Download immagine...</b>\n\n"
 
-    DOWNLOAD_COMPLETE_MSG = "✅ <b>Download complete</b>\n\n"
+    DOWNLOAD_COMPLETE_MSG = "✅ <b>Download completato</b>\n\n"
     
     # Download status messages
-    DOWNLOADED_STATUS_MSG = "Downloaded:"
-    SENT_STATUS_MSG = "Sent:"
-    PENDING_TO_SEND_STATUS_MSG = "Pending to send:"
-    TITLE_LABEL_MSG = "Title:"
-    MEDIA_COUNT_LABEL_MSG = "Media count:"
-    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Download finished, processing audio..."
-    VIDEO_PROCESSING_MSG = "📽 Video is processing..."
+    DOWNLOADED_STATUS_MSG = "Scaricato:"
+    SENT_STATUS_MSG = "Inviato:"
+    PENDING_TO_SEND_STATUS_MSG = "In attesa di invio:"
+    TITLE_LABEL_MSG = "Titolo:"
+    MEDIA_COUNT_LABEL_MSG = "Conteggio media:"
+    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Download completato, elaborazione audio..."
+    VIDEO_PROCESSING_MSG = "📽 Il video è in elaborazione..."
     WAITING_HOURGLASS_MSG = "⌛️"
     
     # Cache Messages
-    SENT_FROM_CACHE_MSG = "✅ <b>Sent from cache</b>\n\nSent albums: <b>{count}</b>"
-    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video successfully sent from cache."
-    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Playlist videos sent from cache ({cached}/{total} files)."
-    CACHE_PARTIAL_MSG = "📥 {cached}/{total} videos sent from cache, downloading missing ones..."
-    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Sent from cache: {cached}\n🔄 Continuing download..."
-    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Could not analyze media, proceeding with maximum allowed range (1-{fallback_limit})..."
-    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Could not determine media count, proceeding with maximum allowed range (1-{total_limit})..."
-    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Could not determine total media count, proceeding with specified range {start}-{end}..."
+    SENT_FROM_CACHE_MSG = "✅ <b>Inviato dalla cache</b>\n\nAlbum inviati: <b>{count}</b>"
+    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video inviato con successo dalla cache."
+    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Video playlist inviati dalla cache ({cached}/{total} file)."
+    CACHE_PARTIAL_MSG = "📥 {cached}/{total} video inviati dalla cache, download di quelli mancanti..."
+    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Inviato dalla cache: {cached}\n🔄 Continuazione download..."
+    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Impossibile analizzare i media, procedendo con l'intervallo massimo consentito (1-{fallback_limit})..."
+    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Impossibile determinare il conteggio media, procedendo con l'intervallo massimo consentito (1-{total_limit})..."
+    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Impossibile determinare il conteggio totale media, procedendo con l'intervallo specificato {start}-{end}..."
 
     # Error Messages
-    INVALID_URL_MSG = "❌ <b>Invalid URL</b>\n\nPlease provide a valid URL starting with http:// or https://"
+    INVALID_URL_MSG = "❌ <b>URL non valido</b>\n\nFornisci un URL valido che inizi con http:// o https://"
 
-    ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
+    ERROR_OCCURRED_MSG = "❌ <b>Si è verificato un errore</b>\n\n<code>{url}</code>\n\nErrore: {error}"
 
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
-    ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
-    ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
+    ERROR_SENDING_VIDEO_MSG = "❌ Errore nell'invio del video: {error}"
+    ERROR_UNKNOWN_MSG = "❌ Errore sconosciuto: {error}"
+    ERROR_NO_DISK_SPACE_MSG = "❌ Spazio su disco insufficiente per scaricare i video."
+    ERROR_FILE_SIZE_LIMIT_MSG = "❌ La dimensione del file supera il limite di {limit} GB. Seleziona un file più piccolo entro la dimensione consentita."
 
-    ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
+    ERROR_GETTING_LINK_MSG = "❌ <b>Errore nell'ottenere il link:</b>\n{error}"
 
     # Telegram Rate Limit Messages
-    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: {time}\nTo update timer send URL again 2 times."
-    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times."
+    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram ha limitato l'invio di messaggi.\n⏳ Attendi: {time}\nPer aggiornare il timer invia di nuovo l'URL 2 volte."
+    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram ha limitato l'invio di messaggi.\n⏳ Attendi: \nPer aggiornare il timer invia di nuovo l'URL 2 volte."
     
     # Subtitles Messages
-    SUBTITLES_FAILED_MSG = "⚠️ Failed to download subtitles"
+    SUBTITLES_FAILED_MSG = "⚠️ Impossibile scaricare i sottotitoli"
 
     # Video Processing Messages
 
     # Stream/Link Messages
-    STREAM_LINKS_TITLE_MSG = "🔗 <b>Direct Stream Links</b>\n\n"
-    STREAM_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    STREAM_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
+    STREAM_LINKS_TITLE_MSG = "🔗 <b>Link Stream Diretti</b>\n\n"
+    STREAM_TITLE_MSG = "📹 <b>Titolo:</b> {title}\n"
+    STREAM_DURATION_MSG = "⏱ <b>Durata:</b> {duration} sec\n"
 
     
     # Download Progress Messages
@@ -367,33 +367,33 @@ Use:
     # NSFW Paid Content Messages
 
     # Callback Error Messages
-    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Error: Original message not found."
+    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Errore: Messaggio originale non trovato."
 
     # Tags Error Messages
-    TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
+    TAG_FORBIDDEN_CHARS_MSG = "❌ Il Tag #{tag} contiene caratteri vietati. Sono consentiti solo lettere, cifre e _.\nUsa: {example}"
     
     # Playlist Messages
-    PLAYLIST_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    PLAYLIST_CACHE_SENT_MSG = "✅ Sent from cache: {cached}/{total} files."
+    PLAYLIST_SENT_MSG = "✅ Video playlist inviati: {sent}/{total} file."
+    PLAYLIST_CACHE_SENT_MSG = "✅ Inviato dalla cache: {cached}/{total} file."
     
     # Failed Stream Messages
-    FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
+    FAILED_STREAM_LINKS_MSG = "❌ Impossibile ottenere i link stream"
 
     # new messages
     # Browser Cookie Messages
-    SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
-    SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
-    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
-    BROWSER_OPEN_BUTTON_MSG = "🌐 Open Browser"
-    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Download from Remote URL"
-    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
-    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ No supported browsers found and no COOKIE_URL configured. Use /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL must point to a .txt file."
-    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
-    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
-    BTN_CLOSE = "🔚Close"
+    SELECT_BROWSER_MSG = "Seleziona un browser per scaricare i cookie:"
+    SELECT_BROWSER_NO_BROWSERS_MSG = "Nessun browser trovato su questo sistema. Puoi scaricare i cookie da URL remoto o monitorare lo stato del browser:"
+    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Apri Browser</b> - per monitorare lo stato del browser nella mini-app"
+    BROWSER_OPEN_BUTTON_MSG = "🌐 Apri Browser"
+    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Scarica da URL Remoto"
+    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ File cookie YouTube scaricato tramite fallback e salvato come cookie.txt"
+    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ Nessun browser supportato trovato e nessun COOKIE_URL configurato. Usa /cookie o carica cookie.txt."
+    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Il fallback COOKIE_URL deve puntare a un file .txt."
+    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Il file cookie fallback è troppo grande (>100KB)."
+    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Sorgente cookie fallback non disponibile (stato {status}). Prova /cookie o carica cookie.txt."
+    COOKIE_FALLBACK_ERROR_MSG = "❌ Errore nello scaricare il cookie fallback. Prova /cookie o carica cookie.txt."
+    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Errore imprevisto durante il download del cookie fallback."
+    BTN_CLOSE = "🔚Chiudi"
     
     # Args command messages
     ARGS_INVALID_BOOL_MSG = "❌ Invalid boolean value"
@@ -407,95 +407,95 @@ Use:
     ARGS_VALUE_SET_MSG = "Impostato su {value}"
     ARGS_VALUE_ALREADY_SET_MSG = "Già impostato su {value}"
     ARGS_PARAM_DESCRIPTION_MSG = "<b>📝 {description}</b>\n\n"
-    ARGS_CURRENT_VALUE_MSG = "<b>Current value:</b> <code>{current_value}</code>\n\n"
-    ARGS_XFF_EXAMPLES_MSG = "<b>Examples:</b>\n• <code>default</code> - Use default XFF strategy\n• <code>never</code> - Never use XFF header\n• <code>US</code> - United States country code\n• <code>GB</code> - United Kingdom country code\n• <code>DE</code> - Germany country code\n• <code>FR</code> - France country code\n• <code>JP</code> - Japan country code\n• <code>192.168.1.0/24</code> - IP block (CIDR)\n• <code>10.0.0.0/8</code> - Private IP range\n• <code>203.0.113.0/24</code> - Public IP block\n\n"
-    ARGS_XFF_NOTE_MSG = "<b>Note:</b> This replaces --geo-bypass options. Use any 2-letter country code or IP block in CIDR notation.\n\n"
-    ARGS_EXAMPLE_MSG = "<b>Example:</b> <code>{placeholder}</code>\n\n"
-    ARGS_SEND_VALUE_MSG = "Please send your new value."
+    ARGS_CURRENT_VALUE_MSG = "<b>Valore attuale:</b> <code>{current_value}</code>\n\n"
+    ARGS_XFF_EXAMPLES_MSG = "<b>Esempi:</b>\n• <code>default</code> - Usa strategia XFF predefinita\n• <code>never</code> - Non usare mai l'header XFF\n• <code>US</code> - Codice paese Stati Uniti\n• <code>GB</code> - Codice paese Regno Unito\n• <code>DE</code> - Codice paese Germania\n• <code>FR</code> - Codice paese Francia\n• <code>JP</code> - Codice paese Giappone\n• <code>192.168.1.0/24</code> - Blocco IP (CIDR)\n• <code>10.0.0.0/8</code> - Intervallo IP privato\n• <code>203.0.113.0/24</code> - Blocco IP pubblico\n\n"
+    ARGS_XFF_NOTE_MSG = "<b>Nota:</b> Questo sostituisce le opzioni --geo-bypass. Usa qualsiasi codice paese a 2 lettere o blocco IP in notazione CIDR.\n\n"
+    ARGS_EXAMPLE_MSG = "<b>Esempio:</b> <code>{placeholder}</code>\n\n"
+    ARGS_SEND_VALUE_MSG = "Invia il tuo nuovo valore."
     ARGS_NUMBER_PARAM_MSG = "<b>🔢 {description}</b>\n\n"
-    ARGS_RANGE_MSG = "<b>Range:</b> {min_val} - {max_val}\n\n"
-    ARGS_SEND_NUMBER_MSG = "Please send a number."
+    ARGS_RANGE_MSG = "<b>Intervallo:</b> {min_val} - {max_val}\n\n"
+    ARGS_SEND_NUMBER_MSG = "Invia un numero."
     ARGS_JSON_PARAM_MSG = "<b>🔧 {description}</b>\n\n"
-    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Examples:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
-    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Note:</b> These headers will be added to existing Referer and User-Agent headers.\n\n"
-    ARGS_CURRENT_ARGS_MSG = "<b>📋 Current yt-dlp Arguments:</b>\n\n"
-    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False switches\n• 📋 <b>Select</b> - Choose from options\n• 🔢 <b>Numeric</b> - Number input\n• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\nThese settings will be applied to all your downloads."
+    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Esempi:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
+    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Nota:</b> Questi header saranno aggiunti agli header Referer e User-Agent esistenti.\n\n"
+    ARGS_CURRENT_ARGS_MSG = "<b>📋 Argomenti yt-dlp Attuali:</b>\n\n"
+    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - Interruttori True/False\n• 📋 <b>Select</b> - Scegli dalle opzioni\n• 🔢 <b>Numeric</b> - Input numerico\n• 📝🔧 <b>Text</b> - Input testo/JSON</blockquote>\n\nQueste impostazioni saranno applicate a tutti i tuoi download."
     
     # Localized parameter names for display
     ARGS_PARAM_NAMES = {
-        "force_ipv6": "Force IPv6 connections",
-        "force_ipv4": "Force IPv4 connections", 
-        "no_live_from_start": "Do not download live streams from start",
-        "live_from_start": "Download live streams from start",
-        "no_check_certificates": "Suppress HTTPS certificate validation",
-        "check_certificate": "Check SSL certificate",
-        "no_playlist": "Download only single video, not playlist",
-        "embed_metadata": "Embed metadata in video file",
-        "embed_thumbnail": "Embed thumbnail in video file",
-        "write_thumbnail": "Write thumbnail to file",
-        "ignore_errors": "Ignore download errors and continue",
-        "legacy_server_connect": "Allow legacy server connections",
-        "concurrent_fragments": "Number of concurrent fragments to download",
-        "xff": "X-Forwarded-For header strategy",
-        "user_agent": "User-Agent header",
-        "impersonate": "Browser impersonation",
-        "referer": "Referer header",
-        "geo_bypass": "Bypass geographic restrictions",
-        "hls_use_mpegts": "Use MPEG-TS for HLS",
-        "no_part": "Do not use .part files",
-        "no_continue": "Do not resume partial downloads",
-        "audio_format": "Audio format",
-        "video_format": "Video format",
-        "merge_output_format": "Merge output format",
-        "send_as_file": "Send as file",
-        "username": "Username",
+        "force_ipv6": "Forza connessioni IPv6",
+        "force_ipv4": "Forza connessioni IPv4", 
+        "no_live_from_start": "Non scaricare stream live dall'inizio",
+        "live_from_start": "Scarica stream live dall'inizio",
+        "no_check_certificates": "Sopprimi validazione certificato HTTPS",
+        "check_certificate": "Controlla certificato SSL",
+        "no_playlist": "Scarica solo video singolo, non playlist",
+        "embed_metadata": "Incorpora metadati nel file video",
+        "embed_thumbnail": "Incorpora miniatura nel file video",
+        "write_thumbnail": "Scrivi miniatura su file",
+        "ignore_errors": "Ignora errori download e continua",
+        "legacy_server_connect": "Consenti connessioni server legacy",
+        "concurrent_fragments": "Numero di frammenti concorrenti da scaricare",
+        "xff": "Strategia header X-Forwarded-For",
+        "user_agent": "Header User-Agent",
+        "impersonate": "Impersonazione browser",
+        "referer": "Header Referer",
+        "geo_bypass": "Bypassa restrizioni geografiche",
+        "hls_use_mpegts": "Usa MPEG-TS per HLS",
+        "no_part": "Non usare file .part",
+        "no_continue": "Non riprendere download parziali",
+        "audio_format": "Formato audio",
+        "video_format": "Formato video",
+        "merge_output_format": "Formato output merge",
+        "send_as_file": "Invia come file",
+        "username": "Nome utente",
         "password": "Password",
-        "twofactor": "Two-factor authentication code",
-        "min_filesize": "Minimum file size (MB)",
-        "max_filesize": "Maximum file size (MB)",
-        "playlist_items": "Playlist items",
-        "date": "Date",
-        "datebefore": "Date before",
-        "dateafter": "Date after",
-        "http_headers": "HTTP headers",
-        "sleep_interval": "Sleep interval",
-        "max_sleep_interval": "Maximum sleep interval",
-        "retries": "Number of retries",
-        "http_chunk_size": "HTTP chunk size",
-        "sleep_subtitles": "Sleep for subtitles"
+        "twofactor": "Codice autenticazione a due fattori",
+        "min_filesize": "Dimensione file minima (MB)",
+        "max_filesize": "Dimensione file massima (MB)",
+        "playlist_items": "Elementi playlist",
+        "date": "Data",
+        "datebefore": "Data prima",
+        "dateafter": "Data dopo",
+        "http_headers": "Header HTTP",
+        "sleep_interval": "Intervallo sleep",
+        "max_sleep_interval": "Intervallo sleep massimo",
+        "retries": "Numero di tentativi",
+        "http_chunk_size": "Dimensione chunk HTTP",
+        "sleep_subtitles": "Sleep per sottotitoli"
     }
-    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n<blockquote>📋 <b>Groups:</b>\n{groups_msg}"
+    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ Configurazione Argomenti yt-dlp</b>\n\n<blockquote>📋 <b>Gruppi:</b>\n{groups_msg}"
     ARGS_MENU_TEXT = (
-        "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n"
-        "<blockquote>📋 <b>Groups:</b>\n"
-        "• ✅/❌ <b>Boolean</b> - True/False switches\n"
-        "• 📋 <b>Select</b> - Choose from options\n"
-        "• 🔢 <b>Numeric</b> - Number input\n"
-        "• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\n"
-        "These settings will be applied to all your downloads."
+        "<b>⚙️ Configurazione Argomenti yt-dlp</b>\n\n"
+        "<blockquote>📋 <b>Gruppi:</b>\n"
+        "• ✅/❌ <b>Boolean</b> - Interruttori True/False\n"
+        "• 📋 <b>Select</b> - Scegli dalle opzioni\n"
+        "• 🔢 <b>Numeric</b> - Input numerico\n"
+        "• 📝🔧 <b>Text</b> - Input testo/JSON</blockquote>\n\n"
+        "Queste impostazioni saranno applicate a tutti i tuoi download."
     )
     
     # Additional missing messages
-    PLEASE_WAIT_MSG = "⏳ Please wait..."
-    ERROR_OCCURRED_SHORT_MSG = "❌ Error occurred"
+    PLEASE_WAIT_MSG = "⏳ Attendi..."
+    ERROR_OCCURRED_SHORT_MSG = "❌ Si è verificato un errore"
 
     # Args command messages (continued)
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_INPUT_DANGEROUS_MSG = "❌ Input contains potentially dangerous content: {pattern}"
-    ARGS_INPUT_TOO_LONG_MSG = "❌ Input too long (max 1000 characters)"
-    ARGS_INVALID_URL_MSG = "❌ Invalid URL format. Must start with http:// or https://"
-    ARGS_INVALID_JSON_MSG = "❌ Invalid JSON format"
-    ARGS_NUMBER_RANGE_MSG = "❌ Number must be between {min_val} and {max_val}"
-    ARGS_INVALID_NUMBER_MSG = "❌ Invalid number format"
-    ARGS_DATE_FORMAT_MSG = "❌ Date must be in YYYYMMDD format (e.g., 20230930)"
-    ARGS_YEAR_RANGE_MSG = "❌ Year must be between 1900 and 2100"
-    ARGS_MONTH_RANGE_MSG = "❌ Month must be between 01 and 12"
-    ARGS_DAY_RANGE_MSG = "❌ Day must be between 01 and 31"
-    ARGS_INVALID_DATE_MSG = "❌ Invalid date format"
-    ARGS_INVALID_XFF_MSG = "❌ XFF must be 'default', 'never', country code (e.g., US), or IP block (e.g., 192.168.1.0/24)"
-    ARGS_NO_CUSTOM_MSG = "No custom arguments set. All parameters use default values."
-    ARGS_RESET_SUCCESS_MSG = "✅ All arguments reset to defaults."
-    ARGS_TEXT_TOO_LONG_MSG = "❌ Text too long. Maximum 500 characters."
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Modalità input chiusa automaticamente per inattività (5 minuti)."
+    ARGS_INPUT_DANGEROUS_MSG = "❌ L'input contiene contenuto potenzialmente pericoloso: {pattern}"
+    ARGS_INPUT_TOO_LONG_MSG = "❌ Input troppo lungo (max 1000 caratteri)"
+    ARGS_INVALID_URL_MSG = "❌ Formato URL non valido. Deve iniziare con http:// o https://"
+    ARGS_INVALID_JSON_MSG = "❌ Formato JSON non valido"
+    ARGS_NUMBER_RANGE_MSG = "❌ Il numero deve essere tra {min_val} e {max_val}"
+    ARGS_INVALID_NUMBER_MSG = "❌ Formato numero non valido"
+    ARGS_DATE_FORMAT_MSG = "❌ La data deve essere in formato YYYYMMDD (es., 20230930)"
+    ARGS_YEAR_RANGE_MSG = "❌ L'anno deve essere tra 1900 e 2100"
+    ARGS_MONTH_RANGE_MSG = "❌ Il mese deve essere tra 01 e 12"
+    ARGS_DAY_RANGE_MSG = "❌ Il giorno deve essere tra 01 e 31"
+    ARGS_INVALID_DATE_MSG = "❌ Formato data non valido"
+    ARGS_INVALID_XFF_MSG = "❌ XFF deve essere 'default', 'never', codice paese (es., US), o blocco IP (es., 192.168.1.0/24)"
+    ARGS_NO_CUSTOM_MSG = "Nessun argomento personalizzato impostato. Tutti i parametri usano valori predefiniti."
+    ARGS_RESET_SUCCESS_MSG = "✅ Tutti gli argomenti reimpostati ai valori predefiniti."
+    ARGS_TEXT_TOO_LONG_MSG = "❌ Testo troppo lungo. Massimo 500 caratteri."
     ARGS_ERROR_PROCESSING_MSG = "❌ Error processing input. Please try again."
     ARGS_BOOL_INPUT_MSG = "❌ Please enter 'True' or 'False' for Send As File option."
     ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Please provide a valid number."
@@ -517,17 +517,17 @@ Use:
         "- 500mb max video size</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
-        "<b>Quick commands:</b>\n"
-        "• <code>/subs off</code> - disable subtitles\n"
-        "• <code>/subs on</code> - enable Always Ask mode\n"
-        "• <code>/subs ru</code> - set language\n"
-        "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
+        "<b>Comandi rapidi:</b>\n"
+        "• <code>/subs off</code> - disabilita sottotitoli\n"
+        "• <code>/subs on</code> - abilita modalità Always Ask\n"
+        "• <code>/subs ru</code> - imposta lingua\n"
+        "• <code>/subs ru auto</code> - imposta lingua con AUTO/TRANS"
     )
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
-    SUBS_DISABLED_ERROR_MSG = "❌ Subtitles are disabled. Use /subs to configure."
-    SUBS_YOUTUBE_ONLY_MSG = "❌ Subtitle downloading is only supported for YouTube."
+    SUBS_DISABLED_STATUS_MSG = "🚫 I sottotitoli sono disabilitati"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Lingua selezionata: {name}{auto_text}"
+    SUBS_DOWNLOADING_MSG = "💬 Download sottotitoli in corso..."
+    SUBS_DISABLED_ERROR_MSG = "❌ I sottotitoli sono disabilitati. Usa /subs per configurare."
+    SUBS_YOUTUBE_ONLY_MSG = "❌ Il download dei sottotitoli è supportato solo per YouTube."
     SUBS_CAPTION_MSG = (
         "<b>💬 Subtitles</b>\n\n"
         "<b>Video:</b> {title}\n"
@@ -535,10 +535,10 @@ Use:
         "<b>Type:</b> {type}\n\n"
         "{tags}"
     )
-    SUBS_SENT_MSG = "💬 Subtitles SRT-file sent to user."
-    SUBS_ERROR_PROCESSING_MSG = "❌ Error processing subtitle file."
-    SUBS_ERROR_DOWNLOAD_MSG = "❌ Failed to download subtitles."
-    SUBS_ERROR_MSG = "❌ Error downloading subtitles: {error}"
+    SUBS_SENT_MSG = "💬 File SRT sottotitoli inviato all'utente."
+    SUBS_ERROR_PROCESSING_MSG = "❌ Errore nell'elaborazione del file sottotitoli."
+    SUBS_ERROR_DOWNLOAD_MSG = "❌ Impossibile scaricare i sottotitoli."
+    SUBS_ERROR_MSG = "❌ Errore nel download dei sottotitoli: {error}"
     
     # Split command messages
     SPLIT_SIZE_SET_MSG = "✅ Split part size set to: {size}"
@@ -560,16 +560,16 @@ Use:
     SPLIT_MENU_TITLE_MSG = (
         "🎬 **Choose max part size for video splitting:**\n\n"
         "**Range:** 100MB to 2GB\n\n"
-        "**Quick commands:**\n"
+        "**Comandi rapidi:**\n"
         "• `/split 100mb` - `/split 2000mb`\n"
         "• `/split 0.1gb` - `/split 2gb`\n\n"
-        "**Examples:** `/split 300mb`, `/split 1.2gb`, `/split 1500mb`"
+        "**Esempi:** `/split 300mb`, `/split 1.2gb`, `/split 1500mb`"
     )
-    SPLIT_MENU_CLOSED_MSG = "Menu closed."
+    SPLIT_MENU_CLOSED_MSG = "Menu chiuso."
     
     # Settings command messages
-    SETTINGS_TITLE_MSG = "<b>Bot Settings</b>\n\nChoose a category:"
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
+    SETTINGS_TITLE_MSG = "<b>Impostazioni Bot</b>\n\nScegli una categoria:"
+    SETTINGS_MENU_CLOSED_MSG = "Menu chiuso."
     SETTINGS_CLEAN_TITLE_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
     SETTINGS_COOKIES_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nChoose an action:"
     SETTINGS_MEDIA_TITLE_MSG = "<b>🎞 MEDIA</b>\n\nChoose an action:"
@@ -579,10 +579,10 @@ Use:
     SETTINGS_FLOOD_LIMIT_MSG = "⏳ Flood limit. Try later."
     SETTINGS_HINT_SENT_MSG = "Hint sent."
     SETTINGS_SEARCH_HELPER_OPENED_MSG = "Search helper opened."
-    SETTINGS_UNKNOWN_COMMAND_MSG = "Unknown command."
-    SETTINGS_HINT_CLOSED_MSG = "Hint closed."
-    SETTINGS_HELP_SENT_MSG = "Send help txt to user"
-    SETTINGS_MENU_OPENED_MSG = "Opened /settings menu"
+    SETTINGS_UNKNOWN_COMMAND_MSG = "Comando sconosciuto."
+    SETTINGS_HINT_CLOSED_MSG = "Suggerimento chiuso."
+    SETTINGS_HELP_SENT_MSG = "Inviato help txt all'utente"
+    SETTINGS_MENU_OPENED_MSG = "Menu /settings aperto"
     
     # Search command messages
     SEARCH_HELPER_CLOSED_MSG = "🔍 Search helper closed"
@@ -605,16 +605,16 @@ Use:
     AUDIO_WAIT_MSG = "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED"
     AUDIO_HELP_MSG = (
         "<b>🎧 Audio Download Command</b>\n\n"
-        "Usage: <code>/audio URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "Utilizzo: <code>/audio URL</code>\n\n"
+        "<b>Esempi:</b>\n"
         "• <code>/audio https://youtu.be/abc123</code>\n"
         "• <code>/audio https://www.youtube.com/watch?v=abc123</code>\n"
         "• <code>/audio https://www.youtube.com/playlist?list=PL123*1*10</code>\n"
         "• <code>/audio 1-10 https://www.youtube.com/playlist?list=PL123</code>\n\n"
-        "Also see: /vid, /img, /help, /playlist, /settings"
+        "Vedi anche: /vid, /img, /help, /playlist, /settings"
     )
-    AUDIO_HELP_CLOSED_MSG = "Audio hint closed."
-    PLAYLIST_HELP_CLOSED_MSG = "Playlist help closed."
+    AUDIO_HELP_CLOSED_MSG = "Suggerimento audio chiuso."
+    PLAYLIST_HELP_CLOSED_MSG = "Aiuto playlist chiuso."
     USERLOGS_CLOSED_MSG = "Logs message closed."
     HELP_CLOSED_MSG = "Help closed."
     
@@ -637,42 +637,42 @@ Use:
     
     # List command messages
     LIST_HELP_MSG = (
-        "<b>📃 List Available Formats</b>\n\n"
-        "Get available video/audio formats for a URL.\n\n"
-        "<b>Usage:</b>\n"
+        "<b>📃 Elenco Formati Disponibili</b>\n\n"
+        "Ottieni i formati video/audio disponibili per un URL.\n\n"
+        "<b>Utilizzo:</b>\n"
         "<code>/list URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>Esempi:</b>\n"
         "• <code>/list https://youtube.com/watch?v=123abc</code>\n"
         "• <code>/list https://youtube.com/playlist?list=123abc</code>\n\n"
-        "<b>💡 How to use format IDs:</b>\n"
-        "After getting the list, use specific format ID:\n"
-        "• <code>/format id 401</code> - download format 401\n"
-        "• <code>/format id401</code> - same as above\n"
-        "• <code>/format id140 audio</code> - download format 140 as MP3 audio\n\n"
-        "This command will show all available formats that can be downloaded."
+        "<b>💡 Come usare gli ID formato:</b>\n"
+        "Dopo aver ottenuto l'elenco, usa l'ID formato specifico:\n"
+        "• <code>/format id 401</code> - scarica formato 401\n"
+        "• <code>/format id401</code> - stesso di sopra\n"
+        "• <code>/format id140 audio</code> - scarica formato 140 come audio MP3\n\n"
+        "Questo comando mostrerà tutti i formati disponibili che possono essere scaricati."
     )
-    LIST_PROCESSING_MSG = "🔄 Getting available formats..."
-    LIST_INVALID_URL_MSG = "❌ Please provide a valid URL starting with http:// or https://"
+    LIST_PROCESSING_MSG = "🔄 Recupero formati disponibili..."
+    LIST_INVALID_URL_MSG = "❌ Fornisci un URL valido che inizi con http:// o https://"
     LIST_CAPTION_MSG = (
-        "📃 Available formats for:\n<code>{url}</code>\n\n"
-        "💡 <b>How to set format:</b>\n"
-        "• <code>/format id 134</code> - Download specific format ID\n"
-        "• <code>/format 720p</code> - Download by quality\n"
-        "• <code>/format best</code> - Download best quality\n"
-        "• <code>/format ask</code> - Always ask for quality\n\n"
+        "📃 Formati disponibili per:\n<code>{url}</code>\n\n"
+        "💡 <b>Come impostare il formato:</b>\n"
+        "• <code>/format id 134</code> - Scarica ID formato specifico\n"
+        "• <code>/format 720p</code> - Scarica per qualità\n"
+        "• <code>/format best</code> - Scarica migliore qualità\n"
+        "• <code>/format ask</code> - Chiedi sempre la qualità\n\n"
         "{audio_note}\n"
-        "📋 Use format ID from the list above"
+        "📋 Usa ID formato dall'elenco sopra"
     )
     LIST_AUDIO_FORMATS_MSG = (
-        "🎵 <b>Audio-only formats:</b> {formats}\n"
-        "• <code>/format id 140 audio</code> - Download format 140 as MP3 audio\n"
-        "• <code>/format id140 audio</code> - same as above\n"
-        "These will be downloaded as MP3 audio files.\n\n"
+        "🎵 <b>Formati solo audio:</b> {formats}\n"
+        "• <code>/format id 140 audio</code> - Scarica formato 140 come audio MP3\n"
+        "• <code>/format id140 audio</code> - stesso di sopra\n"
+        "Questi verranno scaricati come file audio MP3.\n\n"
     )
     LIST_ERROR_SENDING_MSG = "❌ Error sending formats file: {error}"
     LIST_ERROR_GETTING_MSG = "❌ Failed to get formats:\n<code>{error}</code>"
     LIST_ERROR_OCCURRED_MSG = "❌ An error occurred while processing the command"
-    LIST_ERROR_CALLBACK_MSG = "Error occurred"
+    LIST_ERROR_CALLBACK_MSG = "Si è verificato un errore"
     LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 How to use format IDs:\n"
     LIST_FORMAT_USAGE_INSTRUCTIONS = "After getting the list, use specific format ID:\n"
     LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - download format 401\n"
@@ -937,7 +937,7 @@ Use:
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "No Live Start"
     ARGS_USER_AGENT_SHORT_MSG = "User Agent"
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
-    ARGS_NO_PLAYLIST_SHORT_MSG = "No Playlist"
+    ARGS_NO_PLAYLIST_SHORT_MSG = "Nessuna playlist"
     ARGS_NO_PART_SHORT_MSG = "No Part"
     ARGS_NO_CONTINUE_SHORT_MSG = "No Continue"
     ARGS_AUDIO_FORMAT_SHORT_MSG = "Audio Format"
@@ -958,7 +958,7 @@ Use:
     ARGS_IGNORE_ERRORS_SHORT_MSG = "Ignore Errors"
     ARGS_MIN_FILESIZE_SHORT_MSG = "Min Size"
     ARGS_MAX_FILESIZE_SHORT_MSG = "Max Size"
-    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "Playlist Items"
+    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "Elementi playlist"
     ARGS_DATE_SHORT_MSG = "Date"
     ARGS_DATEBEFORE_SHORT_MSG = "Date Before"
     ARGS_DATEAFTER_SHORT_MSG = "Date After"
@@ -1039,16 +1039,16 @@ Use:
     KEYBOARD_ERROR_PROCESSING_MSG = "Error processing setting"
     MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo enabled."
     MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo disabled."
-    NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW blur disabled."
-    NSFW_BLUR_ENABLED_CALLBACK_MSG = "NSFW blur enabled."
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
-    SETTINGS_FLOOD_WAIT_ACTIVE_MSG = "Flood wait active. Try later."
-    OTHER_HELP_CLOSED_MSG = "Help closed."
-    OTHER_LOGS_MESSAGE_CLOSED_MSG = "Logs message closed."
+    NSFW_BLUR_DISABLED_CALLBACK_MSG = "Sfocatura NSFW disabilitata."
+    NSFW_BLUR_ENABLED_CALLBACK_MSG = "Sfocatura NSFW abilitata."
+    SETTINGS_MENU_CLOSED_MSG = "Menu chiuso."
+    SETTINGS_FLOOD_WAIT_ACTIVE_MSG = "Attesa flood attiva. Riprova più tardi."
+    OTHER_HELP_CLOSED_MSG = "Aiuto chiuso."
+    OTHER_LOGS_MESSAGE_CLOSED_MSG = "Messaggio log chiuso."
     
     # Additional split command messages
-    SPLIT_MENU_CLOSED_MSG = "Menu closed."
-    SPLIT_INVALID_SIZE_CALLBACK_MSG = "Invalid size."
+    SPLIT_MENU_CLOSED_MSG = "Menu chiuso."
+    SPLIT_INVALID_SIZE_CALLBACK_MSG = "Dimensione non valida."
     
     # Additional error messages
     MEDIAINFO_ERROR_SENDING_MSG = "❌ Error sending MediaInfo: {error}"
@@ -1102,8 +1102,8 @@ Use:
     SUBS_EXAMPLE_AUTO_MSG = "Example: `/subs en auto`"
     
     # Additional subtitles command messages (more more)
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask mode {status}"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Lingua selezionata: {name}{auto_text}"
+    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Modalità Always Ask {status}"
     
     # Additional subtitles menu messages
     SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
@@ -1796,7 +1796,7 @@ Use:
     
     # URL extractor callback messages
     URL_EXTRACTOR_CLOSED_MSG = "Closed"
-    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Error occurred"
+    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Si è verificato un errore"
     
     # FFmpeg messages
     FFMPEG_NOT_FOUND_MSG = "ffmpeg not found in PATH or project directory. Please install FFmpeg."
@@ -2025,9 +2025,9 @@ Use:
     URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
     URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
     URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Esempi:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
-    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Vedi anche: /audio, /img, /help, /playlist, /settings"
     URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
 
     # YouTube messages

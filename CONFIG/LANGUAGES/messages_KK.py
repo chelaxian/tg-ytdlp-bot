@@ -158,9 +158,9 @@ class Messages(object):
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
     SAVE_AS_COOKIE_HINT = (
-        "Just save your cookie as <b><u>cookie.txt</u></b> and send it to bot as a document.\n\n"
-        "You can also send cookies as plain text with <b><u>/save_as_cookie</u></b> command.\n"
-        "<b>Usage of <b><u>/save_as_cookie</u></b>:</b>\n\n"
+        "Cookie файлыңызды <b><u>cookie.txt</u></b> ретінде сақтап, ботқа құжат ретінде жіберіңіз.\n\n"
+        "Сіз cookie'лерді <b><u>/save_as_cookie</u></b> командасымен жай мәтін ретінде де жібере аласыз.\n"
+        "<b><b><u>/save_as_cookie</u></b> пайдалану:</b>\n\n"
         "<pre>"
         "/save_as_cookie\n"
         "# Netscape HTTP Cookie File\n"
@@ -171,193 +171,193 @@ class Messages(object):
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
         "<blockquote>"
-        "<b><u>Instructions:</u></b>\n"
+        "<b><u>Нұсқаулар:</u></b>\n"
         "https://t.me/tg_ytdlp/203 \n"
         "https://t.me/tg_ytdlp/214 "
         "</blockquote>"
     )
     
-    # Search command message (English)
+    # Search command message
     SEARCH_MSG = """
-🔍 <b>Video search</b>
+🔍 <b>Бейне іздеу</b>
 
-Press the button below to activate inline search via @vid.
+@vid арқылы ішкі іздеуді іске қосу үшін төмендегі батырманы басыңыз.
 
-<blockquote>On PC just type <b>"@vid Your_Search_Query"</b> in any chat.</blockquote>
+<blockquote>ПК-де кез келген чатта <b>"@vid Your_Search_Query"</b> теру жеткілікті.</blockquote>
     """
     
-    # Settings and Hints (English)
+    # Settings and Hints
     
     
     IMG_HELP_MSG = (
-        "<b>🖼 Image Download Command</b>\n\n"
-        "Usage: <code>/img URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>🖼 Сурет Жүктеу Командасы</b>\n\n"
+        "Пайдалану: <code>/img URL</code>\n\n"
+        "<b>Мысалдар:</b>\n"
         "• <code>/img https://example.com/image.jpg</code>\n"
         "• <code>/img 11-20 https://example.com/album</code>\n"
         "• <code>/img 11- https://example.com/album</code>\n"
         "• <code>/img https://vk.com/wall-160916577_408508</code>\n"
         "• <code>/img https://2ch.hk/fd/res/1747651.html</code>\n"
         "• <code>/img https://imgur.com/abc123</code>\n\n"
-        "<b>Supported platforms (examples):</b>\n"
-        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, etc. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">full list</a></blockquote>"
-        "Also see: "
+        "<b>Қолдау көрсетілетін платформалар (мысалдар):</b>\n"
+        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor және т.б. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">толық тізім</a></blockquote>"
+        "Сондай-ақ қараңыз: "
     )
     
     LINK_HINT_MSG = (
-        "Get direct video links with quality selection.\n\n"
-        "Usage: /link + URL \n\n"
-        "(ex. /link https://youtu.be/abc123)\n"
-        "(ex. /link 720 https://youtu.be/abc123)"
+        "Сапа таңдауымен тікелей бейне сілтемелерін алыңыз.\n\n"
+        "Пайдалану: /link + URL \n\n"
+        "(мысалы /link https://youtu.be/abc123)\n"
+        "(мысалы /link 720 https://youtu.be/abc123)"
     )
     
     # Add bot to group command message
     ADD_BOT_TO_GROUP_MSG = """
-🤖 <b>Add Bot to Group</b>
+🤖 <b>Топқа Бот Қосу</b>
 
-Add my bots to your groups to get enhanced features and higher limits!
+Жақсартылған мүмкіндіктер мен жоғары лимиттер алу үшін боттарымды топтарыңызға қосыңыз!
 ————————————
-📊 <b>Current FREE Limits (in Bot's DM):</b>
-<blockquote>•🗑 Messy junk from all the files unsorted 👎
-• Max 1 file size: <b>8 GB </b>
-• Max 1 file quality: <b>UNLIM</b>
-• Max 1 file duration: <b>UNLIM</b>
-• Max number of downloads: <b>UNLIM</b>
-• Max URLs in one message: <b>10</b> (only in quality selection mode)
-• Max playlist items per 1 time: <b>50</b>
-• Max TikTok videos per 1 time: <b>500</b>
-• Max images per 1 time: <b>1000</b>
-• URL rate limits: <b>5/min, 60/hour, 1000/day</b>
-• Command limit: <b>20/min</b>
-• 1 Download max time: <b>2 hours</b>
-• 🔞 NSFW content is paid! 1⭐️ = $0.02
-• 🆓 ALL OTHER MEDIA ARE TOTALY FREE
-• 📝 All content logs & caching to my log-channels for instant repost when re-downloading</blockquote>
+📊 <b>Ағымдағы ТЕГІН Лимиттер (Боттың DM-інде):</b>
+<blockquote>•🗑 Сұрыпталмаған барлық файлдардан шатаскан қоқыс 👎
+• 1 файлдың максималды өлшемі: <b>8 GB </b>
+• 1 файлдың максималды сапасы: <b>ШЕКСІЗ</b>
+• 1 файлдың максималды ұзақтығы: <b>ШЕКСІЗ</b>
+• Жүктеулердің максималды саны: <b>ШЕКСІЗ</b>
+• Бір хабарламадағы максималды URL: <b>10</b> (тек сапа таңдау режимінде)
+• 1 реттегі максималды плейлист элементтері: <b>50</b>
+• 1 реттегі максималды TikTok бейнелері: <b>500</b>
+• 1 реттегі максималды суреттер: <b>1000</b>
+• URL жылдамдық лимиттері: <b>5/мин, 60/сағ, 1000/күн</b>
+• Команда лимиті: <b>20/мин</b>
+• 1 жүктеудің максималды уақыты: <b>2 сағат</b>
+• 🔞 NSFW контенті ақылы! 1⭐️ = $0.02
+• 🆓 БАСҚА БАРЛЫҚ МЕДИА ТОЛЫҚЫМЕН ТЕГІН
+• 📝 Барлық контент логтары және кэштеу қайта жүктеу кезінде лезде қайталау үшін менің лог-арналарыма</blockquote>
 
-💬<b>This limits only for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>1.5 hours</b>
-• Max video+subs file size: <b>500 MB</b>
-• Max video+subs quality: <b>720p</b></blockquote>
+💬<b>Бұл лимиттер тек субтитрі бар бейне үшін:</b>
+<blockquote>• Максималды бейне+субтитр ұзақтығы: <b>1.5 сағат</b>
+• Максималды бейне+субтитр файл өлшемі: <b>500 MB</b>
+• Максималды бейне+субтитр сапасы: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Paid Group Benefits (2️⃣x Limits):</b>
-<blockquote>•  🗂 Structured neat media vault sorted by topics 👍
-•  📁 Bots reply in the topic you call them
-•  📌 Auto pin status message with download progress
-•  🖼 /img command downloads media as 10-item albums
-• Max 1 file size: <b>16 GB</b> ⬆️
-• Max URLs in one message: <b>20</b> ⬆️ (only in quality selection mode)
-• Max playlist items per 1 time: <b>100</b> ⬆️
-• Max TikTok videos per 1 time: 1000 ⬆️
-• Max images per 1 time: 2000 ⬆️
-• URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
-• Command limit: <b>40/min</b> ⬆️
-• 1 Download max time: <b>4 hours</b> ⬆️
-• 🔞 NSFW content: Free with full metadata 🆓
-• 📢 No need to subscribe to my channel for groups
-• 👥 All group members will have access to paid functions!
-• 🗒 No logs / no cache to my log-channels! You can reject copy/repost in group settings</blockquote>
+🚀 <b>Ақылы Топ Артықшылықтары (2️⃣x Лимиттер):</b>
+<blockquote>•  🗂 Тақырыптар бойынша сұрыпталған құрылымдық таза медиа қоймасы 👍
+•  📁 Боттар сіз оларды шақырған тақырыпта жауап береді
+•  📌 Жүктеу прогрессімен автоматты түрде бекітілген мәртебе хабарламасы
+•  🖼 /img командасы медианы 10 элементті альбомдар ретінде жүктейді
+• 1 файлдың максималды өлшемі: <b>16 GB</b> ⬆️
+• Бір хабарламадағы максималды URL: <b>20</b> ⬆️ (тек сапа таңдау режимінде)
+• 1 реттегі максималды плейлист элементтері: <b>100</b> ⬆️
+• 1 реттегі максималды TikTok бейнелері: 1000 ⬆️
+• 1 реттегі максималды суреттер: 2000 ⬆️
+• URL жылдамдық лимиттері: <b>10/мин, 120/сағ, 2000/күн</b> ⬆️
+• Команда лимиті: <b>40/мин</b> ⬆️
+• 1 жүктеудің максималды уақыты: <b>4 сағат</b> ⬆️
+• 🔞 NSFW контенті: Толық метадеректермен тегін 🆓
+• 📢 Топтар үшін менің арнама жазылудың қажеті жоқ
+• 👥 Топтың барлық мүшелері ақылы функцияларға қол жеткізе алады!
+• 🗒 Логтар жоқ / менің лог-арналарыма кэш жоқ! Топ баптауларында көшіру/қайталауды бас тарта аласыз</blockquote>
 
-💬 <b>2️⃣x limits for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>3 hours</b> ⬆️
-• Max video+subs file size: <b>1000 MB</b> ⬆️
-• Max video+subs quality: <b>1080p</b> ⬆️</blockquote>
+💬 <b>Субтитрі бар бейне үшін 2️⃣x лимиттер:</b>
+<blockquote>• Максималды бейне+субтитр ұзақтығы: <b>3 сағат</b> ⬆️
+• Максималды бейне+субтитр файл өлшемі: <b>1000 MB</b> ⬆️
+• Максималды бейне+субтитр сапасы: <b>1080p</b> ⬆️</blockquote>
 ————————————
-💰 <b>Pricing & Setup:</b>
-<blockquote>• Price: <b>$5/month</b> per 1 bot in group
-• Setup: Contact @iilililiiillliiliililliilliliiil
-• Payment: 💎TON or other methods💲
-• Support: Full technical support included</blockquote>
+💰 <b>Баға және Орнату:</b>
+<blockquote>• Баға: <b>$5/ай</b> топтағы 1 бот үшін
+• Орнату: @iilililiiillliiliililliilliliiil-мен байланысыңыз
+• Төлем: 💎TON немесе басқа әдістер💲
+• Қолдау: Толық техникалық қолдау қосылған</blockquote>
 ————————————
-You can add my bots to your group to unblock free 🔞<b>NSFW</b> and to double (x2️⃣) all limits.
-Contact me if you want me to allow your group to use my bots @iilililiiillliiliililliilliliiil
+Сіз боттарымды топыңызға қосып, тегін 🔞<b>NSFW</b>-ді ашып, барлық лимиттерді екі есеге (x2️⃣) көбейте аласыз.
+Егер сіз топыңызға боттарымды пайдалануға рұқсат беруді қаласаңыз, маған хабарласыңыз @iilililiiillliiliililliilliliiil
 ————————————
-💡<b>TIP:</b> <blockquote>You can chip in money with any amount of your friends (for example 100 people) and made 1 purchase for whole group - ALL GROUP MEMBERS WILL HAVE FULL UNLIMITED ACCESS to all bots functions in that group for just <b>0.05$</b></blockquote>
+💡<b>КЕҢЕС:</b> <blockquote>Сіз достарыңызбен кез келген соманы (мысалы, 100 адам) жинап, бүкіл топ үшін 1 сатып алу жасай аласыз - ТОПТЫҢ БАРЛЫҚ МҮШЕЛЕРІ ОСЫ ТОПТАҒЫ БОТТЫҢ БАРЛЫҚ ФУНКЦИЯЛАРЫНА ТОЛЫҚ ШЕКСІЗ ҚОЛ ЖЕТКІЗЕ АЛАДЫ тек <b>0.05$</b> үшін</blockquote>
     """
     
     # NSFW Command Messages
     NSFW_ON_MSG = """
-🔞 <b>NSFW Mode: ON✅</b>
+🔞 <b>NSFW Режимі: ҚОСУЛҒАН✅</b>
 
-• NSFW content will be displayed without blurring.
-• Spoilers will not apply to NSFW media.
-• The content will be visible immediately
+• NSFW контенті бұлыңғырлаусыз көрсетіледі.
+• Спойлерлер NSFW медиаға қолданылмайды.
+• Контент бірден көрінетін болады
 
-<i>Use /nsfw off to enable blur</i>
+<i>Бұлыңғырлауды іске қосу үшін /nsfw off пайдаланыңыз</i>
     """
     
     NSFW_OFF_MSG = """
-🔞 <b>NSFW Mode: OFF</b>
+🔞 <b>NSFW Режимі: ӨШІРІЛГЕН</b>
 
-⚠️ <b>Blur enabled</b>
-• NSFW content will be hidden under spoiler   
-• To view, you will need to click on the media
-• Spoilers will apply to NSFW media.
+⚠️ <b>Бұлыңғырлау іске қосылды</b>
+• NSFW контенті спойлер астында жасырылады   
+• Көру үшін медиаға басу керек
+• Спойлерлер NSFW медиаға қолданылады.
 
-<i>Use /nsfw on to disable blur</i>
+<i>Бұлыңғырлауды өшіру үшін /nsfw on пайдаланыңыз</i>
     """
     
     NSFW_INVALID_MSG = """
-❌ <b>Invalid parameter</b>
+❌ <b>Жарамсыз параметр</b>
 
-Use:
-• <code>/nsfw on</code> - disable blur
-• <code>/nsfw off</code> - enable blur
+Пайдаланыңыз:
+• <code>/nsfw on</code> - бұлыңғырлауды өшіру
+• <code>/nsfw off</code> - bұлыңғырлауды іске қосу
     """
     
     # UI Messages - Status and Progress
-    CHECKING_CACHE_MSG = "🔄 <b>Checking cache...</b>\n\n<code>{url}</code>"
-    PROCESSING_MSG = "🔄 Processing..."
-    DOWNLOADING_MSG = "📥 <b>Downloading media...</b>\n\n"
+    CHECKING_CACHE_MSG = "🔄 <b>Кэшті тексеру...</b>\n\n<code>{url}</code>"
+    PROCESSING_MSG = "🔄 Өңделуде..."
+    DOWNLOADING_MSG = "📥 <b>Медиа жүктелуде...</b>\n\n"
 
-    DOWNLOADING_IMAGE_MSG = "📥 <b>Downloading image...</b>\n\n"
+    DOWNLOADING_IMAGE_MSG = "📥 <b>Сурет жүктелуде...</b>\n\n"
 
-    DOWNLOAD_COMPLETE_MSG = "✅ <b>Download complete</b>\n\n"
+    DOWNLOAD_COMPLETE_MSG = "✅ <b>Жүктеу аяқталды</b>\n\n"
     
     # Download status messages
-    DOWNLOADED_STATUS_MSG = "Downloaded:"
-    SENT_STATUS_MSG = "Sent:"
-    PENDING_TO_SEND_STATUS_MSG = "Pending to send:"
-    TITLE_LABEL_MSG = "Title:"
-    MEDIA_COUNT_LABEL_MSG = "Media count:"
-    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Download finished, processing audio..."
-    VIDEO_PROCESSING_MSG = "📽 Video is processing..."
+    DOWNLOADED_STATUS_MSG = "Жүктелді:"
+    SENT_STATUS_MSG = "Жіберілді:"
+    PENDING_TO_SEND_STATUS_MSG = "Жіберу күтуде:"
+    TITLE_LABEL_MSG = "Тақырып:"
+    MEDIA_COUNT_LABEL_MSG = "Медиа саны:"
+    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Жүктеу аяқталды, дыбыс өңделуде..."
+    VIDEO_PROCESSING_MSG = "📽 Бейне өңделуде..."
     WAITING_HOURGLASS_MSG = "⌛️"
     
     # Cache Messages
-    SENT_FROM_CACHE_MSG = "✅ <b>Sent from cache</b>\n\nSent albums: <b>{count}</b>"
-    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video successfully sent from cache."
-    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Playlist videos sent from cache ({cached}/{total} files)."
-    CACHE_PARTIAL_MSG = "📥 {cached}/{total} videos sent from cache, downloading missing ones..."
-    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Sent from cache: {cached}\n🔄 Continuing download..."
-    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Could not analyze media, proceeding with maximum allowed range (1-{fallback_limit})..."
-    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Could not determine media count, proceeding with maximum allowed range (1-{total_limit})..."
-    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Could not determine total media count, proceeding with specified range {start}-{end}..."
+    SENT_FROM_CACHE_MSG = "✅ <b>Кэштен жіберілді</b>\n\nЖіберілген альбомдар: <b>{count}</b>"
+    VIDEO_SENT_FROM_CACHE_MSG = "✅ Бейне кэштен сәтті жіберілді."
+    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Плейлист бейнелері кэштен жіберілді ({cached}/{total} файл)."
+    CACHE_PARTIAL_MSG = "📥 {cached}/{total} бейне кэштен жіберілді, жетіспейтіндер жүктелуде..."
+    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Кэштен жіберілді: {cached}\n🔄 Жүктеу жалғасуда..."
+    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Медианы талдау мүмкін болмады, максималды рұқсат етілген диапазонмен жалғастыру (1-{fallback_limit})..."
+    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Медиа санын анықтау мүмкін болмады, максималды рұқсат етілген диапазонмен жалғастыру (1-{total_limit})..."
+    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Жалпы медиа санын анықтау мүмкін болмады, көрсетілген диапазонмен жалғастыру {start}-{end}..."
 
     # Error Messages
-    INVALID_URL_MSG = "❌ <b>Invalid URL</b>\n\nPlease provide a valid URL starting with http:// or https://"
+    INVALID_URL_MSG = "❌ <b>Жарамсыз URL</b>\n\nhttp:// немесе https:// басталатын жарамды URL енгізіңіз"
 
-    ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
+    ERROR_OCCURRED_MSG = "❌ <b>Қате орын алды</b>\n\n<code>{url}</code>\n\nҚате: {error}"
 
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
-    ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
-    ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
+    ERROR_SENDING_VIDEO_MSG = "❌ Бейне жіберу қатесі: {error}"
+    ERROR_UNKNOWN_MSG = "❌ Белгісіз қате: {error}"
+    ERROR_NO_DISK_SPACE_MSG = "❌ Бейнелерді жүктеу үшін дискіде жеткілікті орын жоқ."
+    ERROR_FILE_SIZE_LIMIT_MSG = "❌ Файл өлшемі {limit} GB лимитінен асып кетті. Рұқсат етілген өлшем ішінде кішірек файл таңдаңыз."
 
-    ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
+    ERROR_GETTING_LINK_MSG = "❌ <b>Сілтеме алу қатесі:</b>\n{error}"
 
     # Telegram Rate Limit Messages
-    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: {time}\nTo update timer send URL again 2 times."
-    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times."
+    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram хабарлама жіберуді шектеді.\n⏳ Күтіңіз: {time}\nТаймерді жаңарту үшін URL-ді қайта 2 рет жіберіңіз."
+    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram хабарлама жіберуді шектеді.\n⏳ Күтіңіз: \nТаймерді жаңарту үшін URL-ді қайта 2 рет жіберіңіз."
     
     # Subtitles Messages
-    SUBTITLES_FAILED_MSG = "⚠️ Failed to download subtitles"
+    SUBTITLES_FAILED_MSG = "⚠️ Субтитрлерді жүктеу сәтсіз аяқталды"
 
     # Video Processing Messages
 
     # Stream/Link Messages
-    STREAM_LINKS_TITLE_MSG = "🔗 <b>Direct Stream Links</b>\n\n"
-    STREAM_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    STREAM_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
+    STREAM_LINKS_TITLE_MSG = "🔗 <b>Тікелей Стрим Сілтемелері</b>\n\n"
+    STREAM_TITLE_MSG = "📹 <b>Тақырып:</b> {title}\n"
+    STREAM_DURATION_MSG = "⏱ <b>Ұзақтығы:</b> {duration} сек\n"
 
     
     # Download Progress Messages
@@ -367,33 +367,33 @@ Use:
     # NSFW Paid Content Messages
 
     # Callback Error Messages
-    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Error: Original message not found."
+    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Қате: Түпнұсқа хабарлама табылмады."
 
     # Tags Error Messages
-    TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
+    TAG_FORBIDDEN_CHARS_MSG = "❌ Тег #{tag} тыйым салынған таңбаларды қамтиды. Тек әріптер, сандар және _ рұқсат етілген.\nПайдаланыңыз: {example}"
     
     # Playlist Messages
-    PLAYLIST_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    PLAYLIST_CACHE_SENT_MSG = "✅ Sent from cache: {cached}/{total} files."
+    PLAYLIST_SENT_MSG = "✅ Плейлист бейнелері жіберілді: {sent}/{total} файл."
+    PLAYLIST_CACHE_SENT_MSG = "✅ Кэштен жіберілді: {cached}/{total} файл."
     
     # Failed Stream Messages
-    FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
+    FAILED_STREAM_LINKS_MSG = "❌ Стрим сілтемелерін алу сәтсіз аяқталды"
 
     # new messages
     # Browser Cookie Messages
-    SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
-    SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
-    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
-    BROWSER_OPEN_BUTTON_MSG = "🌐 Open Browser"
-    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Download from Remote URL"
-    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
-    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ No supported browsers found and no COOKIE_URL configured. Use /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL must point to a .txt file."
-    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
-    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
-    BTN_CLOSE = "🔚Close"
+    SELECT_BROWSER_MSG = "Cookie'лерді жүктеу үшін браузерді таңдаңыз:"
+    SELECT_BROWSER_NO_BROWSERS_MSG = "Бұл жүйеде браузер табылмады. Сіз cookie'лерді қашықтықтағы URL-ден жүктей аласыз немесе браузер мәртебесін бақылай аласыз:"
+    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Браузерді Ашу</b> - мини-қосымшада браузер мәртебесін бақылау"
+    BROWSER_OPEN_BUTTON_MSG = "🌐 Браузерді Ашу"
+    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Қашықтықтағы URL-ден Жүктеу"
+    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie файлы fallback арқылы жүктелді және cookie.txt ретінде сақталды"
+    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ Қолдау көрсетілетін браузерлер табылмады және COOKIE_URL бапталмаған. /cookie пайдаланыңыз немесе cookie.txt жүктеңіз."
+    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL .txt файлына сілтеуі керек."
+    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie файлы тым үлкен (>100KB)."
+    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie көзі қолжетімсіз (мәртебе {status}). /cookie көріңіз немесе cookie.txt жүктеңіз."
+    COOKIE_FALLBACK_ERROR_MSG = "❌ Fallback cookie жүктеу қатесі. /cookie көріңіз немесе cookie.txt жүктеңіз."
+    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Fallback cookie жүктеу кезінде күтпеген қате."
+    BTN_CLOSE = "🔚Жабу"
     
     # Args command messages
     ARGS_INVALID_BOOL_MSG = "❌ Invalid boolean value"
@@ -407,127 +407,127 @@ Use:
     ARGS_VALUE_SET_MSG = "{value} деп орнатылды"
     ARGS_VALUE_ALREADY_SET_MSG = "Қазірдің өзінде {value} деп орнатылған"
     ARGS_PARAM_DESCRIPTION_MSG = "<b>📝 {description}</b>\n\n"
-    ARGS_CURRENT_VALUE_MSG = "<b>Current value:</b> <code>{current_value}</code>\n\n"
-    ARGS_XFF_EXAMPLES_MSG = "<b>Examples:</b>\n• <code>default</code> - Use default XFF strategy\n• <code>never</code> - Never use XFF header\n• <code>US</code> - United States country code\n• <code>GB</code> - United Kingdom country code\n• <code>DE</code> - Germany country code\n• <code>FR</code> - France country code\n• <code>JP</code> - Japan country code\n• <code>192.168.1.0/24</code> - IP block (CIDR)\n• <code>10.0.0.0/8</code> - Private IP range\n• <code>203.0.113.0/24</code> - Public IP block\n\n"
-    ARGS_XFF_NOTE_MSG = "<b>Note:</b> This replaces --geo-bypass options. Use any 2-letter country code or IP block in CIDR notation.\n\n"
-    ARGS_EXAMPLE_MSG = "<b>Example:</b> <code>{placeholder}</code>\n\n"
-    ARGS_SEND_VALUE_MSG = "Please send your new value."
+    ARGS_CURRENT_VALUE_MSG = "<b>Ағымдағы мән:</b> <code>{current_value}</code>\n\n"
+    ARGS_XFF_EXAMPLES_MSG = "<b>Мысалдар:</b>\n• <code>default</code> - Бастапқы XFF стратегиясын пайдалану\n• <code>never</code> - XFF тақырыпшасын ешқашан пайдаланбау\n• <code>US</code> - АҚШ ел коды\n• <code>GB</code> - Ұлыбритания ел коды\n• <code>DE</code> - Германия ел коды\n• <code>FR</code> - Франция ел коды\n• <code>JP</code> - Жапония ел коды\n• <code>192.168.1.0/24</code> - IP блок (CIDR)\n• <code>10.0.0.0/8</code> - Жеке IP диапазоны\n• <code>203.0.113.0/24</code> - Жалпы IP блок\n\n"
+    ARGS_XFF_NOTE_MSG = "<b>Ескерту:</b> Бұл --geo-bypass опцияларын ауыстырады. CIDR белгілеуінде кез келген 2 әріпті ел кодын немесе IP блокты пайдаланыңыз.\n\n"
+    ARGS_EXAMPLE_MSG = "<b>Мысал:</b> <code>{placeholder}</code>\n\n"
+    ARGS_SEND_VALUE_MSG = "Жаңа мәніңізді жіберіңіз."
     ARGS_NUMBER_PARAM_MSG = "<b>🔢 {description}</b>\n\n"
-    ARGS_RANGE_MSG = "<b>Range:</b> {min_val} - {max_val}\n\n"
-    ARGS_SEND_NUMBER_MSG = "Please send a number."
+    ARGS_RANGE_MSG = "<b>Диапазон:</b> {min_val} - {max_val}\n\n"
+    ARGS_SEND_NUMBER_MSG = "Сан жіберіңіз."
     ARGS_JSON_PARAM_MSG = "<b>🔧 {description}</b>\n\n"
-    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Examples:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
-    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Note:</b> These headers will be added to existing Referer and User-Agent headers.\n\n"
-    ARGS_CURRENT_ARGS_MSG = "<b>📋 Current yt-dlp Arguments:</b>\n\n"
-    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False switches\n• 📋 <b>Select</b> - Choose from options\n• 🔢 <b>Numeric</b> - Number input\n• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\nThese settings will be applied to all your downloads."
+    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Мысалдар:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
+    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Ескерту:</b> Бұл тақырыпшалар бар Referer және User-Agent тақырыпшаларына қосылады.\n\n"
+    ARGS_CURRENT_ARGS_MSG = "<b>📋 Ағымдағы yt-dlp Аргументтері:</b>\n\n"
+    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False ауыстырғыштары\n• 📋 <b>Select</b> - Опциялардан таңдау\n• 🔢 <b>Numeric</b> - Сан енгізу\n• 📝🔧 <b>Text</b> - Мәтін/JSON енгізу</blockquote>\n\nБұл баптаулар барлық жүктеулеріңізге қолданылады."
     
     # Localized parameter names for display
     ARGS_PARAM_NAMES = {
-        "force_ipv6": "Force IPv6 connections",
-        "force_ipv4": "Force IPv4 connections", 
-        "no_live_from_start": "Do not download live streams from start",
-        "live_from_start": "Download live streams from start",
-        "no_check_certificates": "Suppress HTTPS certificate validation",
-        "check_certificate": "Check SSL certificate",
-        "no_playlist": "Download only single video, not playlist",
-        "embed_metadata": "Embed metadata in video file",
-        "embed_thumbnail": "Embed thumbnail in video file",
-        "write_thumbnail": "Write thumbnail to file",
-        "ignore_errors": "Ignore download errors and continue",
-        "legacy_server_connect": "Allow legacy server connections",
-        "concurrent_fragments": "Number of concurrent fragments to download",
-        "xff": "X-Forwarded-For header strategy",
-        "user_agent": "User-Agent header",
-        "impersonate": "Browser impersonation",
-        "referer": "Referer header",
-        "geo_bypass": "Bypass geographic restrictions",
-        "hls_use_mpegts": "Use MPEG-TS for HLS",
-        "no_part": "Do not use .part files",
-        "no_continue": "Do not resume partial downloads",
-        "audio_format": "Audio format",
-        "video_format": "Video format",
-        "merge_output_format": "Merge output format",
-        "send_as_file": "Send as file",
-        "username": "Username",
-        "password": "Password",
-        "twofactor": "Two-factor authentication code",
-        "min_filesize": "Minimum file size (MB)",
-        "max_filesize": "Maximum file size (MB)",
-        "playlist_items": "Playlist items",
-        "date": "Date",
-        "datebefore": "Date before",
-        "dateafter": "Date after",
-        "http_headers": "HTTP headers",
-        "sleep_interval": "Sleep interval",
-        "max_sleep_interval": "Maximum sleep interval",
-        "retries": "Number of retries",
-        "http_chunk_size": "HTTP chunk size",
-        "sleep_subtitles": "Sleep for subtitles"
+        "force_ipv6": "IPv6 қосылымдарын мәжбүрлеу",
+        "force_ipv4": "IPv4 қосылымдарын мәжбүрлеу", 
+        "no_live_from_start": "Тікелей эфирлерді басынан бастап жүктемейді",
+        "live_from_start": "Тікелей эфирлерді басынан бастап жүктеу",
+        "no_check_certificates": "HTTPS сертификат тексеруін басу",
+        "check_certificate": "SSL сертификатты тексеру",
+        "no_playlist": "Тек бір бейнені жүктеу, плейлист емес",
+        "embed_metadata": "Бейне файлына метадеректерді енгізу",
+        "embed_thumbnail": "Бейне файлына эскизді енгізу",
+        "write_thumbnail": "Эскизді файлға жазу",
+        "ignore_errors": "Жүктеу қателерін елемеу және жалғастыру",
+        "legacy_server_connect": "Ескі сервер қосылымдарын рұқсат ету",
+        "concurrent_fragments": "Бір мезгілде жүктелетін фрагменттер саны",
+        "xff": "X-Forwarded-For тақырыпшасы стратегиясы",
+        "user_agent": "User-Agent тақырыпшасы",
+        "impersonate": "Браузерді эмуляциялау",
+        "referer": "Referer тақырыпшасы",
+        "geo_bypass": "Географиялық шектеулерді айналып өту",
+        "hls_use_mpegts": "HLS үшін MPEG-TS пайдалану",
+        "no_part": ".part файлдарын пайдаланбау",
+        "no_continue": "Жартылай жүктеулерді жалғастырмау",
+        "audio_format": "Дыбыс форматы",
+        "video_format": "Бейне форматы",
+        "merge_output_format": "Біріктіру шығыс форматы",
+        "send_as_file": "Файл ретінде жіберу",
+        "username": "Пайдаланушы аты",
+        "password": "Құпия сөз",
+        "twofactor": "Екі факторлы аутентификация коды",
+        "min_filesize": "Минималды файл өлшемі (MB)",
+        "max_filesize": "Максималды файл өлшемі (MB)",
+        "playlist_items": "Плейлист элементтері",
+        "date": "Күні",
+        "datebefore": "Күні бұрын",
+        "dateafter": "Күні кейін",
+        "http_headers": "HTTP тақырыпшалары",
+        "sleep_interval": "Ұйықтау интервалы",
+        "max_sleep_interval": "Максималды ұйықтау интервалы",
+        "retries": "Қайталау саны",
+        "http_chunk_size": "HTTP фрагмент өлшемі",
+        "sleep_subtitles": "Субтитрлер үшін ұйықтау"
     }
-    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n<blockquote>📋 <b>Groups:</b>\n{groups_msg}"
+    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp Аргументтерін Баптау</b>\n\n<blockquote>📋 <b>Топтар:</b>\n{groups_msg}"
     ARGS_MENU_TEXT = (
-        "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n"
-        "<blockquote>📋 <b>Groups:</b>\n"
-        "• ✅/❌ <b>Boolean</b> - True/False switches\n"
-        "• 📋 <b>Select</b> - Choose from options\n"
-        "• 🔢 <b>Numeric</b> - Number input\n"
-        "• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\n"
-        "These settings will be applied to all your downloads."
+        "<b>⚙️ yt-dlp Аргументтерін Баптау</b>\n\n"
+        "<blockquote>📋 <b>Топтар:</b>\n"
+        "• ✅/❌ <b>Boolean</b> - True/False ауыстырғыштары\n"
+        "• 📋 <b>Select</b> - Опциялардан таңдау\n"
+        "• 🔢 <b>Numeric</b> - Сан енгізу\n"
+        "• 📝🔧 <b>Text</b> - Мәтін/JSON енгізу</blockquote>\n\n"
+        "Бұл баптаулар барлық жүктеулеріңізге қолданылады."
     )
     
     # Additional missing messages
-    PLEASE_WAIT_MSG = "⏳ Please wait..."
-    ERROR_OCCURRED_SHORT_MSG = "❌ Error occurred"
+    PLEASE_WAIT_MSG = "⏳ Күтіңіз..."
+    ERROR_OCCURRED_SHORT_MSG = "❌ Қате орын алды"
 
     # Args command messages (continued)
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_INPUT_DANGEROUS_MSG = "❌ Input contains potentially dangerous content: {pattern}"
-    ARGS_INPUT_TOO_LONG_MSG = "❌ Input too long (max 1000 characters)"
-    ARGS_INVALID_URL_MSG = "❌ Invalid URL format. Must start with http:// or https://"
-    ARGS_INVALID_JSON_MSG = "❌ Invalid JSON format"
-    ARGS_NUMBER_RANGE_MSG = "❌ Number must be between {min_val} and {max_val}"
-    ARGS_INVALID_NUMBER_MSG = "❌ Invalid number format"
-    ARGS_DATE_FORMAT_MSG = "❌ Date must be in YYYYMMDD format (e.g., 20230930)"
-    ARGS_YEAR_RANGE_MSG = "❌ Year must be between 1900 and 2100"
-    ARGS_MONTH_RANGE_MSG = "❌ Month must be between 01 and 12"
-    ARGS_DAY_RANGE_MSG = "❌ Day must be between 01 and 31"
-    ARGS_INVALID_DATE_MSG = "❌ Invalid date format"
-    ARGS_INVALID_XFF_MSG = "❌ XFF must be 'default', 'never', country code (e.g., US), or IP block (e.g., 192.168.1.0/24)"
-    ARGS_NO_CUSTOM_MSG = "No custom arguments set. All parameters use default values."
-    ARGS_RESET_SUCCESS_MSG = "✅ All arguments reset to defaults."
-    ARGS_TEXT_TOO_LONG_MSG = "❌ Text too long. Maximum 500 characters."
-    ARGS_ERROR_PROCESSING_MSG = "❌ Error processing input. Please try again."
-    ARGS_BOOL_INPUT_MSG = "❌ Please enter 'True' or 'False' for Send As File option."
-    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Please provide a valid number."
-    ARGS_BOOL_VALUE_REQUEST_MSG = "Please send <code>True</code> or <code>False</code> to enable/disable this option."
-    ARGS_JSON_VALUE_REQUEST_MSG = "Please send valid JSON."
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Енгізу режимі белсенділік жоқтығынан автоматты түрде жабылды (5 минут)."
+    ARGS_INPUT_DANGEROUS_MSG = "❌ Енгізу ықтимал қауіпті мазмұнды қамтиды: {pattern}"
+    ARGS_INPUT_TOO_LONG_MSG = "❌ Енгізу тым ұзын (максимум 1000 таңба)"
+    ARGS_INVALID_URL_MSG = "❌ Жарамсыз URL форматы. http:// немесе https:// басталуы керек"
+    ARGS_INVALID_JSON_MSG = "❌ Жарамсыз JSON форматы"
+    ARGS_NUMBER_RANGE_MSG = "❌ Сан {min_val} және {max_val} арасында болуы керек"
+    ARGS_INVALID_NUMBER_MSG = "❌ Жарамсыз сан форматы"
+    ARGS_DATE_FORMAT_MSG = "❌ Күн YYYYMMDD форматында болуы керек (мысалы, 20230930)"
+    ARGS_YEAR_RANGE_MSG = "❌ Жыл 1900 және 2100 арасында болуы керек"
+    ARGS_MONTH_RANGE_MSG = "❌ Ай 01 және 12 арасында болуы керек"
+    ARGS_DAY_RANGE_MSG = "❌ Күн 01 және 31 арасында болуы керек"
+    ARGS_INVALID_DATE_MSG = "❌ Жарамсыз күн форматы"
+    ARGS_INVALID_XFF_MSG = "❌ XFF 'default', 'never', ел коды (мысалы, US) немесе IP блок (мысалы, 192.168.1.0/24) болуы керек"
+    ARGS_NO_CUSTOM_MSG = "Арнайы аргументтер орнатылмаған. Барлық параметрлер бастапқы мәндерді пайдаланады."
+    ARGS_RESET_SUCCESS_MSG = "✅ Барлық аргументтер бастапқы мәндерге қалпына келтірілді."
+    ARGS_TEXT_TOO_LONG_MSG = "❌ Мәтін тым ұзын. Максимум 500 таңба."
+    ARGS_ERROR_PROCESSING_MSG = "❌ Кіріс өңдеу кезінде қате орын алды. Қайталап көріңіз."
+    ARGS_BOOL_INPUT_MSG = "❌ Файл ретінде жіберу опциясы үшін 'True' немесе 'False' енгізіңіз."
+    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Жарамды сан беріңіз."
+    ARGS_BOOL_VALUE_REQUEST_MSG = "Бұл опцияны қосу/өшіру үшін <code>True</code> немесе <code>False</code> жіберіңіз."
+    ARGS_JSON_VALUE_REQUEST_MSG = "Жарамды JSON жіберіңіз."
     
     # Tags command messages
-    TAGS_NO_TAGS_MSG = "You have no tags yet."
-    TAGS_MESSAGE_CLOSED_MSG = "Tags message closed."
+    TAGS_NO_TAGS_MSG = "Сізде әлі тегтер жоқ."
+    TAGS_MESSAGE_CLOSED_MSG = "Тег хабарламасы жабылды."
     
     # Subtitles command messages
-    SUBS_DISABLED_MSG = "✅ Subtitles disabled and Always Ask mode turned off."
-    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ SUBS Always Ask enabled."
-    SUBS_LANGUAGE_SET_MSG = "✅ Subtitle language set to: {flag} {name}"
+    SUBS_DISABLED_MSG = "✅ Субтитрлер өшірілді және Always Ask режимі өшірілді."
+    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ SUBS Always Ask қосылды."
+    SUBS_LANGUAGE_SET_MSG = "✅ Субтитр тілі мынаған орнатылды: {flag} {name}"
     SUBS_WARNING_MSG = (
-        "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
-        "- 720p max quality\n"
-        "- 1.5 hour max duration\n"
-        "- 500mb max video size</blockquote>\n\n"
+        "<blockquote>❗️ЕСКЕРТПЕ: жоғары CPU әсеріне байланысты бұл функция өте баяу (нақты уақытқа жақын) және мыналармен шектеледі:\n"
+        "- 720p максималды сапа\n"
+        "- 1.5 сағат максималды ұзақтық\n"
+        "- 500mb максималды бейне өлшемі</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
-        "<b>Quick commands:</b>\n"
-        "• <code>/subs off</code> - disable subtitles\n"
-        "• <code>/subs on</code> - enable Always Ask mode\n"
-        "• <code>/subs ru</code> - set language\n"
-        "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
+        "<b>Жылдам командалар:</b>\n"
+        "• <code>/subs off</code> - субтитрлерді өшіру\n"
+        "• <code>/subs on</code> - Always Ask режимін қосу\n"
+        "• <code>/subs ru</code> - тілді орнату\n"
+        "• <code>/subs ru auto</code> - AUTO/TRANS арқылы тілді орнату"
     )
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
-    SUBS_DISABLED_ERROR_MSG = "❌ Subtitles are disabled. Use /subs to configure."
-    SUBS_YOUTUBE_ONLY_MSG = "❌ Subtitle downloading is only supported for YouTube."
+    SUBS_DISABLED_STATUS_MSG = "🚫 Субтитрлер өшірілген"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Таңдалған тіл: {name}{auto_text}"
+    SUBS_DOWNLOADING_MSG = "💬 Субтитрлер жүктелуде..."
+    SUBS_DISABLED_ERROR_MSG = "❌ Субтитрлер өшірілген. Баптау үшін /subs пайдаланыңыз."
+    SUBS_YOUTUBE_ONLY_MSG = "❌ Субтитрлерді жүктеу тек YouTube үшін қолдайды."
     SUBS_CAPTION_MSG = (
         "<b>💬 Subtitles</b>\n\n"
         "<b>Video:</b> {title}\n"
@@ -535,10 +535,10 @@ Use:
         "<b>Type:</b> {type}\n\n"
         "{tags}"
     )
-    SUBS_SENT_MSG = "💬 Subtitles SRT-file sent to user."
-    SUBS_ERROR_PROCESSING_MSG = "❌ Error processing subtitle file."
-    SUBS_ERROR_DOWNLOAD_MSG = "❌ Failed to download subtitles."
-    SUBS_ERROR_MSG = "❌ Error downloading subtitles: {error}"
+    SUBS_SENT_MSG = "💬 Субтитрлер SRT файлы пайдаланушыға жіберілді."
+    SUBS_ERROR_PROCESSING_MSG = "❌ Субтитр файлын өңдеу кезінде қате."
+    SUBS_ERROR_DOWNLOAD_MSG = "❌ Субтитрлерді жүктеу сәтсіз аяқталды."
+    SUBS_ERROR_MSG = "❌ Субтитрлерді жүктеу кезінде қате: {error}"
     
     # Split command messages
     SPLIT_SIZE_SET_MSG = "✅ Split part size set to: {size}"
@@ -565,11 +565,11 @@ Use:
         "• `/split 0.1gb` - `/split 2gb`\n\n"
         "**Examples:** `/split 300mb`, `/split 1.2gb`, `/split 1500mb`"
     )
-    SPLIT_MENU_CLOSED_MSG = "Menu closed."
+    SPLIT_MENU_CLOSED_MSG = "Меню жабылды."
     
     # Settings command messages
-    SETTINGS_TITLE_MSG = "<b>Bot Settings</b>\n\nChoose a category:"
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
+    SETTINGS_TITLE_MSG = "<b>Бот параметрлері</b>\n\nКатегория таңдаңыз:"
+    SETTINGS_MENU_CLOSED_MSG = "Меню жабылды."
     SETTINGS_CLEAN_TITLE_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
     SETTINGS_COOKIES_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nChoose an action:"
     SETTINGS_MEDIA_TITLE_MSG = "<b>🎞 MEDIA</b>\n\nChoose an action:"
@@ -581,8 +581,8 @@ Use:
     SETTINGS_SEARCH_HELPER_OPENED_MSG = "Search helper opened."
     SETTINGS_UNKNOWN_COMMAND_MSG = "Unknown command."
     SETTINGS_HINT_CLOSED_MSG = "Hint closed."
-    SETTINGS_HELP_SENT_MSG = "Send help txt to user"
-    SETTINGS_MENU_OPENED_MSG = "Opened /settings menu"
+    SETTINGS_HELP_SENT_MSG = "Пайдаланушыға көмек txt жіберілді"
+    SETTINGS_MENU_OPENED_MSG = "/settings менюсі ашылды"
     
     # Search command messages
     SEARCH_HELPER_CLOSED_MSG = "🔍 Search helper closed"
@@ -591,9 +591,9 @@ Use:
     # Proxy command messages
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error saving proxy settings."
-    PROXY_MENU_TEXT_MSG = "Enable or disable using proxy server for all yt-dlp operations?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({count} available) for all yt-dlp operations?\n\nWhen enabled, proxies will be selected using {method} method."
-    PROXY_MENU_CLOSED_MSG = "Menu closed."
+    PROXY_MENU_TEXT_MSG = "Барлық yt-dlp операциялары үшін прокси серверін пайдалануды қосу немесе өшіру?"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Барлық yt-dlp операциялары үшін прокси серверлерін ({count} қолжетімді) пайдалануды қосу немесе өшіру?\n\nҚосылған кезде проксилер {method} әдісі арқылы таңдалады."
+    PROXY_MENU_CLOSED_MSG = "Меню жабылды."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy enabled. All yt-dlp operations will use proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy enabled. All yt-dlp operations will use {count} proxy servers with {method} selection method."
     PROXY_DISABLED_MSG = "❌ Proxy disabled."
@@ -613,14 +613,14 @@ Use:
         "• <code>/audio 1-10 https://www.youtube.com/playlist?list=PL123</code>\n\n"
         "Also see: /vid, /img, /help, /playlist, /settings"
     )
-    AUDIO_HELP_CLOSED_MSG = "Audio hint closed."
-    PLAYLIST_HELP_CLOSED_MSG = "Playlist help closed."
+    AUDIO_HELP_CLOSED_MSG = "Аудио кеңесі жабылды."
+    PLAYLIST_HELP_CLOSED_MSG = "Плейлист көмегі жабылды."
     USERLOGS_CLOSED_MSG = "Logs message closed."
     HELP_CLOSED_MSG = "Help closed."
     
     # NSFW command messages
     NSFW_BLUR_SETTINGS_TITLE_MSG = "🔞 <b>NSFW Blur Settings</b>\n\nNSFW content is <b>{status}</b>.\n\nChoose whether to blur NSFW content:"
-    NSFW_MENU_CLOSED_MSG = "Menu closed."
+    NSFW_MENU_CLOSED_MSG = "Меню жабылды."
     NSFW_BLUR_DISABLED_MSG = "NSFW blur disabled."
     NSFW_BLUR_ENABLED_MSG = "NSFW blur enabled."
     NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW blur disabled."
@@ -628,28 +628,28 @@ Use:
     
     # MediaInfo command messages
     MEDIAINFO_ENABLED_MSG = "✅ MediaInfo {status}."
-    MEDIAINFO_MENU_TITLE_MSG = "Enable or disable sending MediaInfo for downloaded files?"
-    MEDIAINFO_MENU_CLOSED_MSG = "Menu closed."
-    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo enabled. After downloading, file info will be sent."
-    MEDIAINFO_DISABLED_MSG = "❌ MediaInfo disabled."
-    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo disabled."
+    MEDIAINFO_MENU_TITLE_MSG = "Жүктелген файлдар үшін MediaInfo жіберуді қосу немесе өшіру?"
+    MEDIAINFO_MENU_CLOSED_MSG = "Меню жабылды."
+    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo қосылды. Жүктеуден кейін файл ақпараты жіберіледі."
+    MEDIAINFO_DISABLED_MSG = "❌ MediaInfo өшірілген."
+    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo қосылды."
+    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo өшірілген."
     
     # List command messages
     LIST_HELP_MSG = (
-        "<b>📃 List Available Formats</b>\n\n"
-        "Get available video/audio formats for a URL.\n\n"
-        "<b>Usage:</b>\n"
+        "<b>📃 Қолжетімді форматтар тізімі</b>\n\n"
+        "URL үшін қолжетімді бейне/аудио форматтарын алыңыз.\n\n"
+        "<b>Пайдалану:</b>\n"
         "<code>/list URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>Мысалдар:</b>\n"
         "• <code>/list https://youtube.com/watch?v=123abc</code>\n"
         "• <code>/list https://youtube.com/playlist?list=123abc</code>\n\n"
-        "<b>💡 How to use format IDs:</b>\n"
-        "After getting the list, use specific format ID:\n"
-        "• <code>/format id 401</code> - download format 401\n"
-        "• <code>/format id401</code> - same as above\n"
-        "• <code>/format id140 audio</code> - download format 140 as MP3 audio\n\n"
-        "This command will show all available formats that can be downloaded."
+        "<b>💡 Формат ID-лерін қалай пайдалануға болады:</b>\n"
+        "Тізімді алғаннан кейін нақты формат ID пайдаланыңыз:\n"
+        "• <code>/format id 401</code> - формат 401 жүктеу\n"
+        "• <code>/format id401</code> - жоғарыдағыдай\n"
+        "• <code>/format id140 audio</code> - формат 140-ты MP3 аудио ретінде жүктеу\n\n"
+        "Бұл команда жүктеуге болатын барлық қолжетімді форматтарды көрсетеді."
     )
     LIST_PROCESSING_MSG = "🔄 Getting available formats..."
     LIST_INVALID_URL_MSG = "❌ Please provide a valid URL starting with http:// or https://"
@@ -672,10 +672,10 @@ Use:
     LIST_ERROR_SENDING_MSG = "❌ Error sending formats file: {error}"
     LIST_ERROR_GETTING_MSG = "❌ Failed to get formats:\n<code>{error}</code>"
     LIST_ERROR_OCCURRED_MSG = "❌ An error occurred while processing the command"
-    LIST_ERROR_CALLBACK_MSG = "Error occurred"
-    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 How to use format IDs:\n"
-    LIST_FORMAT_USAGE_INSTRUCTIONS = "After getting the list, use specific format ID:\n"
-    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - download format 401\n"
+    LIST_ERROR_CALLBACK_MSG = "Қате орын алды"
+    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 Формат ID-лерін қалай пайдалануға болады:\n"
+    LIST_FORMAT_USAGE_INSTRUCTIONS = "Тізімді алғаннан кейін нақты формат ID пайдаланыңыз:\n"
+    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - формат 401 жүктеу\n"
     LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - same as above\n"
     LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - download format 140 as MP3 audio\n"
     LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - same as above\n"
@@ -937,7 +937,7 @@ Use:
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "No Live Start"
     ARGS_USER_AGENT_SHORT_MSG = "User Agent"
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
-    ARGS_NO_PLAYLIST_SHORT_MSG = "No Playlist"
+    ARGS_NO_PLAYLIST_SHORT_MSG = "Плейлист жоқ"
     ARGS_NO_PART_SHORT_MSG = "No Part"
     ARGS_NO_CONTINUE_SHORT_MSG = "No Continue"
     ARGS_AUDIO_FORMAT_SHORT_MSG = "Audio Format"
@@ -958,7 +958,7 @@ Use:
     ARGS_IGNORE_ERRORS_SHORT_MSG = "Ignore Errors"
     ARGS_MIN_FILESIZE_SHORT_MSG = "Min Size"
     ARGS_MAX_FILESIZE_SHORT_MSG = "Max Size"
-    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "Playlist Items"
+    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "Плейлист элементтері"
     ARGS_DATE_SHORT_MSG = "Date"
     ARGS_DATEBEFORE_SHORT_MSG = "Date Before"
     ARGS_DATEAFTER_SHORT_MSG = "Date After"
@@ -1102,8 +1102,8 @@ Use:
     SUBS_EXAMPLE_AUTO_MSG = "Example: `/subs en auto`"
     
     # Additional subtitles command messages (more more)
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask mode {status}"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Таңдалған тіл: {name}{auto_text}"
+    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask режимі {status}"
     
     # Additional subtitles menu messages
     SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
@@ -1796,7 +1796,7 @@ Use:
     
     # URL extractor callback messages
     URL_EXTRACTOR_CLOSED_MSG = "Closed"
-    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Error occurred"
+    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Қате орын алды"
     
     # FFmpeg messages
     FFMPEG_NOT_FOUND_MSG = "ffmpeg not found in PATH or project directory. Please install FFmpeg."
@@ -2025,9 +2025,9 @@ Use:
     URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
     URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
     URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Мысалдар:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
-    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Сондай-ақ қараңыз: /audio, /img, /help, /playlist, /settings"
     URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
 
     # YouTube messages

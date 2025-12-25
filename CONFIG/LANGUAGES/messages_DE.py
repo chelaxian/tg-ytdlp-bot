@@ -113,43 +113,43 @@ Verwenden Sie <code>/img URL</code>, um Bilder/Fotos/Alben von vielen Plattforme
 • <code>/clean all</code> → alles
 • <code>/clean cookies/logs/tags/format/split/mediainfo/sub/keyboard</code>
 
-⚙️ <b>Settings:</b>
-• <code>/settings</code> → settings menu
-• <code>/format</code> → quality & format
-• <code>/split</code> → split video into parts
-• <code>/mediainfo on/off</code> → media info
-• <code>/nsfw on/off</code> → NSFW blur
-• <code>/tags</code> → view saved tags
-• <code>/sub on/off</code> → subtitles
-• <code>/keyboard</code> → keyboard (OFF/1x3/2x3)
+⚙️ <b>Einstellungen:</b>
+• <code>/settings</code> → Einstellungsmenü
+• <code>/format</code> → Qualität & Format
+• <code>/split</code> → Video in Teile aufteilen
+• <code>/mediainfo on/off</code> → Medieninfo
+• <code>/nsfw on/off</code> → NSFW-Unschärfe
+• <code>/tags</code> → gespeicherte Tags anzeigen
+• <code>/sub on/off</code> → Untertitel
+• <code>/keyboard</code> → Tastatur (OFF/1x3/2x3)
 
 🏷️ <b>Tags:</b>
-• Add <code>#tag1#tag2</code> after URL
-• Tags appear in captions
-• <code>/tags</code> → view all tags
+• <code>#tag1#tag2</code> nach URL hinzufügen
+• Tags erscheinen in Beschriftungen
+• <code>/tags</code> → alle Tags anzeigen
 
-🔗 <b>Direct Links:</b>
-• <code>/link URL</code> → best quality
-• <code>/link [144-4320]/720p/1080p/4k/8k URL</code> → specific quality
+🔗 <b>Direkte Links:</b>
+• <code>/link URL</code> → beste Qualität
+• <code>/link [144-4320]/720p/1080p/4k/8k URL</code> → spezifische Qualität
 
-⚙️ <b>Quick Commands:</b>
-• <code>/format [144-4320]/720p/1080p/4k/8k/best/ask/id 134</code> → set quality
-• <code>/keyboard off/1x3/2x3/full</code> → keyboard layout
-• <code>/split 100mb-2000mb</code> → change part size
-• <code>/subs off/ru/en auto</code> → subtitle language
-• <code>/list URL</code> → список доступных форматов
-• <code>/mediainfo on/off</code> → on/off media info
-• <code>/proxy on/off</code> → enable/disable proxy for all downloads
+⚙️ <b>Schnellbefehle:</b>
+• <code>/format [144-4320]/720p/1080p/4k/8k/best/ask/id 134</code> → Qualität setzen
+• <code>/keyboard off/1x3/2x3/full</code> → Tastaturlayout
+• <code>/split 100mb-2000mb</code> → Teilgröße ändern
+• <code>/subs off/ru/en auto</code> → Untertitelsprache
+• <code>/list URL</code> → Liste verfügbarer Formate
+• <code>/mediainfo on/off</code> → Medieninfo ein/aus
+• <code>/proxy on/off</code> → Proxy für alle Downloads aktivieren/deaktivieren
 
 📊 <b>Info:</b>
-• <code>/usage</code> → download history
-• <code>/search</code> → inline search via @vid
+• <code>/usage</code> → Download-Verlauf
+• <code>/search</code> → Inline-Suche über @vid
 
-🖼 <b>Images:</b>
-• <code>URL</code> → download images URL
-• <code>/img URL</code> → download images from URL
-• <code>/img 11-20 URL</code> → download specific range
-• <code>/img 11- URL</code> → download from 11th to the end
+🖼 <b>Bilder:</b>
+• <code>URL</code> → Bild-URLs herunterladen
+• <code>/img URL</code> → Bilder von URL herunterladen
+• <code>/img 11-20 URL</code> → spezifischen Bereich herunterladen
+• <code>/img 11- URL</code> → von 11. bis zum Ende herunterladen
 
 👨‍💻 <i>Developer:</i> @upekshaip
 🤝 <i>Contributor:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
@@ -396,7 +396,7 @@ Verwenden Sie:
     BTN_CLOSE = "🔚Schließen"
     
     # Args command messages
-    ARGS_INVALID_BOOL_MSG = "❌ Invalid boolean value"
+    ARGS_INVALID_BOOL_MSG = "❌ Ungültiger Boolean-Wert"
     ARGS_CLOSED_MSG = "Geschlossen"
     ARGS_ALL_RESET_MSG = "✅ Alle Argumente zurückgesetzt"
     ARGS_RESET_ERROR_MSG = "❌ Fehler beim Zurücksetzen der Argumente"
@@ -725,34 +725,34 @@ Verwenden Sie:
     KEYBOARD_ERROR_APPLYING_MSG = "Fehler beim Anwenden der Tastatur-Einstellung {setting}: {error}"
     
     # Format command messages
-    FORMAT_ALWAYS_ASK_SET_MSG = "✅ Format set to: Always Ask. You will be prompted for quality each time you send a URL."
-    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
-    FORMAT_BEST_UPDATED_MSG = "✅ Format updated to best quality (AVC+MP4 priority):\n{format}"
-    FORMAT_ID_UPDATED_MSG = "✅ Format updated to ID {id}:\n{format}\n\n💡 <b>Note:</b> If this is an audio-only format, it will be downloaded as MP3 audio file."
-    FORMAT_ID_AUDIO_UPDATED_MSG = "✅ Format updated to ID {id} (audio-only):\n{format}\n\n💡 This will be downloaded as MP3 audio file."
-    FORMAT_QUALITY_UPDATED_MSG = "✅ Format updated to quality {quality}:\n{format}"
-    FORMAT_CUSTOM_UPDATED_MSG = "✅ Format updated to:\n{format}"
+    FORMAT_ALWAYS_ASK_SET_MSG = "✅ Format auf gesetzt: Always Ask. Sie werden jedes Mal nach der Qualität gefragt, wenn Sie eine URL senden."
+    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format auf gesetzt: Always Ask. Jetzt werden Sie jedes Mal nach der Qualität gefragt, wenn Sie eine URL senden."
+    FORMAT_BEST_UPDATED_MSG = "✅ Format auf beste Qualität aktualisiert (AVC+MP4 Priorität):\n{format}"
+    FORMAT_ID_UPDATED_MSG = "✅ Format auf ID {id} aktualisiert:\n{format}\n\n💡 <b>Hinweis:</b> Wenn dies ein Nur-Audio-Format ist, wird es als MP3-Audiodatei heruntergeladen."
+    FORMAT_ID_AUDIO_UPDATED_MSG = "✅ Format auf ID {id} aktualisiert (Nur-Audio):\n{format}\n\n💡 Dies wird als MP3-Audiodatei heruntergeladen."
+    FORMAT_QUALITY_UPDATED_MSG = "✅ Format auf Qualität {quality} aktualisiert:\n{format}"
+    FORMAT_CUSTOM_UPDATED_MSG = "✅ Format aktualisiert auf:\n{format}"
     FORMAT_MENU_MSG = (
-        "Select a format option or send a custom one using:\n"
-        "• <code>/format &lt;format_string&gt;</code> - custom format\n"
-        "• <code>/format 720</code> - 720p quality\n"
-        "• <code>/format 4k</code> - 4K quality\n"
-        "• <code>/format 8k</code> - 8K quality\n"
-        "• <code>/format id 401</code> - specific format ID\n"
-        "• <code>/format ask</code> - always show menu\n"
-        "• <code>/format best</code> - bv+ba/best quality"
+        "Wählen Sie eine Format-Option oder senden Sie eine benutzerdefinierte mit:\n"
+        "• <code>/format &lt;format_string&gt;</code> - benutzerdefiniertes Format\n"
+        "• <code>/format 720</code> - 720p Qualität\n"
+        "• <code>/format 4k</code> - 4K Qualität\n"
+        "• <code>/format 8k</code> - 8K Qualität\n"
+        "• <code>/format id 401</code> - spezifische Format-ID\n"
+        "• <code>/format ask</code> - Menü immer anzeigen\n"
+        "• <code>/format best</code> - bv+ba/beste Qualität"
     )
     FORMAT_CUSTOM_HINT_MSG = (
-        "To use a custom format, send the command in the following form:\n\n"
+        "Um ein benutzerdefiniertes Format zu verwenden, senden Sie den Befehl in folgender Form:\n\n"
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
-        "Replace <code>bestvideo+bestaudio/best</code> with your desired format string."
+        "Ersetzen Sie <code>bestvideo+bestaudio/best</code> mit Ihrer gewünschten Format-Zeichenkette."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Select your desired resolution and codec:"
-    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
-    FORMAT_UPDATED_MSG = "✅ Format updated to:\n{format}"
-    FORMAT_SAVED_MSG = "✅ Format saved."
-    FORMAT_CHOICE_UPDATED_MSG = "✅ Format choice updated."
-    FORMAT_CUSTOM_MENU_CLOSED_MSG = "Custom format menu closed"
+    FORMAT_RESOLUTION_MENU_MSG = "Wählen Sie Ihre gewünschte Auflösung und Codec:"
+    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format auf gesetzt: Always Ask. Jetzt werden Sie jedes Mal nach der Qualität gefragt, wenn Sie eine URL senden."
+    FORMAT_UPDATED_MSG = "✅ Format aktualisiert auf:\n{format}"
+    FORMAT_SAVED_MSG = "✅ Format gespeichert."
+    FORMAT_CHOICE_UPDATED_MSG = "✅ Format-Auswahl aktualisiert."
+    FORMAT_CUSTOM_MENU_CLOSED_MSG = "Benutzerdefiniertes Format-Menü geschlossen"
     FORMAT_CODEC_SET_MSG = "✅ Codec set to {codec}"
     
     # Cookies command messages
@@ -971,39 +971,39 @@ Verwenden Sie:
     
     # Additional cookies command messages
     COOKIES_FILE_TOO_LARGE_MSG = "❌ The file is too large. Maximum size is 100 KB."
-    COOKIES_INVALID_FORMAT_MSG = "❌ Only files of the following format are allowed .txt."
+    COOKIES_INVALID_FORMAT_MSG = "❌ Nur Dateien im folgenden Format sind erlaubt .txt."
     COOKIES_INVALID_COOKIE_MSG = "❌ The file does not look like cookie.txt (there is no line '# Netscape HTTP Cookie File')."
     COOKIES_ERROR_READING_MSG = "❌ Error reading file: {error}"
     COOKIES_FILE_EXISTS_MSG = "✅ Cookie file exists and has correct format"
     COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {service} cookie file is too large! Max 100KB, got {size}KB."
     COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ {service} cookie file downloaded and saved as cookie.txt in your folder.</b>"
-    COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ {service} cookie source is unavailable (status {status}). Please try again later."
-    COOKIES_ERROR_DOWNLOADING_MSG = "❌ Error downloading {service} cookie file. Please try again later."
-    COOKIES_USER_PROVIDED_MSG = "<b>✅ User provided a new cookie file.</b>"
-    COOKIES_SUCCESSFULLY_UPDATED_MSG = "<b>✅ Cookie successfully updated:</b>\n<code>{final_cookie}</code>"
-    COOKIES_NOT_VALID_MSG = "<b>❌ Not a valid cookie.</b>"
-    COOKIES_YOUTUBE_SOURCES_NOT_CONFIGURED_MSG = "❌ YouTube cookie sources are not configured!"
-    COOKIES_DOWNLOADING_YOUTUBE_MSG = "🔄 Downloading and checking YouTube cookies...\n\nAttempt {attempt} of {total}"
+    COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ {service} Cookie-Quelle ist nicht verfügbar (Status {status}). Bitte versuchen Sie es später erneut."
+    COOKIES_ERROR_DOWNLOADING_MSG = "❌ Fehler beim Herunterladen der {service} Cookie-Datei. Bitte versuchen Sie es später erneut."
+    COOKIES_USER_PROVIDED_MSG = "<b>✅ Benutzer hat eine neue Cookie-Datei bereitgestellt.</b>"
+    COOKIES_SUCCESSFULLY_UPDATED_MSG = "<b>✅ Cookie erfolgreich aktualisiert:</b>\n<code>{final_cookie}</code>"
+    COOKIES_NOT_VALID_MSG = "<b>❌ Kein gültiges Cookie.</b>"
+    COOKIES_YOUTUBE_SOURCES_NOT_CONFIGURED_MSG = "❌ YouTube Cookie-Quellen sind nicht konfiguriert!"
+    COOKIES_DOWNLOADING_YOUTUBE_MSG = "🔄 YouTube-Cookies werden heruntergeladen und überprüft...\n\nVersuch {attempt} von {total}"
     
     # Additional admin command messages
-    ADMIN_ACCESS_DENIED_AUTO_DELETE_MSG = "❌ Access denied. Admin only."
-    ADMIN_USER_LOGS_TOTAL_MSG = "Total: <b>{total}</b>\n<b>{user_id}</b> - logs (Last 10):\n\n{format_str}"
+    ADMIN_ACCESS_DENIED_AUTO_DELETE_MSG = "❌ Zugriff verweigert. Nur für Administratoren."
+    ADMIN_USER_LOGS_TOTAL_MSG = "Gesamt: <b>{total}</b>\n<b>{user_id}</b> - Protokolle (Letzte 10):\n\n{format_str}"
     
     # Additional keyboard command messages
-    KEYBOARD_ACTIVATED_MSG = "🎹 keyboard activated!"
+    KEYBOARD_ACTIVATED_MSG = "🎹 Tastatur aktiviert!"
     
     # Additional subtitles command messages
-    SUBS_LANGUAGE_SET_MSG = "✅ Subtitle language set to: {flag} {name}"
-    SUBS_LANGUAGE_AUTO_SET_MSG = "✅ Subtitle language set to: {flag} {name} with AUTO/TRANS enabled."
-    SUBS_LANGUAGE_MENU_CLOSED_MSG = "Subtitle language menu closed."
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
+    SUBS_LANGUAGE_SET_MSG = "✅ Untertitel-Sprache auf gesetzt: {flag} {name}"
+    SUBS_LANGUAGE_AUTO_SET_MSG = "✅ Untertitel-Sprache auf gesetzt: {flag} {name} mit AUTO/TRANS aktiviert."
+    SUBS_LANGUAGE_MENU_CLOSED_MSG = "Untertitel-Sprachen-Menü geschlossen."
+    SUBS_DOWNLOADING_MSG = "💬 Untertitel werden heruntergeladen..."
     
     # Additional admin command messages
-    ADMIN_RELOADING_CACHE_MSG = "🔄 Reloading Firebase cache into memory..."
+    ADMIN_RELOADING_CACHE_MSG = "🔄 Firebase-Cache wird in den Speicher neu geladen..."
     
     # Additional cookies command messages
     COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ No COOKIE_URL configured. Use /cookie or upload cookie.txt."
-    COOKIES_DOWNLOADING_FROM_URL_MSG = "📥 Downloading cookies from remote URL..."
+    COOKIES_DOWNLOADING_FROM_URL_MSG = "📥 Cookies werden von Remote-URL heruntergeladen..."
     COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL must point to a .txt file."
     COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
     COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
@@ -1017,38 +1017,38 @@ Verwenden Sie:
     COOKIES_YOUTUBE_EXPIRED_INVALID_MSG = "❌ YouTube cookies are expired or invalid\n\nUse /cookie to get new cookies"
     
     # Additional format command messages
-    FORMAT_MENU_ADDITIONAL_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format\n• <code>/format 720</code> - 720p quality\n• <code>/format 4k</code> - 4K quality"
+    FORMAT_MENU_ADDITIONAL_MSG = "• <code>/format &lt;format_string&gt;</code> - benutzerdefiniertes Format\n• <code>/format 720</code> - 720p Qualität\n• <code>/format 4k</code> - 4K Qualität"
     
     # Callback answer messages
-    FORMAT_HINT_SENT_MSG = "Hint sent."
-    FORMAT_MKV_TOGGLE_MSG = "MKV is now {status}"
-    COOKIES_NO_REMOTE_URL_MSG = "❌ No remote URL configured"
-    COOKIES_INVALID_FILE_FORMAT_MSG = "❌ Invalid file format"
+    FORMAT_HINT_SENT_MSG = "Hinweis gesendet."
+    FORMAT_MKV_TOGGLE_MSG = "MKV ist jetzt {status}"
+    COOKIES_NO_REMOTE_URL_MSG = "❌ Keine Remote-URL konfiguriert"
+    COOKIES_INVALID_FILE_FORMAT_MSG = "❌ Ungültiges Dateiformat"
     COOKIES_FILE_TOO_LARGE_CALLBACK_MSG = "❌ File too large"
     COOKIES_DOWNLOADED_SUCCESSFULLY_MSG = "✅ Cookies downloaded successfully"
-    COOKIES_SERVER_ERROR_MSG = "❌ Server error {status}"
+    COOKIES_SERVER_ERROR_MSG = "❌ Serverfehler {status}"
     COOKIES_DOWNLOAD_FAILED_MSG = "❌ Download failed"
     COOKIES_UNEXPECTED_ERROR_MSG = "❌ Unexpected error"
     COOKIES_BROWSER_NOT_INSTALLED_CALLBACK_MSG = "⚠️ Browser not installed."
-    COOKIES_MENU_CLOSED_MSG = "Menu closed."
-    COOKIES_HINT_CLOSED_MSG = "Cookie hint closed."
-    IMG_HELP_CLOSED_MSG = "Help closed."
-    SUBS_LANGUAGE_UPDATED_MSG = "Subtitle language settings updated."
-    SUBS_MENU_CLOSED_MSG = "Subtitle language menu closed."
-    KEYBOARD_SET_TO_MSG = "Keyboard set to {setting}"
-    KEYBOARD_ERROR_PROCESSING_MSG = "Error processing setting"
-    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo disabled."
-    NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW blur disabled."
-    NSFW_BLUR_ENABLED_CALLBACK_MSG = "NSFW blur enabled."
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
-    SETTINGS_FLOOD_WAIT_ACTIVE_MSG = "Flood wait active. Try later."
-    OTHER_HELP_CLOSED_MSG = "Help closed."
-    OTHER_LOGS_MESSAGE_CLOSED_MSG = "Logs message closed."
+    COOKIES_MENU_CLOSED_MSG = "Menü geschlossen."
+    COOKIES_HINT_CLOSED_MSG = "Cookie-Hinweis geschlossen."
+    IMG_HELP_CLOSED_MSG = "Hilfe geschlossen."
+    SUBS_LANGUAGE_UPDATED_MSG = "Untertitel-Spracheinstellungen aktualisiert."
+    SUBS_MENU_CLOSED_MSG = "Untertitel-Sprachen-Menü geschlossen."
+    KEYBOARD_SET_TO_MSG = "Tastatur auf {setting} gesetzt"
+    KEYBOARD_ERROR_PROCESSING_MSG = "Fehler beim Verarbeiten der Einstellung"
+    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo aktiviert."
+    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo deaktiviert."
+    NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW-Unschärfe deaktiviert."
+    NSFW_BLUR_ENABLED_CALLBACK_MSG = "NSFW-Unschärfe aktiviert."
+    SETTINGS_MENU_CLOSED_MSG = "Menü geschlossen."
+    SETTINGS_FLOOD_WAIT_ACTIVE_MSG = "Flood-Wartezeit aktiv. Versuchen Sie es später."
+    OTHER_HELP_CLOSED_MSG = "Hilfe geschlossen."
+    OTHER_LOGS_MESSAGE_CLOSED_MSG = "Protokoll-Nachricht geschlossen."
     
     # Additional split command messages
-    SPLIT_MENU_CLOSED_MSG = "Menu closed."
-    SPLIT_INVALID_SIZE_CALLBACK_MSG = "Invalid size."
+    SPLIT_MENU_CLOSED_MSG = "Menü geschlossen."
+    SPLIT_INVALID_SIZE_CALLBACK_MSG = "Ungültige Größe."
     
     # Additional error messages
     MEDIAINFO_ERROR_SENDING_MSG = "❌ Error sending MediaInfo: {error}"
@@ -1065,82 +1065,82 @@ Verwenden Sie:
     SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
     SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
     BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
-    COOKIES_FAILED_RUN_CHECK_MSG = "❌ Failed to run /check_cookie"
+    COOKIES_FAILED_RUN_CHECK_MSG = "❌ /check_cookie konnte nicht ausgeführt werden"
     COOKIES_FLOOD_LIMIT_MSG = "⏳ Flood limit. Try later."
     COOKIES_FAILED_OPEN_BROWSER_MSG = "❌ Failed to open browser cookie menu"
     COOKIES_SAVE_AS_HINT_CLOSED_MSG = "Save as cookie hint closed."
     
     # Link command messages
-    LINK_USAGE_MSG = "🔗 <b>Usage:</b>\n<code>/link [quality] URL</code>\n\n<b>Examples:</b>\n<blockquote>• /link https://youtube.com/watch?v=... - best quality\n• /link 720 https://youtube.com/watch?v=... - 720p or lower\n• /link 720p https://youtube.com/watch?v=... - same as above\n• /link 4k https://youtube.com/watch?v=... - 4K or lower\n• /link 8k https://youtube.com/watch?v=... - 8K or lower</blockquote>\n\n<b>Quality:</b> from 1 to 10000 (e.g., 144, 240, 720, 1080)"
+    LINK_USAGE_MSG = "🔗 <b>Verwendung:</b>\n<code>/link [Qualität] URL</code>\n\n<b>Beispiele:</b>\n<blockquote>• /link https://youtube.com/watch?v=... - beste Qualität\n• /link 720 https://youtube.com/watch?v=... - 720p oder niedriger\n• /link 720p https://youtube.com/watch?v=... - wie oben\n• /link 4k https://youtube.com/watch?v=... - 4K oder niedriger\n• /link 8k https://youtube.com/watch?v=... - 8K oder niedriger</blockquote>\n\n<b>Qualität:</b> von 1 bis 10000 (z.B. 144, 240, 720, 1080)"
     
     # Additional format command messages
-    FORMAT_8K_QUALITY_MSG = "• <code>/format 8k</code> - 8K quality"
+    FORMAT_8K_QUALITY_MSG = "• <code>/format 8k</code> - 8K Qualität"
     
     # Additional link command messages
-    LINK_DIRECT_LINK_OBTAINED_MSG = "🔗 <b>Direct link obtained</b>\n\n"
+    LINK_DIRECT_LINK_OBTAINED_MSG = "🔗 <b>Direkter Link erhalten</b>\n\n"
     LINK_FORMAT_INFO_MSG = "🎛 <b>Format:</b> <code>{format_spec}</code>\n\n"
-    LINK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>\n<blockquote expandable><a href=\"{audio_url}\">{audio_url}</a></blockquote>\n\n"
-    LINK_FAILED_GET_STREAMS_MSG = "❌ Failed to get stream links"
-    LINK_ERROR_GETTING_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
+    LINK_AUDIO_STREAM_MSG = "🎵 <b>Audio-Stream:</b>\n<blockquote expandable><a href=\"{audio_url}\">{audio_url}</a></blockquote>\n\n"
+    LINK_FAILED_GET_STREAMS_MSG = "❌ Stream-Links konnten nicht abgerufen werden"
+    LINK_ERROR_GETTING_MSG = "❌ <b>Fehler beim Abrufen des Links:</b>\n{error_msg}"
     
     # Additional cookies command messages (more)
     COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Invalid YouTube cookie index: {selected_index}. Available range is 1-{total_urls}"
-    COOKIES_DOWNLOADING_CHECKING_MSG = "🔄 Downloading and checking YouTube cookies...\n\nAttempt {attempt} of {total}"
-    COOKIES_DOWNLOADING_TESTING_MSG = "🔄 Downloading and checking YouTube cookies...\n\nAttempt {attempt} of {total}\n🔍 Testing cookies..."
+    COOKIES_DOWNLOADING_CHECKING_MSG = "🔄 YouTube-Cookies werden heruntergeladen und überprüft...\n\nVersuch {attempt} von {total}"
+    COOKIES_DOWNLOADING_TESTING_MSG = "🔄 YouTube-Cookies werden heruntergeladen und überprüft...\n\nVersuch {attempt} von {total}\n🔍 Cookies werden getestet..."
     COOKIES_SUCCESS_VALIDATED_MSG = "✅ YouTube cookies successfully downloaded and validated!\n\nUsed source {source} of {total}"
     COOKIES_ALL_EXPIRED_MSG = "❌ All YouTube cookies are expired or unavailable!\n\nContact the bot administrator to replace them."
-    COOKIES_YOUTUBE_RETRY_LIMIT_EXCEEDED_MSG = "⚠️ YouTube cookie retry limit exceeded!\n\n🔢 Maximum: {limit} attempts per hour\n⏰ Please try again later"
+    COOKIES_YOUTUBE_RETRY_LIMIT_EXCEEDED_MSG = "⚠️ YouTube Cookie-Wiederholungslimit überschritten!\n\n🔢 Maximum: {limit} Versuche pro Stunde\n⏰ Bitte versuchen Sie es später erneut"
     
     # Additional other command messages
     OTHER_TAG_ERROR_MSG = "❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
     
     # Additional subtitles command messages
     SUBS_INVALID_ARGUMENT_MSG = "❌ **Invalid argument!**\n\n"
-    SUBS_LANGUAGE_SET_STATUS_MSG = "✅ Subtitle language set: {flag} {name}"
+    SUBS_LANGUAGE_SET_STATUS_MSG = "✅ Untertitel-Sprache gesetzt: {flag} {name}"
     
     # Additional subtitles command messages (more)
-    SUBS_EXAMPLE_AUTO_MSG = "Example: `/subs en auto`"
+    SUBS_EXAMPLE_AUTO_MSG = "Beispiel: `/subs en auto`"
     
     # Additional subtitles command messages (more more)
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask mode {status}"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Ausgewählte Sprache: {name}{auto_text}"
+    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask Modus {status}"
     
     # Additional subtitles menu messages
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SETTINGS_MENU_MSG = "<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
-    SUBS_SETTINGS_ADDITIONAL_MSG = "• <code>/subs off</code> - disable subtitles\n"
-    SUBS_AUTO_MENU_MSG = "<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:"
+    SUBS_DISABLED_STATUS_MSG = "🚫 Untertitel sind deaktiviert"
+    SUBS_SETTINGS_MENU_MSG = "<b>💬 Untertitel-Einstellungen</b>\n\n{status_text}\n\nUntertitel-Sprache auswählen:\n\n"
+    SUBS_SETTINGS_ADDITIONAL_MSG = "• <code>/subs off</code> - Untertitel deaktivieren\n"
+    SUBS_AUTO_MENU_MSG = "<b>💬 Untertitel-Einstellungen</b>\n\n{status_text}\n\nUntertitel-Sprache auswählen:"
     
     # Additional link command messages (more)
-    LINK_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    LINK_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
-    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>\n<blockquote expandable><a href=\"{video_url}\">{video_url}</a></blockquote>\n\n"
+    LINK_TITLE_MSG = "📹 <b>Titel:</b> {title}\n"
+    LINK_DURATION_MSG = "⏱ <b>Dauer:</b> {duration} Sek\n"
+    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video-Stream:</b>\n<blockquote expandable><a href=\"{video_url}\">{video_url}</a></blockquote>\n\n"
     
     # Additional subtitles limitation messages
-    SUBS_LIMITATIONS_MSG = "- 720p max quality\n- 1.5 hour max duration\n- 500mb max video size</blockquote>\n\n"
+    SUBS_LIMITATIONS_MSG = "- 720p maximale Qualität\n- 1.5 Stunden maximale Dauer\n- 500mb maximale Videogröße</blockquote>\n\n"
     
     # Additional subtitles warning and command messages
-    SUBS_WARNING_MSG = "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
-    SUBS_QUICK_COMMANDS_MSG = "<b>Quick commands:</b>\n"
+    SUBS_WARNING_MSG = "<blockquote>❗️WARNUNG: Aufgrund hoher CPU-Belastung ist diese Funktion sehr langsam (nahezu Echtzeit) und beschränkt auf:\n"
+    SUBS_QUICK_COMMANDS_MSG = "<b>Schnellbefehle:</b>\n"
     
     # Additional subtitles command description messages
-    SUBS_DISABLE_COMMAND_MSG = "• `/subs off` - disable subtitles\n"
-    SUBS_ENABLE_ASK_MODE_MSG = "• `/subs on` - enable Always Ask mode\n"
-    SUBS_SET_LANGUAGE_MSG = "• `/subs ru` - set language\n"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• `/subs ru auto` - set language with AUTO/TRANS enabled\n\n"
-    SUBS_SET_LANGUAGE_CODE_MSG = "• <code>/subs on</code> - enable Always Ask mode\n"
-    SUBS_AUTO_SUBS_TEXT = " (auto-subs)"
-    SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Auto-subs mode {status}"
+    SUBS_DISABLE_COMMAND_MSG = "• `/subs off` - Untertitel deaktivieren\n"
+    SUBS_ENABLE_ASK_MODE_MSG = "• `/subs on` - Always Ask Modus aktivieren\n"
+    SUBS_SET_LANGUAGE_MSG = "• `/subs ru` - Sprache festlegen\n"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• `/subs ru auto` - Sprache mit AUTO/TRANS aktiviert festlegen\n\n"
+    SUBS_SET_LANGUAGE_CODE_MSG = "• <code>/subs on</code> - Always Ask Modus aktivieren\n"
+    SUBS_AUTO_SUBS_TEXT = " (Auto-Untertitel)"
+    SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Auto-Untertitel Modus {status}"
     
     # Subtitles log messages
     SUBS_DISABLED_LOG_MSG = "SUBS disabled via command: {arg}"
-    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Always Ask enabled via command: {arg}"
-    SUBS_LANGUAGE_SET_LOG_MSG = "SUBS language set via command: {arg}"
-    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "SUBS language + auto mode set via command: {arg} auto"
-    SUBS_MENU_OPENED_LOG_MSG = "User opened /subs menu."
-    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "User set subtitle language to: {lang_code}"
-    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "User toggled AUTO/TRANS mode to: {new_auto}"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "User toggled Always Ask mode to: {new_always_ask}"
+    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Always Ask über Befehl aktiviert: {arg}"
+    SUBS_LANGUAGE_SET_LOG_MSG = "SUBS Sprache über Befehl gesetzt: {arg}"
+    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "SUBS Sprache + Auto-Modus über Befehl gesetzt: {arg} auto"
+    SUBS_MENU_OPENED_LOG_MSG = "Benutzer hat /subs Menü geöffnet."
+    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "Benutzer hat Untertitel-Sprache gesetzt auf: {lang_code}"
+    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "Benutzer hat AUTO/TRANS Modus umgeschaltet auf: {new_auto}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Benutzer hat Always Ask Modus umgeschaltet auf: {new_always_ask}"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "User requested cookies from browser."
@@ -1168,37 +1168,37 @@ Verwenden Sie:
     ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Error running {script_path}: {stdout}\n{stderr}"
     ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase cache reloaded by auto task."
     ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase cache reloaded by admin."
-    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Error reloading Firebase cache: {error}"
-    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Broadcast initiated. Text:\n{broadcast_text}"
-    ADMIN_BROADCAST_SENT_LOG_MSG = "Broadcast message sent to all users."
-    ADMIN_BROADCAST_FAILED_LOG_MSG = "Failed to broadcast message: {error}"
-    ADMIN_CACHE_CLEARED_LOG_MSG = "Admin {user_id} cleared cache for URL: {url}"
-    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "Admin {user_id} started porn list update script: {script_path}"
-    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "Porn list update script completed successfully by admin {user_id}"
-    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "Porn list update script failed by admin {user_id}: {error}"
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Admin {user_id} tried to run non-existent script: {script_path}"
-    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "Error running porn update script by admin {user_id}: {error}"
-    ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "Admin {user_id} started porn cache reload"
-    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "Error reloading porn cache by admin {user_id}: {error}"
-    ADMIN_PORN_CHECK_LOG_MSG = "Admin {user_id} checked URL for NSFW: {url} - Result: {status}"
+    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Fehler beim Neuladen des Firebase-Cache: {error}"
+    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Broadcast initiiert. Text:\n{broadcast_text}"
+    ADMIN_BROADCAST_SENT_LOG_MSG = "Broadcast-Nachricht an alle Benutzer gesendet."
+    ADMIN_BROADCAST_FAILED_LOG_MSG = "Broadcast-Nachricht konnte nicht gesendet werden: {error}"
+    ADMIN_CACHE_CLEARED_LOG_MSG = "Admin {user_id} hat Cache für URL gelöscht: {url}"
+    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "Admin {user_id} hat Porn-Liste-Update-Skript gestartet: {script_path}"
+    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "Porn-Liste-Update-Skript erfolgreich abgeschlossen von Admin {user_id}"
+    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "Porn-Liste-Update-Skript fehlgeschlagen von Admin {user_id}: {error}"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Admin {user_id} hat versucht, nicht existierendes Skript auszuführen: {script_path}"
+    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "Fehler beim Ausführen des Porn-Update-Skripts von Admin {user_id}: {error}"
+    ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "Admin {user_id} hat Porn-Cache-Neuladen gestartet"
+    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "Fehler beim Neuladen des Porn-Cache von Admin {user_id}: {error}"
+    ADMIN_PORN_CHECK_LOG_MSG = "Admin {user_id} hat URL auf NSFW überprüft: {url} - Ergebnis: {status}"
     
     # Format log messages
-    FORMAT_CHANGE_REQUESTED_LOG_MSG = "User requested format change."
-    FORMAT_ALWAYS_ASK_SET_LOG_MSG = "Format set to ALWAYS_ASK."
-    FORMAT_UPDATED_BEST_LOG_MSG = "Format updated to best: {format}"
-    FORMAT_UPDATED_ID_LOG_MSG = "Format updated to ID {format_id}: {format}"
-    FORMAT_UPDATED_ID_AUDIO_LOG_MSG = "Format updated to ID {format_id} (audio-only): {format}"
-    FORMAT_UPDATED_QUALITY_LOG_MSG = "Format updated to quality {quality}: {format}"
-    FORMAT_UPDATED_CUSTOM_LOG_MSG = "Format updated to: {format}"
-    FORMAT_MENU_SENT_LOG_MSG = "Format menu sent."
-    FORMAT_SELECTION_CLOSED_LOG_MSG = "Format selection closed."
-    FORMAT_CUSTOM_HINT_SENT_LOG_MSG = "Custom format hint sent."
+    FORMAT_CHANGE_REQUESTED_LOG_MSG = "Benutzer hat Format-Änderung angefordert."
+    FORMAT_ALWAYS_ASK_SET_LOG_MSG = "Format auf ALWAYS_ASK gesetzt."
+    FORMAT_UPDATED_BEST_LOG_MSG = "Format auf beste aktualisiert: {format}"
+    FORMAT_UPDATED_ID_LOG_MSG = "Format auf ID {format_id} aktualisiert: {format}"
+    FORMAT_UPDATED_ID_AUDIO_LOG_MSG = "Format auf ID {format_id} aktualisiert (Nur-Audio): {format}"
+    FORMAT_UPDATED_QUALITY_LOG_MSG = "Format auf Qualität {quality} aktualisiert: {format}"
+    FORMAT_UPDATED_CUSTOM_LOG_MSG = "Format aktualisiert auf: {format}"
+    FORMAT_MENU_SENT_LOG_MSG = "Format-Menü gesendet."
+    FORMAT_SELECTION_CLOSED_LOG_MSG = "Format-Auswahl geschlossen."
+    FORMAT_CUSTOM_HINT_SENT_LOG_MSG = "Benutzerdefinierter Format-Hinweis gesendet."
     FORMAT_RESOLUTION_MENU_SENT_LOG_MSG = "Format resolution menu sent."
     FORMAT_RETURNED_MAIN_MENU_LOG_MSG = "Returned to main format menu."
     FORMAT_UPDATED_CALLBACK_LOG_MSG = "Format updated to: {format}"
     FORMAT_ALWAYS_ASK_SET_CALLBACK_LOG_MSG = "Format set to ALWAYS_ASK."
     FORMAT_CODEC_SET_LOG_MSG = "Codec preference set to {codec}"
-    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Custom format menu closed"
+    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Benutzerdefiniertes Format-Menü geschlossen"
     
     # Link log messages
     LINK_EXTRACTED_LOG_MSG = "Direct link extracted for user {user_id} from {url}"
@@ -1213,8 +1213,8 @@ Verwenden Sie:
     MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo set via command: {arg}"
     MEDIAINFO_MENU_OPENED_LOG_MSG = "User opened /mediainfo menu."
     MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: closed."
-    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo disabled."
+    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo aktiviert."
+    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo deaktiviert."
     
     # Split log messages
     SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "Split size set to {size} bytes via argument."
@@ -1233,18 +1233,18 @@ Verwenden Sie:
     HELP_MESSAGE_CLOSED_LOG_MSG = "Help message closed."
     AUDIO_HELP_SHOWN_LOG_MSG = "Showed /audio help"
     PLAYLIST_HELP_REQUESTED_LOG_MSG = "User requested playlist help."
-    PLAYLIST_HELP_CLOSED_LOG_MSG = "Playlist help closed."
-    AUDIO_HINT_CLOSED_LOG_MSG = "Audio hint closed."
+    PLAYLIST_HELP_CLOSED_LOG_MSG = "Wiedergabeliste-Hilfe geschlossen."
+    AUDIO_HINT_CLOSED_LOG_MSG = "Audio-Hinweis geschlossen."
     
     # Down and Up log messages
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direct link menu created via LINK button for user {user_id} from {url}"
     DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link via LINK button for user {user_id} from {url}: {error}"
     LIST_COMMAND_EXECUTED_LOG_MSG = "LIST command executed for user {user_id}, url: {url}"
     QUICK_EMBED_LOG_MSG = "Quick Embed: {embed_url}"
-    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Always Ask menu sent for {url}"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Created cached qualities menu for user {user_id} after error: {error}"
-    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Always Ask menu error for {url}: {error}"
-    ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Format is fixed via /args settings"
+    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Always Ask Menü gesendet für {url}"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Gecachte Qualitäten-Menü für Benutzer {user_id} nach Fehler erstellt: {error}"
+    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Always Ask Menü-Fehler für {url}: {error}"
+    ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Format ist über /args Einstellungen festgelegt"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Audio"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "Video"
     ALWAYS_ASK_VIDEO_TITLE_MSG = "Video"
@@ -1252,16 +1252,16 @@ Verwenden Sie:
     ALWAYS_ASK_PREV_BUTTON_MSG = "◀️ Prev"
     SUBTITLES_NEXT_BUTTON_MSG = "Next ➡️"
     PORN_ALL_TEXT_FIELDS_EMPTY_MSG = "ℹ️ All text fields are empty"
-    SENDER_VIDEO_DURATION_MSG = "Video duration:"
-    SENDER_UPLOADING_FILE_MSG = "📤 Uploading file..."
-    SENDER_UPLOADING_VIDEO_MSG = "📤 Uploading Video..."
-    DOWN_UP_VIDEO_DURATION_MSG = "🎞 Video duration:"
-    DOWN_UP_ONE_FILE_UPLOADED_MSG = "1 file uploaded."
-    DOWN_UP_VIDEO_INFO_MSG = "📋 Video Info"
-    DOWN_UP_NUMBER_MSG = "Number"
-    DOWN_UP_TITLE_MSG = "Title"
+    SENDER_VIDEO_DURATION_MSG = "Video-Dauer:"
+    SENDER_UPLOADING_FILE_MSG = "📤 Datei wird hochgeladen..."
+    SENDER_UPLOADING_VIDEO_MSG = "📤 Video wird hochgeladen..."
+    DOWN_UP_VIDEO_DURATION_MSG = "🎞 Video-Dauer:"
+    DOWN_UP_ONE_FILE_UPLOADED_MSG = "1 Datei hochgeladen."
+    DOWN_UP_VIDEO_INFO_MSG = "📋 Video-Info"
+    DOWN_UP_NUMBER_MSG = "Nummer"
+    DOWN_UP_TITLE_MSG = "Titel"
     DOWN_UP_ID_MSG = "ID"
-    DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑️ Downloaded video."
+    DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑️ Video heruntergeladen."
     DOWN_UP_PROCESSING_UPLOAD_MSG = "📤 Processing for upload..."
     DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "📤 Splitted part {part} file uploaded"
     DOWN_UP_UPLOAD_COMPLETE_MSG = "✅ Upload complete"
@@ -1278,117 +1278,117 @@ Verwenden Sie:
     
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Getting direct link..."
-    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Getting available formats..."
-    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Getting video description..."
-    AA_ERROR_GETTING_CAPTION_MSG = "❌ Error getting description: {error_msg}"
-    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Video description is not available"
-    AA_ERROR_SENDING_CAPTION_MSG = "❌ Error sending description: {error_msg}"
-    CAPTION_SENT_LOG_MSG = "📝 Video description sent to user {user_id} for {url} ({title})"
-    ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Starting gallery-dl…"
+    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Verfügbare Formate werden abgerufen..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Videobeschreibung wird abgerufen..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ Fehler beim Abrufen der Beschreibung: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Videobeschreibung ist nicht verfügbar"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ Fehler beim Senden der Beschreibung: {error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 Videobeschreibung an Benutzer {user_id} für {url} ({title}) gesendet"
+    ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 gallery-dl wird gestartet…"
     
     # Always Ask Menu F-String Messages
-    ALWAYS_ASK_DURATION_MSG = "⏱ <b>Duration:</b>"
+    ALWAYS_ASK_DURATION_MSG = "⏱ <b>Dauer:</b>"
     ALWAYS_ASK_FORMAT_MSG = "🎛 <b>Format:</b>"
-    ALWAYS_ASK_BROWSER_MSG = "🌐 <b>Browser:</b> Open in web browser"
-    ALWAYS_ASK_AVAILABLE_FORMATS_FOR_MSG = "Available formats for"
-    ALWAYS_ASK_HOW_TO_USE_FORMAT_IDS_MSG = "💡 How to use format IDs:"
-    ALWAYS_ASK_AFTER_GETTING_LIST_MSG = "After getting the list, use specific format ID:"
-    ALWAYS_ASK_FORMAT_ID_401_MSG = "• /format id 401 - download format 401"
-    ALWAYS_ASK_FORMAT_ID401_MSG = "• /format id401 - same as above"
-    ALWAYS_ASK_FORMAT_ID_140_AUDIO_MSG = "• /format id 140 audio - download format 140 as MP3 audio"
-    ALWAYS_ASK_AUDIO_ONLY_FORMATS_DETECTED_MSG = "🎵 Audio-only formats detected"
-    ALWAYS_ASK_THESE_FORMATS_MP3_MSG = "These formats will be downloaded as MP3 audio files."
-    ALWAYS_ASK_HOW_TO_SET_FORMAT_MSG = "💡 <b>How to set format:</b>"
-    ALWAYS_ASK_FORMAT_ID_134_MSG = "• <code>/format id 134</code> - Download specific format ID"
-    ALWAYS_ASK_FORMAT_720P_MSG = "• <code>/format 720p</code> - Download by quality"
-    ALWAYS_ASK_FORMAT_BEST_MSG = "• <code>/format best</code> - Download best quality"
-    ALWAYS_ASK_FORMAT_ASK_MSG = "• <code>/format ask</code> - Always ask for quality"
-    ALWAYS_ASK_AUDIO_ONLY_FORMATS_MSG = "🎵 <b>Audio-only formats:</b>"
-    ALWAYS_ASK_FORMAT_ID_140_AUDIO_CAPTION_MSG = "• <code>/format id 140 audio</code> - Download format 140 as MP3 audio"
-    ALWAYS_ASK_THESE_WILL_BE_MP3_MSG = "These will be downloaded as MP3 audio files."
-    ALWAYS_ASK_USE_FORMAT_ID_MSG = "📋 Use format ID from the list above"
-    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG = "❌ Error: Original message not found."
-    ALWAYS_ASK_FORMATS_PAGE_MSG = "Formats page"
-    ALWAYS_ASK_ERROR_SHOWING_FORMATS_MENU_MSG = "❌ Error showing formats menu"
-    ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ Error getting formats"
-    ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ Error getting available formats."
-    ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "Please try again later."
-    ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp cannot process this content"
-    ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "The system recommends using gallery-dl instead."
-    ALWAYS_ASK_OPTIONS_MSG = "**Options:**"
-    ALWAYS_ASK_FOR_IMAGE_GALLERIES_MSG = "• For image galleries: <code>/img 1-10</code>"
-    ALWAYS_ASK_FOR_SINGLE_IMAGES_MSG = "• For single images: <code>/img</code>"
-    ALWAYS_ASK_GALLERY_DL_WORKS_BETTER_MSG = "Gallery-dl often works better for Instagram, Twitter, and other social media content."
-    ALWAYS_ASK_TRY_GALLERY_DL_BUTTON_MSG = "🖼 Try Gallery-dl"
-    ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "🔒 Format fixed via /args"
-    ALWAYS_ASK_SUBTITLES_MSG = "🔤 Subtitles"
-    ALWAYS_ASK_DUBBED_AUDIO_MSG = "🎧 Dubbed audio"
-    ALWAYS_ASK_SUBTITLES_ARE_AVAILABLE_MSG = "💬 — Subtitles are available"
-    ALWAYS_ASK_CHOOSE_SUBTITLE_LANGUAGE_MSG = "💬 — Choose subtitle language"
-    ALWAYS_ASK_SUBS_NOT_FOUND_MSG = "⚠️ Subs not found & won't embed"
-    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Instant repost from cache"
-    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Choose audio language"
-    ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW is paid (⭐️$0.02)"
-    ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Choose download quality"
-    ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Download image (gallery-dl)"
-    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Get direct link to video"
-    ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Show available formats list"
-    ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Change video ext/codec"
-    ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Embed"
-    ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Extract only audio"
-    ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW is paid (⭐️$0.02)"
-    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Instant repost from cache"
-    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Choose audio language"
-    ALWAYS_ASK_BEST_BUTTON_MSG = "Best"
-    ALWAYS_ASK_OTHER_LABEL_MSG = "🎛Other"
-    ALWAYS_ASK_SUB_ONLY_BUTTON_MSG = "📝sub only"
-    ALWAYS_ASK_SMART_GROUPING_MSG = "Smart grouping"
-    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROW_3_MSG = "Added action button row (3)"
-    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROWS_2_2_MSG = "Added action button rows (2+2)"
-    ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "Added bottom buttons to existing row"
-    ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "Created new bottom row"
-    ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "No videos found in playlist"
-    ALWAYS_ASK_UNSUPPORTED_URL_MSG = "Unsupported URL"
-    ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "No video could be found"
-    ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "No video found"
-    ALWAYS_ASK_NO_MEDIA_FOUND_MSG = "No media found"
-    ALWAYS_ASK_THIS_TWEET_DOES_NOT_CONTAIN_MSG = "This tweet does not contain"
-    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG = "❌ <b>Error retrieving video information:</b>"
-    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG = "Error retrieving video information"
-    ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "Try the <code>/clean</code> command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via <code>/cookie</code> or <code>/cookies_from_browser</code> and try again."
-    ALWAYS_ASK_MENU_CLOSED_MSG = "Menu closed."
-    ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 Manual Quality Selection"
-    ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG = "Choose quality manually since automatic detection failed:"
-    ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG = "🎛 All Available Formats"
-    ALWAYS_ASK_AVAILABLE_QUALITIES_FROM_CACHE_MSG = "📹 Available Qualities (from cache)"
-    ALWAYS_ASK_USING_CACHED_QUALITIES_MSG = "⚠️ Using cached qualities - new formats may not be available"
-    ALWAYS_ASK_DOWNLOADING_FORMAT_MSG = "📥 Downloading format"
-    ALWAYS_ASK_DOWNLOADING_QUALITY_MSG = "📥 Downloading"
-    ALWAYS_ASK_DOWNLOADING_HLS_MSG = "📥 Downloading with progress tracking..."
-    ALWAYS_ASK_DOWNLOADING_FORMAT_USING_MSG = "📥 Downloading using format:"
-    ALWAYS_ASK_DOWNLOADING_AUDIO_FORMAT_USING_MSG = "📥 Downloading audio using format:"
-    ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG = "📥 Downloading best quality..."
-    ALWAYS_ASK_DOWNLOADING_DATABASE_MSG = "📥 Downloading database dump..."
-    ALWAYS_ASK_DOWNLOADING_IMAGES_MSG = "📥 Downloading"
-    ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG = "Formats page"
-    ALWAYS_ASK_FROM_CACHE_MSG = "(from cache)"
-    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_DETAILED_MSG = "❌ Error: Original message not found. It might have been deleted. Please send the link again."
-    ALWAYS_ASK_ERROR_ORIGINAL_URL_NOT_FOUND_MSG = "❌ Error: Original URL not found. Please send the link again."
-    ALWAYS_ASK_DIRECT_LINK_OBTAINED_MSG = "🔗 <b>Direct link obtained</b>"
-    ALWAYS_ASK_TITLE_MSG = "📹 <b>Title:</b>"
-    ALWAYS_ASK_DURATION_SEC_MSG = "⏱ <b>Duration:</b>"
+    ALWAYS_ASK_BROWSER_MSG = "🌐 <b>Browser:</b> Im Webbrowser öffnen"
+    ALWAYS_ASK_AVAILABLE_FORMATS_FOR_MSG = "Verfügbare Formate für"
+    ALWAYS_ASK_HOW_TO_USE_FORMAT_IDS_MSG = "💡 So verwenden Sie Format-IDs:"
+    ALWAYS_ASK_AFTER_GETTING_LIST_MSG = "Nach Erhalt der Liste verwenden Sie eine spezifische Format-ID:"
+    ALWAYS_ASK_FORMAT_ID_401_MSG = "• /format id 401 - Format 401 herunterladen"
+    ALWAYS_ASK_FORMAT_ID401_MSG = "• /format id401 - wie oben"
+    ALWAYS_ASK_FORMAT_ID_140_AUDIO_MSG = "• /format id 140 audio - Format 140 als MP3-Audio herunterladen"
+    ALWAYS_ASK_AUDIO_ONLY_FORMATS_DETECTED_MSG = "🎵 Nur-Audio-Formate erkannt"
+    ALWAYS_ASK_THESE_FORMATS_MP3_MSG = "Diese Formate werden als MP3-Audiodateien heruntergeladen."
+    ALWAYS_ASK_HOW_TO_SET_FORMAT_MSG = "💡 <b>So legen Sie das Format fest:</b>"
+    ALWAYS_ASK_FORMAT_ID_134_MSG = "• <code>/format id 134</code> - Spezifische Format-ID herunterladen"
+    ALWAYS_ASK_FORMAT_720P_MSG = "• <code>/format 720p</code> - Nach Qualität herunterladen"
+    ALWAYS_ASK_FORMAT_BEST_MSG = "• <code>/format best</code> - Beste Qualität herunterladen"
+    ALWAYS_ASK_FORMAT_ASK_MSG = "• <code>/format ask</code> - Immer nach Qualität fragen"
+    ALWAYS_ASK_AUDIO_ONLY_FORMATS_MSG = "🎵 <b>Nur-Audio-Formate:</b>"
+    ALWAYS_ASK_FORMAT_ID_140_AUDIO_CAPTION_MSG = "• <code>/format id 140 audio</code> - Format 140 als MP3-Audio herunterladen"
+    ALWAYS_ASK_THESE_WILL_BE_MP3_MSG = "Diese werden als MP3-Audiodateien heruntergeladen."
+    ALWAYS_ASK_USE_FORMAT_ID_MSG = "📋 Verwenden Sie Format-ID aus der Liste oben"
+    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG = "❌ Fehler: Ursprüngliche Nachricht nicht gefunden."
+    ALWAYS_ASK_FORMATS_PAGE_MSG = "Formate-Seite"
+    ALWAYS_ASK_ERROR_SHOWING_FORMATS_MENU_MSG = "❌ Fehler beim Anzeigen des Formate-Menüs"
+    ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ Fehler beim Abrufen der Formate"
+    ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ Fehler beim Abrufen verfügbarer Formate."
+    ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "Bitte versuchen Sie es später erneut."
+    ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp kann diesen Inhalt nicht verarbeiten"
+    ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "Das System empfiehlt stattdessen die Verwendung von gallery-dl."
+    ALWAYS_ASK_OPTIONS_MSG = "**Optionen:**"
+    ALWAYS_ASK_FOR_IMAGE_GALLERIES_MSG = "• Für Bildergalerien: <code>/img 1-10</code>"
+    ALWAYS_ASK_FOR_SINGLE_IMAGES_MSG = "• Für einzelne Bilder: <code>/img</code>"
+    ALWAYS_ASK_GALLERY_DL_WORKS_BETTER_MSG = "Gallery-dl funktioniert oft besser für Instagram, Twitter und andere Social-Media-Inhalte."
+    ALWAYS_ASK_TRY_GALLERY_DL_BUTTON_MSG = "🖼 Gallery-dl versuchen"
+    ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "🔒 Format über /args festgelegt"
+    ALWAYS_ASK_SUBTITLES_MSG = "🔤 Untertitel"
+    ALWAYS_ASK_DUBBED_AUDIO_MSG = "🎧 Synchronisierte Audio"
+    ALWAYS_ASK_SUBTITLES_ARE_AVAILABLE_MSG = "💬 — Untertitel sind verfügbar"
+    ALWAYS_ASK_CHOOSE_SUBTITLE_LANGUAGE_MSG = "💬 — Untertitel-Sprache auswählen"
+    ALWAYS_ASK_SUBS_NOT_FOUND_MSG = "⚠️ Untertitel nicht gefunden & werden nicht eingebettet"
+    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Sofortiger Repost aus Cache"
+    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Audio-Sprache auswählen"
+    ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW ist kostenpflichtig (⭐️$0.02)"
+    ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Download-Qualität auswählen"
+    ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Bild herunterladen (gallery-dl)"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Video in poketube ansehen"  # TEMPORARILY DISABLED: poketube service is down
+    ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Direkten Link zum Video erhalten"
+    ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Liste verfügbarer Formate anzeigen"
+    ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Video-Erweiterung/Codec ändern"
+    ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Einbetten"
+    ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Nur Audio extrahieren"
+    ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW ist kostenpflichtig (⭐️$0.02)"
+    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Sofortiger Repost aus Cache"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Video in poketube ansehen"  # TEMPORARILY DISABLED: poketube service is down
+    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Audio-Sprache auswählen"
+    ALWAYS_ASK_BEST_BUTTON_MSG = "Beste"
+    ALWAYS_ASK_OTHER_LABEL_MSG = "🎛Andere"
+    ALWAYS_ASK_SUB_ONLY_BUTTON_MSG = "📝nur Untertitel"
+    ALWAYS_ASK_SMART_GROUPING_MSG = "Intelligente Gruppierung"
+    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROW_3_MSG = "Aktions-Button-Zeile hinzugefügt (3)"
+    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROWS_2_2_MSG = "Aktions-Button-Zeilen hinzugefügt (2+2)"
+    ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "Untere Buttons zur bestehenden Zeile hinzugefügt"
+    ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "Neue untere Zeile erstellt"
+    ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "Keine Videos in Wiedergabeliste gefunden"
+    ALWAYS_ASK_UNSUPPORTED_URL_MSG = "Nicht unterstützte URL"
+    ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "Kein Video gefunden"
+    ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "Kein Video gefunden"
+    ALWAYS_ASK_NO_MEDIA_FOUND_MSG = "Keine Medien gefunden"
+    ALWAYS_ASK_THIS_TWEET_DOES_NOT_CONTAIN_MSG = "Dieser Tweet enthält nicht"
+    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG = "❌ <b>Fehler beim Abrufen der Videoinformationen:</b>"
+    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG = "Fehler beim Abrufen der Videoinformationen"
+    ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "Versuchen Sie den Befehl <code>/clean</code> und versuchen Sie es erneut. Wenn der Fehler weiterhin besteht, erfordert YouTube eine Autorisierung. Aktualisieren Sie cookies.txt über <code>/cookie</code> oder <code>/cookies_from_browser</code> und versuchen Sie es erneut."
+    ALWAYS_ASK_MENU_CLOSED_MSG = "Menü geschlossen."
+    ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 Manuelle Qualitätsauswahl"
+    ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG = "Qualität manuell auswählen, da automatische Erkennung fehlgeschlagen ist:"
+    ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG = "🎛 Alle verfügbaren Formate"
+    ALWAYS_ASK_AVAILABLE_QUALITIES_FROM_CACHE_MSG = "📹 Verfügbare Qualitäten (aus Cache)"
+    ALWAYS_ASK_USING_CACHED_QUALITIES_MSG = "⚠️ Verwende gecachte Qualitäten - neue Formate sind möglicherweise nicht verfügbar"
+    ALWAYS_ASK_DOWNLOADING_FORMAT_MSG = "📥 Format wird heruntergeladen"
+    ALWAYS_ASK_DOWNLOADING_QUALITY_MSG = "📥 Wird heruntergeladen"
+    ALWAYS_ASK_DOWNLOADING_HLS_MSG = "📥 Wird mit Fortschrittsverfolgung heruntergeladen..."
+    ALWAYS_ASK_DOWNLOADING_FORMAT_USING_MSG = "📥 Wird mit Format heruntergeladen:"
+    ALWAYS_ASK_DOWNLOADING_AUDIO_FORMAT_USING_MSG = "📥 Audio wird mit Format heruntergeladen:"
+    ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG = "📥 Beste Qualität wird heruntergeladen..."
+    ALWAYS_ASK_DOWNLOADING_DATABASE_MSG = "📥 Datenbank-Dump wird heruntergeladen..."
+    ALWAYS_ASK_DOWNLOADING_IMAGES_MSG = "📥 Wird heruntergeladen"
+    ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG = "Formate-Seite"
+    ALWAYS_ASK_FROM_CACHE_MSG = "(aus Cache)"
+    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_DETAILED_MSG = "❌ Fehler: Ursprüngliche Nachricht nicht gefunden. Sie wurde möglicherweise gelöscht. Bitte senden Sie den Link erneut."
+    ALWAYS_ASK_ERROR_ORIGINAL_URL_NOT_FOUND_MSG = "❌ Fehler: Ursprüngliche URL nicht gefunden. Bitte senden Sie den Link erneut."
+    ALWAYS_ASK_DIRECT_LINK_OBTAINED_MSG = "🔗 <b>Direkter Link erhalten</b>"
+    ALWAYS_ASK_TITLE_MSG = "📹 <b>Titel:</b>"
+    ALWAYS_ASK_DURATION_SEC_MSG = "⏱ <b>Dauer:</b>"
     ALWAYS_ASK_FORMAT_CODE_MSG = "🎛 <b>Format:</b>"
-    ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>"
-    ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>"
-    ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ Failed to get stream links"
-    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Direct link extracted via Always Ask menu for user {user_id} from {url}"
-    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Failed to extract direct link via Always Ask menu for user {user_id} from {url}: {error}"
-    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Direct link extracted via down_and_up_with_format for user {user_id} from {url}"
-    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Failed to extract direct link via down_and_up_with_format for user {user_id} from {url}: {error}"
-    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Direct link extracted via down_and_audio for user {user_id} from {url}"
-    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Failed to extract direct link via down_and_audio for user {user_id} from {url}: {error}"
+    ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>Video-Stream:</b>"
+    ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>Audio-Stream:</b>"
+    ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ Stream-Links konnten nicht abgerufen werden"
+    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Direkter Link über Always Ask Menü für Benutzer {user_id} von {url} extrahiert"
+    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Direkter Link konnte nicht über Always Ask Menü für Benutzer {user_id} von {url} extrahiert werden: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Direkter Link über down_and_up_with_format für Benutzer {user_id} von {url} extrahiert"
+    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Direkter Link konnte nicht über down_and_up_with_format für Benutzer {user_id} von {url} extrahiert werden: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Direkter Link über down_and_audio für Benutzer {user_id} von {url} extrahiert"
+    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Direkter Link konnte nicht über down_and_audio für Benutzer {user_id} von {url} extrahiert werden: {error}"
     
     # Audio processing messages
     AUDIO_SENT_FROM_CACHE_MSG = "✅ Audio sent from cache."
@@ -1432,10 +1432,10 @@ Verwenden Sie:
     CHOOSE_AUDIO_LANGUAGE_MSG = "Choose audio language"
     PAGE_NUMBER_MSG = "Page {page}"
     TOTAL_PROGRESS_MSG = "Total Progress"
-    SUBTITLE_MENU_CLOSED_MSG = "Subtitle menu closed."
-    SUBTITLE_LANGUAGE_SET_MSG = "Subtitle language set: {value}"
-    AUDIO_SET_MSG = "Audio set: {value}"
-    FILTERS_UPDATED_MSG = "Filters updated"
+    SUBTITLE_MENU_CLOSED_MSG = "Untertitel-Menü geschlossen."
+    SUBTITLE_LANGUAGE_SET_MSG = "Untertitel-Sprache gesetzt: {value}"
+    AUDIO_SET_MSG = "Audio gesetzt: {value}"
+    FILTERS_UPDATED_MSG = "Filter aktualisiert"
     
     # Always Ask Menu Buttons
     BACK_BUTTON_TEXT = "🔙Back"
@@ -1530,16 +1530,16 @@ Verwenden Sie:
     CONVERSION_TO_MP4_FAILED_MSG = "❌ Conversion to MP4 failed: {error}"
     EMBEDDING_SUBTITLES_WARNING_MSG = "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\n🔥 Starting to burn subtitles..."
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Subtitles cannot be embedded due to limits (quality/duration/size)"
-    SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Subtitles are not available for the selected language"
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    PLAYLIST_VIDEOS_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Download cancelled due to timeout (2 hours)"
-    FAILED_DOWNLOAD_VIDEO_MSG = "❌ Failed to download video: {error}"
+    SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Untertitel sind für die ausgewählte Sprache nicht verfügbar"
+    ERROR_SENDING_VIDEO_MSG = "❌ Fehler beim Senden des Videos: {error}"
+    PLAYLIST_VIDEOS_SENT_MSG = "✅ Wiedergabelisten-Videos gesendet: {sent}/{total} Dateien."
+    DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Download aufgrund von Timeout abgebrochen (2 Stunden)"
+    FAILED_DOWNLOAD_VIDEO_MSG = "❌ Video konnte nicht heruntergeladen werden: {error}"
     ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ Error: {error}"
     
     # Args command error messages
     ARGS_JSON_MUST_BE_OBJECT_MSG = "❌ JSON must be an object (dictionary)."
-    ARGS_INVALID_JSON_FORMAT_MSG = "❌ Invalid JSON format. Please provide valid JSON."
+    ARGS_INVALID_JSON_FORMAT_MSG = "❌ Ungültiges JSON-Format. Bitte geben Sie gültiges JSON an."
     ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ Value must be between {min_val} and {max_val}."
     ARGS_PARAM_SET_TO_MSG = "✅ {description} set to: <code>{value}</code>"
     
@@ -1796,7 +1796,7 @@ Verwenden Sie:
     
     # URL extractor callback messages
     URL_EXTRACTOR_CLOSED_MSG = "Closed"
-    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Error occurred"
+    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Fehler aufgetreten"
     
     # FFmpeg messages
     FFMPEG_NOT_FOUND_MSG = "ffmpeg not found in PATH or project directory. Please install FFmpeg."
@@ -1946,8 +1946,8 @@ Verwenden Sie:
     AA_VLC_IOS_MSG = "🎬 <b><a href=\"https://itunes.apple.com/app/apple-store/id650377962\">VLC Player (iOS)</a></b>\n\n<i>Click button to copy stream URL, then paste it in VLC app</i>"
     AA_VLC_ANDROID_MSG = "🎬 <b><a href=\"https://play.google.com/store/apps/details?id=org.videolan.vlc\">VLC Player (Android)</a></b>\n\n<i>Click button to copy stream URL, then paste it in VLC app</i>"
     AA_ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
-    AA_ERROR_SENDING_FORMATS_MSG = "❌ Error sending formats file: {error}"
-    AA_FAILED_GET_FORMATS_MSG = "❌ Failed to get formats:\n<code>{output}</code>"
+    AA_ERROR_SENDING_FORMATS_MSG = "❌ Fehler beim Senden der Formate-Datei: {error}"
+    AA_FAILED_GET_FORMATS_MSG = "❌ Formate konnten nicht abgerufen werden:\n<code>{output}</code>"
     AA_PROCESSING_WAIT_MSG = "🔎 Analyzing... (wait 6 sec)"
     AA_PROCESSING_MSG = "🔎 Analyzing..."
     AA_TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
@@ -2025,10 +2025,10 @@ Verwenden Sie:
     URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
     URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
     URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Beispiele:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
-    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
-    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
+    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Siehe auch: /audio, /img, /help, /playlist, /settings"
+    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "Benutzer {user_id} hat add_bot_to_group-Befehl geschlossen"
 
     # YouTube messages
     YOUTUBE_FAILED_EXTRACT_ID_MSG = "Failed to extract YouTube ID"
@@ -2099,9 +2099,9 @@ Verwenden Sie:
     SUBS_PREV_BUTTON_MSG = "⬅️ Prev"
     SUBS_BACK_BUTTON_MSG = "🔙Back"
     SUBS_OFF_BUTTON_MSG = "🚫 OFF"
-    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - set language"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
-    SUBS_VALID_OPTIONS_MSG = "Valid options:"
+    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - Sprache festlegen"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - Sprache mit AUTO/TRANS festlegen"
+    SUBS_VALID_OPTIONS_MSG = "Gültige Optionen:"
     
     # Settings Command Messages
     SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 LANGUAGE"

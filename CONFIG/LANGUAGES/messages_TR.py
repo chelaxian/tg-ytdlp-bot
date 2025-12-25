@@ -158,9 +158,9 @@ Birçok platformdan görsel/fotoğraf/albüm indirmek için <code>/img URL</code
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
     SAVE_AS_COOKIE_HINT = (
-        "Just save your cookie as <b><u>cookie.txt</u></b> and send it to bot as a document.\n\n"
-        "You can also send cookies as plain text with <b><u>/save_as_cookie</u></b> command.\n"
-        "<b>Usage of <b><u>/save_as_cookie</u></b>:</b>\n\n"
+        "Çerezinizi <b><u>cookie.txt</u></b> olarak kaydedin ve bot'a bir belge olarak gönderin.\n\n"
+        "Ayrıca çerezleri <b><u>/save_as_cookie</u></b> komutuyla düz metin olarak da gönderebilirsiniz.\n"
+        "<b><b><u>/save_as_cookie</u></b> Kullanımı:</b>\n\n"
         "<pre>"
         "/save_as_cookie\n"
         "# Netscape HTTP Cookie File\n"
@@ -171,193 +171,193 @@ Birçok platformdan görsel/fotoğraf/albüm indirmek için <code>/img URL</code
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
         "<blockquote>"
-        "<b><u>Instructions:</u></b>\n"
+        "<b><u>Talimatlar:</u></b>\n"
         "https://t.me/tg_ytdlp/203 \n"
         "https://t.me/tg_ytdlp/214 "
         "</blockquote>"
     )
     
-    # Search command message (English)
+    # Search command message
     SEARCH_MSG = """
-🔍 <b>Video search</b>
+🔍 <b>Video arama</b>
 
-Press the button below to activate inline search via @vid.
+Satır içi aramayı @vid üzerinden etkinleştirmek için aşağıdaki düğmeye basın.
 
-<blockquote>On PC just type <b>"@vid Your_Search_Query"</b> in any chat.</blockquote>
+<blockquote>PC'de herhangi bir sohbette <b>"@vid Your_Search_Query"</b> yazmanız yeterlidir.</blockquote>
     """
     
-    # Settings and Hints (English)
+    # Settings and Hints
     
     
     IMG_HELP_MSG = (
-        "<b>🖼 Image Download Command</b>\n\n"
-        "Usage: <code>/img URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>🖼 Görsel İndirme Komutu</b>\n\n"
+        "Kullanım: <code>/img URL</code>\n\n"
+        "<b>Örnekler:</b>\n"
         "• <code>/img https://example.com/image.jpg</code>\n"
         "• <code>/img 11-20 https://example.com/album</code>\n"
         "• <code>/img 11- https://example.com/album</code>\n"
         "• <code>/img https://vk.com/wall-160916577_408508</code>\n"
         "• <code>/img https://2ch.hk/fd/res/1747651.html</code>\n"
         "• <code>/img https://imgur.com/abc123</code>\n\n"
-        "<b>Supported platforms (examples):</b>\n"
-        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, etc. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">full list</a></blockquote>"
-        "Also see: "
+        "<b>Desteklenen platformlar (örnekler):</b>\n"
+        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, vb. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">tam liste</a></blockquote>"
+        "Ayrıca bakın: "
     )
     
     LINK_HINT_MSG = (
-        "Get direct video links with quality selection.\n\n"
-        "Usage: /link + URL \n\n"
-        "(ex. /link https://youtu.be/abc123)\n"
-        "(ex. /link 720 https://youtu.be/abc123)"
+        "Kalite seçimiyle doğrudan video bağlantıları alın.\n\n"
+        "Kullanım: /link + URL \n\n"
+        "(örn. /link https://youtu.be/abc123)\n"
+        "(örn. /link 720 https://youtu.be/abc123)"
     )
     
     # Add bot to group command message
     ADD_BOT_TO_GROUP_MSG = """
-🤖 <b>Add Bot to Group</b>
+🤖 <b>Gruba Bot Ekle</b>
 
-Add my bots to your groups to get enhanced features and higher limits!
+Gelişmiş özellikler ve daha yüksek limitler için botlarımı gruplarınıza ekleyin!
 ————————————
-📊 <b>Current FREE Limits (in Bot's DM):</b>
-<blockquote>•🗑 Messy junk from all the files unsorted 👎
-• Max 1 file size: <b>8 GB </b>
-• Max 1 file quality: <b>UNLIM</b>
-• Max 1 file duration: <b>UNLIM</b>
-• Max number of downloads: <b>UNLIM</b>
-• Max URLs in one message: <b>10</b> (only in quality selection mode)
-• Max playlist items per 1 time: <b>50</b>
-• Max TikTok videos per 1 time: <b>500</b>
-• Max images per 1 time: <b>1000</b>
-• URL rate limits: <b>5/min, 60/hour, 1000/day</b>
-• Command limit: <b>20/min</b>
-• 1 Download max time: <b>2 hours</b>
-• 🔞 NSFW content is paid! 1⭐️ = $0.02
-• 🆓 ALL OTHER MEDIA ARE TOTALY FREE
-• 📝 All content logs & caching to my log-channels for instant repost when re-downloading</blockquote>
+📊 <b>Mevcut ÜCRETSİZ Limitler (Bot'un DM'inde):</b>
+<blockquote>•🗑 Sıralanmamış tüm dosyalardan dağınık çöp 👎
+• Maks 1 dosya boyutu: <b>8 GB </b>
+• Maks 1 dosya kalitesi: <b>SINIRSIZ</b>
+• Maks 1 dosya süresi: <b>SINIRSIZ</b>
+• Maks indirme sayısı: <b>SINIRSIZ</b>
+• Bir mesajda maks URL: <b>10</b> (yalnızca kalite seçim modunda)
+• 1 seferde maks çalma listesi öğesi: <b>50</b>
+• 1 seferde maks TikTok videosu: <b>500</b>
+• 1 seferde maks görsel: <b>1000</b>
+• URL hız limitleri: <b>5/dak, 60/saat, 1000/gün</b>
+• Komut limiti: <b>20/dak</b>
+• 1 İndirme maks süre: <b>2 saat</b>
+• 🔞 NSFW içeriği ücretlidir! 1⭐️ = $0.02
+• 🆓 DİĞER TÜM MEDYA TAMAMEN ÜCRETSİZDİR
+• 📝 Tüm içerik logları ve önbellekleme, yeniden indirirken anında yeniden gönderim için log kanallarıma</blockquote>
 
-💬<b>This limits only for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>1.5 hours</b>
-• Max video+subs file size: <b>500 MB</b>
-• Max video+subs quality: <b>720p</b></blockquote>
+💬<b>Bu limitler yalnızca altyazılı video için:</b>
+<blockquote>• Maks video+altyazı süresi: <b>1.5 saat</b>
+• Maks video+altyazı dosya boyutu: <b>500 MB</b>
+• Maks video+altyazı kalitesi: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Paid Group Benefits (2️⃣x Limits):</b>
-<blockquote>•  🗂 Structured neat media vault sorted by topics 👍
-•  📁 Bots reply in the topic you call them
-•  📌 Auto pin status message with download progress
-•  🖼 /img command downloads media as 10-item albums
-• Max 1 file size: <b>16 GB</b> ⬆️
-• Max URLs in one message: <b>20</b> ⬆️ (only in quality selection mode)
-• Max playlist items per 1 time: <b>100</b> ⬆️
-• Max TikTok videos per 1 time: 1000 ⬆️
-• Max images per 1 time: 2000 ⬆️
-• URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
-• Command limit: <b>40/min</b> ⬆️
-• 1 Download max time: <b>4 hours</b> ⬆️
-• 🔞 NSFW content: Free with full metadata 🆓
-• 📢 No need to subscribe to my channel for groups
-• 👥 All group members will have access to paid functions!
-• 🗒 No logs / no cache to my log-channels! You can reject copy/repost in group settings</blockquote>
+🚀 <b>Ücretli Grup Avantajları (2️⃣x Limitler):</b>
+<blockquote>•  🗂 Konulara göre sıralanmış yapılandırılmış düzenli medya kasası 👍
+•  📁 Botlar onları çağırdığınız konuda yanıt verir
+•  📌 İndirme ilerlemesiyle otomatik sabitleme durum mesajı
+•  🖼 /img komutu medyayı 10 öğeli albümler olarak indirir
+• Maks 1 dosya boyutu: <b>16 GB</b> ⬆️
+• Bir mesajda maks URL: <b>20</b> ⬆️ (yalnızca kalite seçim modunda)
+• 1 seferde maks çalma listesi öğesi: <b>100</b> ⬆️
+• 1 seferde maks TikTok videosu: 1000 ⬆️
+• 1 seferde maks görsel: 2000 ⬆️
+• URL hız limitleri: <b>10/dak, 120/saat, 2000/gün</b> ⬆️
+• Komut limiti: <b>40/dak</b> ⬆️
+• 1 İndirme maks süre: <b>4 saat</b> ⬆️
+• 🔞 NSFW içeriği: Tam metadata ile ücretsiz 🆓
+• 📢 Gruplar için kanalıma abone olmanıza gerek yok
+• 👥 Tüm grup üyeleri ücretli işlevlere erişecek!
+• 🗒 Log kanallarıma log yok / önbellek yok! Grup ayarlarında kopya/yeniden gönderimi reddedebilirsiniz</blockquote>
 
-💬 <b>2️⃣x limits for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>3 hours</b> ⬆️
-• Max video+subs file size: <b>1000 MB</b> ⬆️
-• Max video+subs quality: <b>1080p</b> ⬆️</blockquote>
+💬 <b>Altyazılı video için 2️⃣x limitler:</b>
+<blockquote>• Maks video+altyazı süresi: <b>3 saat</b> ⬆️
+• Maks video+altyazı dosya boyutu: <b>1000 MB</b> ⬆️
+• Maks video+altyazı kalitesi: <b>1080p</b> ⬆️</blockquote>
 ————————————
-💰 <b>Pricing & Setup:</b>
-<blockquote>• Price: <b>$5/month</b> per 1 bot in group
-• Setup: Contact @iilililiiillliiliililliilliliiil
-• Payment: 💎TON or other methods💲
-• Support: Full technical support included</blockquote>
+💰 <b>Fiyatlandırma ve Kurulum:</b>
+<blockquote>• Fiyat: <b>$5/ay</b> grupta 1 bot başına
+• Kurulum: @iilililiiillliiliililliilliliiil ile iletişime geçin
+• Ödeme: 💎TON veya diğer yöntemler💲
+• Destek: Tam teknik destek dahil</blockquote>
 ————————————
-You can add my bots to your group to unblock free 🔞<b>NSFW</b> and to double (x2️⃣) all limits.
-Contact me if you want me to allow your group to use my bots @iilililiiillliiliililliilliliiil
+Ücretsiz 🔞<b>NSFW</b>'yi açmak ve tüm limitleri ikiye katlamak (x2️⃣) için botlarımı grubunuza ekleyebilirsiniz.
+Grubunuzun botlarımı kullanmasına izin vermemi istiyorsanız benimle iletişime geçin @iilililiiillliiliililliilliliiil
 ————————————
-💡<b>TIP:</b> <blockquote>You can chip in money with any amount of your friends (for example 100 people) and made 1 purchase for whole group - ALL GROUP MEMBERS WILL HAVE FULL UNLIMITED ACCESS to all bots functions in that group for just <b>0.05$</b></blockquote>
+💡<b>İPUCU:</b> <blockquote>Arkadaşlarınızla herhangi bir miktarda para toplayabilirsiniz (örneğin 100 kişi) ve tüm grup için 1 satın alma yapabilirsiniz - TÜM GRUP ÜYELERİ O GRUPTAKİ TÜM BOT İŞLEVLERİNE TAM SINIRSIZ ERİŞİME SAHİP OLACAKTIR sadece <b>$0.05</b> karşılığında</blockquote>
     """
     
     # NSFW Command Messages
     NSFW_ON_MSG = """
-🔞 <b>NSFW Mode: ON✅</b>
+🔞 <b>NSFW Modu: AÇIK✅</b>
 
-• NSFW content will be displayed without blurring.
-• Spoilers will not apply to NSFW media.
-• The content will be visible immediately
+• NSFW içeriği bulanıklaştırma olmadan gösterilecektir.
+• Spoiler'lar NSFW medyaya uygulanmayacaktır.
+• İçerik hemen görünür olacaktır
 
-<i>Use /nsfw off to enable blur</i>
+<i>Bulanıklığı etkinleştirmek için /nsfw off kullanın</i>
     """
     
     NSFW_OFF_MSG = """
-🔞 <b>NSFW Mode: OFF</b>
+🔞 <b>NSFW Modu: KAPALI</b>
 
-⚠️ <b>Blur enabled</b>
-• NSFW content will be hidden under spoiler   
-• To view, you will need to click on the media
-• Spoilers will apply to NSFW media.
+⚠️ <b>Bulanıklık etkin</b>
+• NSFW içeriği spoiler altında gizlenecektir   
+• Görüntülemek için medyaya tıklamanız gerekecektir
+• Spoiler'lar NSFW medyaya uygulanacaktır.
 
-<i>Use /nsfw on to disable blur</i>
+<i>Bulanıklığı devre dışı bırakmak için /nsfw on kullanın</i>
     """
     
     NSFW_INVALID_MSG = """
-❌ <b>Invalid parameter</b>
+❌ <b>Geçersiz parametre</b>
 
-Use:
-• <code>/nsfw on</code> - disable blur
-• <code>/nsfw off</code> - enable blur
+Kullanın:
+• <code>/nsfw on</code> - bulanıklığı devre dışı bırak
+• <code>/nsfw off</code> - bulanıklığı etkinleştir
     """
     
     # UI Messages - Status and Progress
-    CHECKING_CACHE_MSG = "🔄 <b>Checking cache...</b>\n\n<code>{url}</code>"
-    PROCESSING_MSG = "🔄 Processing..."
-    DOWNLOADING_MSG = "📥 <b>Downloading media...</b>\n\n"
+    CHECKING_CACHE_MSG = "🔄 <b>Önbellek kontrol ediliyor...</b>\n\n<code>{url}</code>"
+    PROCESSING_MSG = "🔄 İşleniyor..."
+    DOWNLOADING_MSG = "📥 <b>Medya indiriliyor...</b>\n\n"
 
-    DOWNLOADING_IMAGE_MSG = "📥 <b>Downloading image...</b>\n\n"
+    DOWNLOADING_IMAGE_MSG = "📥 <b>Görsel indiriliyor...</b>\n\n"
 
-    DOWNLOAD_COMPLETE_MSG = "✅ <b>Download complete</b>\n\n"
+    DOWNLOAD_COMPLETE_MSG = "✅ <b>İndirme tamamlandı</b>\n\n"
     
     # Download status messages
-    DOWNLOADED_STATUS_MSG = "Downloaded:"
-    SENT_STATUS_MSG = "Sent:"
-    PENDING_TO_SEND_STATUS_MSG = "Pending to send:"
-    TITLE_LABEL_MSG = "Title:"
-    MEDIA_COUNT_LABEL_MSG = "Media count:"
-    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Download finished, processing audio..."
-    VIDEO_PROCESSING_MSG = "📽 Video is processing..."
+    DOWNLOADED_STATUS_MSG = "İndirildi:"
+    SENT_STATUS_MSG = "Gönderildi:"
+    PENDING_TO_SEND_STATUS_MSG = "Gönderilmeyi bekliyor:"
+    TITLE_LABEL_MSG = "Başlık:"
+    MEDIA_COUNT_LABEL_MSG = "Medya sayısı:"
+    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "İndirme tamamlandı, ses işleniyor..."
+    VIDEO_PROCESSING_MSG = "📽 Video işleniyor..."
     WAITING_HOURGLASS_MSG = "⌛️"
     
     # Cache Messages
-    SENT_FROM_CACHE_MSG = "✅ <b>Sent from cache</b>\n\nSent albums: <b>{count}</b>"
-    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video successfully sent from cache."
-    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Playlist videos sent from cache ({cached}/{total} files)."
-    CACHE_PARTIAL_MSG = "📥 {cached}/{total} videos sent from cache, downloading missing ones..."
-    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Sent from cache: {cached}\n🔄 Continuing download..."
-    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Could not analyze media, proceeding with maximum allowed range (1-{fallback_limit})..."
-    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Could not determine media count, proceeding with maximum allowed range (1-{total_limit})..."
-    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Could not determine total media count, proceeding with specified range {start}-{end}..."
+    SENT_FROM_CACHE_MSG = "✅ <b>Önbellekten gönderildi</b>\n\nGönderilen albümler: <b>{count}</b>"
+    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video önbellekten başarıyla gönderildi."
+    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Çalma listesi videoları önbellekten gönderildi ({cached}/{total} dosya)."
+    CACHE_PARTIAL_MSG = "📥 {cached}/{total} video önbellekten gönderildi, eksik olanlar indiriliyor..."
+    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Önbellekten gönderildi: {cached}\n🔄 İndirme devam ediyor..."
+    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Medya analiz edilemedi, izin verilen maksimum aralıkla devam ediliyor (1-{fallback_limit})..."
+    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Medya sayısı belirlenemedi, izin verilen maksimum aralıkla devam ediliyor (1-{total_limit})..."
+    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Toplam medya sayısı belirlenemedi, belirtilen aralıkla devam ediliyor {start}-{end}..."
 
     # Error Messages
-    INVALID_URL_MSG = "❌ <b>Invalid URL</b>\n\nPlease provide a valid URL starting with http:// or https://"
+    INVALID_URL_MSG = "❌ <b>Geçersiz URL</b>\n\nLütfen http:// veya https:// ile başlayan geçerli bir URL sağlayın"
 
-    ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
+    ERROR_OCCURRED_MSG = "❌ <b>Hata oluştu</b>\n\n<code>{url}</code>\n\nHata: {error}"
 
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
-    ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
-    ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
+    ERROR_SENDING_VIDEO_MSG = "❌ Video gönderme hatası: {error}"
+    ERROR_UNKNOWN_MSG = "❌ Bilinmeyen hata: {error}"
+    ERROR_NO_DISK_SPACE_MSG = "❌ Video indirmek için yeterli disk alanı yok."
+    ERROR_FILE_SIZE_LIMIT_MSG = "❌ Dosya boyutu {limit} GB limitini aşıyor. Lütfen izin verilen boyut içinde daha küçük bir dosya seçin."
 
-    ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
+    ERROR_GETTING_LINK_MSG = "❌ <b>Bağlantı alma hatası:</b>\n{error}"
 
     # Telegram Rate Limit Messages
-    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: {time}\nTo update timer send URL again 2 times."
-    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times."
+    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram mesaj göndermeyi sınırladı.\n⏳ Lütfen bekleyin: {time}\nZamanlayıcıyı güncellemek için URL'yi tekrar 2 kez gönderin."
+    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram mesaj göndermeyi sınırladı.\n⏳ Lütfen bekleyin: \nZamanlayıcıyı güncellemek için URL'yi tekrar 2 kez gönderin."
     
     # Subtitles Messages
-    SUBTITLES_FAILED_MSG = "⚠️ Failed to download subtitles"
+    SUBTITLES_FAILED_MSG = "⚠️ Altyazılar indirilemedi"
 
     # Video Processing Messages
 
     # Stream/Link Messages
-    STREAM_LINKS_TITLE_MSG = "🔗 <b>Direct Stream Links</b>\n\n"
-    STREAM_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    STREAM_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
+    STREAM_LINKS_TITLE_MSG = "🔗 <b>Doğrudan Stream Bağlantıları</b>\n\n"
+    STREAM_TITLE_MSG = "📹 <b>Başlık:</b> {title}\n"
+    STREAM_DURATION_MSG = "⏱ <b>Süre:</b> {duration} sn\n"
 
     
     # Download Progress Messages
@@ -367,33 +367,33 @@ Use:
     # NSFW Paid Content Messages
 
     # Callback Error Messages
-    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Error: Original message not found."
+    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Hata: Orijinal mesaj bulunamadı."
 
     # Tags Error Messages
-    TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
+    TAG_FORBIDDEN_CHARS_MSG = "❌ Etiket #{tag} yasak karakterler içeriyor. Yalnızca harfler, rakamlar ve _ izin verilir.\nLütfen kullanın: {example}"
     
     # Playlist Messages
-    PLAYLIST_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    PLAYLIST_CACHE_SENT_MSG = "✅ Sent from cache: {cached}/{total} files."
+    PLAYLIST_SENT_MSG = "✅ Çalma listesi videoları gönderildi: {sent}/{total} dosya."
+    PLAYLIST_CACHE_SENT_MSG = "✅ Önbellekten gönderildi: {cached}/{total} dosya."
     
     # Failed Stream Messages
-    FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
+    FAILED_STREAM_LINKS_MSG = "❌ Stream bağlantıları alınamadı"
 
     # new messages
     # Browser Cookie Messages
-    SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
-    SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
-    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
-    BROWSER_OPEN_BUTTON_MSG = "🌐 Open Browser"
-    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Download from Remote URL"
-    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
-    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ No supported browsers found and no COOKIE_URL configured. Use /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL must point to a .txt file."
-    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
-    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
-    BTN_CLOSE = "🔚Close"
+    SELECT_BROWSER_MSG = "Çerezleri indirmek için bir tarayıcı seçin:"
+    SELECT_BROWSER_NO_BROWSERS_MSG = "Bu sistemde tarayıcı bulunamadı. Çerezleri uzak URL'den indirebilir veya tarayıcı durumunu izleyebilirsiniz:"
+    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Tarayıcıyı Aç</b> - mini-uygulamada tarayıcı durumunu izlemek için"
+    BROWSER_OPEN_BUTTON_MSG = "🌐 Tarayıcıyı Aç"
+    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Uzak URL'den İndir"
+    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube çerez dosyası fallback üzerinden indirildi ve cookie.txt olarak kaydedildi"
+    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ Desteklenen tarayıcı bulunamadı ve COOKIE_URL yapılandırılmadı. /cookie kullanın veya cookie.txt yükleyin."
+    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL bir .txt dosyasına işaret etmelidir."
+    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback çerez dosyası çok büyük (>100KB)."
+    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback çerez kaynağı kullanılamıyor (durum {status}). /cookie deneyin veya cookie.txt yükleyin."
+    COOKIE_FALLBACK_ERROR_MSG = "❌ Fallback çerez indirme hatası. /cookie deneyin veya cookie.txt yükleyin."
+    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Fallback çerez indirme sırasında beklenmeyen hata."
+    BTN_CLOSE = "🔚Kapat"
     
     # Args command messages
     ARGS_INVALID_BOOL_MSG = "❌ Invalid boolean value"
@@ -407,127 +407,127 @@ Use:
     ARGS_VALUE_SET_MSG = "{value} olarak ayarlandı"
     ARGS_VALUE_ALREADY_SET_MSG = "Zaten {value} olarak ayarlanmış"
     ARGS_PARAM_DESCRIPTION_MSG = "<b>📝 {description}</b>\n\n"
-    ARGS_CURRENT_VALUE_MSG = "<b>Current value:</b> <code>{current_value}</code>\n\n"
-    ARGS_XFF_EXAMPLES_MSG = "<b>Examples:</b>\n• <code>default</code> - Use default XFF strategy\n• <code>never</code> - Never use XFF header\n• <code>US</code> - United States country code\n• <code>GB</code> - United Kingdom country code\n• <code>DE</code> - Germany country code\n• <code>FR</code> - France country code\n• <code>JP</code> - Japan country code\n• <code>192.168.1.0/24</code> - IP block (CIDR)\n• <code>10.0.0.0/8</code> - Private IP range\n• <code>203.0.113.0/24</code> - Public IP block\n\n"
-    ARGS_XFF_NOTE_MSG = "<b>Note:</b> This replaces --geo-bypass options. Use any 2-letter country code or IP block in CIDR notation.\n\n"
-    ARGS_EXAMPLE_MSG = "<b>Example:</b> <code>{placeholder}</code>\n\n"
-    ARGS_SEND_VALUE_MSG = "Please send your new value."
+    ARGS_CURRENT_VALUE_MSG = "<b>Mevcut değer:</b> <code>{current_value}</code>\n\n"
+    ARGS_XFF_EXAMPLES_MSG = "<b>Örnekler:</b>\n• <code>default</code> - Varsayılan XFF stratejisini kullan\n• <code>never</code> - XFF başlığını asla kullanma\n• <code>US</code> - Amerika Birleşik Devletleri ülke kodu\n• <code>GB</code> - Birleşik Krallık ülke kodu\n• <code>DE</code> - Almanya ülke kodu\n• <code>FR</code> - Fransa ülke kodu\n• <code>JP</code> - Japonya ülke kodu\n• <code>192.168.1.0/24</code> - IP bloğu (CIDR)\n• <code>10.0.0.0/8</code> - Özel IP aralığı\n• <code>203.0.113.0/24</code> - Genel IP bloğu\n\n"
+    ARGS_XFF_NOTE_MSG = "<b>Not:</b> Bu --geo-bypass seçeneklerinin yerini alır. CIDR notasyonunda herhangi bir 2 harfli ülke kodu veya IP bloğu kullanın.\n\n"
+    ARGS_EXAMPLE_MSG = "<b>Örnek:</b> <code>{placeholder}</code>\n\n"
+    ARGS_SEND_VALUE_MSG = "Lütfen yeni değerinizi gönderin."
     ARGS_NUMBER_PARAM_MSG = "<b>🔢 {description}</b>\n\n"
-    ARGS_RANGE_MSG = "<b>Range:</b> {min_val} - {max_val}\n\n"
-    ARGS_SEND_NUMBER_MSG = "Please send a number."
+    ARGS_RANGE_MSG = "<b>Aralık:</b> {min_val} - {max_val}\n\n"
+    ARGS_SEND_NUMBER_MSG = "Lütfen bir sayı gönderin."
     ARGS_JSON_PARAM_MSG = "<b>🔧 {description}</b>\n\n"
-    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Examples:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
-    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Note:</b> These headers will be added to existing Referer and User-Agent headers.\n\n"
-    ARGS_CURRENT_ARGS_MSG = "<b>📋 Current yt-dlp Arguments:</b>\n\n"
-    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False switches\n• 📋 <b>Select</b> - Choose from options\n• 🔢 <b>Numeric</b> - Number input\n• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\nThese settings will be applied to all your downloads."
+    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Örnekler:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
+    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Not:</b> Bu başlıklar mevcut Referer ve User-Agent başlıklarına eklenecektir.\n\n"
+    ARGS_CURRENT_ARGS_MSG = "<b>📋 Mevcut yt-dlp Argümanları:</b>\n\n"
+    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False anahtarları\n• 📋 <b>Select</b> - Seçeneklerden seç\n• 🔢 <b>Numeric</b> - Sayı girişi\n• 📝🔧 <b>Text</b> - Metin/JSON girişi</blockquote>\n\nBu ayarlar tüm indirmelerinize uygulanacaktır."
     
     # Localized parameter names for display
     ARGS_PARAM_NAMES = {
-        "force_ipv6": "Force IPv6 connections",
-        "force_ipv4": "Force IPv4 connections", 
-        "no_live_from_start": "Do not download live streams from start",
-        "live_from_start": "Download live streams from start",
-        "no_check_certificates": "Suppress HTTPS certificate validation",
-        "check_certificate": "Check SSL certificate",
-        "no_playlist": "Download only single video, not playlist",
-        "embed_metadata": "Embed metadata in video file",
-        "embed_thumbnail": "Embed thumbnail in video file",
-        "write_thumbnail": "Write thumbnail to file",
-        "ignore_errors": "Ignore download errors and continue",
-        "legacy_server_connect": "Allow legacy server connections",
-        "concurrent_fragments": "Number of concurrent fragments to download",
-        "xff": "X-Forwarded-For header strategy",
-        "user_agent": "User-Agent header",
-        "impersonate": "Browser impersonation",
-        "referer": "Referer header",
-        "geo_bypass": "Bypass geographic restrictions",
-        "hls_use_mpegts": "Use MPEG-TS for HLS",
-        "no_part": "Do not use .part files",
-        "no_continue": "Do not resume partial downloads",
-        "audio_format": "Audio format",
-        "video_format": "Video format",
-        "merge_output_format": "Merge output format",
-        "send_as_file": "Send as file",
-        "username": "Username",
-        "password": "Password",
-        "twofactor": "Two-factor authentication code",
-        "min_filesize": "Minimum file size (MB)",
-        "max_filesize": "Maximum file size (MB)",
-        "playlist_items": "Playlist items",
-        "date": "Date",
-        "datebefore": "Date before",
-        "dateafter": "Date after",
-        "http_headers": "HTTP headers",
-        "sleep_interval": "Sleep interval",
-        "max_sleep_interval": "Maximum sleep interval",
-        "retries": "Number of retries",
-        "http_chunk_size": "HTTP chunk size",
-        "sleep_subtitles": "Sleep for subtitles"
+        "force_ipv6": "IPv6 bağlantılarını zorla",
+        "force_ipv4": "IPv4 bağlantılarını zorla", 
+        "no_live_from_start": "Canlı yayınları baştan indirme",
+        "live_from_start": "Canlı yayınları baştan indir",
+        "no_check_certificates": "HTTPS sertifika doğrulamasını bastır",
+        "check_certificate": "SSL sertifikasını kontrol et",
+        "no_playlist": "Yalnızca tek video indir, çalma listesi değil",
+        "embed_metadata": "Video dosyasına metadata ekle",
+        "embed_thumbnail": "Video dosyasına küçük resim ekle",
+        "write_thumbnail": "Küçük resmi dosyaya yaz",
+        "ignore_errors": "İndirme hatalarını yoksay ve devam et",
+        "legacy_server_connect": "Eski sunucu bağlantılarına izin ver",
+        "concurrent_fragments": "İndirilecek eşzamanlı parça sayısı",
+        "xff": "X-Forwarded-For başlık stratejisi",
+        "user_agent": "User-Agent başlığı",
+        "impersonate": "Tarayıcı taklidi",
+        "referer": "Referer başlığı",
+        "geo_bypass": "Coğrafi kısıtlamaları atla",
+        "hls_use_mpegts": "HLS için MPEG-TS kullan",
+        "no_part": ".part dosyalarını kullanma",
+        "no_continue": "Kısmi indirmeleri sürdürme",
+        "audio_format": "Ses formatı",
+        "video_format": "Video formatı",
+        "merge_output_format": "Birleştirme çıktı formatı",
+        "send_as_file": "Dosya olarak gönder",
+        "username": "Kullanıcı adı",
+        "password": "Şifre",
+        "twofactor": "İki faktörlü kimlik doğrulama kodu",
+        "min_filesize": "Minimum dosya boyutu (MB)",
+        "max_filesize": "Maksimum dosya boyutu (MB)",
+        "playlist_items": "Çalma listesi öğeleri",
+        "date": "Tarih",
+        "datebefore": "Tarihten önce",
+        "dateafter": "Tarihten sonra",
+        "http_headers": "HTTP başlıkları",
+        "sleep_interval": "Bekleme aralığı",
+        "max_sleep_interval": "Maksimum bekleme aralığı",
+        "retries": "Yeniden deneme sayısı",
+        "http_chunk_size": "HTTP parça boyutu",
+        "sleep_subtitles": "Altyazılar için bekle"
     }
-    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n<blockquote>📋 <b>Groups:</b>\n{groups_msg}"
+    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp Argümanları Yapılandırması</b>\n\n<blockquote>📋 <b>Gruplar:</b>\n{groups_msg}"
     ARGS_MENU_TEXT = (
-        "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n"
-        "<blockquote>📋 <b>Groups:</b>\n"
-        "• ✅/❌ <b>Boolean</b> - True/False switches\n"
-        "• 📋 <b>Select</b> - Choose from options\n"
-        "• 🔢 <b>Numeric</b> - Number input\n"
-        "• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\n"
-        "These settings will be applied to all your downloads."
+        "<b>⚙️ yt-dlp Argümanları Yapılandırması</b>\n\n"
+        "<blockquote>📋 <b>Gruplar:</b>\n"
+        "• ✅/❌ <b>Boolean</b> - True/False anahtarları\n"
+        "• 📋 <b>Select</b> - Seçeneklerden seç\n"
+        "• 🔢 <b>Numeric</b> - Sayı girişi\n"
+        "• 📝🔧 <b>Text</b> - Metin/JSON girişi</blockquote>\n\n"
+        "Bu ayarlar tüm indirmelerinize uygulanacaktır."
     )
     
     # Additional missing messages
-    PLEASE_WAIT_MSG = "⏳ Please wait..."
-    ERROR_OCCURRED_SHORT_MSG = "❌ Error occurred"
+    PLEASE_WAIT_MSG = "⏳ Lütfen bekleyin..."
+    ERROR_OCCURRED_SHORT_MSG = "❌ Hata oluştu"
 
     # Args command messages (continued)
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_INPUT_DANGEROUS_MSG = "❌ Input contains potentially dangerous content: {pattern}"
-    ARGS_INPUT_TOO_LONG_MSG = "❌ Input too long (max 1000 characters)"
-    ARGS_INVALID_URL_MSG = "❌ Invalid URL format. Must start with http:// or https://"
-    ARGS_INVALID_JSON_MSG = "❌ Invalid JSON format"
-    ARGS_NUMBER_RANGE_MSG = "❌ Number must be between {min_val} and {max_val}"
-    ARGS_INVALID_NUMBER_MSG = "❌ Invalid number format"
-    ARGS_DATE_FORMAT_MSG = "❌ Date must be in YYYYMMDD format (e.g., 20230930)"
-    ARGS_YEAR_RANGE_MSG = "❌ Year must be between 1900 and 2100"
-    ARGS_MONTH_RANGE_MSG = "❌ Month must be between 01 and 12"
-    ARGS_DAY_RANGE_MSG = "❌ Day must be between 01 and 31"
-    ARGS_INVALID_DATE_MSG = "❌ Invalid date format"
-    ARGS_INVALID_XFF_MSG = "❌ XFF must be 'default', 'never', country code (e.g., US), or IP block (e.g., 192.168.1.0/24)"
-    ARGS_NO_CUSTOM_MSG = "No custom arguments set. All parameters use default values."
-    ARGS_RESET_SUCCESS_MSG = "✅ All arguments reset to defaults."
-    ARGS_TEXT_TOO_LONG_MSG = "❌ Text too long. Maximum 500 characters."
-    ARGS_ERROR_PROCESSING_MSG = "❌ Error processing input. Please try again."
-    ARGS_BOOL_INPUT_MSG = "❌ Please enter 'True' or 'False' for Send As File option."
-    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Please provide a valid number."
-    ARGS_BOOL_VALUE_REQUEST_MSG = "Please send <code>True</code> or <code>False</code> to enable/disable this option."
-    ARGS_JSON_VALUE_REQUEST_MSG = "Please send valid JSON."
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Girdi modu hareketsizlik nedeniyle otomatik olarak kapatıldı (5 dakika)."
+    ARGS_INPUT_DANGEROUS_MSG = "❌ Girdi potansiyel olarak tehlikeli içerik içeriyor: {pattern}"
+    ARGS_INPUT_TOO_LONG_MSG = "❌ Girdi çok uzun (maks 1000 karakter)"
+    ARGS_INVALID_URL_MSG = "❌ Geçersiz URL formatı. http:// veya https:// ile başlamalıdır"
+    ARGS_INVALID_JSON_MSG = "❌ Geçersiz JSON formatı"
+    ARGS_NUMBER_RANGE_MSG = "❌ Sayı {min_val} ile {max_val} arasında olmalıdır"
+    ARGS_INVALID_NUMBER_MSG = "❌ Geçersiz sayı formatı"
+    ARGS_DATE_FORMAT_MSG = "❌ Tarih YYYYMMDD formatında olmalıdır (örn., 20230930)"
+    ARGS_YEAR_RANGE_MSG = "❌ Yıl 1900 ile 2100 arasında olmalıdır"
+    ARGS_MONTH_RANGE_MSG = "❌ Ay 01 ile 12 arasında olmalıdır"
+    ARGS_DAY_RANGE_MSG = "❌ Gün 01 ile 31 arasında olmalıdır"
+    ARGS_INVALID_DATE_MSG = "❌ Geçersiz tarih formatı"
+    ARGS_INVALID_XFF_MSG = "❌ XFF 'default', 'never', ülke kodu (örn., US) veya IP bloğu (örn., 192.168.1.0/24) olmalıdır"
+    ARGS_NO_CUSTOM_MSG = "Özel argüman ayarlanmadı. Tüm parametreler varsayılan değerleri kullanıyor."
+    ARGS_RESET_SUCCESS_MSG = "✅ Tüm argümanlar varsayılanlara sıfırlandı."
+    ARGS_TEXT_TOO_LONG_MSG = "❌ Metin çok uzun. Maksimum 500 karakter."
+    ARGS_ERROR_PROCESSING_MSG = "❌ Girdi işlenirken hata. Lütfen tekrar deneyin."
+    ARGS_BOOL_INPUT_MSG = "❌ Dosya Olarak Gönder seçeneği için lütfen 'True' veya 'False' girin."
+    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Lütfen geçerli bir sayı girin."
+    ARGS_BOOL_VALUE_REQUEST_MSG = "Bu seçeneği etkinleştirmek/devre dışı bırakmak için lütfen <code>True</code> veya <code>False</code> gönderin."
+    ARGS_JSON_VALUE_REQUEST_MSG = "Lütfen geçerli JSON gönderin."
     
     # Tags command messages
-    TAGS_NO_TAGS_MSG = "You have no tags yet."
-    TAGS_MESSAGE_CLOSED_MSG = "Tags message closed."
+    TAGS_NO_TAGS_MSG = "Henüz etiketiniz yok."
+    TAGS_MESSAGE_CLOSED_MSG = "Etiket mesajı kapatıldı."
     
     # Subtitles command messages
-    SUBS_DISABLED_MSG = "✅ Subtitles disabled and Always Ask mode turned off."
-    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ SUBS Always Ask enabled."
-    SUBS_LANGUAGE_SET_MSG = "✅ Subtitle language set to: {flag} {name}"
+    SUBS_DISABLED_MSG = "✅ Altyazılar devre dışı bırakıldı ve Always Ask modu kapatıldı."
+    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ SUBS Always Ask etkinleştirildi."
+    SUBS_LANGUAGE_SET_MSG = "✅ Altyazı dili şu şekilde ayarlandı: {flag} {name}"
     SUBS_WARNING_MSG = (
-        "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
-        "- 720p max quality\n"
-        "- 1.5 hour max duration\n"
-        "- 500mb max video size</blockquote>\n\n"
+        "<blockquote>❗️UYARI: yüksek CPU etkisi nedeniyle bu işlev çok yavaştır (neredeyse gerçek zamanlı) ve şunlarla sınırlıdır:\n"
+        "- 720p maksimum kalite\n"
+        "- 1.5 saat maksimum süre\n"
+        "- 500mb maksimum video boyutu</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
-        "<b>Quick commands:</b>\n"
-        "• <code>/subs off</code> - disable subtitles\n"
-        "• <code>/subs on</code> - enable Always Ask mode\n"
-        "• <code>/subs ru</code> - set language\n"
-        "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
+        "<b>Hızlı komutlar:</b>\n"
+        "• <code>/subs off</code> - altyazıları devre dışı bırak\n"
+        "• <code>/subs on</code> - Always Ask modunu etkinleştir\n"
+        "• <code>/subs ru</code> - dili ayarla\n"
+        "• <code>/subs ru auto</code> - AUTO/TRANS ile dili ayarla"
     )
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
-    SUBS_DISABLED_ERROR_MSG = "❌ Subtitles are disabled. Use /subs to configure."
-    SUBS_YOUTUBE_ONLY_MSG = "❌ Subtitle downloading is only supported for YouTube."
+    SUBS_DISABLED_STATUS_MSG = "🚫 Altyazılar devre dışı"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Seçilen dil: {name}{auto_text}"
+    SUBS_DOWNLOADING_MSG = "💬 Altyazılar indiriliyor..."
+    SUBS_DISABLED_ERROR_MSG = "❌ Altyazılar devre dışı. Yapılandırmak için /subs kullanın."
+    SUBS_YOUTUBE_ONLY_MSG = "❌ Altyazı indirme yalnızca YouTube için desteklenir."
     SUBS_CAPTION_MSG = (
         "<b>💬 Subtitles</b>\n\n"
         "<b>Video:</b> {title}\n"
@@ -535,10 +535,10 @@ Use:
         "<b>Type:</b> {type}\n\n"
         "{tags}"
     )
-    SUBS_SENT_MSG = "💬 Subtitles SRT-file sent to user."
-    SUBS_ERROR_PROCESSING_MSG = "❌ Error processing subtitle file."
-    SUBS_ERROR_DOWNLOAD_MSG = "❌ Failed to download subtitles."
-    SUBS_ERROR_MSG = "❌ Error downloading subtitles: {error}"
+    SUBS_SENT_MSG = "💬 Altyazı SRT dosyası kullanıcıya gönderildi."
+    SUBS_ERROR_PROCESSING_MSG = "❌ Altyazı dosyası işlenirken hata."
+    SUBS_ERROR_DOWNLOAD_MSG = "❌ Altyazılar indirilemedi."
+    SUBS_ERROR_MSG = "❌ Altyazılar indirilirken hata: {error}"
     
     # Split command messages
     SPLIT_SIZE_SET_MSG = "✅ Split part size set to: {size}"
@@ -565,11 +565,11 @@ Use:
         "• `/split 0.1gb` - `/split 2gb`\n\n"
         "**Examples:** `/split 300mb`, `/split 1.2gb`, `/split 1500mb`"
     )
-    SPLIT_MENU_CLOSED_MSG = "Menu closed."
+    SPLIT_MENU_CLOSED_MSG = "Menü kapatıldı."
     
     # Settings command messages
-    SETTINGS_TITLE_MSG = "<b>Bot Settings</b>\n\nChoose a category:"
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
+    SETTINGS_TITLE_MSG = "<b>Bot Ayarları</b>\n\nBir kategori seçin:"
+    SETTINGS_MENU_CLOSED_MSG = "Menü kapatıldı."
     SETTINGS_CLEAN_TITLE_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
     SETTINGS_COOKIES_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nChoose an action:"
     SETTINGS_MEDIA_TITLE_MSG = "<b>🎞 MEDIA</b>\n\nChoose an action:"
@@ -591,9 +591,9 @@ Use:
     # Proxy command messages
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error saving proxy settings."
-    PROXY_MENU_TEXT_MSG = "Enable or disable using proxy server for all yt-dlp operations?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({count} available) for all yt-dlp operations?\n\nWhen enabled, proxies will be selected using {method} method."
-    PROXY_MENU_CLOSED_MSG = "Menu closed."
+    PROXY_MENU_TEXT_MSG = "Tüm yt-dlp işlemleri için proxy sunucusu kullanmayı etkinleştir veya devre dışı bırak?"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Tüm yt-dlp işlemleri için proxy sunucularını ({count} mevcut) kullanmayı etkinleştir veya devre dışı bırak?\n\nEtkinleştirildiğinde, proxy'ler {method} yöntemi kullanılarak seçilecektir."
+    PROXY_MENU_CLOSED_MSG = "Menü kapatıldı."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy enabled. All yt-dlp operations will use proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy enabled. All yt-dlp operations will use {count} proxy servers with {method} selection method."
     PROXY_DISABLED_MSG = "❌ Proxy disabled."
@@ -613,14 +613,14 @@ Use:
         "• <code>/audio 1-10 https://www.youtube.com/playlist?list=PL123</code>\n\n"
         "Also see: /vid, /img, /help, /playlist, /settings"
     )
-    AUDIO_HELP_CLOSED_MSG = "Audio hint closed."
-    PLAYLIST_HELP_CLOSED_MSG = "Playlist help closed."
+    AUDIO_HELP_CLOSED_MSG = "Ses ipucu kapatıldı."
+    PLAYLIST_HELP_CLOSED_MSG = "Çalma listesi yardımı kapatıldı."
     USERLOGS_CLOSED_MSG = "Logs message closed."
     HELP_CLOSED_MSG = "Help closed."
     
     # NSFW command messages
     NSFW_BLUR_SETTINGS_TITLE_MSG = "🔞 <b>NSFW Blur Settings</b>\n\nNSFW content is <b>{status}</b>.\n\nChoose whether to blur NSFW content:"
-    NSFW_MENU_CLOSED_MSG = "Menu closed."
+    NSFW_MENU_CLOSED_MSG = "Menü kapatıldı."
     NSFW_BLUR_DISABLED_MSG = "NSFW blur disabled."
     NSFW_BLUR_ENABLED_MSG = "NSFW blur enabled."
     NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW blur disabled."
@@ -628,28 +628,28 @@ Use:
     
     # MediaInfo command messages
     MEDIAINFO_ENABLED_MSG = "✅ MediaInfo {status}."
-    MEDIAINFO_MENU_TITLE_MSG = "Enable or disable sending MediaInfo for downloaded files?"
-    MEDIAINFO_MENU_CLOSED_MSG = "Menu closed."
-    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo enabled. After downloading, file info will be sent."
-    MEDIAINFO_DISABLED_MSG = "❌ MediaInfo disabled."
-    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo disabled."
+    MEDIAINFO_MENU_TITLE_MSG = "İndirilen dosyalar için MediaInfo göndermeyi etkinleştir veya devre dışı bırak?"
+    MEDIAINFO_MENU_CLOSED_MSG = "Menü kapatıldı."
+    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo etkinleştirildi. İndirmeden sonra dosya bilgisi gönderilecektir."
+    MEDIAINFO_DISABLED_MSG = "❌ MediaInfo devre dışı."
+    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo etkinleştirildi."
+    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo devre dışı."
     
     # List command messages
     LIST_HELP_MSG = (
-        "<b>📃 List Available Formats</b>\n\n"
-        "Get available video/audio formats for a URL.\n\n"
-        "<b>Usage:</b>\n"
+        "<b>📃 Mevcut Formatları Listele</b>\n\n"
+        "Bir URL için mevcut video/ses formatlarını al.\n\n"
+        "<b>Kullanım:</b>\n"
         "<code>/list URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>Örnekler:</b>\n"
         "• <code>/list https://youtube.com/watch?v=123abc</code>\n"
         "• <code>/list https://youtube.com/playlist?list=123abc</code>\n\n"
-        "<b>💡 How to use format IDs:</b>\n"
-        "After getting the list, use specific format ID:\n"
-        "• <code>/format id 401</code> - download format 401\n"
-        "• <code>/format id401</code> - same as above\n"
-        "• <code>/format id140 audio</code> - download format 140 as MP3 audio\n\n"
-        "This command will show all available formats that can be downloaded."
+        "<b>💡 Format ID'leri nasıl kullanılır:</b>\n"
+        "Listeyi aldıktan sonra, belirli format ID kullanın:\n"
+        "• <code>/format id 401</code> - format 401'i indir\n"
+        "• <code>/format id401</code> - yukarıdakiyle aynı\n"
+        "• <code>/format id140 audio</code> - format 140'ı MP3 ses olarak indir\n\n"
+        "Bu komut indirilebilecek tüm mevcut formatları gösterecektir."
     )
     LIST_PROCESSING_MSG = "🔄 Getting available formats..."
     LIST_INVALID_URL_MSG = "❌ Please provide a valid URL starting with http:// or https://"
@@ -698,11 +698,11 @@ Use:
         "</blockquote>\n\n"
         "<b>Quality:</b> from 1 to 10000 (e.g., 144, 240, 720, 1080)"
     )
-    LINK_INVALID_URL_MSG = "❌ Please provide a valid URL"
-    LINK_PROCESSING_MSG = "🔗 Getting direct link..."
-    LINK_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
-    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
-    LINK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
+    LINK_INVALID_URL_MSG = "❌ Lütfen geçerli bir URL girin"
+    LINK_PROCESSING_MSG = "🔗 Doğrudan bağlantı alınıyor..."
+    LINK_DURATION_MSG = "⏱ <b>Süre:</b> {duration} sn\n"
+    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video akışı:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
+    LINK_AUDIO_STREAM_MSG = "🎵 <b>Ses akışı:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
     
     # Keyboard command messages
     KEYBOARD_UPDATED_MSG = "🎹 **Keyboard setting updated!**\n\nNew setting: **{setting}**"
@@ -725,8 +725,8 @@ Use:
     KEYBOARD_ERROR_APPLYING_MSG = "Error applying keyboard setting {setting}: {error}"
     
     # Format command messages
-    FORMAT_ALWAYS_ASK_SET_MSG = "✅ Format set to: Always Ask. You will be prompted for quality each time you send a URL."
-    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
+    FORMAT_ALWAYS_ASK_SET_MSG = "✅ Format şu şekilde ayarlandı: Always Ask. Her URL gönderdiğinizde kalite sorulacaktır."
+    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format şu şekilde ayarlandı: Always Ask. Artık her URL gönderdiğinizde kalite sorulacaktır."
     FORMAT_BEST_UPDATED_MSG = "✅ Format updated to best quality (AVC+MP4 priority):\n{format}"
     FORMAT_ID_UPDATED_MSG = "✅ Format updated to ID {id}:\n{format}\n\n💡 <b>Note:</b> If this is an audio-only format, it will be downloaded as MP3 audio file."
     FORMAT_ID_AUDIO_UPDATED_MSG = "✅ Format updated to ID {id} (audio-only):\n{format}\n\n💡 This will be downloaded as MP3 audio file."
@@ -791,7 +791,7 @@ Use:
     CHANNEL_GUARD_ACTIVITY_EMPTY_MSG = "ℹ️ No activity for the last {hours} hours (2 days)."
     CHANNEL_GUARD_ACTIVITY_TOTALS_LINE_MSG = "Total: 🟢 {joined} joined, 🔴 {left} left."
     CHANNEL_GUARD_NO_ACCESS_MSG = "❌ No access to channel activity log. Bots cannot read admin logs. Provide CHANNEL_GUARD_SESSION_STRING in config with a user session to enable this feature."
-    BAN_TIME_USAGE_MSG = "❌ Usage: {command} <10s|6m|5h|4d|3w|2M|1y>"
+    BAN_TIME_USAGE_MSG = "❌ Kullanım: {command} <10s|6m|5h|4d|3w|2M|1y>"
     BAN_TIME_INTERVAL_INVALID_MSG = "❌ Use formats like 10s, 6m, 5h, 4d, 3w, 2M or 1y."
     BAN_TIME_SET_MSG = "🕒 Channel log scan interval set to {interval}."
     BAN_TIME_REPORT_MSG = (
@@ -803,18 +803,18 @@ Use:
         "Pending: {pending}\n"
         "Last event_id: {last_event_id}"
     )
-    ADMIN_BLOCK_USER_USAGE_MSG = "❌ Usage: /block_user <user_id>"
+    ADMIN_BLOCK_USER_USAGE_MSG = "❌ Kullanım: /block_user <user_id>"
     ADMIN_CANNOT_DELETE_ADMIN_MSG = "🚫 Admin cannot delete an admin"
     ADMIN_USER_BLOCKED_MSG = "User blocked 🔒❌\n \nID: <code>{user_id}</code>\nBlocked Date: {date}"
     ADMIN_USER_ALREADY_BLOCKED_MSG = "<code>{user_id}</code> is already blocked ❌😐"
     ADMIN_NOT_ADMIN_MSG = "🚫 Sorry! You are not an admin"
-    ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ Usage: /unblock_user <user_id>"
+    ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ Kullanım: /unblock_user <user_id>"
     ADMIN_USER_UNBLOCKED_MSG = "User unblocked 🔓✅\n \nID: <code>{user_id}</code>\nUnblocked Date: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> is already unblocked ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Unblocked users: {count}\n⏱ Timestamp: {date}"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Bot running time -</i> <b>{time}</b>"
-    ADMIN_UNCACHE_USAGE_MSG = "❌ Please provide a URL to clear cache for.\nUsage: <code>/uncache &lt;URL&gt;</code>"
-    ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/uncache &lt;URL&gt;</code>"
+    ADMIN_UNCACHE_USAGE_MSG = "❌ Lütfen önbelleği temizlemek için bir URL girin.\nKullanım: <code>/uncache &lt;URL&gt;</code>"
+    ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Lütfen geçerli bir URL girin.\nKullanım: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_CACHE_CLEARED_MSG = "✅ Cache cleared successfully for URL:\n<code>{url}</code>"
     ADMIN_NO_CACHE_FOUND_MSG = "ℹ️ No cache found for this link."
     ADMIN_ERROR_CLEARING_CACHE_MSG = "❌ Error clearing cache: {error}"
@@ -841,8 +841,8 @@ Use:
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Error reloading porn cache: {error}"
-    ADMIN_CHECK_PORN_USAGE_MSG = "❌ Please provide a URL to check.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
-    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECK_PORN_USAGE_MSG = "❌ Lütfen kontrol etmek için bir URL girin.\nKullanım: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Lütfen geçerli bir URL girin.\nKullanım: <code>/check_porn &lt;URL&gt;</code>"
     ADMIN_CHECKING_URL_MSG = "🔍 Checking URL for NSFW content...\n<code>{url}</code>"
     ADMIN_PORN_CHECK_RESULT_MSG = (
         "{status_icon} <b>Porn Check Result</b>\n\n"
@@ -1102,8 +1102,8 @@ Use:
     SUBS_EXAMPLE_AUTO_MSG = "Example: `/subs en auto`"
     
     # Additional subtitles command messages (more more)
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask mode {status}"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Seçilen dil: {name}{auto_text}"
+    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask modu {status}"
     
     # Additional subtitles menu messages
     SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
@@ -2025,9 +2025,9 @@ Use:
     URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
     URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
     URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Örnekler:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
-    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Ayrıca bakın: /audio, /img, /help, /playlist, /settings"
     URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
 
     # YouTube messages

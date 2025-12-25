@@ -158,9 +158,9 @@ Yi amfani da <code>/img URL</code> don sauke hotuna/hoto/kundin hotuna daga dand
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
     SAVE_AS_COOKIE_HINT = (
-        "Just save your cookie as <b><u>cookie.txt</u></b> and send it to bot as a document.\n\n"
-        "You can also send cookies as plain text with <b><u>/save_as_cookie</u></b> command.\n"
-        "<b>Usage of <b><u>/save_as_cookie</u></b>:</b>\n\n"
+        "Kawai adana cookie naka azaman <b><u>cookie.txt</u></b> kuma aika shi zuwa bot azaman takarda.\n\n"
+        "Hakanan zaka iya aika cookies azaman rubutu mai sauƙi tare da umarnin <b><u>/save_as_cookie</u></b>.\n"
+        "<b>Amfani da <b><u>/save_as_cookie</u></b>:</b>\n\n"
         "<pre>"
         "/save_as_cookie\n"
         "# Netscape HTTP Cookie File\n"
@@ -171,193 +171,193 @@ Yi amfani da <code>/img URL</code> don sauke hotuna/hoto/kundin hotuna daga dand
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
         "<blockquote>"
-        "<b><u>Instructions:</u></b>\n"
+        "<b><u>Umarni:</u></b>\n"
         "https://t.me/tg_ytdlp/203 \n"
         "https://t.me/tg_ytdlp/214 "
         "</blockquote>"
     )
     
-    # Search command message (English)
+    # Search command message
     SEARCH_MSG = """
-🔍 <b>Video search</b>
+🔍 <b>Binciken Bidiyo</b>
 
-Press the button below to activate inline search via @vid.
+Danna maɓallin da ke ƙasa don kunna bincike na cikin layi ta hanyar @vid.
 
-<blockquote>On PC just type <b>"@vid Your_Search_Query"</b> in any chat.</blockquote>
+<blockquote>A kan PC kawai rubuta <b>"@vid Your_Search_Query"</b> a cikin kowane tattaunawa.</blockquote>
     """
     
-    # Settings and Hints (English)
+    # Settings and Hints
     
     
     IMG_HELP_MSG = (
-        "<b>🖼 Image Download Command</b>\n\n"
-        "Usage: <code>/img URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>🖼 Umarnin Saukewa Hotuna</b>\n\n"
+        "Amfani: <code>/img URL</code>\n\n"
+        "<b>Misalai:</b>\n"
         "• <code>/img https://example.com/image.jpg</code>\n"
         "• <code>/img 11-20 https://example.com/album</code>\n"
         "• <code>/img 11- https://example.com/album</code>\n"
         "• <code>/img https://vk.com/wall-160916577_408508</code>\n"
         "• <code>/img https://2ch.hk/fd/res/1747651.html</code>\n"
         "• <code>/img https://imgur.com/abc123</code>\n\n"
-        "<b>Supported platforms (examples):</b>\n"
-        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, etc. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">full list</a></blockquote>"
-        "Also see: "
+        "<b>Dandamali da aka goyan baya (misalai):</b>\n"
+        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, da sauransu — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">cikakken jerin</a></blockquote>"
+        "Hakanan duba: "
     )
     
     LINK_HINT_MSG = (
-        "Get direct video links with quality selection.\n\n"
-        "Usage: /link + URL \n\n"
-        "(ex. /link https://youtu.be/abc123)\n"
-        "(ex. /link 720 https://youtu.be/abc123)"
+        "Sami hanyoyin haɗi kai tsaye na bidiyo tare da zaɓin inganci.\n\n"
+        "Amfani: /link + URL \n\n"
+        "(misali. /link https://youtu.be/abc123)\n"
+        "(misali. /link 720 https://youtu.be/abc123)"
     )
     
     # Add bot to group command message
     ADD_BOT_TO_GROUP_MSG = """
-🤖 <b>Add Bot to Group</b>
+🤖 <b>Ƙara Bot zuwa Ƙungiya</b>
 
-Add my bots to your groups to get enhanced features and higher limits!
+Ƙara bots dina zuwa ƙungiyoyin ku don samun ingantattun fasaloli da iyakoki masu girma!
 ————————————
-📊 <b>Current FREE Limits (in Bot's DM):</b>
-<blockquote>•🗑 Messy junk from all the files unsorted 👎
-• Max 1 file size: <b>8 GB </b>
-• Max 1 file quality: <b>UNLIM</b>
-• Max 1 file duration: <b>UNLIM</b>
-• Max number of downloads: <b>UNLIM</b>
-• Max URLs in one message: <b>10</b> (only in quality selection mode)
-• Max playlist items per 1 time: <b>50</b>
-• Max TikTok videos per 1 time: <b>500</b>
-• Max images per 1 time: <b>1000</b>
-• URL rate limits: <b>5/min, 60/hour, 1000/day</b>
-• Command limit: <b>20/min</b>
-• 1 Download max time: <b>2 hours</b>
-• 🔞 NSFW content is paid! 1⭐️ = $0.02
-• 🆓 ALL OTHER MEDIA ARE TOTALY FREE
-• 📝 All content logs & caching to my log-channels for instant repost when re-downloading</blockquote>
+📊 <b>Iyaka na KYAUTA na Yanzu (a cikin DM na Bot):</b>
+<blockquote>•🗑 Dattin dattin daga duk fayilolin da ba a tsara su ba 👎
+• Matsakaicin girman fayil 1: <b>8 GB </b>
+• Matsakaicin ingancin fayil 1: <b>BA IYAKA</b>
+• Matsakaicin tsawon fayil 1: <b>BA IYAKA</b>
+• Matsakaicin adadin saukewa: <b>BA IYAKA</b>
+• Matsakaicin URLs a cikin saƙo ɗaya: <b>10</b> (kawai a cikin yanayin zaɓin inganci)
+• Matsakaicin abubuwan jerin bidiyo a kowane lokaci 1: <b>50</b>
+• Matsakaicin bidiyoyin TikTok a kowane lokaci 1: <b>500</b>
+• Matsakaicin hotuna a kowane lokaci 1: <b>1000</b>
+• Iyakokin ƙimar URL: <b>5/min, 60/hour, 1000/day</b>
+• Iyakar umarni: <b>20/min</b>
+• 1 Saukewa matsakaicin lokaci: <b>sa'o'i 2</b>
+• 🔞 Abun ciki na NSFW ana biya! 1⭐️ = $0.02
+• 🆓 DUK SAURAN KAFOFIN WATSAN LABARAI SUNA KYAU GABAN ɗAYA
+• 📝 Duk tarihin abun ciki & caching zuwa tashoshin log dina don sake bugawa nan take lokacin sake saukewa</blockquote>
 
-💬<b>This limits only for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>1.5 hours</b>
-• Max video+subs file size: <b>500 MB</b>
-• Max video+subs quality: <b>720p</b></blockquote>
+💬<b>Wannan iyakoki kawai don bidiyo tare da rubutun ƙasa:</b>
+<blockquote>• Matsakaicin tsawon bidiyo+rubutun ƙasa: <b>sa'o'i 1.5</b>
+• Matsakaicin girman fayil na bidiyo+rubutun ƙasa: <b>500 MB</b>
+• Matsakaicin ingancin bidiyo+rubutun ƙasa: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Paid Group Benefits (2️⃣x Limits):</b>
-<blockquote>•  🗂 Structured neat media vault sorted by topics 👍
-•  📁 Bots reply in the topic you call them
-•  📌 Auto pin status message with download progress
-•  🖼 /img command downloads media as 10-item albums
-• Max 1 file size: <b>16 GB</b> ⬆️
-• Max URLs in one message: <b>20</b> ⬆️ (only in quality selection mode)
-• Max playlist items per 1 time: <b>100</b> ⬆️
-• Max TikTok videos per 1 time: 1000 ⬆️
-• Max images per 1 time: 2000 ⬆️
-• URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
-• Command limit: <b>40/min</b> ⬆️
-• 1 Download max time: <b>4 hours</b> ⬆️
-• 🔞 NSFW content: Free with full metadata 🆓
-• 📢 No need to subscribe to my channel for groups
-• 👥 All group members will have access to paid functions!
-• 🗒 No logs / no cache to my log-channels! You can reject copy/repost in group settings</blockquote>
+🚀 <b>Fa'idodin Ƙungiyar da Ake Biya (Iyaka 2️⃣x):</b>
+<blockquote>•  🗂 Rumbun kafofin watsa labarai masu tsari da aka tsara ta batutuwa 👍
+•  📁 Bots suna amsawa a cikin batun da kuka kira su
+•  📌 Auto pin saƙon matsayi tare da ci gaban saukewa
+•  🖼 Umarnin /img yana saukewa kafofin watsa labarai azaman kundin abubuwa 10
+• Matsakaicin girman fayil 1: <b>16 GB</b> ⬆️
+• Matsakaicin URLs a cikin saƙo ɗaya: <b>20</b> ⬆️ (kawai a cikin yanayin zaɓin inganci)
+• Matsakaicin abubuwan jerin bidiyo a kowane lokaci 1: <b>100</b> ⬆️
+• Matsakaicin bidiyoyin TikTok a kowane lokaci 1: 1000 ⬆️
+• Matsakaicin hotuna a kowane lokaci 1: 2000 ⬆️
+• Iyakokin ƙimar URL: <b>10/min, 120/hour, 2000/day</b> ⬆️
+• Iyakar umarni: <b>40/min</b> ⬆️
+• 1 Saukewa matsakaicin lokaci: <b>sa'o'i 4</b> ⬆️
+• 🔞 Abun ciki na NSFW: Kyauta tare da cikakken metadata 🆓
+• 📢 Ba lallai ba ne yin rajista zuwa tashar tawa don ƙungiyoyi
+• 👥 Duk membobin ƙungiya za su sami damar ayyukan da ake biya!
+• 🗒 Babu logs / babu cache zuwa tashoshin log dina! Zaka iya ƙi kwafi/sake bugawa a cikin saitunan ƙungiya</blockquote>
 
-💬 <b>2️⃣x limits for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>3 hours</b> ⬆️
-• Max video+subs file size: <b>1000 MB</b> ⬆️
-• Max video+subs quality: <b>1080p</b> ⬆️</blockquote>
+💬 <b>Iyaka 2️⃣x don bidiyo tare da rubutun ƙasa:</b>
+<blockquote>• Matsakaicin tsawon bidiyo+rubutun ƙasa: <b>sa'o'i 3</b> ⬆️
+• Matsakaicin girman fayil na bidiyo+rubutun ƙasa: <b>1000 MB</b> ⬆️
+• Matsakaicin ingancin bidiyo+rubutun ƙasa: <b>1080p</b> ⬆️</blockquote>
 ————————————
-💰 <b>Pricing & Setup:</b>
-<blockquote>• Price: <b>$5/month</b> per 1 bot in group
-• Setup: Contact @iilililiiillliiliililliilliliiil
-• Payment: 💎TON or other methods💲
-• Support: Full technical support included</blockquote>
+💰 <b>Farashi & Saitawa:</b>
+<blockquote>• Farashi: <b>$5/wata</b> don kowane bot 1 a cikin ƙungiya
+• Saitawa: Tuntuɓi @iilililiiillliiliililliilliliiil
+• Biyan kuɗi: 💎TON ko wasu hanyoyi💲
+• Taimako: Cikakken tallafin fasaha ya haɗa</blockquote>
 ————————————
-You can add my bots to your group to unblock free 🔞<b>NSFW</b> and to double (x2️⃣) all limits.
-Contact me if you want me to allow your group to use my bots @iilililiiillliiliililliilliliiil
+Zaka iya ƙara bots dina zuwa ƙungiyar ku don buɗe kyauta 🔞<b>NSFW</b> kuma don ninka (x2️⃣) duk iyakoki.
+Tuntuɓe ni idan kana son in ba ƙungiyar ku damar amfani da bots dina @iilililiiillliiliililliilliliiil
 ————————————
-💡<b>TIP:</b> <blockquote>You can chip in money with any amount of your friends (for example 100 people) and made 1 purchase for whole group - ALL GROUP MEMBERS WILL HAVE FULL UNLIMITED ACCESS to all bots functions in that group for just <b>0.05$</b></blockquote>
+💡<b>SHAWARA:</b> <blockquote>Zaka iya ba da kuɗi tare da kowane adadin abokanka (misali mutane 100) kuma ka yi siyayya 1 don dukan ƙungiya - DUK MEMBONIN ƘUNGIYA ZA SU SAMI CIKAKKIYAR DAMAR BA IYAKA ga duk ayyukan bots a cikin wannan ƙungiya don kawai <b>$0.05</b></blockquote>
     """
     
     # NSFW Command Messages
     NSFW_ON_MSG = """
-🔞 <b>NSFW Mode: ON✅</b>
+🔞 <b>Yanayin NSFW: KUNNA✅</b>
 
-• NSFW content will be displayed without blurring.
-• Spoilers will not apply to NSFW media.
-• The content will be visible immediately
+• Abun ciki na NSFW zai bayyana ba tare da blur ba.
+• Spoilers ba za su yi aiki ba ga kafofin watsa labarai na NSFW.
+• Abun ciki zai bayyana nan take
 
-<i>Use /nsfw off to enable blur</i>
+<i>Yi amfani da /nsfw off don kunna blur</i>
     """
     
     NSFW_OFF_MSG = """
-🔞 <b>NSFW Mode: OFF</b>
+🔞 <b>Yanayin NSFW: KASHE</b>
 
-⚠️ <b>Blur enabled</b>
-• NSFW content will be hidden under spoiler   
-• To view, you will need to click on the media
-• Spoilers will apply to NSFW media.
+⚠️ <b>Blur ya kunna</b>
+• Abun ciki na NSFW zai ɓoye a ƙarƙashin spoiler   
+• Don duba, zaka buƙaci danna kafofin watsa labarai
+• Spoilers za su yi aiki ga kafofin watsa labarai na NSFW.
 
-<i>Use /nsfw on to disable blur</i>
+<i>Yi amfani da /nsfw on don kashe blur</i>
     """
     
     NSFW_INVALID_MSG = """
-❌ <b>Invalid parameter</b>
+❌ <b>Parameter mara inganci</b>
 
-Use:
-• <code>/nsfw on</code> - disable blur
-• <code>/nsfw off</code> - enable blur
+Yi amfani da:
+• <code>/nsfw on</code> - kashe blur
+• <code>/nsfw off</code> - kunna blur
     """
     
     # UI Messages - Status and Progress
-    CHECKING_CACHE_MSG = "🔄 <b>Checking cache...</b>\n\n<code>{url}</code>"
-    PROCESSING_MSG = "🔄 Processing..."
-    DOWNLOADING_MSG = "📥 <b>Downloading media...</b>\n\n"
+    CHECKING_CACHE_MSG = "🔄 <b>Ana duba cache...</b>\n\n<code>{url}</code>"
+    PROCESSING_MSG = "🔄 Ana sarrafawa..."
+    DOWNLOADING_MSG = "📥 <b>Ana saukewa kafofin watsa labarai...</b>\n\n"
 
-    DOWNLOADING_IMAGE_MSG = "📥 <b>Downloading image...</b>\n\n"
+    DOWNLOADING_IMAGE_MSG = "📥 <b>Ana saukewa hoto...</b>\n\n"
 
-    DOWNLOAD_COMPLETE_MSG = "✅ <b>Download complete</b>\n\n"
+    DOWNLOAD_COMPLETE_MSG = "✅ <b>Saukewa ya cika</b>\n\n"
     
     # Download status messages
-    DOWNLOADED_STATUS_MSG = "Downloaded:"
-    SENT_STATUS_MSG = "Sent:"
-    PENDING_TO_SEND_STATUS_MSG = "Pending to send:"
-    TITLE_LABEL_MSG = "Title:"
-    MEDIA_COUNT_LABEL_MSG = "Media count:"
-    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Download finished, processing audio..."
-    VIDEO_PROCESSING_MSG = "📽 Video is processing..."
+    DOWNLOADED_STATUS_MSG = "An sauke:"
+    SENT_STATUS_MSG = "An aika:"
+    PENDING_TO_SEND_STATUS_MSG = "Ana jira aika:"
+    TITLE_LABEL_MSG = "Take:"
+    MEDIA_COUNT_LABEL_MSG = "Adadin kafofin watsa labarai:"
+    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Saukewa ya ƙare, ana sarrafa sauti..."
+    VIDEO_PROCESSING_MSG = "📽 Bidiyo yana sarrafawa..."
     WAITING_HOURGLASS_MSG = "⌛️"
     
     # Cache Messages
-    SENT_FROM_CACHE_MSG = "✅ <b>Sent from cache</b>\n\nSent albums: <b>{count}</b>"
-    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video successfully sent from cache."
-    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Playlist videos sent from cache ({cached}/{total} files)."
-    CACHE_PARTIAL_MSG = "📥 {cached}/{total} videos sent from cache, downloading missing ones..."
-    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Sent from cache: {cached}\n🔄 Continuing download..."
-    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Could not analyze media, proceeding with maximum allowed range (1-{fallback_limit})..."
-    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Could not determine media count, proceeding with maximum allowed range (1-{total_limit})..."
-    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Could not determine total media count, proceeding with specified range {start}-{end}..."
+    SENT_FROM_CACHE_MSG = "✅ <b>An aika daga cache</b>\n\nKundin da aka aika: <b>{count}</b>"
+    VIDEO_SENT_FROM_CACHE_MSG = "✅ An aika bidiyo cikin nasara daga cache."
+    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ An aika bidiyoyin jerin bidiyo daga cache ({cached}/{total} fayiloli)."
+    CACHE_PARTIAL_MSG = "📥 {cached}/{total} bidiyoyi an aika daga cache, ana saukewa waɗanda suka ɓace..."
+    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ An aika daga cache: {cached}\n🔄 Ana ci gaba da saukewa..."
+    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Ba za a iya nazarin kafofin watsa labarai ba, ana ci gaba da matsakaicin kewayon da aka yarda (1-{fallback_limit})..."
+    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Ba za a iya ƙayyade adadin kafofin watsa labarai ba, ana ci gaba da matsakaicin kewayon da aka yarda (1-{total_limit})..."
+    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Ba za a iya ƙayyade jimillar adadin kafofin watsa labarai ba, ana ci gaba da kewayon da aka ƙayyade {start}-{end}..."
 
     # Error Messages
-    INVALID_URL_MSG = "❌ <b>Invalid URL</b>\n\nPlease provide a valid URL starting with http:// or https://"
+    INVALID_URL_MSG = "❌ <b>URL mara inganci</b>\n\nDa fatan za a ba da URL mai inganci wanda ya fara da http:// ko https://"
 
-    ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
+    ERROR_OCCURRED_MSG = "❌ <b>Kuskure ya faru</b>\n\n<code>{url}</code>\n\nKuskure: {error}"
 
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
-    ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
-    ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
+    ERROR_SENDING_VIDEO_MSG = "❌ Kuskure wajen aika bidiyo: {error}"
+    ERROR_UNKNOWN_MSG = "❌ Kuskure da ba a sani ba: {error}"
+    ERROR_NO_DISK_SPACE_MSG = "❌ Babu isasshen sarari na diski don saukewa bidiyoyi."
+    ERROR_FILE_SIZE_LIMIT_MSG = "❌ Girman fayil ya wuce iyakar {limit} GB. Da fatan za a zaɓi fayil ƙarami a cikin girman da aka yarda."
 
-    ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
+    ERROR_GETTING_LINK_MSG = "❌ <b>Kuskure wajen samun hanyar haɗi:</b>\n{error}"
 
     # Telegram Rate Limit Messages
-    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: {time}\nTo update timer send URL again 2 times."
-    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times."
+    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram ya iyakance aika saƙo.\n⏳ Da fatan za a jira: {time}\nDon sabunta lokaci aika URL sake sau 2."
+    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram ya iyakance aika saƙo.\n⏳ Da fatan za a jira: \nDon sabunta lokaci aika URL sake sau 2."
     
     # Subtitles Messages
-    SUBTITLES_FAILED_MSG = "⚠️ Failed to download subtitles"
+    SUBTITLES_FAILED_MSG = "⚠️ An gaza saukewa rubutun ƙasa"
 
     # Video Processing Messages
 
     # Stream/Link Messages
-    STREAM_LINKS_TITLE_MSG = "🔗 <b>Direct Stream Links</b>\n\n"
-    STREAM_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    STREAM_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
+    STREAM_LINKS_TITLE_MSG = "🔗 <b>Hanyoyin Haɗi Kai Tsaye na Stream</b>\n\n"
+    STREAM_TITLE_MSG = "📹 <b>Take:</b> {title}\n"
+    STREAM_DURATION_MSG = "⏱ <b>Tsawon lokaci:</b> {duration} daƙiƙa\n"
 
     
     # Download Progress Messages
@@ -367,36 +367,36 @@ Use:
     # NSFW Paid Content Messages
 
     # Callback Error Messages
-    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Error: Original message not found."
+    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Kuskure: Ba a sami saƙon asali ba."
 
     # Tags Error Messages
-    TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
+    TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} ya ƙunshi haruffa da aka haramta. Haruffa, lambobi da _ kawai ana yarda.\nDa fatan za a yi amfani da: {example}"
     
     # Playlist Messages
-    PLAYLIST_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    PLAYLIST_CACHE_SENT_MSG = "✅ Sent from cache: {cached}/{total} files."
+    PLAYLIST_SENT_MSG = "✅ An aika bidiyoyin jerin bidiyo: {sent}/{total} fayiloli."
+    PLAYLIST_CACHE_SENT_MSG = "✅ An aika daga cache: {cached}/{total} fayiloli."
     
     # Failed Stream Messages
-    FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
+    FAILED_STREAM_LINKS_MSG = "❌ An gaza samun hanyoyin haɗi na stream"
 
     # new messages
     # Browser Cookie Messages
-    SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
-    SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
-    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
-    BROWSER_OPEN_BUTTON_MSG = "🌐 Open Browser"
-    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Download from Remote URL"
-    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
-    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ No supported browsers found and no COOKIE_URL configured. Use /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL must point to a .txt file."
-    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
-    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
-    BTN_CLOSE = "🔚Close"
+    SELECT_BROWSER_MSG = "Zaɓi browser don saukewa cookies daga:"
+    SELECT_BROWSER_NO_BROWSERS_MSG = "Ba a sami browsers a kan wannan tsarin ba. Zaka iya saukewa cookies daga URL mai nisa ko saka idanu matsayin browser:"
+    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Bude Browser</b> - don saka idanu matsayin browser a cikin mini-app"
+    BROWSER_OPEN_BUTTON_MSG = "🌐 Bude Browser"
+    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Saukewa daga URL Mai Nisa"
+    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ An sauke fayil cookie na YouTube ta hanyar fallback kuma an adana shi azaman cookie.txt"
+    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ Ba a sami browsers da aka goyan baya ba kuma ba a saita COOKIE_URL ba. Yi amfani da /cookie ko loda cookie.txt."
+    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ COOKIE_URL fallback dole ne ya nuna zuwa fayil .txt."
+    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fayil cookie fallback ya yi girma (>100KB)."
+    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Tushen cookie fallback ba ya samuwa (matsayi {status}). Gwada /cookie ko loda cookie.txt."
+    COOKIE_FALLBACK_ERROR_MSG = "❌ Kuskure wajen saukewa cookie fallback. Gwada /cookie ko loda cookie.txt."
+    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Kuskure da ba zato ba tsammani yayin saukewa cookie fallback."
+    BTN_CLOSE = "🔚Rufe"
     
     # Args command messages
-    ARGS_INVALID_BOOL_MSG = "❌ Invalid boolean value"
+    ARGS_INVALID_BOOL_MSG = "❌ Ƙimar boolean mara inganci"
     ARGS_CLOSED_MSG = "An rufe"
     ARGS_ALL_RESET_MSG = "✅ An sake saita duk hujjoji"
     ARGS_RESET_ERROR_MSG = "❌ Kuskure wajen sake saita hujjoji"
@@ -407,333 +407,333 @@ Use:
     ARGS_VALUE_SET_MSG = "An saita zuwa {value}"
     ARGS_VALUE_ALREADY_SET_MSG = "An riga an saita zuwa {value}"
     ARGS_PARAM_DESCRIPTION_MSG = "<b>📝 {description}</b>\n\n"
-    ARGS_CURRENT_VALUE_MSG = "<b>Current value:</b> <code>{current_value}</code>\n\n"
-    ARGS_XFF_EXAMPLES_MSG = "<b>Examples:</b>\n• <code>default</code> - Use default XFF strategy\n• <code>never</code> - Never use XFF header\n• <code>US</code> - United States country code\n• <code>GB</code> - United Kingdom country code\n• <code>DE</code> - Germany country code\n• <code>FR</code> - France country code\n• <code>JP</code> - Japan country code\n• <code>192.168.1.0/24</code> - IP block (CIDR)\n• <code>10.0.0.0/8</code> - Private IP range\n• <code>203.0.113.0/24</code> - Public IP block\n\n"
-    ARGS_XFF_NOTE_MSG = "<b>Note:</b> This replaces --geo-bypass options. Use any 2-letter country code or IP block in CIDR notation.\n\n"
-    ARGS_EXAMPLE_MSG = "<b>Example:</b> <code>{placeholder}</code>\n\n"
-    ARGS_SEND_VALUE_MSG = "Please send your new value."
+    ARGS_CURRENT_VALUE_MSG = "<b>Ƙimar yanzu:</b> <code>{current_value}</code>\n\n"
+    ARGS_XFF_EXAMPLES_MSG = "<b>Misalai:</b>\n• <code>default</code> - Yi amfani da dabarar XFF ta asali\n• <code>never</code> - Kada a taɓa amfani da kan XFF\n• <code>US</code> - Lambar ƙasa ta Amurka\n• <code>GB</code> - Lambar ƙasa ta Burtaniya\n• <code>DE</code> - Lambar ƙasa ta Jamus\n• <code>FR</code> - Lambar ƙasa ta Faransa\n• <code>JP</code> - Lambar ƙasa ta Japan\n• <code>192.168.1.0/24</code> - Rukunin IP (CIDR)\n• <code>10.0.0.0/8</code> - Kewayon IP na sirri\n• <code>203.0.113.0/24</code> - Rukunin IP na jama'a\n\n"
+    ARGS_XFF_NOTE_MSG = "<b>Lura:</b> Wannan yana maye gurbin zaɓuɓɓukan --geo-bypass. Yi amfani da kowane lambar ƙasa ta haruffa 2 ko rukunin IP a cikin alamar CIDR.\n\n"
+    ARGS_EXAMPLE_MSG = "<b>Misali:</b> <code>{placeholder}</code>\n\n"
+    ARGS_SEND_VALUE_MSG = "Da fatan za a aika ƙimar sabuwar ku."
     ARGS_NUMBER_PARAM_MSG = "<b>🔢 {description}</b>\n\n"
-    ARGS_RANGE_MSG = "<b>Range:</b> {min_val} - {max_val}\n\n"
-    ARGS_SEND_NUMBER_MSG = "Please send a number."
+    ARGS_RANGE_MSG = "<b>Kewayon:</b> {min_val} - {max_val}\n\n"
+    ARGS_SEND_NUMBER_MSG = "Da fatan za a aika lamba."
     ARGS_JSON_PARAM_MSG = "<b>🔧 {description}</b>\n\n"
-    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Examples:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
-    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Note:</b> These headers will be added to existing Referer and User-Agent headers.\n\n"
-    ARGS_CURRENT_ARGS_MSG = "<b>📋 Current yt-dlp Arguments:</b>\n\n"
-    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False switches\n• 📋 <b>Select</b> - Choose from options\n• 🔢 <b>Numeric</b> - Number input\n• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\nThese settings will be applied to all your downloads."
+    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Misalai:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
+    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Lura:</b> Waɗannan kawunan za a ƙara su zuwa kawunan Referer da User-Agent da suka wanzu.\n\n"
+    ARGS_CURRENT_ARGS_MSG = "<b>📋 Hujjojin yt-dlp na Yanzu:</b>\n\n"
+    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - Sauye-sauye na Gaskiya/Ƙarya\n• 📋 <b>Zaɓi</b> - Zaɓi daga zaɓuɓɓuka\n• 🔢 <b>Lamba</b> - Shigar da lamba\n• 📝🔧 <b>Rubutu</b> - Shigar da Rubutu/JSON</blockquote>\n\nWaɗannan saitunan za a yi amfani da su ga duk saukewan ku."
     
     # Localized parameter names for display
     ARGS_PARAM_NAMES = {
-        "force_ipv6": "Force IPv6 connections",
-        "force_ipv4": "Force IPv4 connections", 
-        "no_live_from_start": "Do not download live streams from start",
-        "live_from_start": "Download live streams from start",
-        "no_check_certificates": "Suppress HTTPS certificate validation",
-        "check_certificate": "Check SSL certificate",
-        "no_playlist": "Download only single video, not playlist",
-        "embed_metadata": "Embed metadata in video file",
-        "embed_thumbnail": "Embed thumbnail in video file",
-        "write_thumbnail": "Write thumbnail to file",
-        "ignore_errors": "Ignore download errors and continue",
-        "legacy_server_connect": "Allow legacy server connections",
-        "concurrent_fragments": "Number of concurrent fragments to download",
-        "xff": "X-Forwarded-For header strategy",
-        "user_agent": "User-Agent header",
-        "impersonate": "Browser impersonation",
-        "referer": "Referer header",
-        "geo_bypass": "Bypass geographic restrictions",
-        "hls_use_mpegts": "Use MPEG-TS for HLS",
-        "no_part": "Do not use .part files",
-        "no_continue": "Do not resume partial downloads",
-        "audio_format": "Audio format",
-        "video_format": "Video format",
-        "merge_output_format": "Merge output format",
-        "send_as_file": "Send as file",
-        "username": "Username",
-        "password": "Password",
-        "twofactor": "Two-factor authentication code",
-        "min_filesize": "Minimum file size (MB)",
-        "max_filesize": "Maximum file size (MB)",
-        "playlist_items": "Playlist items",
-        "date": "Date",
-        "datebefore": "Date before",
-        "dateafter": "Date after",
-        "http_headers": "HTTP headers",
-        "sleep_interval": "Sleep interval",
-        "max_sleep_interval": "Maximum sleep interval",
-        "retries": "Number of retries",
-        "http_chunk_size": "HTTP chunk size",
-        "sleep_subtitles": "Sleep for subtitles"
+        "force_ipv6": "Tilasta haɗin IPv6",
+        "force_ipv4": "Tilasta haɗin IPv4", 
+        "no_live_from_start": "Kada a sauke streams na kai tsaye daga farko",
+        "live_from_start": "Sauke streams na kai tsaye daga farko",
+        "no_check_certificates": "Kashe tabbatarwar takardar shaida HTTPS",
+        "check_certificate": "Duba takardar shaida SSL",
+        "no_playlist": "Sauke bidiyo guda ɗaya kawai, ba jerin bidiyo ba",
+        "embed_metadata": "Saka metadata a cikin fayil bidiyo",
+        "embed_thumbnail": "Saka thumbnail a cikin fayil bidiyo",
+        "write_thumbnail": "Rubuta thumbnail zuwa fayil",
+        "ignore_errors": "Yi watsi da kurakuran saukewa kuma ci gaba",
+        "legacy_server_connect": "Ba da izinin haɗin uwar garken tsoho",
+        "concurrent_fragments": "Adadin guntayen da za a sauke a lokaci guda",
+        "xff": "Dabarar kan X-Forwarded-For",
+        "user_agent": "Kan User-Agent",
+        "impersonate": "Kwaikwayon browser",
+        "referer": "Kan Referer",
+        "geo_bypass": "Ketare haniyyoyin yanki",
+        "hls_use_mpegts": "Yi amfani da MPEG-TS don HLS",
+        "no_part": "Kada a yi amfani da fayilolin .part",
+        "no_continue": "Kada a ci gaba da saukewa na ɓangare",
+        "audio_format": "Tsarin sauti",
+        "video_format": "Tsarin bidiyo",
+        "merge_output_format": "Tsarin fitarwa na haɗawa",
+        "send_as_file": "Aika azaman fayil",
+        "username": "Sunan mai amfani",
+        "password": "Kalmar sirri",
+        "twofactor": "Lambar tabbatarwa ta hanyoyi biyu",
+        "min_filesize": "Matsakaicin girman fayil (MB)",
+        "max_filesize": "Matsakaicin girman fayil (MB)",
+        "playlist_items": "Abubuwan jerin bidiyo",
+        "date": "Kwanan wata",
+        "datebefore": "Kwanan wata kafin",
+        "dateafter": "Kwanan wata bayan",
+        "http_headers": "Kawunan HTTP",
+        "sleep_interval": "Tazarar bacci",
+        "max_sleep_interval": "Matsakaicin tazarar bacci",
+        "retries": "Adadin sake gwadawa",
+        "http_chunk_size": "Girman chunk HTTP",
+        "sleep_subtitles": "Bacci don rubutun ƙasa"
     }
-    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n<blockquote>📋 <b>Groups:</b>\n{groups_msg}"
+    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ Saitunan Hujjojin yt-dlp</b>\n\n<blockquote>📋 <b>Ƙungiyoyi:</b>\n{groups_msg}"
     ARGS_MENU_TEXT = (
-        "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n"
-        "<blockquote>📋 <b>Groups:</b>\n"
-        "• ✅/❌ <b>Boolean</b> - True/False switches\n"
-        "• 📋 <b>Select</b> - Choose from options\n"
-        "• 🔢 <b>Numeric</b> - Number input\n"
-        "• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\n"
-        "These settings will be applied to all your downloads."
+        "<b>⚙️ Saitunan Hujjojin yt-dlp</b>\n\n"
+        "<blockquote>📋 <b>Ƙungiyoyi:</b>\n"
+        "• ✅/❌ <b>Boolean</b> - Sauye-sauye na Gaskiya/Ƙarya\n"
+        "• 📋 <b>Zaɓi</b> - Zaɓi daga zaɓuɓɓuka\n"
+        "• 🔢 <b>Lamba</b> - Shigar da lamba\n"
+        "• 📝🔧 <b>Rubutu</b> - Shigar da Rubutu/JSON</blockquote>\n\n"
+        "Waɗannan saitunan za a yi amfani da su ga duk saukewan ku."
     )
     
     # Additional missing messages
-    PLEASE_WAIT_MSG = "⏳ Please wait..."
-    ERROR_OCCURRED_SHORT_MSG = "❌ Error occurred"
+    PLEASE_WAIT_MSG = "⏳ Da fatan za a jira..."
+    ERROR_OCCURRED_SHORT_MSG = "❌ Kuskure ya faru"
 
     # Args command messages (continued)
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_INPUT_DANGEROUS_MSG = "❌ Input contains potentially dangerous content: {pattern}"
-    ARGS_INPUT_TOO_LONG_MSG = "❌ Input too long (max 1000 characters)"
-    ARGS_INVALID_URL_MSG = "❌ Invalid URL format. Must start with http:// or https://"
-    ARGS_INVALID_JSON_MSG = "❌ Invalid JSON format"
-    ARGS_NUMBER_RANGE_MSG = "❌ Number must be between {min_val} and {max_val}"
-    ARGS_INVALID_NUMBER_MSG = "❌ Invalid number format"
-    ARGS_DATE_FORMAT_MSG = "❌ Date must be in YYYYMMDD format (e.g., 20230930)"
-    ARGS_YEAR_RANGE_MSG = "❌ Year must be between 1900 and 2100"
-    ARGS_MONTH_RANGE_MSG = "❌ Month must be between 01 and 12"
-    ARGS_DAY_RANGE_MSG = "❌ Day must be between 01 and 31"
-    ARGS_INVALID_DATE_MSG = "❌ Invalid date format"
-    ARGS_INVALID_XFF_MSG = "❌ XFF must be 'default', 'never', country code (e.g., US), or IP block (e.g., 192.168.1.0/24)"
-    ARGS_NO_CUSTOM_MSG = "No custom arguments set. All parameters use default values."
-    ARGS_RESET_SUCCESS_MSG = "✅ All arguments reset to defaults."
-    ARGS_TEXT_TOO_LONG_MSG = "❌ Text too long. Maximum 500 characters."
-    ARGS_ERROR_PROCESSING_MSG = "❌ Error processing input. Please try again."
-    ARGS_BOOL_INPUT_MSG = "❌ Please enter 'True' or 'False' for Send As File option."
-    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Please provide a valid number."
-    ARGS_BOOL_VALUE_REQUEST_MSG = "Please send <code>True</code> or <code>False</code> to enable/disable this option."
-    ARGS_JSON_VALUE_REQUEST_MSG = "Please send valid JSON."
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Yanayin shigarwa ya rufe ta atomatik saboda rashin aiki (minti 5)."
+    ARGS_INPUT_DANGEROUS_MSG = "❌ Shigarwa ta ƙunshi abun ciki mai haɗari: {pattern}"
+    ARGS_INPUT_TOO_LONG_MSG = "❌ Shigarwa ta yi tsayi (matsakaici 1000 haruffa)"
+    ARGS_INVALID_URL_MSG = "❌ Tsarin URL mara inganci. Dole ne ya fara da http:// ko https://"
+    ARGS_INVALID_JSON_MSG = "❌ Tsarin JSON mara inganci"
+    ARGS_NUMBER_RANGE_MSG = "❌ Lamba dole ne ta kasance tsakanin {min_val} da {max_val}"
+    ARGS_INVALID_NUMBER_MSG = "❌ Tsarin lamba mara inganci"
+    ARGS_DATE_FORMAT_MSG = "❌ Kwanan wata dole ne ya kasance a cikin tsarin YYYYMMDD (misali, 20230930)"
+    ARGS_YEAR_RANGE_MSG = "❌ Shekara dole ne ta kasance tsakanin 1900 da 2100"
+    ARGS_MONTH_RANGE_MSG = "❌ Wata dole ne ya kasance tsakanin 01 da 12"
+    ARGS_DAY_RANGE_MSG = "❌ Rana dole ne ta kasance tsakanin 01 da 31"
+    ARGS_INVALID_DATE_MSG = "❌ Tsarin kwanan wata mara inganci"
+    ARGS_INVALID_XFF_MSG = "❌ XFF dole ne ya zama 'default', 'never', lambar ƙasa (misali, US), ko rukunin IP (misali, 192.168.1.0/24)"
+    ARGS_NO_CUSTOM_MSG = "Ba a saita hujjoji na al'ada ba. Duk ma'auni suna amfani da ƙimomin asali."
+    ARGS_RESET_SUCCESS_MSG = "✅ An sake saita duk hujjoji zuwa na asali."
+    ARGS_TEXT_TOO_LONG_MSG = "❌ Rubutu ya yi tsayi. Matsakaici haruffa 500."
+    ARGS_ERROR_PROCESSING_MSG = "❌ Kuskure wajen sarrafa shigarwa. Da fatan za a sake gwadawa."
+    ARGS_BOOL_INPUT_MSG = "❌ Da fatan za a shigar da 'True' ko 'False' don zaɓin Aika Azaman Fayil."
+    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Da fatan za a ba da lamba mai inganci."
+    ARGS_BOOL_VALUE_REQUEST_MSG = "Da fatan za a aika <code>True</code> ko <code>False</code> don kunna/kashe wannan zaɓi."
+    ARGS_JSON_VALUE_REQUEST_MSG = "Da fatan za a aika JSON mai inganci."
     
     # Tags command messages
-    TAGS_NO_TAGS_MSG = "You have no tags yet."
-    TAGS_MESSAGE_CLOSED_MSG = "Tags message closed."
+    TAGS_NO_TAGS_MSG = "Ba ka da tags tukuna."
+    TAGS_MESSAGE_CLOSED_MSG = "An rufe saƙon tags."
     
     # Subtitles command messages
-    SUBS_DISABLED_MSG = "✅ Subtitles disabled and Always Ask mode turned off."
-    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ SUBS Always Ask enabled."
-    SUBS_LANGUAGE_SET_MSG = "✅ Subtitle language set to: {flag} {name}"
+    SUBS_DISABLED_MSG = "✅ An kashe rubutun ƙasa kuma an kashe yanayin Luôn Hỏi."
+    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ An kunna SUBS Luôn Hỏi."
+    SUBS_LANGUAGE_SET_MSG = "✅ An saita yaren rubutun ƙasa zuwa: {flag} {name}"
     SUBS_WARNING_MSG = (
-        "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
-        "- 720p max quality\n"
-        "- 1.5 hour max duration\n"
-        "- 500mb max video size</blockquote>\n\n"
+        "<blockquote>❗️GARGADI: saboda tasirin CPU mai girma wannan aikin yana da sannu a hankali (kusa da lokaci na gaske) kuma an iyakance shi zuwa:\n"
+        "- Matsakaicin inganci 720p\n"
+        "- Matsakaicin tsawon lokaci sa'o'i 1.5\n"
+        "- Matsakaicin girman bidiyo 500mb</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
-        "<b>Quick commands:</b>\n"
-        "• <code>/subs off</code> - disable subtitles\n"
-        "• <code>/subs on</code> - enable Always Ask mode\n"
-        "• <code>/subs ru</code> - set language\n"
-        "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
+        "<b>Umarni masu sauri:</b>\n"
+        "• <code>/subs off</code> - kashe rubutun ƙasa\n"
+        "• <code>/subs on</code> - kunna yanayin Luôn Hỏi\n"
+        "• <code>/subs ru</code> - saita yare\n"
+        "• <code>/subs ru auto</code> - saita yare tare da AUTO/TRANS"
     )
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
-    SUBS_DISABLED_ERROR_MSG = "❌ Subtitles are disabled. Use /subs to configure."
-    SUBS_YOUTUBE_ONLY_MSG = "❌ Subtitle downloading is only supported for YouTube."
+    SUBS_DISABLED_STATUS_MSG = "🚫 An kashe rubutun ƙasa"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Yaren da aka zaɓa: {name}{auto_text}"
+    SUBS_DOWNLOADING_MSG = "💬 Ana saukewa rubutun ƙasa..."
+    SUBS_DISABLED_ERROR_MSG = "❌ An kashe rubutun ƙasa. Yi amfani da /subs don saita."
+    SUBS_YOUTUBE_ONLY_MSG = "❌ Saukewa rubutun ƙasa yana goyan baya kawai don YouTube."
     SUBS_CAPTION_MSG = (
-        "<b>💬 Subtitles</b>\n\n"
-        "<b>Video:</b> {title}\n"
-        "<b>Language:</b> {lang}\n"
-        "<b>Type:</b> {type}\n\n"
+        "<b>💬 Rubutun ƙasa</b>\n\n"
+        "<b>Bidiyo:</b> {title}\n"
+        "<b>Yare:</b> {lang}\n"
+        "<b>Nau'i:</b> {type}\n\n"
         "{tags}"
     )
-    SUBS_SENT_MSG = "💬 Subtitles SRT-file sent to user."
-    SUBS_ERROR_PROCESSING_MSG = "❌ Error processing subtitle file."
-    SUBS_ERROR_DOWNLOAD_MSG = "❌ Failed to download subtitles."
-    SUBS_ERROR_MSG = "❌ Error downloading subtitles: {error}"
+    SUBS_SENT_MSG = "💬 An aika fayil SRT na rubutun ƙasa zuwa mai amfani."
+    SUBS_ERROR_PROCESSING_MSG = "❌ Kuskure wajen sarrafa fayil rubutun ƙasa."
+    SUBS_ERROR_DOWNLOAD_MSG = "❌ An gaza saukewa rubutun ƙasa."
+    SUBS_ERROR_MSG = "❌ Kuskure wajen saukewa rubutun ƙasa: {error}"
     
     # Split command messages
-    SPLIT_SIZE_SET_MSG = "✅ Split part size set to: {size}"
+    SPLIT_SIZE_SET_MSG = "✅ An saita girman ɓangaren raba zuwa: {size}"
     SPLIT_INVALID_SIZE_MSG = (
-        "❌ **Invalid size!**\n\n"
-        "**Valid range:** 100MB to 2GB\n\n"
-        "**Valid formats:**\n"
-        "• `100mb` to `2000mb` (megabytes)\n"
-        "• `0.1gb` to `2gb` (gigabytes)\n\n"
-        "**Examples:**\n"
-        "• `/split 100mb` - 100 megabytes\n"
-        "• `/split 500mb` - 500 megabytes\n"
-        "• `/split 1.5gb` - 1.5 gigabytes\n"
-        "• `/split 2gb` - 2 gigabytes\n"
-        "• `/split 2000mb` - 2000 megabytes (2GB)\n\n"
-        "**Presets:**\n"
+        "❌ **Girman mara inganci!**\n\n"
+        "**Kewayon mai inganci:** 100MB zuwa 2GB\n\n"
+        "**Tsare-tsare masu inganci:**\n"
+        "• `100mb` zuwa `2000mb` (megabytes)\n"
+        "• `0.1gb` zuwa `2gb` (gigabytes)\n\n"
+        "**Misalai:**\n"
+        "• `/split 100mb` - megabytes 100\n"
+        "• `/split 500mb` - megabytes 500\n"
+        "• `/split 1.5gb` - gigabytes 1.5\n"
+        "• `/split 2gb` - gigabytes 2\n"
+        "• `/split 2000mb` - megabytes 2000 (2GB)\n\n"
+        "**Saitunan da aka saita:**\n"
         "• `/split 250mb`, `/split 500mb`, `/split 1gb`, `/split 1.5gb`, `/split 2gb`"
     )
     SPLIT_MENU_TITLE_MSG = (
-        "🎬 **Choose max part size for video splitting:**\n\n"
-        "**Range:** 100MB to 2GB\n\n"
-        "**Quick commands:**\n"
+        "🎬 **Zaɓi matsakaicin girman ɓangare don raba bidiyo:**\n\n"
+        "**Kewayon:** 100MB zuwa 2GB\n\n"
+        "**Umarni masu sauri:**\n"
         "• `/split 100mb` - `/split 2000mb`\n"
         "• `/split 0.1gb` - `/split 2gb`\n\n"
-        "**Examples:** `/split 300mb`, `/split 1.2gb`, `/split 1500mb`"
+        "**Misalai:** `/split 300mb`, `/split 1.2gb`, `/split 1500mb`"
     )
-    SPLIT_MENU_CLOSED_MSG = "Menu closed."
+    SPLIT_MENU_CLOSED_MSG = "An rufe menu."
     
     # Settings command messages
-    SETTINGS_TITLE_MSG = "<b>Bot Settings</b>\n\nChoose a category:"
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
-    SETTINGS_CLEAN_TITLE_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
-    SETTINGS_COOKIES_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nChoose an action:"
-    SETTINGS_MEDIA_TITLE_MSG = "<b>🎞 MEDIA</b>\n\nChoose an action:"
-    SETTINGS_LOGS_TITLE_MSG = "<b>📖 INFO</b>\n\nChoose an action:"
-    SETTINGS_MORE_TITLE_MSG = "<b>⚙️ MORE COMMANDS</b>\n\nChoose an action:"
-    SETTINGS_COMMAND_EXECUTED_MSG = "Command executed."
-    SETTINGS_FLOOD_LIMIT_MSG = "⏳ Flood limit. Try later."
-    SETTINGS_HINT_SENT_MSG = "Hint sent."
-    SETTINGS_SEARCH_HELPER_OPENED_MSG = "Search helper opened."
-    SETTINGS_UNKNOWN_COMMAND_MSG = "Unknown command."
-    SETTINGS_HINT_CLOSED_MSG = "Hint closed."
-    SETTINGS_HELP_SENT_MSG = "Send help txt to user"
-    SETTINGS_MENU_OPENED_MSG = "Opened /settings menu"
+    SETTINGS_TITLE_MSG = "<b>Saitunan Bot</b>\n\nZaɓi rukuni:"
+    SETTINGS_MENU_CLOSED_MSG = "An rufe menu."
+    SETTINGS_CLEAN_TITLE_MSG = "<b>🧹 Zaɓuɓɓukan Tsabtacewa</b>\n\nZaɓi abin da za a tsabtace:"
+    SETTINGS_COOKIES_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nZaɓi aiki:"
+    SETTINGS_MEDIA_TITLE_MSG = "<b>🎞 KAFOFIN WATSA LABARAI</b>\n\nZaɓi aiki:"
+    SETTINGS_LOGS_TITLE_MSG = "<b>📖 BAYANI</b>\n\nZaɓi aiki:"
+    SETTINGS_MORE_TITLE_MSG = "<b>⚙️ ƘARIN UMARNI</b>\n\nZaɓi aiki:"
+    SETTINGS_COMMAND_EXECUTED_MSG = "An aiwatar da umarni."
+    SETTINGS_FLOOD_LIMIT_MSG = "⏳ Iyakar flood. Gwada daga baya."
+    SETTINGS_HINT_SENT_MSG = "An aika shawara."
+    SETTINGS_SEARCH_HELPER_OPENED_MSG = "An buɗe mataimakin bincike."
+    SETTINGS_UNKNOWN_COMMAND_MSG = "Umarni da ba a sani ba."
+    SETTINGS_HINT_CLOSED_MSG = "An rufe shawara."
+    SETTINGS_HELP_SENT_MSG = "Aika rubutun taimako zuwa mai amfani"
+    SETTINGS_MENU_OPENED_MSG = "An buɗe menu /settings"
     
     # Search command messages
-    SEARCH_HELPER_CLOSED_MSG = "🔍 Search helper closed"
-    SEARCH_CLOSED_MSG = "Closed"
+    SEARCH_HELPER_CLOSED_MSG = "🔍 An rufe mataimakin bincike"
+    SEARCH_CLOSED_MSG = "An rufe"
     
     # Proxy command messages
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
-    PROXY_ERROR_SAVING_MSG = "❌ Error saving proxy settings."
-    PROXY_MENU_TEXT_MSG = "Enable or disable using proxy server for all yt-dlp operations?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({count} available) for all yt-dlp operations?\n\nWhen enabled, proxies will be selected using {method} method."
-    PROXY_MENU_CLOSED_MSG = "Menu closed."
-    PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy enabled. All yt-dlp operations will use proxy."
-    PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy enabled. All yt-dlp operations will use {count} proxy servers with {method} selection method."
-    PROXY_DISABLED_MSG = "❌ Proxy disabled."
-    PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error saving proxy settings."
-    PROXY_ENABLED_CALLBACK_MSG = "Proxy enabled."
-    PROXY_DISABLED_CALLBACK_MSG = "Proxy disabled."
+    PROXY_ERROR_SAVING_MSG = "❌ Kuskure wajen adana saitunan proxy."
+    PROXY_MENU_TEXT_MSG = "Kunna ko kashe amfani da uwar garken proxy don duk ayyukan yt-dlp?"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe amfani da uwar garken proxy ({count} suna samuwa) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna, za a zaɓi proxies ta amfani da hanyar {method}."
+    PROXY_MENU_CLOSED_MSG = "An rufe menu."
+    PROXY_ENABLED_CONFIRM_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da proxy."
+    PROXY_ENABLED_MULTIPLE_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da uwar garken proxy {count} tare da hanyar zaɓi {method}."
+    PROXY_DISABLED_MSG = "❌ An kashe proxy."
+    PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Kuskure wajen adana saitunan proxy."
+    PROXY_ENABLED_CALLBACK_MSG = "An kunna proxy."
+    PROXY_DISABLED_CALLBACK_MSG = "An kashe proxy."
     
     # Other handlers messages
-    AUDIO_WAIT_MSG = "⏰ WAIT UNTIL YOUR PREVIOUS DOWNLOAD IS FINISHED"
+    AUDIO_WAIT_MSG = "⏰ JIRA HAR SAUKEWAN DA YA GABATA YA ƘARE"
     AUDIO_HELP_MSG = (
-        "<b>🎧 Audio Download Command</b>\n\n"
-        "Usage: <code>/audio URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>🎧 Umarnin Saukewa Sauti</b>\n\n"
+        "Amfani: <code>/audio URL</code>\n\n"
+        "<b>Misalai:</b>\n"
         "• <code>/audio https://youtu.be/abc123</code>\n"
         "• <code>/audio https://www.youtube.com/watch?v=abc123</code>\n"
         "• <code>/audio https://www.youtube.com/playlist?list=PL123*1*10</code>\n"
         "• <code>/audio 1-10 https://www.youtube.com/playlist?list=PL123</code>\n\n"
-        "Also see: /vid, /img, /help, /playlist, /settings"
+        "Hakanan duba: /vid, /img, /help, /playlist, /settings"
     )
-    AUDIO_HELP_CLOSED_MSG = "Audio hint closed."
-    PLAYLIST_HELP_CLOSED_MSG = "Playlist help closed."
-    USERLOGS_CLOSED_MSG = "Logs message closed."
-    HELP_CLOSED_MSG = "Help closed."
+    AUDIO_HELP_CLOSED_MSG = "An rufe shawara sauti."
+    PLAYLIST_HELP_CLOSED_MSG = "An rufe taimakon jerin bidiyo."
+    USERLOGS_CLOSED_MSG = "An rufe saƙon logs."
+    HELP_CLOSED_MSG = "An rufe taimako."
     
     # NSFW command messages
-    NSFW_BLUR_SETTINGS_TITLE_MSG = "🔞 <b>NSFW Blur Settings</b>\n\nNSFW content is <b>{status}</b>.\n\nChoose whether to blur NSFW content:"
-    NSFW_MENU_CLOSED_MSG = "Menu closed."
-    NSFW_BLUR_DISABLED_MSG = "NSFW blur disabled."
-    NSFW_BLUR_ENABLED_MSG = "NSFW blur enabled."
-    NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW blur disabled."
-    NSFW_BLUR_ENABLED_CALLBACK_MSG = "NSFW blur enabled."
+    NSFW_BLUR_SETTINGS_TITLE_MSG = "🔞 <b>Saitunan Blur NSFW</b>\n\nAbun ciki na NSFW yana <b>{status}</b>.\n\nZaɓi ko za a blur abun ciki na NSFW:"
+    NSFW_MENU_CLOSED_MSG = "An rufe menu."
+    NSFW_BLUR_DISABLED_MSG = "An kashe blur NSFW."
+    NSFW_BLUR_ENABLED_MSG = "An kunna blur NSFW."
+    NSFW_BLUR_DISABLED_CALLBACK_MSG = "An kashe blur NSFW."
+    NSFW_BLUR_ENABLED_CALLBACK_MSG = "An kunna blur NSFW."
     
     # MediaInfo command messages
     MEDIAINFO_ENABLED_MSG = "✅ MediaInfo {status}."
-    MEDIAINFO_MENU_TITLE_MSG = "Enable or disable sending MediaInfo for downloaded files?"
-    MEDIAINFO_MENU_CLOSED_MSG = "Menu closed."
-    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo enabled. After downloading, file info will be sent."
-    MEDIAINFO_DISABLED_MSG = "❌ MediaInfo disabled."
-    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo disabled."
+    MEDIAINFO_MENU_TITLE_MSG = "Kunna ko kashe aika MediaInfo don fayilolin da aka sauke?"
+    MEDIAINFO_MENU_CLOSED_MSG = "An rufe menu."
+    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ An kunna MediaInfo. Bayan saukewa, za a aika bayanin fayil."
+    MEDIAINFO_DISABLED_MSG = "❌ An kashe MediaInfo."
+    MEDIAINFO_ENABLED_CALLBACK_MSG = "An kunna MediaInfo."
+    MEDIAINFO_DISABLED_CALLBACK_MSG = "An kashe MediaInfo."
     
     # List command messages
     LIST_HELP_MSG = (
-        "<b>📃 List Available Formats</b>\n\n"
-        "Get available video/audio formats for a URL.\n\n"
-        "<b>Usage:</b>\n"
+        "<b>📃 Jerin Tsare-tsare Masu Samuwa</b>\n\n"
+        "Sami tsare-tsare na bidiyo/sauti masu samuwa don URL.\n\n"
+        "<b>Amfani:</b>\n"
         "<code>/list URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>Misalai:</b>\n"
         "• <code>/list https://youtube.com/watch?v=123abc</code>\n"
         "• <code>/list https://youtube.com/playlist?list=123abc</code>\n\n"
-        "<b>💡 How to use format IDs:</b>\n"
-        "After getting the list, use specific format ID:\n"
-        "• <code>/format id 401</code> - download format 401\n"
-        "• <code>/format id401</code> - same as above\n"
-        "• <code>/format id140 audio</code> - download format 140 as MP3 audio\n\n"
-        "This command will show all available formats that can be downloaded."
+        "<b>💡 Yadda ake amfani da ID na tsari:</b>\n"
+        "Bayan samun jerin, yi amfani da ID na tsari na musamman:\n"
+        "• <code>/format id 401</code> - sauke tsari 401\n"
+        "• <code>/format id401</code> - iri ɗaya da na sama\n"
+        "• <code>/format id140 audio</code> - sauke tsari 140 azaman sauti MP3\n\n"
+        "Wannan umarni zai nuna duk tsare-tsare masu samuwa waɗanda za a iya saukewa."
     )
-    LIST_PROCESSING_MSG = "🔄 Getting available formats..."
-    LIST_INVALID_URL_MSG = "❌ Please provide a valid URL starting with http:// or https://"
+    LIST_PROCESSING_MSG = "🔄 Ana samun tsare-tsare masu samuwa..."
+    LIST_INVALID_URL_MSG = "❌ Da fatan za a ba da URL mai inganci wanda ya fara da http:// ko https://"
     LIST_CAPTION_MSG = (
-        "📃 Available formats for:\n<code>{url}</code>\n\n"
-        "💡 <b>How to set format:</b>\n"
-        "• <code>/format id 134</code> - Download specific format ID\n"
-        "• <code>/format 720p</code> - Download by quality\n"
-        "• <code>/format best</code> - Download best quality\n"
-        "• <code>/format ask</code> - Always ask for quality\n\n"
+        "📃 Tsare-tsare masu samuwa don:\n<code>{url}</code>\n\n"
+        "💡 <b>Yadda ake saita tsari:</b>\n"
+        "• <code>/format id 134</code> - Sauke ID na tsari na musamman\n"
+        "• <code>/format 720p</code> - Sauke ta inganci\n"
+        "• <code>/format best</code> - Sauke mafi kyawun inganci\n"
+        "• <code>/format ask</code> - Luôn tambayi inganci\n\n"
         "{audio_note}\n"
-        "📋 Use format ID from the list above"
+        "📋 Yi amfani da ID na tsari daga jerin da ke sama"
     )
     LIST_AUDIO_FORMATS_MSG = (
-        "🎵 <b>Audio-only formats:</b> {formats}\n"
-        "• <code>/format id 140 audio</code> - Download format 140 as MP3 audio\n"
-        "• <code>/format id140 audio</code> - same as above\n"
-        "These will be downloaded as MP3 audio files.\n\n"
+        "🎵 <b>Tsare-tsare na sauti kawai:</b> {formats}\n"
+        "• <code>/format id 140 audio</code> - Sauke tsari 140 azaman sauti MP3\n"
+        "• <code>/format id140 audio</code> - iri ɗaya da na sama\n"
+        "Waɗannan za a sauke su azaman fayilolin sauti MP3.\n\n"
     )
-    LIST_ERROR_SENDING_MSG = "❌ Error sending formats file: {error}"
-    LIST_ERROR_GETTING_MSG = "❌ Failed to get formats:\n<code>{error}</code>"
-    LIST_ERROR_OCCURRED_MSG = "❌ An error occurred while processing the command"
-    LIST_ERROR_CALLBACK_MSG = "Error occurred"
-    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 How to use format IDs:\n"
-    LIST_FORMAT_USAGE_INSTRUCTIONS = "After getting the list, use specific format ID:\n"
-    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - download format 401\n"
-    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - same as above\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - download format 140 as MP3 audio\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - same as above\n"
-    LIST_AUDIO_FORMATS_DETECTED = "🎵 Audio-only formats detected: {formats}\n"
-    LIST_AUDIO_FORMATS_NOTE = "These formats will be downloaded as MP3 audio files.\n"
-    LIST_VIDEO_ONLY_FORMATS_MSG = "🎬 <b>Video-only formats:</b> {formats}\n"
-    LIST_USE_FORMAT_ID_MSG = "📋 Use format ID from the list above"
+    LIST_ERROR_SENDING_MSG = "❌ Kuskure wajen aika fayil tsare-tsare: {error}"
+    LIST_ERROR_GETTING_MSG = "❌ An gaza samun tsare-tsare:\n<code>{error}</code>"
+    LIST_ERROR_OCCURRED_MSG = "❌ Kuskure ya faru yayin sarrafa umarni"
+    LIST_ERROR_CALLBACK_MSG = "Kuskure ya faru"
+    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 Yadda ake amfani da ID na tsari:\n"
+    LIST_FORMAT_USAGE_INSTRUCTIONS = "Bayan samun jerin, yi amfani da ID na tsari na musamman:\n"
+    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - sauke tsari 401\n"
+    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - iri ɗaya da na sama\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - sauke tsari 140 azaman sauti MP3\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - iri ɗaya da na sama\n"
+    LIST_AUDIO_FORMATS_DETECTED = "🎵 An gano tsare-tsare na sauti kawai: {formats}\n"
+    LIST_AUDIO_FORMATS_NOTE = "Waɗannan tsare-tsare za a sauke su azaman fayilolin sauti MP3.\n"
+    LIST_VIDEO_ONLY_FORMATS_MSG = "🎬 <b>Tsare-tsare na bidiyo kawai:</b> {formats}\n"
+    LIST_USE_FORMAT_ID_MSG = "📋 Yi amfani da ID na tsari daga jerin da ke sama"
     
     # Link command messages
     LINK_USAGE_MSG = (
-        "🔗 <b>Usage:</b>\n"
-        "<code>/link [quality] URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "🔗 <b>Amfani:</b>\n"
+        "<code>/link [inganci] URL</code>\n\n"
+        "<b>Misalai:</b>\n"
         "<blockquote>"
-        "• /link https://youtube.com/watch?v=... - best quality\n"
-        "• /link 720 https://youtube.com/watch?v=... - 720p or lower\n"
-        "• /link 720p https://youtube.com/watch?v=... - same as above\n"
-        "• /link 4k https://youtube.com/watch?v=... - 4K or lower\n"
-        "• /link 8k https://youtube.com/watch?v=... - 8K or lower"
+        "• /link https://youtube.com/watch?v=... - mafi kyawun inganci\n"
+        "• /link 720 https://youtube.com/watch?v=... - 720p ko ƙasa\n"
+        "• /link 720p https://youtube.com/watch?v=... - iri ɗaya da na sama\n"
+        "• /link 4k https://youtube.com/watch?v=... - 4K ko ƙasa\n"
+        "• /link 8k https://youtube.com/watch?v=... - 8K ko ƙasa"
         "</blockquote>\n\n"
-        "<b>Quality:</b> from 1 to 10000 (e.g., 144, 240, 720, 1080)"
+        "<b>Inganci:</b> daga 1 zuwa 10000 (misali, 144, 240, 720, 1080)"
     )
-    LINK_INVALID_URL_MSG = "❌ Please provide a valid URL"
-    LINK_PROCESSING_MSG = "🔗 Getting direct link..."
-    LINK_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
-    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
-    LINK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
+    LINK_INVALID_URL_MSG = "❌ Da fatan za a ba da URL mai inganci"
+    LINK_PROCESSING_MSG = "🔗 Ana samun hanyar haɗi kai tsaye..."
+    LINK_DURATION_MSG = "⏱ <b>Tsawon lokaci:</b> {duration} daƙiƙa\n"
+    LINK_VIDEO_STREAM_MSG = "🎬 <b>Stream na bidiyo:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
+    LINK_AUDIO_STREAM_MSG = "🎵 <b>Stream na sauti:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
     
     # Keyboard command messages
-    KEYBOARD_UPDATED_MSG = "🎹 **Keyboard setting updated!**\n\nNew setting: **{setting}**"
+    KEYBOARD_UPDATED_MSG = "🎹 **An sabunta saitin keyboard!**\n\nSaitin sabo: **{setting}**"
     KEYBOARD_INVALID_ARG_MSG = (
-        "❌ **Invalid argument!**\n\n"
-        "Valid options: `off`, `1x3`, `2x3`, `full`\n\n"
-        "Example: `/keyboard off`"
+        "❌ **Hujja mara inganci!**\n\n"
+        "Zaɓuɓɓuka masu inganci: `off`, `1x3`, `2x3`, `full`\n\n"
+        "Misali: `/keyboard off`"
     )
     KEYBOARD_SETTINGS_MSG = (
-        "🎹 **Keyboard Settings**\n\n"
-        "Current: **{current}**\n\n"
-        "Choose an option:\n\n"
-        "Or use: `/keyboard off`, `/keyboard 1x3`, `/keyboard 2x3`, `/keyboard full`"
+        "🎹 **Saitunan Keyboard**\n\n"
+        "Na yanzu: **{current}**\n\n"
+        "Zaɓi zaɓi:\n\n"
+        "Ko kuma yi amfani da: `/keyboard off`, `/keyboard 1x3`, `/keyboard 2x3`, `/keyboard full`"
     )
-    KEYBOARD_ACTIVATED_MSG = "🎹 keyboard activated!"
-    KEYBOARD_HIDDEN_MSG = "⌨️ Keyboard hidden"
-    KEYBOARD_1X3_ACTIVATED_MSG = "📱 1x3 keyboard activated!"
-    KEYBOARD_2X3_ACTIVATED_MSG = "📱 2x3 keyboard activated!"
-    KEYBOARD_EMOJI_ACTIVATED_MSG = "🔣 Emoji keyboard activated!"
-    KEYBOARD_ERROR_APPLYING_MSG = "Error applying keyboard setting {setting}: {error}"
+    KEYBOARD_ACTIVATED_MSG = "🎹 an kunna keyboard!"
+    KEYBOARD_HIDDEN_MSG = "⌨️ An ɓoye keyboard"
+    KEYBOARD_1X3_ACTIVATED_MSG = "📱 An kunna keyboard 1x3!"
+    KEYBOARD_2X3_ACTIVATED_MSG = "📱 An kunna keyboard 2x3!"
+    KEYBOARD_EMOJI_ACTIVATED_MSG = "🔣 An kunna keyboard emoji!"
+    KEYBOARD_ERROR_APPLYING_MSG = "Kuskure wajen amfani da saitin keyboard {setting}: {error}"
     
     # Format command messages
-    FORMAT_ALWAYS_ASK_SET_MSG = "✅ Format set to: Always Ask. You will be prompted for quality each time you send a URL."
-    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
-    FORMAT_BEST_UPDATED_MSG = "✅ Format updated to best quality (AVC+MP4 priority):\n{format}"
-    FORMAT_ID_UPDATED_MSG = "✅ Format updated to ID {id}:\n{format}\n\n💡 <b>Note:</b> If this is an audio-only format, it will be downloaded as MP3 audio file."
-    FORMAT_ID_AUDIO_UPDATED_MSG = "✅ Format updated to ID {id} (audio-only):\n{format}\n\n💡 This will be downloaded as MP3 audio file."
-    FORMAT_QUALITY_UPDATED_MSG = "✅ Format updated to quality {quality}:\n{format}"
-    FORMAT_CUSTOM_UPDATED_MSG = "✅ Format updated to:\n{format}"
+    FORMAT_ALWAYS_ASK_SET_MSG = "✅ An saita tsari zuwa: Luôn Tambayi. Za a tambaye ka inganci a kowane lokacin da ka aika URL."
+    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ An saita tsari zuwa: Luôn Tambayi. Yanzu za a tambaye ka inganci a kowane lokacin da ka aika URL."
+    FORMAT_BEST_UPDATED_MSG = "✅ An sabunta tsari zuwa mafi kyawun inganci (fifiko na AVC+MP4):\n{format}"
+    FORMAT_ID_UPDATED_MSG = "✅ An sabunta tsari zuwa ID {id}:\n{format}\n\n💡 <b>Lura:</b> Idan wannan tsari ne na sauti kawai, za a sauke shi azaman fayil sauti MP3."
+    FORMAT_ID_AUDIO_UPDATED_MSG = "✅ An sabunta tsari zuwa ID {id} (sauti kawai):\n{format}\n\n💡 Wannan zai sauke azaman fayil sauti MP3."
+    FORMAT_QUALITY_UPDATED_MSG = "✅ An sabunta tsari zuwa inganci {quality}:\n{format}"
+    FORMAT_CUSTOM_UPDATED_MSG = "✅ An sabunta tsari zuwa:\n{format}"
     FORMAT_MENU_MSG = (
-        "Select a format option or send a custom one using:\n"
+        "Zaɓi zaɓin tsari ko aika na al'ada ta amfani da:\n"
         "• <code>/format &lt;format_string&gt;</code> - custom format\n"
         "• <code>/format 720</code> - 720p quality\n"
         "• <code>/format 4k</code> - 4K quality\n"
@@ -743,94 +743,94 @@ Use:
         "• <code>/format best</code> - bv+ba/best quality"
     )
     FORMAT_CUSTOM_HINT_MSG = (
-        "To use a custom format, send the command in the following form:\n\n"
+        "Don amfani da tsari na al'ada, aika umarni a cikin tsari mai zuwa:\n\n"
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
-        "Replace <code>bestvideo+bestaudio/best</code> with your desired format string."
+        "Maye gurbin <code>bestvideo+bestaudio/best</code> da kirtar tsari da kake so."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Select your desired resolution and codec:"
-    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
-    FORMAT_UPDATED_MSG = "✅ Format updated to:\n{format}"
-    FORMAT_SAVED_MSG = "✅ Format saved."
-    FORMAT_CHOICE_UPDATED_MSG = "✅ Format choice updated."
-    FORMAT_CUSTOM_MENU_CLOSED_MSG = "Custom format menu closed"
-    FORMAT_CODEC_SET_MSG = "✅ Codec set to {codec}"
+    FORMAT_RESOLUTION_MENU_MSG = "Zaɓi ƙuduri da codec da kake so:"
+    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ An saita tsari zuwa: Luôn Tambayi. Yanzu za a tambaye ka inganci a kowane lokacin da ka aika URL."
+    FORMAT_UPDATED_MSG = "✅ An sabunta tsari zuwa:\n{format}"
+    FORMAT_SAVED_MSG = "✅ An adana tsari."
+    FORMAT_CHOICE_UPDATED_MSG = "✅ An sabunta zaɓin tsari."
+    FORMAT_CUSTOM_MENU_CLOSED_MSG = "An rufe menu tsari na al'ada"
+    FORMAT_CODEC_SET_MSG = "✅ An saita codec zuwa {codec}"
     
     # Cookies command messages
-    COOKIES_BROWSER_CHOICE_UPDATED_MSG = "✅ Browser choice updated."
+    COOKIES_BROWSER_CHOICE_UPDATED_MSG = "✅ An sabunta zaɓin browser."
     
     # Clean command messages
     
     # Admin command messages
-    ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
-    ACCESS_DENIED_ADMIN = "❌ Access denied. Admin only."
-    WELCOME_MASTER = "Welcome Master 🥷"
-    DOWNLOAD_ERROR_GENERIC = "❌ Sorry... Some error occurred during download."
-    SIZE_LIMIT_EXCEEDED = "❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size."
-    ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ Script not found: {script_path}"
-    ADMIN_DOWNLOADING_MSG = "⏳ Downloading fresh Firebase dump using {script_path} ..."
-    ADMIN_CACHE_RELOADED_MSG = "✅ Firebase cache reloaded successfully!"
-    ADMIN_CACHE_FAILED_MSG = "❌ Failed to reload Firebase cache. Check if {cache_file} exists."
-    ADMIN_ERROR_RELOADING_MSG = "❌ Error reloading cache: {error}"
-    ADMIN_ERROR_SCRIPT_MSG = "❌ Error running {script_path}:\n{stdout}\n{stderr}"
-    ADMIN_PROMO_SENT_MSG = "<b>✅ Promo message sent to all other users</b>"
-    ADMIN_CANNOT_SEND_PROMO_MSG = "<b>❌ Cannot send the promo message. Try replying to a message\nOr some error occurred</b>"
-    ADMIN_USER_NO_DOWNLOADS_MSG = "<b>❌ User did not download any content yet...</b> Not exist in logs"
-    ADMIN_INVALID_COMMAND_MSG = "❌ Invalid command"
-    ADMIN_NO_DATA_FOUND_MSG = f"❌ No data found in cache for <code>{{path}}</code>"
-    CHANNEL_GUARD_PENDING_EMPTY_MSG = "🛡️ Queue is empty — nobody left the channel yet."
-    CHANNEL_GUARD_PENDING_HEADER_MSG = "🛡️ <b>Ban queue</b>\nPending total: {total}"
-    CHANNEL_GUARD_PENDING_ROW_MSG = "• <code>{user_id}</code> — {name} @{username} (left: {last_left})"
-    CHANNEL_GUARD_PENDING_MORE_MSG = "… and {extra} more users."
-    CHANNEL_GUARD_PENDING_FOOTER_MSG = "Use /block_user show • all • auto • 10s"
-    CHANNEL_GUARD_BLOCKED_ALL_MSG = "✅ Blocked users from queue: {count}"
-    CHANNEL_GUARD_AUTO_ENABLED_MSG = "⚙️ Auto-blocking enabled: new leavers will be banned immediately."
-    CHANNEL_GUARD_AUTO_DISABLED_MSG = "⏸ Auto-blocking disabled."
-    CHANNEL_GUARD_AUTO_INTERVAL_SET_MSG = "⏱ Scheduled auto-block window set to every {interval}."
-    CHANNEL_GUARD_ACTIVITY_FILE_CAPTION_MSG = "🗂 Channel activity log for the last {hours} hours (2 days)."
-    CHANNEL_GUARD_ACTIVITY_SUMMARY_MSG = "📝 Last {hours} hours (2 days): joined {joined}, left {left}."
-    CHANNEL_GUARD_ACTIVITY_EMPTY_MSG = "ℹ️ No activity for the last {hours} hours (2 days)."
-    CHANNEL_GUARD_ACTIVITY_TOTALS_LINE_MSG = "Total: 🟢 {joined} joined, 🔴 {left} left."
-    CHANNEL_GUARD_NO_ACCESS_MSG = "❌ No access to channel activity log. Bots cannot read admin logs. Provide CHANNEL_GUARD_SESSION_STRING in config with a user session to enable this feature."
-    BAN_TIME_USAGE_MSG = "❌ Usage: {command} <10s|6m|5h|4d|3w|2M|1y>"
-    BAN_TIME_INTERVAL_INVALID_MSG = "❌ Use formats like 10s, 6m, 5h, 4d, 3w, 2M or 1y."
-    BAN_TIME_SET_MSG = "🕒 Channel log scan interval set to {interval}."
+    ADMIN_ACCESS_DENIED_MSG = "❌ An ƙi dama. Admin kawai."
+    ACCESS_DENIED_ADMIN = "❌ An ƙi dama. Admin kawai."
+    WELCOME_MASTER = "Barka da zuwa Jagora 🥷"
+    DOWNLOAD_ERROR_GENERIC = "❌ Yi hakuri... Wani kuskure ya faru yayin saukewa."
+    SIZE_LIMIT_EXCEEDED = "❌ Girman fayil ya wuce iyakar {max_size_gb} GB. Da fatan za a zaɓi fayil ƙarami a cikin girman da aka yarda."
+    ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ Ba a sami script ba: {script_path}"
+    ADMIN_DOWNLOADING_MSG = "⏳ Ana saukewa sabon Firebase dump ta amfani da {script_path} ..."
+    ADMIN_CACHE_RELOADED_MSG = "✅ An sake loda cache na Firebase cikin nasara!"
+    ADMIN_CACHE_FAILED_MSG = "❌ An gaza sake loda cache na Firebase. Duba idan {cache_file} yana wanzuwa."
+    ADMIN_ERROR_RELOADING_MSG = "❌ Kuskure wajen sake loda cache: {error}"
+    ADMIN_ERROR_SCRIPT_MSG = "❌ Kuskure wajen gudanar da {script_path}:\n{stdout}\n{stderr}"
+    ADMIN_PROMO_SENT_MSG = "<b>✅ An aika saƙon talla zuwa duk wasu masu amfani</b>"
+    ADMIN_CANNOT_SEND_PROMO_MSG = "<b>❌ Ba za a iya aika saƙon talla ba. Gwada amsa saƙo\nKo wani kuskure ya faru</b>"
+    ADMIN_USER_NO_DOWNLOADS_MSG = "<b>❌ Mai amfani bai sauke wani abun ciki tukuna ba...</b> Ba ya wanzu a cikin logs"
+    ADMIN_INVALID_COMMAND_MSG = "❌ Umarni mara inganci"
+    ADMIN_NO_DATA_FOUND_MSG = f"❌ Ba a sami bayanai a cikin cache don <code>{{path}}</code>"
+    CHANNEL_GUARD_PENDING_EMPTY_MSG = "🛡️ Jeri ya fadi — babu wanda ya bar tashar tukuna."
+    CHANNEL_GUARD_PENDING_HEADER_MSG = "🛡️ <b>Jeri na ban</b>\nAna jira jimla: {total}"
+    CHANNEL_GUARD_PENDING_ROW_MSG = "• <code>{user_id}</code> — {name} @{username} (hagu: {last_left})"
+    CHANNEL_GUARD_PENDING_MORE_MSG = "… da ƙarin masu amfani {extra}."
+    CHANNEL_GUARD_PENDING_FOOTER_MSG = "Yi amfani da /block_user show • all • auto • 10s"
+    CHANNEL_GUARD_BLOCKED_ALL_MSG = "✅ An toshe masu amfani daga jerin: {count}"
+    CHANNEL_GUARD_AUTO_ENABLED_MSG = "⚙️ An kunna toshe ta atomatik: sabbin masu barin za a hana su nan take."
+    CHANNEL_GUARD_AUTO_DISABLED_MSG = "⏸ An kashe toshe ta atomatik."
+    CHANNEL_GUARD_AUTO_INTERVAL_SET_MSG = "⏱ An saita taga toshe ta atomatik na tsarawa zuwa kowane {interval}."
+    CHANNEL_GUARD_ACTIVITY_FILE_CAPTION_MSG = "🗂 Log ayyukan tashar don sa'o'i {hours} na ƙarshe (kwanaki 2)."
+    CHANNEL_GUARD_ACTIVITY_SUMMARY_MSG = "📝 Sa'o'i {hours} na ƙarshe (kwanaki 2): {joined} sun shiga, {left} sun bar."
+    CHANNEL_GUARD_ACTIVITY_EMPTY_MSG = "ℹ️ Babu aiki don sa'o'i {hours} na ƙarshe (kwanaki 2)."
+    CHANNEL_GUARD_ACTIVITY_TOTALS_LINE_MSG = "Jimla: 🟢 {joined} sun shiga, 🔴 {left} sun bar."
+    CHANNEL_GUARD_NO_ACCESS_MSG = "❌ Babu dama zuwa log ayyukan tashar. Bots ba za su iya karanta logs na admin ba. Ka ba da CHANNEL_GUARD_SESSION_STRING a cikin config tare da session mai amfani don kunna wannan fasalin."
+    BAN_TIME_USAGE_MSG = "❌ Amfani: {command} <10s|6m|5h|4d|3w|2M|1y>"
+    BAN_TIME_INTERVAL_INVALID_MSG = "❌ Yi amfani da tsare-tsare kamar 10s, 6m, 5h, 4d, 3w, 2M ko 1y."
+    BAN_TIME_SET_MSG = "🕒 An saita tazarar binciken log tashar zuwa {interval}."
     BAN_TIME_REPORT_MSG = (
-        "🛡️ Channel scan report\n"
-        "Run at: {run_ts}\n"
-        "Interval: {interval}\n"
-        "New leavers: {new_leavers}\n"
-        "Auto bans: {auto_banned}\n"
-        "Pending: {pending}\n"
-        "Last event_id: {last_event_id}"
+        "🛡️ Rahoton binciken tashar\n"
+        "An gudanar a: {run_ts}\n"
+        "Tazara: {interval}\n"
+        "Sabbin masu barin: {new_leavers}\n"
+        "Ban ta atomatik: {auto_banned}\n"
+        "Ana jira: {pending}\n"
+        "ID na taron ƙarshe: {last_event_id}"
     )
-    ADMIN_BLOCK_USER_USAGE_MSG = "❌ Usage: /block_user <user_id>"
-    ADMIN_CANNOT_DELETE_ADMIN_MSG = "🚫 Admin cannot delete an admin"
-    ADMIN_USER_BLOCKED_MSG = "User blocked 🔒❌\n \nID: <code>{user_id}</code>\nBlocked Date: {date}"
-    ADMIN_USER_ALREADY_BLOCKED_MSG = "<code>{user_id}</code> is already blocked ❌😐"
-    ADMIN_NOT_ADMIN_MSG = "🚫 Sorry! You are not an admin"
-    ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ Usage: /unblock_user <user_id>"
-    ADMIN_USER_UNBLOCKED_MSG = "User unblocked 🔓✅\n \nID: <code>{user_id}</code>\nUnblocked Date: {date}"
-    ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> is already unblocked ✅😐"
-    ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Unblocked users: {count}\n⏱ Timestamp: {date}"
-    ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Bot running time -</i> <b>{time}</b>"
-    ADMIN_UNCACHE_USAGE_MSG = "❌ Please provide a URL to clear cache for.\nUsage: <code>/uncache &lt;URL&gt;</code>"
-    ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/uncache &lt;URL&gt;</code>"
-    ADMIN_CACHE_CLEARED_MSG = "✅ Cache cleared successfully for URL:\n<code>{url}</code>"
-    ADMIN_NO_CACHE_FOUND_MSG = "ℹ️ No cache found for this link."
-    ADMIN_ERROR_CLEARING_CACHE_MSG = "❌ Error clearing cache: {error}"
-    ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
-    ADMIN_UPDATE_PORN_RUNNING_MSG = "⏳ Running porn list update script: {script_path}"
-    ADMIN_SCRIPT_COMPLETED_MSG = "✅ Script completed successfully!"
-    ADMIN_SCRIPT_COMPLETED_WITH_OUTPUT_MSG = "✅ Script completed successfully!\n\nOutput:\n<code>{output}</code>"
-    ADMIN_SCRIPT_FAILED_MSG = "❌ Script failed with return code {returncode}:\n<code>{error}</code>"
-    ADMIN_ERROR_RUNNING_SCRIPT_MSG = "❌ Error running script: {error}"
-    ADMIN_RELOADING_PORN_MSG = "⏳ Reloading porn and domain-related caches..."
+    ADMIN_BLOCK_USER_USAGE_MSG = "❌ Amfani: /block_user <user_id>"
+    ADMIN_CANNOT_DELETE_ADMIN_MSG = "🚫 Admin ba zai iya share admin ba"
+    ADMIN_USER_BLOCKED_MSG = "An toshe mai amfani 🔒❌\n \nID: <code>{user_id}</code>\nKwanan wata toshe: {date}"
+    ADMIN_USER_ALREADY_BLOCKED_MSG = "<code>{user_id}</code> an riga an toshe shi ❌😐"
+    ADMIN_NOT_ADMIN_MSG = "🚫 Yi hakuri! Kai ba admin ba ne"
+    ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ Amfani: /unblock_user <user_id>"
+    ADMIN_USER_UNBLOCKED_MSG = "An cire toshe mai amfani 🔓✅\n \nID: <code>{user_id}</code>\nKwanan wata cire toshe: {date}"
+    ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> an riga an cire toshe shi ✅😐"
+    ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ An cire toshe masu amfani: {count}\n⏱ Alamar lokaci: {date}"
+    ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Lokacin gudanar da bot -</i> <b>{time}</b>"
+    ADMIN_UNCACHE_USAGE_MSG = "❌ Da fatan za a ba da URL don share cache.\nAmfani: <code>/uncache &lt;URL&gt;</code>"
+    ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Da fatan za a ba da URL mai inganci.\nAmfani: <code>/uncache &lt;URL&gt;</code>"
+    ADMIN_CACHE_CLEARED_MSG = "✅ An share cache cikin nasara don URL:\n<code>{url}</code>"
+    ADMIN_NO_CACHE_FOUND_MSG = "ℹ️ Ba a sami cache don wannan hanyar haɗi ba."
+    ADMIN_ERROR_CLEARING_CACHE_MSG = "❌ Kuskure wajen share cache: {error}"
+    ADMIN_ACCESS_DENIED_MSG = "❌ An ƙi dama. Admin kawai."
+    ADMIN_UPDATE_PORN_RUNNING_MSG = "⏳ Ana gudanar da script sabunta jerin batsa: {script_path}"
+    ADMIN_SCRIPT_COMPLETED_MSG = "✅ An kammala script cikin nasara!"
+    ADMIN_SCRIPT_COMPLETED_WITH_OUTPUT_MSG = "✅ An kammala script cikin nasara!\n\nFitarwa:\n<code>{output}</code>"
+    ADMIN_SCRIPT_FAILED_MSG = "❌ Script ya gaza tare da lambar dawowa {returncode}:\n<code>{error}</code>"
+    ADMIN_ERROR_RUNNING_SCRIPT_MSG = "❌ Kuskure wajen gudanar da script: {error}"
+    ADMIN_RELOADING_PORN_MSG = "⏳ Ana sake loda caches na batsa da na yanki..."
     ADMIN_PORN_CACHES_RELOADED_MSG = (
-        "✅ Porn caches reloaded successfully!\n\n"
-        "📊 Current cache status:\n"
-        "• Porn domains: {porn_domains}\n"
-        "• Porn keywords: {porn_keywords}\n"
-        "• Supported sites: {supported_sites}\n"
+        "✅ An sake loda caches na batsa cikin nasara!\n\n"
+        "📊 Matsayin cache na yanzu:\n"
+        "• Yankuna na batsa: {porn_domains}\n"
+        "• Kalmomin batsa: {porn_keywords}\n"
+        "• Shafukan da aka goyan baya: {supported_sites}\n"
         "• WHITELIST: {whitelist}\n"
         "• GREYLIST: {greylist}\n"
         "• BLACK_LIST: {black_list}\n"
@@ -841,8 +841,8 @@ Use:
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Error reloading porn cache: {error}"
-    ADMIN_CHECK_PORN_USAGE_MSG = "❌ Please provide a URL to check.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
-    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECK_PORN_USAGE_MSG = "❌ Da fatan za a ba da URL don duba.\nYadda ake amfani: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Da fatan za a ba da URL mai inganci.\nYadda ake amfani: <code>/check_porn &lt;URL&gt;</code>"
     ADMIN_CHECKING_URL_MSG = "🔍 Checking URL for NSFW content...\n<code>{url}</code>"
     ADMIN_PORN_CHECK_RESULT_MSG = (
         "{status_icon} <b>Porn Check Result</b>\n\n"
@@ -853,55 +853,55 @@ Use:
     ADMIN_ERROR_CHECKING_URL_MSG = "❌ Error checking URL: {error}"
     
     # Clean command messages
-    CLEAN_COOKIES_CLEANED_MSG = "Cookies cleaned."
-    CLEAN_LOGS_CLEANED_MSG = "logs cleaned."
-    CLEAN_TAGS_CLEANED_MSG = "tags cleaned."
-    CLEAN_FORMAT_CLEANED_MSG = "format cleaned."
-    CLEAN_SPLIT_CLEANED_MSG = "split cleaned."
-    CLEAN_MEDIAINFO_CLEANED_MSG = "mediainfo cleaned."
-    CLEAN_SUBS_CLEANED_MSG = "Subtitle settings cleaned."
-    CLEAN_KEYBOARD_CLEANED_MSG = "Keyboard settings cleaned."
-    CLEAN_ARGS_CLEANED_MSG = "Args settings cleaned."
-    CLEAN_NSFW_CLEANED_MSG = "NSFW settings cleaned."
-    CLEAN_PROXY_CLEANED_MSG = "Proxy settings cleaned."
-    CLEAN_FLOOD_WAIT_CLEANED_MSG = "Flood wait settings cleaned."
-    CLEAN_ALL_CLEANED_MSG = "All files cleaned."
-    CLEAN_COOKIES_MENU_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nChoose an action:"
+    CLEAN_COOKIES_CLEANED_MSG = "An tsabtace cookies."
+    CLEAN_LOGS_CLEANED_MSG = "an tsabtace logs."
+    CLEAN_TAGS_CLEANED_MSG = "an tsabtace tags."
+    CLEAN_FORMAT_CLEANED_MSG = "an tsabtace tsari."
+    CLEAN_SPLIT_CLEANED_MSG = "an tsabtace raba."
+    CLEAN_MEDIAINFO_CLEANED_MSG = "an tsabtace mediainfo."
+    CLEAN_SUBS_CLEANED_MSG = "An tsabtace saitunan rubutun ƙasa."
+    CLEAN_KEYBOARD_CLEANED_MSG = "An tsabtace saitunan keyboard."
+    CLEAN_ARGS_CLEANED_MSG = "An tsabtace saitunan hujjoji."
+    CLEAN_NSFW_CLEANED_MSG = "An tsabtace saitunan NSFW."
+    CLEAN_PROXY_CLEANED_MSG = "An tsabtace saitunan proxy."
+    CLEAN_FLOOD_WAIT_CLEANED_MSG = "An tsabtace saitunan jiran flood."
+    CLEAN_ALL_CLEANED_MSG = "An tsabtace duk fayiloli."
+    CLEAN_COOKIES_MENU_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nZaɓi aiki:"
     
     # Cookies command messages
-    COOKIES_FILE_SAVED_MSG = "✅ Cookie file saved"
-    COOKIES_SKIPPED_VALIDATION_MSG = "✅ Skipped validation for non-YouTube cookies"
-    COOKIES_INCORRECT_FORMAT_MSG = "⚠️ Cookie file exists but has incorrect format"
-    COOKIES_FILE_NOT_FOUND_MSG = "❌ Cookie file is not found."
-    COOKIES_YOUTUBE_TEST_START_MSG = "🔄 Starting YouTube cookies test...\n\nPlease wait while I check and validate your cookies."
-    COOKIES_YOUTUBE_WORKING_MSG = "✅ Your existing YouTube cookies are working properly!\n\nNo need to download new ones."
-    COOKIES_YOUTUBE_EXPIRED_MSG = "❌ Your existing YouTube cookies are expired or invalid.\n\n🔄 Downloading new cookies..."
-    COOKIES_SOURCE_NOT_CONFIGURED_MSG = "❌ {service} cookie source is not configured!"
-    COOKIES_SOURCE_MUST_BE_TXT_MSG = "❌ {service} cookie source must be a .txt file!"
+    COOKIES_FILE_SAVED_MSG = "✅ An adana fayil cookie"
+    COOKIES_SKIPPED_VALIDATION_MSG = "✅ An tsallake tabbatarwa don cookies waɗanda ba YouTube ba"
+    COOKIES_INCORRECT_FORMAT_MSG = "⚠️ Fayil cookie yana wanzuwa amma yana da tsari mara inganci"
+    COOKIES_FILE_NOT_FOUND_MSG = "❌ Ba a sami fayil cookie ba."
+    COOKIES_YOUTUBE_TEST_START_MSG = "🔄 Ana fara gwajin cookies na YouTube...\n\nDa fatan za a jira yayin da nake duba kuma tabbatar da cookies ɗin ku."
+    COOKIES_YOUTUBE_WORKING_MSG = "✅ Cookies ɗin ku na YouTube na yanzu suna aiki da kyau!\n\nBa lallai ba ne saukewa sababbi."
+    COOKIES_YOUTUBE_EXPIRED_MSG = "❌ Cookies ɗin ku na YouTube na yanzu sun ƙare ko ba su da inganci.\n\n🔄 Ana saukewa sabbin cookies..."
+    COOKIES_SOURCE_NOT_CONFIGURED_MSG = "❌ Tushen cookie na {service} ba a saita shi ba!"
+    COOKIES_SOURCE_MUST_BE_TXT_MSG = "❌ Tushen cookie na {service} dole ne ya zama fayil .txt!"
     
     # Image command messages
-    IMG_RANGE_LIMIT_EXCEEDED_MSG = "❗️ Range limit exceeded: {range_count} files requested (maximum {max_img_files}).\n\nUse one of these commands to download maximum available files:\n\n<code>/img {start_range}-{end_range} {url}</code>\n\n<code>/img {suggested_command_url_format}</code>"
-    COMMAND_IMAGE_HELP_CLOSE_BUTTON_MSG = "🔚Close"
-    COMMAND_IMAGE_MEDIA_LIMIT_EXCEEDED_MSG = "❗️ Media limit exceeded: {count} files requested (maximum {max_count}).\n\nUse one of these commands to download maximum available files:\n\n<code>/img {start_range}-{end_range} {url}</code>\n\n<code>/img {suggested_command_url_format}</code>"
-    IMG_FOUND_MEDIA_ITEMS_MSG = "📊 Found <b>{count}</b> media items from the link"
-    IMG_SELECT_DOWNLOAD_RANGE_MSG = "Select download range:"
+    IMG_RANGE_LIMIT_EXCEEDED_MSG = "❗️ Iyakar kewayon ta wuce: an nemi fayiloli {range_count} (matsakaici {max_img_files}).\n\nYi amfani da ɗaya daga cikin waɗannan umarni don saukewa matsakaicin fayiloli masu samuwa:\n\n<code>/img {start_range}-{end_range} {url}</code>\n\n<code>/img {suggested_command_url_format}</code>"
+    COMMAND_IMAGE_HELP_CLOSE_BUTTON_MSG = "🔚Rufe"
+    COMMAND_IMAGE_MEDIA_LIMIT_EXCEEDED_MSG = "❗️ Iyakar kafofin watsa labarai ta wuce: an nemi fayiloli {count} (matsakaici {max_count}).\n\nYi amfani da ɗaya daga cikin waɗannan umarni don saukewa matsakaicin fayiloli masu samuwa:\n\n<code>/img {start_range}-{end_range} {url}</code>\n\n<code>/img {suggested_command_url_format}</code>"
+    IMG_FOUND_MEDIA_ITEMS_MSG = "📊 An sami <b>{count}</b> abubuwan kafofin watsa labarai daga hanyar haɗi"
+    IMG_SELECT_DOWNLOAD_RANGE_MSG = "Zaɓi kewayon saukewa:"
     
     # Args command parameter descriptions
-    ARGS_IMPERSONATE_DESC_MSG = "Browser impersonation"
-    ARGS_REFERER_DESC_MSG = "Referer header"
-    ARGS_USER_AGENT_DESC_MSG = "User-Agent header"
-    ARGS_GEO_BYPASS_DESC_MSG = "Bypass geographic restrictions"
-    ARGS_CHECK_CERTIFICATE_DESC_MSG = "Check SSL certificate"
-    ARGS_LIVE_FROM_START_DESC_MSG = "Download live streams from start"
-    ARGS_NO_LIVE_FROM_START_DESC_MSG = "Do not download live streams from start"
-    ARGS_HLS_USE_MPEGTS_DESC_MSG = "Use MPEG-TS container for HLS videos"
-    ARGS_NO_PLAYLIST_DESC_MSG = "Download only single video, not playlist"
-    ARGS_NO_PART_DESC_MSG = "Do not use .part files"
-    ARGS_NO_CONTINUE_DESC_MSG = "Do not resume partial downloads"
-    ARGS_AUDIO_FORMAT_DESC_MSG = "Audio format for extraction"
-    ARGS_EMBED_METADATA_DESC_MSG = "Embed metadata in video file"
-    ARGS_EMBED_THUMBNAIL_DESC_MSG = "Embed thumbnail in video file"
-    ARGS_WRITE_THUMBNAIL_DESC_MSG = "Write thumbnail to file"
+    ARGS_IMPERSONATE_DESC_MSG = "Kwaikwayon browser"
+    ARGS_REFERER_DESC_MSG = "Kan Referer"
+    ARGS_USER_AGENT_DESC_MSG = "Kan User-Agent"
+    ARGS_GEO_BYPASS_DESC_MSG = "Ketare haniyyoyin yanki"
+    ARGS_CHECK_CERTIFICATE_DESC_MSG = "Duba takardar shaida SSL"
+    ARGS_LIVE_FROM_START_DESC_MSG = "Sauke streams na kai tsaye daga farko"
+    ARGS_NO_LIVE_FROM_START_DESC_MSG = "Kada a sauke streams na kai tsaye daga farko"
+    ARGS_HLS_USE_MPEGTS_DESC_MSG = "Yi amfani da kwantena MPEG-TS don bidiyoyin HLS"
+    ARGS_NO_PLAYLIST_DESC_MSG = "Sauke bidiyo guda ɗaya kawai, ba jerin bidiyo ba"
+    ARGS_NO_PART_DESC_MSG = "Kada a yi amfani da fayilolin .part"
+    ARGS_NO_CONTINUE_DESC_MSG = "Kada a ci gaba da saukewa na ɓangare"
+    ARGS_AUDIO_FORMAT_DESC_MSG = "Tsarin sauti don fitarwa"
+    ARGS_EMBED_METADATA_DESC_MSG = "Saka metadata a cikin fayil bidiyo"
+    ARGS_EMBED_THUMBNAIL_DESC_MSG = "Saka thumbnail a cikin fayil bidiyo"
+    ARGS_WRITE_THUMBNAIL_DESC_MSG = "Rubuta thumbnail zuwa fayil"
     ARGS_CONCURRENT_FRAGMENTS_DESC_MSG = "Number of concurrent fragments to download"
     ARGS_FORCE_IPV4_DESC_MSG = "Force IPv4 connections"
     ARGS_FORCE_IPV6_DESC_MSG = "Force IPv6 connections"
@@ -937,7 +937,7 @@ Use:
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "No Live Start"
     ARGS_USER_AGENT_SHORT_MSG = "User Agent"
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
-    ARGS_NO_PLAYLIST_SHORT_MSG = "No Playlist"
+    ARGS_NO_PLAYLIST_SHORT_MSG = "Babu Jerin Bidiyo"
     ARGS_NO_PART_SHORT_MSG = "No Part"
     ARGS_NO_CONTINUE_SHORT_MSG = "No Continue"
     ARGS_AUDIO_FORMAT_SHORT_MSG = "Audio Format"
@@ -958,7 +958,7 @@ Use:
     ARGS_IGNORE_ERRORS_SHORT_MSG = "Ignore Errors"
     ARGS_MIN_FILESIZE_SHORT_MSG = "Min Size"
     ARGS_MAX_FILESIZE_SHORT_MSG = "Max Size"
-    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "Playlist Items"
+    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "Abubuwan Jerin Bidiyo"
     ARGS_DATE_SHORT_MSG = "Date"
     ARGS_DATEBEFORE_SHORT_MSG = "Date Before"
     ARGS_DATEAFTER_SHORT_MSG = "Date After"
@@ -978,7 +978,7 @@ Use:
     COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {service} cookie file is too large! Max 100KB, got {size}KB."
     COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ {service} cookie file downloaded and saved as cookie.txt in your folder.</b>"
     COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ {service} cookie source is unavailable (status {status}). Please try again later."
-    COOKIES_ERROR_DOWNLOADING_MSG = "❌ Error downloading {service} cookie file. Please try again later."
+    COOKIES_ERROR_DOWNLOADING_MSG = "❌ Kuskure wajen saukewa fayil cookie na {service}. Da fatan za a sake gwadawa daga baya."
     COOKIES_USER_PROVIDED_MSG = "<b>✅ User provided a new cookie file.</b>"
     COOKIES_SUCCESSFULLY_UPDATED_MSG = "<b>✅ Cookie successfully updated:</b>\n<code>{final_cookie}</code>"
     COOKIES_NOT_VALID_MSG = "<b>❌ Not a valid cookie.</b>"
@@ -995,8 +995,8 @@ Use:
     # Additional subtitles command messages
     SUBS_LANGUAGE_SET_MSG = "✅ Subtitle language set to: {flag} {name}"
     SUBS_LANGUAGE_AUTO_SET_MSG = "✅ Subtitle language set to: {flag} {name} with AUTO/TRANS enabled."
-    SUBS_LANGUAGE_MENU_CLOSED_MSG = "Subtitle language menu closed."
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
+    SUBS_LANGUAGE_MENU_CLOSED_MSG = "An rufe menu harshen subtitr."
+    SUBS_DOWNLOADING_MSG = "💬 Ana saukewa subtitr..."
     
     # Additional admin command messages
     ADMIN_RELOADING_CACHE_MSG = "🔄 Reloading Firebase cache into memory..."
@@ -1008,8 +1008,8 @@ Use:
     COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
     COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
     COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
+    COOKIE_FALLBACK_ERROR_MSG = "❌ Kuskure wajen saukewa cookie fallback. Gwada /cookie ko loda cookie.txt."
+    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Kuskure da ba zato ba tsammani yayin saukewa cookie fallback."
     COOKIES_BROWSER_NOT_INSTALLED_MSG = "⚠️ {browser} browser not installed."
     COOKIES_SAVED_USING_BROWSER_MSG = "✅ Cookies saved using browser: {browser}"
     COOKIES_FAILED_TO_SAVE_MSG = "❌ Failed to save cookies: {error}"
@@ -1030,29 +1030,29 @@ Use:
     COOKIES_DOWNLOAD_FAILED_MSG = "❌ Download failed"
     COOKIES_UNEXPECTED_ERROR_MSG = "❌ Unexpected error"
     COOKIES_BROWSER_NOT_INSTALLED_CALLBACK_MSG = "⚠️ Browser not installed."
-    COOKIES_MENU_CLOSED_MSG = "Menu closed."
-    COOKIES_HINT_CLOSED_MSG = "Cookie hint closed."
-    IMG_HELP_CLOSED_MSG = "Help closed."
-    SUBS_LANGUAGE_UPDATED_MSG = "Subtitle language settings updated."
-    SUBS_MENU_CLOSED_MSG = "Subtitle language menu closed."
-    KEYBOARD_SET_TO_MSG = "Keyboard set to {setting}"
-    KEYBOARD_ERROR_PROCESSING_MSG = "Error processing setting"
-    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo disabled."
-    NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW blur disabled."
-    NSFW_BLUR_ENABLED_CALLBACK_MSG = "NSFW blur enabled."
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
-    SETTINGS_FLOOD_WAIT_ACTIVE_MSG = "Flood wait active. Try later."
-    OTHER_HELP_CLOSED_MSG = "Help closed."
-    OTHER_LOGS_MESSAGE_CLOSED_MSG = "Logs message closed."
+    COOKIES_MENU_CLOSED_MSG = "An rufe menu."
+    COOKIES_HINT_CLOSED_MSG = "An rufe shawara cookie."
+    IMG_HELP_CLOSED_MSG = "An rufe taimako."
+    SUBS_LANGUAGE_UPDATED_MSG = "An sabunta saitunan harshen subtitr."
+    SUBS_MENU_CLOSED_MSG = "An rufe menu harshen subtitr."
+    KEYBOARD_SET_TO_MSG = "An saita keyboard zuwa {setting}"
+    KEYBOARD_ERROR_PROCESSING_MSG = "Kuskure wajen sarrafa saiti"
+    MEDIAINFO_ENABLED_CALLBACK_MSG = "An kunna MediaInfo."
+    MEDIAINFO_DISABLED_CALLBACK_MSG = "An kashe MediaInfo."
+    NSFW_BLUR_DISABLED_CALLBACK_MSG = "An kashe blur NSFW."
+    NSFW_BLUR_ENABLED_CALLBACK_MSG = "An kunna blur NSFW."
+    SETTINGS_MENU_CLOSED_MSG = "An rufe menu."
+    SETTINGS_FLOOD_WAIT_ACTIVE_MSG = "Jiran flood yana aiki. Gwada daga baya."
+    OTHER_HELP_CLOSED_MSG = "An rufe taimako."
+    OTHER_LOGS_MESSAGE_CLOSED_MSG = "An rufe saƙon logs."
     
     # Additional split command messages
     SPLIT_MENU_CLOSED_MSG = "Menu closed."
     SPLIT_INVALID_SIZE_CALLBACK_MSG = "Invalid size."
     
     # Additional error messages
-    MEDIAINFO_ERROR_SENDING_MSG = "❌ Error sending MediaInfo: {error}"
-    LINK_ERROR_OCCURRED_MSG = "❌ An error occurred: {error}"
+    MEDIAINFO_ERROR_SENDING_MSG = "❌ Kuskure wajen aika MediaInfo: {error}"
+    LINK_ERROR_OCCURRED_MSG = "❌ Kuskure ya faru: {error}"
     
     # Additional document caption messages
     MEDIAINFO_DOCUMENT_CAPTION_MSG = "<blockquote>📊 MediaInfo</blockquote>"
@@ -1062,7 +1062,7 @@ Use:
     # Additional cookies command messages (missing ones)
     DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Download from Remote URL"
     BROWSER_OPEN_BUTTON_MSG = "🌐 Open Browser"
-    SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
+    SELECT_BROWSER_MSG = "Zaɓi browser don saukewa cookies daga:"
     SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
     BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
     COOKIES_FAILED_RUN_CHECK_MSG = "❌ Failed to run /check_cookie"
@@ -1071,7 +1071,7 @@ Use:
     COOKIES_SAVE_AS_HINT_CLOSED_MSG = "Save as cookie hint closed."
     
     # Link command messages
-    LINK_USAGE_MSG = "🔗 <b>Usage:</b>\n<code>/link [quality] URL</code>\n\n<b>Examples:</b>\n<blockquote>• /link https://youtube.com/watch?v=... - best quality\n• /link 720 https://youtube.com/watch?v=... - 720p or lower\n• /link 720p https://youtube.com/watch?v=... - same as above\n• /link 4k https://youtube.com/watch?v=... - 4K or lower\n• /link 8k https://youtube.com/watch?v=... - 8K or lower</blockquote>\n\n<b>Quality:</b> from 1 to 10000 (e.g., 144, 240, 720, 1080)"
+    LINK_USAGE_MSG = "🔗 <b>Yadda ake amfani:</b>\n<code>/link [quality] URL</code>\n\n<b>Misalai:</b>\n<blockquote>• /link https://youtube.com/watch?v=... - mafi kyawun inganci\n• /link 720 https://youtube.com/watch?v=... - 720p ko ƙasa\n• /link 720p https://youtube.com/watch?v=... - iri ɗaya da na sama\n• /link 4k https://youtube.com/watch?v=... - 4K ko ƙasa\n• /link 8k https://youtube.com/watch?v=... - 8K ko ƙasa</blockquote>\n\n<b>Inganci:</b> daga 1 zuwa 10000 (misali, 144, 240, 720, 1080)"
     
     # Additional format command messages
     FORMAT_8K_QUALITY_MSG = "• <code>/format 8k</code> - 8K quality"
@@ -1080,7 +1080,7 @@ Use:
     LINK_DIRECT_LINK_OBTAINED_MSG = "🔗 <b>Direct link obtained</b>\n\n"
     LINK_FORMAT_INFO_MSG = "🎛 <b>Format:</b> <code>{format_spec}</code>\n\n"
     LINK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>\n<blockquote expandable><a href=\"{audio_url}\">{audio_url}</a></blockquote>\n\n"
-    LINK_FAILED_GET_STREAMS_MSG = "❌ Failed to get stream links"
+    LINK_FAILED_GET_STREAMS_MSG = "❌ An gaza samun hanyoyin rafi"
     LINK_ERROR_GETTING_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
     
     # Additional cookies command messages (more)
@@ -1102,35 +1102,35 @@ Use:
     SUBS_EXAMPLE_AUTO_MSG = "Example: `/subs en auto`"
     
     # Additional subtitles command messages (more more)
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask mode {status}"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Yaren da aka zaɓa: {name}{auto_text}"
+    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Yanayin Always Ask {status}"
     
     # Additional subtitles menu messages
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SETTINGS_MENU_MSG = "<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
-    SUBS_SETTINGS_ADDITIONAL_MSG = "• <code>/subs off</code> - disable subtitles\n"
-    SUBS_AUTO_MENU_MSG = "<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:"
+    SUBS_DISABLED_STATUS_MSG = "🚫 An kashe subtitr"
+    SUBS_SETTINGS_MENU_MSG = "<b>💬 Saitunan subtitr</b>\n\n{status_text}\n\nZaɓi harshen subtitr:\n\n"
+    SUBS_SETTINGS_ADDITIONAL_MSG = "• <code>/subs off</code> - kashe subtitr\n"
+    SUBS_AUTO_MENU_MSG = "<b>💬 Saitunan subtitr</b>\n\n{status_text}\n\nZaɓi harshen subtitr:"
     
     # Additional link command messages (more)
-    LINK_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    LINK_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
-    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>\n<blockquote expandable><a href=\"{video_url}\">{video_url}</a></blockquote>\n\n"
+    LINK_TITLE_MSG = "📹 <b>Take:</b> {title}\n"
+    LINK_DURATION_MSG = "⏱ <b>Tsawon lokaci:</b> {duration} sec\n"
+    LINK_VIDEO_STREAM_MSG = "🎬 <b>Rafin bidiyo:</b>\n<blockquote expandable><a href=\"{video_url}\">{video_url}</a></blockquote>\n\n"
     
     # Additional subtitles limitation messages
-    SUBS_LIMITATIONS_MSG = "- 720p max quality\n- 1.5 hour max duration\n- 500mb max video size</blockquote>\n\n"
+    SUBS_LIMITATIONS_MSG = "- 720p matsakaicin inganci\n- 1.5 awa matsakaicin tsawon lokaci\n- 500mb matsakaicin girman bidiyo</blockquote>\n\n"
     
     # Additional subtitles warning and command messages
-    SUBS_WARNING_MSG = "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
-    SUBS_QUICK_COMMANDS_MSG = "<b>Quick commands:</b>\n"
+    SUBS_WARNING_MSG = "<blockquote>❗️GARGADI: saboda babban tasirin CPU wannan aikin yana da sauri sosai (kusa da lokaci na gaske) kuma an iyakance shi zuwa:\n"
+    SUBS_QUICK_COMMANDS_MSG = "<b>Umarni masu sauri:</b>\n"
     
     # Additional subtitles command description messages
-    SUBS_DISABLE_COMMAND_MSG = "• `/subs off` - disable subtitles\n"
-    SUBS_ENABLE_ASK_MODE_MSG = "• `/subs on` - enable Always Ask mode\n"
-    SUBS_SET_LANGUAGE_MSG = "• `/subs ru` - set language\n"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• `/subs ru auto` - set language with AUTO/TRANS enabled\n\n"
-    SUBS_SET_LANGUAGE_CODE_MSG = "• <code>/subs on</code> - enable Always Ask mode\n"
-    SUBS_AUTO_SUBS_TEXT = " (auto-subs)"
-    SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Auto-subs mode {status}"
+    SUBS_DISABLE_COMMAND_MSG = "• `/subs off` - kashe subtitr\n"
+    SUBS_ENABLE_ASK_MODE_MSG = "• `/subs on` - kunna yanayin Always Ask\n"
+    SUBS_SET_LANGUAGE_MSG = "• `/subs ru` - saita harshe\n"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• `/subs ru auto` - saita harshe tare da kunna AUTO/TRANS\n\n"
+    SUBS_SET_LANGUAGE_CODE_MSG = "• <code>/subs on</code> - kunna yanayin Always Ask\n"
+    SUBS_AUTO_SUBS_TEXT = " (auto-subtitr)"
+    SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Yanayin auto-subtitr {status}"
     
     # Subtitles log messages
     SUBS_DISABLED_LOG_MSG = "SUBS disabled via command: {arg}"
@@ -1198,7 +1198,7 @@ Use:
     FORMAT_UPDATED_CALLBACK_LOG_MSG = "Format updated to: {format}"
     FORMAT_ALWAYS_ASK_SET_CALLBACK_LOG_MSG = "Format set to ALWAYS_ASK."
     FORMAT_CODEC_SET_LOG_MSG = "Codec preference set to {codec}"
-    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Custom format menu closed"
+    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "An rufe menu tsari na al'ada"
     
     # Link log messages
     LINK_EXTRACTED_LOG_MSG = "Direct link extracted for user {user_id} from {url}"
@@ -1259,7 +1259,7 @@ Use:
     DOWN_UP_ONE_FILE_UPLOADED_MSG = "1 file uploaded."
     DOWN_UP_VIDEO_INFO_MSG = "📋 Video Info"
     DOWN_UP_NUMBER_MSG = "Number"
-    DOWN_UP_TITLE_MSG = "Title"
+    DOWN_UP_TITLE_MSG = "Take"
     DOWN_UP_ID_MSG = "ID"
     DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑️ Downloaded video."
     DOWN_UP_PROCESSING_UPLOAD_MSG = "📤 Processing for upload..."
@@ -1269,7 +1269,7 @@ Use:
     
     # Always Ask Menu Button Messages
     ALWAYS_ASK_VLC_ANDROID_BUTTON_MSG = "🎬 VLC (Android)"
-    ALWAYS_ASK_CLOSE_BUTTON_MSG = "🔚 Close"
+    ALWAYS_ASK_CLOSE_BUTTON_MSG = "🔚 Rufe"
     ALWAYS_ASK_CODEC_BUTTON_MSG = "📼CODEC"
     ALWAYS_ASK_DUBS_BUTTON_MSG = "🗣 DUBS"
     ALWAYS_ASK_SUBS_BUTTON_MSG = "💬 SUBS"
@@ -1278,11 +1278,11 @@ Use:
     
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Getting direct link..."
-    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Getting available formats..."
-    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Getting video description..."
-    AA_ERROR_GETTING_CAPTION_MSG = "❌ Error getting description: {error_msg}"
-    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Video description is not available"
-    AA_ERROR_SENDING_CAPTION_MSG = "❌ Error sending description: {error_msg}"
+    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Ana samun tsare-tsare masu samuwa..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Ana samun bayanin bidiyo..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ Kuskure wajen samun bayani: {error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Bayanin bidiyo ba ya samuwa"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ Kuskure wajen aika bayani: {error_msg}"
     CAPTION_SENT_LOG_MSG = "📝 Video description sent to user {user_id} for {url} ({title})"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Starting gallery-dl…"
     
@@ -1290,32 +1290,32 @@ Use:
     ALWAYS_ASK_DURATION_MSG = "⏱ <b>Duration:</b>"
     ALWAYS_ASK_FORMAT_MSG = "🎛 <b>Format:</b>"
     ALWAYS_ASK_BROWSER_MSG = "🌐 <b>Browser:</b> Open in web browser"
-    ALWAYS_ASK_AVAILABLE_FORMATS_FOR_MSG = "Available formats for"
-    ALWAYS_ASK_HOW_TO_USE_FORMAT_IDS_MSG = "💡 How to use format IDs:"
-    ALWAYS_ASK_AFTER_GETTING_LIST_MSG = "After getting the list, use specific format ID:"
-    ALWAYS_ASK_FORMAT_ID_401_MSG = "• /format id 401 - download format 401"
-    ALWAYS_ASK_FORMAT_ID401_MSG = "• /format id401 - same as above"
-    ALWAYS_ASK_FORMAT_ID_140_AUDIO_MSG = "• /format id 140 audio - download format 140 as MP3 audio"
-    ALWAYS_ASK_AUDIO_ONLY_FORMATS_DETECTED_MSG = "🎵 Audio-only formats detected"
-    ALWAYS_ASK_THESE_FORMATS_MP3_MSG = "These formats will be downloaded as MP3 audio files."
-    ALWAYS_ASK_HOW_TO_SET_FORMAT_MSG = "💡 <b>How to set format:</b>"
-    ALWAYS_ASK_FORMAT_ID_134_MSG = "• <code>/format id 134</code> - Download specific format ID"
-    ALWAYS_ASK_FORMAT_720P_MSG = "• <code>/format 720p</code> - Download by quality"
-    ALWAYS_ASK_FORMAT_BEST_MSG = "• <code>/format best</code> - Download best quality"
-    ALWAYS_ASK_FORMAT_ASK_MSG = "• <code>/format ask</code> - Always ask for quality"
-    ALWAYS_ASK_AUDIO_ONLY_FORMATS_MSG = "🎵 <b>Audio-only formats:</b>"
-    ALWAYS_ASK_FORMAT_ID_140_AUDIO_CAPTION_MSG = "• <code>/format id 140 audio</code> - Download format 140 as MP3 audio"
-    ALWAYS_ASK_THESE_WILL_BE_MP3_MSG = "These will be downloaded as MP3 audio files."
-    ALWAYS_ASK_USE_FORMAT_ID_MSG = "📋 Use format ID from the list above"
-    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG = "❌ Error: Original message not found."
-    ALWAYS_ASK_FORMATS_PAGE_MSG = "Formats page"
-    ALWAYS_ASK_ERROR_SHOWING_FORMATS_MENU_MSG = "❌ Error showing formats menu"
-    ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ Error getting formats"
-    ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ Error getting available formats."
-    ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "Please try again later."
-    ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp cannot process this content"
-    ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "The system recommends using gallery-dl instead."
-    ALWAYS_ASK_OPTIONS_MSG = "**Options:**"
+    ALWAYS_ASK_AVAILABLE_FORMATS_FOR_MSG = "Tsare-tsare masu samuwa don"
+    ALWAYS_ASK_HOW_TO_USE_FORMAT_IDS_MSG = "💡 Yadda ake amfani da ID na tsari:"
+    ALWAYS_ASK_AFTER_GETTING_LIST_MSG = "Bayan samun jerin, yi amfani da ID na tsari na musamman:"
+    ALWAYS_ASK_FORMAT_ID_401_MSG = "• /format id 401 - sauke tsari 401"
+    ALWAYS_ASK_FORMAT_ID401_MSG = "• /format id401 - iri ɗaya da na sama"
+    ALWAYS_ASK_FORMAT_ID_140_AUDIO_MSG = "• /format id 140 audio - sauke tsari 140 azaman sauti MP3"
+    ALWAYS_ASK_AUDIO_ONLY_FORMATS_DETECTED_MSG = "🎵 An gano tsare-tsare na sauti kawai"
+    ALWAYS_ASK_THESE_FORMATS_MP3_MSG = "Waɗannan tsare-tsare za a sauke su azaman fayilolin sauti MP3."
+    ALWAYS_ASK_HOW_TO_SET_FORMAT_MSG = "💡 <b>Yadda ake saita tsari:</b>"
+    ALWAYS_ASK_FORMAT_ID_134_MSG = "• <code>/format id 134</code> - Sauke ID na tsari na musamman"
+    ALWAYS_ASK_FORMAT_720P_MSG = "• <code>/format 720p</code> - Sauke ta inganci"
+    ALWAYS_ASK_FORMAT_BEST_MSG = "• <code>/format best</code> - Sauke mafi kyawun inganci"
+    ALWAYS_ASK_FORMAT_ASK_MSG = "• <code>/format ask</code> - Koyaushe tambayi inganci"
+    ALWAYS_ASK_AUDIO_ONLY_FORMATS_MSG = "🎵 <b>Tsare-tsare na sauti kawai:</b>"
+    ALWAYS_ASK_FORMAT_ID_140_AUDIO_CAPTION_MSG = "• <code>/format id 140 audio</code> - Sauke tsari 140 azaman sauti MP3"
+    ALWAYS_ASK_THESE_WILL_BE_MP3_MSG = "Waɗannan za a sauke su azaman fayilolin sauti MP3."
+    ALWAYS_ASK_USE_FORMAT_ID_MSG = "📋 Yi amfani da ID na tsari daga jerin da ke sama"
+    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG = "❌ Kuskure: Ba a sami saƙon asali ba."
+    ALWAYS_ASK_FORMATS_PAGE_MSG = "Shafin tsare-tsare"
+    ALWAYS_ASK_ERROR_SHOWING_FORMATS_MENU_MSG = "❌ Kuskure wajen nuna menu na tsare-tsare"
+    ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ Kuskure wajen samun tsare-tsare"
+    ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ Kuskure wajen samun tsare-tsare masu samuwa."
+    ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "Da fatan za a sake gwadawa daga baya."
+    ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp ba zai iya sarrafa wannan abun ciki ba"
+    ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "Tsarin yana ba da shawara yin amfani da gallery-dl maimakon haka."
+    ALWAYS_ASK_OPTIONS_MSG = "**Zaɓuɓɓuka:**"
     ALWAYS_ASK_FOR_IMAGE_GALLERIES_MSG = "• For image galleries: <code>/img 1-10</code>"
     ALWAYS_ASK_FOR_SINGLE_IMAGES_MSG = "• For single images: <code>/img</code>"
     ALWAYS_ASK_GALLERY_DL_WORKS_BETTER_MSG = "Gallery-dl often works better for Instagram, Twitter, and other social media content."
@@ -1358,10 +1358,10 @@ Use:
     ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG = "❌ <b>Error retrieving video information:</b>"
     ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG = "Error retrieving video information"
     ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "Try the <code>/clean</code> command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via <code>/cookie</code> or <code>/cookies_from_browser</code> and try again."
-    ALWAYS_ASK_MENU_CLOSED_MSG = "Menu closed."
-    ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 Manual Quality Selection"
-    ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG = "Choose quality manually since automatic detection failed:"
-    ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG = "🎛 All Available Formats"
+    ALWAYS_ASK_MENU_CLOSED_MSG = "An rufe menu."
+    ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 Zaɓin Inganci na Hannu"
+    ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG = "Zaɓi inganci da hannu tunda ganowa ta atomatik ta gaza:"
+    ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG = "🎛 Duk Tsare-tsare Masu Samuwa"
     ALWAYS_ASK_AVAILABLE_QUALITIES_FROM_CACHE_MSG = "📹 Available Qualities (from cache)"
     ALWAYS_ASK_USING_CACHED_QUALITIES_MSG = "⚠️ Using cached qualities - new formats may not be available"
     ALWAYS_ASK_DOWNLOADING_FORMAT_MSG = "📥 Downloading format"
@@ -1382,7 +1382,7 @@ Use:
     ALWAYS_ASK_FORMAT_CODE_MSG = "🎛 <b>Format:</b>"
     ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>"
     ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>"
-    ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ Failed to get stream links"
+    ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ An gaza samun hanyoyin rafi"
     DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Direct link extracted via Always Ask menu for user {user_id} from {url}"
     DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Failed to extract direct link via Always Ask menu for user {user_id} from {url}: {error}"
     DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Direct link extracted via down_and_up_with_format for user {user_id} from {url}"
@@ -1439,7 +1439,7 @@ Use:
     
     # Always Ask Menu Buttons
     BACK_BUTTON_TEXT = "🔙Back"
-    CLOSE_BUTTON_TEXT = "🔚Close"
+    CLOSE_BUTTON_TEXT = "🔚Rufe"
     LIST_BUTTON_TEXT = "📃List"
     IMAGE_BUTTON_TEXT = "🖼Image"
     
@@ -1547,7 +1547,7 @@ Use:
     ARGS_TRUE_BUTTON_MSG = "✅ True"
     ARGS_FALSE_BUTTON_MSG = "❌ False"
     ARGS_BACK_BUTTON_MSG = "🔙 Back"
-    ARGS_CLOSE_BUTTON_MSG = "🔚 Close"
+    ARGS_CLOSE_BUTTON_MSG = "🔚 Rufe"
     
     # Args command status texts
     ARGS_STATUS_TRUE_MSG = "✅"
@@ -1608,12 +1608,12 @@ Use:
     # Proxy command button texts
     PROXY_ON_BUTTON_MSG = "✅ ON"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
-    PROXY_CLOSE_BUTTON_MSG = "🔚Close"
+    PROXY_CLOSE_BUTTON_MSG = "🔚Rufe"
     
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"
-    MEDIAINFO_CLOSE_BUTTON_MSG = "🔚Close"
+    MEDIAINFO_CLOSE_BUTTON_MSG = "🔚Rufe"
     
     # Format command button texts
     FORMAT_AVC1_BUTTON_MSG = "✅ avc1 (H.264)"
@@ -1777,26 +1777,26 @@ Use:
     CLEAN_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Upload custom cookie"
     
     # List command messages
-    LIST_CLOSE_BUTTON_MSG = "🔚 Close"
+    LIST_CLOSE_BUTTON_MSG = "🔚 Rufe"
     LIST_AVAILABLE_FORMATS_HEADER_MSG = "Available formats for: {url}"
     LIST_FORMATS_FILE_NAME_MSG = "formats_{user_id}.txt"
     
     # Other handlers button messages
-    OTHER_AUDIO_HINT_CLOSE_BUTTON_MSG = "🔚Close"
-    OTHER_PLAYLIST_HELP_CLOSE_BUTTON_MSG = "🔚Close"
+    OTHER_AUDIO_HINT_CLOSE_BUTTON_MSG = "🔚Rufe"
+    OTHER_PLAYLIST_HELP_CLOSE_BUTTON_MSG = "🔚Rufe"
     
     # Search command button messages
-    SEARCH_CLOSE_BUTTON_MSG = "🔚Close"
+    SEARCH_CLOSE_BUTTON_MSG = "🔚Rufe"
     
     # Tag command button messages
-    TAG_CLOSE_BUTTON_MSG = "🔚Close"
+    TAG_CLOSE_BUTTON_MSG = "🔚Rufe"
     
     # Magic.py callback messages
     MAGIC_HELP_CLOSED_MSG = "Help closed."
     
     # URL extractor callback messages
     URL_EXTRACTOR_CLOSED_MSG = "Closed"
-    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Error occurred"
+    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Kuskure ya faru"
     
     # FFmpeg messages
     FFMPEG_NOT_FOUND_MSG = "ffmpeg not found in PATH or project directory. Please install FFmpeg."
@@ -2003,14 +2003,14 @@ Use:
     HELPER_PROXY_COOKIE_PATH_MSG = "users/{user_id}/cookie.txt"
     
     # URL extractor messages
-    URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG = "🔚Close"
-    URL_EXTRACTOR_ADD_GROUP_CLOSE_BUTTON_MSG = "🔚Close"
+    URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG = "🔚Rufe"
+    URL_EXTRACTOR_ADD_GROUP_CLOSE_BUTTON_MSG = "🔚Rufe"
     URL_EXTRACTOR_COOKIE_ARGS_YOUTUBE_MSG = "youtube"
     URL_EXTRACTOR_COOKIE_ARGS_TIKTOK_MSG = "tiktok"
     URL_EXTRACTOR_COOKIE_ARGS_INSTAGRAM_MSG = "instagram"
     URL_EXTRACTOR_COOKIE_ARGS_TWITTER_MSG = "twitter"
     URL_EXTRACTOR_COOKIE_ARGS_CUSTOM_MSG = "custom"
-    URL_EXTRACTOR_SAVE_AS_COOKIE_HINT_CLOSE_BUTTON_MSG = "🔚Close"
+    URL_EXTRACTOR_SAVE_AS_COOKIE_HINT_CLOSE_BUTTON_MSG = "🔚Rufe"
     URL_EXTRACTOR_CLEAN_LOGS_FILE_REMOVED_MSG = "🗑 Logs file removed."
     URL_EXTRACTOR_CLEAN_TAGS_FILE_REMOVED_MSG = "🗑 Tags file removed."
     URL_EXTRACTOR_CLEAN_FORMAT_FILE_REMOVED_MSG = "🗑 Format file removed."
@@ -2022,12 +2022,12 @@ Use:
     URL_EXTRACTOR_CLEAN_NSFW_SETTINGS_REMOVED_MSG = "🗑 NSFW settings removed."
     URL_EXTRACTOR_CLEAN_PROXY_SETTINGS_REMOVED_MSG = "🗑 Proxy settings removed."
     URL_EXTRACTOR_CLEAN_FLOOD_WAIT_SETTINGS_REMOVED_MSG = "🗑 Flood wait settings removed."
-    URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
+    URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Rufe"
     URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
     URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Misalai:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
-    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Hakanan duba: /audio, /img, /help, /playlist, /settings"
     URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
 
     # YouTube messages
@@ -2059,7 +2059,7 @@ Use:
     DOWNLOAD_STARTED_MSG = "<b>▶️ Download started</b>"
     
     # Split command constants
-    SPLIT_CLOSE_BUTTON_MSG = "🔚Close"
+    SPLIT_CLOSE_BUTTON_MSG = "🔚Rufe"
     
     # Always ask menu constants
     
@@ -2165,7 +2165,7 @@ Use:
     
     # Format Command Messages
     FORMAT_BACK_BUTTON_MSG = "🔙Back"
-    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format"
+    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - tsari na al'ada"
     FORMAT_720P_MSG = "• <code>/format 720</code> - 720p quality"
     FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K quality"
     FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K quality"
@@ -2197,45 +2197,45 @@ Use:
     ARGS_NO_SETTINGS_MSG = "📋 Current yt-dlp Arguments:\n\nNo custom settings configured.\n\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
     ARGS_CURRENT_ARGUMENTS_MSG = "📋 Current yt-dlp Arguments:\n\n"
     ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Export Settings"
-    ARGS_SETTINGS_READY_MSG = "Settings ready for export! Forward this message to favorites to save."
-    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Current yt-dlp Arguments:"
-    ARGS_FAILED_RECOGNIZE_MSG = "❌ Failed to recognize settings in message. Make sure you sent a correct settings template."
-    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Settings successfully imported!\n\nApplied parameters: {applied_count}\n\n"
-    ARGS_KEY_SETTINGS_MSG = "Key settings:\n"
-    ARGS_ERROR_SAVING_MSG = "❌ Error saving imported settings."
-    ARGS_ERROR_IMPORTING_MSG = "❌ An error occurred while importing settings."
+    ARGS_SETTINGS_READY_MSG = "Saituna suna shirye don fitarwa! Tura wannan saƙon zuwa abubuwan da kuka fi so don adanawa."
+    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Hujjojin yt-dlp na Yanzu:"
+    ARGS_FAILED_RECOGNIZE_MSG = "❌ An gaza gane saituna a cikin saƙo. Ka tabbata ka aika samfurin saituna daidai."
+    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ An shigo da saituna cikin nasara!\n\nMa'auni da aka yi amfani: {applied_count}\n\n"
+    ARGS_KEY_SETTINGS_MSG = "Saitunan mahimmanci:\n"
+    ARGS_ERROR_SAVING_MSG = "❌ Kuskure wajen adana saitunan da aka shigo."
+    ARGS_ERROR_IMPORTING_MSG = "❌ Kuskure ya faru yayin shigo da saituna."
 
     # Cookie command menu messages
-    COOKIE_MENU_TITLE_MSG = "🍪 <b>Download Cookie Files</b>"
-    COOKIE_MENU_DESCRIPTION_MSG = "Choose a service to download the cookie file."
-    COOKIE_MENU_SAVE_INFO_MSG = "Cookie files will be saved as cookie.txt in your folder."
-    COOKIE_MENU_TIP_HEADER_MSG = "Tip: You can also use direct command:"
-    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – download and validate cookies"
-    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – use a specific source by index (1–{max_index})"
-    COOKIE_MENU_TIP_VERIFY_MSG = "Then verify with <code>/check_cookie</code> (tests on RickRoll)."
+    COOKIE_MENU_TITLE_MSG = "🍪 <b>Sauke Fayilolin Cookie</b>"
+    COOKIE_MENU_DESCRIPTION_MSG = "Zaɓi sabis don saukewa fayil cookie."
+    COOKIE_MENU_SAVE_INFO_MSG = "Fayilolin cookie za a adana su azaman cookie.txt a cikin babban fayil ɗin ku."
+    COOKIE_MENU_TIP_HEADER_MSG = "Shawara: Hakanan zaka iya amfani da umarni kai tsaye:"
+    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – sauke kuma tabbatar da cookies"
+    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – yi amfani da tushe na musamman ta fihirisa (1–{max_index})"
+    COOKIE_MENU_TIP_VERIFY_MSG = "Sannan tabbatar da <code>/check_cookie</code> (gwaji akan RickRoll)."
 
     # Subs command button messages
-    SUBS_ALWAYS_ASK_BUTTON_MSG = "Always Ask"
+    SUBS_ALWAYS_ASK_BUTTON_MSG = "Luôn Tambayi"
     SUBS_AUTO_TRANS_BUTTON_MSG = "AUTO/TRANS"
 
     # Always Ask menu button messages
-    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
+    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Hanyar Haɗi"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Taken"
 
     # Audio upload completion messages
-    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."
-    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Audio successfully downloaded and sent - {total_files} files uploaded."
+    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ An kammala wani ɓangare - {successful_uploads}/{total_files} fayilolin sauti an loda su."
+    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ An sauke sauti cikin nasara kuma an aika - {total_files} fayiloli an loda su."
 
     # TikTok private account messages
     TIKTOK_PRIVATE_ACCOUNT_MSG = (
-        "🔒 <b>Private TikTok Account</b>\n\n"
-        "This TikTok account is private or all videos are private.\n\n"
-        "<b>💡 Solution:</b>\n"
-        "1. Follow the account @{username}\n"
-        "2. Send your cookies to the bot using <code>/cookie</code> command\n"
-        "3. Try again\n\n"
-        "<b>After updating cookies, try again!</b>"
+        "🔒 <b>Asusun TikTok na Sirri</b>\n\n"
+        "Wannan asusun TikTok na sirri ne ko duk bidiyoyi na sirri ne.\n\n"
+        "<b>💡 Magani:</b>\n"
+        "1. Bi asusun @{username}\n"
+        "2. Aika cookies ɗin ku zuwa bot ta amfani da umarnin <code>/cookie</code>\n"
+        "3. Gwada sake\n\n"
+        "<b>Bayan sabunta cookies, gwada sake!</b>"
     )
 
     #######################################################

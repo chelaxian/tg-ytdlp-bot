@@ -1140,7 +1140,7 @@ Ishlating:
     SUBS_MENU_OPENED_LOG_MSG = "User opened /subs menu."
     SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "User set subtitle language to: {lang_code}"
     SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "User toggled AUTO/TRANS mode to: {new_auto}"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "User toggled Always Ask mode to: {new_always_ask}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Foydalanuvchi Always Ask rejimini o'zgartirdi: {new_always_ask}"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "User requested cookies from browser."
@@ -1198,7 +1198,7 @@ Ishlating:
     FORMAT_UPDATED_CALLBACK_LOG_MSG = "Format updated to: {format}"
     FORMAT_ALWAYS_ASK_SET_CALLBACK_LOG_MSG = "Format set to ALWAYS_ASK."
     FORMAT_CODEC_SET_LOG_MSG = "Codec preference set to {codec}"
-    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Custom format menu closed"
+    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Maxsus format menyusi yopildi"
     
     # Link log messages
     LINK_EXTRACTED_LOG_MSG = "Direct link extracted for user {user_id} from {url}"
@@ -1213,8 +1213,8 @@ Ishlating:
     MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo set via command: {arg}"
     MEDIAINFO_MENU_OPENED_LOG_MSG = "User opened /mediainfo menu."
     MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: closed."
-    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo disabled."
+    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo yoqildi."
+    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo o'chirildi."
     
     # Split log messages
     SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "Split size set to {size} bytes via argument."
@@ -1233,8 +1233,8 @@ Ishlating:
     HELP_MESSAGE_CLOSED_LOG_MSG = "Help message closed."
     AUDIO_HELP_SHOWN_LOG_MSG = "Showed /audio help"
     PLAYLIST_HELP_REQUESTED_LOG_MSG = "User requested playlist help."
-    PLAYLIST_HELP_CLOSED_LOG_MSG = "Playlist help closed."
-    AUDIO_HINT_CLOSED_LOG_MSG = "Audio hint closed."
+    PLAYLIST_HELP_CLOSED_LOG_MSG = "Ro'yxat yordami yopildi."
+    AUDIO_HINT_CLOSED_LOG_MSG = "Audio maslahati yopildi."
     
     # Down and Up log messages
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direct link menu created via LINK button for user {user_id} from {url}"

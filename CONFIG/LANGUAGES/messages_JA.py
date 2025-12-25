@@ -8,7 +8,7 @@ class Messages(object):
     #######################################################
     # Messages and errors
     #######################################################
-    CREDITS_MSG = "<blockquote><i>Managed by</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 言語を変更: /lang</b>"
+    CREDITS_MSG = "<blockquote><i>管理：</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 言語を変更: /lang</b>"
     TO_USE_MSG = "<i>このボットを使用するには、@tg_ytdlp Telegramチャンネルに登録する必要があります。</i>\nチャンネルに参加した後、<b>動画リンクを再度送信すると、ボットがダウンロードします</b> ❤️\n\n<blockquote>P.S. 🔞NSFWコンテンツと☁️クラウドストレージからのファイルのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ チャンネルを離れないでください - ボットの使用が禁止されます ⛔️</blockquote>"
 
     ERROR1 = "URLリンクが見つかりませんでした。<b>https://</b>または<b>http://</b>を含むURLを入力してください"
@@ -423,46 +423,46 @@ class Messages(object):
     
     # Localized parameter names for display
     ARGS_PARAM_NAMES = {
-        "force_ipv6": "Force IPv6 connections",
-        "force_ipv4": "Force IPv4 connections", 
-        "no_live_from_start": "Do not download live streams from start",
-        "live_from_start": "Download live streams from start",
-        "no_check_certificates": "Suppress HTTPS certificate validation",
-        "check_certificate": "Check SSL certificate",
-        "no_playlist": "Download only single video, not playlist",
-        "embed_metadata": "Embed metadata in video file",
-        "embed_thumbnail": "Embed thumbnail in video file",
-        "write_thumbnail": "Write thumbnail to file",
-        "ignore_errors": "Ignore download errors and continue",
-        "legacy_server_connect": "Allow legacy server connections",
-        "concurrent_fragments": "Number of concurrent fragments to download",
-        "xff": "X-Forwarded-For header strategy",
-        "user_agent": "User-Agent header",
-        "impersonate": "Browser impersonation",
-        "referer": "Referer header",
-        "geo_bypass": "Bypass geographic restrictions",
-        "hls_use_mpegts": "Use MPEG-TS for HLS",
-        "no_part": "Do not use .part files",
-        "no_continue": "Do not resume partial downloads",
-        "audio_format": "Audio format",
-        "video_format": "Video format",
-        "merge_output_format": "Merge output format",
-        "send_as_file": "Send as file",
-        "username": "Username",
-        "password": "Password",
-        "twofactor": "Two-factor authentication code",
-        "min_filesize": "Minimum file size (MB)",
-        "max_filesize": "Maximum file size (MB)",
-        "playlist_items": "Playlist items",
-        "date": "Date",
-        "datebefore": "Date before",
-        "dateafter": "Date after",
-        "http_headers": "HTTP headers",
-        "sleep_interval": "Sleep interval",
-        "max_sleep_interval": "Maximum sleep interval",
-        "retries": "Number of retries",
-        "http_chunk_size": "HTTP chunk size",
-        "sleep_subtitles": "Sleep for subtitles"
+        "force_ipv6": "IPv6接続を強制",
+        "force_ipv4": "IPv4接続を強制", 
+        "no_live_from_start": "開始からライブストリームをダウンロードしない",
+        "live_from_start": "開始からライブストリームをダウンロード",
+        "no_check_certificates": "HTTPS証明書の検証を抑制",
+        "check_certificate": "SSL証明書を確認",
+        "no_playlist": "単一の動画のみダウンロード、プレイリストではない",
+        "embed_metadata": "動画ファイルにメタデータを埋め込む",
+        "embed_thumbnail": "動画ファイルにサムネイルを埋め込む",
+        "write_thumbnail": "サムネイルをファイルに書き込む",
+        "ignore_errors": "ダウンロードエラーを無視して続行",
+        "legacy_server_connect": "レガシーサーバー接続を許可",
+        "concurrent_fragments": "同時にダウンロードするフラグメント数",
+        "xff": "X-Forwarded-Forヘッダー戦略",
+        "user_agent": "User-Agentヘッダー",
+        "impersonate": "ブラウザの偽装",
+        "referer": "Refererヘッダー",
+        "geo_bypass": "地理的制限をバイパス",
+        "hls_use_mpegts": "HLSにMPEG-TSを使用",
+        "no_part": ".partファイルを使用しない",
+        "no_continue": "部分的なダウンロードを再開しない",
+        "audio_format": "音声フォーマット",
+        "video_format": "動画フォーマット",
+        "merge_output_format": "マージ出力フォーマット",
+        "send_as_file": "ファイルとして送信",
+        "username": "ユーザー名",
+        "password": "パスワード",
+        "twofactor": "二要素認証コード",
+        "min_filesize": "最小ファイルサイズ（MB）",
+        "max_filesize": "最大ファイルサイズ（MB）",
+        "playlist_items": "プレイリスト項目",
+        "date": "日付",
+        "datebefore": "日付より前",
+        "dateafter": "日付より後",
+        "http_headers": "HTTPヘッダー",
+        "sleep_interval": "スリープ間隔",
+        "max_sleep_interval": "最大スリープ間隔",
+        "retries": "再試行回数",
+        "http_chunk_size": "HTTPチャンクサイズ",
+        "sleep_subtitles": "字幕のスリープ"
     }
     ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp引数設定</b>\n\n<blockquote>📋 <b>グループ：</b>\n{groups_msg}"
     ARGS_MENU_TEXT = (
@@ -673,16 +673,16 @@ class Messages(object):
     LIST_ERROR_GETTING_MSG = "❌ フォーマットの取得に失敗しました：\n<code>{error}</code>"
     LIST_ERROR_OCCURRED_MSG = "❌ コマンドの処理中にエラーが発生しました"
     LIST_ERROR_CALLBACK_MSG = "エラーが発生しました"
-    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 How to use format IDs:\n"
-    LIST_FORMAT_USAGE_INSTRUCTIONS = "After getting the list, use specific format ID:\n"
-    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - download format 401\n"
-    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - same as above\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - download format 140 as MP3 audio\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - same as above\n"
-    LIST_AUDIO_FORMATS_DETECTED = "🎵 Audio-only formats detected: {formats}\n"
-    LIST_AUDIO_FORMATS_NOTE = "These formats will be downloaded as MP3 audio files.\n"
-    LIST_VIDEO_ONLY_FORMATS_MSG = "🎬 <b>Video-only formats:</b> {formats}\n"
-    LIST_USE_FORMAT_ID_MSG = "📋 Use format ID from the list above"
+    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 フォーマットIDの使用方法：\n"
+    LIST_FORMAT_USAGE_INSTRUCTIONS = "リストを取得した後、特定のフォーマットIDを使用してください：\n"
+    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - フォーマット401をダウンロード\n"
+    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - 上記と同じ\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - フォーマット140をMP3オーディオとしてダウンロード\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - 上記と同じ\n"
+    LIST_AUDIO_FORMATS_DETECTED = "🎵 オーディオのみのフォーマットが検出されました：{formats}\n"
+    LIST_AUDIO_FORMATS_NOTE = "これらのフォーマットはMP3オーディオファイルとしてダウンロードされます。\n"
+    LIST_VIDEO_ONLY_FORMATS_MSG = "🎬 <b>ビデオのみのフォーマット：</b> {formats}\n"
+    LIST_USE_FORMAT_ID_MSG = "📋 上記のリストからフォーマットIDを使用してください"
     
     # Link command messages
     LINK_USAGE_MSG = (
@@ -1071,7 +1071,7 @@ class Messages(object):
     COOKIES_SAVE_AS_HINT_CLOSED_MSG = "Save as cookie hint closed."
     
     # Link command messages
-    LINK_USAGE_MSG = "🔗 <b>Usage:</b>\n<code>/link [quality] URL</code>\n\n<b>Examples:</b>\n<blockquote>• /link https://youtube.com/watch?v=... - best quality\n• /link 720 https://youtube.com/watch?v=... - 720p or lower\n• /link 720p https://youtube.com/watch?v=... - same as above\n• /link 4k https://youtube.com/watch?v=... - 4K or lower\n• /link 8k https://youtube.com/watch?v=... - 8K or lower</blockquote>\n\n<b>Quality:</b> from 1 to 10000 (e.g., 144, 240, 720, 1080)"
+    LINK_USAGE_MSG = "🔗 <b>使用方法：</b>\n<code>/link [quality] URL</code>\n\n<b>例：</b>\n<blockquote>• /link https://youtube.com/watch?v=... - 最高品質\n• /link 720 https://youtube.com/watch?v=... - 720p以下\n• /link 720p https://youtube.com/watch?v=... - 上記と同じ\n• /link 4k https://youtube.com/watch?v=... - 4K以下\n• /link 8k https://youtube.com/watch?v=... - 8K以下</blockquote>\n\n<b>品質：</b> 1から10000まで（例：144、240、720、1080）"
     
     # Additional format command messages
     FORMAT_8K_QUALITY_MSG = "• <code>/format 8k</code> - 8K quality"
@@ -1089,58 +1089,58 @@ class Messages(object):
     COOKIES_DOWNLOADING_TESTING_MSG = "🔄 Downloading and checking YouTube cookies...\n\nAttempt {attempt} of {total}\n🔍 Testing cookies..."
     COOKIES_SUCCESS_VALIDATED_MSG = "✅ YouTube cookies successfully downloaded and validated!\n\nUsed source {source} of {total}"
     COOKIES_ALL_EXPIRED_MSG = "❌ All YouTube cookies are expired or unavailable!\n\nContact the bot administrator to replace them."
-    COOKIES_YOUTUBE_RETRY_LIMIT_EXCEEDED_MSG = "⚠️ YouTube cookie retry limit exceeded!\n\n🔢 Maximum: {limit} attempts per hour\n⏰ Please try again later"
+    COOKIES_YOUTUBE_RETRY_LIMIT_EXCEEDED_MSG = "⚠️ YouTube cookieの再試行制限を超えました！\n\n🔢 最大：1時間あたり{limit}回の試行\n⏰ 後でもう一度お試しください"
     
     # Additional other command messages
     OTHER_TAG_ERROR_MSG = "❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
     
     # Additional subtitles command messages
     SUBS_INVALID_ARGUMENT_MSG = "❌ **Invalid argument!**\n\n"
-    SUBS_LANGUAGE_SET_STATUS_MSG = "✅ Subtitle language set: {flag} {name}"
+    SUBS_LANGUAGE_SET_STATUS_MSG = "✅ 字幕言語を設定しました：{flag} {name}"
     
     # Additional subtitles command messages (more)
-    SUBS_EXAMPLE_AUTO_MSG = "Example: `/subs en auto`"
+    SUBS_EXAMPLE_AUTO_MSG = "例：`/subs en auto`"
     
     # Additional subtitles command messages (more more)
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask mode {status}"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} 選択された言語：{name}{auto_text}"
+    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Askモード {status}"
     
     # Additional subtitles menu messages
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SETTINGS_MENU_MSG = "<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:\n\n"
-    SUBS_SETTINGS_ADDITIONAL_MSG = "• <code>/subs off</code> - disable subtitles\n"
-    SUBS_AUTO_MENU_MSG = "<b>💬 Subtitle settings</b>\n\n{status_text}\n\nSelect subtitle language:"
+    SUBS_DISABLED_STATUS_MSG = "🚫 字幕は無効です"
+    SUBS_SETTINGS_MENU_MSG = "<b>💬 字幕設定</b>\n\n{status_text}\n\n字幕言語を選択：\n\n"
+    SUBS_SETTINGS_ADDITIONAL_MSG = "• <code>/subs off</code> - 字幕を無効にする\n"
+    SUBS_AUTO_MENU_MSG = "<b>💬 字幕設定</b>\n\n{status_text}\n\n字幕言語を選択："
     
     # Additional link command messages (more)
-    LINK_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    LINK_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
-    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>\n<blockquote expandable><a href=\"{video_url}\">{video_url}</a></blockquote>\n\n"
+    LINK_TITLE_MSG = "📹 <b>タイトル：</b> {title}\n"
+    LINK_DURATION_MSG = "⏱ <b>時間：</b> {duration} 秒\n"
+    LINK_VIDEO_STREAM_MSG = "🎬 <b>ビデオストリーム：</b>\n<blockquote expandable><a href=\"{video_url}\">{video_url}</a></blockquote>\n\n"
     
     # Additional subtitles limitation messages
-    SUBS_LIMITATIONS_MSG = "- 720p max quality\n- 1.5 hour max duration\n- 500mb max video size</blockquote>\n\n"
+    SUBS_LIMITATIONS_MSG = "- 最大品質720p\n- 最大時間1.5時間\n- 最大ビデオサイズ500mb</blockquote>\n\n"
     
     # Additional subtitles warning and command messages
-    SUBS_WARNING_MSG = "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
-    SUBS_QUICK_COMMANDS_MSG = "<b>Quick commands:</b>\n"
+    SUBS_WARNING_MSG = "<blockquote>❗️警告：高いCPU負荷により、この機能は非常に遅く（ほぼリアルタイム）、以下に制限されます：\n"
+    SUBS_QUICK_COMMANDS_MSG = "<b>クイックコマンド：</b>\n"
     
     # Additional subtitles command description messages
-    SUBS_DISABLE_COMMAND_MSG = "• `/subs off` - disable subtitles\n"
-    SUBS_ENABLE_ASK_MODE_MSG = "• `/subs on` - enable Always Ask mode\n"
-    SUBS_SET_LANGUAGE_MSG = "• `/subs ru` - set language\n"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• `/subs ru auto` - set language with AUTO/TRANS enabled\n\n"
-    SUBS_SET_LANGUAGE_CODE_MSG = "• <code>/subs on</code> - enable Always Ask mode\n"
-    SUBS_AUTO_SUBS_TEXT = " (auto-subs)"
-    SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Auto-subs mode {status}"
+    SUBS_DISABLE_COMMAND_MSG = "• `/subs off` - 字幕を無効にする\n"
+    SUBS_ENABLE_ASK_MODE_MSG = "• `/subs on` - Always Askモードを有効にする\n"
+    SUBS_SET_LANGUAGE_MSG = "• `/subs ru` - 言語を設定\n"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• `/subs ru auto` - AUTO/TRANSを有効にして言語を設定\n\n"
+    SUBS_SET_LANGUAGE_CODE_MSG = "• <code>/subs on</code> - Always Askモードを有効にする\n"
+    SUBS_AUTO_SUBS_TEXT = "（自動字幕）"
+    SUBS_AUTO_MODE_TOGGLE_MSG = "✅ 自動字幕モード {status}"
     
     # Subtitles log messages
-    SUBS_DISABLED_LOG_MSG = "SUBS disabled via command: {arg}"
-    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Always Ask enabled via command: {arg}"
-    SUBS_LANGUAGE_SET_LOG_MSG = "SUBS language set via command: {arg}"
-    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "SUBS language + auto mode set via command: {arg} auto"
-    SUBS_MENU_OPENED_LOG_MSG = "User opened /subs menu."
-    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "User set subtitle language to: {lang_code}"
-    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "User toggled AUTO/TRANS mode to: {new_auto}"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "User toggled Always Ask mode to: {new_always_ask}"
+    SUBS_DISABLED_LOG_MSG = "コマンド経由でSUBSを無効化：{arg}"
+    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "コマンド経由でSUBS Always Askを有効化：{arg}"
+    SUBS_LANGUAGE_SET_LOG_MSG = "コマンド経由でSUBS言語を設定：{arg}"
+    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "コマンド経由でSUBS言語+自動モードを設定：{arg} auto"
+    SUBS_MENU_OPENED_LOG_MSG = "ユーザーが/subsメニューを開きました。"
+    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "ユーザーが字幕言語を設定：{lang_code}"
+    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "ユーザーがAUTO/TRANSモードを切り替え：{new_auto}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "ユーザーがAlways Askモードを切り替え：{new_always_ask}"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "User requested cookies from browser."
@@ -1198,7 +1198,7 @@ class Messages(object):
     FORMAT_UPDATED_CALLBACK_LOG_MSG = "Format updated to: {format}"
     FORMAT_ALWAYS_ASK_SET_CALLBACK_LOG_MSG = "Format set to ALWAYS_ASK."
     FORMAT_CODEC_SET_LOG_MSG = "Codec preference set to {codec}"
-    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Custom format menu closed"
+    FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "カスタムフォーマットメニューを閉じました"
     
     # Link log messages
     LINK_EXTRACTED_LOG_MSG = "Direct link extracted for user {user_id} from {url}"
@@ -1213,8 +1213,8 @@ class Messages(object):
     MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo set via command: {arg}"
     MEDIAINFO_MENU_OPENED_LOG_MSG = "User opened /mediainfo menu."
     MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: closed."
-    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo disabled."
+    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfoを有効にしました。"
+    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfoを無効にしました。"
     
     # Split log messages
     SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "Split size set to {size} bytes via argument."
@@ -1233,8 +1233,8 @@ class Messages(object):
     HELP_MESSAGE_CLOSED_LOG_MSG = "Help message closed."
     AUDIO_HELP_SHOWN_LOG_MSG = "Showed /audio help"
     PLAYLIST_HELP_REQUESTED_LOG_MSG = "User requested playlist help."
-    PLAYLIST_HELP_CLOSED_LOG_MSG = "Playlist help closed."
-    AUDIO_HINT_CLOSED_LOG_MSG = "Audio hint closed."
+    PLAYLIST_HELP_CLOSED_LOG_MSG = "プレイリストヘルプを閉じました。"
+    AUDIO_HINT_CLOSED_LOG_MSG = "オーディオヒントを閉じました。"
     
     # Down and Up log messages
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direct link menu created via LINK button for user {user_id} from {url}"
@@ -1278,100 +1278,100 @@ class Messages(object):
     
     # Always Ask Menu Callback Messages
     ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Getting direct link..."
-    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Getting available formats..."
-    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Getting video description..."
-    AA_ERROR_GETTING_CAPTION_MSG = "❌ Error getting description: {error_msg}"
-    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Video description is not available"
-    AA_ERROR_SENDING_CAPTION_MSG = "❌ Error sending description: {error_msg}"
-    CAPTION_SENT_LOG_MSG = "📝 Video description sent to user {user_id} for {url} ({title})"
-    ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Starting gallery-dl…"
+    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 利用可能なフォーマットを取得中..."
+    ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 ビデオの説明を取得中..."
+    AA_ERROR_GETTING_CAPTION_MSG = "❌ 説明の取得エラー：{error_msg}"
+    AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ ビデオの説明は利用できません"
+    AA_ERROR_SENDING_CAPTION_MSG = "❌ 説明の送信エラー：{error_msg}"
+    CAPTION_SENT_LOG_MSG = "📝 ビデオの説明をユーザー{user_id}に送信しました {url} ({title})"
+    ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 gallery-dlを開始中…"
     
     # Always Ask Menu F-String Messages
-    ALWAYS_ASK_DURATION_MSG = "⏱ <b>Duration:</b>"
-    ALWAYS_ASK_FORMAT_MSG = "🎛 <b>Format:</b>"
-    ALWAYS_ASK_BROWSER_MSG = "🌐 <b>Browser:</b> Open in web browser"
-    ALWAYS_ASK_AVAILABLE_FORMATS_FOR_MSG = "Available formats for"
-    ALWAYS_ASK_HOW_TO_USE_FORMAT_IDS_MSG = "💡 How to use format IDs:"
-    ALWAYS_ASK_AFTER_GETTING_LIST_MSG = "After getting the list, use specific format ID:"
-    ALWAYS_ASK_FORMAT_ID_401_MSG = "• /format id 401 - download format 401"
-    ALWAYS_ASK_FORMAT_ID401_MSG = "• /format id401 - same as above"
-    ALWAYS_ASK_FORMAT_ID_140_AUDIO_MSG = "• /format id 140 audio - download format 140 as MP3 audio"
-    ALWAYS_ASK_AUDIO_ONLY_FORMATS_DETECTED_MSG = "🎵 Audio-only formats detected"
-    ALWAYS_ASK_THESE_FORMATS_MP3_MSG = "These formats will be downloaded as MP3 audio files."
-    ALWAYS_ASK_HOW_TO_SET_FORMAT_MSG = "💡 <b>How to set format:</b>"
-    ALWAYS_ASK_FORMAT_ID_134_MSG = "• <code>/format id 134</code> - Download specific format ID"
-    ALWAYS_ASK_FORMAT_720P_MSG = "• <code>/format 720p</code> - Download by quality"
-    ALWAYS_ASK_FORMAT_BEST_MSG = "• <code>/format best</code> - Download best quality"
-    ALWAYS_ASK_FORMAT_ASK_MSG = "• <code>/format ask</code> - Always ask for quality"
-    ALWAYS_ASK_AUDIO_ONLY_FORMATS_MSG = "🎵 <b>Audio-only formats:</b>"
-    ALWAYS_ASK_FORMAT_ID_140_AUDIO_CAPTION_MSG = "• <code>/format id 140 audio</code> - Download format 140 as MP3 audio"
-    ALWAYS_ASK_THESE_WILL_BE_MP3_MSG = "These will be downloaded as MP3 audio files."
-    ALWAYS_ASK_USE_FORMAT_ID_MSG = "📋 Use format ID from the list above"
-    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG = "❌ Error: Original message not found."
-    ALWAYS_ASK_FORMATS_PAGE_MSG = "Formats page"
-    ALWAYS_ASK_ERROR_SHOWING_FORMATS_MENU_MSG = "❌ Error showing formats menu"
-    ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ Error getting formats"
-    ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ Error getting available formats."
-    ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "Please try again later."
-    ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp cannot process this content"
-    ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "The system recommends using gallery-dl instead."
-    ALWAYS_ASK_OPTIONS_MSG = "**Options:**"
-    ALWAYS_ASK_FOR_IMAGE_GALLERIES_MSG = "• For image galleries: <code>/img 1-10</code>"
-    ALWAYS_ASK_FOR_SINGLE_IMAGES_MSG = "• For single images: <code>/img</code>"
-    ALWAYS_ASK_GALLERY_DL_WORKS_BETTER_MSG = "Gallery-dl often works better for Instagram, Twitter, and other social media content."
-    ALWAYS_ASK_TRY_GALLERY_DL_BUTTON_MSG = "🖼 Try Gallery-dl"
-    ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "🔒 Format fixed via /args"
-    ALWAYS_ASK_SUBTITLES_MSG = "🔤 Subtitles"
-    ALWAYS_ASK_DUBBED_AUDIO_MSG = "🎧 Dubbed audio"
-    ALWAYS_ASK_SUBTITLES_ARE_AVAILABLE_MSG = "💬 — Subtitles are available"
-    ALWAYS_ASK_CHOOSE_SUBTITLE_LANGUAGE_MSG = "💬 — Choose subtitle language"
-    ALWAYS_ASK_SUBS_NOT_FOUND_MSG = "⚠️ Subs not found & won't embed"
-    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Instant repost from cache"
-    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Choose audio language"
-    ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW is paid (⭐️$0.02)"
-    ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Choose download quality"
-    ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Download image (gallery-dl)"
-    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Get direct link to video"
-    ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Show available formats list"
-    ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Change video ext/codec"
-    ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Embed"
-    ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Extract only audio"
-    ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW is paid (⭐️$0.02)"
-    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Instant repost from cache"
-    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Choose audio language"
-    ALWAYS_ASK_BEST_BUTTON_MSG = "Best"
-    ALWAYS_ASK_OTHER_LABEL_MSG = "🎛Other"
-    ALWAYS_ASK_SUB_ONLY_BUTTON_MSG = "📝sub only"
-    ALWAYS_ASK_SMART_GROUPING_MSG = "Smart grouping"
-    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROW_3_MSG = "Added action button row (3)"
-    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROWS_2_2_MSG = "Added action button rows (2+2)"
-    ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "Added bottom buttons to existing row"
-    ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "Created new bottom row"
-    ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "No videos found in playlist"
-    ALWAYS_ASK_UNSUPPORTED_URL_MSG = "Unsupported URL"
-    ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "No video could be found"
-    ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "No video found"
-    ALWAYS_ASK_NO_MEDIA_FOUND_MSG = "No media found"
-    ALWAYS_ASK_THIS_TWEET_DOES_NOT_CONTAIN_MSG = "This tweet does not contain"
-    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG = "❌ <b>Error retrieving video information:</b>"
-    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG = "Error retrieving video information"
-    ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "Try the <code>/clean</code> command and try again. If the error persists, YouTube requires authorization. Update cookies.txt via <code>/cookie</code> or <code>/cookies_from_browser</code> and try again."
-    ALWAYS_ASK_MENU_CLOSED_MSG = "Menu closed."
-    ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 Manual Quality Selection"
-    ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG = "Choose quality manually since automatic detection failed:"
-    ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG = "🎛 All Available Formats"
-    ALWAYS_ASK_AVAILABLE_QUALITIES_FROM_CACHE_MSG = "📹 Available Qualities (from cache)"
-    ALWAYS_ASK_USING_CACHED_QUALITIES_MSG = "⚠️ Using cached qualities - new formats may not be available"
-    ALWAYS_ASK_DOWNLOADING_FORMAT_MSG = "📥 Downloading format"
-    ALWAYS_ASK_DOWNLOADING_QUALITY_MSG = "📥 Downloading"
-    ALWAYS_ASK_DOWNLOADING_HLS_MSG = "📥 Downloading with progress tracking..."
-    ALWAYS_ASK_DOWNLOADING_FORMAT_USING_MSG = "📥 Downloading using format:"
-    ALWAYS_ASK_DOWNLOADING_AUDIO_FORMAT_USING_MSG = "📥 Downloading audio using format:"
-    ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG = "📥 Downloading best quality..."
-    ALWAYS_ASK_DOWNLOADING_DATABASE_MSG = "📥 Downloading database dump..."
-    ALWAYS_ASK_DOWNLOADING_IMAGES_MSG = "📥 Downloading"
+    ALWAYS_ASK_DURATION_MSG = "⏱ <b>時間：</b>"
+    ALWAYS_ASK_FORMAT_MSG = "🎛 <b>フォーマット：</b>"
+    ALWAYS_ASK_BROWSER_MSG = "🌐 <b>ブラウザ：</b> ウェブブラウザで開く"
+    ALWAYS_ASK_AVAILABLE_FORMATS_FOR_MSG = "利用可能なフォーマット"
+    ALWAYS_ASK_HOW_TO_USE_FORMAT_IDS_MSG = "💡 フォーマットIDの使用方法："
+    ALWAYS_ASK_AFTER_GETTING_LIST_MSG = "リストを取得した後、特定のフォーマットIDを使用してください："
+    ALWAYS_ASK_FORMAT_ID_401_MSG = "• /format id 401 - フォーマット401をダウンロード"
+    ALWAYS_ASK_FORMAT_ID401_MSG = "• /format id401 - 上記と同じ"
+    ALWAYS_ASK_FORMAT_ID_140_AUDIO_MSG = "• /format id 140 audio - フォーマット140をMP3オーディオとしてダウンロード"
+    ALWAYS_ASK_AUDIO_ONLY_FORMATS_DETECTED_MSG = "🎵 オーディオのみのフォーマットが検出されました"
+    ALWAYS_ASK_THESE_FORMATS_MP3_MSG = "これらのフォーマットはMP3オーディオファイルとしてダウンロードされます。"
+    ALWAYS_ASK_HOW_TO_SET_FORMAT_MSG = "💡 <b>フォーマットの設定方法：</b>"
+    ALWAYS_ASK_FORMAT_ID_134_MSG = "• <code>/format id 134</code> - 特定のフォーマットIDをダウンロード"
+    ALWAYS_ASK_FORMAT_720P_MSG = "• <code>/format 720p</code> - 品質でダウンロード"
+    ALWAYS_ASK_FORMAT_BEST_MSG = "• <code>/format best</code> - 最高品質をダウンロード"
+    ALWAYS_ASK_FORMAT_ASK_MSG = "• <code>/format ask</code> - 常に品質を尋ねる"
+    ALWAYS_ASK_AUDIO_ONLY_FORMATS_MSG = "🎵 <b>オーディオのみのフォーマット：</b>"
+    ALWAYS_ASK_FORMAT_ID_140_AUDIO_CAPTION_MSG = "• <code>/format id 140 audio</code> - フォーマット140をMP3オーディオとしてダウンロード"
+    ALWAYS_ASK_THESE_WILL_BE_MP3_MSG = "これらはMP3オーディオファイルとしてダウンロードされます。"
+    ALWAYS_ASK_USE_FORMAT_ID_MSG = "📋 上記のリストからフォーマットIDを使用してください"
+    ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG = "❌ エラー：元のメッセージが見つかりませんでした。"
+    ALWAYS_ASK_FORMATS_PAGE_MSG = "フォーマットページ"
+    ALWAYS_ASK_ERROR_SHOWING_FORMATS_MENU_MSG = "❌ フォーマットメニューの表示エラー"
+    ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ フォーマットの取得エラー"
+    ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ 利用可能なフォーマットの取得エラー。"
+    ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "後でもう一度お試しください。"
+    ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlpはこのコンテンツを処理できません"
+    ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "システムは代わりにgallery-dlの使用を推奨します。"
+    ALWAYS_ASK_OPTIONS_MSG = "**オプション：**"
+    ALWAYS_ASK_FOR_IMAGE_GALLERIES_MSG = "• 画像ギャラリーの場合：<code>/img 1-10</code>"
+    ALWAYS_ASK_FOR_SINGLE_IMAGES_MSG = "• 単一画像の場合：<code>/img</code>"
+    ALWAYS_ASK_GALLERY_DL_WORKS_BETTER_MSG = "Gallery-dlは、Instagram、Twitter、その他のソーシャルメディアコンテンツでより良く機能することがよくあります。"
+    ALWAYS_ASK_TRY_GALLERY_DL_BUTTON_MSG = "🖼 Gallery-dlを試す"
+    ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "🔒 /args経由でフォーマットが固定されました"
+    ALWAYS_ASK_SUBTITLES_MSG = "🔤 字幕"
+    ALWAYS_ASK_DUBBED_AUDIO_MSG = "🎧 吹き替えオーディオ"
+    ALWAYS_ASK_SUBTITLES_ARE_AVAILABLE_MSG = "💬 — 字幕が利用可能です"
+    ALWAYS_ASK_CHOOSE_SUBTITLE_LANGUAGE_MSG = "💬 — 字幕言語を選択"
+    ALWAYS_ASK_SUBS_NOT_FOUND_MSG = "⚠️ 字幕が見つからず、埋め込まれません"
+    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — キャッシュから即座に再投稿"
+    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — オーディオ言語を選択"
+    ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFWは有料です（⭐️$0.02）"
+    ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — ダウンロード品質を選択"
+    ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — 画像をダウンロード（gallery-dl）"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketubeでビデオを視聴"  # TEMPORARILY DISABLED: poketube service is down
+    ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — ビデオへの直接リンクを取得"
+    ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — 利用可能なフォーマットリストを表示"
+    ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — ビデオ拡張子/コーデックを変更"
+    ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀埋め込み"
+    ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — オーディオのみ抽出"
+    ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFWは有料です（⭐️$0.02）"
+    ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — キャッシュから即座に再投稿"
+    # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketubeでビデオを視聴"  # TEMPORARILY DISABLED: poketube service is down
+    ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — オーディオ言語を選択"
+    ALWAYS_ASK_BEST_BUTTON_MSG = "最高"
+    ALWAYS_ASK_OTHER_LABEL_MSG = "🎛その他"
+    ALWAYS_ASK_SUB_ONLY_BUTTON_MSG = "📝字幕のみ"
+    ALWAYS_ASK_SMART_GROUPING_MSG = "スマートグループ化"
+    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROW_3_MSG = "アクションボタン行を追加しました（3）"
+    ALWAYS_ASK_ADDED_ACTION_BUTTON_ROWS_2_2_MSG = "アクションボタン行を追加しました（2+2）"
+    ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "既存の行に下部ボタンを追加しました"
+    ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "新しい下部行を作成しました"
+    ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "プレイリストにビデオが見つかりません"
+    ALWAYS_ASK_UNSUPPORTED_URL_MSG = "サポートされていないURL"
+    ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "ビデオが見つかりませんでした"
+    ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "ビデオが見つかりません"
+    ALWAYS_ASK_NO_MEDIA_FOUND_MSG = "メディアが見つかりません"
+    ALWAYS_ASK_THIS_TWEET_DOES_NOT_CONTAIN_MSG = "このツイートには含まれていません"
+    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG = "❌ <b>ビデオ情報の取得エラー：</b>"
+    ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG = "ビデオ情報の取得エラー"
+    ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "<code>/clean</code>コマンドを試して、もう一度お試しください。エラーが続く場合、YouTubeは認証が必要です。<code>/cookie</code>または<code>/cookies_from_browser</code>経由でcookies.txtを更新して、もう一度お試しください。"
+    ALWAYS_ASK_MENU_CLOSED_MSG = "メニューを閉じました。"
+    ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 手動品質選択"
+    ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG = "自動検出が失敗したため、手動で品質を選択してください："
+    ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG = "🎛 すべての利用可能なフォーマット"
+    ALWAYS_ASK_AVAILABLE_QUALITIES_FROM_CACHE_MSG = "📹 利用可能な品質（キャッシュから）"
+    ALWAYS_ASK_USING_CACHED_QUALITIES_MSG = "⚠️ キャッシュされた品質を使用中 - 新しいフォーマットは利用できない場合があります"
+    ALWAYS_ASK_DOWNLOADING_FORMAT_MSG = "📥 フォーマットをダウンロード中"
+    ALWAYS_ASK_DOWNLOADING_QUALITY_MSG = "📥 ダウンロード中"
+    ALWAYS_ASK_DOWNLOADING_HLS_MSG = "📥 進捗追跡付きでダウンロード中..."
+    ALWAYS_ASK_DOWNLOADING_FORMAT_USING_MSG = "📥 フォーマットを使用してダウンロード中："
+    ALWAYS_ASK_DOWNLOADING_AUDIO_FORMAT_USING_MSG = "📥 フォーマットを使用してオーディオをダウンロード中："
+    ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG = "📥 最高品質をダウンロード中..."
+    ALWAYS_ASK_DOWNLOADING_DATABASE_MSG = "📥 データベースダンプをダウンロード中..."
+    ALWAYS_ASK_DOWNLOADING_IMAGES_MSG = "📥 ダウンロード中"
     ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG = "フォーマットページ"
     ALWAYS_ASK_FROM_CACHE_MSG = "(from cache)"
     ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_DETAILED_MSG = "❌ Error: Original message not found. It might have been deleted. Please send the link again."
@@ -1432,10 +1432,10 @@ class Messages(object):
     CHOOSE_AUDIO_LANGUAGE_MSG = "Choose audio language"
     PAGE_NUMBER_MSG = "Page {page}"
     TOTAL_PROGRESS_MSG = "Total Progress"
-    SUBTITLE_MENU_CLOSED_MSG = "Subtitle menu closed."
-    SUBTITLE_LANGUAGE_SET_MSG = "Subtitle language set: {value}"
-    AUDIO_SET_MSG = "Audio set: {value}"
-    FILTERS_UPDATED_MSG = "Filters updated"
+    SUBTITLE_MENU_CLOSED_MSG = "字幕メニューを閉じました。"
+    SUBTITLE_LANGUAGE_SET_MSG = "字幕言語を設定しました：{value}"
+    AUDIO_SET_MSG = "オーディオを設定しました：{value}"
+    FILTERS_UPDATED_MSG = "フィルターを更新しました"
     
     # Always Ask Menu Buttons
     BACK_BUTTON_TEXT = "🔙Back"
@@ -1530,16 +1530,16 @@ class Messages(object):
     CONVERSION_TO_MP4_FAILED_MSG = "❌ Conversion to MP4 failed: {error}"
     EMBEDDING_SUBTITLES_WARNING_MSG = "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\n🔥 Starting to burn subtitles..."
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Subtitles cannot be embedded due to limits (quality/duration/size)"
-    SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Subtitles are not available for the selected language"
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    PLAYLIST_VIDEOS_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Download cancelled due to timeout (2 hours)"
-    FAILED_DOWNLOAD_VIDEO_MSG = "❌ Failed to download video: {error}"
+    SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ 選択された言語の字幕は利用できません"
+    ERROR_SENDING_VIDEO_MSG = "❌ ビデオの送信エラー：{error}"
+    PLAYLIST_VIDEOS_SENT_MSG = "✅ プレイリストのビデオを送信しました：{sent}/{total}ファイル。"
+    DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ タイムアウトによりダウンロードがキャンセルされました（2時間）"
+    FAILED_DOWNLOAD_VIDEO_MSG = "❌ ビデオのダウンロードに失敗しました：{error}"
     ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ Error: {error}"
     
     # Args command error messages
     ARGS_JSON_MUST_BE_OBJECT_MSG = "❌ JSON must be an object (dictionary)."
-    ARGS_INVALID_JSON_FORMAT_MSG = "❌ Invalid JSON format. Please provide valid JSON."
+    ARGS_INVALID_JSON_FORMAT_MSG = "❌ 無効なJSON形式です。有効なJSONを提供してください。"
     ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ Value must be between {min_val} and {max_val}."
     ARGS_PARAM_SET_TO_MSG = "✅ {description} set to: <code>{value}</code>"
     
@@ -1946,8 +1946,8 @@ class Messages(object):
     AA_VLC_IOS_MSG = "🎬 <b><a href=\"https://itunes.apple.com/app/apple-store/id650377962\">VLC Player (iOS)</a></b>\n\n<i>Click button to copy stream URL, then paste it in VLC app</i>"
     AA_VLC_ANDROID_MSG = "🎬 <b><a href=\"https://play.google.com/store/apps/details?id=org.videolan.vlc\">VLC Player (Android)</a></b>\n\n<i>Click button to copy stream URL, then paste it in VLC app</i>"
     AA_ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
-    AA_ERROR_SENDING_FORMATS_MSG = "❌ Error sending formats file: {error}"
-    AA_FAILED_GET_FORMATS_MSG = "❌ Failed to get formats:\n<code>{output}</code>"
+    AA_ERROR_SENDING_FORMATS_MSG = "❌ フォーマットファイルの送信エラー：{error}"
+    AA_FAILED_GET_FORMATS_MSG = "❌ フォーマットの取得に失敗しました：\n<code>{output}</code>"
     AA_PROCESSING_WAIT_MSG = "🔎 Analyzing... (wait 6 sec)"
     AA_PROCESSING_MSG = "🔎 Analyzing..."
     AA_TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
@@ -2025,10 +2025,10 @@ class Messages(object):
     URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
     URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
     URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "例："
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
-    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
-    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
+    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "参照：/audio, /img, /help, /playlist, /settings"
+    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "ユーザー {user_id} が add_bot_to_group コマンドを閉じました"
 
     # YouTube messages
     YOUTUBE_FAILED_EXTRACT_ID_MSG = "Failed to extract YouTube ID"
@@ -2099,9 +2099,9 @@ class Messages(object):
     SUBS_PREV_BUTTON_MSG = "⬅️ Prev"
     SUBS_BACK_BUTTON_MSG = "🔙Back"
     SUBS_OFF_BUTTON_MSG = "🚫 OFF"
-    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - set language"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
-    SUBS_VALID_OPTIONS_MSG = "Valid options:"
+    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - 言語を設定"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - AUTO/TRANSで言語を設定"
+    SUBS_VALID_OPTIONS_MSG = "有効なオプション："
     
     # Settings Command Messages
     SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 LANGUAGE"

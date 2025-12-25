@@ -158,9 +158,9 @@ class Messages(object):
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
     SAVE_AS_COOKIE_HINT = (
-        "Just save your cookie as <b><u>cookie.txt</u></b> and send it to bot as a document.\n\n"
-        "You can also send cookies as plain text with <b><u>/save_as_cookie</u></b> command.\n"
-        "<b>Usage of <b><u>/save_as_cookie</u></b>:</b>\n\n"
+        "쿠키를 <b><u>cookie.txt</u></b>로 저장하고 봇에 문서로 보내세요.\n\n"
+        "<b><u>/save_as_cookie</u></b> 명령으로 일반 텍스트로 쿠키를 보낼 수도 있습니다.\n"
+        "<b><b><u>/save_as_cookie</u></b> 사용법:</b>\n\n"
         "<pre>"
         "/save_as_cookie\n"
         "# Netscape HTTP Cookie File\n"
@@ -171,193 +171,193 @@ class Messages(object):
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
         "<blockquote>"
-        "<b><u>Instructions:</u></b>\n"
+        "<b><u>지침:</u></b>\n"
         "https://t.me/tg_ytdlp/203 \n"
         "https://t.me/tg_ytdlp/214 "
         "</blockquote>"
     )
     
-    # Search command message (English)
+    # Search command message
     SEARCH_MSG = """
-🔍 <b>Video search</b>
+🔍 <b>동영상 검색</b>
 
-Press the button below to activate inline search via @vid.
+아래 버튼을 눌러 @vid를 통해 인라인 검색을 활성화하세요.
 
-<blockquote>On PC just type <b>"@vid Your_Search_Query"</b> in any chat.</blockquote>
+<blockquote>PC에서는 채팅에서 <b>"@vid Your_Search_Query"</b>를 입력하세요.</blockquote>
     """
     
-    # Settings and Hints (English)
+    # Settings and Hints
     
     
     IMG_HELP_MSG = (
-        "<b>🖼 Image Download Command</b>\n\n"
-        "Usage: <code>/img URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>🖼 이미지 다운로드 명령</b>\n\n"
+        "사용법: <code>/img URL</code>\n\n"
+        "<b>예제:</b>\n"
         "• <code>/img https://example.com/image.jpg</code>\n"
         "• <code>/img 11-20 https://example.com/album</code>\n"
         "• <code>/img 11- https://example.com/album</code>\n"
         "• <code>/img https://vk.com/wall-160916577_408508</code>\n"
         "• <code>/img https://2ch.hk/fd/res/1747651.html</code>\n"
         "• <code>/img https://imgur.com/abc123</code>\n\n"
-        "<b>Supported platforms (examples):</b>\n"
-        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor, etc. — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">full list</a></blockquote>"
-        "Also see: "
+        "<b>지원 플랫폼 (예제):</b>\n"
+        "<blockquote>vk, 2ch, 35photo, 4chan, 500px, ArtStation, Boosty, Civitai, Cyberdrop, DeviantArt, Discord, Facebook, Fansly, Instagram, Patreon, Pinterest, Reddit, TikTok, Tumblr, Twitter/X, JoyReactor 등 — <a href=\"https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md\">전체 목록</a></blockquote>"
+        "참고: "
     )
     
     LINK_HINT_MSG = (
-        "Get direct video links with quality selection.\n\n"
-        "Usage: /link + URL \n\n"
-        "(ex. /link https://youtu.be/abc123)\n"
-        "(ex. /link 720 https://youtu.be/abc123)"
+        "품질 선택과 함께 직접 동영상 링크를 가져오세요.\n\n"
+        "사용법: /link + URL \n\n"
+        "(예: /link https://youtu.be/abc123)\n"
+        "(예: /link 720 https://youtu.be/abc123)"
     )
     
     # Add bot to group command message
     ADD_BOT_TO_GROUP_MSG = """
-🤖 <b>Add Bot to Group</b>
+🤖 <b>그룹에 봇 추가</b>
 
-Add my bots to your groups to get enhanced features and higher limits!
+향상된 기능과 더 높은 제한을 위해 그룹에 내 봇을 추가하세요!
 ————————————
-📊 <b>Current FREE Limits (in Bot's DM):</b>
-<blockquote>•🗑 Messy junk from all the files unsorted 👎
-• Max 1 file size: <b>8 GB </b>
-• Max 1 file quality: <b>UNLIM</b>
-• Max 1 file duration: <b>UNLIM</b>
-• Max number of downloads: <b>UNLIM</b>
-• Max URLs in one message: <b>10</b> (only in quality selection mode)
-• Max playlist items per 1 time: <b>50</b>
-• Max TikTok videos per 1 time: <b>500</b>
-• Max images per 1 time: <b>1000</b>
-• URL rate limits: <b>5/min, 60/hour, 1000/day</b>
-• Command limit: <b>20/min</b>
-• 1 Download max time: <b>2 hours</b>
-• 🔞 NSFW content is paid! 1⭐️ = $0.02
-• 🆓 ALL OTHER MEDIA ARE TOTALY FREE
-• 📝 All content logs & caching to my log-channels for instant repost when re-downloading</blockquote>
+📊 <b>현재 무료 제한 (봇 DM):</b>
+<blockquote>•🗑 정렬되지 않은 모든 파일의 지저분한 정크 👎
+• 최대 1개 파일 크기: <b>8 GB </b>
+• 최대 1개 파일 품질: <b>무제한</b>
+• 최대 1개 파일 지속 시간: <b>무제한</b>
+• 최대 다운로드 수: <b>무제한</b>
+• 한 메시지의 최대 URL: <b>10</b> (품질 선택 모드에서만)
+• 1회당 최대 재생 목록 항목: <b>50</b>
+• 1회당 최대 TikTok 동영상: <b>500</b>
+• 1회당 최대 이미지: <b>1000</b>
+• URL 속도 제한: <b>5/분, 60/시간, 1000/일</b>
+• 명령 제한: <b>20/분</b>
+• 1회 다운로드 최대 시간: <b>2시간</b>
+• 🔞 NSFW 콘텐츠는 유료입니다! 1⭐️ = $0.02
+• 🆓 다른 모든 미디어는 완전 무료입니다
+• 📝 모든 콘텐츠 로그 및 캐싱은 재다운로드 시 즉시 재게시를 위해 내 로그 채널로</blockquote>
 
-💬<b>This limits only for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>1.5 hours</b>
-• Max video+subs file size: <b>500 MB</b>
-• Max video+subs quality: <b>720p</b></blockquote>
+💬<b>이 제한은 자막이 있는 동영상에만 해당:</b>
+<blockquote>• 최대 동영상+자막 지속 시간: <b>1.5시간</b>
+• 최대 동영상+자막 파일 크기: <b>500 MB</b>
+• 최대 동영상+자막 품질: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Paid Group Benefits (2️⃣x Limits):</b>
-<blockquote>•  🗂 Structured neat media vault sorted by topics 👍
-•  📁 Bots reply in the topic you call them
-•  📌 Auto pin status message with download progress
-•  🖼 /img command downloads media as 10-item albums
-• Max 1 file size: <b>16 GB</b> ⬆️
-• Max URLs in one message: <b>20</b> ⬆️ (only in quality selection mode)
-• Max playlist items per 1 time: <b>100</b> ⬆️
-• Max TikTok videos per 1 time: 1000 ⬆️
-• Max images per 1 time: 2000 ⬆️
-• URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
-• Command limit: <b>40/min</b> ⬆️
-• 1 Download max time: <b>4 hours</b> ⬆️
-• 🔞 NSFW content: Free with full metadata 🆓
-• 📢 No need to subscribe to my channel for groups
-• 👥 All group members will have access to paid functions!
-• 🗒 No logs / no cache to my log-channels! You can reject copy/repost in group settings</blockquote>
+🚀 <b>유료 그룹 혜택 (2️⃣x 제한):</b>
+<blockquote>•  🗂 주제별로 정렬된 구조화된 깔끔한 미디어 저장소 👍
+•  📁 봇이 호출한 주제에서 응답
+•  📌 다운로드 진행 상황이 있는 자동 고정 상태 메시지
+•  🖼 /img 명령이 미디어를 10개 항목 앨범으로 다운로드
+• 최대 1개 파일 크기: <b>16 GB</b> ⬆️
+• 한 메시지의 최대 URL: <b>20</b> ⬆️ (품질 선택 모드에서만)
+• 1회당 최대 재생 목록 항목: <b>100</b> ⬆️
+• 1회당 최대 TikTok 동영상: 1000 ⬆️
+• 1회당 최대 이미지: 2000 ⬆️
+• URL 속도 제한: <b>10/분, 120/시간, 2000/일</b> ⬆️
+• 명령 제한: <b>40/분</b> ⬆️
+• 1회 다운로드 최대 시간: <b>4시간</b> ⬆️
+• 🔞 NSFW 콘텐츠: 전체 메타데이터와 함께 무료 🆓
+• 📢 그룹의 경우 내 채널 구독 불필요
+• 👥 모든 그룹 구성원이 유료 기능에 액세스할 수 있습니다!
+• 🗒 내 로그 채널에 로그 없음 / 캐시 없음! 그룹 설정에서 복사/재게시를 거부할 수 있습니다</blockquote>
 
-💬 <b>2️⃣x limits for video with subtitles:</b>
-<blockquote>• Max video+subs duration: <b>3 hours</b> ⬆️
-• Max video+subs file size: <b>1000 MB</b> ⬆️
-• Max video+subs quality: <b>1080p</b> ⬆️</blockquote>
+💬 <b>자막이 있는 동영상의 2️⃣x 제한:</b>
+<blockquote>• 최대 동영상+자막 지속 시간: <b>3시간</b> ⬆️
+• 최대 동영상+자막 파일 크기: <b>1000 MB</b> ⬆️
+• 최대 동영상+자막 품질: <b>1080p</b> ⬆️</blockquote>
 ————————————
-💰 <b>Pricing & Setup:</b>
-<blockquote>• Price: <b>$5/month</b> per 1 bot in group
-• Setup: Contact @iilililiiillliiliililliilliliiil
-• Payment: 💎TON or other methods💲
-• Support: Full technical support included</blockquote>
+💰 <b>가격 및 설정:</b>
+<blockquote>• 가격: <b>$5/월</b> 그룹당 1개 봇
+• 설정: @iilililiiillliiliililliilliliiil 연락
+• 결제: 💎TON 또는 기타 방법💲
+• 지원: 전체 기술 지원 포함</blockquote>
 ————————————
-You can add my bots to your group to unblock free 🔞<b>NSFW</b> and to double (x2️⃣) all limits.
-Contact me if you want me to allow your group to use my bots @iilililiiillliiliililliilliliiil
+그룹에 내 봇을 추가하여 무료 🔞<b>NSFW</b>를 차단 해제하고 모든 제한을 두 배로 늘릴 수 있습니다.
+그룹이 내 봇을 사용하도록 허용하려면 @iilililiiillliiliililliilliliiil로 연락하세요
 ————————————
-💡<b>TIP:</b> <blockquote>You can chip in money with any amount of your friends (for example 100 people) and made 1 purchase for whole group - ALL GROUP MEMBERS WILL HAVE FULL UNLIMITED ACCESS to all bots functions in that group for just <b>0.05$</b></blockquote>
+💡<b>팁:</b> <blockquote>친구들과 함께 어떤 금액이든 모금할 수 있습니다(예: 100명) 그리고 전체 그룹을 위해 1회 구매를 하면 - 모든 그룹 구성원이 해당 그룹의 모든 봇 기능에 완전 무제한 액세스를 갖게 됩니다 단 <b>$0.05</b>만으로</blockquote>
     """
     
     # NSFW Command Messages
     NSFW_ON_MSG = """
-🔞 <b>NSFW Mode: ON✅</b>
+🔞 <b>NSFW 모드: 켜짐✅</b>
 
-• NSFW content will be displayed without blurring.
-• Spoilers will not apply to NSFW media.
-• The content will be visible immediately
+• NSFW 콘텐츠가 흐림 없이 표시됩니다.
+• 스포일러가 NSFW 미디어에 적용되지 않습니다.
+• 콘텐츠가 즉시 표시됩니다
 
-<i>Use /nsfw off to enable blur</i>
+<i>흐림을 활성화하려면 /nsfw off를 사용하세요</i>
     """
     
     NSFW_OFF_MSG = """
-🔞 <b>NSFW Mode: OFF</b>
+🔞 <b>NSFW 모드: 꺼짐</b>
 
-⚠️ <b>Blur enabled</b>
-• NSFW content will be hidden under spoiler   
-• To view, you will need to click on the media
-• Spoilers will apply to NSFW media.
+⚠️ <b>흐림 활성화됨</b>
+• NSFW 콘텐츠가 스포일러 아래에 숨겨집니다   
+• 보려면 미디어를 클릭해야 합니다
+• 스포일러가 NSFW 미디어에 적용됩니다.
 
-<i>Use /nsfw on to disable blur</i>
+<i>흐림을 비활성화하려면 /nsfw on을 사용하세요</i>
     """
     
     NSFW_INVALID_MSG = """
-❌ <b>Invalid parameter</b>
+❌ <b>잘못된 매개변수</b>
 
-Use:
-• <code>/nsfw on</code> - disable blur
-• <code>/nsfw off</code> - enable blur
+사용:
+• <code>/nsfw on</code> - 흐림 비활성화
+• <code>/nsfw off</code> - 흐림 활성화
     """
     
     # UI Messages - Status and Progress
-    CHECKING_CACHE_MSG = "🔄 <b>Checking cache...</b>\n\n<code>{url}</code>"
-    PROCESSING_MSG = "🔄 Processing..."
-    DOWNLOADING_MSG = "📥 <b>Downloading media...</b>\n\n"
+    CHECKING_CACHE_MSG = "🔄 <b>캐시 확인 중...</b>\n\n<code>{url}</code>"
+    PROCESSING_MSG = "🔄 처리 중..."
+    DOWNLOADING_MSG = "📥 <b>미디어 다운로드 중...</b>\n\n"
 
-    DOWNLOADING_IMAGE_MSG = "📥 <b>Downloading image...</b>\n\n"
+    DOWNLOADING_IMAGE_MSG = "📥 <b>이미지 다운로드 중...</b>\n\n"
 
-    DOWNLOAD_COMPLETE_MSG = "✅ <b>Download complete</b>\n\n"
+    DOWNLOAD_COMPLETE_MSG = "✅ <b>다운로드 완료</b>\n\n"
     
     # Download status messages
-    DOWNLOADED_STATUS_MSG = "Downloaded:"
-    SENT_STATUS_MSG = "Sent:"
-    PENDING_TO_SEND_STATUS_MSG = "Pending to send:"
-    TITLE_LABEL_MSG = "Title:"
-    MEDIA_COUNT_LABEL_MSG = "Media count:"
-    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Download finished, processing audio..."
-    VIDEO_PROCESSING_MSG = "📽 Video is processing..."
+    DOWNLOADED_STATUS_MSG = "다운로드됨:"
+    SENT_STATUS_MSG = "전송됨:"
+    PENDING_TO_SEND_STATUS_MSG = "전송 대기 중:"
+    TITLE_LABEL_MSG = "제목:"
+    MEDIA_COUNT_LABEL_MSG = "미디어 수:"
+    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "다운로드 완료, 오디오 처리 중..."
+    VIDEO_PROCESSING_MSG = "📽 동영상 처리 중..."
     WAITING_HOURGLASS_MSG = "⌛️"
     
     # Cache Messages
-    SENT_FROM_CACHE_MSG = "✅ <b>Sent from cache</b>\n\nSent albums: <b>{count}</b>"
-    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video successfully sent from cache."
-    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Playlist videos sent from cache ({cached}/{total} files)."
-    CACHE_PARTIAL_MSG = "📥 {cached}/{total} videos sent from cache, downloading missing ones..."
-    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Sent from cache: {cached}\n🔄 Continuing download..."
-    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Could not analyze media, proceeding with maximum allowed range (1-{fallback_limit})..."
-    FALLBACK_DETERMINE_COUNT_MSG = "🔄 Could not determine media count, proceeding with maximum allowed range (1-{total_limit})..."
-    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 Could not determine total media count, proceeding with specified range {start}-{end}..."
+    SENT_FROM_CACHE_MSG = "✅ <b>캐시에서 전송됨</b>\n\n전송된 앨범: <b>{count}</b>"
+    VIDEO_SENT_FROM_CACHE_MSG = "✅ 동영상이 캐시에서 성공적으로 전송되었습니다."
+    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ 재생 목록 동영상이 캐시에서 전송되었습니다 ({cached}/{total} 파일)."
+    CACHE_PARTIAL_MSG = "📥 {cached}/{total} 동영상이 캐시에서 전송되었으며, 누락된 항목 다운로드 중..."
+    CACHE_CONTINUING_DOWNLOAD_MSG = "✅ 캐시에서 전송됨: {cached}\n🔄 다운로드 계속 중..."
+    FALLBACK_ANALYZE_MEDIA_MSG = "🔄 미디어를 분석할 수 없어 허용된 최대 범위로 진행 중 (1-{fallback_limit})..."
+    FALLBACK_DETERMINE_COUNT_MSG = "🔄 미디어 수를 확인할 수 없어 허용된 최대 범위로 진행 중 (1-{total_limit})..."
+    FALLBACK_SPECIFIED_RANGE_MSG = "🔄 총 미디어 수를 확인할 수 없어 지정된 범위로 진행 중 {start}-{end}..."
 
     # Error Messages
-    INVALID_URL_MSG = "❌ <b>Invalid URL</b>\n\nPlease provide a valid URL starting with http:// or https://"
+    INVALID_URL_MSG = "❌ <b>잘못된 URL</b>\n\nhttp:// 또는 https://로 시작하는 유효한 URL을 제공하세요"
 
-    ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
+    ERROR_OCCURRED_MSG = "❌ <b>오류 발생</b>\n\n<code>{url}</code>\n\n오류: {error}"
 
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
-    ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
-    ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
+    ERROR_SENDING_VIDEO_MSG = "❌ 동영상 전송 오류: {error}"
+    ERROR_UNKNOWN_MSG = "❌ 알 수 없는 오류: {error}"
+    ERROR_NO_DISK_SPACE_MSG = "❌ 동영상을 다운로드할 디스크 공간이 부족합니다."
+    ERROR_FILE_SIZE_LIMIT_MSG = "❌ 파일 크기가 {limit} GB 제한을 초과했습니다. 허용된 크기 내에서 더 작은 파일을 선택하세요."
 
-    ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
+    ERROR_GETTING_LINK_MSG = "❌ <b>링크 가져오기 오류:</b>\n{error}"
 
     # Telegram Rate Limit Messages
-    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: {time}\nTo update timer send URL again 2 times."
-    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times."
+    RATE_LIMIT_WITH_TIME_MSG = "⚠️ Telegram이 메시지 전송을 제한했습니다.\n⏳ 대기하세요: {time}\n타이머를 업데이트하려면 URL을 다시 2번 보내세요."
+    RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram이 메시지 전송을 제한했습니다.\n⏳ 대기하세요: \n타이머를 업데이트하려면 URL을 다시 2번 보내세요."
     
     # Subtitles Messages
-    SUBTITLES_FAILED_MSG = "⚠️ Failed to download subtitles"
+    SUBTITLES_FAILED_MSG = "⚠️ 자막 다운로드 실패"
 
     # Video Processing Messages
 
     # Stream/Link Messages
-    STREAM_LINKS_TITLE_MSG = "🔗 <b>Direct Stream Links</b>\n\n"
-    STREAM_TITLE_MSG = "📹 <b>Title:</b> {title}\n"
-    STREAM_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
+    STREAM_LINKS_TITLE_MSG = "🔗 <b>직접 스트림 링크</b>\n\n"
+    STREAM_TITLE_MSG = "📹 <b>제목:</b> {title}\n"
+    STREAM_DURATION_MSG = "⏱ <b>지속 시간:</b> {duration}초\n"
 
     
     # Download Progress Messages
@@ -367,33 +367,33 @@ Use:
     # NSFW Paid Content Messages
 
     # Callback Error Messages
-    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Error: Original message not found."
+    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ 오류: 원본 메시지를 찾을 수 없습니다."
 
     # Tags Error Messages
-    TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
+    TAG_FORBIDDEN_CHARS_MSG = "❌ 태그 #{tag}에 금지된 문자가 포함되어 있습니다. 문자, 숫자 및 _만 허용됩니다.\n사용: {example}"
     
     # Playlist Messages
-    PLAYLIST_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    PLAYLIST_CACHE_SENT_MSG = "✅ Sent from cache: {cached}/{total} files."
+    PLAYLIST_SENT_MSG = "✅ 재생 목록 동영상 전송됨: {sent}/{total} 파일."
+    PLAYLIST_CACHE_SENT_MSG = "✅ 캐시에서 전송됨: {cached}/{total} 파일."
     
     # Failed Stream Messages
-    FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
+    FAILED_STREAM_LINKS_MSG = "❌ 스트림 링크 가져오기 실패"
 
     # new messages
     # Browser Cookie Messages
-    SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
-    SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
-    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
-    BROWSER_OPEN_BUTTON_MSG = "🌐 Open Browser"
-    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Download from Remote URL"
-    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
-    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ No supported browsers found and no COOKIE_URL configured. Use /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL must point to a .txt file."
-    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
-    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
-    BTN_CLOSE = "🔚Close"
+    SELECT_BROWSER_MSG = "쿠키를 다운로드할 브라우저 선택:"
+    SELECT_BROWSER_NO_BROWSERS_MSG = "이 시스템에서 브라우저를 찾을 수 없습니다. 원격 URL에서 쿠키를 다운로드하거나 브라우저 상태를 모니터링할 수 있습니다:"
+    BROWSER_MONITOR_HINT_MSG = "🌐 <b>브라우저 열기</b> - 미니 앱에서 브라우저 상태 모니터링"
+    BROWSER_OPEN_BUTTON_MSG = "🌐 브라우저 열기"
+    DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 원격 URL에서 다운로드"
+    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube 쿠키 파일이 fallback을 통해 다운로드되어 cookie.txt로 저장되었습니다"
+    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ 지원되는 브라우저를 찾을 수 없고 COOKIE_URL이 구성되지 않았습니다. /cookie를 사용하거나 cookie.txt를 업로드하세요."
+    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL은 .txt 파일을 가리켜야 합니다."
+    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback 쿠키 파일이 너무 큽니다 (>100KB)."
+    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback 쿠키 소스를 사용할 수 없습니다 (상태 {status}). /cookie를 시도하거나 cookie.txt를 업로드하세요."
+    COOKIE_FALLBACK_ERROR_MSG = "❌ Fallback 쿠키 다운로드 오류. /cookie를 시도하거나 cookie.txt를 업로드하세요."
+    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Fallback 쿠키 다운로드 중 예기치 않은 오류."
+    BTN_CLOSE = "🔚닫기"
     
     # Args command messages
     ARGS_INVALID_BOOL_MSG = "❌ Invalid boolean value"
@@ -407,127 +407,127 @@ Use:
     ARGS_VALUE_SET_MSG = "{value}로 설정"
     ARGS_VALUE_ALREADY_SET_MSG = "이미 {value}로 설정됨"
     ARGS_PARAM_DESCRIPTION_MSG = "<b>📝 {description}</b>\n\n"
-    ARGS_CURRENT_VALUE_MSG = "<b>Current value:</b> <code>{current_value}</code>\n\n"
-    ARGS_XFF_EXAMPLES_MSG = "<b>Examples:</b>\n• <code>default</code> - Use default XFF strategy\n• <code>never</code> - Never use XFF header\n• <code>US</code> - United States country code\n• <code>GB</code> - United Kingdom country code\n• <code>DE</code> - Germany country code\n• <code>FR</code> - France country code\n• <code>JP</code> - Japan country code\n• <code>192.168.1.0/24</code> - IP block (CIDR)\n• <code>10.0.0.0/8</code> - Private IP range\n• <code>203.0.113.0/24</code> - Public IP block\n\n"
-    ARGS_XFF_NOTE_MSG = "<b>Note:</b> This replaces --geo-bypass options. Use any 2-letter country code or IP block in CIDR notation.\n\n"
-    ARGS_EXAMPLE_MSG = "<b>Example:</b> <code>{placeholder}</code>\n\n"
-    ARGS_SEND_VALUE_MSG = "Please send your new value."
+    ARGS_CURRENT_VALUE_MSG = "<b>현재 값:</b> <code>{current_value}</code>\n\n"
+    ARGS_XFF_EXAMPLES_MSG = "<b>예제:</b>\n• <code>default</code> - 기본 XFF 전략 사용\n• <code>never</code> - XFF 헤더를 사용하지 않음\n• <code>US</code> - 미국 국가 코드\n• <code>GB</code> - 영국 국가 코드\n• <code>DE</code> - 독일 국가 코드\n• <code>FR</code> - 프랑스 국가 코드\n• <code>JP</code> - 일본 국가 코드\n• <code>192.168.1.0/24</code> - IP 블록 (CIDR)\n• <code>10.0.0.0/8</code> - 사설 IP 범위\n• <code>203.0.113.0/24</code> - 공용 IP 블록\n\n"
+    ARGS_XFF_NOTE_MSG = "<b>참고:</b> 이것은 --geo-bypass 옵션을 대체합니다. CIDR 표기법의 2자 국가 코드 또는 IP 블록을 사용하세요.\n\n"
+    ARGS_EXAMPLE_MSG = "<b>예제:</b> <code>{placeholder}</code>\n\n"
+    ARGS_SEND_VALUE_MSG = "새 값을 보내주세요."
     ARGS_NUMBER_PARAM_MSG = "<b>🔢 {description}</b>\n\n"
-    ARGS_RANGE_MSG = "<b>Range:</b> {min_val} - {max_val}\n\n"
-    ARGS_SEND_NUMBER_MSG = "Please send a number."
+    ARGS_RANGE_MSG = "<b>범위:</b> {min_val} - {max_val}\n\n"
+    ARGS_SEND_NUMBER_MSG = "숫자를 보내주세요."
     ARGS_JSON_PARAM_MSG = "<b>🔧 {description}</b>\n\n"
-    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Examples:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
-    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Note:</b> These headers will be added to existing Referer and User-Agent headers.\n\n"
-    ARGS_CURRENT_ARGS_MSG = "<b>📋 Current yt-dlp Arguments:</b>\n\n"
-    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False switches\n• 📋 <b>Select</b> - Choose from options\n• 🔢 <b>Numeric</b> - Number input\n• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\nThese settings will be applied to all your downloads."
+    ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>예제:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
+    ARGS_HTTP_HEADERS_NOTE_MSG = "<b>참고:</b> 이러한 헤더는 기존 Referer 및 User-Agent 헤더에 추가됩니다.\n\n"
+    ARGS_CURRENT_ARGS_MSG = "<b>📋 현재 yt-dlp 인수:</b>\n\n"
+    ARGS_MENU_DESCRIPTION_MSG = "• ✅/❌ <b>Boolean</b> - True/False 스위치\n• 📋 <b>Select</b> - 옵션에서 선택\n• 🔢 <b>Numeric</b> - 숫자 입력\n• 📝🔧 <b>Text</b> - 텍스트/JSON 입력</blockquote>\n\n이 설정은 모든 다운로드에 적용됩니다."
     
     # Localized parameter names for display
     ARGS_PARAM_NAMES = {
-        "force_ipv6": "Force IPv6 connections",
-        "force_ipv4": "Force IPv4 connections", 
-        "no_live_from_start": "Do not download live streams from start",
-        "live_from_start": "Download live streams from start",
-        "no_check_certificates": "Suppress HTTPS certificate validation",
-        "check_certificate": "Check SSL certificate",
-        "no_playlist": "Download only single video, not playlist",
-        "embed_metadata": "Embed metadata in video file",
-        "embed_thumbnail": "Embed thumbnail in video file",
-        "write_thumbnail": "Write thumbnail to file",
-        "ignore_errors": "Ignore download errors and continue",
-        "legacy_server_connect": "Allow legacy server connections",
-        "concurrent_fragments": "Number of concurrent fragments to download",
-        "xff": "X-Forwarded-For header strategy",
-        "user_agent": "User-Agent header",
-        "impersonate": "Browser impersonation",
-        "referer": "Referer header",
-        "geo_bypass": "Bypass geographic restrictions",
-        "hls_use_mpegts": "Use MPEG-TS for HLS",
-        "no_part": "Do not use .part files",
-        "no_continue": "Do not resume partial downloads",
-        "audio_format": "Audio format",
-        "video_format": "Video format",
-        "merge_output_format": "Merge output format",
-        "send_as_file": "Send as file",
-        "username": "Username",
-        "password": "Password",
-        "twofactor": "Two-factor authentication code",
-        "min_filesize": "Minimum file size (MB)",
-        "max_filesize": "Maximum file size (MB)",
-        "playlist_items": "Playlist items",
-        "date": "Date",
-        "datebefore": "Date before",
-        "dateafter": "Date after",
-        "http_headers": "HTTP headers",
-        "sleep_interval": "Sleep interval",
-        "max_sleep_interval": "Maximum sleep interval",
-        "retries": "Number of retries",
-        "http_chunk_size": "HTTP chunk size",
-        "sleep_subtitles": "Sleep for subtitles"
+        "force_ipv6": "IPv6 연결 강제",
+        "force_ipv4": "IPv4 연결 강제", 
+        "no_live_from_start": "처음부터 라이브 스트림 다운로드 안 함",
+        "live_from_start": "처음부터 라이브 스트림 다운로드",
+        "no_check_certificates": "HTTPS 인증서 검증 억제",
+        "check_certificate": "SSL 인증서 확인",
+        "no_playlist": "단일 동영상만 다운로드, 재생 목록 아님",
+        "embed_metadata": "동영상 파일에 메타데이터 포함",
+        "embed_thumbnail": "동영상 파일에 썸네일 포함",
+        "write_thumbnail": "썸네일을 파일로 쓰기",
+        "ignore_errors": "다운로드 오류 무시하고 계속",
+        "legacy_server_connect": "레거시 서버 연결 허용",
+        "concurrent_fragments": "다운로드할 동시 조각 수",
+        "xff": "X-Forwarded-For 헤더 전략",
+        "user_agent": "User-Agent 헤더",
+        "impersonate": "브라우저 가장",
+        "referer": "Referer 헤더",
+        "geo_bypass": "지리적 제한 우회",
+        "hls_use_mpegts": "HLS에 MPEG-TS 사용",
+        "no_part": ".part 파일 사용 안 함",
+        "no_continue": "부분 다운로드 재개 안 함",
+        "audio_format": "오디오 형식",
+        "video_format": "동영상 형식",
+        "merge_output_format": "병합 출력 형식",
+        "send_as_file": "파일로 보내기",
+        "username": "사용자 이름",
+        "password": "비밀번호",
+        "twofactor": "2단계 인증 코드",
+        "min_filesize": "최소 파일 크기 (MB)",
+        "max_filesize": "최대 파일 크기 (MB)",
+        "playlist_items": "재생 목록 항목",
+        "date": "날짜",
+        "datebefore": "이전 날짜",
+        "dateafter": "이후 날짜",
+        "http_headers": "HTTP 헤더",
+        "sleep_interval": "대기 간격",
+        "max_sleep_interval": "최대 대기 간격",
+        "retries": "재시도 횟수",
+        "http_chunk_size": "HTTP 청크 크기",
+        "sleep_subtitles": "자막 대기"
     }
-    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n<blockquote>📋 <b>Groups:</b>\n{groups_msg}"
+    ARGS_CONFIG_TITLE_MSG = "<b>⚙️ yt-dlp 인수 구성</b>\n\n<blockquote>📋 <b>그룹:</b>\n{groups_msg}"
     ARGS_MENU_TEXT = (
-        "<b>⚙️ yt-dlp Arguments Configuration</b>\n\n"
-        "<blockquote>📋 <b>Groups:</b>\n"
-        "• ✅/❌ <b>Boolean</b> - True/False switches\n"
-        "• 📋 <b>Select</b> - Choose from options\n"
-        "• 🔢 <b>Numeric</b> - Number input\n"
-        "• 📝🔧 <b>Text</b> - Text/JSON input</blockquote>\n\n"
-        "These settings will be applied to all your downloads."
+        "<b>⚙️ yt-dlp 인수 구성</b>\n\n"
+        "<blockquote>📋 <b>그룹:</b>\n"
+        "• ✅/❌ <b>Boolean</b> - True/False 스위치\n"
+        "• 📋 <b>Select</b> - 옵션에서 선택\n"
+        "• 🔢 <b>Numeric</b> - 숫자 입력\n"
+        "• 📝🔧 <b>Text</b> - 텍스트/JSON 입력</blockquote>\n\n"
+        "이 설정은 모든 다운로드에 적용됩니다."
     )
     
     # Additional missing messages
-    PLEASE_WAIT_MSG = "⏳ Please wait..."
-    ERROR_OCCURRED_SHORT_MSG = "❌ Error occurred"
+    PLEASE_WAIT_MSG = "⏳ 기다려주세요..."
+    ERROR_OCCURRED_SHORT_MSG = "❌ 오류 발생"
 
     # Args command messages (continued)
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_INPUT_DANGEROUS_MSG = "❌ Input contains potentially dangerous content: {pattern}"
-    ARGS_INPUT_TOO_LONG_MSG = "❌ Input too long (max 1000 characters)"
-    ARGS_INVALID_URL_MSG = "❌ Invalid URL format. Must start with http:// or https://"
-    ARGS_INVALID_JSON_MSG = "❌ Invalid JSON format"
-    ARGS_NUMBER_RANGE_MSG = "❌ Number must be between {min_val} and {max_val}"
-    ARGS_INVALID_NUMBER_MSG = "❌ Invalid number format"
-    ARGS_DATE_FORMAT_MSG = "❌ Date must be in YYYYMMDD format (e.g., 20230930)"
-    ARGS_YEAR_RANGE_MSG = "❌ Year must be between 1900 and 2100"
-    ARGS_MONTH_RANGE_MSG = "❌ Month must be between 01 and 12"
-    ARGS_DAY_RANGE_MSG = "❌ Day must be between 01 and 31"
-    ARGS_INVALID_DATE_MSG = "❌ Invalid date format"
-    ARGS_INVALID_XFF_MSG = "❌ XFF must be 'default', 'never', country code (e.g., US), or IP block (e.g., 192.168.1.0/24)"
-    ARGS_NO_CUSTOM_MSG = "No custom arguments set. All parameters use default values."
-    ARGS_RESET_SUCCESS_MSG = "✅ All arguments reset to defaults."
-    ARGS_TEXT_TOO_LONG_MSG = "❌ Text too long. Maximum 500 characters."
-    ARGS_ERROR_PROCESSING_MSG = "❌ Error processing input. Please try again."
-    ARGS_BOOL_INPUT_MSG = "❌ Please enter 'True' or 'False' for Send As File option."
-    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Please provide a valid number."
-    ARGS_BOOL_VALUE_REQUEST_MSG = "Please send <code>True</code> or <code>False</code> to enable/disable this option."
-    ARGS_JSON_VALUE_REQUEST_MSG = "Please send valid JSON."
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ 비활성으로 인해 입력 모드가 자동으로 닫혔습니다 (5분)."
+    ARGS_INPUT_DANGEROUS_MSG = "❌ 입력에 잠재적으로 위험한 내용이 포함되어 있습니다: {pattern}"
+    ARGS_INPUT_TOO_LONG_MSG = "❌ 입력이 너무 깁니다 (최대 1000자)"
+    ARGS_INVALID_URL_MSG = "❌ 잘못된 URL 형식. http:// 또는 https://로 시작해야 합니다"
+    ARGS_INVALID_JSON_MSG = "❌ 잘못된 JSON 형식"
+    ARGS_NUMBER_RANGE_MSG = "❌ 숫자는 {min_val}과 {max_val} 사이여야 합니다"
+    ARGS_INVALID_NUMBER_MSG = "❌ 잘못된 숫자 형식"
+    ARGS_DATE_FORMAT_MSG = "❌ 날짜는 YYYYMMDD 형식이어야 합니다 (예: 20230930)"
+    ARGS_YEAR_RANGE_MSG = "❌ 연도는 1900과 2100 사이여야 합니다"
+    ARGS_MONTH_RANGE_MSG = "❌ 월은 01과 12 사이여야 합니다"
+    ARGS_DAY_RANGE_MSG = "❌ 일은 01과 31 사이여야 합니다"
+    ARGS_INVALID_DATE_MSG = "❌ 잘못된 날짜 형식"
+    ARGS_INVALID_XFF_MSG = "❌ XFF는 'default', 'never', 국가 코드 (예: US) 또는 IP 블록 (예: 192.168.1.0/24)이어야 합니다"
+    ARGS_NO_CUSTOM_MSG = "사용자 지정 인수가 설정되지 않았습니다. 모든 매개변수는 기본값을 사용합니다."
+    ARGS_RESET_SUCCESS_MSG = "✅ 모든 인수가 기본값으로 재설정되었습니다."
+    ARGS_TEXT_TOO_LONG_MSG = "❌ 텍스트가 너무 깁니다. 최대 500자."
+    ARGS_ERROR_PROCESSING_MSG = "❌ 입력 처리 중 오류가 발생했습니다. 다시 시도해주세요."
+    ARGS_BOOL_INPUT_MSG = "❌ 파일로 보내기 옵션에 대해 'True' 또는 'False'를 입력해주세요."
+    ARGS_INVALID_NUMBER_INPUT_MSG = "❌ 유효한 숫자를 입력해주세요."
+    ARGS_BOOL_VALUE_REQUEST_MSG = "이 옵션을 활성화/비활성화하려면 <code>True</code> 또는 <code>False</code>를 보내주세요."
+    ARGS_JSON_VALUE_REQUEST_MSG = "유효한 JSON을 보내주세요."
     
     # Tags command messages
-    TAGS_NO_TAGS_MSG = "You have no tags yet."
-    TAGS_MESSAGE_CLOSED_MSG = "Tags message closed."
+    TAGS_NO_TAGS_MSG = "아직 태그가 없습니다."
+    TAGS_MESSAGE_CLOSED_MSG = "태그 메시지가 닫혔습니다."
     
     # Subtitles command messages
-    SUBS_DISABLED_MSG = "✅ Subtitles disabled and Always Ask mode turned off."
-    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ SUBS Always Ask enabled."
-    SUBS_LANGUAGE_SET_MSG = "✅ Subtitle language set to: {flag} {name}"
+    SUBS_DISABLED_MSG = "✅ 자막이 비활성화되었고 Always Ask 모드가 꺼졌습니다."
+    SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ SUBS Always Ask가 활성화되었습니다."
+    SUBS_LANGUAGE_SET_MSG = "✅ 자막 언어가 다음으로 설정되었습니다: {flag} {name}"
     SUBS_WARNING_MSG = (
-        "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
-        "- 720p max quality\n"
-        "- 1.5 hour max duration\n"
-        "- 500mb max video size</blockquote>\n\n"
+        "<blockquote>❗️경고: 높은 CPU 영향으로 인해 이 기능은 매우 느립니다 (거의 실시간) 그리고 다음으로 제한됩니다:\n"
+        "- 최대 품질 720p\n"
+        "- 최대 지속 시간 1.5시간\n"
+        "- 최대 비디오 크기 500mb</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
-        "<b>Quick commands:</b>\n"
-        "• <code>/subs off</code> - disable subtitles\n"
-        "• <code>/subs on</code> - enable Always Ask mode\n"
-        "• <code>/subs ru</code> - set language\n"
-        "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
+        "<b>빠른 명령:</b>\n"
+        "• <code>/subs off</code> - 자막 비활성화\n"
+        "• <code>/subs on</code> - Always Ask 모드 활성화\n"
+        "• <code>/subs ru</code> - 언어 설정\n"
+        "• <code>/subs ru auto</code> - AUTO/TRANS로 언어 설정"
     )
-    SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
-    SUBS_DISABLED_ERROR_MSG = "❌ Subtitles are disabled. Use /subs to configure."
-    SUBS_YOUTUBE_ONLY_MSG = "❌ Subtitle downloading is only supported for YouTube."
+    SUBS_DISABLED_STATUS_MSG = "🚫 자막이 비활성화되어 있습니다"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} 선택된 언어: {name}{auto_text}"
+    SUBS_DOWNLOADING_MSG = "💬 자막 다운로드 중..."
+    SUBS_DISABLED_ERROR_MSG = "❌ 자막이 비활성화되어 있습니다. /subs를 사용하여 구성하세요."
+    SUBS_YOUTUBE_ONLY_MSG = "❌ 자막 다운로드는 YouTube에서만 지원됩니다."
     SUBS_CAPTION_MSG = (
         "<b>💬 Subtitles</b>\n\n"
         "<b>Video:</b> {title}\n"
@@ -535,10 +535,10 @@ Use:
         "<b>Type:</b> {type}\n\n"
         "{tags}"
     )
-    SUBS_SENT_MSG = "💬 Subtitles SRT-file sent to user."
-    SUBS_ERROR_PROCESSING_MSG = "❌ Error processing subtitle file."
-    SUBS_ERROR_DOWNLOAD_MSG = "❌ Failed to download subtitles."
-    SUBS_ERROR_MSG = "❌ Error downloading subtitles: {error}"
+    SUBS_SENT_MSG = "💬 자막 SRT 파일이 사용자에게 전송되었습니다."
+    SUBS_ERROR_PROCESSING_MSG = "❌ 자막 파일 처리 중 오류가 발생했습니다."
+    SUBS_ERROR_DOWNLOAD_MSG = "❌ 자막 다운로드에 실패했습니다."
+    SUBS_ERROR_MSG = "❌ 자막 다운로드 중 오류가 발생했습니다: {error}"
     
     # Split command messages
     SPLIT_SIZE_SET_MSG = "✅ Split part size set to: {size}"
@@ -565,11 +565,11 @@ Use:
         "• `/split 0.1gb` - `/split 2gb`\n\n"
         "**Examples:** `/split 300mb`, `/split 1.2gb`, `/split 1500mb`"
     )
-    SPLIT_MENU_CLOSED_MSG = "Menu closed."
+    SPLIT_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
     
     # Settings command messages
-    SETTINGS_TITLE_MSG = "<b>Bot Settings</b>\n\nChoose a category:"
-    SETTINGS_MENU_CLOSED_MSG = "Menu closed."
+    SETTINGS_TITLE_MSG = "<b>봇 설정</b>\n\n카테고리를 선택하세요:"
+    SETTINGS_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
     SETTINGS_CLEAN_TITLE_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
     SETTINGS_COOKIES_TITLE_MSG = "<b>🍪 COOKIES</b>\n\nChoose an action:"
     SETTINGS_MEDIA_TITLE_MSG = "<b>🎞 MEDIA</b>\n\nChoose an action:"
@@ -581,8 +581,8 @@ Use:
     SETTINGS_SEARCH_HELPER_OPENED_MSG = "Search helper opened."
     SETTINGS_UNKNOWN_COMMAND_MSG = "Unknown command."
     SETTINGS_HINT_CLOSED_MSG = "Hint closed."
-    SETTINGS_HELP_SENT_MSG = "Send help txt to user"
-    SETTINGS_MENU_OPENED_MSG = "Opened /settings menu"
+    SETTINGS_HELP_SENT_MSG = "사용자에게 도움말 txt 파일 전송"
+    SETTINGS_MENU_OPENED_MSG = "/settings 메뉴가 열렸습니다"
     
     # Search command messages
     SEARCH_HELPER_CLOSED_MSG = "🔍 Search helper closed"
@@ -591,11 +591,11 @@ Use:
     # Proxy command messages
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error saving proxy settings."
-    PROXY_MENU_TEXT_MSG = "Enable or disable using proxy server for all yt-dlp operations?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({count} available) for all yt-dlp operations?\n\nWhen enabled, proxies will be selected using {method} method."
-    PROXY_MENU_CLOSED_MSG = "Menu closed."
-    PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy enabled. All yt-dlp operations will use proxy."
-    PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy enabled. All yt-dlp operations will use {count} proxy servers with {method} selection method."
+    PROXY_MENU_TEXT_MSG = "모든 yt-dlp 작업에 대해 프록시 서버 사용을 활성화하거나 비활성화하시겠습니까?"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "모든 yt-dlp 작업에 대해 프록시 서버({count}개 사용 가능) 사용을 활성화하거나 비활성화하시겠습니까?\n\n활성화되면 {method} 방법을 사용하여 프록시가 선택됩니다."
+    PROXY_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
+    PROXY_ENABLED_CONFIRM_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 프록시를 사용합니다."
+    PROXY_ENABLED_MULTIPLE_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 {method} 선택 방법으로 {count}개의 프록시 서버를 사용합니다."
     PROXY_DISABLED_MSG = "❌ Proxy disabled."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error saving proxy settings."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy enabled."
@@ -613,14 +613,14 @@ Use:
         "• <code>/audio 1-10 https://www.youtube.com/playlist?list=PL123</code>\n\n"
         "Also see: /vid, /img, /help, /playlist, /settings"
     )
-    AUDIO_HELP_CLOSED_MSG = "Audio hint closed."
-    PLAYLIST_HELP_CLOSED_MSG = "Playlist help closed."
+    AUDIO_HELP_CLOSED_MSG = "오디오 힌트가 닫혔습니다."
+    PLAYLIST_HELP_CLOSED_MSG = "재생 목록 도움말이 닫혔습니다."
     USERLOGS_CLOSED_MSG = "Logs message closed."
     HELP_CLOSED_MSG = "Help closed."
     
     # NSFW command messages
     NSFW_BLUR_SETTINGS_TITLE_MSG = "🔞 <b>NSFW Blur Settings</b>\n\nNSFW content is <b>{status}</b>.\n\nChoose whether to blur NSFW content:"
-    NSFW_MENU_CLOSED_MSG = "Menu closed."
+    NSFW_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
     NSFW_BLUR_DISABLED_MSG = "NSFW blur disabled."
     NSFW_BLUR_ENABLED_MSG = "NSFW blur enabled."
     NSFW_BLUR_DISABLED_CALLBACK_MSG = "NSFW blur disabled."
@@ -628,61 +628,61 @@ Use:
     
     # MediaInfo command messages
     MEDIAINFO_ENABLED_MSG = "✅ MediaInfo {status}."
-    MEDIAINFO_MENU_TITLE_MSG = "Enable or disable sending MediaInfo for downloaded files?"
-    MEDIAINFO_MENU_CLOSED_MSG = "Menu closed."
-    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo enabled. After downloading, file info will be sent."
-    MEDIAINFO_DISABLED_MSG = "❌ MediaInfo disabled."
-    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo disabled."
+    MEDIAINFO_MENU_TITLE_MSG = "다운로드된 파일에 대해 MediaInfo 전송을 활성화하거나 비활성화하시겠습니까?"
+    MEDIAINFO_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
+    MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo가 활성화되었습니다. 다운로드 후 파일 정보가 전송됩니다."
+    MEDIAINFO_DISABLED_MSG = "❌ MediaInfo가 비활성화되었습니다."
+    MEDIAINFO_ENABLED_CALLBACK_MSG = "MediaInfo가 활성화되었습니다."
+    MEDIAINFO_DISABLED_CALLBACK_MSG = "MediaInfo가 비활성화되었습니다."
     
     # List command messages
     LIST_HELP_MSG = (
-        "<b>📃 List Available Formats</b>\n\n"
-        "Get available video/audio formats for a URL.\n\n"
-        "<b>Usage:</b>\n"
+        "<b>📃 사용 가능한 형식 목록</b>\n\n"
+        "URL에 대한 사용 가능한 비디오/오디오 형식을 가져옵니다.\n\n"
+        "<b>사용법:</b>\n"
         "<code>/list URL</code>\n\n"
-        "<b>Examples:</b>\n"
+        "<b>예제:</b>\n"
         "• <code>/list https://youtube.com/watch?v=123abc</code>\n"
         "• <code>/list https://youtube.com/playlist?list=123abc</code>\n\n"
-        "<b>💡 How to use format IDs:</b>\n"
-        "After getting the list, use specific format ID:\n"
-        "• <code>/format id 401</code> - download format 401\n"
-        "• <code>/format id401</code> - same as above\n"
-        "• <code>/format id140 audio</code> - download format 140 as MP3 audio\n\n"
-        "This command will show all available formats that can be downloaded."
+        "<b>💡 형식 ID 사용 방법:</b>\n"
+        "목록을 받은 후 특정 형식 ID를 사용하세요:\n"
+        "• <code>/format id 401</code> - 형식 401 다운로드\n"
+        "• <code>/format id401</code> - 위와 동일\n"
+        "• <code>/format id140 audio</code> - 형식 140을 MP3 오디오로 다운로드\n\n"
+        "이 명령은 다운로드할 수 있는 모든 사용 가능한 형식을 표시합니다."
     )
-    LIST_PROCESSING_MSG = "🔄 Getting available formats..."
-    LIST_INVALID_URL_MSG = "❌ Please provide a valid URL starting with http:// or https://"
+    LIST_PROCESSING_MSG = "🔄 사용 가능한 형식 가져오는 중..."
+    LIST_INVALID_URL_MSG = "❌ http:// 또는 https://로 시작하는 유효한 URL을 입력해주세요"
     LIST_CAPTION_MSG = (
-        "📃 Available formats for:\n<code>{url}</code>\n\n"
-        "💡 <b>How to set format:</b>\n"
-        "• <code>/format id 134</code> - Download specific format ID\n"
-        "• <code>/format 720p</code> - Download by quality\n"
-        "• <code>/format best</code> - Download best quality\n"
-        "• <code>/format ask</code> - Always ask for quality\n\n"
+        "📃 사용 가능한 형식:\n<code>{url}</code>\n\n"
+        "💡 <b>형식 설정 방법:</b>\n"
+        "• <code>/format id 134</code> - 특정 형식 ID 다운로드\n"
+        "• <code>/format 720p</code> - 품질별 다운로드\n"
+        "• <code>/format best</code> - 최고 품질 다운로드\n"
+        "• <code>/format ask</code> - 항상 품질 묻기\n\n"
         "{audio_note}\n"
-        "📋 Use format ID from the list above"
+        "📋 위 목록에서 형식 ID를 사용하세요"
     )
     LIST_AUDIO_FORMATS_MSG = (
-        "🎵 <b>Audio-only formats:</b> {formats}\n"
-        "• <code>/format id 140 audio</code> - Download format 140 as MP3 audio\n"
-        "• <code>/format id140 audio</code> - same as above\n"
-        "These will be downloaded as MP3 audio files.\n\n"
+        "🎵 <b>오디오 전용 형식:</b> {formats}\n"
+        "• <code>/format id 140 audio</code> - 형식 140을 MP3 오디오로 다운로드\n"
+        "• <code>/format id140 audio</code> - 위와 동일\n"
+        "이것들은 MP3 오디오 파일로 다운로드됩니다.\n\n"
     )
-    LIST_ERROR_SENDING_MSG = "❌ Error sending formats file: {error}"
-    LIST_ERROR_GETTING_MSG = "❌ Failed to get formats:\n<code>{error}</code>"
-    LIST_ERROR_OCCURRED_MSG = "❌ An error occurred while processing the command"
-    LIST_ERROR_CALLBACK_MSG = "Error occurred"
-    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 How to use format IDs:\n"
-    LIST_FORMAT_USAGE_INSTRUCTIONS = "After getting the list, use specific format ID:\n"
-    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - download format 401\n"
-    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - same as above\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - download format 140 as MP3 audio\n"
-    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - same as above\n"
-    LIST_AUDIO_FORMATS_DETECTED = "🎵 Audio-only formats detected: {formats}\n"
-    LIST_AUDIO_FORMATS_NOTE = "These formats will be downloaded as MP3 audio files.\n"
-    LIST_VIDEO_ONLY_FORMATS_MSG = "🎬 <b>Video-only formats:</b> {formats}\n"
-    LIST_USE_FORMAT_ID_MSG = "📋 Use format ID from the list above"
+    LIST_ERROR_SENDING_MSG = "❌ 형식 파일 전송 중 오류가 발생했습니다: {error}"
+    LIST_ERROR_GETTING_MSG = "❌ 형식 가져오기에 실패했습니다:\n<code>{error}</code>"
+    LIST_ERROR_OCCURRED_MSG = "❌ 명령 처리 중 오류가 발생했습니다"
+    LIST_ERROR_CALLBACK_MSG = "오류 발생"
+    LIST_HOW_TO_USE_FORMAT_IDS_TITLE = "💡 형식 ID 사용 방법:\n"
+    LIST_FORMAT_USAGE_INSTRUCTIONS = "목록을 받은 후 특정 형식 ID를 사용하세요:\n"
+    LIST_FORMAT_EXAMPLE_401 = "• /format id 401 - 형식 401 다운로드\n"
+    LIST_FORMAT_EXAMPLE_401_SHORT = "• /format id401 - 위와 동일\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO = "• /format id 140 audio - 형식 140을 MP3 오디오로 다운로드\n"
+    LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT = "• /format id140 audio - 위와 동일\n"
+    LIST_AUDIO_FORMATS_DETECTED = "🎵 오디오 전용 형식 감지됨: {formats}\n"
+    LIST_AUDIO_FORMATS_NOTE = "이 형식들은 MP3 오디오 파일로 다운로드됩니다.\n"
+    LIST_VIDEO_ONLY_FORMATS_MSG = "🎬 <b>비디오 전용 형식:</b> {formats}\n"
+    LIST_USE_FORMAT_ID_MSG = "📋 위 목록에서 형식 ID를 사용하세요"
     
     # Link command messages
     LINK_USAGE_MSG = (
@@ -698,11 +698,11 @@ Use:
         "</blockquote>\n\n"
         "<b>Quality:</b> from 1 to 10000 (e.g., 144, 240, 720, 1080)"
     )
-    LINK_INVALID_URL_MSG = "❌ Please provide a valid URL"
-    LINK_PROCESSING_MSG = "🔗 Getting direct link..."
-    LINK_DURATION_MSG = "⏱ <b>Duration:</b> {duration} sec\n"
-    LINK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
-    LINK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
+    LINK_INVALID_URL_MSG = "❌ 유효한 URL을 입력해주세요"
+    LINK_PROCESSING_MSG = "🔗 직접 링크 가져오는 중..."
+    LINK_DURATION_MSG = "⏱ <b>지속 시간:</b> {duration} 초\n"
+    LINK_VIDEO_STREAM_MSG = "🎬 <b>비디오 스트림:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
+    LINK_AUDIO_STREAM_MSG = "🎵 <b>오디오 스트림:</b>\n<blockquote expandable><a href=\"{url}\">{url}</a></blockquote>\n\n"
     
     # Keyboard command messages
     KEYBOARD_UPDATED_MSG = "🎹 **Keyboard setting updated!**\n\nNew setting: **{setting}**"
@@ -725,8 +725,8 @@ Use:
     KEYBOARD_ERROR_APPLYING_MSG = "Error applying keyboard setting {setting}: {error}"
     
     # Format command messages
-    FORMAT_ALWAYS_ASK_SET_MSG = "✅ Format set to: Always Ask. You will be prompted for quality each time you send a URL."
-    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
+    FORMAT_ALWAYS_ASK_SET_MSG = "✅ 형식이 다음으로 설정되었습니다: Always Ask. URL을 보낼 때마다 품질을 묻습니다."
+    FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ 형식이 다음으로 설정되었습니다: Always Ask. 이제 URL을 보낼 때마다 품질을 묻습니다."
     FORMAT_BEST_UPDATED_MSG = "✅ Format updated to best quality (AVC+MP4 priority):\n{format}"
     FORMAT_ID_UPDATED_MSG = "✅ Format updated to ID {id}:\n{format}\n\n💡 <b>Note:</b> If this is an audio-only format, it will be downloaded as MP3 audio file."
     FORMAT_ID_AUDIO_UPDATED_MSG = "✅ Format updated to ID {id} (audio-only):\n{format}\n\n💡 This will be downloaded as MP3 audio file."
@@ -752,7 +752,7 @@ Use:
     FORMAT_UPDATED_MSG = "✅ Format updated to:\n{format}"
     FORMAT_SAVED_MSG = "✅ Format saved."
     FORMAT_CHOICE_UPDATED_MSG = "✅ Format choice updated."
-    FORMAT_CUSTOM_MENU_CLOSED_MSG = "Custom format menu closed"
+    FORMAT_CUSTOM_MENU_CLOSED_MSG = "사용자 지정 형식 메뉴가 닫혔습니다"
     FORMAT_CODEC_SET_MSG = "✅ Codec set to {codec}"
     
     # Cookies command messages
@@ -813,8 +813,8 @@ Use:
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> is already unblocked ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Unblocked users: {count}\n⏱ Timestamp: {date}"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Bot running time -</i> <b>{time}</b>"
-    ADMIN_UNCACHE_USAGE_MSG = "❌ Please provide a URL to clear cache for.\nUsage: <code>/uncache &lt;URL&gt;</code>"
-    ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/uncache &lt;URL&gt;</code>"
+    ADMIN_UNCACHE_USAGE_MSG = "❌ 캐시를 지울 URL을 입력해주세요.\n사용법: <code>/uncache &lt;URL&gt;</code>"
+    ADMIN_UNCACHE_INVALID_URL_MSG = "❌ 유효한 URL을 입력해주세요.\n사용법: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_CACHE_CLEARED_MSG = "✅ Cache cleared successfully for URL:\n<code>{url}</code>"
     ADMIN_NO_CACHE_FOUND_MSG = "ℹ️ No cache found for this link."
     ADMIN_ERROR_CLEARING_CACHE_MSG = "❌ Error clearing cache: {error}"
@@ -841,8 +841,8 @@ Use:
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Error reloading porn cache: {error}"
-    ADMIN_CHECK_PORN_USAGE_MSG = "❌ Please provide a URL to check.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
-    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECK_PORN_USAGE_MSG = "❌ 확인할 URL을 입력해주세요.\n사용법: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ 유효한 URL을 입력해주세요.\n사용법: <code>/check_porn &lt;URL&gt;</code>"
     ADMIN_CHECKING_URL_MSG = "🔍 Checking URL for NSFW content...\n<code>{url}</code>"
     ADMIN_PORN_CHECK_RESULT_MSG = (
         "{status_icon} <b>Porn Check Result</b>\n\n"
@@ -937,7 +937,7 @@ Use:
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "No Live Start"
     ARGS_USER_AGENT_SHORT_MSG = "User Agent"
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
-    ARGS_NO_PLAYLIST_SHORT_MSG = "No Playlist"
+    ARGS_NO_PLAYLIST_SHORT_MSG = "재생 목록 없음"
     ARGS_NO_PART_SHORT_MSG = "No Part"
     ARGS_NO_CONTINUE_SHORT_MSG = "No Continue"
     ARGS_AUDIO_FORMAT_SHORT_MSG = "Audio Format"
@@ -958,7 +958,7 @@ Use:
     ARGS_IGNORE_ERRORS_SHORT_MSG = "Ignore Errors"
     ARGS_MIN_FILESIZE_SHORT_MSG = "Min Size"
     ARGS_MAX_FILESIZE_SHORT_MSG = "Max Size"
-    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "Playlist Items"
+    ARGS_PLAYLIST_ITEMS_SHORT_MSG = "재생 목록 항목"
     ARGS_DATE_SHORT_MSG = "Date"
     ARGS_DATEBEFORE_SHORT_MSG = "Date Before"
     ARGS_DATEAFTER_SHORT_MSG = "Date After"
@@ -977,8 +977,8 @@ Use:
     COOKIES_FILE_EXISTS_MSG = "✅ Cookie file exists and has correct format"
     COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {service} cookie file is too large! Max 100KB, got {size}KB."
     COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ {service} cookie file downloaded and saved as cookie.txt in your folder.</b>"
-    COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ {service} cookie source is unavailable (status {status}). Please try again later."
-    COOKIES_ERROR_DOWNLOADING_MSG = "❌ Error downloading {service} cookie file. Please try again later."
+    COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ {service} 쿠키 소스를 사용할 수 없습니다 (상태 {status}). 나중에 다시 시도해주세요."
+    COOKIES_ERROR_DOWNLOADING_MSG = "❌ {service} 쿠키 파일 다운로드 중 오류가 발생했습니다. 나중에 다시 시도해주세요."
     COOKIES_USER_PROVIDED_MSG = "<b>✅ User provided a new cookie file.</b>"
     COOKIES_SUCCESSFULLY_UPDATED_MSG = "<b>✅ Cookie successfully updated:</b>\n<code>{final_cookie}</code>"
     COOKIES_NOT_VALID_MSG = "<b>❌ Not a valid cookie.</b>"
@@ -993,10 +993,10 @@ Use:
     KEYBOARD_ACTIVATED_MSG = "🎹 keyboard activated!"
     
     # Additional subtitles command messages
-    SUBS_LANGUAGE_SET_MSG = "✅ Subtitle language set to: {flag} {name}"
-    SUBS_LANGUAGE_AUTO_SET_MSG = "✅ Subtitle language set to: {flag} {name} with AUTO/TRANS enabled."
-    SUBS_LANGUAGE_MENU_CLOSED_MSG = "Subtitle language menu closed."
-    SUBS_DOWNLOADING_MSG = "💬 Downloading subtitles..."
+    SUBS_LANGUAGE_SET_MSG = "✅ 자막 언어가 다음으로 설정되었습니다: {flag} {name}"
+    SUBS_LANGUAGE_AUTO_SET_MSG = "✅ 자막 언어가 AUTO/TRANS 활성화와 함께 다음으로 설정되었습니다: {flag} {name}"
+    SUBS_LANGUAGE_MENU_CLOSED_MSG = "자막 언어 메뉴가 닫혔습니다."
+    SUBS_DOWNLOADING_MSG = "💬 자막 다운로드 중..."
     
     # Additional admin command messages
     ADMIN_RELOADING_CACHE_MSG = "🔄 Reloading Firebase cache into memory..."
@@ -1102,8 +1102,8 @@ Use:
     SUBS_EXAMPLE_AUTO_MSG = "Example: `/subs en auto`"
     
     # Additional subtitles command messages (more more)
-    SUBS_SELECTED_LANGUAGE_MSG = "{flag} Selected language: {name}{auto_text}"
-    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask mode {status}"
+    SUBS_SELECTED_LANGUAGE_MSG = "{flag} 선택된 언어: {name}{auto_text}"
+    SUBS_ALWAYS_ASK_TOGGLE_MSG = "✅ Always Ask 모드 {status}"
     
     # Additional subtitles menu messages
     SUBS_DISABLED_STATUS_MSG = "🚫 Subtitles are disabled"
@@ -1795,8 +1795,8 @@ Use:
     MAGIC_HELP_CLOSED_MSG = "Help closed."
     
     # URL extractor callback messages
-    URL_EXTRACTOR_CLOSED_MSG = "Closed"
-    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "Error occurred"
+    URL_EXTRACTOR_CLOSED_MSG = "닫기"
+    URL_EXTRACTOR_ERROR_OCCURRED_MSG = "오류 발생"
     
     # FFmpeg messages
     FFMPEG_NOT_FOUND_MSG = "ffmpeg not found in PATH or project directory. Please install FFmpeg."
@@ -2025,9 +2025,9 @@ Use:
     URL_EXTRACTOR_VID_HELP_CLOSE_BUTTON_MSG = "🔚Close"
     URL_EXTRACTOR_VID_HELP_TITLE_MSG = "🎬 Video Download Command"
     URL_EXTRACTOR_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>"
-    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Examples:"
+    URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "예:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
-    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "참고: /audio, /img, /help, /playlist, /settings"
     URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "User {user_id} closed add_bot_to_group command"
 
     # YouTube messages
