@@ -27,7 +27,21 @@ class LanguageRouter:
             'bn': 'messages_BN.py',
             'pt': 'messages_PT.py',
             'ur': 'messages_UR.py',
-            'id': 'messages_ID.py'
+            'id': 'messages_ID.py',
+            'ja': 'messages_JA.py',
+            'tl': 'messages_TL.py',
+            'ha': 'messages_HA.py',
+            'vi': 'messages_VI.py',
+            'it': 'messages_IT.py',
+            'de': 'messages_DE.py',
+            'tr': 'messages_TR.py',
+            'ko': 'messages_KO.py',
+            'pl': 'messages_PL.py',
+            'uk': 'messages_UK.py',
+            'fa': 'messages_FA.py',
+            'th': 'messages_TH.py',
+            'uz': 'messages_UZ.py',
+            'kk': 'messages_KK.py'
         }
         self.default_language = 'en'
         self._cached_messages = {}
@@ -141,7 +155,21 @@ class LanguageRouter:
             'bn': '🇧🇩 বাংলা',
             'pt': '🇵🇹 Português',
             'ur': '🇵🇰 اردو',
-            'id': '🇮🇩 Bahasa Indonesia'
+            'id': '🇮🇩 Bahasa Indonesia',
+            'ja': '🇯🇵 日本語',
+            'tl': '🇵🇭 Filipino',
+            'ha': '🇳🇬 Hausa',
+            'vi': '🇻🇳 Tiếng Việt',
+            'it': '🇮🇹 Italiano',
+            'de': '🇩🇪 Deutsch',
+            'tr': '🇹🇷 Türkçe',
+            'ko': '🇰🇷 한국어',
+            'pl': '🇵🇱 Polski',
+            'uk': '🇺🇦 Українська',
+            'fa': '🇮🇷 فارسی',
+            'th': '🇹🇭 ไทย',
+            'uz': '🇺🇿 Oʻzbek',
+            'kk': '🇰🇿 Қазақ'
         }
     
     def _load_messages_with_ast(self, messages_path: str) -> Dict[str, Any]:
