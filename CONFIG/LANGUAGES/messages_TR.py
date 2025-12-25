@@ -763,7 +763,7 @@ Kullanın:
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
     ACCESS_DENIED_ADMIN = "❌ Access denied. Admin only."
-    WELCOME_MASTER = "Welcome Master 🥷"
+    WELCOME_MASTER = "Hoş geldiniz Usta 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Sorry... Some error occurred during download."
     SIZE_LIMIT_EXCEEDED = "❌ The file size exceeds the {max_size_gb} GB limit. Please select a smaller file within the allowed size."
     ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ Script not found: {script_path}"
@@ -935,7 +935,7 @@ Kullanın:
     ARGS_CHECK_CERTIFICATE_SHORT_MSG = "Sertifika Kontrol"
     ARGS_LIVE_FROM_START_SHORT_MSG = "Canlı Başlangıç"
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "Canlı Başlangıç Yok"
-    ARGS_USER_AGENT_SHORT_MSG = "User Agent"
+    ARGS_USER_AGENT_SHORT_MSG = "User Agent"  # User-Agent is a technical term, can remain
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
     ARGS_NO_PLAYLIST_SHORT_MSG = "Playlist Yok"
     ARGS_NO_PART_SHORT_MSG = "Parça Yok"
@@ -1240,10 +1240,10 @@ Kullanın:
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direct link menu created via LINK button for user {user_id} from {url}"
     DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link via LINK button for user {user_id} from {url}: {error}"
     LIST_COMMAND_EXECUTED_LOG_MSG = "LIST command executed for user {user_id}, url: {url}"
-    QUICK_EMBED_LOG_MSG = "Quick Embed: {embed_url}"
-    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Always Ask menu sent for {url}"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Created cached qualities menu for user {user_id} after error: {error}"
-    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Always Ask menu error for {url}: {error}"
+    QUICK_EMBED_LOG_MSG = "Hızlı Gömme: {embed_url}"
+    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Her Zaman Sor menüsü {url} için gönderildi"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Hata sonrası kullanıcı {user_id} için önbelleğe alınmış kaliteler menüsü oluşturuldu: {error}"
+    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Her Zaman Sor menüsü hatası {url} için: {error}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Format /args ayarları ile sabitlendi"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Ses"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "Video"
@@ -1519,7 +1519,7 @@ Kullanın:
     COOKIES_INVALID_CONTENT_LOG_MSG = "Invalid cookie content provided by user {user_id}."
     COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "YouTube cookie URLs are empty for user {user_id}."
     COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "YouTube cookies downloaded and validated for user {user_id} from source {source}."
-    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "All YouTube cookie sources failed for user {user_id}."
+    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "Kullanıcı {user_id} için tüm YouTube cookie kaynakları başarısız oldu."
     ADMIN_CHECK_PORN_ERROR_LOG_MSG = "Error in check_porn command by admin {admin_id}: {error}"
     SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Split part size set to {size} bytes."
     VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG = "Video upload completed with file splitting."
@@ -1677,7 +1677,7 @@ Kullanın:
     LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Using working YouTube cookies for link extraction for user {user_id}"
     LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "No working YouTube cookies available for link extraction for user {user_id}"
     LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Using existing YouTube cookies for link extraction for user {user_id}"
-    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "No YouTube cookies found for link extraction for user {user_id}"
+    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Kullanıcı {user_id} için bağlantı çıkarma için YouTube cookie bulunamadı"
     LINK_COPIED_GLOBAL_COOKIE_FILE_MSG = "Bağlantı çıkarma için global cookie dosyası kullanıcı {user_id} klasörüne kopyalandı"
     
     # MediaInfo command additional messages
@@ -1842,7 +1842,7 @@ Kullanın:
     GALLERY_DL_FOUND_EXTENSION_MSG = "Found extension: {extension}"
     GALLERY_DL_PARSED_ITEMS_MSG = "Parsed {count} items, info: {info}, fallback: {fallback}"
     GALLERY_DL_SETTING_CONFIG_MSG2 = "Setting gallery-dl config: {config}"
-    GALLERY_DL_TRYING_STRATEGY_A_MSG = "Trying Strategy A: extractor.find + items()"
+    GALLERY_DL_TRYING_STRATEGY_A_MSG = "A Stratejisi deneniyor: extractor.find + items()"
     GALLERY_DL_EXTRACTOR_MODULE_NOT_FOUND_MSG = "gallery_dl.extractor module not found"
     GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG = "gallery_dl.extractor.find() not available in this build"
     GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "Calling extractor.find({url})"
@@ -2044,16 +2044,16 @@ Kullanın:
     AA_CHOOSE_SUBTITLE_LANGUAGE_MSG = "Choose subtitle language"
     
     # Gallery-dl error type messages
-    GALLERY_DL_AUTH_ERROR_MSG = "Authentication Error"
-    GALLERY_DL_ACCOUNT_NOT_FOUND_MSG = "Account Not Found"
-    GALLERY_DL_ACCOUNT_UNAVAILABLE_MSG = "Account Unavailable"
-    GALLERY_DL_RATE_LIMIT_EXCEEDED_MSG = "Rate Limit Exceeded"
-    GALLERY_DL_NETWORK_ERROR_MSG = "Network Error"
-    GALLERY_DL_CONTENT_UNAVAILABLE_MSG = "Content Unavailable"
-    GALLERY_DL_GEOGRAPHIC_RESTRICTIONS_MSG = "Geographic Restrictions"
-    GALLERY_DL_VERIFICATION_REQUIRED_MSG = "Verification Required"
-    GALLERY_DL_POLICY_VIOLATION_MSG = "Policy Violation"
-    GALLERY_DL_UNKNOWN_ERROR_MSG = "Unknown Error"
+    GALLERY_DL_AUTH_ERROR_MSG = "Kimlik Doğrulama Hatası"
+    GALLERY_DL_ACCOUNT_NOT_FOUND_MSG = "Hesap Bulunamadı"
+    GALLERY_DL_ACCOUNT_UNAVAILABLE_MSG = "Hesap Kullanılamıyor"
+    GALLERY_DL_RATE_LIMIT_EXCEEDED_MSG = "Oran Limiti Aşıldı"
+    GALLERY_DL_NETWORK_ERROR_MSG = "Ağ Hatası"
+    GALLERY_DL_CONTENT_UNAVAILABLE_MSG = "İçerik Kullanılamıyor"
+    GALLERY_DL_GEOGRAPHIC_RESTRICTIONS_MSG = "Coğrafi Kısıtlamalar"
+    GALLERY_DL_VERIFICATION_REQUIRED_MSG = "Doğrulama Gerekli"
+    GALLERY_DL_POLICY_VIOLATION_MSG = "Politika İhlali"
+    GALLERY_DL_UNKNOWN_ERROR_MSG = "Bilinmeyen Hata"
     
     # Download started message (used in both audio and video downloads)
     DOWNLOAD_STARTED_MSG = "<b>▶️ İndirme başlatıldı</b>"
@@ -2068,40 +2068,40 @@ Kullanın:
     # List command constants
     
     # Magic.py messages
-    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Video Download Command</b>\n\n"
-    MAGIC_VID_HELP_USAGE_MSG = "Usage: <code>/vid URL</code>\n\n"
-    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Examples:</b>\n"
+    MAGIC_VID_HELP_TITLE_MSG = "<b>🎬 Video İndirme Komutu</b>\n\n"
+    MAGIC_VID_HELP_USAGE_MSG = "Kullanım: <code>/vid URL</code>\n\n"
+    MAGIC_VID_HELP_EXAMPLES_MSG = "<b>Örnekler:</b>\n"
     MAGIC_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid https://youtube.com/watch?v=123abc</code>\n"
     MAGIC_VID_HELP_EXAMPLE_2_MSG = "• <code>/vid https://youtube.com/playlist?list=123abc*1*5</code>\n"
     MAGIC_VID_HELP_EXAMPLE_3_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code>\n\n"
-    MAGIC_VID_HELP_ALSO_SEE_MSG = "Also see: /audio, /img, /help, /playlist, /settings"
+    MAGIC_VID_HELP_ALSO_SEE_MSG = "Ayrıca bakın: /audio, /img, /help, /playlist, /settings"
     
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_FALLBACK_MSG = "⏳ Flood limiti. Daha sonra deneyin."
     
     # Cookie command usage messages
-    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Cookie Command Usage</b>
+    COOKIE_COMMAND_USAGE_MSG = """<b>🍪 Cookie Komutu Kullanımı</b>
 
-<code>/cookie</code> - Show cookie menu
-<code>/cookie youtube</code> - Download YouTube cookies
-<code>/cookie instagram</code> - Download Instagram cookies
-<code>/cookie tiktok</code> - Download TikTok cookies
-<code>/cookie x</code> or <code>/cookie twitter</code> - Download Twitter/X cookies
-<code>/cookie facebook</code> - Download Facebook cookies
-<code>/cookie custom</code> - Show custom cookie instructions
+<code>/cookie</code> - Cookie menüsünü göster
+<code>/cookie youtube</code> - YouTube cookie'lerini indir
+<code>/cookie instagram</code> - Instagram cookie'lerini indir
+<code>/cookie tiktok</code> - TikTok cookie'lerini indir
+<code>/cookie x</code> veya <code>/cookie twitter</code> - Twitter/X cookie'lerini indir
+<code>/cookie facebook</code> - Facebook cookie'lerini indir
+<code>/cookie custom</code> - Özel cookie talimatlarını göster
 
-<i>Available services depend on bot configuration.</i>"""
+<i>Mevcut hizmetler bot yapılandırmasına bağlıdır.</i>"""
     
     # Cookie cache messages
-    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Cookie file removed and cache cleared."
+    COOKIE_FILE_REMOVED_CACHE_CLEARED_MSG = "🗑 Cookie dosyası kaldırıldı ve önbellek temizlendi."
     
     # Subtitles Command Messages
-    SUBS_PREV_BUTTON_MSG = "⬅️ Prev"
-    SUBS_BACK_BUTTON_MSG = "🔙Back"
-    SUBS_OFF_BUTTON_MSG = "🚫 OFF"
-    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - set language"
-    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - set language with AUTO/TRANS"
-    SUBS_VALID_OPTIONS_MSG = "Valid options:"
+    SUBS_PREV_BUTTON_MSG = "⬅️ Önceki"
+    SUBS_BACK_BUTTON_MSG = "🔙Geri"
+    SUBS_OFF_BUTTON_MSG = "🚫 KAPALI"
+    SUBS_SET_LANGUAGE_MSG = "• <code>/subs ru</code> - dili ayarla"
+    SUBS_SET_LANGUAGE_AUTO_MSG = "• <code>/subs ru auto</code> - AUTO/TRANS ile dili ayarla"
+    SUBS_VALID_OPTIONS_MSG = "Geçerli seçenekler:"
     
     # Settings Command Messages
     SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 LANGUAGE"
@@ -2112,43 +2112,43 @@ Kullanın:
     SETTINGS_MEDIA_BUTTON_MSG = "🎞 MEDIA"
     SETTINGS_INFO_BUTTON_MSG = "📖 INFO"
     SETTINGS_MORE_BUTTON_MSG = "⚙️ MORE"
-    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Cookies only"
-    SETTINGS_LOGS_BUTTON_MSG = "📃 Logs "
-    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Tags"
+    SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Sadece cookie'ler"
+    SETTINGS_LOGS_BUTTON_MSG = "📃 Loglar "
+    SETTINGS_TAGS_BUTTON_MSG = "#️⃣ Etiketler"
     SETTINGS_FORMAT_BUTTON_MSG = "📼 Format"
-    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Split"
-    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 Mediainfo"
-    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Subtitles"
-    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Keyboard"
-    SETTINGS_ARGS_BUTTON_MSG = "⚙️ Args"
+    SETTINGS_SPLIT_BUTTON_MSG = "✂️ Böl"
+    SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 MediaInfo"
+    SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Altyazılar"
+    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Klavye"
+    SETTINGS_ARGS_BUTTON_MSG = "⚙️ Argümanlar"
     SETTINGS_NSFW_BUTTON_MSG = "🔞 NSFW"
     SETTINGS_PROXY_BUTTON_MSG = "🌎 Proxy"
-    SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Flood wait"
-    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  All files"
-    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Download my 5 cookies"
-    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Get browser's YT-cookie"
-    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Validate your cookie file"
-    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Upload custom cookie"
-    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Change quality & format"
-    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - Turn ON / OFF MediaInfo"
-    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Change split video part size"
-    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Download video as audio"
-    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Subtitles language settings"
-    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - How to download playlists"
-    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Download images via gallery-dl"
-    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Send your #tags"
-    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Get instructions"
-    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage -Send your logs"
-    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Playlist's help"
-    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - howto"
-    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Get direct video links"
-    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Enable/disable proxy"
-    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Keyboard layout"
-    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Inline search helper"
-    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - yt-dlp arguments"
-    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - NSFW blur settings"
-    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Clean Options</b>\n\nChoose what to clean:"
-    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
+    SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Flood bekleme"
+    SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  Tüm dosyalar"
+    SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - 5 cookie'imi indir"
+    SETTINGS_COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 /cookies_from_browser - Tarayıcının YT-cookie'sini al"
+    SETTINGS_CHECK_COOKIE_BUTTON_MSG = "🔎 /check_cookie - Cookie dosyanızı doğrula"
+    SETTINGS_SAVE_AS_COOKIE_BUTTON_MSG = "🔖 /save_as_cookie - Özel cookie yükle"
+    SETTINGS_FORMAT_CMD_BUTTON_MSG = "📼 /format - Kalite ve formatı değiştir"
+    SETTINGS_MEDIAINFO_CMD_BUTTON_MSG = "📊 /mediainfo - MediaInfo'yu AÇ / KAPAT"
+    SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Video parça boyutunu değiştir"
+    SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Videoyu ses olarak indir"
+    SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Altyazı dil ayarları"
+    SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Çalma listelerini nasıl indirilir"
+    SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl ile resimleri indir"
+    SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - #etiketlerinizi gönder"
+    SETTINGS_HELP_CMD_BUTTON_MSG = "🆘 /help - Talimatları al"
+    SETTINGS_USAGE_CMD_BUTTON_MSG = "📃 /usage - Loglarınızı gönder"
+    SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG = "⏯️ /playlist - Çalma listesi yardımı"
+    SETTINGS_ADD_BOT_CMD_BUTTON_MSG = "🤖 /add_bot_to_group - nasıl yapılır"
+    SETTINGS_LINK_CMD_BUTTON_MSG = "🔗 /link - Doğrudan video bağlantılarını al"
+    SETTINGS_PROXY_CMD_BUTTON_MSG = "🌍 /proxy - Proxy'yi etkinleştir/devre dışı bırak"
+    SETTINGS_KEYBOARD_CMD_BUTTON_MSG = "🎹 /keyboard - Klavye düzeni"
+    SETTINGS_SEARCH_CMD_BUTTON_MSG = "🔍 /search - Satır içi arama yardımcısı"
+    SETTINGS_ARGS_CMD_BUTTON_MSG = "⚙️ /args - yt-dlp argümanları"
+    SETTINGS_NSFW_CMD_BUTTON_MSG = "🔞 /nsfw - NSFW bulanıklık ayarları"
+    SETTINGS_CLEAN_OPTIONS_MSG = "<b>🧹 Temizleme Seçenekleri</b>\n\nNe temizleneceğini seçin:"
+    SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobil: @vid aramayı etkinleştir"
     
     # Search Command Messages
     SEARCH_MOBILE_ACTIVATE_SEARCH_MSG = "📱 Mobile: Activate @vid search"
@@ -2164,78 +2164,78 @@ Kullanın:
     IMAGE_ERROR_MSG = "❌ Error: {str(e)}"
     
     # Format Command Messages
-    FORMAT_BACK_BUTTON_MSG = "🔙Back"
-    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format"
-    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p quality"
-    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K quality"
-    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K quality"
-    FORMAT_ID_MSG = "• <code>/format id 401</code> - specific format ID"
-    FORMAT_ASK_MSG = "• <code>/format ask</code> - always show menu"
-    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/best quality"
-    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Always Ask (menu + buttons)"
-    FORMAT_OTHERS_BUTTON_MSG = "🎛 Others (144p - 4320p)"
-    FORMAT_4K_PC_BUTTON_MSG = "💻4k (best for PC/Mac Telegram)"
-    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (best for mobile Telegram)"
-    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (MAX quality)"
-    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (enter your own)"
+    FORMAT_BACK_BUTTON_MSG = "🔙Geri"
+    FORMAT_CUSTOM_FORMAT_MSG = "• <code>/format &lt;format_string&gt;</code> - özel format"
+    FORMAT_720P_MSG = "• <code>/format 720</code> - 720p kalite"
+    FORMAT_4K_MSG = "• <code>/format 4k</code> - 4K kalite"
+    FORMAT_8K_MSG = "• <code>/format 8k</code> - 8K kalite"
+    FORMAT_ID_MSG = "• <code>/format id 401</code> - belirli format ID"
+    FORMAT_ASK_MSG = "• <code>/format ask</code> - her zaman menüyü göster"
+    FORMAT_BEST_MSG = "• <code>/format best</code> - bv+ba/en iyi kalite"
+    FORMAT_ALWAYS_ASK_BUTTON_MSG = "❓ Her Zaman Sor (menü + düğmeler)"
+    FORMAT_OTHERS_BUTTON_MSG = "🎛 Diğerleri (144p - 4320p)"
+    FORMAT_4K_PC_BUTTON_MSG = "💻4k (PC/Mac Telegram için en iyi)"
+    FORMAT_FULLHD_MOBILE_BUTTON_MSG = "📱FullHD (mobil Telegram için en iyi)"
+    FORMAT_BESTVIDEO_BUTTON_MSG = "📈Bestvideo+Bestaudio (MAKS kalite)"
+    FORMAT_CUSTOM_BUTTON_MSG = "🎚 Özel (kendiniz girin)"
     
     # Cookies Command Messages
     COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1-{max})"
-    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 From Browser"
+    COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 Tarayıcıdan"
     COOKIES_TWITTER_BUTTON_MSG = "🐦 Twitter/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"
     COOKIES_VK_BUTTON_MSG = "📘 Vkontakte"
     COOKIES_INSTAGRAM_BUTTON_MSG = "📷 Instagram"
-    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Your Own"
+    COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Kendi"
     
     # Args Command Messages
-    ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Reset All"
-    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 View Current"
-    ARGS_BACK_BUTTON_MSG = "🔙 Back"
-    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_NO_SETTINGS_MSG = "📋 Current yt-dlp Arguments:\n\nNo custom settings configured.\n\n---\n\n<i>Forward this message to your favorites to save these settings as a template.</i> \n\n<i>Forward this message back here to apply these settings.</i>"
-    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Current yt-dlp Arguments:\n\n"
-    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Export Settings"
-    ARGS_SETTINGS_READY_MSG = "Settings ready for export! Forward this message to favorites to save."
-    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Current yt-dlp Arguments:"
-    ARGS_FAILED_RECOGNIZE_MSG = "❌ Failed to recognize settings in message. Make sure you sent a correct settings template."
-    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Settings successfully imported!\n\nApplied parameters: {applied_count}\n\n"
+    ARGS_INPUT_TIMEOUT_MSG = "⏰ Girdi modu hareketsizlik nedeniyle otomatik olarak kapatıldı (5 dakika)."
+    ARGS_RESET_ALL_BUTTON_MSG = "🔄 Tümünü Sıfırla"
+    ARGS_VIEW_CURRENT_BUTTON_MSG = "📋 Mevcutu Görüntüle"
+    ARGS_BACK_BUTTON_MSG = "🔙 Geri"
+    ARGS_FORWARD_TEMPLATE_MSG = "\n---\n\n<i>Bu ayarları şablon olarak kaydetmek için bu mesajı favorilerinize iletin.</i> \n\n<i>Bu ayarları uygulamak için bu mesajı buraya geri iletin.</i>"
+    ARGS_NO_SETTINGS_MSG = "📋 Mevcut yt-dlp Argümanları:\n\nÖzel ayar yapılandırılmamış.\n\n---\n\n<i>Bu ayarları şablon olarak kaydetmek için bu mesajı favorilerinize iletin.</i> \n\n<i>Bu ayarları uygulamak için bu mesajı buraya geri iletin.</i>"
+    ARGS_CURRENT_ARGUMENTS_MSG = "📋 Mevcut yt-dlp Argümanları:\n\n"
+    ARGS_EXPORT_SETTINGS_BUTTON_MSG = "📤 Ayarları Dışa Aktar"
+    ARGS_SETTINGS_READY_MSG = "Ayarlar dışa aktarım için hazır! Kaydetmek için bu mesajı favorilerinize iletin."
+    ARGS_CURRENT_ARGUMENTS_HEADER_MSG = "📋 Mevcut yt-dlp Argümanları:"
+    ARGS_FAILED_RECOGNIZE_MSG = "❌ Mesajdaki ayarlar tanınamadı. Doğru bir ayar şablonu gönderdiğinizden emin olun."
+    ARGS_SUCCESSFULLY_IMPORTED_MSG = "✅ Ayarlar başarıyla içe aktarıldı!\n\nUygulanan parametreler: {applied_count}\n\n"
     ARGS_KEY_SETTINGS_MSG = "Ana ayarlar:\n"
-    ARGS_ERROR_SAVING_MSG = "❌ İçe aktarılan ayarlar kaydedilirken hata."
+    ARGS_ERROR_SAVING_MSG = "❌ İçe aktarılan ayarlar kaydedilirken hata oluştu."
     ARGS_ERROR_IMPORTING_MSG = "❌ Ayarlar içe aktarılırken bir hata oluştu."
 
     # Cookie command menu messages
-    COOKIE_MENU_TITLE_MSG = "🍪 <b>Download Cookie Files</b>"
-    COOKIE_MENU_DESCRIPTION_MSG = "Choose a service to download the cookie file."
-    COOKIE_MENU_SAVE_INFO_MSG = "Cookie files will be saved as cookie.txt in your folder."
-    COOKIE_MENU_TIP_HEADER_MSG = "Tip: You can also use direct command:"
-    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – download and validate cookies"
-    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – use a specific source by index (1–{max_index})"
-    COOKIE_MENU_TIP_VERIFY_MSG = "Then verify with <code>/check_cookie</code> (tests on RickRoll)."
+    COOKIE_MENU_TITLE_MSG = "🍪 <b>Cookie Dosyalarını İndir</b>"
+    COOKIE_MENU_DESCRIPTION_MSG = "Cookie dosyasını indirmek için bir hizmet seçin."
+    COOKIE_MENU_SAVE_INFO_MSG = "Cookie dosyaları klasörünüzde cookie.txt olarak kaydedilecektir."
+    COOKIE_MENU_TIP_HEADER_MSG = "İpucu: Doğrudan komutu da kullanabilirsiniz:"
+    COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – cookie'leri indir ve doğrula"
+    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – indekse göre belirli bir kaynak kullan (1–{max_index})"
+    COOKIE_MENU_TIP_VERIFY_MSG = "Ardından <code>/check_cookie</code> ile doğrulayın (RickRoll'de test eder)."
 
     # Subs command button messages
     SUBS_ALWAYS_ASK_BUTTON_MSG = "Her Zaman Sor"
     SUBS_AUTO_TRANS_BUTTON_MSG = "AUTO/TRANS"
 
     # Always Ask menu button messages
-    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
-    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
-    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
+    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Bağlantı"
+    # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁İzle"  # GEÇİCİ OLARAK DEVRE DIŞI: poketube hizmeti kapalı
+    ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Açıklama"
 
     # Audio upload completion messages
-    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."
-    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Audio successfully downloaded and sent - {total_files} files uploaded."
+    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Kısmen tamamlandı - {successful_uploads}/{total_files} ses dosyası yüklendi."
+    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ Ses başarıyla indirildi ve gönderildi - {total_files} dosya yüklendi."
 
     # TikTok private account messages
     TIKTOK_PRIVATE_ACCOUNT_MSG = (
-        "🔒 <b>Private TikTok Account</b>\n\n"
-        "This TikTok account is private or all videos are private.\n\n"
-        "<b>💡 Solution:</b>\n"
-        "1. Follow the account @{username}\n"
-        "2. Send your cookies to the bot using <code>/cookie</code> command\n"
-        "3. Try again\n\n"
-        "<b>After updating cookies, try again!</b>"
+        "🔒 <b>Özel TikTok Hesabı</b>\n\n"
+        "Bu TikTok hesabı özeldir veya tüm videolar özeldir.\n\n"
+        "<b>💡 Çözüm:</b>\n"
+        "1. @{username} hesabını takip edin\n"
+        "2. <code>/cookie</code> komutunu kullanarak cookie'lerinizi bot'a gönderin\n"
+        "3. Tekrar deneyin\n\n"
+        "<b>Cookie'leri güncelledikten sonra tekrar deneyin!</b>"
     )
 
     #######################################################

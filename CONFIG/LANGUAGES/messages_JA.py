@@ -935,7 +935,7 @@ class Messages(object):
     ARGS_CHECK_CERTIFICATE_SHORT_MSG = "証明書確認"
     ARGS_LIVE_FROM_START_SHORT_MSG = "ライブ開始"
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "ライブ開始なし"
-    ARGS_USER_AGENT_SHORT_MSG = "User Agent"
+    ARGS_USER_AGENT_SHORT_MSG = "User Agent"  # User-Agent is a technical term, can remain
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
     ARGS_NO_PLAYLIST_SHORT_MSG = "プレイリストなし"
     ARGS_NO_PART_SHORT_MSG = "パートなし"
