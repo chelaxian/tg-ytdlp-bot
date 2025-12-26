@@ -1017,7 +1017,7 @@ Use:
     COOKIES_YOUTUBE_EXPIRED_INVALID_MSG = "❌ Cookies do YouTube estão expirados ou inválidos\n\nUse /cookie para obter novos cookies"
     
     # Additional format command messages
-    FORMAT_MENU_ADDITIONAL_MSG = "• <code>/format &lt;format_string&gt;</code> - custom format\n• <code>/format 720</code> - 720p quality\n• <code>/format 4k</code> - 4K quality"
+    FORMAT_MENU_ADDITIONAL_MSG = "• <code>/format &lt;format_string&gt;</code> - formato personalizado\n• <code>/format 720</code> - qualidade 720p\n• <code>/format 4k</code> - qualidade 4K"
     
     # Callback answer messages
     FORMAT_HINT_SENT_MSG = "Dica enviada."
@@ -1133,14 +1133,14 @@ Use:
     SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Modo de legendas automáticas {status}"
     
     # Subtitles log messages
-    SUBS_DISABLED_LOG_MSG = "SUBS disabled via command: {arg}"
-    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Always Ask enabled via command: {arg}"
-    SUBS_LANGUAGE_SET_LOG_MSG = "SUBS language set via command: {arg}"
-    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "SUBS language + auto mode set via command: {arg} auto"
-    SUBS_MENU_OPENED_LOG_MSG = "User opened /subs menu."
-    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "User set subtitle language to: {lang_code}"
-    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "User toggled AUTO/TRANS mode to: {new_auto}"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "User toggled Always Ask mode to: {new_always_ask}"
+    SUBS_DISABLED_LOG_MSG = "SUBS desabilitado via comando: {arg}"
+    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Sempre Perguntar habilitado via comando: {arg}"
+    SUBS_LANGUAGE_SET_LOG_MSG = "Idioma de SUBS definido via comando: {arg}"
+    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "Idioma de SUBS + modo automático definido via comando: {arg} auto"
+    SUBS_MENU_OPENED_LOG_MSG = "Usuário abriu o menu /subs."
+    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "Usuário definiu idioma de legenda para: {lang_code}"
+    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "Usuário alternou modo AUTO/TRANS para: {new_auto}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Usuário alternou modo Sempre Perguntar para: {new_always_ask}"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "User requested cookies from browser."
@@ -1165,11 +1165,11 @@ Use:
     # Admin log messages
     ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Script not found: {script_path}"
     ADMIN_FAILED_SEND_STATUS_LOG_MSG = "Falha ao enviar mensagem de status inicial"
-    ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Error running {script_path}: {stdout}\n{stderr}"
-    ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase cache reloaded by auto task."
-    ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase cache reloaded by admin."
-    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Error reloading Firebase cache: {error}"
-    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Broadcast initiated. Text:\n{broadcast_text}"
+    ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Erro ao executar {script_path}: {stdout}\n{stderr}"
+    ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Cache do Firebase recarregado por tarefa automática."
+    ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Cache do Firebase recarregado por administrador."
+    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Erro ao recarregar cache do Firebase: {error}"
+    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Transmissão iniciada. Texto:\n{broadcast_text}"
     ADMIN_BROADCAST_SENT_LOG_MSG = "Broadcast message sent to all users."
     ADMIN_BROADCAST_FAILED_LOG_MSG = "Failed to broadcast message: {error}"
     ADMIN_CACHE_CLEARED_LOG_MSG = "Admin {user_id} cleared cache for URL: {url}"
@@ -1201,40 +1201,40 @@ Use:
     FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Menu de formato personalizado fechado"
     
     # Link log messages
-    LINK_EXTRACTED_LOG_MSG = "Direct link extracted for user {user_id} from {url}"
-    LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link for user {user_id} from {url}: {error}"
-    LINK_COMMAND_ERROR_LOG_MSG = "Error in link command for user {user_id}: {error}"
+    LINK_EXTRACTED_LOG_MSG = "Link direto extraído para o usuário {user_id} de {url}"
+    LINK_EXTRACTION_FAILED_LOG_MSG = "Falha ao extrair link direto para o usuário {user_id} de {url}: {error}"
+    LINK_COMMAND_ERROR_LOG_MSG = "Erro no comando link para o usuário {user_id}: {error}"
     
     # Keyboard log messages
-    KEYBOARD_SET_LOG_MSG = "User {user_id} set keyboard to {setting}"
-    KEYBOARD_SET_CALLBACK_LOG_MSG = "User {user_id} set keyboard to {setting}"
+    KEYBOARD_SET_LOG_MSG = "Usuário {user_id} definiu teclado para {setting}"
+    KEYBOARD_SET_CALLBACK_LOG_MSG = "Usuário {user_id} definiu teclado para {setting}"
     
     # MediaInfo log messages
-    MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo set via command: {arg}"
-    MEDIAINFO_MENU_OPENED_LOG_MSG = "User opened /mediainfo menu."
-    MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: closed."
-    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo disabled."
+    MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo definido via comando: {arg}"
+    MEDIAINFO_MENU_OPENED_LOG_MSG = "Usuário abriu o menu /mediainfo."
+    MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: fechado."
+    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo habilitado."
+    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo desabilitado."
     
     # Split log messages
-    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "Split size set to {size} bytes via argument."
-    SPLIT_MENU_OPENED_LOG_MSG = "User opened /split menu."
-    SPLIT_SELECTION_CLOSED_LOG_MSG = "Split selection closed."
+    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "Tamanho de divisão definido para {size} bytes via argumento."
+    SPLIT_MENU_OPENED_LOG_MSG = "Usuário abriu o menu /split."
+    SPLIT_SELECTION_CLOSED_LOG_MSG = "Seleção de divisão fechada."
     SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Split size set to {size} bytes."
     
     # Proxy log messages
-    PROXY_SET_COMMAND_LOG_MSG = "Proxy set via command: {arg}"
-    PROXY_MENU_OPENED_LOG_MSG = "User opened /proxy menu."
-    PROXY_MENU_CLOSED_LOG_MSG = "Proxy: closed."
-    PROXY_ENABLED_LOG_MSG = "Proxy enabled."
-    PROXY_DISABLED_LOG_MSG = "Proxy disabled."
+    PROXY_SET_COMMAND_LOG_MSG = "Proxy definido via comando: {arg}"
+    PROXY_MENU_OPENED_LOG_MSG = "Usuário abriu o menu /proxy."
+    PROXY_MENU_CLOSED_LOG_MSG = "Proxy: fechado."
+    PROXY_ENABLED_LOG_MSG = "Proxy habilitado."
+    PROXY_DISABLED_LOG_MSG = "Proxy desabilitado."
     
     # Other handlers log messages
-    HELP_MESSAGE_CLOSED_LOG_MSG = "Help message closed."
+    HELP_MESSAGE_CLOSED_LOG_MSG = "Mensagem de ajuda fechada."
     AUDIO_HELP_SHOWN_LOG_MSG = "Mostrou ajuda /audio"
-    PLAYLIST_HELP_REQUESTED_LOG_MSG = "User requested playlist help."
-    PLAYLIST_HELP_CLOSED_LOG_MSG = "Playlist help closed."
-    AUDIO_HINT_CLOSED_LOG_MSG = "Audio hint closed."
+    PLAYLIST_HELP_REQUESTED_LOG_MSG = "Usuário solicitou ajuda de playlist."
+    PLAYLIST_HELP_CLOSED_LOG_MSG = "Ajuda de playlist fechada."
+    AUDIO_HINT_CLOSED_LOG_MSG = "Dica de áudio fechada."
     
     # Down and Up log messages
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Menu de link direto criado via botão LINK para usuário {user_id} de {url}"
@@ -1745,7 +1745,7 @@ Use:
     RESTORE_SUCCESS_RESTORED_MSG = "✅ Restaurado: {dest_path}"
     
     # Image command messages
-    IMG_INSTAGRAM_AUTH_ERROR_MSG = "❌ <b>{error_type}</b>\n\n<b>URL:</b> <code>{url}</code>\n\n<b>Details:</b> {error_details}\n\nDownload stopped due to critical error.\n\n💡 <b>Tip:</b> If you're getting 401 Unauthorized error, try using <code>/cookie instagram</code> command or send your own cookies to authenticate with Instagram."
+    IMG_INSTAGRAM_AUTH_ERROR_MSG = "❌ <b>{error_type}</b>\n\n<b>URL:</b> <code>{url}</code>\n\n<b>Detalhes:</b> {error_details}\n\nDownload interrompido devido a erro crítico.\n\n💡 <b>Dica:</b> Se você estiver recebendo erro 401 Não autorizado, tente usar o comando <code>/cookie instagram</code> ou envie seus próprios cookies para autenticar com o Instagram."
     
     # Porn filter messages
     PORN_DOMAIN_BLACKLIST_MSG = "❌ Domínio na lista negra de pornografia: {domain_parts}"
@@ -1761,8 +1761,8 @@ Use:
     VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ Erro na API do TikTok no índice {index}, pulando para o próximo vídeo..."
     
     # URL Parser messages
-    URL_PARSER_USER_ENTERED_URL_LOG_MSG = "User entered a <b>url</b>\n <b>user's name:</b> {user_name}\nURL: {url}"
-    URL_PARSER_USER_ENTERED_INVALID_MSG = "<b>User entered like this:</b> {input}\n{error_msg}"
+    URL_PARSER_USER_ENTERED_URL_LOG_MSG = "Usuário inseriu uma <b>url</b>\n <b>nome do usuário:</b> {user_name}\nURL: {url}"
+    URL_PARSER_USER_ENTERED_INVALID_MSG = "<b>Usuário inseriu assim:</b> {input}\n{error_msg}"
     
     # Channel subscription messages
     CHANNEL_JOIN_BUTTON_MSG = "Entrar no Canal"
@@ -1819,10 +1819,10 @@ Use:
     FFMPEG_ERROR_CREATING_THUMBNAIL_WITH_FFMPEG_MSG = "Erro ao criar miniatura com FFmpeg: {error}"
     
     # Gallery-dl messages
-    GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "Skipping non-dict config section: {section}={opts}"
-    GALLERY_DL_SETTING_CONFIG_MSG = "Setting {section}.{key} = {value}"
-    GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] Using user cookies: {cookie_path}"
-    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Using YouTube cookies for user {user_id}"
+    GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "Pulando seção de configuração não-dict: {section}={opts}"
+    GALLERY_DL_SETTING_CONFIG_MSG = "Definindo {section}.{key} = {value}"
+    GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] Usando cookies do usuário: {cookie_path}"
+    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Usando cookies do YouTube para o usuário {user_id}"
     GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG = "Arquivo de cookie global copiado para a pasta do usuário {user_id}"
     GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG = "[gallery-dl] Usando cookies globais copiados como cookies do usuário: {cookie_path}"
     GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG = "Falha ao copiar arquivo de cookie global para usuário {user_id}: {error}"
@@ -1833,24 +1833,24 @@ Use:
     GALLERY_DL_PROXY_HELPER_FAILED_MSG = "Auxiliar de proxy falhou: {error}"
     GALLERY_DL_PARSING_EXTRACTOR_ITEMS_MSG = "Analisando itens do extrator..."
     GALLERY_DL_ITEM_COUNT_MSG = "Item {count}: {item}"
-    GALLERY_DL_FOUND_METADATA_TAG2_MSG = "Found metadata (tag 2): {info}"
-    GALLERY_DL_FOUND_URL_TAG3_MSG = "Found URL (tag 3): {url}, metadata: {metadata}"
-    GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "Found metadata (legacy): {info}"
-    GALLERY_DL_FOUND_URL_LEGACY_MSG = "Found URL (legacy): {url}"
-    GALLERY_DL_FOUND_FILENAME_MSG = "Found filename: {filename}"
-    GALLERY_DL_FOUND_DIRECTORY_MSG = "Found directory: {directory}"
-    GALLERY_DL_FOUND_EXTENSION_MSG = "Found extension: {extension}"
-    GALLERY_DL_PARSED_ITEMS_MSG = "Parsed {count} items, info: {info}, fallback: {fallback}"
-    GALLERY_DL_SETTING_CONFIG_MSG2 = "Setting gallery-dl config: {config}"
-    GALLERY_DL_TRYING_STRATEGY_A_MSG = "Trying Strategy A: extractor.find + items()"
-    GALLERY_DL_EXTRACTOR_MODULE_NOT_FOUND_MSG = "gallery_dl.extractor module not found"
-    GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG = "gallery_dl.extractor.find() not available in this build"
-    GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "Calling extractor.find({url})"
-    GALLERY_DL_NO_EXTRACTOR_MATCHED_MSG = "No extractor matched the URL"
-    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "Setting cookies on extractor: {cookie_path}"
-    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "Failed to set cookies on extractor: {error}"
-    GALLERY_DL_EXTRACTOR_FOUND_CALLING_ITEMS_MSG = "Extractor found, calling items()"
-    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "Strategy A succeeded, got info: {info}"
+    GALLERY_DL_FOUND_METADATA_TAG2_MSG = "Metadados encontrados (tag 2): {info}"
+    GALLERY_DL_FOUND_URL_TAG3_MSG = "URL encontrada (tag 3): {url}, metadados: {metadata}"
+    GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "Metadados encontrados (legado): {info}"
+    GALLERY_DL_FOUND_URL_LEGACY_MSG = "URL encontrada (legado): {url}"
+    GALLERY_DL_FOUND_FILENAME_MSG = "Nome do arquivo encontrado: {filename}"
+    GALLERY_DL_FOUND_DIRECTORY_MSG = "Diretório encontrado: {directory}"
+    GALLERY_DL_FOUND_EXTENSION_MSG = "Extensão encontrada: {extension}"
+    GALLERY_DL_PARSED_ITEMS_MSG = "{count} itens analisados, info: {info}, fallback: {fallback}"
+    GALLERY_DL_SETTING_CONFIG_MSG2 = "Definindo configuração do gallery-dl: {config}"
+    GALLERY_DL_TRYING_STRATEGY_A_MSG = "Tentando Estratégia A: extractor.find + items()"
+    GALLERY_DL_EXTRACTOR_MODULE_NOT_FOUND_MSG = "módulo gallery_dl.extractor não encontrado"
+    GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG = "gallery_dl.extractor.find() não disponível nesta compilação"
+    GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "Chamando extractor.find({url})"
+    GALLERY_DL_NO_EXTRACTOR_MATCHED_MSG = "Nenhum extrator correspondeu à URL"
+    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "Definindo cookies no extrator: {cookie_path}"
+    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "Falha ao definir cookies no extrator: {error}"
+    GALLERY_DL_EXTRACTOR_FOUND_CALLING_ITEMS_MSG = "Extrator encontrado, chamando items()"
+    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "Estratégia A bem-sucedida, obteve info: {info}"
     GALLERY_DL_STRATEGY_A_NO_VALID_INFO_MSG = "Estratégia A: extractor.items() não retornou informações válidas"
     GALLERY_DL_STRATEGY_A_FAILED_MSG = "Estratégia A (extractor.find) falhou: {error}"
     GALLERY_DL_FALLBACK_METADATA_MSG = "Metadados de fallback de --get-urls: total={total}"
@@ -1900,9 +1900,9 @@ Use:
     CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL do Vídeo</a>{bot_mention}'
     
     # Database messages
-    DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL отсутствует в конфигурации"
-    DB_FIREBASE_ADMIN_INITIALIZED_MSG = "✅ firebase_admin initialized"
-    DB_REST_ID_TOKEN_REFRESHED_MSG = "🔁 REST idToken refreshed"
+    DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL ausente na configuração"
+    DB_FIREBASE_ADMIN_INITIALIZED_MSG = "✅ firebase_admin inicializado"
+    DB_REST_ID_TOKEN_REFRESHED_MSG = "🔁 REST idToken atualizado"
     DB_LOG_FOR_USER_ADDED_MSG = "Log para usuário adicionado"
     DB_DATABASE_CREATED_MSG = "banco de dados criado"
     DB_BOT_STARTED_MSG = "Bot iniciado"
@@ -1915,14 +1915,14 @@ Use:
     
     # Database cache auto-reload messages
     DB_AUTO_CACHE_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
-    DB_AUTO_CACHE_RELOADING_UPDATED_MSG = "🔄 Auto Firebase cache reloading updated!\n\n📊 Status: {status}\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
-    DB_AUTO_CACHE_RELOADING_STOPPED_MSG = "🛑 Auto Firebase cache reloading stopped!\n\n📊 Status: ❌ DISABLED\n💡 Use /auto_cache on to re-enable"
-    DB_AUTO_CACHE_INVALID_ARGUMENT_MSG = "❌ Invalid argument. Use /auto_cache on | off | N (1..168)"
-    DB_AUTO_CACHE_INTERVAL_RANGE_MSG = "❌ Interval must be between 1 and 168 hours"
-    DB_AUTO_CACHE_FAILED_SET_INTERVAL_MSG = "❌ Failed to set interval"
-    DB_AUTO_CACHE_INTERVAL_UPDATED_MSG = "⏱️ Auto Firebase cache interval updated!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
-    DB_AUTO_CACHE_RELOADING_STARTED_MSG = "🔄 Auto Firebase cache reloading started!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
-    DB_AUTO_CACHE_RELOADING_STOPPED_BY_ADMIN_MSG = "🛑 Auto Firebase cache reloading stopped!\n\n📊 Status: ❌ DISABLED\n💡 Use /auto_cache on to re-enable"
+    DB_AUTO_CACHE_RELOADING_UPDATED_MSG = "🔄 Recarregamento automático do cache Firebase atualizado!\n\n📊 Status: {status}\n⏰ Agendamento: a cada {interval} horas a partir das 00:00\n🕒 Próximo recarregamento: {next_exec} (em {delta_min} minutos)"
+    DB_AUTO_CACHE_RELOADING_STOPPED_MSG = "🛑 Recarregamento automático do cache Firebase parado!\n\n📊 Status: ❌ DESABILITADO\n💡 Use /auto_cache on para reativar"
+    DB_AUTO_CACHE_INVALID_ARGUMENT_MSG = "❌ Argumento inválido. Use /auto_cache on | off | N (1..168)"
+    DB_AUTO_CACHE_INTERVAL_RANGE_MSG = "❌ O intervalo deve estar entre 1 e 168 horas"
+    DB_AUTO_CACHE_FAILED_SET_INTERVAL_MSG = "❌ Falha ao definir intervalo"
+    DB_AUTO_CACHE_INTERVAL_UPDATED_MSG = "⏱️ Intervalo do cache Firebase automático atualizado!\n\n📊 Status: ✅ HABILITADO\n⏰ Agendamento: a cada {interval} horas a partir das 00:00\n🕒 Próximo recarregamento: {next_exec} (em {delta_min} minutos)"
+    DB_AUTO_CACHE_RELOADING_STARTED_MSG = "🔄 Recarregamento automático do cache Firebase iniciado!\n\n📊 Status: ✅ HABILITADO\n⏰ Agendamento: a cada {interval} horas a partir das 00:00\n🕒 Próximo recarregamento: {next_exec} (em {delta_min} minutos)"
+    DB_AUTO_CACHE_RELOADING_STOPPED_BY_ADMIN_MSG = "🛑 Recarregamento automático do cache Firebase parado!\n\n📊 Status: ❌ DESABILITADO\n💡 Use /auto_cache on para reativar"
     DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "Auto reload ENABLED; next at {next_exec}"
     DB_AUTO_CACHE_RELOAD_DISABLED_LOG_MSG = "Auto reload DISABLED by admin."
     DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "Auto reload interval set to {interval}h; next at {next_exec}"
@@ -1953,7 +1953,7 @@ Use:
     AA_TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{wrong} contém caracteres proibidos. Apenas letras, dígitos e _ são permitidos.\nPor favor, use: {example}"
     
     # Helper limitter messages
-    HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйста, сделайте бота админом этой группы."
+    HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Para trabalhar em grupo, o bot precisa de direitos de administrador. Por favor, torne o bot administrador deste grupo."
     
     # URL extractor messages
     URL_EXTRACTOR_WELCOME_MSG = "Olá {first_name},\n \n<i>Este bot🤖 pode baixar qualquer vídeo diretamente no telegram.😊 Para mais informações pressione <b>/help</b></i> 👈\n\n<blockquote>P.S. Baixar conteúdo 🔞NSFW e arquivos de ☁️Armazenamento em Nuvem é pago! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Não saia do canal - você será banido de usar o bot ⛔️</blockquote>\n \n {credits}"
@@ -1983,10 +1983,10 @@ Use:
     # Download status messages
     
     # POT helper messages
-    HELPER_POT_PROVIDER_DISABLED_MSG = "PO token provider disabled in config"
-    HELPER_POT_URL_NOT_YOUTUBE_MSG = "URL {url} is not a YouTube domain, skipping PO token"
-    HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG = "PO token provider is not available at {base_url}, falling back to standard YouTube extraction"
-    HELPER_POT_PROVIDER_CACHE_CLEARED_MSG = "PO token provider cache cleared, will check availability on next request"
+    HELPER_POT_PROVIDER_DISABLED_MSG = "Provedor de token PO desabilitado na configuração"
+    HELPER_POT_URL_NOT_YOUTUBE_MSG = "URL {url} não é um domínio do YouTube, pulando token PO"
+    HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG = "Provedor de token PO não está disponível em {base_url}, voltando para extração padrão do YouTube"
+    HELPER_POT_PROVIDER_CACHE_CLEARED_MSG = "Cache do provedor de token PO limpo, verificará disponibilidade na próxima solicitação"
     HELPER_POT_GENERIC_ARGS_MSG = "generic:impersonate=chrome,youtubetab:skip=authcheck"
     
     # Safe messenger messages
@@ -1994,7 +1994,7 @@ Use:
     HELPER_USER_NAME_MSG = "Usuário"
     HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG = "Flood wait detectado, aguardando {wait_seconds} segundos"
     HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG = "Flood wait detectado mas não foi possível extrair tempo, aguardando {retry_delay} segundos"
-    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "msg_seqno error detected, sleeping for {retry_delay} seconds"
+    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "erro msg_seqno detectado, aguardando {retry_delay} segundos"
     HELPER_MESSAGE_ID_INVALID_MSG = "MESSAGE_ID_INVALID"
     HELPER_MESSAGE_DELETE_FORBIDDEN_MSG = "MESSAGE_DELETE_FORBIDDEN"
     
