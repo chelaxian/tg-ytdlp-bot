@@ -46,6 +46,50 @@ from URL_PARSERS.tags import extract_url_range_tags
 # Get app instance for decorators
 app = get_app()
 
+
+def is_skippable_video_error(error_message: str) -> bool:
+    """
+    Определяет, является ли ошибка пропускаемой (частной ошибкой конкретного видео).
+    Такие ошибки не должны останавливать скачивание всего плейлиста.
+    
+    Args:
+        error_message: Текст ошибки от yt-dlp
+        
+    Returns:
+        True если ошибку можно пропустить и продолжить со следующим видео, False иначе
+    """
+    if not error_message:
+        return False
+    
+    error_lower = error_message.lower()
+    
+    # Пропускаемые ошибки - частные проблемы конкретного видео
+    skippable_patterns = [
+        # VK ошибки
+        "removed at the request of the copyright holder",
+        "removed at the request",
+        # YouTube ошибки
+        "removed for violating youtube's policy",
+        "removed for violating",
+        "video unavailable. this video is not available",
+        "video unavailable",
+        "this video has been removed",
+        "video is not available",
+        # Общие паттерны
+        "copyright holder",
+        "violating.*policy",
+        "video.*removed",
+        "video.*unavailable",
+    ]
+    
+    for pattern in skippable_patterns:
+        import re
+        if re.search(pattern, error_lower, re.IGNORECASE):
+            return True
+    
+    return False
+
+
 def create_telegram_thumbnail(cover_path, output_path, size=320):
     """Create a Telegram-compliant thumbnail from cover image using center crop (no black bars)."""
     try:
@@ -1283,6 +1327,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     else:
                         logger.info(f"Error appears to be non-cookie-related for {url}, skipping cookie fallback")
                 
+                # Check if this is a skippable video error (private error for specific video in playlist)
+                # This check should be done before sending error message to avoid stopping entire playlist
+                if is_playlist and is_skippable_video_error(error_text):
+                    logger.info(f"Skipping audio at index {current_index} due to skippable error: {error_text[:100]}")
+                    # Send a brief notification to user about skipping this audio
+                    skip_message = f"⏭️ Пропущено аудио #{current_index + 1}: {error_text[:150]}"
+                    send_to_user(message, skip_message)
+                    return "SKIP"  # Skip this audio and continue with next
+                
                 # Send full error message with instructions immediately (only once)
                 if not getattr(down_and_audio, '_error_message_sent', False):
                     # Extract error code and description from yt-dlp error
@@ -1395,6 +1448,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     error_message = safe_get_messages(user_id).AUDIO_TIKTOK_API_ERROR_SKIP_MSG.format(index=original_playlist_index)
                     send_to_user(message, error_message)
                     logger.info(f"Skipping TikTok audio at index {current_index} due to API error")
+                    return "SKIP"  # Skip this audio and continue with next
+                
+                # Check if this is a skippable video error (private error for specific video in playlist)
+                if is_playlist and is_skippable_video_error(error_text):
+                    logger.info(f"Skipping audio at index {current_index} due to skippable error: {error_text[:100]}")
+                    # Send a brief notification to user about skipping this audio
+                    skip_message = f"⏭️ Пропущено аудио #{current_index + 1}: {error_text[:150]}"
+                    send_to_user(message, skip_message)
                     return "SKIP"  # Skip this audio and continue with next
                 
                 else:

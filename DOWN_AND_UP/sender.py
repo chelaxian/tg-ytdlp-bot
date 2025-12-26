@@ -257,9 +257,19 @@ def send_videos(
             messages = safe_get_messages(user_id)
             nonlocal was_paid
             # Для бесплатных сообщений — внешний превью без паддинга; для платных — обложка 320x320
-            local_thumb_free = _gen_free_cover(video_abs_path)
-            # Ensure thumbnail exists before using it
-            if local_thumb_free and not os.path.exists(local_thumb_free):
+            local_thumb_free = None
+            try:
+                local_thumb_free = _gen_free_cover(video_abs_path)
+                # Ensure thumbnail exists and is readable before using it
+                if local_thumb_free:
+                    if not os.path.exists(local_thumb_free):
+                        logger.warning(f"Thumbnail file does not exist: {local_thumb_free}")
+                        local_thumb_free = None
+                    elif os.path.getsize(local_thumb_free) == 0:
+                        logger.warning(f"Thumbnail file is empty: {local_thumb_free}")
+                        local_thumb_free = None
+            except Exception as thumb_error:
+                logger.warning(f"Error generating thumbnail, continuing without it: {thumb_error}")
                 local_thumb_free = None
             # Paid media only in private chats; in groups/channels send regular video
             try:
@@ -291,9 +301,23 @@ def send_videos(
                         safe_h = int(v_h) if v_h and int(v_h) > 0 else 360
                     except Exception:
                         safe_h = 360
+                    # Try to generate paid cover, but handle errors gracefully
+                    paid_cover = None
+                    try:
+                        paid_cover = _gen_paid_cover(video_abs_path)
+                        if paid_cover and not os.path.exists(paid_cover):
+                            logger.warning(f"Paid cover file does not exist: {paid_cover}")
+                            paid_cover = None
+                        elif paid_cover and os.path.getsize(paid_cover) == 0:
+                            logger.warning(f"Paid cover file is empty: {paid_cover}")
+                            paid_cover = None
+                    except Exception as cover_error:
+                        logger.warning(f"Error generating paid cover, continuing without it: {cover_error}")
+                        paid_cover = None
+                    
                     paid_media = InputPaidMediaVideo(
                         media=video_abs_path,
-                        cover=_gen_paid_cover(video_abs_path),
+                        cover=paid_cover,
                         width=safe_w,
                         height=safe_h,
                         duration=safe_paid_dur,
@@ -325,6 +349,11 @@ def send_videos(
                 v_w2, v_h2, v_dur2 = get_video_info_ffprobe(video_abs_path)
             except Exception:
                 v_w2, v_h2, v_dur2 = width, height, duration
+            # Final check for thumbnail before sending
+            if local_thumb_free and not os.path.exists(local_thumb_free):
+                logger.warning(f"Thumbnail file missing before send, removing from request: {local_thumb_free}")
+                local_thumb_free = None
+            
             result = app.send_video(
                 chat_id=user_id,
                 video=video_abs_path,
@@ -403,9 +432,23 @@ def send_videos(
                         safe_h = int(v_h) if v_h and int(v_h) > 0 else 360
                     except Exception:
                         safe_h = 360
+                    # Try to generate paid cover, but handle errors gracefully
+                    paid_cover = None
+                    try:
+                        paid_cover = _gen_paid_cover(video_abs_path)
+                        if paid_cover and not os.path.exists(paid_cover):
+                            logger.warning(f"Paid cover file does not exist: {paid_cover}")
+                            paid_cover = None
+                        elif paid_cover and os.path.getsize(paid_cover) == 0:
+                            logger.warning(f"Paid cover file is empty: {paid_cover}")
+                            paid_cover = None
+                    except Exception as cover_error:
+                        logger.warning(f"Error generating paid cover, continuing without it: {cover_error}")
+                        paid_cover = None
+                    
                     paid_media = InputPaidMediaVideo(
                         media=video_abs_path,
-                        cover=_gen_paid_cover(video_abs_path),
+                        cover=paid_cover,
                         width=safe_w,
                         height=safe_h,
                         duration=safe_paid_dur,
@@ -469,7 +512,20 @@ def send_videos(
                         video_msg = _try_send_video(cap)
                         break
                     except Exception as e:
-                        if "Request timed out" in str(e) or isinstance(e, TimeoutError):
+                        error_str = str(e)
+                        # Handle thumbnail file errors
+                        if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
+                            logger.warning(f"Thumbnail file error, trying as document: {e}")
+                            video_msg = _fallback_send_document(cap)
+                            break
+                        
+                        # Handle "Failed to decode" errors
+                        if "Failed to decode" in error_str:
+                            logger.warning(f"Failed to decode error, trying as document: {e}")
+                            video_msg = _fallback_send_document(cap)
+                            break
+                        
+                        if "Request timed out" in error_str or isinstance(e, TimeoutError):
                             attempts_left -= 1
                             if attempts_left and attempts_left <= 0:
                                 logger.warning(safe_get_messages(user_id).SENDER_SEND_VIDEO_TIMED_OUT_MSG)
@@ -499,7 +555,20 @@ def send_videos(
                                 video_msg = _try_send_video(minimal_cap)
                                 break
                             except Exception as e2:
-                                if "Request timed out" in str(e2) or isinstance(e2, TimeoutError):
+                                error_str2 = str(e2)
+                                # Handle thumbnail file errors
+                                if "No such file or directory" in error_str2 and ("__tgthumb" in error_str2 or "thumb" in error_str2.lower()):
+                                    logger.warning(f"Thumbnail file error with minimal caption, retrying without thumbnail: {e2}")
+                                    video_msg = _fallback_send_document(minimal_cap)
+                                    break
+                                
+                                # Handle "Failed to decode" errors
+                                if "Failed to decode" in error_str2:
+                                    logger.warning(f"Failed to decode error with minimal caption, trying as document: {e2}")
+                                    video_msg = _fallback_send_document(minimal_cap)
+                                    break
+                                
+                                if "Request timed out" in error_str2 or isinstance(e2, TimeoutError):
                                     attempts_left -= 1
                                     if attempts_left and attempts_left <= 0:
                                         logger.warning(safe_get_messages(user_id).SENDER_SEND_VIDEO_MINIMAL_CAPTION_TIMED_OUT_MSG)
@@ -517,15 +586,46 @@ def send_videos(
                         else:
                             video_msg = _try_send_video("")
                     except Exception as e3:
-                        if "Request timed out" in str(e3) or isinstance(e3, TimeoutError):
+                        error_str3 = str(e3)
+                        # Handle thumbnail file errors
+                        if "No such file or directory" in error_str3 and ("__tgthumb" in error_str3 or "thumb" in error_str3.lower()):
+                            logger.warning(f"Thumbnail file error, trying as document: {e3}")
+                            video_msg = _fallback_send_document("")
+                        # Handle "Failed to decode" errors
+                        elif "Failed to decode" in error_str3:
+                            logger.warning(f"Failed to decode error, trying as document: {e3}")
+                            video_msg = _fallback_send_document("")
+                        elif "Request timed out" in error_str3 or isinstance(e3, TimeoutError):
                             video_msg = _fallback_send_document("")
                         else:
                             raise
             else:
-                # If the error is not related to the length of the caption, log it and pass it further
-                from HELPERS.logger import send_error_to_user
-                send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)))
-                raise e
+                error_str = str(e)
+                # Handle thumbnail file errors
+                if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
+                    logger.warning(f"Thumbnail file error in main handler, trying as document: {e}")
+                    try:
+                        video_msg = _fallback_send_document(cap if 'cap' in locals() else "")
+                    except Exception as fallback_error:
+                        logger.error(f"Fallback to document also failed: {fallback_error}")
+                        from HELPERS.logger import send_error_to_user
+                        send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(fallback_error)))
+                        raise fallback_error
+                # Handle "Failed to decode" errors
+                elif "Failed to decode" in error_str:
+                    logger.warning(f"Failed to decode error in main handler, trying as document: {e}")
+                    try:
+                        video_msg = _fallback_send_document(cap if 'cap' in locals() else "")
+                    except Exception as fallback_error:
+                        logger.error(f"Fallback to document also failed: {fallback_error}")
+                        from HELPERS.logger import send_error_to_user
+                        send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(fallback_error)))
+                        raise fallback_error
+                else:
+                    # If the error is not related to the length of the caption, log it and pass it further
+                    from HELPERS.logger import send_error_to_user
+                    send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=error_str))
+                    raise e
         # Note: Forwarding to log channels is now handled in down_and_up.py
         # to avoid double forwarding and ensure proper channel routing
 

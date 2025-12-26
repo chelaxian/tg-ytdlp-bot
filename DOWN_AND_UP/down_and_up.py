@@ -54,6 +54,49 @@ from HELPERS.fallback_helper import should_fallback_to_gallery_dl
 app = get_app()
 
 
+def is_skippable_video_error(error_message: str) -> bool:
+    """
+    Определяет, является ли ошибка пропускаемой (частной ошибкой конкретного видео).
+    Такие ошибки не должны останавливать скачивание всего плейлиста.
+    
+    Args:
+        error_message: Текст ошибки от yt-dlp
+        
+    Returns:
+        True если ошибку можно пропустить и продолжить со следующим видео, False иначе
+    """
+    if not error_message:
+        return False
+    
+    error_lower = error_message.lower()
+    
+    # Пропускаемые ошибки - частные проблемы конкретного видео
+    skippable_patterns = [
+        # VK ошибки
+        "removed at the request of the copyright holder",
+        "removed at the request",
+        # YouTube ошибки
+        "removed for violating youtube's policy",
+        "removed for violating",
+        "video unavailable. this video is not available",
+        "video unavailable",
+        "this video has been removed",
+        "video is not available",
+        # Общие паттерны
+        "copyright holder",
+        "violating.*policy",
+        "video.*removed",
+        "video.*unavailable",
+    ]
+    
+    for pattern in skippable_patterns:
+        import re
+        if re.search(pattern, error_lower, re.IGNORECASE):
+            return True
+    
+    return False
+
+
 def _handle_quality_key_error(e: Exception, split_msg_ids: list, is_playlist: bool, successful_uploads: int, indices_to_download: list, video_count: int, user_id: int, proc_msg_id: int, message, app, url: str = None, safe_quality_key: str = None):
     messages = safe_get_messages(user_id)
     """Universal handler for quality_key errors that ensures final actions are completed"""
@@ -1571,6 +1614,46 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Postprocessing error (Invalid argument): {error_message}")
                     return "POSTPROCESSING_ERROR"
                 
+                # Check for postprocessing errors with .meta file (non-critical, can be ignored)
+                if "Postprocessing" in error_message and ".meta" in error_message and "No such file or directory" in error_message:
+                    logger.warning(f"Postprocessing .meta file error (non-critical, continuing): {error_message}")
+                    # This is a non-critical error, try to continue by returning info_dict if available
+                    if info_dict:
+                        logger.info("Continuing despite .meta file error")
+                        return info_dict
+                    return "POSTPROCESSING_ERROR"
+                
+                # Check for postprocessing map error (can be ignored)
+                if "Postprocessing" in error_message and "add a trailing '?' to the map" in error_message:
+                    logger.warning(f"Postprocessing map error (non-critical, continuing): {error_message}")
+                    # This is a non-critical error, try to continue by returning info_dict if available
+                    if info_dict:
+                        logger.info("Continuing despite postprocessing map error")
+                        return info_dict
+                    return "POSTPROCESSING_ERROR"
+                
+                # Check for HTTP Error 416 (Requested range not satisfiable) - retry without range requests
+                if "HTTP Error 416" in error_message or "Requested range not satisfiable" in error_message:
+                    logger.warning(f"HTTP 416 error detected (range request issue): {error_message}")
+                    # Try to continue if file was partially downloaded
+                    if info_dict:
+                        logger.info("Attempting to continue despite HTTP 416 error")
+                        return info_dict
+                    # If retry is needed, return error to trigger retry
+                    logger.error(f"HTTP 416 error - download failed: {error_message}")
+                    return None
+                
+                # Check for Read timed out errors - retry with longer timeout
+                if "Read timed out" in error_message or "ReadTimeout" in error_message or "timed out" in error_message.lower():
+                    logger.warning(f"Read timeout error detected: {error_message}")
+                    # Try to continue if file was partially downloaded
+                    if info_dict:
+                        logger.info("Attempting to continue despite timeout error")
+                        return info_dict
+                    # Return None to trigger retry
+                    logger.error(f"Read timeout error - download failed: {error_message}")
+                    return None
+                
                 # Check for format not available error
                 if "Requested format is not available" in error_message:
                     logger.error(f"Format not available error: {error_message}")
@@ -1708,6 +1791,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.warning(f"Download retry with cookie fallback failed for user {user_id}")
                     else:
                         logger.info(f"Error appears to be non-cookie-related for {url}, skipping cookie fallback")
+                
+                # Check if this is a skippable video error (private error for specific video in playlist)
+                # This check should be done before sending error message to avoid stopping entire playlist
+                if is_playlist and is_skippable_video_error(error_message):
+                    logger.info(f"Skipping video at index {current_index} due to skippable error: {error_message[:100]}")
+                    # Send a brief notification to user about skipping this video
+                    skip_message = f"⏭️ Пропущено видео #{current_index + 1}: {error_message[:150]}"
+                    send_to_user(message, skip_message)
+                    return "SKIP"  # Skip this video and continue with next
                 
                 # Send full error message with instructions immediately (only once)
                 if not error_message_sent:
