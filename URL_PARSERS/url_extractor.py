@@ -98,6 +98,9 @@ def is_command_separated(text: str, command: str) -> bool:
 @reply_with_keyboard
 @background_handler(label="url_distractor")
 def url_distractor(app, message):
+    # Явно импортируем re в начале функции для избежания UnboundLocalError
+    import re
+    
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     logger.info(f"🔍 [DEBUG] url_distractor: message.text в начале функции='{message.text}'")

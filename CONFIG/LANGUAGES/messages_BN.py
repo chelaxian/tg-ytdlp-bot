@@ -761,8 +761,8 @@ class Messages(object):
     # Clean command messages
     
     # Admin command messages
-    ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
-    ACCESS_DENIED_ADMIN = "❌ Access denied. Admin only."
+    ADMIN_ACCESS_DENIED_MSG = "❌ অ্যাক্সেস অস্বীকার করা হয়েছে। শুধুমাত্র অ্যাডমিন।"
+    ACCESS_DENIED_ADMIN = "❌ অ্যাক্সেস অস্বীকার করা হয়েছে। শুধুমাত্র অ্যাডমিন।"
     WELCOME_MASTER = "স্বাগতম মাস্টার 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ দুঃখিত... ডাউনলোডের সময় কিছু ত্রুটি ঘটেছে।"
     SIZE_LIMIT_EXCEEDED = "❌ ফাইলের আকার {max_size_gb} GB সীমা অতিক্রম করেছে। অনুগ্রহ করে অনুমোদিত আকারের মধ্যে একটি ছোট ফাইল নির্বাচন করুন।"
@@ -818,7 +818,7 @@ class Messages(object):
     ADMIN_CACHE_CLEARED_MSG = "✅ URL এর জন্য ক্যাশ সফলভাবে পরিষ্কার করা হয়েছে:\n<code>{url}</code>"
     ADMIN_NO_CACHE_FOUND_MSG = "ℹ️ এই লিঙ্কের জন্য কোন ক্যাশ পাওয়া যায়নি।"
     ADMIN_ERROR_CLEARING_CACHE_MSG = "❌ ক্যাশ পরিষ্কার করতে ত্রুটি: {error}"
-    ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
+    ADMIN_ACCESS_DENIED_MSG = "❌ অ্যাক্সেস অস্বীকার করা হয়েছে। শুধুমাত্র অ্যাডমিন।"
     ADMIN_UPDATE_PORN_RUNNING_MSG = "⏳ Porn list update script চালানো হচ্ছে: {script_path}"
     ADMIN_SCRIPT_COMPLETED_MSG = "✅ স্ক্রিপ্ট সফলভাবে সম্পন্ন হয়েছে!"
     ADMIN_SCRIPT_COMPLETED_WITH_OUTPUT_MSG = "✅ স্ক্রিপ্ট সফলভাবে সম্পন্ন হয়েছে!\n\nআউটপুট:\n<code>{output}</code>"
@@ -986,7 +986,7 @@ class Messages(object):
     COOKIES_DOWNLOADING_YOUTUBE_MSG = "🔄 YouTube কুকি ডাউনলোড এবং পরীক্ষা করা হচ্ছে...\n\nচেষ্টা {attempt} এর {total}"
     
     # Additional admin command messages
-    ADMIN_ACCESS_DENIED_AUTO_DELETE_MSG = "❌ Access denied. Admin only."
+    ADMIN_ACCESS_DENIED_AUTO_DELETE_MSG = "❌ অ্যাক্সেস অস্বীকার করা হয়েছে। শুধুমাত্র অ্যাডমিন।"
     ADMIN_USER_LOGS_TOTAL_MSG = "মোট: <b>{total}</b>\n<b>{user_id}</b> - লগ (শেষ 10):\n\n{format_str}"
     
     # Additional keyboard command messages
@@ -1270,10 +1270,10 @@ class Messages(object):
     # Always Ask Menu Button Messages
     ALWAYS_ASK_VLC_ANDROID_BUTTON_MSG = "🎬 VLC (Android)"
     ALWAYS_ASK_CLOSE_BUTTON_MSG = "🔚 বন্ধ করুন"
-    ALWAYS_ASK_CODEC_BUTTON_MSG = "📼CODEC"
-    ALWAYS_ASK_DUBS_BUTTON_MSG = "🗣 DUBS"
-    ALWAYS_ASK_SUBS_BUTTON_MSG = "💬 SUBS"
-    ALWAYS_ASK_BROWSER_BUTTON_MSG = "🌐 Browser"
+    ALWAYS_ASK_CODEC_BUTTON_MSG = "📼কোডেক"
+    ALWAYS_ASK_DUBS_BUTTON_MSG = "🗣 ডাব"
+    ALWAYS_ASK_SUBS_BUTTON_MSG = "💬 সাবটাইটেল"
+    ALWAYS_ASK_BROWSER_BUTTON_MSG = "🌐 ব্রাউজার"
     ALWAYS_ASK_VLC_IOS_BUTTON_MSG = "🎬 VLC (iOS)"
     
     # Always Ask Menu Callback Messages
@@ -1914,7 +1914,7 @@ class Messages(object):
     DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_ANY_VARIANT_MSG = "get_cached_message_ids: কোন URL variant এর জন্য cache পাওয়া যায়নি, None ফেরত দেওয়া হচ্ছে"
     
     # Database cache auto-reload messages
-    DB_AUTO_CACHE_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
+    DB_AUTO_CACHE_ACCESS_DENIED_MSG = "❌ অ্যাক্সেস অস্বীকার করা হয়েছে। শুধুমাত্র অ্যাডমিন।"
     DB_AUTO_CACHE_RELOADING_UPDATED_MSG = "🔄 Auto Firebase cache reloading আপডেট করা হয়েছে!\n\n📊 Status: {status}\n⏰ Schedule: 00:00 থেকে প্রতি {interval} ঘন্টায়\n🕒 Next reload: {next_exec} ({delta_min} মিনিটে)"
     DB_AUTO_CACHE_RELOADING_STOPPED_MSG = "🛑 Auto Firebase cache reloading বন্ধ করা হয়েছে!\n\n📊 Status: ❌ DISABLED\n💡 পুনরায় সক্ষম করতে /auto_cache on ব্যবহার করুন"
     DB_AUTO_CACHE_INVALID_ARGUMENT_MSG = "❌ অবৈধ যুক্তি। /auto_cache on | off | N (1..168) ব্যবহার করুন"
@@ -2219,7 +2219,7 @@ class Messages(object):
     SUBS_AUTO_TRANS_BUTTON_MSG = "AUTO/TRANS"
 
     # Always Ask menu button messages
-    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
+    ALWAYS_ASK_LINK_BUTTON_MSG = "🔗লিংক"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # সাময়িকভাবে নিষ্ক্রিয়: poketube পরিষেবা ডাউন
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝বিবরণ"
 

@@ -43,7 +43,21 @@ def lang_command_handler(update, context):
             'bn': 'বাংলা',
             'pt': 'Português',
             'ur': 'اردو',
-            'id': 'Bahasa Indonesia'
+            'id': 'Bahasa Indonesia',
+            'ja': '日本語',
+            'tl': 'Filipino',
+            'ha': 'Hausa',
+            'vi': 'Tiếng Việt',
+            'it': 'Italiano',
+            'de': 'Deutsch',
+            'tr': 'Türkçe',
+            'ko': '한국어',
+            'pl': 'Polski',
+            'uk': 'Українська',
+            'fa': 'فارسی',
+            'th': 'ไทย',
+            'uz': 'Oʻzbek',
+            'kk': 'Қазақ'
         }
         
         if lang_arg in supported_langs:
@@ -80,7 +94,7 @@ def lang_command_handler(update, context):
             # Invalid language code
             messages = get_messages(user_id)
             error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG', 
-                "❌ Invalid language code. Supported: en, ru, ar, in, zh, es, fr, bn, pt, ur, id"
+                "❌ Invalid language code. Supported: en, ru, ar, in, zh, es, fr, bn, pt, ur, id, ja, tl, ha, vi, it, de, tr, ko, pl, uk, fa, th, uz, kk"
             )
             update.message.reply_text(error_msg)
             return
@@ -168,7 +182,21 @@ def lang_command(app, message):
             'bn': 'বাংলা',
             'pt': 'Português',
             'ur': 'اردو',
-            'id': 'Bahasa Indonesia'
+            'id': 'Bahasa Indonesia',
+            'ja': '日本語',
+            'tl': 'Filipino',
+            'ha': 'Hausa',
+            'vi': 'Tiếng Việt',
+            'it': 'Italiano',
+            'de': 'Deutsch',
+            'tr': 'Türkçe',
+            'ko': '한국어',
+            'pl': 'Polski',
+            'uk': 'Українська',
+            'fa': 'فارسی',
+            'th': 'ไทย',
+            'uz': 'Oʻzbek',
+            'kk': 'Қазақ'
         }
         
         if lang_arg in supported_langs:
@@ -207,7 +235,7 @@ def lang_command(app, message):
             # Invalid language code
             messages = safe_get_messages(user_id)
             error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG', 
-                "❌ Invalid language code. Supported: en, ru, ar, in, zh, es, fr, bn, pt, ur, id"
+                "❌ Invalid language code. Supported: en, ru, ar, in, zh, es, fr, bn, pt, ur, id, ja, tl, ha, vi, it, de, tr, ko, pl, uk, fa, th, uz, kk"
             )
             safe_send_message(user_id, error_msg, message=message)
             return

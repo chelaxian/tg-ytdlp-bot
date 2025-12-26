@@ -129,9 +129,9 @@ def _should_handle_group_command(app, message):
     Правила:
     - В личных чатах: всегда обрабатывать
     - В группах:
-      - Если команда содержит @mention и это не имя текущего бота - НЕ обрабатывать
-      - Если команда содержит @mention и это имя текущего бота - обрабатывать
-      - Если команда НЕ содержит @mention - обрабатывать (любой бот может ответить)
+      - Если команда содержит @mention СЛИТНО с командой (например /vid@bot_name) и это не имя текущего бота - НЕ обрабатывать
+      - Если команда содержит @mention СЛИТНО с командой и это имя текущего бота - обрабатывать
+      - Если команда НЕ содержит @mention СЛИТНО с командой - обрабатывать (любой бот может ответить)
     
     Returns:
         bool: True если команда должна быть обработана, False иначе
@@ -140,31 +140,34 @@ def _should_handle_group_command(app, message):
     if message.chat.type in (enums.ChatType.PRIVATE, enums.ChatType.BOT):
         return True
     
-    # В группах проверяем @mention
+    # В группах проверяем @mention только для формата /команда@bot_name (слитно)
     if message.chat.type in (enums.ChatType.GROUP, enums.ChatType.SUPERGROUP, enums.ChatType.CHANNEL):
         text = (message.text or "").strip()
         
-        # Проверяем наличие @mention в команде
-        # Формат команды: /vid@bot_name URL или /vid @bot_name URL
-        mention_pattern = r'@(\w+)'
-        mentions = re.findall(mention_pattern, text)
+        # Проверяем наличие @mention СЛИТНО с командой (формат: /vid@bot_name)
+        # Используем паттерн, который ищет @mention сразу после команды без пробела
+        # Это исключает упоминания в URL (например, https://www.tiktok.com/@user)
+        command_mention_pattern = r'^/(\w+)@(\w+)'
+        match = re.match(command_mention_pattern, text)
         
-        if mentions:
-            # Если есть упоминания, проверяем, есть ли среди них имя текущего бота
+        if match:
+            # Найдено упоминание слитно с командой
+            mentioned_bot = match.group(2).lower()
             bot_username = _get_bot_username()
+            
             if bot_username:
-                # Проверяем, есть ли упоминание текущего бота
-                for mention in mentions:
-                    if mention.lower() == bot_username.lower():
-                        # Упоминание текущего бота найдено - обрабатываем
-                        return True
-                # Упоминания есть, но не текущего бота - не обрабатываем
-                return False
+                # Проверяем, соответствует ли упоминание текущему боту
+                if mentioned_bot == bot_username.lower():
+                    # Упоминание текущего бота - обрабатываем
+                    return True
+                else:
+                    # Упоминание другого бота - не обрабатываем
+                    return False
             else:
                 # Не удалось получить username бота - обрабатываем для совместимости
                 return True
         
-        # Нет упоминаний - любой бот может обработать
+        # Нет упоминания слитно с командой - любой бот может обработать
         return True
     
     # Для других типов чатов обрабатываем
@@ -462,7 +465,7 @@ def cleanup_on_exit():
     except Exception as e:
         print(messages.MAGIC_ERROR_DURING_CLEANUP_MSG.format(error=e))
 
-# Register cleanup function
+# Register cleanup function 
 atexit.register(cleanup_on_exit)
 
 # Register signal handlers for graceful shutdown
