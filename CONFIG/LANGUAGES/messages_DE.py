@@ -756,7 +756,7 @@ Verwenden Sie:
     FORMAT_CODEC_SET_MSG = "✅ Codec set to {codec}"
     
     # Cookies command messages
-    COOKIES_BROWSER_CHOICE_UPDATED_MSG = "✅ Browser choice updated."
+    COOKIES_BROWSER_CHOICE_UPDATED_MSG = "✅ Browser-Auswahl aktualisiert."
     
     # Clean command messages
     
@@ -936,7 +936,7 @@ Verwenden Sie:
     ARGS_CHECK_CERTIFICATE_SHORT_MSG = "Zertifikat prüfen"
     ARGS_LIVE_FROM_START_SHORT_MSG = "Live Start"
     ARGS_NO_LIVE_FROM_START_SHORT_MSG = "Kein Live Start"
-    ARGS_USER_AGENT_SHORT_MSG = "User Agent"
+    ARGS_USER_AGENT_SHORT_MSG = "User-Agent"
     ARGS_HLS_USE_MPEGTS_SHORT_MSG = "HLS MPEG-TS"
     ARGS_NO_PLAYLIST_SHORT_MSG = "Keine Wiedergabeliste"
     ARGS_NO_PART_SHORT_MSG = "Kein Part"
@@ -973,11 +973,11 @@ Verwenden Sie:
     # Additional cookies command messages
     COOKIES_FILE_TOO_LARGE_MSG = "❌ The file is too large. Maximum size is 100 KB."
     COOKIES_INVALID_FORMAT_MSG = "❌ Nur Dateien im folgenden Format sind erlaubt .txt."
-    COOKIES_INVALID_COOKIE_MSG = "❌ The file does not look like cookie.txt (there is no line '# Netscape HTTP Cookie File')."
-    COOKIES_ERROR_READING_MSG = "❌ Error reading file: {error}"
-    COOKIES_FILE_EXISTS_MSG = "✅ Cookie file exists and has correct format"
-    COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {service} cookie file is too large! Max 100KB, got {size}KB."
-    COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ {service} cookie file downloaded and saved as cookie.txt in your folder.</b>"
+    COOKIES_INVALID_COOKIE_MSG = "❌ Die Datei sieht nicht wie cookie.txt aus (es gibt keine Zeile '# Netscape HTTP Cookie File')."
+    COOKIES_ERROR_READING_MSG = "❌ Fehler beim Lesen der Datei: {error}"
+    COOKIES_FILE_EXISTS_MSG = "✅ Cookie-Datei existiert und hat das richtige Format"
+    COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {service} Cookie-Datei ist zu groß! Max. 100KB, erhalten {size}KB."
+    COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ {service} Cookie-Datei heruntergeladen und als cookie.txt in Ihrem Ordner gespeichert.</b>"
     COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ {service} Cookie-Quelle ist nicht verfügbar (Status {status}). Bitte versuchen Sie es später erneut."
     COOKIES_ERROR_DOWNLOADING_MSG = "❌ Fehler beim Herunterladen der {service} Cookie-Datei. Bitte versuchen Sie es später erneut."
     COOKIES_USER_PROVIDED_MSG = "<b>✅ Benutzer hat eine neue Cookie-Datei bereitgestellt.</b>"
@@ -1003,19 +1003,19 @@ Verwenden Sie:
     ADMIN_RELOADING_CACHE_MSG = "🔄 Firebase-Cache wird in den Speicher neu geladen..."
     
     # Additional cookies command messages
-    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ No COOKIE_URL configured. Use /cookie or upload cookie.txt."
+    COOKIES_NO_BROWSERS_NO_URL_MSG = "❌ Keine COOKIE_URL konfiguriert. Verwenden Sie /cookie oder laden Sie cookie.txt hoch."
     COOKIES_DOWNLOADING_FROM_URL_MSG = "📥 Cookies werden von Remote-URL heruntergeladen..."
-    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL must point to a .txt file."
-    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback cookie file is too large (>100KB)."
-    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube cookie file downloaded via fallback and saved as cookie.txt"
-    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
-    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
-    COOKIES_BROWSER_NOT_INSTALLED_MSG = "⚠️ {browser} browser not installed."
-    COOKIES_SAVED_USING_BROWSER_MSG = "✅ Cookies saved using browser: {browser}"
-    COOKIES_FAILED_TO_SAVE_MSG = "❌ Failed to save cookies: {error}"
-    COOKIES_YOUTUBE_WORKING_PROPERLY_MSG = "✅ YouTube cookies are working properly"
-    COOKIES_YOUTUBE_EXPIRED_INVALID_MSG = "❌ YouTube cookies are expired or invalid\n\nUse /cookie to get new cookies"
+    COOKIE_FALLBACK_URL_NOT_TXT_MSG = "❌ Fallback COOKIE_URL muss auf eine .txt-Datei zeigen."
+    COOKIE_FALLBACK_TOO_LARGE_MSG = "❌ Fallback-Cookie-Datei ist zu groß (>100KB)."
+    COOKIE_YT_FALLBACK_SAVED_MSG = "✅ YouTube-Cookie-Datei über Fallback heruntergeladen und als cookie.txt gespeichert"
+    COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback-Cookie-Quelle nicht verfügbar (Status {status}). Versuchen Sie /cookie oder laden Sie cookie.txt hoch."
+    COOKIE_FALLBACK_ERROR_MSG = "❌ Fehler beim Herunterladen des Fallback-Cookies. Versuchen Sie /cookie oder laden Sie cookie.txt hoch."
+    COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unerwarteter Fehler beim Herunterladen des Fallback-Cookies."
+    COOKIES_BROWSER_NOT_INSTALLED_MSG = "⚠️ Browser {browser} ist nicht installiert."
+    COOKIES_SAVED_USING_BROWSER_MSG = "✅ Cookies mit Browser gespeichert: {browser}"
+    COOKIES_FAILED_TO_SAVE_MSG = "❌ Fehler beim Speichern der Cookies: {error}"
+    COOKIES_YOUTUBE_WORKING_PROPERLY_MSG = "✅ YouTube-Cookies funktionieren ordnungsgemäß"
+    COOKIES_YOUTUBE_EXPIRED_INVALID_MSG = "❌ YouTube-Cookies sind abgelaufen oder ungültig\n\nVerwenden Sie /cookie, um neue Cookies zu erhalten"
     
     # Additional format command messages
     FORMAT_MENU_ADDITIONAL_MSG = "• <code>/format &lt;format_string&gt;</code> - benutzerdefiniertes Format\n• <code>/format 720</code> - 720p Qualität\n• <code>/format 4k</code> - 4K Qualität"
@@ -1025,12 +1025,12 @@ Verwenden Sie:
     FORMAT_MKV_TOGGLE_MSG = "MKV ist jetzt {status}"
     COOKIES_NO_REMOTE_URL_MSG = "❌ Keine Remote-URL konfiguriert"
     COOKIES_INVALID_FILE_FORMAT_MSG = "❌ Ungültiges Dateiformat"
-    COOKIES_FILE_TOO_LARGE_CALLBACK_MSG = "❌ File too large"
-    COOKIES_DOWNLOADED_SUCCESSFULLY_MSG = "✅ Cookies downloaded successfully"
+    COOKIES_FILE_TOO_LARGE_CALLBACK_MSG = "❌ Datei zu groß"
+    COOKIES_DOWNLOADED_SUCCESSFULLY_MSG = "✅ Cookies erfolgreich heruntergeladen"
     COOKIES_SERVER_ERROR_MSG = "❌ Serverfehler {status}"
-    COOKIES_DOWNLOAD_FAILED_MSG = "❌ Download failed"
-    COOKIES_UNEXPECTED_ERROR_MSG = "❌ Unexpected error"
-    COOKIES_BROWSER_NOT_INSTALLED_CALLBACK_MSG = "⚠️ Browser not installed."
+    COOKIES_DOWNLOAD_FAILED_MSG = "❌ Download fehlgeschlagen"
+    COOKIES_UNEXPECTED_ERROR_MSG = "❌ Unerwarteter Fehler"
+    COOKIES_BROWSER_NOT_INSTALLED_CALLBACK_MSG = "⚠️ Browser nicht installiert."
     COOKIES_MENU_CLOSED_MSG = "Menü geschlossen."
     COOKIES_HINT_CLOSED_MSG = "Cookie-Hinweis geschlossen."
     IMG_HELP_CLOSED_MSG = "Hilfe geschlossen."
@@ -1057,19 +1057,19 @@ Verwenden Sie:
     
     # Additional document caption messages
     MEDIAINFO_DOCUMENT_CAPTION_MSG = "<blockquote>📊 MediaInfo</blockquote>"
-    ADMIN_USER_LOGS_CAPTION_MSG = "{user_id} - all logs"
-    ADMIN_BOT_DATA_CAPTION_MSG = "{bot_name} - all {path}"
+    ADMIN_USER_LOGS_CAPTION_MSG = "{user_id} - alle Protokolle"
+    ADMIN_BOT_DATA_CAPTION_MSG = "{bot_name} - alle {path}"
     
     # Additional cookies command messages (missing ones)
     DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Download from Remote URL"
-    BROWSER_OPEN_BUTTON_MSG = "🌐 Open Browser"
+    BROWSER_OPEN_BUTTON_MSG = "🌐 Browser öffnen"
     SELECT_BROWSER_MSG = "Select a browser to download cookies from:"
     SELECT_BROWSER_NO_BROWSERS_MSG = "No browsers found on this system. You can download cookies from remote URL or monitor browser status:"
-    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Open Browser</b> - to monitor browser status in mini-app"
+    BROWSER_MONITOR_HINT_MSG = "🌐 <b>Browser öffnen</b> - um den Browser-Status in der Mini-App zu überwachen"
     COOKIES_FAILED_RUN_CHECK_MSG = "❌ /check_cookie konnte nicht ausgeführt werden"
-    COOKIES_FLOOD_LIMIT_MSG = "⏳ Flood limit. Try later."
-    COOKIES_FAILED_OPEN_BROWSER_MSG = "❌ Failed to open browser cookie menu"
-    COOKIES_SAVE_AS_HINT_CLOSED_MSG = "Save as cookie hint closed."
+    COOKIES_FLOOD_LIMIT_MSG = "⏳ Flood-Limit. Versuchen Sie es später."
+    COOKIES_FAILED_OPEN_BROWSER_MSG = "❌ Fehler beim Öffnen des Browser-Cookie-Menüs"
+    COOKIES_SAVE_AS_HINT_CLOSED_MSG = "Als Cookie-Hinweis speichern geschlossen."
     
     # Link command messages
     LINK_USAGE_MSG = "🔗 <b>Verwendung:</b>\n<code>/link [Qualität] URL</code>\n\n<b>Beispiele:</b>\n<blockquote>• /link https://youtube.com/watch?v=... - beste Qualität\n• /link 720 https://youtube.com/watch?v=... - 720p oder niedriger\n• /link 720p https://youtube.com/watch?v=... - wie oben\n• /link 4k https://youtube.com/watch?v=... - 4K oder niedriger\n• /link 8k https://youtube.com/watch?v=... - 8K oder niedriger</blockquote>\n\n<b>Qualität:</b> von 1 bis 10000 (z.B. 144, 240, 720, 1080)"
@@ -1085,7 +1085,7 @@ Verwenden Sie:
     LINK_ERROR_GETTING_MSG = "❌ <b>Fehler beim Abrufen des Links:</b>\n{error_msg}"
     
     # Additional cookies command messages (more)
-    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Invalid YouTube cookie index: {selected_index}. Available range is 1-{total_urls}"
+    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Ungültiger YouTube-Cookie-Index: {selected_index}. Verfügbarer Bereich ist 1-{total_urls}"
     COOKIES_DOWNLOADING_CHECKING_MSG = "🔄 YouTube-Cookies werden heruntergeladen und überprüft...\n\nVersuch {attempt} von {total}"
     COOKIES_DOWNLOADING_TESTING_MSG = "🔄 YouTube-Cookies werden heruntergeladen und überprüft...\n\nVersuch {attempt} von {total}\n🔍 Cookies werden getestet..."
     COOKIES_SUCCESS_VALIDATED_MSG = "✅ YouTube-Cookies erfolgreich heruntergeladen und validiert!\n\nVerwendete Quelle {source} von {total}"
@@ -1165,7 +1165,7 @@ Verwenden Sie:
     
     # Admin log messages
     ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Script not found: {script_path}"
-    ADMIN_FAILED_SEND_STATUS_LOG_MSG = "Failed to send initial status message"
+    ADMIN_FAILED_SEND_STATUS_LOG_MSG = "Fehler beim Senden der ersten Statusnachricht"
     ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Fehler beim Ausführen von {script_path}: {stdout}\n{stderr}"
     ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase-Cache von automatischer Aufgabe neu geladen."
     ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase-Cache von Administrator neu geladen."
@@ -1232,7 +1232,7 @@ Verwenden Sie:
     
     # Other handlers log messages
     HELP_MESSAGE_CLOSED_LOG_MSG = "Help message closed."
-    AUDIO_HELP_SHOWN_LOG_MSG = "Showed /audio help"
+    AUDIO_HELP_SHOWN_LOG_MSG = "/audio Hilfe angezeigt"
     PLAYLIST_HELP_REQUESTED_LOG_MSG = "User requested playlist help."
     PLAYLIST_HELP_CLOSED_LOG_MSG = "Wiedergabeliste-Hilfe geschlossen."
     AUDIO_HINT_CLOSED_LOG_MSG = "Audio-Hinweis geschlossen."
@@ -1249,8 +1249,8 @@ Verwenden Sie:
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Audio"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "Video"
     ALWAYS_ASK_VIDEO_TITLE_MSG = "Video"
-    ALWAYS_ASK_NEXT_BUTTON_MSG = "Next ▶️"
-    ALWAYS_ASK_PREV_BUTTON_MSG = "◀️ Prev"
+    ALWAYS_ASK_NEXT_BUTTON_MSG = "Weiter ▶️"
+    ALWAYS_ASK_PREV_BUTTON_MSG = "◀️ Zurück"
     SUBTITLES_NEXT_BUTTON_MSG = "Next ➡️"
     PORN_ALL_TEXT_FIELDS_EMPTY_MSG = "ℹ️ All text fields are empty"
     SENDER_VIDEO_DURATION_MSG = "Video-Dauer:"
@@ -1278,7 +1278,7 @@ Verwenden Sie:
     ALWAYS_ASK_VLC_IOS_BUTTON_MSG = "🎬 VLC (iOS)"
     
     # Always Ask Menu Callback Messages
-    ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Getting direct link..."
+    ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Direkten Link abrufen..."
     ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Verfügbare Formate werden abgerufen..."
     ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Videobeschreibung wird abgerufen..."
     AA_ERROR_GETTING_CAPTION_MSG = "❌ Fehler beim Abrufen der Beschreibung: {error_msg}"

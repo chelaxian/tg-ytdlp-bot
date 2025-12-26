@@ -306,7 +306,7 @@ Use:
     
     # UI Messages - Status and Progress
     CHECKING_CACHE_MSG = "🔄 <b>Checking cache...</b>\n\n<code>{url}</code>"
-    PROCESSING_MSG = "🔄 Processing..."
+    PROCESSING_MSG = "🔄 Memproses..."
     DOWNLOADING_MSG = "📥 <b>Downloading media...</b>\n\n"
 
     DOWNLOADING_IMAGE_MSG = "📥 <b>Downloading image...</b>\n\n"
@@ -314,20 +314,20 @@ Use:
     DOWNLOAD_COMPLETE_MSG = "✅ <b>Download complete</b>\n\n"
     
     # Download status messages
-    DOWNLOADED_STATUS_MSG = "Downloaded:"
-    SENT_STATUS_MSG = "Sent:"
-    PENDING_TO_SEND_STATUS_MSG = "Pending to send:"
-    TITLE_LABEL_MSG = "Title:"
-    MEDIA_COUNT_LABEL_MSG = "Media count:"
-    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Download finished, processing audio..."
-    VIDEO_PROCESSING_MSG = "📽 Video is processing..."
+    DOWNLOADED_STATUS_MSG = "Diunduh:"
+    SENT_STATUS_MSG = "Terkirim:"
+    PENDING_TO_SEND_STATUS_MSG = "Menunggu pengiriman:"
+    TITLE_LABEL_MSG = "Judul:"
+    MEDIA_COUNT_LABEL_MSG = "Jumlah media:"
+    AUDIO_DOWNLOAD_FINISHED_PROCESSING_MSG = "Pengunduhan selesai, memproses audio..."
+    VIDEO_PROCESSING_MSG = "📽 Video sedang diproses..."
     WAITING_HOURGLASS_MSG = "⌛️"
     
     # Cache Messages
     SENT_FROM_CACHE_MSG = "✅ <b>Sent from cache</b>\n\nSent albums: <b>{count}</b>"
-    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video successfully sent from cache."
-    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Playlist videos sent from cache ({cached}/{total} files)."
-    CACHE_PARTIAL_MSG = "📥 {cached}/{total} videos sent from cache, downloading missing ones..."
+    VIDEO_SENT_FROM_CACHE_MSG = "✅ Video berhasil dikirim dari cache."
+    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ Daftar putar video yang dikirim dari cache ({cached}/{total} file)."
+    CACHE_PARTIAL_MSG = "📥 {cached}/{total} video dikirim dari cache, download yang hilang..."
     CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Sent from cache: {cached}\n🔄 Continuing download..."
     FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Could not analyze media, proceeding with maximum allowed range (1-{fallback_limit})..."
     FALLBACK_DETERMINE_COUNT_MSG = "🔄 Could not determine media count, proceeding with maximum allowed range (1-{total_limit})..."
@@ -338,10 +338,10 @@ Use:
 
     ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
 
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
-    ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
-    ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
+    ERROR_SENDING_VIDEO_MSG = "❌ Kesalahan saat mengirim video: {error}"
+    ERROR_UNKNOWN_MSG = "❌ Kesalahan tidak diketahui: {error}"
+    ERROR_NO_DISK_SPACE_MSG = "❌ Ruang disk tidak cukup untuk mengunduh video."
+    ERROR_FILE_SIZE_LIMIT_MSG = "❌ Ukuran file melebihi batas {limit} GB. Silakan pilih file yang lebih kecil dalam ukuran yang diizinkan."
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
 
@@ -350,7 +350,7 @@ Use:
     RATE_LIMIT_NO_TIME_MSG = "⚠️ Telegram has limited message sending.\n⏳ Please wait: \nTo update timer send URL again 2 times."
     
     # Subtitles Messages
-    SUBTITLES_FAILED_MSG = "⚠️ Failed to download subtitles"
+    SUBTITLES_FAILED_MSG = "⚠️ Gagal mengunduh subtitle"
 
     # Video Processing Messages
 
@@ -367,14 +367,14 @@ Use:
     # NSFW Paid Content Messages
 
     # Callback Error Messages
-    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Error: Original message not found."
+    ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Kesalahan: Pesan asli tidak ditemukan."
 
     # Tags Error Messages
     TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
     
     # Playlist Messages
-    PLAYLIST_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    PLAYLIST_CACHE_SENT_MSG = "✅ Sent from cache: {cached}/{total} files."
+    PLAYLIST_SENT_MSG = "✅ Video playlist yang dikirimkan: {sent}/{total} file."
+    PLAYLIST_CACHE_SENT_MSG = "✅ Dikirim dari cache: {cached}/{total} file."
     
     # Failed Stream Messages
     FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
@@ -393,10 +393,10 @@ Use:
     COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Fallback cookie source unavailable (status {status}). Try /cookie or upload cookie.txt."
     COOKIE_FALLBACK_ERROR_MSG = "❌ Error downloading fallback cookie. Try /cookie or upload cookie.txt."
     COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Unexpected error during fallback cookie download."
-    BTN_CLOSE = "🔚Close"
+    BTN_CLOSE = "🔚Tutup"
     
     # Args command messages
-    ARGS_INVALID_BOOL_MSG = "❌ Invalid boolean value"
+    ARGS_INVALID_BOOL_MSG = "❌ Nilai boolean tidak valid"
     ARGS_CLOSED_MSG = "Ditutup"
     ARGS_ALL_RESET_MSG = "✅ Semua argumen direset"
     ARGS_RESET_ERROR_MSG = "❌ Kesalahan mereset argumen"
@@ -411,10 +411,10 @@ Use:
     ARGS_XFF_EXAMPLES_MSG = "<b>Examples:</b>\n• <code>default</code> - Use default XFF strategy\n• <code>never</code> - Never use XFF header\n• <code>US</code> - United States country code\n• <code>GB</code> - United Kingdom country code\n• <code>DE</code> - Germany country code\n• <code>FR</code> - France country code\n• <code>JP</code> - Japan country code\n• <code>192.168.1.0/24</code> - IP block (CIDR)\n• <code>10.0.0.0/8</code> - Private IP range\n• <code>203.0.113.0/24</code> - Public IP block\n\n"
     ARGS_XFF_NOTE_MSG = "<b>Note:</b> This replaces --geo-bypass options. Use any 2-letter country code or IP block in CIDR notation.\n\n"
     ARGS_EXAMPLE_MSG = "<b>Example:</b> <code>{placeholder}</code>\n\n"
-    ARGS_SEND_VALUE_MSG = "Please send your new value."
+    ARGS_SEND_VALUE_MSG = "Silakan kirimkan nilai baru Anda."
     ARGS_NUMBER_PARAM_MSG = "<b>🔢 {description}</b>\n\n"
     ARGS_RANGE_MSG = "<b>Range:</b> {min_val} - {max_val}\n\n"
-    ARGS_SEND_NUMBER_MSG = "Please send a number."
+    ARGS_SEND_NUMBER_MSG = "Silakan kirim nomor."
     ARGS_JSON_PARAM_MSG = "<b>🔧 {description}</b>\n\n"
     ARGS_HTTP_HEADERS_EXAMPLES_MSG = "<b>Examples:</b>\n<code>{placeholder}</code>\n<code>{{\"X-API-Key\": \"your-key\"}}</code>\n<code>{{\"Authorization\": \"Bearer token\"}}</code>\n<code>{{\"Accept\": \"application/json\"}}</code>\n<code>{{\"X-Custom-Header\": \"value\"}}</code>\n\n"
     ARGS_HTTP_HEADERS_NOTE_MSG = "<b>Note:</b> These headers will be added to existing Referer and User-Agent headers.\n\n"
@@ -476,27 +476,27 @@ Use:
     )
     
     # Additional missing messages
-    PLEASE_WAIT_MSG = "⏳ Please wait..."
-    ERROR_OCCURRED_SHORT_MSG = "❌ Error occurred"
+    PLEASE_WAIT_MSG = "⏳ Harap tunggu..."
+    ERROR_OCCURRED_SHORT_MSG = "❌ Terjadi kesalahan"
 
     # Args command messages (continued)
     ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_INPUT_DANGEROUS_MSG = "❌ Input contains potentially dangerous content: {pattern}"
-    ARGS_INPUT_TOO_LONG_MSG = "❌ Input too long (max 1000 characters)"
-    ARGS_INVALID_URL_MSG = "❌ Invalid URL format. Must start with http:// or https://"
-    ARGS_INVALID_JSON_MSG = "❌ Invalid JSON format"
-    ARGS_NUMBER_RANGE_MSG = "❌ Number must be between {min_val} and {max_val}"
-    ARGS_INVALID_NUMBER_MSG = "❌ Invalid number format"
-    ARGS_DATE_FORMAT_MSG = "❌ Date must be in YYYYMMDD format (e.g., 20230930)"
-    ARGS_YEAR_RANGE_MSG = "❌ Year must be between 1900 and 2100"
-    ARGS_MONTH_RANGE_MSG = "❌ Month must be between 01 and 12"
-    ARGS_DAY_RANGE_MSG = "❌ Day must be between 01 and 31"
-    ARGS_INVALID_DATE_MSG = "❌ Invalid date format"
-    ARGS_INVALID_XFF_MSG = "❌ XFF must be 'default', 'never', country code (e.g., US), or IP block (e.g., 192.168.1.0/24)"
-    ARGS_NO_CUSTOM_MSG = "No custom arguments set. All parameters use default values."
-    ARGS_RESET_SUCCESS_MSG = "✅ All arguments reset to defaults."
-    ARGS_TEXT_TOO_LONG_MSG = "❌ Text too long. Maximum 500 characters."
-    ARGS_ERROR_PROCESSING_MSG = "❌ Error processing input. Please try again."
+    ARGS_INPUT_DANGEROUS_MSG = "❌ Masukan berisi konten yang berpotensi berbahaya: {pattern}"
+    ARGS_INPUT_TOO_LONG_MSG = "❌ Input terlalu panjang (maks 1000 karakter)"
+    ARGS_INVALID_URL_MSG = "❌ Format URL tidak valid. Harus dimulai dengan http:// atau https://"
+    ARGS_INVALID_JSON_MSG = "❌ Format JSON tidak valid"
+    ARGS_NUMBER_RANGE_MSG = "❌ Nomor harus antara {min_val} dan {max_val}"
+    ARGS_INVALID_NUMBER_MSG = "❌ Format angka tidak valid"
+    ARGS_DATE_FORMAT_MSG = "❌ Tanggal harus dalam format YYYYMMDD (misalnya 20230930)"
+    ARGS_YEAR_RANGE_MSG = "❌ Tahun harus antara tahun 1900 dan 2100"
+    ARGS_MONTH_RANGE_MSG = "❌ Bulan harus antara 01 dan 12"
+    ARGS_DAY_RANGE_MSG = "❌ Hari harus antara 01 dan 31"
+    ARGS_INVALID_DATE_MSG = "❌ Format tanggal tidak valid"
+    ARGS_INVALID_XFF_MSG = "❌ XFF harus 'default', 'tidak pernah', kode negara (mis., AS), atau blok IP (mis., 192.168.1.0/24)"
+    ARGS_NO_CUSTOM_MSG = "Tidak ada argumen khusus yang ditetapkan. Semua parameter menggunakan nilai default."
+    ARGS_RESET_SUCCESS_MSG = "✅ Semua argumen disetel ulang ke default."
+    ARGS_TEXT_TOO_LONG_MSG = "❌ Kirim pesan terlalu panjang. Maksimum 500 karakter."
+    ARGS_ERROR_PROCESSING_MSG = "❌ Kesalahan saat memproses masukan. Silakan coba lagi."
     ARGS_BOOL_INPUT_MSG = "❌ Silakan masukkan 'True' atau 'False' untuk opsi Kirim Sebagai File."
     ARGS_INVALID_NUMBER_INPUT_MSG = "❌ Silakan berikan nomor yang valid."
     ARGS_BOOL_VALUE_REQUEST_MSG = "Silakan kirim <code>True</code> atau <code>False</code> untuk mengaktifkan/menonaktifkan opsi ini."
@@ -589,7 +589,7 @@ Use:
     SEARCH_CLOSED_MSG = "Ditutup"
     
     # Proxy command messages
-    PROXY_ENABLED_MSG = "✅ Proxy {status}."
+    PROXY_ENABLED_MSG = "✅ Proksi {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kesalahan menyimpan pengaturan proxy."
     PROXY_MENU_TEXT_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy untuk semua operasi yt-dlp?"
     PROXY_MENU_TEXT_MULTIPLE_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy ({count} tersedia) untuk semua operasi yt-dlp?\n\nKetika diaktifkan, proxy akan dipilih menggunakan metode {method}."
@@ -627,7 +627,7 @@ Use:
     NSFW_BLUR_ENABLED_CALLBACK_MSG = "Blur NSFW diaktifkan."
     
     # MediaInfo command messages
-    MEDIAINFO_ENABLED_MSG = "✅ MediaInfo {status}."
+    MEDIAINFO_ENABLED_MSG = "✅ Info Media {status}."
     MEDIAINFO_MENU_TITLE_MSG = "Aktifkan atau nonaktifkan pengiriman MediaInfo untuk file yang diunduh?"
     MEDIAINFO_MENU_CLOSED_MSG = "Menu ditutup."
     MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo diaktifkan. Setelah mengunduh, info file akan dikirim."
@@ -824,33 +824,33 @@ Use:
     ADMIN_SCRIPT_COMPLETED_WITH_OUTPUT_MSG = "✅ Skrip selesai dengan sukses!\n\nOutput:\n<code>{output}</code>"
     ADMIN_SCRIPT_FAILED_MSG = "❌ Skrip gagal dengan kode return {returncode}:\n<code>{error}</code>"
     ADMIN_ERROR_RUNNING_SCRIPT_MSG = "❌ Kesalahan menjalankan skrip: {error}"
-    ADMIN_RELOADING_PORN_MSG = "⏳ Reloading porn and domain-related caches..."
+    ADMIN_RELOADING_PORN_MSG = "⏳ Memuat ulang cache porno dan terkait domain..."
     ADMIN_PORN_CACHES_RELOADED_MSG = (
-        "✅ Porn caches reloaded successfully!\n\n"
-        "📊 Current cache status:\n"
-        "• Porn domains: {porn_domains}\n"
-        "• Porn keywords: {porn_keywords}\n"
-        "• Supported sites: {supported_sites}\n"
-        "• WHITELIST: {whitelist}\n"
-        "• GREYLIST: {greylist}\n"
-        "• BLACK_LIST: {black_list}\n"
-        "• WHITE_KEYWORDS: {white_keywords}\n"
+        "✅ Cache pornografi berhasil dimuat ulang!\n\n"
+        "📊 Status cache saat ini:\n"
+        "• Domain pornografi: {porn_domains}\n"
+        "• Kata kunci pornografi: {porn_keywords}\n"
+        "• Situs yang didukung: {supported_sites}\n"
+        "• DAFTAR PUTIH: {whitelist}\n"
+        "• DAFTAR ABU-ABU: {greylist}\n"
+        "• DAFTAR HITAM: {black_list}\n"
+        "• KATA KUNCI PUTIH: {white_keywords}\n"
         "• PROXY_DOMAINS: {proxy_domains}\n"
         "• PROXY_2_DOMAINS: {proxy_2_domains}\n"
         "• CLEAN_QUERY: {clean_query}\n"
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
     )
-    ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Error reloading porn cache: {error}"
-    ADMIN_CHECK_PORN_USAGE_MSG = "❌ Please provide a URL to check.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
-    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
-    ADMIN_CHECKING_URL_MSG = "🔍 Checking URL for NSFW content...\n<code>{url}</code>"
+    ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Kesalahan saat memuat ulang cache porno: {error}"
+    ADMIN_CHECK_PORN_USAGE_MSG = "❌ Harap berikan URL untuk diperiksa.\nPenggunaan: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Harap berikan URL yang valid.\nPenggunaan: <code>/check_porn &lt;URL&gt;</code>"
+    ADMIN_CHECKING_URL_MSG = "🔍 Memeriksa URL untuk konten NSFW...\n<code>{url}</code>"
     ADMIN_PORN_CHECK_RESULT_MSG = (
-        "{status_icon} <b>Porn Check Result</b>\n\n"
+        "{status_icon} <b>Hasil Pemeriksaan Pornografi</b>\n\n"
         "<b>URL:</b> <code>{url}</code>\n"
         "<b>Status:</b> <b>{status_text}</b>\n\n"
-        "<b>Explanation:</b>\n{explanation}"
+        "<b>Penjelasan:</b>\n{explanation}"
     )
-    ADMIN_ERROR_CHECKING_URL_MSG = "❌ Error checking URL: {error}"
+    ADMIN_ERROR_CHECKING_URL_MSG = "❌ Kesalahan memeriksa URL: {error}"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "Cookies telah dibersihkan."
@@ -930,7 +930,7 @@ Use:
     
     # Args command short descriptions
     ARGS_IMPERSONATE_SHORT_MSG = "Meniru"
-    ARGS_REFERER_SHORT_MSG = "Referer"
+    ARGS_REFERER_SHORT_MSG = "Referensi"
     ARGS_GEO_BYPASS_SHORT_MSG = "Lewati Geo"
     ARGS_CHECK_CERTIFICATE_SHORT_MSG = "Cek Sertifikat"
     ARGS_LIVE_FROM_START_SHORT_MSG = "Mulai Langsung"
@@ -1129,58 +1129,58 @@ Use:
     SUBS_SET_LANGUAGE_MSG = "• `/subs id` - atur bahasa\n"
     SUBS_SET_LANGUAGE_AUTO_MSG = "• `/subs id auto` - atur bahasa dengan AUTO/TRANS diaktifkan\n\n"
     SUBS_SET_LANGUAGE_CODE_MSG = "• <code>/subs on</code> - aktifkan mode Selalu Tanya\n"
-    SUBS_AUTO_SUBS_TEXT = " (auto-subs)"
+    SUBS_AUTO_SUBS_TEXT = "(berlangganan otomatis)"
     SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Mode auto-subs {status}"
     
     # Subtitles log messages
-    SUBS_DISABLED_LOG_MSG = "SUBS disabled via command: {arg}"
-    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Always Ask enabled via command: {arg}"
-    SUBS_LANGUAGE_SET_LOG_MSG = "SUBS language set via command: {arg}"
-    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "SUBS language + auto mode set via command: {arg} auto"
-    SUBS_MENU_OPENED_LOG_MSG = "User opened /subs menu."
-    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "User set subtitle language to: {lang_code}"
-    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "User toggled AUTO/TRANS mode to: {new_auto}"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "User toggled Always Ask mode to: {new_always_ask}"
+    SUBS_DISABLED_LOG_MSG = "SUBS dinonaktifkan melalui perintah: {arg}"
+    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Selalu Tanya diaktifkan melalui perintah: {arg}"
+    SUBS_LANGUAGE_SET_LOG_MSG = "Bahasa SUBS diatur melalui perintah: {arg}"
+    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "Bahasa SUBS + mode otomatis diatur melalui perintah: {arg} otomatis"
+    SUBS_MENU_OPENED_LOG_MSG = "Pengguna membuka /subs menu."
+    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "Pengguna mengatur bahasa subtitle ke: {lang_code}"
+    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "Pengguna mengalihkan mode AUTO/TRANS ke: {new_auto}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Pengguna mengalihkan mode Selalu Tanya ke: {new_always_ask}"
     
     # Cookies log messages
-    COOKIES_BROWSER_REQUESTED_LOG_MSG = "User requested cookies from browser."
-    COOKIES_BROWSER_SELECTION_SENT_LOG_MSG = "Browser selection keyboard sent with installed browsers only."
-    COOKIES_BROWSER_SELECTION_CLOSED_LOG_MSG = "Browser selection closed."
-    COOKIES_FALLBACK_SUCCESS_LOG_MSG = "Fallback COOKIE_URL used successfully (source hidden)"
-    COOKIES_FALLBACK_FAILED_LOG_MSG = "Fallback COOKIE_URL failed: status={status} (hidden)"
-    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "Fallback COOKIE_URL unexpected error: {error_type}: {error}"
-    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "Browser {browser} not installed."
-    COOKIES_SAVED_BROWSER_LOG_MSG = "Cookies saved using browser: {browser}"
-    COOKIES_FILE_SAVED_USER_LOG_MSG = "Cookie file saved for user {user_id}."
-    COOKIES_FILE_WORKING_LOG_MSG = "Cookie file exists, has correct format, and YouTube cookies are working."
-    COOKIES_FILE_EXPIRED_LOG_MSG = "Cookie file exists and has correct format, but YouTube cookies are expired."
-    COOKIES_FILE_CORRECT_FORMAT_LOG_MSG = "Cookie file exists and has correct format."
-    COOKIES_FILE_INCORRECT_FORMAT_LOG_MSG = "Cookie file exists but has incorrect format."
-    COOKIES_FILE_NOT_FOUND_LOG_MSG = "Cookie file not found."
-    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "{service} cookie URL is empty for user {user_id}."
-    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "{service} cookie URL is not .txt (hidden)"
-    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "{service} cookie file too large: {size} bytes (source hidden)"
-    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "{service} cookie file downloaded for user {user_id} (source hidden)."
+    COOKIES_BROWSER_REQUESTED_LOG_MSG = "Pengguna meminta cookie dari browser."
+    COOKIES_BROWSER_SELECTION_SENT_LOG_MSG = "Keyboard pilihan browser dikirim hanya dengan browser yang diinstal."
+    COOKIES_BROWSER_SELECTION_CLOSED_LOG_MSG = "Pilihan browser ditutup."
+    COOKIES_FALLBACK_SUCCESS_LOG_MSG = "COOKIE_URL cadangan berhasil digunakan (sumber tersembunyi)"
+    COOKIES_FALLBACK_FAILED_LOG_MSG = "COOKIE_URL pengganti gagal: status={status} (tersembunyi)"
+    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "Kesalahan tak terduga COOKIE_URL cadangan: {error_type}: {error}"
+    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "Peramban {browser} tidak terpasang."
+    COOKIES_SAVED_BROWSER_LOG_MSG = "Cookie disimpan menggunakan browser: {browser}"
+    COOKIES_FILE_SAVED_USER_LOG_MSG = "File cookie disimpan untuk pengguna {user_id}."
+    COOKIES_FILE_WORKING_LOG_MSG = "File cookie ada, formatnya benar, dan cookie YouTube berfungsi."
+    COOKIES_FILE_EXPIRED_LOG_MSG = "File cookie ada dan memiliki format yang benar, namun cookie YouTube telah kedaluwarsa."
+    COOKIES_FILE_CORRECT_FORMAT_LOG_MSG = "File cookie ada dan memiliki format yang benar."
+    COOKIES_FILE_INCORRECT_FORMAT_LOG_MSG = "File cookie ada tetapi formatnya salah."
+    COOKIES_FILE_NOT_FOUND_LOG_MSG = "File kue tidak ditemukan."
+    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "{service} URL cookie kosong untuk pengguna {user_id}."
+    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "{service} URL cookie bukan .txt (tersembunyi)"
+    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "{service} file cookie terlalu besar: {size} bytes (sumber tersembunyi)"
+    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "{service} file cookie diunduh untuk pengguna {user_id} (sumber tersembunyi)."
     
     # Admin log messages
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Script not found: {script_path}"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Skrip tidak ditemukan: {script_path}"
     ADMIN_FAILED_SEND_STATUS_LOG_MSG = "Gagal mengirim pesan status awal"
     ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Error running {script_path}: {stdout}\n{stderr}"
-    ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase cache reloaded by auto task."
-    ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase cache reloaded by admin."
-    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Error reloading Firebase cache: {error}"
-    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Broadcast initiated. Text:\n{broadcast_text}"
-    ADMIN_BROADCAST_SENT_LOG_MSG = "Broadcast message sent to all users."
-    ADMIN_BROADCAST_FAILED_LOG_MSG = "Failed to broadcast message: {error}"
-    ADMIN_CACHE_CLEARED_LOG_MSG = "Admin {user_id} cleared cache for URL: {url}"
-    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "Admin {user_id} started porn list update script: {script_path}"
-    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "Porn list update script completed successfully by admin {user_id}"
-    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "Porn list update script failed by admin {user_id}: {error}"
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Admin {user_id} tried to run non-existent script: {script_path}"
-    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "Error running porn update script by admin {user_id}: {error}"
+    ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Cache Firebase dimuat ulang dengan tugas otomatis."
+    ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Cache Firebase dimuat ulang oleh admin."
+    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Terjadi kesalahan saat memuat ulang cache Firebase: {error}"
+    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Siaran dimulai. Teks:\n{broadcast_text}"
+    ADMIN_BROADCAST_SENT_LOG_MSG = "Pesan siaran dikirim ke semua pengguna."
+    ADMIN_BROADCAST_FAILED_LOG_MSG = "Gagal menyiarkan pesan: {error}"
+    ADMIN_CACHE_CLEARED_LOG_MSG = "Admin {user_id} membersihkan cache untuk URL: {url}"
+    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "Admin {user_id} memulai skrip pembaruan daftar porno: {script_path}"
+    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "Skrip pembaruan daftar porno berhasil diselesaikan oleh admin {user_id}"
+    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "Skrip pembaruan daftar porno gagal oleh admin {user_id}: {error}"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Admin {user_id} mencoba menjalankan skrip yang tidak ada: {script_path}"
+    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "Kesalahan saat menjalankan skrip pembaruan porno oleh admin {user_id}: {error}"
     ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "Admin {user_id} memulai reload cache porn"
-    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "Error reloading porn cache by admin {user_id}: {error}"
-    ADMIN_PORN_CHECK_LOG_MSG = "Admin {user_id} checked URL for NSFW: {url} - Result: {status}"
+    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "Kesalahan saat memuat ulang cache porno oleh admin {user_id}: {error}"
+    ADMIN_PORN_CHECK_LOG_MSG = "Admin {user_id} memeriksa URL untuk NSFW: {url} - Hasil: {status}"
     
     # Format log messages
     FORMAT_CHANGE_REQUESTED_LOG_MSG = "User requested format change."
@@ -1201,90 +1201,90 @@ Use:
     FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Menu format kustom ditutup"
     
     # Link log messages
-    LINK_EXTRACTED_LOG_MSG = "Direct link extracted for user {user_id} from {url}"
-    LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link for user {user_id} from {url}: {error}"
-    LINK_COMMAND_ERROR_LOG_MSG = "Error in link command for user {user_id}: {error}"
+    LINK_EXTRACTED_LOG_MSG = "Tautan langsung diekstraksi untuk pengguna {user_id} dari {url}"
+    LINK_EXTRACTION_FAILED_LOG_MSG = "Gagal mengekstrak tautan langsung untuk pengguna {user_id} dari {url}: {error}"
+    LINK_COMMAND_ERROR_LOG_MSG = "Kesalahan dalam perintah tautan untuk pengguna {user_id}: {error}"
     
     # Keyboard log messages
-    KEYBOARD_SET_LOG_MSG = "User {user_id} set keyboard to {setting}"
-    KEYBOARD_SET_CALLBACK_LOG_MSG = "User {user_id} set keyboard to {setting}"
+    KEYBOARD_SET_LOG_MSG = "Pengguna {user_id} menyetel keyboard ke {setting}"
+    KEYBOARD_SET_CALLBACK_LOG_MSG = "Pengguna {user_id} menyetel keyboard ke {setting}"
     
     # MediaInfo log messages
-    MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo set via command: {arg}"
-    MEDIAINFO_MENU_OPENED_LOG_MSG = "User opened /mediainfo menu."
-    MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: closed."
-    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo enabled."
-    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo disabled."
+    MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo diatur melalui perintah: {arg}"
+    MEDIAINFO_MENU_OPENED_LOG_MSG = "Pengguna membuka menu /mediainfo."
+    MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: ditutup."
+    MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo diaktifkan."
+    MEDIAINFO_DISABLED_LOG_MSG = "MediaInfo dinonaktifkan."
     
     # Split log messages
-    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "Split size set to {size} bytes via argument."
-    SPLIT_MENU_OPENED_LOG_MSG = "User opened /split menu."
-    SPLIT_SELECTION_CLOSED_LOG_MSG = "Split selection closed."
-    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Split size set to {size} bytes."
+    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "Ukuran pemisahan diatur ke {size} byte melalui argumen."
+    SPLIT_MENU_OPENED_LOG_MSG = "Pengguna membuka/membagi menu."
+    SPLIT_SELECTION_CLOSED_LOG_MSG = "Seleksi terpisah ditutup."
+    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Ukuran pemisahan diatur ke {size} byte."
     
     # Proxy log messages
-    PROXY_SET_COMMAND_LOG_MSG = "Proxy set via command: {arg}"
-    PROXY_MENU_OPENED_LOG_MSG = "User opened /proxy menu."
-    PROXY_MENU_CLOSED_LOG_MSG = "Proxy: closed."
-    PROXY_ENABLED_LOG_MSG = "Proxy enabled."
-    PROXY_DISABLED_LOG_MSG = "Proxy disabled."
+    PROXY_SET_COMMAND_LOG_MSG = "Proxy diatur melalui perintah: {arg}"
+    PROXY_MENU_OPENED_LOG_MSG = "Pengguna membuka / menu proxy."
+    PROXY_MENU_CLOSED_LOG_MSG = "Proksi: ditutup."
+    PROXY_ENABLED_LOG_MSG = "Proksi diaktifkan."
+    PROXY_DISABLED_LOG_MSG = "Proksi dinonaktifkan."
     
     # Other handlers log messages
-    HELP_MESSAGE_CLOSED_LOG_MSG = "Help message closed."
+    HELP_MESSAGE_CLOSED_LOG_MSG = "Pesan bantuan ditutup."
     AUDIO_HELP_SHOWN_LOG_MSG = "Menampilkan bantuan /audio"
-    PLAYLIST_HELP_REQUESTED_LOG_MSG = "User requested playlist help."
-    PLAYLIST_HELP_CLOSED_LOG_MSG = "Playlist help closed."
-    AUDIO_HINT_CLOSED_LOG_MSG = "Audio hint closed."
+    PLAYLIST_HELP_REQUESTED_LOG_MSG = "Bantuan daftar putar yang diminta pengguna."
+    PLAYLIST_HELP_CLOSED_LOG_MSG = "Bantuan daftar putar ditutup."
+    AUDIO_HINT_CLOSED_LOG_MSG = "Petunjuk audio ditutup."
     
     # Down and Up log messages
-    DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direct link menu created via LINK button for user {user_id} from {url}"
-    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link via LINK button for user {user_id} from {url}: {error}"
-    LIST_COMMAND_EXECUTED_LOG_MSG = "LIST command executed for user {user_id}, url: {url}"
-    QUICK_EMBED_LOG_MSG = "Quick Embed: {embed_url}"
-    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Always Ask menu sent for {url}"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Created cached qualities menu for user {user_id} after error: {error}"
-    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Always Ask menu error for {url}: {error}"
+    DIRECT_LINK_MENU_CREATED_LOG_MSG = "Menu tautan langsung dibuat melalui tombol LINK untuk pengguna {user_id} dari {url}"
+    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Gagal mengekstrak tautan langsung melalui tombol LINK untuk pengguna {user_id} dari {url}: {error}"
+    LIST_COMMAND_EXECUTED_LOG_MSG = "Perintah LIST dijalankan untuk pengguna {user_id}, url: {url}"
+    QUICK_EMBED_LOG_MSG = "Penyematan Cepat: {embed_url}"
+    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Menu Selalu Tanya dikirimkan untuk {url}"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Membuat menu kualitas cache untuk pengguna {user_id} setelah kesalahan: {error}"
+    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Selalu Tanya kesalahan menu untuk {url}: {error}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Format ditetapkan melalui pengaturan /args"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Audio"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "Video"
     ALWAYS_ASK_VIDEO_TITLE_MSG = "Video"
-    ALWAYS_ASK_NEXT_BUTTON_MSG = "Next ▶️"
-    ALWAYS_ASK_PREV_BUTTON_MSG = "◀️ Prev"
-    SUBTITLES_NEXT_BUTTON_MSG = "Next ➡️"
-    PORN_ALL_TEXT_FIELDS_EMPTY_MSG = "ℹ️ All text fields are empty"
-    SENDER_VIDEO_DURATION_MSG = "Video duration:"
-    SENDER_UPLOADING_FILE_MSG = "📤 Uploading file..."
-    SENDER_UPLOADING_VIDEO_MSG = "📤 Uploading Video..."
-    DOWN_UP_VIDEO_DURATION_MSG = "🎞 Video duration:"
-    DOWN_UP_ONE_FILE_UPLOADED_MSG = "1 file uploaded."
-    DOWN_UP_VIDEO_INFO_MSG = "📋 Video Info"
+    ALWAYS_ASK_NEXT_BUTTON_MSG = "Selanjutnya ▶️"
+    ALWAYS_ASK_PREV_BUTTON_MSG = "◀️ Sebelumnya"
+    SUBTITLES_NEXT_BUTTON_MSG = "Selanjutnya ➡️"
+    PORN_ALL_TEXT_FIELDS_EMPTY_MSG = "ℹ️ Semua kolom teks kosong"
+    SENDER_VIDEO_DURATION_MSG = "Durasi video:"
+    SENDER_UPLOADING_FILE_MSG = "📤 Mengunggah berkas..."
+    SENDER_UPLOADING_VIDEO_MSG = "📤 Mengunggah Video..."
+    DOWN_UP_VIDEO_DURATION_MSG = "🎞 Durasi video:"
+    DOWN_UP_ONE_FILE_UPLOADED_MSG = "1 file diunggah."
+    DOWN_UP_VIDEO_INFO_MSG = "📋 Info Video"
     DOWN_UP_NUMBER_MSG = "Nomor"
     DOWN_UP_TITLE_MSG = "Judul"
     DOWN_UP_ID_MSG = "ID"
-    DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑️ Downloaded video."
-    DOWN_UP_PROCESSING_UPLOAD_MSG = "📤 Processing for upload..."
-    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "📤 Splitted part {part} file uploaded"
-    DOWN_UP_UPLOAD_COMPLETE_MSG = "✅ Upload complete"
-    DOWN_UP_FILES_UPLOADED_MSG = "files uploaded"
+    DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑️ Video yang diunduh."
+    DOWN_UP_PROCESSING_UPLOAD_MSG = "📤 Sedang diproses untuk diunggah..."
+    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "📤 Bagian file __VAR_0__ yang terpecah diunggah"
+    DOWN_UP_UPLOAD_COMPLETE_MSG = "✅ Pengunggahan selesai"
+    DOWN_UP_FILES_UPLOADED_MSG = "file diunggah"
     
     # Always Ask Menu Button Messages
-    ALWAYS_ASK_VLC_ANDROID_BUTTON_MSG = "🎬 VLC (Android)"
-    ALWAYS_ASK_CLOSE_BUTTON_MSG = "🔚 Close"
-    ALWAYS_ASK_CODEC_BUTTON_MSG = "📼CODEC"
-    ALWAYS_ASK_DUBS_BUTTON_MSG = "🗣 DUBS"
-    ALWAYS_ASK_SUBS_BUTTON_MSG = "💬 SUBS"
-    ALWAYS_ASK_BROWSER_BUTTON_MSG = "🌐 Browser"
-    ALWAYS_ASK_VLC_IOS_BUTTON_MSG = "🎬 VLC (iOS)"
+    ALWAYS_ASK_VLC_ANDROID_BUTTON_MSG = "🎬VLC (Android)"
+    ALWAYS_ASK_CLOSE_BUTTON_MSG = "🔚 Tutup"
+    ALWAYS_ASK_CODEC_BUTTON_MSG = "📼KODEC"
+    ALWAYS_ASK_DUBS_BUTTON_MSG = "🗣 DUB"
+    ALWAYS_ASK_SUBS_BUTTON_MSG = "💬 SUB"
+    ALWAYS_ASK_BROWSER_BUTTON_MSG = "🌐 Peramban"
+    ALWAYS_ASK_VLC_IOS_BUTTON_MSG = "🎬VLC (iOS)"
     
     # Always Ask Menu Callback Messages
-    ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Getting direct link..."
-    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Getting available formats..."
+    ALWAYS_ASK_GETTING_DIRECT_LINK_MSG = "🔗 Mendapatkan tautan langsung..."
+    ALWAYS_ASK_GETTING_FORMATS_MSG = "📃 Mendapatkan format yang tersedia..."
     ALWAYS_ASK_GETTING_CAPTION_MSG = "📝 Mendapatkan deskripsi video..."
     AA_ERROR_GETTING_CAPTION_MSG = "❌ Error mendapatkan deskripsi: {error_msg}"
     AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Deskripsi video tidak tersedia"
     AA_ERROR_SENDING_CAPTION_MSG = "❌ Error mengirim deskripsi: {error_msg}"
     CAPTION_SENT_LOG_MSG = "📝 Deskripsi video dikirim ke pengguna {user_id} untuk {url} ({title})"
-    ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Starting gallery-dl…"
+    ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Memulai galeri-dl…"
     
     # Always Ask Menu F-String Messages
     ALWAYS_ASK_DURATION_MSG = "⏱ <b>Durasi:</b>"
@@ -1335,7 +1335,7 @@ Use:
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Dapatkan tautan langsung ke video"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Tampilkan daftar format yang tersedia"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Ubah ekstensi/codec video"
-    ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Embed"
+    ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Sematkan"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Ekstrak hanya audio"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW berbayar (⭐️$0.02)"
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Repost instan dari cache"
@@ -1383,12 +1383,12 @@ Use:
     ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>Stream video:</b>"
     ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>Stream audio:</b>"
     ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ Gagal mendapatkan tautan stream"
-    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Direct link extracted via Always Ask menu for user {user_id} from {url}"
-    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Failed to extract direct link via Always Ask menu for user {user_id} from {url}: {error}"
-    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Direct link extracted via down_and_up_with_format for user {user_id} from {url}"
-    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Failed to extract direct link via down_and_up_with_format for user {user_id} from {url}: {error}"
-    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Direct link extracted via down_and_audio for user {user_id} from {url}"
-    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Failed to extract direct link via down_and_audio for user {user_id} from {url}: {error}"
+    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Tautan langsung diekstraksi melalui menu Selalu Tanya untuk pengguna {user_id} dari {url}"
+    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Gagal mengekstrak tautan langsung melalui menu Selalu Tanya untuk pengguna {user_id} dari {url}: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Tautan langsung diekstrak melalui down_and_up_with_format untuk pengguna {user_id} dari {url}"
+    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Gagal mengekstrak tautan langsung melalui down_and_up_with_format untuk pengguna {user_id} dari {url}: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Tautan langsung diekstraksi melalui down_and_audio untuk pengguna {user_id} dari {url}"
+    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Gagal mengekstrak tautan langsung melalui down_and_audio untuk pengguna {user_id} dari {url}: {error}"
     
     # Audio processing messages
     AUDIO_SENT_FROM_CACHE_MSG = "✅ Audio dikirim dari cache."
@@ -1449,11 +1449,11 @@ Use:
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **Stream Langsung Terdeteksi**\n\nMengunduh stream langsung yang sedang berlangsung atau tak terbatas tidak diizinkan.\n\nHarap tunggu stream berakhir dan coba unduh lagi ketika:\n• Durasi stream diketahui\n• Stream telah selesai\n"
     LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>Unduhan Stream Langsung</b>"
-    LIVE_STREAM_CHUNK_NUMBER_MSG = "Chunk {chunk}"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "Potongan {chunk}"
     LIVE_STREAM_CHUNK_SIZE_MSG = "Ukuran maks: {size}"
     LIVE_STREAM_ACCUMULATED_DURATION_MSG = "Total durasi: {duration} detik"
     LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>Stream Langsung - Chunk {chunk}</b>\n⏱ Durasi: {duration} detik\n📦 Ukuran: {size}"
-    LIVE_STREAM_CHUNK_TITLE_MSG = "Chunk {chunk}"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "Potongan {chunk}"
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>Unduhan Stream Langsung Selesai</b>"
     LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "Diunduh {chunks} potongan"
     LIVE_STREAM_TOTAL_DURATION_MSG = "Total durasi: {duration} detik"
@@ -1506,54 +1506,54 @@ Use:
     LIST_EMOJI = "📃"
     
     # NSFW Content Messages
-    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "User entered forbidden content. Cannot be downloaded."
+    PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "Pengguna memasukkan konten terlarang. Tidak dapat diunduh."
     
     # Additional Log Messages
-    NSFW_BLUR_SET_COMMAND_LOG_MSG = "NSFW blur set via command: {arg}"
-    NSFW_MENU_OPENED_LOG_MSG = "User opened /nsfw menu."
-    NSFW_MENU_CLOSED_LOG_MSG = "NSFW: closed."
-    COOKIES_DOWNLOAD_FAILED_LOG_MSG = "Failed to download {service} cookie: status={status} (url hidden)"
-    COOKIES_DOWNLOAD_ERROR_LOG_MSG = "Error downloading {service} cookie: {error} (url hidden)"
-    COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "Unexpected error while downloading {service} cookie (url hidden): {error_type}: {error}"
-    COOKIES_FILE_UPDATED_LOG_MSG = "Cookie file updated for user {user_id}."
-    COOKIES_INVALID_CONTENT_LOG_MSG = "Invalid cookie content provided by user {user_id}."
-    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "YouTube cookie URLs are empty for user {user_id}."
-    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "YouTube cookies downloaded and validated for user {user_id} from source {source}."
-    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "All YouTube cookie sources failed for user {user_id}."
-    ADMIN_CHECK_PORN_ERROR_LOG_MSG = "Error in check_porn command by admin {admin_id}: {error}"
-    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Split part size set to {size} bytes."
-    VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG = "Video upload completed with file splitting."
-    PLAYLIST_VIDEOS_SENT_LOG_MSG = "Playlist videos sent: {sent}/{total} files (quality={quality}) to user {user_id}"
-    UNKNOWN_ERROR_MSG = "❌ Unknown error: {error}"
-    SKIPPING_UNSUPPORTED_FILE_TYPE_MSG = "Skipping unsupported file type in playlist at index {index}"
+    NSFW_BLUR_SET_COMMAND_LOG_MSG = "NSFW blur diatur melalui perintah: {arg}"
+    NSFW_MENU_OPENED_LOG_MSG = "Pengguna membuka menu /nsfw."
+    NSFW_MENU_CLOSED_LOG_MSG = "NSFW: ditutup."
+    COOKIES_DOWNLOAD_FAILED_LOG_MSG = "Gagal mengunduh {service} cookie: status={status} (url disembunyikan)"
+    COOKIES_DOWNLOAD_ERROR_LOG_MSG = "Kesalahan mengunduh cookie __VAR_1__: __VAR_0__ (url tersembunyi)"
+    COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "Kesalahan tak terduga saat mengunduh cookie {service} (url tersembunyi): {error_type}: {error}"
+    COOKIES_FILE_UPDATED_LOG_MSG = "File cookie diperbarui untuk pengguna {user_id}."
+    COOKIES_INVALID_CONTENT_LOG_MSG = "Konten cookie yang disediakan oleh pengguna tidak valid {user_id}."
+    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "URL cookie YouTube kosong untuk pengguna {user_id}."
+    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "Cookie YouTube diunduh dan divalidasi untuk pengguna {user_id} dari sumber {source}."
+    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "Semua sumber cookie YouTube gagal untuk pengguna {user_id}."
+    ADMIN_CHECK_PORN_ERROR_LOG_MSG = "Kesalahan pada perintah check_porn oleh admin {admin_id}: {error}"
+    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Pisahkan ukuran bagian yang disetel ke {size} byte."
+    VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG = "Upload video selesai dengan pemisahan file."
+    PLAYLIST_VIDEOS_SENT_LOG_MSG = "Video playlist yang dikirim: {sent}/{total} file (kualitas={quality}) ke pengguna {user_id}"
+    UNKNOWN_ERROR_MSG = "❌ Kesalahan tidak diketahui: {error}"
+    SKIPPING_UNSUPPORTED_FILE_TYPE_MSG = "Melewati jenis file yang tidak didukung dalam daftar putar di indeks {index}"
     FFMPEG_NOT_FOUND_MSG = "❌ FFmpeg not found. Please install FFmpeg."
-    CONVERSION_TO_MP4_FAILED_MSG = "❌ Conversion to MP4 failed: {error}"
+    CONVERSION_TO_MP4_FAILED_MSG = "❌ Konversi ke MP4 gagal: {error}"
     EMBEDDING_SUBTITLES_WARNING_MSG = "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\n🔥 Starting to burn subtitles..."
-    SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Subtitles cannot be embedded due to limits (quality/duration/size)"
-    SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Subtitles are not available for the selected language"
-    ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    PLAYLIST_VIDEOS_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
-    DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Download cancelled due to timeout (2 hours)"
+    SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Subtitle tidak dapat disematkan karena batasan (kualitas/durasi/ukuran)"
+    SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Subtitle tidak tersedia untuk bahasa yang dipilih"
+    ERROR_SENDING_VIDEO_MSG = "❌ Kesalahan saat mengirim video: {error}"
+    PLAYLIST_VIDEOS_SENT_MSG = "✅ Video playlist yang dikirimkan: {sent}/{total} file."
+    DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Pengunduhan dibatalkan karena waktu habis (2 jam)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Failed to download video: {error}"
-    ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ Error: {error}"
+    ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ Kesalahan: {error}"
     
     # Args command error messages
-    ARGS_JSON_MUST_BE_OBJECT_MSG = "❌ JSON must be an object (dictionary)."
-    ARGS_INVALID_JSON_FORMAT_MSG = "❌ Invalid JSON format. Please provide valid JSON."
-    ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ Value must be between {min_val} and {max_val}."
-    ARGS_PARAM_SET_TO_MSG = "✅ {description} set to: <code>{value}</code>"
+    ARGS_JSON_MUST_BE_OBJECT_MSG = "❌ JSON harus berupa objek (kamus)."
+    ARGS_INVALID_JSON_FORMAT_MSG = "❌ Format JSON tidak valid. Harap berikan JSON yang valid."
+    ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ Nilai harus antara {min_val} dan {max_val}."
+    ARGS_PARAM_SET_TO_MSG = "✅ {description} disetel ke: <code>{value}</code>"
     
     # Args command button texts
-    ARGS_TRUE_BUTTON_MSG = "✅ True"
-    ARGS_FALSE_BUTTON_MSG = "❌ False"
+    ARGS_TRUE_BUTTON_MSG = "✅ Benar"
+    ARGS_FALSE_BUTTON_MSG = "❌ Salah"
     ARGS_BACK_BUTTON_MSG = "🔙 Back"
-    ARGS_CLOSE_BUTTON_MSG = "🔚 Close"
+    ARGS_CLOSE_BUTTON_MSG = "🔚 Tutup"
     
     # Args command status texts
     ARGS_STATUS_TRUE_MSG = "✅"
     ARGS_STATUS_FALSE_MSG = "❌"
-    ARGS_STATUS_TRUE_DISPLAY_MSG = "✅ True"
-    ARGS_STATUS_FALSE_DISPLAY_MSG = "❌ False"
+    ARGS_STATUS_TRUE_DISPLAY_MSG = "✅ Benar"
+    ARGS_STATUS_FALSE_DISPLAY_MSG = "❌ Salah"
     ARGS_NOT_SET_MSG = "Tidak diatur"
     
     # Boolean values for import/export (all possible variations)
@@ -1566,32 +1566,32 @@ Use:
     
     # Down and Up error messages
     DOWN_UP_AV1_NOT_AVAILABLE_MSG = "❌ AV1 format is not available for this video.\n\nAvailable formats:\n{formats_text}"
-    DOWN_UP_ERROR_DOWNLOADING_MSG = "❌ Error downloading: {error_message}"
-    DOWN_UP_NO_VIDEOS_PLAYLIST_MSG = "❌ No videos found in playlist at index {index}."
+    DOWN_UP_ERROR_DOWNLOADING_MSG = "❌ Kesalahan saat mengunduh: {error_message}"
+    DOWN_UP_NO_VIDEOS_PLAYLIST_MSG = "❌ Tidak ada video yang ditemukan dalam daftar putar di indeks {index}."
     DOWN_UP_VIDEO_CONVERSION_FAILED_INVALID_MSG = "❌ **Video Conversion Failed**\n\nThe video couldn't be converted to MP4 due to an invalid argument error.\n\n"
     DOWN_UP_VIDEO_CONVERSION_FAILED_MSG = "❌ **Video Conversion Failed**\n\nThe video couldn't be converted to MP4.\n\n"
-    DOWN_UP_FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
+    DOWN_UP_FAILED_STREAM_LINKS_MSG = "❌ Gagal mendapatkan tautan streaming"
     DOWN_UP_ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
-    DOWN_UP_NO_CONTENT_FOUND_MSG = "❌ No content found at index {index}"
+    DOWN_UP_NO_CONTENT_FOUND_MSG = "❌ Tidak ditemukan konten di indeks {index}"
 
     # Always Ask Menu error messages
-    AA_ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Error: Original message not found."
-    AA_ERROR_URL_NOT_FOUND_MSG = "❌ Error: URL not found."
-    AA_ERROR_URL_NOT_EMBEDDABLE_MSG = "❌ This URL cannot be embedded."
-    AA_ERROR_CODEC_NOT_AVAILABLE_MSG = "❌ {codec} codec not available for this video"
-    AA_ERROR_FORMAT_NOT_AVAILABLE_MSG = "❌ {format} format not available for this video"
+    AA_ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Kesalahan: Pesan asli tidak ditemukan."
+    AA_ERROR_URL_NOT_FOUND_MSG = "❌ Kesalahan: URL tidak ditemukan."
+    AA_ERROR_URL_NOT_EMBEDDABLE_MSG = "❌ URL ini tidak dapat disematkan."
+    AA_ERROR_CODEC_NOT_AVAILABLE_MSG = "❌ {codec} codec tidak tersedia untuk video ini"
+    AA_ERROR_FORMAT_NOT_AVAILABLE_MSG = "❌ {format} format tidak tersedia untuk video ini"
     
     # Always Ask Menu button texts
-    AA_AVC_BUTTON_MSG = "✅ AVC"
+    AA_AVC_BUTTON_MSG = "✅AVC"
     AA_AVC_BUTTON_INACTIVE_MSG = "☑️ AVC"
     AA_AVC_BUTTON_UNAVAILABLE_MSG = "❌ AVC"
     AA_AV1_BUTTON_MSG = "✅ AV1"
     AA_AV1_BUTTON_INACTIVE_MSG = "☑️ AV1"
     AA_AV1_BUTTON_UNAVAILABLE_MSG = "❌ AV1"
-    AA_VP9_BUTTON_MSG = "✅ VP9"
+    AA_VP9_BUTTON_MSG = "✅ Wakil Presiden9"
     AA_VP9_BUTTON_INACTIVE_MSG = "☑️ VP9"
     AA_VP9_BUTTON_UNAVAILABLE_MSG = "❌ VP9"
-    AA_MP4_BUTTON_MSG = "✅ MP4"
+    AA_MP4_BUTTON_MSG = "✅MP4"
     AA_MP4_BUTTON_INACTIVE_MSG = "☑️ MP4"
     AA_MP4_BUTTON_UNAVAILABLE_MSG = "❌ MP4"
     AA_MKV_BUTTON_MSG = "✅ MKV"
@@ -1603,17 +1603,17 @@ Use:
     
     # Cookies command button texts
     COOKIES_BROWSER_BUTTON_MSG = "✅ {browser_name}"
-    COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Check Cookie"
+    COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Periksa Kue"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ON"
-    PROXY_OFF_BUTTON_MSG = "❌ OFF"
-    PROXY_CLOSE_BUTTON_MSG = "🔚Close"
+    PROXY_ON_BUTTON_MSG = "✅ AKTIF"
+    PROXY_OFF_BUTTON_MSG = "❌ MATI"
+    PROXY_CLOSE_BUTTON_MSG = "🔚Tutup"
     
     # MediaInfo command button texts
-    MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
-    MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"
-    MEDIAINFO_CLOSE_BUTTON_MSG = "🔚Close"
+    MEDIAINFO_ON_BUTTON_MSG = "✅ AKTIF"
+    MEDIAINFO_OFF_BUTTON_MSG = "❌ MATI"
+    MEDIAINFO_CLOSE_BUTTON_MSG = "🔚Tutup"
     
     # Format command button texts
     FORMAT_AVC1_BUTTON_MSG = "✅ avc1 (H.264)"
@@ -1633,9 +1633,9 @@ Use:
     SUBS_ALWAYS_ASK_EMOJI_INACTIVE_MSG = "☑️"
     
     # NSFW command button texts
-    NSFW_ON_NO_BLUR_MSG = "✅ ON (No Blur)"
+    NSFW_ON_NO_BLUR_MSG = "✅ AKTIF (Tanpa Buram)"
     NSFW_ON_NO_BLUR_INACTIVE_MSG = "☑️ ON (No Blur)"
-    NSFW_OFF_BLUR_MSG = "✅ OFF (Blur)"
+    NSFW_OFF_BLUR_MSG = "✅ MATI (Blur)"
     NSFW_OFF_BLUR_INACTIVE_MSG = "☑️ OFF (Blur)"
     
     # Admin command status texts
@@ -1645,90 +1645,90 @@ Use:
     ADMIN_STATUS_CLEAN_TEXT_MSG = "Bersih"
     
     # Admin command additional messages
-    ADMIN_ERROR_PROCESSING_REPLY_MSG = "Error processing reply message for user {user}: {error}"
-    ADMIN_ERROR_SENDING_BROADCAST_MSG = "Error sending broadcast to user {user}: {error}"
-    ADMIN_LOGS_FORMAT_MSG = "Logs of {bot_name}\nUser: {user_id}\nTotal logs: {total}\nCurrent time: {now}\n\n{logs}"
-    ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nTotal {path}: {count}\nCurrent time: {now}\n\n{data}"
-    ADMIN_TOTAL_USERS_MSG = "<i>Total Users: {count}</i>\nLast 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "Porn caches reloaded by admin {admin_id}. Domains: {domains}, Keywords: {keywords}, Sites: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_ERROR_PROCESSING_REPLY_MSG = "Terjadi kesalahan saat memproses pesan balasan untuk pengguna {user}: {error}"
+    ADMIN_ERROR_SENDING_BROADCAST_MSG = "Kesalahan saat mengirim siaran ke pengguna {user}: {error}"
+    ADMIN_LOGS_FORMAT_MSG = "Log dari {bot_name}\nPengguna: {user_id}\nTotal log: {total}\nWaktu saat ini: {now}\n\n{logs}"
+    ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nTotal {path}: {count}\nWaktu saat ini: {now}\n\n{data}"
+    ADMIN_TOTAL_USERS_MSG = "<i>Total Pengguna: {count}</i>\n20 Terakhir {path}:\n\n{display_list}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "Cache porno dimuat ulang oleh admin {admin_id}. Domain: {domains}, Kata kunci: {keywords}, Situs: {sites}, DAFTAR PUTIH: {whitelist}, DAFTAR GREY: {greylist}, DAFTAR_BLACK: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
-    ARGS_ERROR_SENDING_TIMEOUT_MSG = "Error sending timeout message: {error}"
+    ARGS_ERROR_SENDING_TIMEOUT_MSG = "Kesalahan saat mengirim pesan batas waktu: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>Choose language</b>"
-    LANG_CHANGED_MSG = "✅ Language changed to {lang_name}"
-    LANG_ERROR_MSG = "❌ Error changing language"
+    LANG_SELECTION_MSG = "🌍 <b>Pilih bahasa</b>"
+    LANG_CHANGED_MSG = "✅ Bahasa diubah menjadi {lang_name}"
+    LANG_ERROR_MSG = "❌ Kesalahan saat mengubah bahasa"
     LANG_CLOSED_MSG = "Pemilihan bahasa ditutup"
     # Clean command additional messages
     
     # Cookies command additional messages
-    COOKIES_BROWSER_CALLBACK_MSG = "[BROWSER] callback: {callback_data}"
-    COOKIES_ADDING_BROWSER_MONITORING_MSG = "Adding browser monitoring button with URL: {miniapp_url}"
-    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "Browser monitoring URL not configured: {miniapp_url}"
+    COOKIES_BROWSER_CALLBACK_MSG = "Panggilan balik [BROWSER]: {callback_data}"
+    COOKIES_ADDING_BROWSER_MONITORING_MSG = "Menambahkan tombol pemantauan browser dengan URL: {miniapp_url}"
+    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "URL pemantauan browser tidak dikonfigurasi: {miniapp_url}"
     
     # Format command additional messages
     
     # Keyboard command additional messages
     KEYBOARD_SETTING_UPDATED_MSG = "🎹 **Keyboard setting updated!**\n\nNew setting: **{setting}**"
-    KEYBOARD_FAILED_HIDE_MSG = "Failed to hide keyboard: {error}"
+    KEYBOARD_FAILED_HIDE_MSG = "Gagal menyembunyikan keyboard: {error}"
     
     # Link command additional messages
-    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Using working YouTube cookies for link extraction for user {user_id}"
-    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "No working YouTube cookies available for link extraction for user {user_id}"
-    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Using existing YouTube cookies for link extraction for user {user_id}"
-    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "No YouTube cookies found for link extraction for user {user_id}"
+    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Menggunakan cookie YouTube yang berfungsi untuk ekstraksi tautan bagi pengguna {user_id}"
+    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "Tidak ada cookie YouTube yang berfungsi untuk ekstraksi tautan bagi pengguna {user_id}"
+    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Menggunakan cookie YouTube yang ada untuk ekstraksi tautan bagi pengguna {user_id}"
+    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Cookie YouTube tidak ditemukan untuk ekstraksi tautan untuk pengguna {user_id}"
     LINK_COPIED_GLOBAL_COOKIE_FILE_MSG = "File cookie global disalin ke folder pengguna {user_id} untuk ekstraksi tautan"
     
     # MediaInfo command additional messages
-    MEDIAINFO_USER_REQUESTED_MSG = "[MEDIAINFO] User {user_id} requested mediainfo command"
-    MEDIAINFO_USER_IS_ADMIN_MSG = "[MEDIAINFO] User {user_id} is admin: {is_admin}"
-    MEDIAINFO_USER_IS_IN_CHANNEL_MSG = "[MEDIAINFO] User {user_id} is in channel: {is_in_channel}"
-    MEDIAINFO_ACCESS_DENIED_MSG = "[MEDIAINFO] User {user_id} access denied - not admin and not in channel"
-    MEDIAINFO_ACCESS_GRANTED_MSG = "[MEDIAINFO] User {user_id} access granted"
-    MEDIAINFO_CALLBACK_MSG = "[MEDIAINFO] callback: {callback_data}"
+    MEDIAINFO_USER_REQUESTED_MSG = "[MEDIAINFO] Pengguna {user_id} meminta perintah mediainfo"
+    MEDIAINFO_USER_IS_ADMIN_MSG = "[MEDIAINFO] Pengguna {user_id} adalah admin: {is_admin}"
+    MEDIAINFO_USER_IS_IN_CHANNEL_MSG = "[MEDIAINFO] Pengguna {user_id} ada di saluran: {is_in_channel}"
+    MEDIAINFO_ACCESS_DENIED_MSG = "[MEDIAINFO] Akses pengguna {user_id} ditolak - bukan admin dan bukan di saluran"
+    MEDIAINFO_ACCESS_GRANTED_MSG = "[MEDIAINFO] Akses pengguna {user_id} diberikan"
+    MEDIAINFO_CALLBACK_MSG = "Panggilan balik [MEDIAINFO]: {callback_data}"
     
     # URL Parser error messages
-    URL_PARSER_ADMIN_ONLY_MSG = "❌ This command is only available for administrators."
+    URL_PARSER_ADMIN_ONLY_MSG = "❌ Perintah ini hanya tersedia untuk administrator."
     
     # Helper messages
-    HELPER_DOWNLOAD_FINISHED_PO_MSG = "✅ Download finished with PO token support"
-    HELPER_FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Try later."
+    HELPER_DOWNLOAD_FINISHED_PO_MSG = "✅ Pengunduhan selesai dengan dukungan token PO"
+    HELPER_FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Batas banjir. Coba nanti."
     
     # Database error messages
-    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ REST token refresh error: {error}"
-    DB_ERROR_CLOSING_SESSION_MSG = "❌ Error closing Firebase session: {error}"
-    DB_ERROR_INITIALIZING_BASE_MSG = "❌ Error initializing base db structure: {error}"
+    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ Kesalahan penyegaran token REST: {error}"
+    DB_ERROR_CLOSING_SESSION_MSG = "❌ Kesalahan saat menutup sesi Firebase: {error}"
+    DB_ERROR_INITIALIZING_BASE_MSG = "❌ Kesalahan menginisialisasi struktur db dasar: {error}"
 
-    DB_NOT_ALL_PARAMETERS_SET_MSG = "❌ Not all parameters are set in config.py (FIREBASE_CONF, FIREBASE_USER, FIREBASE_PASSWORD)"
-    DB_DATABASE_URL_NOT_SET_MSG = "❌ FIREBASE_CONF.databaseURL is not set"
-    DB_API_KEY_NOT_SET_MSG = "❌ FIREBASE_CONF.apiKey is not set for getting idToken"
-    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Error downloading Firebase dump: {error}"
-    DB_FAILED_DOWNLOAD_DUMP_REST_MSG = "❌ Failed to download Firebase dump via REST"
-    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ Error in _download_and_reload_cache: {error}"
-    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ Error running auto reload_cache (attempt {attempt}/{max_retries}): {error}"
-    DB_ALL_RETRY_ATTEMPTS_FAILED_MSG = "❌ All retry attempts failed"
-    DB_STARTING_FIREBASE_DUMP_MSG = "🔄 Starting Firebase dump download at {datetime}"
-    DB_DEPENDENCY_NOT_AVAILABLE_MSG = "⚠️ Dependency not available: requests or Session"
-    DB_DATABASE_EMPTY_MSG = "⚠️ Database is empty"
+    DB_NOT_ALL_PARAMETERS_SET_MSG = "❌ Tidak semua parameter disetel di config.py (FIREBASE_CONF, FIREBASE_USER, FIREBASE_PASSWORD)"
+    DB_DATABASE_URL_NOT_SET_MSG = "❌ FIREBASE_CONF.databaseURL tidak disetel"
+    DB_API_KEY_NOT_SET_MSG = "❌ FIREBASE_CONF.apiKey tidak disetel untuk mendapatkan idToken"
+    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Kesalahan saat mengunduh Firebase dump: {error}"
+    DB_FAILED_DOWNLOAD_DUMP_REST_MSG = "❌ Gagal mengunduh Firebase dump melalui REST"
+    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ Kesalahan dalam _download_and_reload_cache: {error}"
+    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ Error saat menjalankan auto reload_cache (percobaan {attempt}/{max_retries}): {error}"
+    DB_ALL_RETRY_ATTEMPTS_FAILED_MSG = "❌ Semua upaya percobaan ulang gagal"
+    DB_STARTING_FIREBASE_DUMP_MSG = "🔄 Memulai pengunduhan dump Firebase di {datetime}"
+    DB_DEPENDENCY_NOT_AVAILABLE_MSG = "⚠️ Ketergantungan tidak tersedia: permintaan atau Sesi"
+    DB_DATABASE_EMPTY_MSG = "⚠️ Basis data kosong"
     
     # Magic.py error messages
-    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ Error closing logger: {error}"
-    MAGIC_ERROR_DURING_CLEANUP_MSG = "❌ Error during cleanup: {error}"
+    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ Kesalahan saat menutup pencatat: {error}"
+    MAGIC_ERROR_DURING_CLEANUP_MSG = "❌ Kesalahan saat pembersihan: {error}"
     
     # Update from repo error messages
-    UPDATE_CLONE_ERROR_MSG = "❌ Clone error: {error}"
-    UPDATE_CLONE_TIMEOUT_MSG = "❌ Clone timeout"
-    UPDATE_CLONE_EXCEPTION_MSG = "❌ Clone exception: {error}"
-    UPDATE_CANCELED_BY_USER_MSG = "❌ Update canceled by user"
+    UPDATE_CLONE_ERROR_MSG = "❌ Kesalahan kloning: {error}"
+    UPDATE_CLONE_TIMEOUT_MSG = "❌ Batas waktu klon habis"
+    UPDATE_CLONE_EXCEPTION_MSG = "❌ Pengecualian klon: {error}"
+    UPDATE_CANCELED_BY_USER_MSG = "❌ Pembaruan dibatalkan oleh pengguna"
 
     # Update from repo success messages
-    UPDATE_REPOSITORY_CLONED_SUCCESS_MSG = "✅ Repository cloned successfully"
-    UPDATE_BACKUPS_MOVED_MSG = "✅ Backups moved to _backup/"
+    UPDATE_REPOSITORY_CLONED_SUCCESS_MSG = "✅ Repositori berhasil dikloning"
+    UPDATE_BACKUPS_MOVED_MSG = "✅ Cadangan dipindahkan ke _backup/"
     
     # Magic.py success messages
-    MAGIC_ALL_MODULES_LOADED_MSG = "✅ All modules are loaded"
-    MAGIC_CLEANUP_COMPLETED_MSG = "✅ Cleanup completed on exit"
+    MAGIC_ALL_MODULES_LOADED_MSG = "✅ Semua modul dimuat"
+    MAGIC_CLEANUP_COMPLETED_MSG = "✅ Pembersihan selesai saat keluar"
     MAGIC_SIGNAL_RECEIVED_MSG = "\n🛑 Received signal {signal}, shutting down gracefully..."
     
     # Removed duplicate logger messages - these are user messages, not logger messages
@@ -1740,25 +1740,25 @@ Use:
     DOWNLOAD_STATUS_WAITING_FRAGMENTS_MSG = "menunggu fragmen"
     
     # Restore from backup messages
-    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ Backup {ts} not found in _backup/"
-    RESTORE_FAILED_RESTORE_MSG = "❌ Failed to restore {src} -> {dest_path}: {e}"
-    RESTORE_SUCCESS_RESTORED_MSG = "✅ Restored: {dest_path}"
+    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ Cadangan {ts} tidak ditemukan di _backup/"
+    RESTORE_FAILED_RESTORE_MSG = "❌ Gagal memulihkan {src} -> {dest_path}: {e}"
+    RESTORE_SUCCESS_RESTORED_MSG = "✅ Dipulihkan: {dest_path}"
     
     # Image command messages
     IMG_INSTAGRAM_AUTH_ERROR_MSG = "❌ <b>{error_type}</b>\n\n<b>URL:</b> <code>{url}</code>\n\n<b>Details:</b> {error_details}\n\nDownload stopped due to critical error.\n\n💡 <b>Tip:</b> If you're getting 401 Unauthorized error, try using <code>/cookie instagram</code> command or send your own cookies to authenticate with Instagram."
     
     # Porn filter messages
-    PORN_DOMAIN_BLACKLIST_MSG = "❌ Domain in porn blacklist: {domain_parts}"
-    PORN_KEYWORDS_FOUND_MSG = "❌ Found porn keywords: {keywords}"
-    PORN_DOMAIN_WHITELIST_MSG = "✅ Domain in whitelist: {domain}"
-    PORN_WHITELIST_KEYWORDS_MSG = "✅ Found whitelist keywords: {keywords}"
-    PORN_NO_KEYWORDS_FOUND_MSG = "✅ No porn keywords found"
+    PORN_DOMAIN_BLACKLIST_MSG = "❌ Domain dalam daftar hitam porno: {domain_parts}"
+    PORN_KEYWORDS_FOUND_MSG = "❌ Ditemukan kata kunci porno: {keywords}"
+    PORN_DOMAIN_WHITELIST_MSG = "✅ Domain dalam daftar putih: {domain}"
+    PORN_WHITELIST_KEYWORDS_MSG = "✅ Menemukan kata kunci daftar putih: {keywords}"
+    PORN_NO_KEYWORDS_FOUND_MSG = "✅ Tidak ditemukan kata kunci porno"
     
     # Audio download messages
-    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ TikTok API error at index {index}, skipping to next audio..."
+    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ Kesalahan API TikTok pada indeks {index}, melompat ke audio berikutnya..."
     
     # Video download messages  
-    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ TikTok API error at index {index}, skipping to next video..."
+    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ Kesalahan API TikTok pada indeks {index}, melompat ke video berikutnya..."
     
     # URL Parser messages
     URL_PARSER_USER_ENTERED_URL_LOG_MSG = "User entered a <b>url</b>\n <b>user's name:</b> {user_name}\nURL: {url}"
@@ -1768,7 +1768,7 @@ Use:
     CHANNEL_JOIN_BUTTON_MSG = "Bergabung dengan Saluran"
     
     # Handler registry messages
-    HANDLER_REGISTERING_MSG = "🔍 Registering handler: {handler_type} - {func_name}"
+    HANDLER_REGISTERING_MSG = "🔍 Pengendali pendaftaran: {handler_type} - {func_name}"
     
     # Clean command button messages
     CLEAN_COOKIE_DOWNLOAD_BUTTON_MSG = "📥 /cookie - Unduh 5 cookies saya"
@@ -1800,7 +1800,7 @@ Use:
     
     # FFmpeg messages
     FFMPEG_NOT_FOUND_MSG = "ffmpeg not found in PATH or project directory. Please install FFmpeg."
-    YTDLP_NOT_FOUND_MSG = "yt-dlp binary not found in PATH or project directory. Please install yt-dlp."
+    YTDLP_NOT_FOUND_MSG = "Biner yt-dlp tidak ditemukan di PATH atau direktori proyek. Silakan instal yt-dlp."
     FFMPEG_VIDEO_SPLIT_EXCESSIVE_MSG = "Video akan dibagi menjadi {rounds} bagian, yang mungkin berlebihan"
     FFMPEG_SPLITTING_VIDEO_PART_MSG = "Membagi bagian video {current}/{total}: {start_time:.2f}s hingga {end_time:.2f}s"
     FFMPEG_FAILED_CREATE_SPLIT_PART_MSG = "Gagal membuat bagian split {part}: {target_name}"
@@ -1832,7 +1832,7 @@ Use:
     GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG = "Proxy diminta tetapi konfigurasi proxy tidak lengkap"
     GALLERY_DL_PROXY_HELPER_FAILED_MSG = "Helper proxy gagal: {error}"
     GALLERY_DL_PARSING_EXTRACTOR_ITEMS_MSG = "Mengurai item ekstraktor..."
-    GALLERY_DL_ITEM_COUNT_MSG = "Item {count}: {item}"
+    GALLERY_DL_ITEM_COUNT_MSG = "Barang __VAR_1__: {item}"
     GALLERY_DL_FOUND_METADATA_TAG2_MSG = "Metadata ditemukan (tag 2): {info}"
     GALLERY_DL_FOUND_URL_TAG3_MSG = "URL ditemukan (tag 3): {url}, metadata: {metadata}"
     GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "Metadata ditemukan (legacy): {info}"
@@ -2105,12 +2105,12 @@ Use:
     
     # Settings Command Messages
     SETTINGS_LANGUAGE_BUTTON_MSG = "🌍 BAHASA"
-    SETTINGS_DEV_GITHUB_BUTTON_MSG = "🛠 Dev GitHub"
-    SETTINGS_CONTR_GITHUB_BUTTON_MSG = "🛠 Contr GitHub"
+    SETTINGS_DEV_GITHUB_BUTTON_MSG = "🛠 Pengembang GitHub"
+    SETTINGS_CONTR_GITHUB_BUTTON_MSG = "🛠 Kontrol GitHub"
     SETTINGS_CLEAN_BUTTON_MSG = "🧹 BERSIHKAN"
-    SETTINGS_COOKIES_BUTTON_MSG = "🍪 COOKIES"
+    SETTINGS_COOKIES_BUTTON_MSG = "🍪 kue"
     SETTINGS_MEDIA_BUTTON_MSG = "🎞 MEDIA"
-    SETTINGS_INFO_BUTTON_MSG = "📖 INFO"
+    SETTINGS_INFO_BUTTON_MSG = "📖 INFORMASI"
     SETTINGS_MORE_BUTTON_MSG = "⚙️ LEBIH"
     SETTINGS_COOKIES_ONLY_BUTTON_MSG = "🍪 Hanya cookies"
     SETTINGS_LOGS_BUTTON_MSG = "📃 Log "
@@ -2119,10 +2119,10 @@ Use:
     SETTINGS_SPLIT_BUTTON_MSG = "✂️ Bagi"
     SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 Mediainfo"
     SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Subtitle"
-    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Keyboard"
+    SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Papan ketik"
     SETTINGS_ARGS_BUTTON_MSG = "⚙️ Argumen"
     SETTINGS_NSFW_BUTTON_MSG = "🔞 NSFW"
-    SETTINGS_PROXY_BUTTON_MSG = "🌎 Proxy"
+    SETTINGS_PROXY_BUTTON_MSG = "🌎 Proksi"
     SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Tunggu flood"
     SETTINGS_ALL_FILES_BUTTON_MSG = "🗑  Semua file"
     SETTINGS_DOWNLOAD_COOKIE_BUTTON_MSG = "📥 /cookie - Unduh 5 cookie saya"
@@ -2161,7 +2161,7 @@ Use:
     
     # Image Command Messages
     IMAGE_URL_CAPTION_MSG = "🔗[URL Gambar]({url})"
-    IMAGE_ERROR_MSG = "❌ Error: {str(e)}"
+    IMAGE_ERROR_MSG = "❌ Kesalahan: {str(e)}"
     
     # Format Command Messages
     FORMAT_BACK_BUTTON_MSG = "🔙Kembali"
@@ -2185,7 +2185,7 @@ Use:
     COOKIES_TWITTER_BUTTON_MSG = "🐦 Twitter/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"
     COOKIES_VK_BUTTON_MSG = "📘 Vkontakte"
-    COOKIES_INSTAGRAM_BUTTON_MSG = "📷 Instagram"
+    COOKIES_INSTAGRAM_BUTTON_MSG = "📷Instagram"
     COOKIES_YOUR_OWN_BUTTON_MSG = "📝 Milik Anda"
     
     # Args Command Messages
@@ -2216,7 +2216,7 @@ Use:
 
     # Subs command button messages
     SUBS_ALWAYS_ASK_BUTTON_MSG = "Selalu Tanya"
-    SUBS_AUTO_TRANS_BUTTON_MSG = "AUTO/TRANS"
+    SUBS_AUTO_TRANS_BUTTON_MSG = "OTOMATIS/TRANS"
 
     # Always Ask menu button messages
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Tautan"
