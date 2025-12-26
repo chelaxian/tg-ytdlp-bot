@@ -829,6 +829,28 @@ class Messages(object):
     CHANNEL_GUARD_ACTIVITY_EMPTY_MSG = "ℹ️ لا يوجد نشاط خلال آخر {hours} ساعة (يومان)."
     CHANNEL_GUARD_ACTIVITY_TOTALS_LINE_MSG = "الإجمالي: 🟢 انضم {joined}، 🔴 غادر {left}."
     CHANNEL_GUARD_NO_ACCESS_MSG = "❌ لا يوجد وصول إلى سجل نشاط القناة. لا يمكن للبوتات قراءة سجلات المسؤول. قم بتوفير CHANNEL_GUARD_SESSION_STRING في الإعدادات مع جلسة مستخدم لتمكين هذه الميزة."
+    CHANNEL_GUARD_PENDING_EMPTY_MSG = "🛡️ قائمة الانتظار فارغة — لم يغادر أحد القناة بعد."
+    CHANNEL_GUARD_PENDING_HEADER_MSG = "🛡️ <b>قائمة انتظار الحظر</b>\nالمعلقون الإجمالي: {total}"
+    CHANNEL_GUARD_PENDING_ROW_MSG = "• <code>{user_id}</code> — {name} @{username} (غادر: {last_left})"
+    CHANNEL_GUARD_PENDING_MORE_MSG = "… و {extra} مستخدمين آخرين."
+    CHANNEL_GUARD_PENDING_FOOTER_MSG = "استخدم /block_user show • all • auto • 10s"
+    CHANNEL_GUARD_BLOCKED_ALL_MSG = "✅ تم حظر المستخدمين من قائمة الانتظار: {count}"
+    CHANNEL_GUARD_AUTO_ENABLED_MSG = "⚙️ تم تفعيل الحظر التلقائي: سيتم حظر المغادرين الجدد فوراً."
+    CHANNEL_GUARD_AUTO_DISABLED_MSG = "⏸ تم إلغاء تفعيل الحظر التلقائي."
+    CHANNEL_GUARD_AUTO_INTERVAL_SET_MSG = "⏱ تم تعيين نافذة الحظر التلقائي المجدولة إلى كل {interval}."
+    BAN_TIME_USAGE_MSG = "❌ الاستخدام: {command} <10s|6m|5h|4d|3w|2M|1y>"
+    BAN_TIME_INTERVAL_INVALID_MSG = "❌ استخدم التنسيقات مثل 10s، 6m، 5h، 4d، 3w، 2M أو 1y."
+    BAN_TIME_SET_MSG = "🕒 تم تعيين فاصل فحص سجل القناة إلى {interval}."
+    BAN_TIME_REPORT_MSG = (
+        "🛡️ تقرير فحص القناة\n"
+        "تم التشغيل في: {run_ts}\n"
+        "الفاصل: {interval}\n"
+        "المغادرون الجدد: {new_leavers}\n"
+        "الحظر التلقائي: {auto_banned}\n"
+        "المعلقون: {pending}\n"
+        "آخر event_id: {last_event_id}"
+    )
+    ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ تم إلغاء حظر المستخدمين: {count}\n⏱ الطابع الزمني: {date}"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "تم تنظيف ملفات تعريف الارتباط."

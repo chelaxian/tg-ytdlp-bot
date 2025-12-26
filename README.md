@@ -15,7 +15,7 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 ## ✨ Features
 
 - 🎬 **1500+ Platforms**: YouTube, TikTok, Instagram, Twitter, Facebook, and many more
-- 🌍 **Multi-Language Support**: 11 languages - 🇺🇸 English, 🇷🇺 Русский, 🇸🇦 العربية, 🇮🇳 हिन्दी, 🇨🇳 中文, 🇪🇸 Español, 🇫🇷 Français, 🇧🇩 বাংলা, 🇵🇹 Português, 🇵🇰 اردو, 🇮🇩 Bahasa Indonesia
+- 🌍 **Multi-Language Support**: 25 languages - 🇺🇸 English, 🇷🇺 Русский, 🇸🇦 العربية, 🇮🇳 हिन्दी, 🇨🇳 中文, 🇪🇸 Español, 🇫🇷 Français, 🇧🇩 বাংলা, 🇵🇹 Português, 🇵🇰 اردو, 🇮🇩 Bahasa Indonesia, 🇯🇵 日本語, 🇵🇭 Filipino, 🇳🇬 Hausa, 🇻🇳 Tiếng Việt, 🇮🇹 Italiano, 🇩🇪 Deutsch, 🇹🇷 Türkçe, 🇰🇷 한국어, 🇵🇱 Polski, 🇺🇦 Українська, 🇮🇷 فارسی, 🇹🇭 ไทย, 🇺🇿 Oʻzbek, 🇰🇿 Қазақ
 - 🍪 **Cookie Support**: Download private/age-restricted content with your own cookies
 - 🎯 **Smart Format Selection**: Advanced codec support (H.264/AVC, AV1, VP9) with container preferences
 - 📱 **Interactive Menus**: Always Ask quality selection with real-time filtering
@@ -818,6 +818,20 @@ Many commands support direct arguments for quick configuration:
 /lang pt         # 🇵🇹 Set to Portuguese
 /lang ur         # 🇵🇰 Set to Urdu
 /lang id         # 🇮🇩 Set to Indonesian
+/lang ja         # 🇯🇵 Set to Japanese
+/lang tl         # 🇵🇭 Set to Filipino
+/lang ha         # 🇳🇬 Set to Hausa
+/lang vi         # 🇻🇳 Set to Vietnamese
+/lang it         # 🇮🇹 Set to Italian
+/lang de         # 🇩🇪 Set to German
+/lang tr         # 🇹🇷 Set to Turkish
+/lang ko         # 🇰🇷 Set to Korean
+/lang pl         # 🇵🇱 Set to Polish
+/lang uk         # 🇺🇦 Set to Ukrainian
+/lang fa         # 🇮🇷 Set to Persian
+/lang th         # 🇹🇭 Set to Thai
+/lang uz         # 🇺🇿 Set to Uzbek
+/lang kk         # 🇰🇿 Set to Kazakh
 
 # Clean specific settings
 /clean args      # Clear yt-dlp arguments
@@ -837,7 +851,7 @@ Many commands support direct arguments for quick configuration:
 
 ## 🌍 Multi-Language Support
 
-The bot supports 11 languages with full interface translation:
+The bot supports 25 languages with full interface translation:
 
 ### Supported Languages
 
@@ -854,6 +868,20 @@ The bot supports 11 languages with full interface translation:
 | 🇵🇹 Portuguese | `pt` | Português | 🇵🇹 |
 | 🇵🇰 Urdu | `ur` | اردو | 🇵🇰 |
 | 🇮🇩 Indonesian | `id` | Bahasa Indonesia | 🇮🇩 |
+| 🇯🇵 Japanese | `ja` | 日本語 | 🇯🇵 |
+| 🇵🇭 Filipino | `tl` | Filipino | 🇵🇭 |
+| 🇳🇬 Hausa | `ha` | Hausa | 🇳🇬 |
+| 🇻🇳 Vietnamese | `vi` | Tiếng Việt | 🇻🇳 |
+| 🇮🇹 Italian | `it` | Italiano | 🇮🇹 |
+| 🇩🇪 German | `de` | Deutsch | 🇩🇪 |
+| 🇹🇷 Turkish | `tr` | Türkçe | 🇹🇷 |
+| 🇰🇷 Korean | `ko` | 한국어 | 🇰🇷 |
+| 🇵🇱 Polish | `pl` | Polski | 🇵🇱 |
+| 🇺🇦 Ukrainian | `uk` | Українська | 🇺🇦 |
+| 🇮🇷 Persian | `fa` | فارسی | 🇮🇷 |
+| 🇹🇭 Thai | `th` | ไทย | 🇹🇭 |
+| 🇺🇿 Uzbek | `uz` | Oʻzbek | 🇺🇿 |
+| 🇰🇿 Kazakh | `kk` | Қазақ | 🇰🇿 |
 
 ### Language Commands
 
@@ -871,6 +899,20 @@ The bot supports 11 languages with full interface translation:
 | `/lang pt` | 🇵🇹 Quick switch to Portuguese | `/lang pt` |
 | `/lang ur` | 🇵🇰 Quick switch to Urdu | `/lang ur` |
 | `/lang id` | 🇮🇩 Quick switch to Indonesian | `/lang id` |
+| `/lang ja` | 🇯🇵 Quick switch to Japanese | `/lang ja` |
+| `/lang tl` | 🇵🇭 Quick switch to Filipino | `/lang tl` |
+| `/lang ha` | 🇳🇬 Quick switch to Hausa | `/lang ha` |
+| `/lang vi` | 🇻🇳 Quick switch to Vietnamese | `/lang vi` |
+| `/lang it` | 🇮🇹 Quick switch to Italian | `/lang it` |
+| `/lang de` | 🇩🇪 Quick switch to German | `/lang de` |
+| `/lang tr` | 🇹🇷 Quick switch to Turkish | `/lang tr` |
+| `/lang ko` | 🇰🇷 Quick switch to Korean | `/lang ko` |
+| `/lang pl` | 🇵🇱 Quick switch to Polish | `/lang pl` |
+| `/lang uk` | 🇺🇦 Quick switch to Ukrainian | `/lang uk` |
+| `/lang fa` | 🇮🇷 Quick switch to Persian | `/lang fa` |
+| `/lang th` | 🇹🇭 Quick switch to Thai | `/lang th` |
+| `/lang uz` | 🇺🇿 Quick switch to Uzbek | `/lang uz` |
+| `/lang kk` | 🇰🇿 Quick switch to Kazakh | `/lang kk` |
 
 ### Language Features
 
@@ -895,6 +937,20 @@ CONFIG/LANGUAGES/
 ├── messages_PT.py    # Portuguese messages
 ├── messages_UR.py    # Urdu messages
 ├── messages_ID.py    # Indonesian messages
+├── messages_JA.py    # Japanese messages
+├── messages_TL.py    # Filipino messages
+├── messages_HA.py    # Hausa messages
+├── messages_VI.py    # Vietnamese messages
+├── messages_IT.py    # Italian messages
+├── messages_DE.py    # German messages
+├── messages_TR.py    # Turkish messages
+├── messages_KO.py    # Korean messages
+├── messages_PL.py    # Polish messages
+├── messages_UK.py    # Ukrainian messages
+├── messages_FA.py    # Persian messages
+├── messages_TH.py    # Thai messages
+├── messages_UZ.py    # Uzbek messages
+├── messages_KK.py    # Kazakh messages
 └── language_router.py # Language routing system
 ```
 
