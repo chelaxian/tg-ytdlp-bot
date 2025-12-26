@@ -31,7 +31,7 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 - ⏱️ **Flood Wait Protection**: Smart rate limiting and flood wait handling
 
 ![photo_2025-12-22_00-47-22](https://github.com/user-attachments/assets/c88dd650-92d6-4718-ab1e-288731099066)
-![photo_2025-12-27_00-05-38](https://github.com/user-attachments/assets/e983415d-2049-4c53-83fa-64a31e8acb77)![photo_2025-12-27_00-05-37](https://github.com/user-attachments/assets/e8a30b3c-abed-426f-902d-70c805e5260e)
+![photo_2025-12-27_00-05-38](https://github.com/user-attachments/assets/ccd5efb3-b72c-41d0-b161-d2580d10ec19)
 
 ## 🚀 Quick Start
 
