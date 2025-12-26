@@ -849,6 +849,7 @@ Verwenden Sie:
         "<b>URL:</b> <code>{url}</code>\n"
         "<b>Status:</b> <b>{status_text}</b>\n\n"
         "<b>Erklärung:</b>\n{explanation}"
+        "<b>Erklärung:</b>\n{explanation}"
     )
     ADMIN_ERROR_CHECKING_URL_MSG = "❌ Fehler beim Überprüfen der URL: {error}"
     
@@ -950,7 +951,7 @@ Verwenden Sie:
     ARGS_XFF_SHORT_MSG = "XFF-Header"
     ARGS_HTTP_CHUNK_SIZE_SHORT_MSG = "Chunk-Größe"
     ARGS_SLEEP_SUBTITLES_SHORT_MSG = "Wartezeit Subs"
-    ARGS_LEGACY_SERVER_CONNECT_SHORT_MSG = "Legacy-Verbindung"
+    ARGS_LEGACY_SERVER_CONNECT_SHORT_MSG = "Legacy Connect"
     ARGS_NO_CHECK_CERTIFICATES_SHORT_MSG = "Kein Zertifikat prüfen"
     ARGS_USERNAME_SHORT_MSG = "Benutzername"
     ARGS_PASSWORD_SHORT_MSG = "Passwort"
@@ -1087,15 +1088,15 @@ Verwenden Sie:
     COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Invalid YouTube cookie index: {selected_index}. Available range is 1-{total_urls}"
     COOKIES_DOWNLOADING_CHECKING_MSG = "🔄 YouTube-Cookies werden heruntergeladen und überprüft...\n\nVersuch {attempt} von {total}"
     COOKIES_DOWNLOADING_TESTING_MSG = "🔄 YouTube-Cookies werden heruntergeladen und überprüft...\n\nVersuch {attempt} von {total}\n🔍 Cookies werden getestet..."
-    COOKIES_SUCCESS_VALIDATED_MSG = "✅ YouTube cookies successfully downloaded and validated!\n\nUsed source {source} of {total}"
-    COOKIES_ALL_EXPIRED_MSG = "❌ All YouTube cookies are expired or unavailable!\n\nContact the bot administrator to replace them."
+    COOKIES_SUCCESS_VALIDATED_MSG = "✅ YouTube-Cookies erfolgreich heruntergeladen und validiert!\n\nVerwendete Quelle {source} von {total}"
+    COOKIES_ALL_EXPIRED_MSG = "❌ Alle YouTube-Cookies sind abgelaufen oder nicht verfügbar!\n\nKontaktieren Sie den Bot-Administrator, um sie zu ersetzen."
     COOKIES_YOUTUBE_RETRY_LIMIT_EXCEEDED_MSG = "⚠️ YouTube Cookie-Wiederholungslimit überschritten!\n\n🔢 Maximum: {limit} Versuche pro Stunde\n⏰ Bitte versuchen Sie es später erneut"
     
     # Additional other command messages
-    OTHER_TAG_ERROR_MSG = "❌ Tag #{wrong} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
+    OTHER_TAG_ERROR_MSG = "❌ Tag #{wrong} enthält verbotene Zeichen. Nur Buchstaben, Ziffern und _ sind erlaubt.\nBitte verwenden Sie: {example}"
     
     # Additional subtitles command messages
-    SUBS_INVALID_ARGUMENT_MSG = "❌ **Invalid argument!**\n\n"
+    SUBS_INVALID_ARGUMENT_MSG = "❌ **Ungültiges Argument!**\n\n"
     SUBS_LANGUAGE_SET_STATUS_MSG = "✅ Untertitel-Sprache gesetzt: {flag} {name}"
     
     # Additional subtitles command messages (more)
@@ -1165,11 +1166,11 @@ Verwenden Sie:
     # Admin log messages
     ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Script not found: {script_path}"
     ADMIN_FAILED_SEND_STATUS_LOG_MSG = "Failed to send initial status message"
-    ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Error running {script_path}: {stdout}\n{stderr}"
-    ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase cache reloaded by auto task."
-    ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase cache reloaded by admin."
+    ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Fehler beim Ausführen von {script_path}: {stdout}\n{stderr}"
+    ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase-Cache von automatischer Aufgabe neu geladen."
+    ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase-Cache von Administrator neu geladen."
     ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Fehler beim Neuladen des Firebase-Cache: {error}"
-    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Broadcast initiiert. Text:\n{broadcast_text}"
+    ADMIN_BROADCAST_INITIATED_LOG_MSG = "Übertragung initiiert. Text:\n{broadcast_text}"
     ADMIN_BROADCAST_SENT_LOG_MSG = "Broadcast-Nachricht an alle Benutzer gesendet."
     ADMIN_BROADCAST_FAILED_LOG_MSG = "Broadcast-Nachricht konnte nicht gesendet werden: {error}"
     ADMIN_CACHE_CLEARED_LOG_MSG = "Admin {user_id} hat Cache für URL gelöscht: {url}"
@@ -1269,10 +1270,10 @@ Verwenden Sie:
     
     # Always Ask Menu Button Messages
     ALWAYS_ASK_VLC_ANDROID_BUTTON_MSG = "🎬 VLC (Android)"
-    ALWAYS_ASK_CLOSE_BUTTON_MSG = "🔚 Close"
+    ALWAYS_ASK_CLOSE_BUTTON_MSG = "🔚 Schließen"
     ALWAYS_ASK_CODEC_BUTTON_MSG = "📼CODEC"
-    ALWAYS_ASK_DUBS_BUTTON_MSG = "🗣 DUBS"
-    ALWAYS_ASK_SUBS_BUTTON_MSG = "💬 SUBS"
+    ALWAYS_ASK_DUBS_BUTTON_MSG = "🗣 SYNCHRONISIERT"
+    ALWAYS_ASK_SUBS_BUTTON_MSG = "💬 UNTERTITEL"
     ALWAYS_ASK_BROWSER_BUTTON_MSG = "🌐 Browser"
     ALWAYS_ASK_VLC_IOS_BUTTON_MSG = "🎬 VLC (iOS)"
     
@@ -1956,7 +1957,7 @@ Verwenden Sie:
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Für die Arbeit in der Gruppe benötigt der Bot Administratorrechte. Bitte machen Sie den Bot zum Administrator dieser Gruppe."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Hallo {first_name},\n \n<i>Dieser Bot🤖 kann Videos direkt in Telegram herunterladen.😊 Für weitere Informationen drücken Sie <b>/help</b></i> 👈\n\n<blockquote>P.S. Das Herunterladen von 🔞NSFW-Inhalten und Dateien von ☁️Cloud Storage ist kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Verlassen Sie den Kanal nicht - Sie werden vom Bot-Nutzung gesperrt ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Hallo {first_name},\n \n<i>Dieser Bot🤖 kann Videos direkt in Telegram herunterladen.😊 Für weitere Informationen drücken Sie <b>/help</b></i> 👈\n\n<blockquote>P.S. Das Herunterladen von 🔞NSFW-Inhalten und Dateien von ☁️Cloud Storage ist kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Verlassen Sie den Kanal nicht - Sie werden von der Bot-Nutzung gesperrt ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Keine Dateien zum Entfernen."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Alle Dateien erfolgreich entfernt!\n\nEntfernte Dateien:\n{files_list}"
     
@@ -2120,7 +2121,7 @@ Verwenden Sie:
     SETTINGS_MEDIAINFO_BUTTON_MSG = "📊 Mediainfo"
     SETTINGS_SUBTITLES_BUTTON_MSG = "💬 Untertitel"
     SETTINGS_KEYBOARD_BUTTON_MSG = "🎹 Tastatur"
-    SETTINGS_ARGS_BUTTON_MSG = "⚙️ Args"
+    SETTINGS_ARGS_BUTTON_MSG = "⚙️ Argumente"
     SETTINGS_NSFW_BUTTON_MSG = "🔞 NSFW"
     SETTINGS_PROXY_BUTTON_MSG = "🌎 Proxy"
     SETTINGS_FLOOD_WAIT_BUTTON_MSG = "🔄 Flood-Wartezeit"
