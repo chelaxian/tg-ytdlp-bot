@@ -53,6 +53,7 @@ FIX_ILLEGAL_INSTRUCTION.md
 remove_dump_from_history.md
 remove_dump_from_history.ps1
 remove_dump_from_history_filter_repo.ps1
+replace_dump_in_history.ps1
 
 # yt-dlp binaries / temp downloads
 yt-dlp
