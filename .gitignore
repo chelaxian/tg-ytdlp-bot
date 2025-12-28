@@ -48,6 +48,7 @@ unblocked_users.txt
 unknown_errors.txt
 translation_check_results_20251226_235817.txt
 translation_check_results_*.txt
+upload_warp.ps1
 
 # yt-dlp binaries / temp downloads
 yt-dlp
