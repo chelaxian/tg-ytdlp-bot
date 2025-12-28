@@ -429,6 +429,42 @@ YOUTUBE_POT_BASE_URL = "http://127.0.0.1:4416"
 YOUTUBE_POT_DISABLE_INNERTUBE = False
 ```
 
+#### Channel Guard Session String (Optional)
+
+Channel Guard is a feature that monitors channel subscription events and can automatically block users who leave the subscription channel. To enable reading admin logs (which bots cannot do), you need to generate a user session string.
+
+**Generate Session String:**
+
+1. Run the script:
+```bash
+python generate_session_string.py
+```
+
+2. Follow the interactive prompts:
+   - Enter your phone number (with country code, e.g., `+79991234567`)
+   - Enter the verification code from Telegram
+   - Enter your 2FA password (if enabled)
+
+3. Copy the generated session string and add it to `CONFIG/config.py`:
+```python
+CHANNEL_GUARD_SESSION_STRING = "your_session_string_here"
+```
+
+**Important Security Notes:**
+- ⚠️ Keep the session string secure and never share it publicly
+- ⚠️ With this session string, someone can gain access to your Telegram account
+- ⚠️ The script saves the session string to `channel_guard_session_string.txt` - delete this file after copying to config
+
+**Requirements:**
+- `API_ID` and `API_HASH` must be configured in `CONFIG/config.py` before running the script
+- The phone number used must have access to the subscription channel
+
+**What Channel Guard Does:**
+- Monitors channel join/leave events
+- Automatically blocks users who leave the subscription channel (if auto-blocking is enabled)
+- Provides admin logs for channel management
+- Tracks subscription compliance
+
 ### Getting API Credentials
 
 #### 1. Bot Token
