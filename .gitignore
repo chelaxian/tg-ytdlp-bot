@@ -46,6 +46,8 @@ firebase_cache.json
 blocked_users.txt
 unblocked_users.txt
 unknown_errors.txt
+translation_check_results_20251226_235817.txt
+translation_check_results_*.txt
 
 # yt-dlp binaries / temp downloads
 yt-dlp
