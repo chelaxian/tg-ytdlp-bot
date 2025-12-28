@@ -25,6 +25,7 @@ services:
       - warp
     volumes:
       - .:/app
+    working_dir: /app
     network_mode: "service:warp"
 
   dashboard:
