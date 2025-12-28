@@ -54,6 +54,8 @@ remove_dump_from_history.md
 remove_dump_from_history.ps1
 remove_dump_from_history_filter_repo.ps1
 replace_dump_in_history.ps1
+replace_dump_in_history.sh
+fix_and_replace_dump.sh
 
 # yt-dlp binaries / temp downloads
 yt-dlp
