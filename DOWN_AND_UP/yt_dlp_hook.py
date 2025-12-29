@@ -418,7 +418,18 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                     logger.info(f"Error appears to be non-cookie-related for {url}, skipping cookie fallback")
             
             # Check for TikTok private account error
-            if "tiktok.com" in url.lower() and "private" in error_text.lower() and "account" in error_text.lower():
+            # Безопасная проверка домена через urlparse
+            is_tiktok = False
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                tiktok_hostname = (parsed_url.hostname or '').lower()
+                is_tiktok = tiktok_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+                           tiktok_hostname.endswith('.tiktok.com')
+            except Exception:
+                pass
+            
+            if is_tiktok and "private" in error_text.lower() and "account" in error_text.lower():
                 logger.info(f"TikTok private account detected for {url}, recommending gallery-dl fallback")
                 return {'error': 'TIKTOK_PRIVATE_ACCOUNT', 'original_error': error_text}
             

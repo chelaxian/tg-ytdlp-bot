@@ -335,13 +335,45 @@ def _is_domain_match(hostname: str, domain: str) -> bool:
     """
     Безопасно проверяет, соответствует ли hostname указанному домену.
     Учитывает поддомены (например, www.twitter.com соответствует twitter.com).
+    Защищено от обхода через поддомены злоумышленников (например, evil.com?twitter.com).
     """
     if not hostname or not domain:
         return False
-    hostname_lower = hostname.lower()
-    domain_lower = domain.lower()
-    # Точное совпадение или домен является суффиксом hostname
-    return hostname_lower == domain_lower or hostname_lower.endswith('.' + domain_lower)
+    
+    # Нормализуем входные данные
+    hostname_lower = hostname.lower().strip()
+    domain_lower = domain.lower().strip()
+    
+    # Убираем порт если есть
+    if ':' in hostname_lower:
+        hostname_lower = hostname_lower.split(':')[0]
+    
+    # Точное совпадение
+    if hostname_lower == domain_lower:
+        return True
+    
+    # Проверяем, что домен является суффиксом hostname (для поддоменов)
+    # Используем точную проверку с точкой, чтобы избежать обхода через поддомены злоумышленников
+    # Например: www.twitter.com -> twitter.com (OK)
+    # Но: evil.com?twitter.com -> twitter.com (NOT OK, не пройдет проверку)
+    if hostname_lower.endswith('.' + domain_lower):
+        # Дополнительная проверка: убеждаемся, что перед точкой нет других точек
+        # Это предотвращает обход через такие домены как "evil.com?twitter.com"
+        prefix = hostname_lower[:-len(domain_lower) - 1]
+        # Если в префиксе есть точка, это может быть попытка обхода
+        if '.' in prefix:
+            # Разрешаем только если это валидный поддомен (например, www, api, mobile)
+            # Но блокируем если это выглядит как попытка обхода
+            parts = prefix.split('.')
+            # Если последняя часть префикса не является валидным поддоменом, блокируем
+            if len(parts) > 0 and parts[-1]:
+                # Разрешаем только если это простой поддомен без специальных символов
+                last_part = parts[-1]
+                if not last_part.replace('-', '').replace('_', '').isalnum():
+                    return False
+        return True
+    
+    return False
 
 
 def _detect_service(url: str) -> Optional[str]:
@@ -352,48 +384,8 @@ def _detect_service(url: str) -> Optional[str]:
         parsed = urlparse(url)
         hostname = parsed.hostname
         if not hostname:
-            # Если не удалось распарсить hostname, используем старый метод как fallback
-            u = url.lower()
-            if "instagram.com" in u or "instagr.am" in u:
-                return "instagram"
-            if "tiktok.com" in u or "vm.tiktok.com" in u or "vt.tiktok.com" in u:
-                return "tiktok"
-            if "twitter.com" in u or "x.com" in u:
-                return "x"
-            if "vk.com" in u or "vkontakte.ru" in u or "vkvideo.ru" in u:
-                return "vk"
-            if "youtube.com" in u or "youtu.be" in u or "music.youtube.com" in u:
-                return "youtube"
-            if "reddit.com" in u or "redd.it" in u:
-                return "reddit"
-            if "pinterest.com" in u or "pin.it" in u:
-                return "pinterest"
-            if "flickr.com" in u:
-                return "flickr"
-            if "deviantart.com" in u:
-                return "deviantart"
-            if "imgur.com" in u:
-                return "imgur"
-            if "tumblr.com" in u:
-                return "tumblr"
-            if "pixiv.net" in u:
-                return "pixiv"
-            if "artstation.com" in u:
-                return "artstation"
-            if "danbooru.donmai.us" in u or "danbooru" in u:
-                return "danbooru"
-            if "gelbooru.com" in u:
-                return "gelbooru"
-            if "yande.re" in u or "yande" in u:
-                return "yandere"
-            if "sankakucomplex.com" in u or "c.sankakucomplex.com" in u or "chan.sankaku" in u:
-                return "sankaku"
-            if "e621.net" in u:
-                return "e621"
-            if "rule34.xxx" in u or "rule34.paheal.net" in u:
-                return "rule34"
-            if "behance.net" in u or "behance.com" in u:
-                return "behance"
+            # Если не удалось распарсить hostname, возвращаем None для безопасности
+            # Небезопасные проверки подстрок могут быть обойдены через поддомены
             return None
         
         hostname_lower = hostname.lower()
@@ -515,85 +507,11 @@ def _detect_service(url: str) -> Optional[str]:
         if _is_domain_match(hostname_lower, "drive.google.com") or _is_domain_match(hostname_lower, "docs.google.com") or _is_domain_match(hostname_lower, "share.google.com"):
             return "google_drive"
     except Exception:
-        # В случае ошибки парсинга URL используем старый метод как fallback
-        pass
+        # В случае ошибки парсинга URL возвращаем None для безопасности
+        # Небезопасные проверки подстрок могут быть обойдены через поддомены
+        return None
     
-    # Fallback: если парсинг не удался, используем старый метод (менее безопасный, но работает)
-    u = url.lower()
-    if "vimeo.com" in u:
-        return "vimeo"
-    if "dailymotion.com" in u or "dai.ly" in u:
-        return "dailymotion"
-    if "rutube.ru" in u:
-        return "rutube"
-    if "twitch.tv" in u:
-        return "twitch"
-    if "facebook.com" in u:
-        return "facebook"
-    if "pornhub.com" in u or "pornhub.org" in u:
-        return "pornhub"
-    if "bilibili.com" in u or "bilibili.tv" in u or "bili.im" in u:
-        return "bilibili"
-    if "nicovideo.jp" in u:
-        return "niconico"
-    if "soundcloud.com" in u or "on.soundcloud.com" in u:
-        return "soundcloud"
-    if "bandcamp.com" in u:
-        return "bandcamp"
-    if "mixcloud.com" in u:
-        return "mixcloud"
-    if "spotify.com" in u:
-        return "spotify"
-    if "music.apple.com" in u:
-        return "apple_music"
-    if "deezer.com" in u:
-        return "deezer"
-    if "tidal.com" in u:
-        return "tidal"
-    if "kick.com" in u:
-        return "kick"
-    if "redgifs.com" in u:
-        return "redgifs"
-    if "snapchat.com" in u:
-        return "snapchat"
-    if "tnaflix.com" in u or "m.tnaflix.com" in u:
-        return "tnaflix"
-    if "eporner.com" in u:
-        return "eporner"
-    if "pornzog.com" in u:
-        return "pornzog"
-    if "porntrex.com" in u:
-        return "porntrex"
-    if "curiositystream.com" in u:
-        return "curiositystream"
-    if "xvideos.com" in u or "xvideos3.com" in u:
-        return "xvideos"
-    if "xnxx.com" in u or "xnxx.tv" in u:
-        return "xnxx"
-    if "xhamster.com" in u or "fra.xhamster2.com" in u or "xhamster1.desi" in u or "xhchannel.com" in u:
-        return "xhamster"
-    if "youporn.com" in u:
-        return "youporn"
-    if "redtube.com" in u:
-        return "redtube"
-    if "spankbang.com" in u:
-        return "spankbang"
-    if "porntube.com" in u:
-        return "porntube"
-    if "onlyfans.com" in u:
-        return "onlyfans"
-    if "patreon.com" in u:
-        return "patreon"
-    if "boosty.to" in u:
-        return "boosty"
-    if "ok.ru" in u:
-        return "okru"
-    if "pikabu.ru" in u:
-        return "pikabu"
-    if "zen.yandex.ru" in u:
-        return "yandex_zen"
-    if "drive.google.com" in u or "docs.google.com" in u or "share.google" in u:
-        return "google_drive"
+    # Если дошли сюда, значит парсинг прошел успешно, но домен не распознан
     return None
 
 

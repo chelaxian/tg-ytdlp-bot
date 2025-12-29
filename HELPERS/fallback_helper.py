@@ -119,7 +119,18 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
         return True
         
     # Дополнительная проверка для TikTok ошибок
-    if "tiktok.com" in url.lower() and any(err in error_lower for err in ["429", "403", "401", "unable to download"]):
+    # Безопасная проверка домена через urlparse
+    is_tiktok = False
+    try:
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        tiktok_hostname = (parsed_url.hostname or '').lower()
+        is_tiktok = tiktok_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+                   tiktok_hostname.endswith('.tiktok.com')
+    except Exception:
+        pass
+    
+    if is_tiktok and any(err in error_lower for err in ["429", "403", "401", "unable to download"]):
         return True
     
     return False

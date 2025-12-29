@@ -68,7 +68,19 @@ def send_videos(
     # --- Define the size of the preview/video ---
     width = None
     height = None
-    if video_url and ("youtube.com" in video_url or "youtu.be" in video_url):
+    # Безопасная проверка домена через urlparse
+    is_youtube = False
+    if video_url:
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(video_url)
+            url_hostname = (parsed_url.hostname or '').lower()
+            is_youtube = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                        url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
+        except Exception:
+            pass
+    
+    if is_youtube:
         if "youtube.com/shorts/" in video_url or "/shorts/" in video_url:
             width, height = 360, 640
         else:

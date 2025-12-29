@@ -65,8 +65,10 @@ def update_domain_list(list_name: str, items: List[str]) -> bool:
         start_idx = None
         end_idx = None
         indent = "    "
+        # Экранируем специальные символы regex для безопасности
+        escaped_list_name = re.escape(list_name)
         for i, line in enumerate(lines):
-            if re.match(rf'^\s*{list_name}\s*=\s*\[', line):
+            if re.match(rf'^\s*{escaped_list_name}\s*=\s*\[', line):
                 start_idx = i
                 # Определяем отступ
                 indent_match = re.match(r'^(\s*)', line)
@@ -227,12 +229,67 @@ def _validate_url_for_ssrf(url: str) -> tuple[bool, str]:
         return False, f"URL validation error: {str(e)}"
 
 
+def _safe_get_with_redirect_validation(url: str, timeout: int = 30) -> requests.Response:
+    """
+    Безопасный GET запрос с валидацией редиректов для предотвращения SSRF.
+    """
+    import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    from urllib.parse import urljoin
+    
+    session = requests.Session()
+    
+    # Настраиваем retry стратегию
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    
+    # Отключаем автоматические редиректы и обрабатываем их вручную с валидацией
+    current_url = url
+    response = session.get(current_url, timeout=timeout, allow_redirects=False)
+    
+    # Обрабатываем редиректы вручную с валидацией
+    max_redirects = 10
+    redirect_count = 0
+    while response.status_code in (301, 302, 303, 307, 308) and redirect_count < max_redirects:
+        redirect_location = response.headers.get('Location')
+        if not redirect_location:
+            break
+        
+        # Обрабатываем относительные редиректы
+        if redirect_location.startswith('/'):
+            redirect_url = urljoin(current_url, redirect_location)
+        elif not redirect_location.startswith(('http://', 'https://')):
+            redirect_url = urljoin(current_url, redirect_location)
+        else:
+            redirect_url = redirect_location
+        
+        # Валидируем URL редиректа
+        is_valid, error_msg = _validate_url_for_ssrf(redirect_url)
+        if not is_valid:
+            raise ValueError(f"Invalid redirect URL: {error_msg}")
+        
+        redirect_count += 1
+        current_url = redirect_url
+        response = session.get(current_url, timeout=timeout, allow_redirects=False)
+    
+    if redirect_count >= max_redirects:
+        raise ValueError("Too many redirects")
+    
+    return response
+
+
 def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dict[str, Any]:
     """
     Обновляет списки из URL (для Docker режима).
     Скачивает файлы по URL и сохраняет их в соответствующие файлы.
     """
-    import requests
     base_dir = Path(__file__).resolve().parent.parent
     
     try:
@@ -244,7 +301,7 @@ def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dic
                 return {"status": "error", "message": f"Invalid porn_domains URL: {error_msg}"}
             
             try:
-                response = requests.get(porn_domains_url, timeout=30)
+                response = _safe_get_with_redirect_validation(porn_domains_url, timeout=30)
                 response.raise_for_status()
                 domains_file = base_dir / Config.PORN_DOMAINS_FILE
                 domains_file.parent.mkdir(parents=True, exist_ok=True)
@@ -261,7 +318,7 @@ def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dic
                 return {"status": "error", "message": f"Invalid porn_keywords URL: {error_msg}"}
             
             try:
-                response = requests.get(porn_keywords_url, timeout=30)
+                response = _safe_get_with_redirect_validation(porn_keywords_url, timeout=30)
                 response.raise_for_status()
                 keywords_file = base_dir / Config.PORN_KEYWORDS_FILE
                 keywords_file.parent.mkdir(parents=True, exist_ok=True)

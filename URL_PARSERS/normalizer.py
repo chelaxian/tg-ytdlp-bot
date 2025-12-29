@@ -34,14 +34,24 @@ def normalize_url_for_cache(url: str) -> str:
         logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (pornhub)")
         return result
 
+    # Безопасная функция для проверки домена
+    def _is_domain_match(hostname: str, domain: str) -> bool:
+        if not hostname or not domain:
+            return False
+        hostname_lower = hostname.lower().strip()
+        domain_lower = domain.lower().strip()
+        if ':' in hostname_lower:
+            hostname_lower = hostname_lower.split(':')[0]
+        return hostname_lower == domain_lower or hostname_lower.endswith('.' + domain_lower)
+    
     # TikTok: always strip all params, keep only path
-    if 'tiktok.com' in domain:
+    if _is_domain_match(domain, 'tiktok.com'):
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
         logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (tiktok)")
         return result
 
     # Shorts and youtu.be: always strip all params
-    if ("youtube.com" in domain and path.startswith('/shorts/')):
+    if _is_domain_match(domain, 'youtube.com') and path.startswith('/shorts/'):
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
         logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (shorts)")
         return result
@@ -52,7 +62,7 @@ def normalize_url_for_cache(url: str) -> str:
         return result
 
     # /watch: only v
-    if 'youtube.com' in domain and path == '/watch':
+    if _is_domain_match(domain, 'youtube.com') and path == '/watch':
         v = None
         if 'v' in query_params:
             v = query_params['v'][0]
@@ -67,7 +77,7 @@ def normalize_url_for_cache(url: str) -> str:
         logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (watch no v)")
         return result
     # /playlist: list only
-    if 'youtube.com' in domain and path == '/playlist':
+    if _is_domain_match(domain, 'youtube.com') and path == '/playlist':
         if 'list' in query_params:
             new_query = urlencode({'list': query_params['list']}, doseq=True)
             result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
@@ -77,14 +87,14 @@ def normalize_url_for_cache(url: str) -> str:
         logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (playlist no list)")
         return result
     # /embed: playlist only
-    if 'youtube.com' in domain and path.startswith('/embed/'):
+    if _is_domain_match(domain, 'youtube.com') and path.startswith('/embed/'):
         allowed_params = {k: v for k, v in query_params.items() if k == 'playlist'}
         new_query = urlencode(allowed_params, doseq=True)
         result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
         logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (embed)")
         return result
     # live: only way
-    if 'youtube.com' in domain and (path.startswith('/live/') or path.endswith('/live')):
+    if _is_domain_match(domain, 'youtube.com') and (path.startswith('/live/') or path.endswith('/live')):
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
         logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (live)")
         return result
@@ -106,7 +116,10 @@ def extract_real_url_if_google(url: str) -> str:
     Otherwise, returns the original link.
     """
     parsed = urlparse(url)
-    if parsed.netloc.endswith('google.com') and parsed.path.startswith('/url'):
+    # Безопасная проверка домена
+    netloc_lower = (parsed.netloc or '').lower()
+    is_google = netloc_lower in ('google.com', 'www.google.com') or netloc_lower.endswith('.google.com')
+    if is_google and parsed.path.startswith('/url'):
         qs = parse_qs(parsed.query)
         # Google may use either ?q= or ?url=
         real_url = qs.get('q') or qs.get('url')

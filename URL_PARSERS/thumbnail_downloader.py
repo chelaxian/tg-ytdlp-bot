@@ -21,13 +21,41 @@ def _is_domain_match(hostname: str, domain: str) -> bool:
     """
     Безопасно проверяет, соответствует ли hostname указанному домену.
     Учитывает поддомены (например, www.twitter.com соответствует twitter.com).
+    Защищено от обхода через поддомены злоумышленников (например, evil.com?twitter.com).
     """
     if not hostname or not domain:
         return False
-    hostname_lower = hostname.lower()
-    domain_lower = domain.lower()
-    # Точное совпадение или домен является суффиксом hostname
-    return hostname_lower == domain_lower or hostname_lower.endswith('.' + domain_lower)
+    
+    # Нормализуем входные данные
+    hostname_lower = hostname.lower().strip()
+    domain_lower = domain.lower().strip()
+    
+    # Убираем порт если есть
+    if ':' in hostname_lower:
+        hostname_lower = hostname_lower.split(':')[0]
+    
+    # Точное совпадение
+    if hostname_lower == domain_lower:
+        return True
+    
+    # Проверяем, что домен является суффиксом hostname (для поддоменов)
+    # Используем точную проверку с точкой, чтобы избежать обхода через поддомены злоумышленников
+    if hostname_lower.endswith('.' + domain_lower):
+        # Дополнительная проверка: убеждаемся, что перед точкой нет других точек
+        prefix = hostname_lower[:-len(domain_lower) - 1]
+        # Если в префиксе есть точка, это может быть попытка обхода
+        if '.' in prefix:
+            # Разрешаем только если это валидный поддомен (например, www, api, mobile)
+            parts = prefix.split('.')
+            # Если последняя часть префикса не является валидным поддоменом, блокируем
+            if len(parts) > 0 and parts[-1]:
+                # Разрешаем только если это простой поддомен без специальных символов
+                last_part = parts[-1]
+                if not last_part.replace('-', '').replace('_', '').isalnum():
+                    return False
+        return True
+    
+    return False
 
 
 def extract_service_info(url: str) -> Tuple[str, str]:
@@ -43,7 +71,7 @@ def extract_service_info(url: str) -> Tuple[str, str]:
         query = parsed.query
         
         # Instagram
-        if any(x in netloc for x in ['instagram.com', 'instagr.am']):
+        if _is_domain_match(netloc, 'instagram.com') or _is_domain_match(netloc, 'instagr.am'):
             if '/reel/' in path:
                 match = re.search(r'/reel/([^/?]+)', path)
                 if match:
@@ -58,27 +86,27 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'instagram', match.group(1)
         
         # Vimeo
-        elif 'vimeo.com' in netloc:
+        elif _is_domain_match(netloc, 'vimeo.com'):
             match = re.search(r'/(\d+)', path)
             if match:
                 return 'vimeo', match.group(1)
         
         # Dailymotion
-        elif any(x in netloc for x in ['dailymotion.com', 'dai.ly']):
+        elif _is_domain_match(netloc, 'dailymotion.com') or _is_domain_match(netloc, 'dai.ly'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'dailymotion', match.group(1)
         
         # Rutube
-        elif 'rutube.ru' in netloc:
+        elif _is_domain_match(netloc, 'rutube.ru'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'rutube', match.group(1)
         
         # Twitch
-        elif 'twitch.tv' in netloc:
+        elif _is_domain_match(netloc, 'twitch.tv'):
             if '/videos/' in path:
                 match = re.search(r'/videos/(\d+)', path)
                 if match:
@@ -89,14 +117,14 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'twitch', match.group(1)
         
         # Boosty
-        elif 'boosty.to' in netloc:
+        elif _is_domain_match(netloc, 'boosty.to'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'boosty', match.group(1)
         
         # Odnoklassniki (Одноклассники)
-        elif 'ok.ru' in netloc:
+        elif _is_domain_match(netloc, 'ok.ru'):
             if '/video/' in path:
                 match = re.search(r'/video/(\d+)', path)
                 if match:
@@ -107,7 +135,7 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'okru', match.group(1)
         
         # Reddit
-        elif any(x in netloc for x in ['reddit.com', 'redd.it']):
+        elif _is_domain_match(netloc, 'reddit.com') or _is_domain_match(netloc, 'redd.it'):
             if '/comments/' in path:
                 match = re.search(r'/comments/[^/]+/([^/?]+)', path)
                 if match:
@@ -118,14 +146,14 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'reddit', match.group(1)
         
         # Pikabu
-        elif 'pikabu.ru' in netloc:
+        elif _is_domain_match(netloc, 'pikabu.ru'):
             if '/story/' in path:
                 match = re.search(r'/story/(\d+)', path)
                 if match:
                     return 'pikabu', match.group(1)
         
         # Yandex.Dzen (Яндекс.Дзен)
-        elif 'zen.yandex.ru' in netloc:
+        elif _is_domain_match(netloc, 'zen.yandex.ru'):
             if '/media/' in path:
                 match = re.search(r'/media/([^/?]+)', path)
                 if match:
@@ -136,7 +164,7 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'yandex_zen', match.group(1)
         
         # Google Drive
-        elif any(x in netloc for x in ['drive.google.com', 'docs.google.com']):
+        elif _is_domain_match(netloc, 'drive.google.com') or _is_domain_match(netloc, 'docs.google.com'):
             if '/file/d/' in path:
                 match = re.search(r'/file/d/([^/?]+)', path)
                 if match:
@@ -147,15 +175,15 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'google_drive', match.group(1)
         
         # Redtube
-        elif 'redtube.com' in netloc:
+        elif _is_domain_match(netloc, 'redtube.com'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'redtube', match.group(1)
         
         # YouTube
-        elif any(x in netloc for x in ['youtube.com', 'youtu.be', 'm.youtube.com', 'music.youtube.com']):
-            if 'youtu.be' in netloc:
+        elif _is_domain_match(netloc, 'youtube.com') or _is_domain_match(netloc, 'youtu.be') or _is_domain_match(netloc, 'm.youtube.com') or _is_domain_match(netloc, 'music.youtube.com'):
+            if _is_domain_match(netloc, 'youtu.be'):
                 match = re.search(r'/([^/?]+)', path)
                 if match:
                     return 'youtube', match.group(1)
@@ -177,147 +205,147 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'youtube', match.group(1)
         
         # Bilibili
-        elif any(x in netloc for x in ['bilibili.com', 'bilibili.tv', 'bili.im']):
+        elif _is_domain_match(netloc, 'bilibili.com') or _is_domain_match(netloc, 'bilibili.tv') or _is_domain_match(netloc, 'bili.im'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'bilibili', match.group(1)
         
         # Niconico
-        elif 'nicovideo.jp' in netloc:
+        elif _is_domain_match(netloc, 'nicovideo.jp'):
             if '/watch/' in path:
                 match = re.search(r'/watch/([^/?]+)', path)
                 if match:
                     return 'niconico', match.group(1)
         
         # XVideos
-        elif any(x in netloc for x in ['xvideos.com', 'xvideos3.com']):
+        elif _is_domain_match(netloc, 'xvideos.com') or _is_domain_match(netloc, 'xvideos3.com'):
             if '/video' in path:
                 match = re.search(r'/video(\d+)', path)
                 if match:
                     return 'xvideos', match.group(1)
         
         # XNXX
-        elif any(x in netloc for x in ['xnxx.com', 'xnxx.tv']):
+        elif _is_domain_match(netloc, 'xnxx.com') or _is_domain_match(netloc, 'xnxx.tv'):
             if '/video' in path:
                 match = re.search(r'/video([^/?]+)', path)
                 if match:
                     return 'xnxx', match.group(1)
         
         # YouPorn
-        elif 'youporn.com' in netloc:
+        elif _is_domain_match(netloc, 'youporn.com'):
             if '/watch/' in path:
                 match = re.search(r'/watch/(\d+)', path)
                 if match:
                     return 'youporn', match.group(1)
         
         # XHamster
-        elif any(x in netloc for x in ['xhamster.com', 'fra.xhamster2.com', 'xhamster1.desi', 'xhchannel.com']):
+        elif _is_domain_match(netloc, 'xhamster.com') or _is_domain_match(netloc, 'fra.xhamster2.com') or _is_domain_match(netloc, 'xhamster1.desi') or _is_domain_match(netloc, 'xhchannel.com'):
             if '/videos/' in path:
                 match = re.search(r'/videos/([^/?]+)', path)
                 if match:
                     return 'xhamster', match.group(1)
         
         # PornTube
-        elif 'porntube.com' in netloc:
+        elif _is_domain_match(netloc, 'porntube.com'):
             if '/videos/' in path:
                 match = re.search(r'/videos/([^/?]+)', path)
                 if match:
                     return 'porntube', match.group(1)
         
         # SpankBang
-        elif 'spankbang.com' in netloc:
+        elif _is_domain_match(netloc, 'spankbang.com'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'spankbang', match.group(1)
         
         # OnlyFans
-        elif 'onlyfans.com' in netloc:
+        elif _is_domain_match(netloc, 'onlyfans.com'):
             if '/v/' in path:
                 match = re.search(r'/v/(\d+)', path)
                 if match:
                     return 'onlyfans', match.group(1)
         
         # Patreon
-        elif 'patreon.com' in netloc:
+        elif _is_domain_match(netloc, 'patreon.com'):
             if '/posts/' in path:
                 match = re.search(r'/posts/(\d+)', path)
                 if match:
                     return 'patreon', match.group(1)
         
         # SoundCloud
-        elif any(x in netloc for x in ['soundcloud.com', 'on.soundcloud.com']):
+        elif _is_domain_match(netloc, 'soundcloud.com') or _is_domain_match(netloc, 'on.soundcloud.com'):
             if '/' in path and not path.startswith('/'):
                 match = re.search(r'/([^/?]+)', path)
                 if match:
                     return 'soundcloud', match.group(1)
         
         # Bandcamp
-        elif 'bandcamp.com' in netloc:
+        elif _is_domain_match(netloc, 'bandcamp.com'):
             if '/track/' in path:
                 match = re.search(r'/track/([^/?]+)', path)
                 if match:
                     return 'bandcamp', match.group(1)
         
         # Mixcloud
-        elif 'mixcloud.com' in netloc:
+        elif _is_domain_match(netloc, 'mixcloud.com'):
             if '/' in path and not path.startswith('/'):
                 match = re.search(r'/([^/?]+)', path)
                 if match:
                     return 'mixcloud', match.group(1)
         
         # Deezer
-        elif 'deezer.com' in netloc:
+        elif _is_domain_match(netloc, 'deezer.com'):
             if '/track/' in path:
                 match = re.search(r'/track/(\d+)', path)
                 if match:
                     return 'deezer', match.group(1)
         
         # Spotify
-        elif 'spotify.com' in netloc:
+        elif _is_domain_match(netloc, 'spotify.com'):
             if '/track/' in path:
                 match = re.search(r'/track/([^/?]+)', path)
                 if match:
                     return 'spotify', match.group(1)
         
         # Apple Music
-        elif 'music.apple.com' in netloc:
+        elif _is_domain_match(netloc, 'music.apple.com'):
             if '/album/' in path and '/track/' in path:
                 match = re.search(r'/track/(\d+)', path)
                 if match:
                     return 'apple_music', match.group(1)
         
         # Tidal
-        elif 'tidal.com' in netloc:
+        elif _is_domain_match(netloc, 'tidal.com'):
             if '/track/' in path:
                 match = re.search(r'/track/(\d+)', path)
                 if match:
                     return 'tidal', match.group(1)
         
         # VK
-        elif any(x in netloc for x in ['vk.com', 'm.vk.com', 'vkvideo.ru', 'm.vkvideo.ru']):
+        elif _is_domain_match(netloc, 'vk.com') or _is_domain_match(netloc, 'm.vk.com') or _is_domain_match(netloc, 'vkvideo.ru') or _is_domain_match(netloc, 'm.vkvideo.ru'):
             if '/video' in path:
                 match = re.search(r'/video(-?\d+_\d+)', path)
                 if match:
                     return 'vk', match.group(1)
         
         # TikTok
-        elif any(x in netloc for x in ['tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com']):
+        elif _is_domain_match(netloc, 'tiktok.com') or _is_domain_match(netloc, 'vm.tiktok.com') or _is_domain_match(netloc, 'vt.tiktok.com'):
             if '/video/' in path:
                 match = re.search(r'/video/(\d+)', path)
                 if match:
                     return 'tiktok', match.group(1)
         
         # Twitter/X
-        elif any(x in netloc for x in ['twitter.com', 'x.com']):
+        elif _is_domain_match(netloc, 'twitter.com') or _is_domain_match(netloc, 'x.com'):
             if '/status/' in path:
                 match = re.search(r'/status/(\d+)', path)
                 if match:
                     return 'twitter', match.group(1)
         
         # Facebook
-        elif 'facebook.com' in netloc:
+        elif _is_domain_match(netloc, 'facebook.com'):
             if '/reel/' in path:
                 match = re.search(r'/reel/(\d+)', path)
                 if match:
@@ -328,7 +356,7 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'facebook', match.group(1)
         
         # Pornhub
-        elif any(x in netloc for x in ['pornhub.com', 'pornhub.org', 'cn.pornhub.com', 'de.pornhub.org', 'es.pornhub.com', 'fr.pornhub.com', 'it.pornhub.com', 'rt.pornhub.com', 'rt.pornhub.org']):
+        elif _is_domain_match(netloc, 'pornhub.com') or _is_domain_match(netloc, 'pornhub.org') or _is_domain_match(netloc, 'cn.pornhub.com') or _is_domain_match(netloc, 'de.pornhub.org') or _is_domain_match(netloc, 'es.pornhub.com') or _is_domain_match(netloc, 'fr.pornhub.com') or _is_domain_match(netloc, 'it.pornhub.com') or _is_domain_match(netloc, 'rt.pornhub.com') or _is_domain_match(netloc, 'rt.pornhub.org'):
             if '/view_video.php' in path:
                 match = re.search(r'viewkey=([^&]+)', query)
                 if match:
@@ -339,63 +367,63 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'pornhub', match.group(1)
         
         # Kick.com
-        elif 'kick.com' in netloc:
+        elif _is_domain_match(netloc, 'kick.com'):
             if '/video/' in path:
                 match = re.search(r'/video/(\d+)', path)
                 if match:
                     return 'kick', match.group(1)
         
         # RedGifs
-        elif 'redgifs.com' in netloc:
+        elif _is_domain_match(netloc, 'redgifs.com'):
             if '/watch/' in path:
                 match = re.search(r'/watch/([^/?]+)', path)
                 if match:
                     return 'redgifs', match.group(1)
         
         # Snapchat
-        elif 'snapchat.com' in netloc:
+        elif _is_domain_match(netloc, 'snapchat.com'):
             if '/story/' in path:
                 match = re.search(r'/story/([^/?]+)', path)
                 if match:
                     return 'snapchat', match.group(1)
         
         # TNAFlix
-        elif any(x in netloc for x in ['tnaflix.com', 'm.tnaflix.com']):
+        elif _is_domain_match(netloc, 'tnaflix.com') or _is_domain_match(netloc, 'm.tnaflix.com'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'tnaflix', match.group(1)
         
         # Eporner
-        elif 'eporner.com' in netloc:
+        elif _is_domain_match(netloc, 'eporner.com'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'eporner', match.group(1)
         
         # Pornzog
-        elif 'pornzog.com' in netloc:
+        elif _is_domain_match(netloc, 'pornzog.com'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'pornzog', match.group(1)
         
         # Porntrex
-        elif 'porntrex.com' in netloc:
+        elif _is_domain_match(netloc, 'porntrex.com'):
             if '/video/' in path:
                 match = re.search(r'/video/([^/?]+)', path)
                 if match:
                     return 'porntrex', match.group(1)
         
         # CuriosityStream
-        elif 'curiositystream.com' in netloc:
+        elif _is_domain_match(netloc, 'curiositystream.com'):
             if '/video/' in path:
                 match = re.search(r'/video/(\d+)', path)
                 if match:
                     return 'curiositystream', match.group(1)
         
         # Google variants
-        elif any(x in netloc for x in ['google.com', 'share.google']):
+        elif _is_domain_match(netloc, 'google.com') or _is_domain_match(netloc, 'share.google.com'):
             if '/file/d/' in path:
                 match = re.search(r'/file/d/([^/?]+)', path)
                 if match:

@@ -112,9 +112,27 @@ def generate_final_tags(url, user_tags, info_dict):
         if '#tiktok' not in seen:
             final_tags.append('#tiktok')
             seen.add('#tiktok')
+    # Безопасная функция для проверки домена
+    def _is_domain_match(hostname: str, domain: str) -> bool:
+        if not hostname or not domain:
+            return False
+        hostname_lower = hostname.lower().strip()
+        domain_lower = domain.lower().strip()
+        if ':' in hostname_lower:
+            hostname_lower = hostname_lower.split(':')[0]
+        return hostname_lower == domain_lower or hostname_lower.endswith('.' + domain_lower)
+    
     # Unwrap redirects before any domain-based checks
     clean_url_for_check = get_clean_url_for_tagging(unwrap_redirect_url(url))
-    if ("youtube.com" in clean_url_for_check or "youtu.be" in clean_url_for_check) and info_dict:
+    try:
+        from urllib.parse import urlparse
+        parsed_check = urlparse(clean_url_for_check)
+        check_hostname = (parsed_check.hostname or '').lower()
+        is_youtube = _is_domain_match(check_hostname, 'youtube.com') or _is_domain_match(check_hostname, 'youtu.be')
+    except Exception:
+        is_youtube = False
+    
+    if is_youtube and info_dict:
         channel_name = info_dict.get("channel") or info_dict.get("uploader")
         if channel_name:
             channel_tag = sanitize_autotag(channel_name)
@@ -315,19 +333,30 @@ def get_auto_tags(url, user_tags):
     # 1. Porn Check (domain-based). GREYLIST excluded inside is_porn_domain
     if is_porn_domain(domain_parts):
         auto_tags.add(sanitize_autotag('nsfw'))
+    # Безопасная функция для проверки домена
+    def _is_domain_match(hostname: str, domain: str) -> bool:
+        if not hostname or not domain:
+            return False
+        hostname_lower = hostname.lower().strip()
+        domain_lower = domain.lower().strip()
+        if ':' in hostname_lower:
+            hostname_lower = hostname_lower.split(':')[0]
+        return hostname_lower == domain_lower or hostname_lower.endswith('.' + domain_lower)
+    
     # 2. YouTube Check (including YouTu.be)
-    if ("youtube.com" in url_l or "youtu.be" in url_l):
+    check_hostname = parsed.netloc.lower()
+    if _is_domain_match(check_hostname, 'youtube.com') or _is_domain_match(check_hostname, 'youtu.be'):
         auto_tags.add("#youtube")
     # 3. VK Check (including VK.com)
-    if ("vk.com" in url_l or "vkontakte.ru" in url_l or "vkvideo.ru" in url_l):
+    if _is_domain_match(check_hostname, 'vk.com') or _is_domain_match(check_hostname, 'vkontakte.ru') or _is_domain_match(check_hostname, 'vkvideo.ru'):
         auto_tags.add("#vk")
     # 4. Twitter/X check (exact domain match)
     twitter_domains = {"twitter.com", "x.com", "t.co"}
     domain = parsed.netloc.lower()
-    if domain in twitter_domains:
+    if domain in twitter_domains or _is_domain_match(domain, 'twitter.com') or _is_domain_match(domain, 'x.com') or _is_domain_match(domain, 't.co'):
         auto_tags.add("#twitter")
     # 5. Boosty check (boosty.to, boosty.com)
-    if ("boosty.to" in url_l or "boosty.com" in url_l):
+    if _is_domain_match(check_hostname, 'boosty.to') or _is_domain_match(check_hostname, 'boosty.com'):
         auto_tags.add("#boosty")
         auto_tags.add("#nsfw")
     # 6. Service tag for supported sites (by full domain or 2nd level)

@@ -4112,7 +4112,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     continue
                 
                 # Для YouTube используем специальную функцию
-                if ("youtube.com" in url or "youtu.be" in url) and entry_id:
+                # Безопасная проверка домена через urlparse
+                is_youtube_domain = False
+                try:
+                    from urllib.parse import urlparse
+                    parsed_url = urlparse(url)
+                    url_hostname = (parsed_url.hostname or '').lower()
+                    is_youtube_domain = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                                       url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
+                except Exception:
+                    pass
+                
+                if is_youtube_domain and entry_id:
                     entry_thumb_path = os.path.join(thumb_dir, f"yt_thumb_{entry_id}.jpg")
                     try:
                         # Используем URL конкретного видео, если доступен
@@ -4137,7 +4148,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         logger.warning(f"⚠️ Не удалось скачать обложку для видео {entry_id}: {e}")
         
         # Скачиваем обложку для первого видео (для отображения в меню)
-        if ("youtube.com" in url or "youtu.be" in url) and video_id:
+        # Безопасная проверка домена через urlparse
+        is_youtube_domain = False
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            url_hostname = (parsed_url.hostname or '').lower()
+            is_youtube_domain = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                               url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
+        except Exception:
+            pass
+        
+        if is_youtube_domain and video_id:
             thumb_path = os.path.join(thumb_dir, f"yt_thumb_{video_id}.jpg")
             try:
                 download_thumbnail(video_id, thumb_path, url)
@@ -4222,7 +4244,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         except Exception:
             pass
         
-        if ("youtube.com" in url or "youtu.be" in url):
+        # Безопасная проверка домена через urlparse
+        is_youtube_domain_check = False
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            url_hostname = (parsed_url.hostname or '').lower()
+            is_youtube_domain_check = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                                     url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
+        except Exception:
+            pass
+        
+        if is_youtube_domain_check:
             quality_map = {}
             for f in info.get('formats', []):
                 if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
@@ -4746,7 +4779,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         if summary_parts:
             cap += "<blockquote>" + " | ".join(summary_parts) + "</blockquote>\n"
         # --- YouTube expanded block ---
-        is_youtube = ("youtube.com" in url or "youtu.be" in url)
+        # Безопасная проверка домена через urlparse
+        is_youtube = False
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            url_hostname = (parsed_url.hostname or '').lower()
+            is_youtube = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                        url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
+        except Exception:
+            pass
+        
         if is_youtube:
             uploader = info.get('uploader') or ''
             channel_url = info.get('channel_url') or ''
@@ -4957,12 +5000,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         paid_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_NSFW_IS_PAID_MSG}" if should_show_paid_hint else f"\n{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG}"
         # Hints tied to optional buttons
         image_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOAD_IMAGE_MSG}" if not found_quality_keys else ""
-        watch_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_WATCH_VIDEO_MSG}" if is_youtube_url(url) else ""
+        # Используем импортированную функцию напрямую, чтобы избежать конфликта с локальными переменными
+        from URL_PARSERS.youtube import is_youtube_url as check_youtube_url
+        watch_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_WATCH_VIDEO_MSG}" if check_youtube_url(url) else ""
         link_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_GET_DIRECT_LINK_MSG}"  # Link button is always present
         list_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG}"  # LIST button is always present
         
         # Create dynamic hints based on actual buttons that will be shown
-        def create_dynamic_hints(action_buttons, found_quality_keys, is_youtube_url, url, is_nsfw, is_private_chat, get_filters, user_id, subs_hint, subs_warn):
+        def create_dynamic_hints(action_buttons, found_quality_keys, is_youtube_url_param, url, is_nsfw, is_private_chat, get_filters, user_id, subs_hint, subs_warn):
             messages = safe_get_messages(message.chat.id)
             """Create hints only for emojis that are actually used in the menu"""
             hints = []
@@ -4982,7 +5027,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_INSTANT_REPOST_MSG}")
             
             # Watch hint (👁) - only for YouTube
-            if is_youtube_url(url):
+            if is_youtube_url_param:
                 hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_WATCH_VIDEO_MSG}")
             
             # Link hint (🔗) - always present
@@ -5027,7 +5072,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         cap += f"\n{temp_hint}\n"
         buttons = []
         # Sort buttons by quality from lowest to highest
-        if ("youtube.com" in url or "youtu.be" in url):
+        # Безопасная проверка домена через urlparse
+        is_youtube_domain_sort = False
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            url_hostname = (parsed_url.hostname or '').lower()
+            is_youtube_domain_sort = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                                    url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
+        except Exception:
+            pass
+        
+        if is_youtube_domain_sort:
             for quality_key in sorted(quality_map.keys(), key=sort_quality_key):
                 f = quality_map[quality_key]
                 w = f.get('width')

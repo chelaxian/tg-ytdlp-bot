@@ -1115,11 +1115,16 @@ def url_distractor(app, message):
                 
                 # Проверка черного списка доменов (самая ранняя проверка, до любых попыток обработки)
                 if raw_url:
-                    for black_item in Config.BLACK_LIST:
-                        if black_item in raw_url:
-                            logger.info(f"URL_EXTRACTOR: blocking blacklisted domain '{black_item}' for URL '{raw_url}'")
-                            send_error_to_user(message, safe_get_messages(user_id).PORN_CONTENT_CANNOT_DOWNLOAD_MSG, url=raw_url)
-                            return
+                    parsed = urlparse(raw_url)
+                    url_hostname = (parsed.hostname or '').lower()
+                    if url_hostname:
+                        for black_item in Config.BLACK_LIST:
+                            black_item_lower = black_item.lower().strip()
+                            # Безопасная проверка домена через hostname
+                            if url_hostname == black_item_lower or url_hostname.endswith('.' + black_item_lower):
+                                logger.info(f"URL_EXTRACTOR: blocking blacklisted domain '{black_item}' for URL '{raw_url}'")
+                                send_error_to_user(message, safe_get_messages(user_id).PORN_CONTENT_CANNOT_DOWNLOAD_MSG, url=raw_url)
+                                return
                 
                 parsed = urlparse(raw_url)
                 path_lower = (parsed.path or "").lower()

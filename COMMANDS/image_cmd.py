@@ -908,7 +908,18 @@ def image_command(app, message):
                 pass
             else:
                 # Use TikTok limit if URL is TikTok, otherwise use general image limit
-                if 'tiktok.com' in url.lower():
+                # Безопасная проверка домена через urlparse
+                is_tiktok_url = False
+                try:
+                    from urllib.parse import urlparse
+                    parsed_url = urlparse(url)
+                    tiktok_hostname = (parsed_url.hostname or '').lower()
+                    is_tiktok_url = tiktok_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+                                   tiktok_hostname.endswith('.tiktok.com')
+                except Exception:
+                    pass
+                
+                if is_tiktok_url:
                     max_img_files = LimitsConfig.MAX_TIKTOK_COUNT
                 else:
                     max_img_files = LimitsConfig.MAX_IMG_FILES
@@ -1449,7 +1460,18 @@ def image_command(app, message):
                 max_img_files = 0  # 0 означает неограниченно
             else:
                 # Use TikTok limit if URL is TikTok, otherwise use general image limit
-                if 'tiktok.com' in url.lower():
+                # Безопасная проверка домена через urlparse
+                is_tiktok_url = False
+                try:
+                    from urllib.parse import urlparse
+                    parsed_url = urlparse(url)
+                    tiktok_hostname = (parsed_url.hostname or '').lower()
+                    is_tiktok_url = tiktok_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+                                   tiktok_hostname.endswith('.tiktok.com')
+                except Exception:
+                    pass
+                
+                if is_tiktok_url:
                     max_img_files = LimitsConfig.MAX_TIKTOK_COUNT
                 else:
                     max_img_files = LimitsConfig.MAX_IMG_FILES
