@@ -11,7 +11,7 @@
 
 A powerful Telegram bot that downloads videos, audio, and images from YouTube, TikTok, Instagram, and 1500+ other platforms using yt-dlp and gallery-dl. Features advanced format selection, codec support, intelligent subtitle handling, proxy support, and direct stream links. \
 <img width="320" height="938" alt="tgytdlp1" src="https://github.com/user-attachments/assets/7a8398da-0968-454d-8a60-f81cbfe13e2f" /><img width="323" height="938" alt="tgytdlp2" src="https://github.com/user-attachments/assets/4e1a9e46-0a37-4bfe-a440-70688929c2b3" />
- 
+
 ## ✨ Features
 
 - 🎬 **1500+ Platforms**: YouTube, TikTok, Instagram, Twitter, Facebook, and many more
@@ -2188,4 +2188,5 @@ If you find this project helpful, please consider:
 ---
 
 **Made with ❤️ by the tg-ytdlp-bot community** 
+
 
