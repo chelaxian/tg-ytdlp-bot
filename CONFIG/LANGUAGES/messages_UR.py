@@ -326,8 +326,8 @@ Use:
     # Cache Messages
     SENT_FROM_CACHE_MSG = "✅ <b>Sent from cache</b>\n\nSent albums: <b>{count}</b>"
     VIDEO_SENT_FROM_CACHE_MSG = "✅ ویڈیو کامیابی کے ساتھ کیشے سے بھیجی گئی۔"
-    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ کیشے (__var_1__/__var_0__ فائلوں) سے بھیجی گئی پلے لسٹ ویڈیوز۔"
-    CACHE_PARTIAL_MSG = "__ __var_1__/__var_0__ کیشے سے بھیجے گئے ویڈیوز ، گمشدہ افراد کو ڈاؤن لوڈ کرتے ہوئے ..."
+    PLAYLIST_SENT_FROM_CACHE_MSG = "✅ کیشے ({cached}/{total} فائلوں) سے بھیجی گئی پلے لسٹ ویڈیوز۔"
+    CACHE_PARTIAL_MSG = "📥 {cached}/{total} ویڈیوز کیشے سے بھیجے گئے، گمشدہ افراد کو ڈاؤن لوڈ کرتے ہوئے ..."
     CACHE_CONTINUING_DOWNLOAD_MSG = "✅ Sent from cache: {cached}\n🔄 Continuing download..."
     FALLBACK_ANALYZE_MEDIA_MSG = "🔄 Could not analyze media, proceeding with maximum allowed range (1-{fallback_limit})..."
     FALLBACK_DETERMINE_COUNT_MSG = "🔄 Could not determine media count, proceeding with maximum allowed range (1-{total_limit})..."
@@ -339,9 +339,9 @@ Use:
     ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
-    ERROR_UNKNOWN_MSG = "❌ نامعلوم غلطی: __var_0__"
+    ERROR_UNKNOWN_MSG = "❌ نامعلوم غلطی: {error}"
     ERROR_NO_DISK_SPACE_MSG = "videos ویڈیوز ڈاؤن لوڈ کرنے کے لئے کافی ڈسک کی جگہ نہیں ہے۔"
-    ERROR_FILE_SIZE_LIMIT_MSG = "❌ فائل کا سائز __var_0__ GB حد سے تجاوز کرتا ہے۔ براہ کرم اجازت شدہ سائز میں ایک چھوٹی فائل منتخب کریں۔"
+    ERROR_FILE_SIZE_LIMIT_MSG = "❌ فائل کا سائز {limit} GB حد سے تجاوز کرتا ہے۔ براہ کرم اجازت شدہ سائز میں ایک چھوٹی فائل منتخب کریں۔"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
 
@@ -373,8 +373,8 @@ Use:
     TAG_FORBIDDEN_CHARS_MSG = "❌ Tag #{tag} contains forbidden characters. Only letters, digits and _ are allowed.\nPlease use: {example}"
     
     # Playlist Messages
-    PLAYLIST_SENT_MSG = "✅ پلے لسٹ ویڈیوز بھیجی گئیں: __var_1__/__var_0__ فائلیں۔"
-    PLAYLIST_CACHE_SENT_MSG = "cache کیشے سے بھیجا گیا: __var_1__/__var_0__ فائلیں۔"
+    PLAYLIST_SENT_MSG = "✅ پلے لسٹ ویڈیوز بھیجی گئیں: {sent}/{total} فائلیں۔"
+    PLAYLIST_CACHE_SENT_MSG = "cache کیشے سے بھیجا گیا: {cached}/{total} فائلیں۔"
     
     # Failed Stream Messages
     FAILED_STREAM_LINKS_MSG = "❌ Failed to get stream links"
@@ -481,11 +481,11 @@ Use:
 
     # Args command messages (continued)
     ARGS_INPUT_TIMEOUT_MSG = "⏰ Input mode automatically closed due to inactivity (5 minutes)."
-    ARGS_INPUT_DANGEROUS_MSG = "❌ ان پٹ میں ممکنہ طور پر خطرناک مواد شامل ہے: __var_0__"
+    ARGS_INPUT_DANGEROUS_MSG = "❌ ان پٹ میں ممکنہ طور پر خطرناک مواد شامل ہے: {pattern}"
     ARGS_INPUT_TOO_LONG_MSG = "❌ ان پٹ بہت لمبا (زیادہ سے زیادہ 1000 حروف)"
     ARGS_INVALID_URL_MSG = "ulal غلط URL فارمیٹ۔ http: // یا https: // کے ساتھ شروع ہونا چاہئے"
     ARGS_INVALID_JSON_MSG = "J JSON کی غلط شکل"
-    ARGS_NUMBER_RANGE_MSG = "❌ نمبر __var_1__ اور __var_0__ کے درمیان ہونا چاہئے"
+    ARGS_NUMBER_RANGE_MSG = "❌ نمبر {max_val} اور {min_val} کے درمیان ہونا چاہئے"
     ARGS_INVALID_NUMBER_MSG = "number غلط نمبر کی شکل"
     ARGS_DATE_FORMAT_MSG = "❌ تاریخ YYYYMMDD فارمیٹ میں ہونی چاہئے (جیسے ، 20230930)"
     ARGS_YEAR_RANGE_MSG = "❌ سال 1900 سے 2100 کے درمیان ہونا چاہئے"
@@ -589,7 +589,7 @@ Use:
     SEARCH_CLOSED_MSG = "بند"
     
     # Proxy command messages
-    PROXY_ENABLED_MSG = "✅ پراکسی __var_0__."
+    PROXY_ENABLED_MSG = "✅ پراکسی {status}."
     PROXY_ERROR_SAVING_MSG = "❌ پروکسی ترتیبات محفوظ کرنے میں خرابی۔"
     PROXY_MENU_TEXT_MSG = "تمام yt-dlp آپریشنز کے لیے پروکسی سرور استعمال کرنے کو فعال/غیر فعال کریں؟"
     PROXY_MENU_TEXT_MULTIPLE_MSG = "تمام yt-dlp آپریشنز کے لیے پروکسی سرورز ({count} دستیاب) استعمال کرنے کو فعال/غیر فعال کریں؟\n\nجب فعال ہو تو، پروکسیز {method} طریقہ استعمال کرتے ہوئے منتخب کیے جائیں گے۔"
@@ -627,7 +627,7 @@ Use:
     NSFW_BLUR_ENABLED_CALLBACK_MSG = "NSFW blur فعال ہے۔"
     
     # MediaInfo command messages
-    MEDIAINFO_ENABLED_MSG = "✅ میڈیا انفو __var_0__."
+    MEDIAINFO_ENABLED_MSG = "✅ میڈیا انفو {status}."
     MEDIAINFO_MENU_TITLE_MSG = "ڈاؤن لوڈ شدہ فائلوں کے لیے MediaInfo بھیجنے کو فعال/غیر فعال کریں؟"
     MEDIAINFO_MENU_CLOSED_MSG = "مینو بند۔"
     MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ MediaInfo فعال ہے۔ ڈاؤن لوڈ کے بعد، فائل کی معلومات بھیجی جائے گی۔"
@@ -669,7 +669,7 @@ Use:
         "• <code>/format id140 audio</code> - same as above\n"
         "These will be downloaded as MP3 audio files.\n\n"
     )
-    LIST_ERROR_SENDING_MSG = "form فارمیٹس فائل بھیجنے میں غلطی: __var_0__"
+    LIST_ERROR_SENDING_MSG = "form فارمیٹس فائل بھیجنے میں غلطی: {error}"
     LIST_ERROR_GETTING_MSG = "❌ Failed to get formats:\n<code>{error}</code>"
     LIST_ERROR_OCCURRED_MSG = "❌ کمانڈ پر کارروائی کرتے وقت ایک خرابی پیش آگئی"
     LIST_ERROR_CALLBACK_MSG = "خرابی پیش آئی"
@@ -765,35 +765,35 @@ Use:
     ACCESS_DENIED_ADMIN = "❌ رسائی سے انکار. صرف ایڈمن۔"
     WELCOME_MASTER = "خوش آمدید ماسٹر 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ معذرت ... ڈاؤن لوڈ کے دوران کچھ خرابی پیش آگئی۔"
-    SIZE_LIMIT_EXCEEDED = "❌ فائل کا سائز __var_0__ GB حد سے تجاوز کرتا ہے۔ براہ کرم اجازت شدہ سائز میں ایک چھوٹی فائل منتخب کریں۔"
-    ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ اسکرپٹ نہیں ملا: __var_0__"
-    ADMIN_DOWNLOADING_MSG = "__var_0__ کا استعمال کرتے ہوئے تازہ فائر بیس ڈمپ ڈاؤن لوڈ کرنا ..."
+    SIZE_LIMIT_EXCEEDED = "❌ فائل کا سائز {max_size_gb} GB حد سے تجاوز کرتا ہے۔ براہ کرم اجازت شدہ سائز میں ایک چھوٹی فائل منتخب کریں۔"
+    ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ اسکرپٹ نہیں ملا: {script_path}"
+    ADMIN_DOWNLOADING_MSG = "{script_path} کا استعمال کرتے ہوئے تازہ فائر بیس ڈمپ ڈاؤن لوڈ کرنا ..."
     ADMIN_CACHE_RELOADED_MSG = "✅ فائربیس کیشے کو کامیابی کے ساتھ دوبارہ لوڈ کیا گیا!"
-    ADMIN_CACHE_FAILED_MSG = "fire فائر بیس کیشے کو دوبارہ لوڈ کرنے میں ناکام۔ چیک کریں کہ آیا __var_0__ موجود ہے۔"
-    ADMIN_ERROR_RELOADING_MSG = "❌ کیشے کو دوبارہ لوڈ کرنے میں غلطی: __var_0__"
+    ADMIN_CACHE_FAILED_MSG = "fire فائر بیس کیشے کو دوبارہ لوڈ کرنے میں ناکام۔ چیک کریں کہ آیا {cache_file} موجود ہے۔"
+    ADMIN_ERROR_RELOADING_MSG = "❌ کیشے کو دوبارہ لوڈ کرنے میں غلطی: {error}"
     ADMIN_ERROR_SCRIPT_MSG = "❌ Error running {script_path}:\n{stdout}\n{stderr}"
     ADMIN_PROMO_SENT_MSG = "<b> ✅ پرومو پیغام دوسرے تمام صارفین کو بھیجا گیا </b>"
     ADMIN_CANNOT_SEND_PROMO_MSG = "<b>❌ Cannot send the promo message. Try replying to a message\nOr some error occurred</b>"
     ADMIN_USER_NO_DOWNLOADS_MSG = "<b> ❌ صارف نے ابھی تک کوئی مواد ڈاؤن لوڈ نہیں کیا ... </b> لاگوں میں موجود نہیں ہے"
     ADMIN_INVALID_COMMAND_MSG = "❌ غلط کمانڈ"
-    ADMIN_NO_DATA_FOUND_MSG = "<< کوڈ> __var_0__} </code> کے لئے کیشے میں کوئی ڈیٹا نہیں ملا"
+    ADMIN_NO_DATA_FOUND_MSG = f"❌ No data found in cache for <code>{{path}}</code>"
     CHANNEL_GUARD_PENDING_EMPTY_MSG = "🛡 قطار خالی ہے - ابھی تک کسی نے چینل نہیں چھوڑا۔"
     CHANNEL_GUARD_PENDING_HEADER_MSG = "🛡️ <b>Ban queue</b>\nPending total: {total}"
-    CHANNEL_GUARD_PENDING_ROW_MSG = "• <کوڈ> __var_3__ </code> - __var_2__ @__var_1__ (بائیں: __var_0__)"
-    CHANNEL_GUARD_PENDING_MORE_MSG = "… اور __var_0__ مزید صارفین۔"
+    CHANNEL_GUARD_PENDING_ROW_MSG = "• <کوڈ> {last_left} </code> {username}_{name}1__ (بائیں: {user_id})"
+    CHANNEL_GUARD_PENDING_MORE_MSG = "… اور {extra} مزید صارفین۔"
     CHANNEL_GUARD_PENDING_FOOTER_MSG = "/block_user show • all • auto • 10s استعمال کریں"
-    CHANNEL_GUARD_BLOCKED_ALL_MSG = "cessers صارفین کو قطار سے مسدود: __var_0__"
+    CHANNEL_GUARD_BLOCKED_ALL_MSG = "cessers صارفین کو قطار سے مسدود: {count}"
     CHANNEL_GUARD_AUTO_ENABLED_MSG = "⚙ آٹو بلاکنگ فعال: نئے لیورز پر فوری طور پر پابندی عائد کردی جائے گی۔"
     CHANNEL_GUARD_AUTO_DISABLED_MSG = "⏸ آٹو بلاکنگ غیر فعال۔"
-    CHANNEL_GUARD_AUTO_INTERVAL_SET_MSG = "__ ہر __var_0__ پر طے شدہ آٹو بلاک ونڈو سیٹ کریں۔"
-    CHANNEL_GUARD_ACTIVITY_FILE_CAPTION_MSG = "🗂 آخری __var_0__ گھنٹے (2 دن) کے لئے چینل کی سرگرمی لاگ ان۔"
-    CHANNEL_GUARD_ACTIVITY_SUMMARY_MSG = "📝 آخری __var_2__ گھنٹے (2 دن): __var_1__ میں شامل ہوئے ، بائیں __var_0__۔"
-    CHANNEL_GUARD_ACTIVITY_EMPTY_MSG = "__ آخری __var_0__ گھنٹے (2 دن) کے لئے کوئی سرگرمی نہیں ہے۔"
-    CHANNEL_GUARD_ACTIVITY_TOTALS_LINE_MSG = "کل: __ __var_1__ شامل ہوا ، __ __var_0__ بائیں۔"
+    CHANNEL_GUARD_AUTO_INTERVAL_SET_MSG = "__ ہر {interval} پر طے شدہ آٹو بلاک ونڈو سیٹ کریں۔"
+    CHANNEL_GUARD_ACTIVITY_FILE_CAPTION_MSG = "🗂 آخری {hours} گھنٹے (2 دن) کے لئے چینل کی سرگرمی لاگ ان۔"
+    CHANNEL_GUARD_ACTIVITY_SUMMARY_MSG = "📝 آخری {left} گھنٹے (2 دن): __v{joined}ں شامل ہوئے ، بائیں __va{hours}"
+    CHANNEL_GUARD_ACTIVITY_EMPTY_MSG = "__ آخری {hours} گھنٹے (2 دن) کے لئے کوئی سرگرمی نہیں ہے۔"
+    CHANNEL_GUARD_ACTIVITY_TOTALS_LINE_MSG = "کل: __ {left} شامل ہوا ، __ __v{joined}ئیں۔"
     CHANNEL_GUARD_NO_ACCESS_MSG = "channel چینل کی سرگرمی لاگ تک رسائی نہیں۔ بوٹس ایڈمن لاگز نہیں پڑھ سکتے ہیں۔ اس خصوصیت کو قابل بنانے کے لئے صارف سیشن کے ساتھ تشکیل میں چینل_گارڈ_سیشن_سٹرنگ فراہم کریں۔"
-    BAN_TIME_USAGE_MSG = "❌ استعمال: __var_0__ <10s | 6m | 5h | 4d | 3W | 2m | 1y>"
+    BAN_TIME_USAGE_MSG = "❌ استعمال: {command} <10s | 6m | 5h | 4d | 3W | 2m | 1y>"
     BAN_TIME_INTERVAL_INVALID_MSG = "10 10s ، 6m ، 5h ، 4d ، 3W ، 2M یا 1y جیسے فارمیٹس کا استعمال کریں۔"
-    BAN_TIME_SET_MSG = "🕒 چینل لاگ اسکین وقفہ __var_0__ پر سیٹ کریں۔"
+    BAN_TIME_SET_MSG = "🕒 چینل لاگ اسکین وقفہ {interval} پر سیٹ کریں۔"
     BAN_TIME_REPORT_MSG = (
         "🛡️ Channel scan report\n"
         "Run at: {run_ts}\n"
@@ -840,7 +840,7 @@ Use:
         "• CLEAN_QUERY: {clean_query}\n"
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
     )
-    ADMIN_ERROR_RELOADING_PORN_MSG = "❌ فحش کیشے کو دوبارہ لوڈ کرنے میں غلطی: __var_0__"
+    ADMIN_ERROR_RELOADING_PORN_MSG = "❌ فحش کیشے کو دوبارہ لوڈ کرنے میں غلطی: {error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ Please provide a URL to check.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
     ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/check_porn &lt;URL&gt;</code>"
     ADMIN_CHECKING_URL_MSG = "🔍 Checking URL for NSFW content...\n<code>{url}</code>"
@@ -850,7 +850,7 @@ Use:
         "<b>Status:</b> <b>{status_text}</b>\n\n"
         "<b>Explanation:</b>\n{explanation}"
     )
-    ADMIN_ERROR_CHECKING_URL_MSG = "❌ URL کی جانچ پڑتال میں غلطی: __var_0__"
+    ADMIN_ERROR_CHECKING_URL_MSG = "❌ URL کی جانچ پڑتال میں غلطی: {error}"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "کوکیز صاف کی گئیں۔"
@@ -1133,54 +1133,54 @@ Use:
     SUBS_AUTO_MODE_TOGGLE_MSG = "✅ خودکار-سب ٹائٹلز موڈ {status}"
     
     # Subtitles log messages
-    SUBS_DISABLED_LOG_MSG = "کمانڈ کے ذریعے غیر فعال: __var_0__"
-    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "سبس ہمیشہ کمانڈ کے ذریعے فعال پوچھیں: __var_0__"
-    SUBS_LANGUAGE_SET_LOG_MSG = "کمانڈ کے ذریعے سبس لینگویج سیٹ کریں: __var_0__"
-    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "سبس لینگویج + آٹو موڈ کمانڈ کے ذریعے سیٹ کریں: __var_0__ آٹو"
+    SUBS_DISABLED_LOG_MSG = "کمانڈ کے ذریعے غیر فعال: {arg}"
+    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "سبس ہمیشہ کمانڈ کے ذریعے فعال پوچھیں: {arg}"
+    SUBS_LANGUAGE_SET_LOG_MSG = "کمانڈ کے ذریعے سبس لینگویج سیٹ کریں: {arg}"
+    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "سبس لینگویج + آٹو موڈ کمانڈ کے ذریعے سیٹ کریں: {arg} آٹو"
     SUBS_MENU_OPENED_LOG_MSG = "صارف کھولا /سبس مینو۔"
-    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "صارف نے سب ٹائٹل کی زبان مرتب کی: __var_0__"
-    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "صارف نے آٹو/ٹرانس موڈ کو ٹوگل کیا: __var_0__"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "صارف ٹوگل ہمیشہ موڈ سے پوچھیں: __var_0__"
+    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "صارف نے سب ٹائٹل کی زبان مرتب کی: {lang_code}"
+    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "صارف نے آٹو/ٹرانس موڈ کو ٹوگل کیا: {new_auto}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "صارف ٹوگل ہمیشہ موڈ سے پوچھیں: {new_always_ask}"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "صارف نے براؤزر سے کوکیز کی درخواست کی۔"
     COOKIES_BROWSER_SELECTION_SENT_LOG_MSG = "براؤزر سلیکشن کی بورڈ صرف انسٹال براؤزرز کے ساتھ بھیجا گیا ہے۔"
     COOKIES_BROWSER_SELECTION_CLOSED_LOG_MSG = "براؤزر کا انتخاب بند۔"
     COOKIES_FALLBACK_SUCCESS_LOG_MSG = "فال بیک بیک کوکی_ورل کامیابی کے ساتھ استعمال ہوا (ماخذ پوشیدہ)"
-    COOKIES_FALLBACK_FAILED_LOG_MSG = "فال بیک بیک کوکی_ورل ناکام: حیثیت = __var_0__ (پوشیدہ)"
-    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "فال بیک کوکی_ورل غیر متوقع غلطی: __var_1__: __var_0__"
-    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "براؤزر __var_0__ انسٹال نہیں ہوا۔"
-    COOKIES_SAVED_BROWSER_LOG_MSG = "براؤزر کا استعمال کرتے ہوئے کوکیز کو محفوظ کیا گیا: __var_0__"
-    COOKIES_FILE_SAVED_USER_LOG_MSG = "صارف __var_0__ کے لئے کوکی فائل محفوظ کی گئی ہے۔"
+    COOKIES_FALLBACK_FAILED_LOG_MSG = "فال بیک بیک کوکی_ورل ناکام: حیثیت = {status} (پوشیدہ)"
+    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "فال بیک کوکی_ورل غیر متوقع غلطی: {error_type}: {error}"
+    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "براؤزر {browser} انسٹال نہیں ہوا۔"
+    COOKIES_SAVED_BROWSER_LOG_MSG = "براؤزر کا استعمال کرتے ہوئے کوکیز کو محفوظ کیا گیا: {browser}"
+    COOKIES_FILE_SAVED_USER_LOG_MSG = "صارف {user_id} کے لئے کوکی فائل محفوظ کی گئی ہے۔"
     COOKIES_FILE_WORKING_LOG_MSG = "کوکی فائل موجود ہے ، اس کی درست شکل ہے ، اور یوٹیوب کوکیز کام کر رہی ہیں۔"
     COOKIES_FILE_EXPIRED_LOG_MSG = "کوکی فائل موجود ہے اور اس کی درست شکل ہے ، لیکن یوٹیوب کوکیز کی میعاد ختم ہوگئی ہے۔"
     COOKIES_FILE_CORRECT_FORMAT_LOG_MSG = "کوکی فائل موجود ہے اور اس کی درست شکل ہے۔"
     COOKIES_FILE_INCORRECT_FORMAT_LOG_MSG = "کوکی فائل موجود ہے لیکن اس کی غلط شکل ہے۔"
     COOKIES_FILE_NOT_FOUND_LOG_MSG = "کوکی فائل نہیں ملی۔"
-    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "__var_1__ کوکی یو آر ایل صارف کے لئے خالی ہے __var_0__۔"
-    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "__var_0__ کوکی یو آر ایل نہیں ہے .Txt (پوشیدہ)"
-    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "__var_1__ کوکی فائل بہت بڑی: __var_0__ بائٹس (ماخذ پوشیدہ)"
-    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "__var_1__ کوکی فائل صارف کے لئے ڈاؤن لوڈ کی گئی __var_0__ (ماخذ پوشیدہ)۔"
+    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "{user_id} کوکی یو آر ایل صارف کے لئے خالی ہے {service}۔"
+    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "{service} کوکی یو آر ایل نہیں ہے .Txt (پوشیدہ)"
+    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "{size} کوکی فائل بہت بڑی: __v{service}ئٹس (ماخذ پوشیدہ)"
+    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "{user_id} کوکی فائل صارف کے لئے ڈاؤن لوڈ کی گئی {service} (ماخذ پوشیدہ)۔"
     
     # Admin log messages
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "اسکرپٹ نہیں ملا: __var_0__"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "اسکرپٹ نہیں ملا: {user_id}"
     ADMIN_FAILED_SEND_STATUS_LOG_MSG = "ابتدائی سٹیٹس پیغام بھیجنے میں ناکام"
     ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Error running {script_path}: {stdout}\n{stderr}"
     ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "آٹو ٹاسک کے ذریعہ فائربیس کیشے کو دوبارہ لوڈ کیا گیا۔"
     ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "فائر بیس کیشے ایڈمن کے ذریعہ دوبارہ لوڈ۔"
-    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "فائر بیس کیشے کو دوبارہ لوڈ کرنے میں غلطی: __var_0__"
+    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "فائر بیس کیشے کو دوبارہ لوڈ کرنے میں غلطی: {error}"
     ADMIN_BROADCAST_INITIATED_LOG_MSG = "Broadcast initiated. Text:\n{broadcast_text}"
     ADMIN_BROADCAST_SENT_LOG_MSG = "نشریاتی پیغام تمام صارفین کو بھیجا گیا۔"
-    ADMIN_BROADCAST_FAILED_LOG_MSG = "پیغام نشر کرنے میں ناکام: __var_0__"
-    ADMIN_CACHE_CLEARED_LOG_MSG = "ایڈمن __var_1__ url کے لئے صاف کیشے: __var_0__"
-    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "ایڈمن __var_1__ شروع شدہ فحش فہرست کی تازہ کاری اسکرپٹ: __var_0__"
-    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "فحش فہرست کی تازہ کاری اسکرپٹ ایڈمن __var_0__ کے ذریعہ کامیابی کے ساتھ مکمل ہوئی"
-    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "فحش فہرست کی تازہ کاری اسکرپٹ ایڈمن کے ذریعہ ناکام ہوگئی __var_1__: __var_0__"
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "ایڈمن __var_1__ غیر موجود اسکرپٹ چلانے کی کوشش کی: __var_0__"
-    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "ایڈمن __var_1__ کے ذریعہ فحش اپ ڈیٹ اسکرپٹ چلانے میں غلطی: __var_0__"
+    ADMIN_BROADCAST_FAILED_LOG_MSG = "پیغام نشر کرنے میں ناکام: {error}"
+    ADMIN_CACHE_CLEARED_LOG_MSG = "ایڈمن {url} url کے لئے صاف کیشے: __va{user_id}"
+    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "ایڈمن {script_path} شروع شدہ فحش فہرست کی تازہ کاری اسکر{user_id}_0__"
+    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "فحش فہرست کی تازہ کاری اسکرپٹ ایڈمن {user_id} کے ذریعہ کامیابی کے ساتھ مکمل ہوئی"
+    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "فحش فہرست کی تازہ کاری اسکرپٹ ایڈمن کے ذریعہ ناکام ہوگئی {user_id}: {error}"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "ایڈمن {script_path} غیر موجود اسکرپٹ چلانے کی کوشش {user_id}_0__"
+    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "ایڈمن {user_id} کے ذریعہ فحش اپ ڈیٹ اسکرپٹ چلانے میں غلطی: {error}"
     ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "ایڈمن {user_id} نے پورن cache دوبارہ لوڈ شروع کیا"
-    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "ایڈمن کے ذریعہ فحش کیشے کو دوبارہ لوڈ کرنے میں غلطی __var_1__: __var_0__"
-    ADMIN_PORN_CHECK_LOG_MSG = "ایڈمن __var_2__ NSFW کے لئے URL چیک کیا: __var_1__ - نتیجہ: __var_0__"
+    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "ایڈمن {user_id} کے ذریعہ فحش کیشے کو دوبارہ لوڈ کرنے میں غلطی: {error}"
+    ADMIN_PORN_CHECK_LOG_MSG = "ایڈمن {status} NSFW کے لئے URL چیک کیا: _{url}- نتیجہ: __var{user_id}"
     
     # Format log messages
     FORMAT_CHANGE_REQUESTED_LOG_MSG = "User requested format change."
@@ -1201,29 +1201,29 @@ Use:
     FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "کسٹم فارمیٹ مینو بند"
     
     # Link log messages
-    LINK_EXTRACTED_LOG_MSG = "__var_0__ سے صارف __var_1__ کے لئے براہ راست لنک نکالا گیا"
-    LINK_EXTRACTION_FAILED_LOG_MSG = "__var_1__ سے صارف __var_2__ کے لئے براہ راست لنک نکالنے میں ناکام: __var_0__"
-    LINK_COMMAND_ERROR_LOG_MSG = "صارف کے ل link لنک کمانڈ میں غلطی __var_1__: __var_0__"
+    LINK_EXTRACTED_LOG_MSG = "{user_id} سے صارف {url} کے لئے براہ راست لنک نکالا گیا"
+    LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link for user {user_id} from {url}: {error}"
+    LINK_COMMAND_ERROR_LOG_MSG = "Error in link command for user {user_id}: {error}"
     
     # Keyboard log messages
-    KEYBOARD_SET_LOG_MSG = "صارف __var_1__ __var_0__ پر کی بورڈ مرتب کریں"
-    KEYBOARD_SET_CALLBACK_LOG_MSG = "صارف __var_1__ __var_0__ پر کی بورڈ مرتب کریں"
+    KEYBOARD_SET_LOG_MSG = "صارف {setting} {user_id} پر کی بورڈ مرتب کریں"
+    KEYBOARD_SET_CALLBACK_LOG_MSG = "صارف {setting} {user_id} پر کی بورڈ مرتب کریں"
     
     # MediaInfo log messages
-    MEDIAINFO_SET_COMMAND_LOG_MSG = "میڈیا انفو کمانڈ کے ذریعے سیٹ کریں: __var_0__"
+    MEDIAINFO_SET_COMMAND_LOG_MSG = "میڈیا انفو کمانڈ کے ذریعے سیٹ کریں: {arg}"
     MEDIAINFO_MENU_OPENED_LOG_MSG = "صارف کھولا /میڈیا انفو مینو۔"
     MEDIAINFO_MENU_CLOSED_LOG_MSG = "میڈیا انفو: بند۔"
     MEDIAINFO_ENABLED_LOG_MSG = "میڈیا انفو فعال."
     MEDIAINFO_DISABLED_LOG_MSG = "میڈیا انفو غیر فعال۔"
     
     # Split log messages
-    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "اسپلٹ سائز __var_0__ بائٹس پر دلیل کے ذریعے سیٹ کیا گیا ہے۔"
+    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "اسپلٹ سائز {size} بائٹس پر دلیل کے ذریعے سیٹ کیا گیا ہے۔"
     SPLIT_MENU_OPENED_LOG_MSG = "صارف کھولا /تقسیم مینو۔"
     SPLIT_SELECTION_CLOSED_LOG_MSG = "تقسیم کا انتخاب بند ہے۔"
     SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Split size set to {size} bytes."
     
     # Proxy log messages
-    PROXY_SET_COMMAND_LOG_MSG = "پراکسی سیٹ کے ذریعے کمانڈ: __var_0__"
+    PROXY_SET_COMMAND_LOG_MSG = "پراکسی سیٹ کے ذریعے کمانڈ: {arg}"
     PROXY_MENU_OPENED_LOG_MSG = "صارف کھولا /پراکسی مینو۔"
     PROXY_MENU_CLOSED_LOG_MSG = "پراکسی: بند۔"
     PROXY_ENABLED_LOG_MSG = "پراکسی فعال."
@@ -1237,13 +1237,13 @@ Use:
     AUDIO_HINT_CLOSED_LOG_MSG = "آڈیو اشارہ بند۔"
     
     # Down and Up log messages
-    DIRECT_LINK_MENU_CREATED_LOG_MSG = "براہ راست لنک مینو __var_0__ سے صارف __var_1__ کے ل link لنک بٹن کے ذریعے تیار کیا گیا ہے"
-    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "__var_1__ سے صارف __var_2__ کے ل link لنک بٹن کے ذریعے براہ راست لنک نکالنے میں ناکام: __var_0__"
-    LIST_COMMAND_EXECUTED_LOG_MSG = "صارف __var_1__ ، url کے لئے پھانسی دیئے گئے کمانڈ: __var_0__"
-    QUICK_EMBED_LOG_MSG = "فوری سرایت: __var_0__"
-    ALWAYS_ASK_MENU_SENT_LOG_MSG = "__var_0__ کے لئے بھیجے گئے مینو سے ہمیشہ پوچھیں"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "غلطی کے بعد صارف __var_1__ کے لئے کیچڈ خصوصیات کا مینو تشکیل دیا: __var_0__"
-    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "__var_1__ کے لئے ہمیشہ مینو کی غلطی پوچھیں: __var_0__"
+    DIRECT_LINK_MENU_CREATED_LOG_MSG = "براہ راست لنک مینو {user_id} سے صارف {url} کے ل link لنک بٹن کے ذریعے تیار کیا گیا ہے"
+    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Failed to extract direct link via LINK button for user {user_id} from {url}: {error}"
+    LIST_COMMAND_EXECUTED_LOG_MSG = "صارف {url} ، url کے لئے پھانسی دیئے گئے کمانڈ: __va{user_id}"
+    QUICK_EMBED_LOG_MSG = "فوری سرایت: {embed_url}"
+    ALWAYS_ASK_MENU_SENT_LOG_MSG = "{url} کے لئے بھیجے گئے مینو سے ہمیشہ پوچھیں"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Created cached qualities menu for user {user_id} after error: {error}"
+    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Always ask menu error for {url}: {error}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "فارمیٹ /args ترتیبات کے ذریعے فکس کیا گیا ہے"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "آڈیو"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "ویڈیو"
@@ -1263,7 +1263,7 @@ Use:
     DOWN_UP_ID_MSG = "ID"
     DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑ ڈاؤن لوڈ ویڈیو۔"
     DOWN_UP_PROCESSING_UPLOAD_MSG = "apload اپ لوڈ کے لئے پروسیسنگ ..."
-    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "spt تقسیم شدہ حصہ __var_0__ فائل اپ لوڈ کی گئی"
+    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "spt تقسیم شدہ حصہ {part} فائل اپ لوڈ کی گئی"
     DOWN_UP_UPLOAD_COMPLETE_MSG = "✅ اپ لوڈ مکمل کریں"
     DOWN_UP_FILES_UPLOADED_MSG = "فائلیں اپ لوڈ کی گئیں"
     
@@ -1383,12 +1383,12 @@ Use:
     ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>ویڈیو سٹریم:</b>"
     ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>آڈیو سٹریم:</b>"
     ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ سٹریم لنکس حاصل کرنے میں ناکام"
-    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "براہ راست لنک __var_0__ سے صارف __var_1__ کے لئے ہمیشہ پوچھو مینو کے ذریعے نکالا جاتا ہے"
-    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "__var_1__ سے صارف __var_2__ کے لئے ہمیشہ پوچھو مینو کے ذریعے براہ راست لنک نکالنے میں ناکام: __var_0__"
-    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "براہ راست لنک __var_0__ سے __var_1__ کے لئے down_and_up_with_format کے ذریعے نکالا گیا"
-    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "__var_1__ سے __var_2__: __var_0 سے __var_2__ کے لئے down_and_up_with_format کے ذریعے براہ راست لنک نکالنے میں ناکام: __var_0"
-    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "براہ راست لنک __var_0__ سے صارف __var_1__ کے لئے ڈاون_ینڈ_اڈیو کے ذریعے نکالا گیا"
-    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "__var_1__ سے صارف __var_2__ کے لئے down_and_audio کے ذریعے براہ راست لنک نکالنے میں ناکام: __var_0__"
+    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "براہ راست لنک {user_id} سے صارف {url} کے لئے ہمیشہ پوچھو مینو کے ذریعے نکالا جاتا ہے"
+    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Failed to extract direct link via Always Ask menu for user {user_id} from {url}: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "براہ راست لنک {user_id} سے {url} کے لئے down_and_up_with_format کے ذریعے نکالا گیا"
+    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Failed to extract direct link via down_and_up_with_format for user {user_id} from {url}: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "براہ راست لنک {user_id} سے صارف {url} کے لئے ڈاون_ینڈ_اڈیو کے ذریعے نکالا گیا"
+    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Failed to extract direct link via down_and_audio for user {user_id} from {url}: {error}"
     
     # Audio processing messages
     AUDIO_SENT_FROM_CACHE_MSG = "✅ آڈیو cache سے بھیجی گئی۔"
@@ -1418,7 +1418,7 @@ Use:
     NO_SUBTITLES_DETECTED_MSG = "کوئی سب ٹائٹلز نہیں ملیں"
     VIDEO_PROGRESS_MSG = "<b>ویڈیو:</b> {current} / {total}"
     AUDIO_PROGRESS_MSG = "<b>آڈیو:</b> {current} / {total}"
-    URL_PROGRESS_MSG = "<b> url: </b> __var_1__ / __var_0__"
+    URL_PROGRESS_MSG = "<b>URL:</b> {current}/{total}"
     MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL کی حد سے تجاوز: {count}/{limit}"
     MULTI_URL_COMPLETED_MSG = "پراسیسنگ مکمل"
     MULTI_URL_RANGE_NOT_ALLOWED_MSG = "❌ متعدد URL موڈ میں پلے لسٹ رینجز کی اجازت نہیں ہے۔ صرف ایک URLs بھیجیں بغیر رینجز کے (*1*5, /vid 1-10, وغیرہ)۔"
@@ -1449,11 +1449,11 @@ Use:
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **لائیو سٹریم کا پتہ چلا**\n\nجاری یا لامحدود لائیو سٹریمز ڈاؤن لوڈ کرنے کی اجازت نہیں ہے۔\n\nبراہ کرم سٹریم کے ختم ہونے کا انتظار کریں اور دوبارہ ڈاؤن لوڈ کرنے کی کوشش کریں جب:\n• سٹریم کا دورانیہ معلوم ہے\n• سٹریم ختم ہو گئی ہے\n"
     LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>لائیو سٹریم ڈاؤن لوڈ</b>"
-    LIVE_STREAM_CHUNK_NUMBER_MSG = "chunk __var_0__"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "chunk {chunk}"
     LIVE_STREAM_CHUNK_SIZE_MSG = "زیادہ سے زیادہ سائز: {size}"
     LIVE_STREAM_ACCUMULATED_DURATION_MSG = "کل دورانیہ: {duration} سیکنڈ"
     LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>لائیو سٹریم - Chunk {chunk}</b>\n⏱ دورانیہ: {duration} سیکنڈ\n📦 سائز: {size}"
-    LIVE_STREAM_CHUNK_TITLE_MSG = "chunk __var_0__"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "chunk {chunk}"
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>لائیو سٹریم ڈاؤن لوڈ مکمل</b>"
     LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "{chunks} chunk(s) ڈاؤن لوڈ کیے گئے"
     LIVE_STREAM_TOTAL_DURATION_MSG = "کل دورانیہ: {duration} سیکنڈ"
@@ -1602,7 +1602,7 @@ Use:
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood کی حد۔ بعد میں کوشش کریں۔"
     
     # Cookies command button texts
-    COOKIES_BROWSER_BUTTON_MSG = "__ __var_0__"
+    COOKIES_BROWSER_BUTTON_MSG = "__ {browser_name}"
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ کوکی چیک کریں"
     
     # Proxy command button texts
@@ -1663,7 +1663,7 @@ Use:
     # Clean command additional messages
     
     # Cookies command additional messages
-    COOKIES_BROWSER_CALLBACK_MSG = "[براؤزر] کال بیک: __var_0__"
+    COOKIES_BROWSER_CALLBACK_MSG = "[براؤزر] کال بیک: {callback_data}"
     COOKIES_ADDING_BROWSER_MONITORING_MSG = "URL کے ساتھ براؤزر مانیٹرنگ بٹن شامل کر رہے ہیں: {miniapp_url}"
     COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "براؤزر مانیٹرنگ URL ترتیب نہیں دیا گیا: {miniapp_url}"
     
@@ -1686,7 +1686,7 @@ Use:
     MEDIAINFO_USER_IS_IN_CHANNEL_MSG = "[MEDIAINFO] صارف {user_id} چینل میں ہے: {is_in_channel}"
     MEDIAINFO_ACCESS_DENIED_MSG = "[MEDIAINFO] صارف {user_id} کی رسائی مسترد - ایڈمن نہیں ہے اور چینل میں نہیں ہے"
     MEDIAINFO_ACCESS_GRANTED_MSG = "[MEDIAINFO] صارف {user_id} کی رسائی منظور"
-    MEDIAINFO_CALLBACK_MSG = "[میڈیا انفو] کال بیک: __var_0__"
+    MEDIAINFO_CALLBACK_MSG = "[میڈیا انفو] کال بیک: {callback_data}"
     
     # URL Parser error messages
     URL_PARSER_ADMIN_ONLY_MSG = "❌ یہ کمانڈ صرف ایڈمنسٹریٹرز کے لیے دستیاب ہے۔"
@@ -1696,30 +1696,30 @@ Use:
     HELPER_FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood کی حد۔ بعد میں کوشش کریں۔"
     
     # Database error messages
-    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ باقی ٹوکن ریفریش غلطی: __var_0__"
-    DB_ERROR_CLOSING_SESSION_MSG = "fire فائر بیس سیشن کو بند کرنے میں غلطی: __var_0__"
-    DB_ERROR_INITIALIZING_BASE_MSG = "base بیس ڈی بی ڈھانچے کو شروع کرنے میں غلطی: __var_0__"
+    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ باقی ٹوکن ریفریش غلطی: {error}"
+    DB_ERROR_CLOSING_SESSION_MSG = "fire فائر بیس سیشن کو بند کرنے میں غلطی: {error}"
+    DB_ERROR_INITIALIZING_BASE_MSG = "base بیس ڈی بی ڈھانچے کو شروع کرنے میں غلطی: {error}"
 
     DB_NOT_ALL_PARAMETERS_SET_MSG = "config config.py (فائر بیس_کونف ، فائر بیس_سر ، فائر بیس_ پاس ورڈ) میں تمام پیرامیٹرز مرتب نہیں کیے گئے ہیں۔"
     DB_DATABASE_URL_NOT_SET_MSG = "❌ فائر بیس_کونف.ڈیٹا بیسورل سیٹ نہیں ہے"
     DB_API_KEY_NOT_SET_MSG = "❌ فائر بیس_کونف.ایپکی کو آئی ڈی ٹوکین حاصل کرنے کے لئے سیٹ نہیں کیا گیا ہے"
-    DB_ERROR_DOWNLOADING_DUMP_MSG = "fire فائر بیس ڈمپ ڈاؤن لوڈ کرنے میں غلطی: __var_0__"
+    DB_ERROR_DOWNLOADING_DUMP_MSG = "fire فائر بیس ڈمپ ڈاؤن لوڈ کرنے میں غلطی: {error}"
     DB_FAILED_DOWNLOAD_DUMP_REST_MSG = "rest آرام کے ذریعہ فائر بیس ڈمپ ڈاؤن لوڈ کرنے میں ناکام"
-    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "_ ڈاونلوڈ_ینڈ_رلوڈ_کیچ میں غلطی: __var_0__"
-    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "auto آٹو ریلوڈ_کیچ چلانے میں غلطی (کوشش __var_2__/__var_1__): __var_0__"
+    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "_ ڈاونلوڈ_ینڈ_رلوڈ_کیچ میں غلطی: {error}"
+    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ Error running auto reload_cache (attempt {attempt}/{max_retries}): {error}"
     DB_ALL_RETRY_ATTEMPTS_FAILED_MSG = "re دوبارہ کوشش کرنے کی تمام کوششیں ناکام ہوگئیں"
-    DB_STARTING_FIREBASE_DUMP_MSG = "__var_0__ پر فائر بیس ڈمپ ڈاؤن لوڈ کرنا شروع کریں"
+    DB_STARTING_FIREBASE_DUMP_MSG = "{datetime} پر فائر بیس ڈمپ ڈاؤن لوڈ کرنا شروع کریں"
     DB_DEPENDENCY_NOT_AVAILABLE_MSG = "⚠ انحصار دستیاب نہیں: درخواستیں یا سیشن"
     DB_DATABASE_EMPTY_MSG = "⚠ ڈیٹا بیس خالی ہے"
     
     # Magic.py error messages
-    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ بند کرنے میں غلطی: __var_0__"
-    MAGIC_ERROR_DURING_CLEANUP_MSG = "clean صفائی کے دوران غلطی: __var_0__"
+    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ بند کرنے میں غلطی: {error}"
+    MAGIC_ERROR_DURING_CLEANUP_MSG = "clean صفائی کے دوران غلطی: {error}"
     
     # Update from repo error messages
-    UPDATE_CLONE_ERROR_MSG = "❌ کلون کی خرابی: __var_0__"
+    UPDATE_CLONE_ERROR_MSG = "❌ کلون کی خرابی: {error}"
     UPDATE_CLONE_TIMEOUT_MSG = "❌ کلون ٹائم آؤٹ"
-    UPDATE_CLONE_EXCEPTION_MSG = "❌ کلون استثناء: __var_0__"
+    UPDATE_CLONE_EXCEPTION_MSG = "❌ کلون استثناء: {error}"
     UPDATE_CANCELED_BY_USER_MSG = "❌ صارف کے ذریعہ منسوخ شدہ اپ ڈیٹ"
 
     # Update from repo success messages
@@ -1740,25 +1740,25 @@ Use:
     DOWNLOAD_STATUS_WAITING_FRAGMENTS_MSG = "ٹکڑوں کا انتظار ہے"
     
     # Restore from backup messages
-    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ بیک اپ __var_0__ _ بیک اپ/ میں نہیں ملا"
-    RESTORE_FAILED_RESTORE_MSG = "__var __var_2__ -> __var_1__: __var_0__ کو بحال کرنے میں ناکام"
-    RESTORE_SUCCESS_RESTORED_MSG = "✅ بحال: __var_0__"
+    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ بیک اپ {ts} _ بیک اپ/ میں نہیں ملا"
+    RESTORE_FAILED_RESTORE_MSG = "❌ Failed to restore {src} -> {dest_path}: {e}"
+    RESTORE_SUCCESS_RESTORED_MSG = "✅ بحال: {dest_path}"
     
     # Image command messages
     IMG_INSTAGRAM_AUTH_ERROR_MSG = "❌ <b>{error_type}</b>\n\n<b>URL:</b> <code>{url}</code>\n\n<b>Details:</b> {error_details}\n\nDownload stopped due to critical error.\n\n💡 <b>Tip:</b> If you're getting 401 Unauthorized error, try using <code>/cookie instagram</code> command or send your own cookies to authenticate with Instagram."
     
     # Porn filter messages
-    PORN_DOMAIN_BLACKLIST_MSG = "porn فحش بلیک لسٹ میں ڈومین: __var_0__"
-    PORN_KEYWORDS_FOUND_MSG = "for فحش مطلوبہ الفاظ ملا: __var_0__"
-    PORN_DOMAIN_WHITELIST_MSG = "list وائٹ لسٹ میں ڈومین: __var_0__"
-    PORN_WHITELIST_KEYWORDS_MSG = "whit وائٹ لسٹ کے مطلوبہ الفاظ مل گئے: __var_0__"
+    PORN_DOMAIN_BLACKLIST_MSG = "porn فحش بلیک لسٹ میں ڈومین: {domain_parts}"
+    PORN_KEYWORDS_FOUND_MSG = "for فحش مطلوبہ الفاظ ملا: {keywords}"
+    PORN_DOMAIN_WHITELIST_MSG = "list وائٹ لسٹ میں ڈومین: {domain}"
+    PORN_WHITELIST_KEYWORDS_MSG = "whit وائٹ لسٹ کے مطلوبہ الفاظ مل گئے: {keywords}"
     PORN_NO_KEYWORDS_FOUND_MSG = "✅ کوئی فحش کلیدی الفاظ نہیں ملے"
     
     # Audio download messages
-    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "ing انڈیکس __var_0__ میں ٹکٹوک API کی غلطی ، اگلے آڈیو کو چھوڑیں ..."
+    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "ing انڈیکس {index} میں ٹکٹوک API کی غلطی ، اگلے آڈیو کو چھوڑیں ..."
     
     # Video download messages  
-    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "ing انڈیکس __var_0__ میں ٹکٹوک API کی خرابی ، اگلی ویڈیو میں اچھ .ا ..."
+    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "ing انڈیکس {index} میں ٹکٹوک API کی خرابی ، اگلی ویڈیو میں اچھ .ا ..."
     
     # URL Parser messages
     URL_PARSER_USER_ENTERED_URL_LOG_MSG = "User entered a <b>url</b>\n <b>user's name:</b> {user_name}\nURL: {url}"
@@ -1768,7 +1768,7 @@ Use:
     CHANNEL_JOIN_BUTTON_MSG = "چینل میں شامل ہوں"
     
     # Handler registry messages
-    HANDLER_REGISTERING_MSG = "heand ہینڈلر کو رجسٹر کرنا: __var_1__ - __var_0__"
+    HANDLER_REGISTERING_MSG = "heand ہینڈلر کو رجسٹر کرنا: {func_name} {handler_type}__"
     
     # Clean command button messages
     CLEAN_COOKIE_DOWNLOAD_BUTTON_MSG = "📥 /کوکی - میری 5 کوکیز ڈاؤن لوڈ کریں"
@@ -1778,7 +1778,7 @@ Use:
     
     # List command messages
     LIST_CLOSE_BUTTON_MSG = "🔚 قریب"
-    LIST_AVAILABLE_FORMATS_HEADER_MSG = "دستیاب فارمیٹس: __var_0__"
+    LIST_AVAILABLE_FORMATS_HEADER_MSG = "دستیاب فارمیٹس: {url}"
     LIST_FORMATS_FILE_NAME_MSG = "formats_{user_id}.txt"
     
     # Other handlers button messages
@@ -1840,8 +1840,8 @@ Use:
     GALLERY_DL_FOUND_FILENAME_MSG = "فائل کا نام ملا: {filename}"
     GALLERY_DL_FOUND_DIRECTORY_MSG = "ڈائریکٹری ملا: {directory}"
     GALLERY_DL_FOUND_EXTENSION_MSG = "ایکسٹینشن ملا: {extension}"
-    GALLERY_DL_PARSED_ITEMS_MSG = "پارسڈ __var_2__ اشیاء ، معلومات: __var_1__ ، فال بیک: __var_0__"
-    GALLERY_DL_SETTING_CONFIG_MSG2 = "گیلری ، DL کنفیگ ترتیب دینا: __var_0__"
+    GALLERY_DL_PARSED_ITEMS_MSG = "Parsed {count} items, info: {info}, fallback: {fallback}"
+    GALLERY_DL_SETTING_CONFIG_MSG2 = "گیلری ، DL کنفیگ ترتیب دینا: {config}"
     GALLERY_DL_TRYING_STRATEGY_A_MSG = "استراتیجی A آزما رہے ہیں: extractor.find + items()"
     GALLERY_DL_EXTRACTOR_MODULE_NOT_FOUND_MSG = "gallery_dl.extractor ماڈیول نہیں ملا"
     GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG = "gallery_dl.extractor.find() اس بلڈ میں دستیاب نہیں"
@@ -1968,7 +1968,7 @@ Use:
     HELPER_CHECK_FILE_SIZE_LIMIT_INFO_DICT_NONE_MSG = "check_file_size_limit: info_dict None ہے، ڈاؤن لوڈ کی اجازت دے رہے ہیں"
     HELPER_CHECK_SUBS_LIMITS_INFO_DICT_NONE_MSG = "check_subs_limits: info_dict None ہے، سب ٹائٹل ایمبیڈنگ کی اجازت دے رہے ہیں"
     HELPER_CHECK_SUBS_LIMITS_CHECKING_LIMITS_MSG = "check_subs_limits: حدیں چیک کر رہے ہیں - max_quality={max_quality}p, max_duration={max_duration}s, max_size={max_size}MB"
-    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "چیک_سبس_ لیمٹس: انفارمیشن_ڈکٹ کیز: __var_0__"
+    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "چیک_سبس_ لیمٹس: انفارمیشن_ڈکٹ کیز: {keys}"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_DURATION_MSG = "سب ٹائٹل ایمبیڈنگ چھوڑ دی گئی: دورانیہ {duration}s حد {max_duration}s سے تجاوز کرتا ہے"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_SIZE_MSG = "سب ٹائٹل ایمبیڈنگ چھوڑ دی گئی: سائز {size_mb:.2f}MB حد {max_size}MB سے تجاوز کرتا ہے"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_QUALITY_MSG = "سب ٹائٹل ایمبیڈنگ چھوڑ دی گئی: کوالٹی {width}x{height} (کم سائیڈ {min_side}p) حد {max_quality}p سے تجاوز کرتی ہے"
@@ -2160,8 +2160,8 @@ Use:
     KEYBOARD_2X3_BUTTON_MSG = "x 2x3"
     
     # Image Command Messages
-    IMAGE_URL_CAPTION_MSG = "🔗 [تصاویر url] (__var_0__)"
-    IMAGE_ERROR_MSG = "❌ غلطی: __var_0__"
+    IMAGE_URL_CAPTION_MSG = "🔗 [تصاویر url] ({url})"
+    IMAGE_ERROR_MSG = "❌ غلطی: {str(e)}"
     
     # Format Command Messages
     FORMAT_BACK_BUTTON_MSG = "🔙واپس"
@@ -2180,7 +2180,7 @@ Use:
     FORMAT_CUSTOM_BUTTON_MSG = "🎚 اپنا (اپنا داخل کریں)"
     
     # Cookies Command Messages
-    COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1- __var_0__)"
+    COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1- {max})"
     COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 براؤزر سے"
     COOKIES_TWITTER_BUTTON_MSG = "🐦 ٹویٹر/ایکس"
     COOKIES_TIKTOK_BUTTON_MSG = "ik ٹیکٹوک"

@@ -1084,7 +1084,7 @@ class Messages(object):
     LINK_ERROR_GETTING_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
     
     # Additional cookies command messages (more)
-    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ YouTube Cookie インデックスが無効です: __VAR_1__ 。使用可能な範囲は 1-__VAR_0__ です"
+    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ YouTube Cookie インデックスが無効です: {total_urls} 。使用可能な範囲は{selected_index}0__ です"
     COOKIES_DOWNLOADING_CHECKING_MSG = "🔄 YouTubeクッキーをダウンロードして確認中...\n\n試行 {attempt}/{total}"
     COOKIES_DOWNLOADING_TESTING_MSG = "🔄 YouTubeクッキーをダウンロードして確認中...\n\n試行 {attempt}/{total}\n🔍 クッキーをテスト中..."
     COOKIES_SUCCESS_VALIDATED_MSG = "✅ YouTubeクッキーが正常にダウンロードされ、検証されました!\n\n使用したソース {source}/{total}"
@@ -1147,40 +1147,40 @@ class Messages(object):
     COOKIES_BROWSER_SELECTION_SENT_LOG_MSG = "ブラウザ選択キーボードは、インストールされているブラウザでのみ送信されます。"
     COOKIES_BROWSER_SELECTION_CLOSED_LOG_MSG = "ブラウザの選択は終了しました。"
     COOKIES_FALLBACK_SUCCESS_LOG_MSG = "フォールバック COOKIE_URL が正常に使用されました (ソースは非表示)"
-    COOKIES_FALLBACK_FAILED_LOG_MSG = "フォールバック COOKIE_URL が失敗しました: status= __VAR_0__ (非表示)"
-    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "フォールバック COOKIE_URL の予期しないエラー: __VAR_1__: __VAR_0__"
-    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "ブラウザ __VAR_0__ がインストールされていません。"
-    COOKIES_SAVED_BROWSER_LOG_MSG = "ブラウザを使用して保存された Cookie: __VAR_0__"
-    COOKIES_FILE_SAVED_USER_LOG_MSG = "ユーザー __VAR_0__ 用に保存された Cookie ファイル。"
+    COOKIES_FALLBACK_FAILED_LOG_MSG = "フォールバック COOKIE_URL が失敗しました: status= {status} (非表示)"
+    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "フォールバック COOKIE_URL の予期しないエラー: {error}: {error_type}"
+    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "ブラウザ {browser} がインストールされていません。"
+    COOKIES_SAVED_BROWSER_LOG_MSG = "ブラウザを使用して保存された Cookie: {browser}"
+    COOKIES_FILE_SAVED_USER_LOG_MSG = "ユーザー {user_id} 用に保存された Cookie ファイル。"
     COOKIES_FILE_WORKING_LOG_MSG = "Cookie ファイルが存在し、形式が正しく、YouTube Cookie が機能しています。"
     COOKIES_FILE_EXPIRED_LOG_MSG = "Cookie ファイルは存在し、正しい形式ですが、YouTube Cookie の有効期限が切れています。"
     COOKIES_FILE_CORRECT_FORMAT_LOG_MSG = "Cookie ファイルが存在し、正しい形式になっています。"
     COOKIES_FILE_INCORRECT_FORMAT_LOG_MSG = "Cookie ファイルは存在しますが、形式が正しくありません。"
     COOKIES_FILE_NOT_FOUND_LOG_MSG = "Cookie ファイルが見つかりません。"
-    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "ユーザー __VAR_0__ の __VAR_1__ クッキー URL が空です。"
-    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "__VAR_0__ Cookie URL は .txt ではありません (非表示)"
-    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "__VAR_1__ Cookie ファイルが大きすぎます: __VAR_0__ バイト (ソースは非表示)"
-    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "__VAR_1__ Cookie ファイルがユーザー __VAR_0__ 用にダウンロードされました (ソースは非表示)。"
+    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "ユーザー {service} の {user_id} クッキー URL が空です。"
+    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "{service} Cookie URL は .txt ではありません (非表示)"
+    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "{size} Cookie ファイルが大きすぎます: {service}ト (ソースは非表示)"
+    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "{user_id} Cookie ファイルがユーザー {service} 用にダウンロードされました (ソースは非表示)。"
     
     # Admin log messages
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "スクリプトが見つかりません: __VAR_0__"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "スクリプトが見つかりません: {user_id}"
     ADMIN_FAILED_SEND_STATUS_LOG_MSG = "初期ステータスメッセージの送信に失敗しました"
     ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "{script_path}の実行エラー: {stdout}\n{stderr}"
     ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase キャッシュは自動タスクによってリロードされます。"
     ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase キャッシュは管理者によってリロードされました。"
-    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Firebase キャッシュのリロード中にエラーが発生しました: __VAR_0__"
+    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Firebase キャッシュのリロード中にエラーが発生しました: {error}"
     ADMIN_BROADCAST_INITIATED_LOG_MSG = "ブロードキャスト開始。テキスト:\n{broadcast_text}"
     ADMIN_BROADCAST_SENT_LOG_MSG = "すべてのユーザーに送信されるブロードキャスト メッセージ。"
-    ADMIN_BROADCAST_FAILED_LOG_MSG = "メッセージのブロードキャストに失敗しました: __VAR_0__"
-    ADMIN_CACHE_CLEARED_LOG_MSG = "管理者 __VAR_1__ が URL: __VAR_0__ のキャッシュをクリアしました"
-    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "管理者 __VAR_1__ がポルノ リスト更新スクリプトを開始しました: __VAR_0__"
-    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "ポルノリスト更新スクリプトが管理者によって正常に完了しました __VAR_0__"
-    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "ポルノ リストの更新スクリプトが管理者によって失敗しました __VAR_1__ : __VAR_0__"
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "管理者 __VAR_1__ が存在しないスクリプトを実行しようとしました: __VAR_0__"
-    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "管理者によるポルノ更新スクリプトの実行中にエラーが発生しました __VAR_1__ : __VAR_0__"
-    ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "管理者 __VAR_0__ がポルノ キャッシュのリロードを開始しました"
-    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "管理者によるポルノ キャッシュのリロード中にエラーが発生しました __VAR_1__ : __VAR_0__"
-    ADMIN_PORN_CHECK_LOG_MSG = "管理者 __VAR_2__ が NSFW の URL をチェックしました: __VAR_1__ - 結果: __VAR_0__"
+    ADMIN_BROADCAST_FAILED_LOG_MSG = "メッセージのブロードキャストに失敗しました: {error}"
+    ADMIN_CACHE_CLEARED_LOG_MSG = "管理者 {user_id} が URL: {url} のキャッシュをクリアしました"
+    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "管理者 {script_path} がポルノ リスト更新スクリプトを開始しま{user_id}_0__"
+    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "ポルノリスト更新スクリプトが管理者によって正常に完了しました {user_id}"
+    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "ポルノ リストの更新スクリプトが管理者によって失敗しました {error} : {user_id}"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "管理者 {script_path} が存在しないスクリプトを実行しようとしま{user_id}_0__"
+    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "管理者によるポルノ更新スクリプトの実行中にエラーが発生しました {error} : {user_id}"
+    ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "管理者 {user_id} がポルノ キャッシュのリロードを開始しました"
+    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "管理者によるポルノ キャッシュのリロード中にエラーが発生しました {error} : {user_id}"
+    ADMIN_PORN_CHECK_LOG_MSG = "管理者 {status} が NSFW の URL をチェックしました: _{url}- 結果: __VAR{user_id}"
     
     # Format log messages
     FORMAT_CHANGE_REQUESTED_LOG_MSG = "User requested format change."
@@ -1201,29 +1201,29 @@ class Messages(object):
     FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "カスタムフォーマットメニューを閉じました"
     
     # Link log messages
-    LINK_EXTRACTED_LOG_MSG = "ユーザー __VAR_1__ から __VAR_0__ から抽出された直接リンク"
-    LINK_EXTRACTION_FAILED_LOG_MSG = "ユーザー __VAR_2__ の __VAR_1__ からの直接リンクを抽出できませんでした: __VAR_0__"
-    LINK_COMMAND_ERROR_LOG_MSG = "ユーザー __VAR_1__ のリンク コマンドでエラーが発生しました: __VAR_0__"
+    LINK_EXTRACTED_LOG_MSG = "ユーザー {user_id} から {url} から抽出された直接リンク"
+    LINK_EXTRACTION_FAILED_LOG_MSG = "ユーザー {user_id} の {url} からの直接リンクを抽出できませんでした: {error}"
+    LINK_COMMAND_ERROR_LOG_MSG = "ユーザー {error} のリンク コマンドでエラーが発生しました: {user_id}"
     
     # Keyboard log messages
-    KEYBOARD_SET_LOG_MSG = "ユーザー __VAR_1__ がキーボードを __VAR_0__ に設定しました"
-    KEYBOARD_SET_CALLBACK_LOG_MSG = "ユーザー __VAR_1__ がキーボードを __VAR_0__ に設定しました"
+    KEYBOARD_SET_LOG_MSG = "ユーザー {setting} がキーボードを {user_id} に設定しました"
+    KEYBOARD_SET_CALLBACK_LOG_MSG = "ユーザー {setting} がキーボードを {user_id} に設定しました"
     
     # MediaInfo log messages
-    MEDIAINFO_SET_COMMAND_LOG_MSG = "コマンドで設定された MediaInfo: __VAR_0__"
+    MEDIAINFO_SET_COMMAND_LOG_MSG = "コマンドで設定された MediaInfo: {arg}"
     MEDIAINFO_MENU_OPENED_LOG_MSG = "ユーザーが /mediainfo メニューを開きました。"
     MEDIAINFO_MENU_CLOSED_LOG_MSG = "メディア情報: 閉鎖されました。"
     MEDIAINFO_ENABLED_LOG_MSG = "MediaInfoを有効にしました。"
     MEDIAINFO_DISABLED_LOG_MSG = "MediaInfoを無効にしました。"
     
     # Split log messages
-    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "引数を介して分割サイズを __VAR_0__ バイトに設定します。"
+    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "引数を介して分割サイズを {size} バイトに設定します。"
     SPLIT_MENU_OPENED_LOG_MSG = "ユーザーが /split メニューを開きました。"
     SPLIT_SELECTION_CLOSED_LOG_MSG = "分割選択が閉じられました。"
-    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "分割サイズは __VAR_0__ バイトに設定されます。"
+    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "分割サイズは {size} バイトに設定されます。"
     
     # Proxy log messages
-    PROXY_SET_COMMAND_LOG_MSG = "コマンドで設定されたプロキシ: __VAR_0__"
+    PROXY_SET_COMMAND_LOG_MSG = "コマンドで設定されたプロキシ: {arg}"
     PROXY_MENU_OPENED_LOG_MSG = "ユーザーが /proxy メニューを開きました。"
     PROXY_MENU_CLOSED_LOG_MSG = "プロキシ: 閉鎖されました。"
     PROXY_ENABLED_LOG_MSG = "プロキシが有効になりました。"
@@ -1237,13 +1237,13 @@ class Messages(object):
     AUDIO_HINT_CLOSED_LOG_MSG = "オーディオヒントを閉じました。"
     
     # Down and Up log messages
-    DIRECT_LINK_MENU_CREATED_LOG_MSG = "__VAR_0__ からユーザー __VAR_1__ の [リンク] ボタンを介して直接リンク メニューが作成されました"
-    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "ユーザー __VAR_2__ の __VAR_1__ からのリンク ボタンを介した直接リンクの抽出に失敗しました: __VAR_0__"
-    LIST_COMMAND_EXECUTED_LOG_MSG = "ユーザー __VAR_1__ に対して LIST コマンドが実行されました、URL: __VAR_0__"
-    QUICK_EMBED_LOG_MSG = "クイック埋め込み: __VAR_0__"
-    ALWAYS_ASK_MENU_SENT_LOG_MSG = "__VAR_0__ の「Always Ask」メニューが送信されました"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "エラーの後、ユーザー __VAR_1__ のキャッシュされた品質メニューが作成されました: __VAR_0__"
-    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "__VAR_1__ の常に尋ねるメニュー エラー: __VAR_0__"
+    DIRECT_LINK_MENU_CREATED_LOG_MSG = "{user_id} からユーザー {url} の [リンク] ボタンを介して直接リンク メニューが作成されました"
+    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "ユーザー {error} の {url}らのリンク ボタンを介した直接リンクの抽出に失敗しました: {user_id}"
+    LIST_COMMAND_EXECUTED_LOG_MSG = "ユーザー {user_id} に対して LIST コマンドが実行されました、URL: {url}"
+    QUICK_EMBED_LOG_MSG = "クイック埋め込み: {embed_url}"
+    ALWAYS_ASK_MENU_SENT_LOG_MSG = "{url} の「Always Ask」メニューが送信されました"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "エラーの後、ユーザー {error} のキャッシュされた品質メニューが作成されました: {user_id}"
+    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "{error} の常に尋ねるメニュー エラー: {url}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Format is fixed via /args settings"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "オーディオ"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "ビデオ"
@@ -1263,7 +1263,7 @@ class Messages(object):
     DOWN_UP_ID_MSG = "ID"
     DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑️ ダウンロードしたビデオ。"
     DOWN_UP_PROCESSING_UPLOAD_MSG = "📤 アップロードを処理中..."
-    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "📤 分割部分 __VAR_0__ ファイルがアップロードされました"
+    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "📤 分割部分 {part} ファイルがアップロードされました"
     DOWN_UP_UPLOAD_COMPLETE_MSG = "✅アップロード完了"
     DOWN_UP_FILES_UPLOADED_MSG = "アップロードされたファイル"
     
@@ -1383,12 +1383,12 @@ class Messages(object):
     ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>ビデオ ストリーム:</b>"
     ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>オーディオ ストリーム:</b>"
     ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ ストリームリンクの取得に失敗しました"
-    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "ユーザー __VAR_1__ の __VAR_0__ から Always Ask メニューを介して抽出された直接リンク"
-    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "ユーザー __VAR_2__ の __VAR_1__ からの Always Ask メニューによる直接リンクの抽出に失敗しました: __VAR_0__"
-    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "ユーザー __VAR_1__ から __VAR_0__ から down_and_up_with_format 経由で抽出された直接リンク"
-    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "ユーザー __VAR_2__ の __VAR_1__ からの down_and_up_with_format による直接リンクの抽出に失敗しました: __VAR_0__"
-    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "ユーザー __VAR_1__ から __VAR_0__ から down_and_audio 経由で抽出された直接リンク"
-    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "ユーザー __VAR_2__ の down_and_audio 経由の直接リンクを __VAR_1__ から抽出できませんでした: __VAR_0__"
+    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "ユーザー {user_id} の {url} から Always Ask メニューを介して抽出された直接リンク"
+    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "ユーザー {error} の {url}らの Always Ask メニューによる直接リンクの抽出に失敗しました: {user_id}"
+    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "ユーザー {user_id} から {url} から down_and_up_with_format 経由で抽出された直接リンク"
+    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "ユーザー {error} の {url}らの down_and_up_with_format による直接リンクの抽出に失敗しました: {user_id}"
+    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "ユーザー {user_id} から {url} から down_and_audio 経由で抽出された直接リンク"
+    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "ユーザー {error} の down_and_audio 経由の直接リンクを {url}ら抽出できませんでした: {user_id}"
     
     # Audio processing messages
     AUDIO_SENT_FROM_CACHE_MSG = "✅ 音声はキャッシュから送信されます。"
@@ -1397,29 +1397,29 @@ class Messages(object):
     AUDIO_DOWNLOAD_ERROR_MSG = "音声のダウンロード中にエラーが発生しました。"
     AUDIO_DOWNLOAD_COMPLETE_MSG = "{process}\n{bar}   100.0%"
     AUDIO_EXTRACTION_FAILED_MSG = "❌ 音声情報の抽出に失敗しました"
-    AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "プレイリストのインデックス __VAR_0__ でサポートされていないファイル タイプをスキップします"
+    AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "プレイリストのインデックス {index} でサポートされていないファイル タイプをスキップします"
     AUDIO_FILE_NOT_FOUND_MSG = "ダウンロード後に音声ファイルが見つかりません。"
     AUDIO_UPLOADING_MSG = "{process}\n📤 オーディオファイルをアップロード中...\n{bar}   100.0%"
-    AUDIO_SEND_FAILED_MSG = "❌ 音声の送信に失敗しました: __VAR_0__"
-    PLAYLIST_AUDIO_SENT_LOG_MSG = "プレイリスト オーディオがユーザー __VAR_0__ に送信されました: __VAR_3__/__VAR_2__ ファイル (品質= __VAR_1__)"
-    AUDIO_DOWNLOAD_FAILED_MSG = "❌ オーディオのダウンロードに失敗しました: __VAR_0__"
+    AUDIO_SEND_FAILED_MSG = "❌ 音声の送信に失敗しました: {error}"
+    PLAYLIST_AUDIO_SENT_LOG_MSG = "プレイリスト オーディオがユーザー {sent} に送信されました: {user_id}/{quality} ファイル (品質= {total})"
+    AUDIO_DOWNLOAD_FAILED_MSG = "❌ オーディオのダウンロードに失敗しました: {error}"
     DOWNLOAD_TIMEOUT_MSG = "⏰ タイムアウトのためダウンロードがキャンセルされました (2 時間)"
     VIDEO_DOWNLOAD_COMPLETE_MSG = "{process}\n{bar}   100.0%"
     
     # FFmpeg messages
-    VIDEO_FILE_NOT_FOUND_MSG = "❌ ビデオ ファイルが見つかりません: __VAR_0__"
-    VIDEO_PROCESSING_ERROR_MSG = "❌ ビデオ処理エラー: __VAR_0__"
+    VIDEO_FILE_NOT_FOUND_MSG = "❌ ビデオ ファイルが見つかりません: {filename}"
+    VIDEO_PROCESSING_ERROR_MSG = "❌ ビデオ処理エラー: {error}"
     
     # Sender messages
-    ERROR_SENDING_DESCRIPTION_FILE_MSG = "❌ 説明ファイルの送信中にエラーが発生しました: __VAR_0__"
+    ERROR_SENDING_DESCRIPTION_FILE_MSG = "❌ 説明ファイルの送信中にエラーが発生しました: {error}"
     CHANGE_CAPTION_HINT_MSG = "<blockquote>📝 動画のキャプションを変更したい場合 - 新しいテキストで動画に返信</blockquote>"
     
     # Always Ask Menu Messages
     NO_SUBTITLES_DETECTED_MSG = "字幕が検出されませんでした"
-    VIDEO_PROGRESS_MSG = "<b>ビデオ:</b> __VAR_1__ / __VAR_0__"
-    AUDIO_PROGRESS_MSG = "<b>音声:</b> __VAR_1__ / __VAR_0__"
-    URL_PROGRESS_MSG = "<b>URL:</b> __VAR_1__ / __VAR_0__"
-    MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL 制限を超えました: __VAR_1__ / __VAR_0__"
+    VIDEO_PROGRESS_MSG = "<b>ビデオ:</b> {total} / {current}"
+    AUDIO_PROGRESS_MSG = "<b>音声:</b> {total} / {current}"
+    URL_PROGRESS_MSG = "<b>URL:</b> {total} / {current}"
+    MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL 制限を超えました: {limit} / {count}"
     MULTI_URL_COMPLETED_MSG = "処理が完了しました"
     MULTI_URL_RANGE_NOT_ALLOWED_MSG = "❌ マルチ URL モードでは、プレイリスト範囲は許可されません。範囲のない単一の URL のみを送信します (*1*5、/vid 1-10 など)。"
     
@@ -1430,7 +1430,7 @@ class Messages(object):
     CHOOSE_SUBTITLE_LANGUAGE_MSG = "字幕言語を選択してください"
     NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG = "代替の音声言語はありません"
     CHOOSE_AUDIO_LANGUAGE_MSG = "音声言語を選択してください"
-    PAGE_NUMBER_MSG = "ページ __VAR_0__"
+    PAGE_NUMBER_MSG = "ページ {page}"
     TOTAL_PROGRESS_MSG = "総進捗状況"
     SUBTITLE_MENU_CLOSED_MSG = "字幕メニューを閉じました。"
     SUBTITLE_LANGUAGE_SET_MSG = "字幕言語を設定しました：{value}"
@@ -1449,14 +1449,14 @@ class Messages(object):
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **Live Stream Detected**\n\nDownloading of ongoing or infinite live streams is not allowed.\n\nPlease wait for the stream to end and try downloading again when:\n• The stream duration is known\n• The stream has finished\n"
     LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>ライブ ストリームのダウンロード</b>"
-    LIVE_STREAM_CHUNK_NUMBER_MSG = "チャンク __VAR_0__"
-    LIVE_STREAM_CHUNK_SIZE_MSG = "最大サイズ: __VAR_0__"
-    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "合計継続時間: __VAR_0__ 秒"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "チャンク {chunk}"
+    LIVE_STREAM_CHUNK_SIZE_MSG = "最大サイズ: {size}"
+    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "合計継続時間: {duration} 秒"
     LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>Live Stream - Chunk {chunk}</b>\n⏱ Duration: {duration} sec\n📦 Size: {size}"
-    LIVE_STREAM_CHUNK_TITLE_MSG = "チャンク __VAR_0__"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "チャンク {chunk}"
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>ライブ ストリームのダウンロードが完了しました</b>"
-    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "ダウンロードされた __VAR_0__ チャンク"
-    LIVE_STREAM_TOTAL_DURATION_MSG = "合計継続時間: __VAR_0__ 秒"
+    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "ダウンロードされた {chunks} チャンク"
+    LIVE_STREAM_TOTAL_DURATION_MSG = "合計継続時間: {duration} 秒"
     LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>ライブ ストリームのダウンロードが停止しました</b>"
     LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "ユーザー ディレクトリが削除されました (おそらく /clean コマンドによって)"
     LIVE_STREAM_FILE_DELETED_MSG = "チャンクファイルが削除されました (おそらく /clean コマンドによって)"
@@ -1509,25 +1509,25 @@ class Messages(object):
     PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "ユーザーが禁止されたコンテンツを入力しました。ダウンロードできません。"
     
     # Additional Log Messages
-    NSFW_BLUR_SET_COMMAND_LOG_MSG = "コマンドで設定された NSFW ブラー: __VAR_0__"
+    NSFW_BLUR_SET_COMMAND_LOG_MSG = "コマンドで設定された NSFW ブラー: {arg}"
     NSFW_MENU_OPENED_LOG_MSG = "ユーザーが /nsfw メニューを開きました。"
     NSFW_MENU_CLOSED_LOG_MSG = "NSFW: 閉鎖されました。"
-    COOKIES_DOWNLOAD_FAILED_LOG_MSG = "__VAR_1__ Cookie のダウンロードに失敗しました: status= __VAR_0__ (URL は非表示)"
-    COOKIES_DOWNLOAD_ERROR_LOG_MSG = "__VAR_1__ Cookie のダウンロード中にエラーが発生しました: __VAR_0__ (URL は非表示)"
-    COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "__VAR_2__ Cookie (URL 非表示) のダウンロード中に予期しないエラーが発生しました: __VAR_1__: __VAR_0__"
-    COOKIES_FILE_UPDATED_LOG_MSG = "ユーザー __VAR_0__ の Cookie ファイルが更新されました。"
-    COOKIES_INVALID_CONTENT_LOG_MSG = "ユーザー __VAR_0__ によって提供された Cookie コンテンツが無効です。"
-    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "ユーザー __VAR_0__ の YouTube Cookie URL は空です。"
-    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "YouTube Cookie がソース __VAR_0__ からダウンロードされ、ユーザー __VAR_1__ に対して検証されました。"
-    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "ユーザー __VAR_0__ のすべての YouTube Cookie ソースが失敗しました。"
-    ADMIN_CHECK_PORN_ERROR_LOG_MSG = "管理者による check_porn コマンドのエラー __VAR_1__ : __VAR_0__"
-    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "分割部分のサイズは __VAR_0__ バイトに設定されます。"
+    COOKIES_DOWNLOAD_FAILED_LOG_MSG = "{status} Cookie のダウンロードに失敗しました: status= _{service}(URL は非表示)"
+    COOKIES_DOWNLOAD_ERROR_LOG_MSG = "{error} Cookie のダウンロード中にエラーが発生しました: {service}URL は非表示)"
+    COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "{service} Cookie (URL 非表示) のダウンロード中に予期しないエラーが発生しました: {error_type}: {error}"
+    COOKIES_FILE_UPDATED_LOG_MSG = "ユーザー {user_id} の Cookie ファイルが更新されました。"
+    COOKIES_INVALID_CONTENT_LOG_MSG = "ユーザー {user_id} によって提供された Cookie コンテンツが無効です。"
+    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "ユーザー {user_id} の YouTube Cookie URL は空です。"
+    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "YouTube Cookie がソース {user_id} からダウンロードされ、ユーザー {source} に対して検証されました。"
+    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "ユーザー {user_id} のすべての YouTube Cookie ソースが失敗しました。"
+    ADMIN_CHECK_PORN_ERROR_LOG_MSG = "管理者による check_porn コマンドのエラー {error} : {admin_id}"
+    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "分割部分のサイズは {size} バイトに設定されます。"
     VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG = "ファイル分割によりビデオのアップロードが完了しました。"
-    PLAYLIST_VIDEOS_SENT_LOG_MSG = "プレイリストビデオがユーザー __VAR_0__ に送信されました: __VAR_3__/__VAR_2__ ファイル (品質= __VAR_1__)"
-    UNKNOWN_ERROR_MSG = "❌ 不明なエラー: __VAR_0__"
-    SKIPPING_UNSUPPORTED_FILE_TYPE_MSG = "プレイリストのインデックス __VAR_0__ でサポートされていないファイル タイプをスキップします"
+    PLAYLIST_VIDEOS_SENT_LOG_MSG = "プレイリストビデオがユーザー {sent} に送信されました: {user_id}/{quality} ファイル (品質= {total})"
+    UNKNOWN_ERROR_MSG = "❌ 不明なエラー: {error}"
+    SKIPPING_UNSUPPORTED_FILE_TYPE_MSG = "プレイリストのインデックス {index} でサポートされていないファイル タイプをスキップします"
     FFMPEG_NOT_FOUND_MSG = "❌ FFmpeg not found. Please install FFmpeg."
-    CONVERSION_TO_MP4_FAILED_MSG = "❌ MP4 への変換に失敗しました: __VAR_0__"
+    CONVERSION_TO_MP4_FAILED_MSG = "❌ MP4 への変換に失敗しました: {error}"
     EMBEDDING_SUBTITLES_WARNING_MSG = "⚠️ Embedding subtitles may take a long time (up to 1 min per 1 min of video)!\n🔥 Starting to burn subtitles..."
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ 字幕は（画質・長さ・サイズ）の制限により埋め込むことができません。"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ 選択された言語の字幕は利用できません"
@@ -1535,13 +1535,13 @@ class Messages(object):
     PLAYLIST_VIDEOS_SENT_MSG = "✅ プレイリストのビデオを送信しました：{sent}/{total}ファイル。"
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ タイムアウトによりダウンロードがキャンセルされました（2時間）"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ ビデオのダウンロードに失敗しました：{error}"
-    ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ エラー: __VAR_0__"
+    ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ エラー: {error}"
     
     # Args command error messages
     ARGS_JSON_MUST_BE_OBJECT_MSG = "❌ JSON はオブジェクト (辞書) である必要があります。"
     ARGS_INVALID_JSON_FORMAT_MSG = "❌ 無効なJSON形式です。有効なJSONを提供してください。"
-    ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ 値は __VAR_1__ と __VAR_0__ の間である必要があります。"
-    ARGS_PARAM_SET_TO_MSG = "✅ __VAR_1__ を次のように設定します: <code> __VAR_0__ </code>"
+    ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ 値は {max_val} と {min_val} の間である必要があります。"
+    ARGS_PARAM_SET_TO_MSG = "✅ {value} を次のように設定します: <code> {description}/code>"
     
     # Args command button texts
     ARGS_TRUE_BUTTON_MSG = "✅ 本当です"
@@ -1566,20 +1566,20 @@ class Messages(object):
     
     # Down and Up error messages
     DOWN_UP_AV1_NOT_AVAILABLE_MSG = "❌ この動画ではAV1形式は利用できません。\n\n利用可能な形式:\n{formats_text}"
-    DOWN_UP_ERROR_DOWNLOADING_MSG = "❌ ダウンロードエラー: __VAR_0__"
-    DOWN_UP_NO_VIDEOS_PLAYLIST_MSG = "❌ プレイリストのインデックス __VAR_0__ にビデオが見つかりません。"
+    DOWN_UP_ERROR_DOWNLOADING_MSG = "❌ ダウンロードエラー: {error_message}"
+    DOWN_UP_NO_VIDEOS_PLAYLIST_MSG = "❌ プレイリストのインデックス {index} にビデオが見つかりません。"
     DOWN_UP_VIDEO_CONVERSION_FAILED_INVALID_MSG = "❌ **動画変換失敗**\n\n無効な引数エラーのため、動画をMP4に変換できませんでした。\n\n"
     DOWN_UP_VIDEO_CONVERSION_FAILED_MSG = "❌ **動画変換失敗**\n\n動画をMP4に変換できませんでした。\n\n"
     DOWN_UP_FAILED_STREAM_LINKS_MSG = "❌ ストリームリンクの取得に失敗しました"
     DOWN_UP_ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
-    DOWN_UP_NO_CONTENT_FOUND_MSG = "❌ インデックス __VAR_0__ にコンテンツが見つかりません"
+    DOWN_UP_NO_CONTENT_FOUND_MSG = "❌ インデックス {index} にコンテンツが見つかりません"
 
     # Always Ask Menu error messages
     AA_ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ エラー: 元のメッセージが見つかりません。"
     AA_ERROR_URL_NOT_FOUND_MSG = "❌ エラー: URL が見つかりません。"
     AA_ERROR_URL_NOT_EMBEDDABLE_MSG = "❌ このURLは埋め込みできません。"
-    AA_ERROR_CODEC_NOT_AVAILABLE_MSG = "❌ __VAR_0__ コーデックはこのビデオでは使用できません"
-    AA_ERROR_FORMAT_NOT_AVAILABLE_MSG = "❌ __VAR_0__ 形式はこのビデオでは使用できません"
+    AA_ERROR_CODEC_NOT_AVAILABLE_MSG = "❌ {codec} コーデックはこのビデオでは使用できません"
+    AA_ERROR_FORMAT_NOT_AVAILABLE_MSG = "❌ {format} 形式はこのビデオでは使用できません"
     
     # Always Ask Menu button texts
     AA_AVC_BUTTON_MSG = "✅ AVC"
@@ -1602,7 +1602,7 @@ class Messages(object):
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Try later."
     
     # Cookies command button texts
-    COOKIES_BROWSER_BUTTON_MSG = "✅ __VAR_0__"
+    COOKIES_BROWSER_BUTTON_MSG = "✅ {browser_name}"
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ クッキーを確認する"
     
     # Proxy command button texts
@@ -1645,15 +1645,15 @@ class Messages(object):
     ADMIN_STATUS_CLEAN_TEXT_MSG = "クリーン"
     
     # Admin command additional messages
-    ADMIN_ERROR_PROCESSING_REPLY_MSG = "ユーザー __VAR_1__ の応答メッセージの処理中にエラーが発生しました: __VAR_0__"
-    ADMIN_ERROR_SENDING_BROADCAST_MSG = "ユーザー __VAR_1__ へのブロードキャスト送信エラー: __VAR_0__"
+    ADMIN_ERROR_PROCESSING_REPLY_MSG = "ユーザー {error} の応答メッセージの処理中にエラーが発生しました: {user}"
+    ADMIN_ERROR_SENDING_BROADCAST_MSG = "ユーザー {error} へのブロードキャスト送信エラー: {user}"
     ADMIN_LOGS_FORMAT_MSG = "{bot_name}のログ\nユーザー: {user_id}\n合計ログ: {total}\n現在時刻: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\n合計 {path}: {count}\n現在時刻: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>合計ユーザー: {count}</i>\n最後の20件 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "ポルノキャッシュは管理者 __VAR_11__ によってリロードされました。ドメイン: __VAR_10__、キーワード: __VAR_9__、サイト: __VAR_8__、ホワイトリスト: __VAR_7__、グレーリスト: __VAR_6__、ブラックリスト: __VAR_5__、ホワイトキーワード: __VAR_4__、PROXY_DOMAINS: __VAR_3__、PROXY_2_DOMAINS: __VAR_2__、CLEAN_QUERY: __VAR_1__、NO_COOKIE_DOMAINS: __VAR_0__"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "ポルノキャッシュは管理者 {admin_id} によってリロードされました。ドメイン: {domains}, キーワード: {keywords}, サイト: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
-    ARGS_ERROR_SENDING_TIMEOUT_MSG = "タイムアウト メッセージの送信エラー: __VAR_0__"
+    ARGS_ERROR_SENDING_TIMEOUT_MSG = "タイムアウト メッセージの送信エラー: {error}"
     
     # Language selection messages
     LANG_SELECTION_MSG = "🌍 <b>言語を選択</b>"
@@ -1663,30 +1663,30 @@ class Messages(object):
     # Clean command additional messages
     
     # Cookies command additional messages
-    COOKIES_BROWSER_CALLBACK_MSG = "[ブラウザ] コールバック: __VAR_0__"
-    COOKIES_ADDING_BROWSER_MONITORING_MSG = "URL を使用してブラウザ監視ボタンを追加: __VAR_0__"
-    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "ブラウザ監視 URL が構成されていません: __VAR_0__"
+    COOKIES_BROWSER_CALLBACK_MSG = "[ブラウザ] コールバック: {callback_data}"
+    COOKIES_ADDING_BROWSER_MONITORING_MSG = "URL を使用してブラウザ監視ボタンを追加: {miniapp_url}"
+    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "ブラウザ監視 URL が構成されていません: {miniapp_url}"
     
     # Format command additional messages
     
     # Keyboard command additional messages
     KEYBOARD_SETTING_UPDATED_MSG = "🎹 **Keyboard setting updated!**\n\nNew setting: **{setting}**"
-    KEYBOARD_FAILED_HIDE_MSG = "キーボードを非表示にできませんでした: __VAR_0__"
+    KEYBOARD_FAILED_HIDE_MSG = "キーボードを非表示にできませんでした: {error}"
     
     # Link command additional messages
-    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "ユーザー __VAR_0__ のリンク抽出に動作する YouTube Cookie を使用する"
-    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "ユーザー __VAR_0__ のリンク抽出に使用できる有効な YouTube Cookie がありません"
-    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "ユーザー __VAR_0__ のリンク抽出に既存の YouTube Cookie を使用する"
-    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "ユーザー __VAR_0__ のリンク抽出用の YouTube Cookie が見つかりませんでした"
+    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "ユーザー {user_id} のリンク抽出に動作する YouTube Cookie を使用する"
+    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "ユーザー {user_id} のリンク抽出に使用できる有効な YouTube Cookie がありません"
+    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "ユーザー {user_id} のリンク抽出に既存の YouTube Cookie を使用する"
+    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "ユーザー {user_id} のリンク抽出用の YouTube Cookie が見つかりませんでした"
     LINK_COPIED_GLOBAL_COOKIE_FILE_MSG = "リンク抽出のためにグローバルcookieファイルをユーザー{user_id}のフォルダにコピーしました"
     
     # MediaInfo command additional messages
-    MEDIAINFO_USER_REQUESTED_MSG = "[MEDIAINFO] ユーザー __VAR_0__ が mediainfo コマンドを要求しました"
-    MEDIAINFO_USER_IS_ADMIN_MSG = "[MEDIAINFO] ユーザー __VAR_1__ は管理者です: __VAR_0__"
-    MEDIAINFO_USER_IS_IN_CHANNEL_MSG = "[MEDIAINFO] ユーザー __VAR_1__ はチャンネル __VAR_0__ にいます"
-    MEDIAINFO_ACCESS_DENIED_MSG = "[MEDIAINFO] ユーザー __VAR_0__ のアクセスが拒否されました - 管理者でもチャンネルでもありません"
-    MEDIAINFO_ACCESS_GRANTED_MSG = "[MEDIAINFO] ユーザー __VAR_0__ のアクセスが許可されました"
-    MEDIAINFO_CALLBACK_MSG = "[MEDIAINFO] コールバック: __VAR_0__"
+    MEDIAINFO_USER_REQUESTED_MSG = "[MEDIAINFO] ユーザー {user_id} が mediainfo コマンドを要求しました"
+    MEDIAINFO_USER_IS_ADMIN_MSG = "[MEDIAINFO] ユーザー {is_admin} は管理者です:{user_id}_"
+    MEDIAINFO_USER_IS_IN_CHANNEL_MSG = "[MEDIAINFO] ユーザー {is_in_channel} は{user_id}AR_0__ にいます"
+    MEDIAINFO_ACCESS_DENIED_MSG = "[MEDIAINFO] ユーザー {user_id} のアクセスが拒否されました - 管理者でもチャンネルでもありません"
+    MEDIAINFO_ACCESS_GRANTED_MSG = "[MEDIAINFO] ユーザー {user_id} のアクセスが許可されました"
+    MEDIAINFO_CALLBACK_MSG = "[MEDIAINFO] コールバック: {callback_data}"
     
     # URL Parser error messages
     URL_PARSER_ADMIN_ONLY_MSG = "❌ このコマンドは管理者のみが使用できます。"
@@ -1696,30 +1696,30 @@ class Messages(object):
     HELPER_FLOOD_LIMIT_TRY_LATER_MSG = "⏳ 洪水制限。後で試してください。"
     
     # Database error messages
-    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ REST トークン更新エラー: __VAR_0__"
-    DB_ERROR_CLOSING_SESSION_MSG = "❌ Firebase セッションを閉じるときにエラーが発生しました: __VAR_0__"
-    DB_ERROR_INITIALIZING_BASE_MSG = "❌ 基本データベース構造の初期化中にエラーが発生しました: __VAR_0__"
+    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ REST トークン更新エラー: {error}"
+    DB_ERROR_CLOSING_SESSION_MSG = "❌ Firebase セッションを閉じるときにエラーが発生しました: {error}"
+    DB_ERROR_INITIALIZING_BASE_MSG = "❌ 基本データベース構造の初期化中にエラーが発生しました: {error}"
 
     DB_NOT_ALL_PARAMETERS_SET_MSG = "❌ すべてのパラメータが config.py に設定されているわけではありません (FIREBASE_CONF、FIREBASE_USER、FIREBASE_PASSWORD)"
     DB_DATABASE_URL_NOT_SET_MSG = "❌ FIREBASE_CONF.databaseURL が設定されていません"
     DB_API_KEY_NOT_SET_MSG = "❌ FIREBASE_CONF.apiKey が idToken を取得するように設定されていません"
-    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Firebase ダンプのダウンロード中にエラーが発生しました: __VAR_0__"
+    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Firebase ダンプのダウンロード中にエラーが発生しました: {error}"
     DB_FAILED_DOWNLOAD_DUMP_REST_MSG = "❌ REST 経由で Firebase ダンプをダウンロードできませんでした"
-    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ _download_and_reload_cache のエラー: __VAR_0__"
-    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ auto reload_cache の実行中にエラーが発生しました (__VAR_2__/__VAR_1__ を試行): __VAR_0__"
+    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ _download_and_reload_cache のエラー: {error}"
+    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ auto reload_cache の実行中にエラーが発生しました ({error}/{max_retries}試行){attempt}__"
     DB_ALL_RETRY_ATTEMPTS_FAILED_MSG = "❌ 再試行はすべて失敗しました"
-    DB_STARTING_FIREBASE_DUMP_MSG = "🔄 Firebase ダンプのダウンロードを __VAR_0__ で開始します"
+    DB_STARTING_FIREBASE_DUMP_MSG = "🔄 Firebase ダンプのダウンロードを {datetime} で開始します"
     DB_DEPENDENCY_NOT_AVAILABLE_MSG = "⚠️ 依存関係は使用できません: リクエストまたはセッション"
     DB_DATABASE_EMPTY_MSG = "⚠️ データベースが空です"
     
     # Magic.py error messages
-    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ ロガーを閉じるときにエラーが発生しました: __VAR_0__"
-    MAGIC_ERROR_DURING_CLEANUP_MSG = "❌ クリーンアップ中のエラー: __VAR_0__"
+    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ ロガーを閉じるときにエラーが発生しました: {error}"
+    MAGIC_ERROR_DURING_CLEANUP_MSG = "❌ クリーンアップ中のエラー: {error}"
     
     # Update from repo error messages
-    UPDATE_CLONE_ERROR_MSG = "❌ クローン エラー: __VAR_0__"
+    UPDATE_CLONE_ERROR_MSG = "❌ クローン エラー: {error}"
     UPDATE_CLONE_TIMEOUT_MSG = "❌ クローンのタイムアウト"
-    UPDATE_CLONE_EXCEPTION_MSG = "❌ クローン例外: __VAR_0__"
+    UPDATE_CLONE_EXCEPTION_MSG = "❌ クローン例外: {error}"
     UPDATE_CANCELED_BY_USER_MSG = "❌ ユーザーによってアップデートがキャンセルされました"
 
     # Update from repo success messages
@@ -1740,25 +1740,25 @@ class Messages(object):
     DOWNLOAD_STATUS_WAITING_FRAGMENTS_MSG = "断片を待っています"
     
     # Restore from backup messages
-    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ バックアップ __VAR_0__ が _backup/ に見つかりません"
-    RESTORE_FAILED_RESTORE_MSG = "❌ __VAR_2__ -> __VAR_1__ の復元に失敗しました: __VAR_0__"
-    RESTORE_SUCCESS_RESTORED_MSG = "✅ 復元されました: __VAR_0__"
+    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ バックアップ {ts} が _backup/ に見つかりません"
+    RESTORE_FAILED_RESTORE_MSG = "❌ Failed to restore {src} -> {dest_path}: {e}"
+    RESTORE_SUCCESS_RESTORED_MSG = "✅ 復元されました: {dest_path}"
     
     # Image command messages
     IMG_INSTAGRAM_AUTH_ERROR_MSG = "❌ <b>{error_type}</b>\n\n<b>URL:</b> <code>{url}</code>\n\n<b>Details:</b> {error_details}\n\nDownload stopped due to critical error.\n\n💡 <b>Tip:</b> If you're getting 401 Unauthorized error, try using <code>/cookie instagram</code> command or send your own cookies to authenticate with Instagram."
     
     # Porn filter messages
-    PORN_DOMAIN_BLACKLIST_MSG = "❌ ポルノ ブラックリストのドメイン: __VAR_0__"
-    PORN_KEYWORDS_FOUND_MSG = "❌ 見つかったポルノキーワード: __VAR_0__"
-    PORN_DOMAIN_WHITELIST_MSG = "✅ ホワイトリスト内のドメイン: __VAR_0__"
-    PORN_WHITELIST_KEYWORDS_MSG = "✅ ホワイトリストのキーワードが見つかりました: __VAR_0__"
+    PORN_DOMAIN_BLACKLIST_MSG = "❌ ポルノ ブラックリストのドメイン: {domain_parts}"
+    PORN_KEYWORDS_FOUND_MSG = "❌ 見つかったポルノキーワード: {keywords}"
+    PORN_DOMAIN_WHITELIST_MSG = "✅ ホワイトリスト内のドメイン: {domain}"
+    PORN_WHITELIST_KEYWORDS_MSG = "✅ ホワイトリストのキーワードが見つかりました: {keywords}"
     PORN_NO_KEYWORDS_FOUND_MSG = "✅ ポルノキーワードが見つかりませんでした"
     
     # Audio download messages
-    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ インデックス __VAR_0__ で TikTok API エラーが発生し、次の音声にスキップしています..."
+    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ インデックス {index} で TikTok API エラーが発生し、次の音声にスキップしています..."
     
     # Video download messages  
-    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ インデックス __VAR_0__ で TikTok API エラーが発生し、次の動画にスキップします..."
+    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ インデックス {index} で TikTok API エラーが発生し、次の動画にスキップします..."
     
     # URL Parser messages
     URL_PARSER_USER_ENTERED_URL_LOG_MSG = "User entered a <b>url</b>\n <b>user's name:</b> {user_name}\nURL: {url}"
@@ -1768,7 +1768,7 @@ class Messages(object):
     CHANNEL_JOIN_BUTTON_MSG = "チャンネルに参加"
     
     # Handler registry messages
-    HANDLER_REGISTERING_MSG = "🔍 ハンドラーの登録: __VAR_1__ - __VAR_0__"
+    HANDLER_REGISTERING_MSG = "🔍 ハンドラーの登録: {func_name} {handler_type}__"
     
     # Clean command button messages
     CLEAN_COOKIE_DOWNLOAD_BUTTON_MSG = "📥 /cookie - 私の 5 つのクッキーをダウンロード"
@@ -1778,7 +1778,7 @@ class Messages(object):
     
     # List command messages
     LIST_CLOSE_BUTTON_MSG = "🔚閉じる"
-    LIST_AVAILABLE_FORMATS_HEADER_MSG = "利用可能な形式: __VAR_0__"
+    LIST_AVAILABLE_FORMATS_HEADER_MSG = "利用可能な形式: {url}"
     LIST_FORMATS_FILE_NAME_MSG = "formats_{user_id}.txt"
     
     # Other handlers button messages
@@ -1819,10 +1819,10 @@ class Messages(object):
     FFMPEG_ERROR_CREATING_THUMBNAIL_WITH_FFMPEG_MSG = "Error creating thumbnail with FFmpeg: {error}"
     
     # Gallery-dl messages
-    GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "辞書以外の構成セクションをスキップ: __VAR_1__= __VAR_0__"
-    GALLERY_DL_SETTING_CONFIG_MSG = "__VAR_2__.__VAR_1__ = __VAR_0__ を設定"
-    GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] ユーザー Cookie の使用: __VAR_0__"
-    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "ユーザー __VAR_0__ に YouTube Cookie を使用する"
+    GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "辞書以外の構成セクションをスキップ: {opts}= {section}"
+    GALLERY_DL_SETTING_CONFIG_MSG = "{value}.{key} {section}"
+    GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] ユーザー Cookie の使用: {cookie_path}"
+    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "ユーザー {user_id} に YouTube Cookie を使用する"
     GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG = "グローバルcookieファイルをユーザー{user_id}のフォルダにコピーしました"
     GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG = "[gallery-dl] コピーしたグローバルcookieをユーザーcookieとして使用: {cookie_path}"
     GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG = "ユーザー{user_id}のグローバルcookieファイルのコピーに失敗しました: {error}"
@@ -1830,32 +1830,32 @@ class Messages(object):
     GALLERY_DL_PROXY_REQUESTED_FAILED_MSG = "プロキシが要求されましたが、設定のインポート/取得に失敗しました: {error}"
     GALLERY_DL_FORCE_USING_PROXY_MSG = "gallery-dlにプロキシを強制使用: {proxy_url}"
     GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG = "プロキシが要求されましたが、プロキシ設定が不完全です"
-    GALLERY_DL_PROXY_HELPER_FAILED_MSG = "プロキシ ヘルパーが失敗しました: __VAR_0__"
+    GALLERY_DL_PROXY_HELPER_FAILED_MSG = "プロキシ ヘルパーが失敗しました: {error}"
     GALLERY_DL_PARSING_EXTRACTOR_ITEMS_MSG = "抽出アイテムを解析しています..."
-    GALLERY_DL_ITEM_COUNT_MSG = "アイテム __VAR_1__: __VAR_0__"
-    GALLERY_DL_FOUND_METADATA_TAG2_MSG = "見つかったメタデータ (タグ 2): __VAR_0__"
-    GALLERY_DL_FOUND_URL_TAG3_MSG = "見つかった URL (タグ 3): __VAR_1__、メタデータ: __VAR_0__"
-    GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "見つかったメタデータ (レガシー): __VAR_0__"
-    GALLERY_DL_FOUND_URL_LEGACY_MSG = "見つかった URL (レガシー): __VAR_0__"
-    GALLERY_DL_FOUND_FILENAME_MSG = "見つかったファイル名: __VAR_0__"
-    GALLERY_DL_FOUND_DIRECTORY_MSG = "見つかったディレクトリ: __VAR_0__"
-    GALLERY_DL_FOUND_EXTENSION_MSG = "見つかった拡張子: __VAR_0__"
-    GALLERY_DL_PARSED_ITEMS_MSG = "解析された __VAR_2__ アイテム、情報: __VAR_1__、フォールバック: __VAR_0__"
-    GALLERY_DL_SETTING_CONFIG_MSG2 = "gallery-dl config の設定: __VAR_0__"
+    GALLERY_DL_ITEM_COUNT_MSG = "アイテム {item}: {count}"
+    GALLERY_DL_FOUND_METADATA_TAG2_MSG = "見つかったメタデータ (タグ 2): {info}"
+    GALLERY_DL_FOUND_URL_TAG3_MSG = "見つかった URL (タグ 3): {metadata}、メタデータ:{url}_"
+    GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "見つかったメタデータ (レガシー): {info}"
+    GALLERY_DL_FOUND_URL_LEGACY_MSG = "見つかった URL (レガシー): {url}"
+    GALLERY_DL_FOUND_FILENAME_MSG = "見つかったファイル名: {filename}"
+    GALLERY_DL_FOUND_DIRECTORY_MSG = "見つかったディレクトリ: {directory}"
+    GALLERY_DL_FOUND_EXTENSION_MSG = "見つかった拡張子: {extension}"
+    GALLERY_DL_PARSED_ITEMS_MSG = "解析された {fallback} アイテム、情報:{info}_、フォールバック: {count}"
+    GALLERY_DL_SETTING_CONFIG_MSG2 = "gallery-dl config の設定: {config}"
     GALLERY_DL_TRYING_STRATEGY_A_MSG = "戦略 A を試す: extractor.find + items()"
     GALLERY_DL_EXTRACTOR_MODULE_NOT_FOUND_MSG = "gallery_dl.extractor モジュールが見つかりません"
     GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG = "gallery_dl.extractor.find() はこのビルドでは使用できません"
-    GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "extractor.find( __VAR_0__ ) の呼び出し"
+    GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "extractor.find( {url} ) の呼び出し"
     GALLERY_DL_NO_EXTRACTOR_MATCHED_MSG = "URL に一致するエクストラクターはありませんでした"
-    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "エクストラクターに Cookie を設定: __VAR_0__"
-    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "エクストラクターに Cookie を設定できませんでした: __VAR_0__"
+    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "エクストラクターに Cookie を設定: {cookie_path}"
+    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "エクストラクターに Cookie を設定できませんでした: {error}"
     GALLERY_DL_EXTRACTOR_FOUND_CALLING_ITEMS_MSG = "エクストラクタが見つかり、items() を呼び出しています"
-    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "戦略 A が成功し、情報を取得しました: __VAR_0__"
+    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "戦略 A が成功し、情報を取得しました: {info}"
     GALLERY_DL_STRATEGY_A_NO_VALID_INFO_MSG = "戦略 A: extractor.items() は有効な情報を返しませんでした"
-    GALLERY_DL_STRATEGY_A_FAILED_MSG = "戦略 A (extractor.find) が失敗しました: __VAR_0__"
-    GALLERY_DL_FALLBACK_METADATA_MSG = "--get-urls からのフォールバック メタデータ: total= __VAR_0__"
+    GALLERY_DL_STRATEGY_A_FAILED_MSG = "戦略 A (extractor.find) が失敗しました: {error}"
+    GALLERY_DL_FALLBACK_METADATA_MSG = "--get-urls からのフォールバック メタデータ: total= {total}"
     GALLERY_DL_ALL_STRATEGIES_FAILED_MSG = "すべての戦略がメタデータの取得に失敗しました"
-    GALLERY_DL_FAILED_EXTRACT_IMAGE_INFO_MSG = "画像情報の抽出に失敗しました: __VAR_0__"
+    GALLERY_DL_FAILED_EXTRACT_IMAGE_INFO_MSG = "画像情報の抽出に失敗しました: {error}"
     GALLERY_DL_JOB_MODULE_NOT_FOUND_MSG = "gallery_dl.job モジュールが見つかりません (インストールが壊れていますか?)"
     GALLERY_DL_DOWNLOAD_JOB_NOT_AVAILABLE_MSG = "gallery_dl.job.DownloadJob はこのビルドでは使用できません"
     GALLERY_DL_SEARCHING_DOWNLOADED_FILES_MSG = "gallery-dl ディレクトリでダウンロードしたファイルを検索しています"
@@ -1864,40 +1864,40 @@ class Messages(object):
     # Sender messages
     SENDER_ERROR_READING_USER_ARGS_MSG = "ユーザー{user_id}の引数の読み取り中にエラーが発生しました: {error}"
     SENDER_FFPROBE_BYPASS_ERROR_MSG = "[FFPROBE BYPASS] 動画{video_path}の処理中にエラーが発生しました: {error}"
-    SENDER_USER_SEND_AS_FILE_ENABLED_MSG = "ユーザー __VAR_0__ は send_as_file を有効にし、ドキュメントとして送信しています"
+    SENDER_USER_SEND_AS_FILE_ENABLED_MSG = "ユーザー {user_id} は send_as_file を有効にし、ドキュメントとして送信しています"
     SENDER_SEND_VIDEO_TIMED_OUT_MSG = "send_video が繰り返しタイムアウトになりました。 send_document にフォールバックする"
     SENDER_CAPTION_TOO_LONG_MSG = "キャプションが長すぎます。最小限のキャプションで試してください"
     SENDER_SEND_VIDEO_MINIMAL_CAPTION_TIMED_OUT_MSG = "send_video (最小限のキャプション) がタイムアウトしました。 send_document へのフォールバック"
-    SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "最小限のキャプションを含むビデオの送信エラー: __VAR_0__"
-    SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "完全な説明ファイルの送信中にエラーが発生しました: __VAR_0__"
-    SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "一時的な説明ファイルの削除中にエラーが発生しました: __VAR_0__"
+    SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "最小限のキャプションを含むビデオの送信エラー: {error}"
+    SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "完全な説明ファイルの送信中にエラーが発生しました: {error}"
+    SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "一時的な説明ファイルの削除中にエラーが発生しました: {error}"
     
     # YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "NO_FILTER_DOMAINS内のドメイン{url}のmatch_filterをスキップしています"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "ユーザー{user_id}のフォーマット検出のためにユーザーのURLで既存のYouTube cookieを確認中"
-    YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "既存の YouTube Cookie は、ユーザー __VAR_0__ の形式検出のためにユーザーの URL に作用します - それらを使用します"
-    YTDLP_EXISTING_YOUTUBE_COOKIES_FAILED_MSG = "ユーザーの URL で既存の YouTube Cookie が失敗しました。ユーザー __VAR_0__ の形式検出のために新しい Cookie を取得しようとしました"
-    YTDLP_TRYING_YOUTUBE_COOKIE_SOURCE_MSG = "ユーザー __VAR_0__ の形式検出のために YouTube Cookie ソース __VAR_1__ を試しています"
-    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_WORK_MSG = "ソース __VAR_1__ からの YouTube Cookie は、ユーザー __VAR_0__ の形式を検出するためにユーザーの URL に作用します - ユーザー フォルダーに保存されます"
-    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_DONT_WORK_MSG = "ソース __VAR_1__ からの YouTube Cookie は、ユーザー __VAR_0__ の形式検出のためにユーザーの URL では機能しません"
-    YTDLP_FAILED_DOWNLOAD_YOUTUBE_COOKIES_MSG = "ユーザー __VAR_0__ の形式検出のため、ソース __VAR_1__ から YouTube Cookie をダウンロードできませんでした"
-    YTDLP_ALL_YOUTUBE_COOKIE_SOURCES_FAILED_MSG = "すべての YouTube Cookie ソースがユーザー __VAR_0__ の形式検出に失敗しました。Cookie なしで試行します"
-    YTDLP_NO_YOUTUBE_COOKIE_SOURCES_CONFIGURED_MSG = "ユーザー __VAR_0__ の形式検出用に設定された YouTube Cookie ソースがありません。Cookie なしで試行します。"
-    YTDLP_NO_YOUTUBE_COOKIES_FOUND_MSG = "ユーザー __VAR_0__ のフォーマット検出用の YouTube Cookie が見つかりませんでした。新しいクッキーを取得しようとしています"
-    YTDLP_USING_YOUTUBE_COOKIES_ALREADY_VALIDATED_MSG = "ユーザー __VAR_0__ のフォーマット検出に YouTube Cookie を使用する (常に確認するメニューで検証済み)"
-    YTDLP_NO_YOUTUBE_COOKIES_FOUND_ATTEMPTING_RESTORE_MSG = "ユーザー __VAR_0__ のフォーマット検出用の YouTube Cookie が見つかりませんでした。復元を試みています..."
-    YTDLP_COPIED_GLOBAL_COOKIE_FILE_MSG = "フォーマット検出のためにグローバル Cookie ファイルをユーザー __VAR_0__ フォルダーにコピーしました"
-    YTDLP_FAILED_COPY_GLOBAL_COOKIE_FILE_MSG = "ユーザー __VAR_1__ のグローバル Cookie ファイルのコピーに失敗しました: __VAR_0__"
-    YTDLP_USING_NO_COOKIES_FOR_DOMAIN_MSG = "get_video_formats のドメインに --no-cookies を使用する: __VAR_0__"
+    YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "既存の YouTube Cookie は、ユーザー {user_id} の形式検出のためにユーザーの URL に作用します - それらを使用します"
+    YTDLP_EXISTING_YOUTUBE_COOKIES_FAILED_MSG = "ユーザーの URL で既存の YouTube Cookie が失敗しました。ユーザー {user_id} の形式検出のために新しい Cookie を取得しようとしました"
+    YTDLP_TRYING_YOUTUBE_COOKIE_SOURCE_MSG = "ユーザー {i} の形式検出のために YouTube Cookie ソース {user_id} を試しています"
+    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_WORK_MSG = "ソース {user_id} からの YouTube Cookie は、ユーザー {i} の形式を検出するためにユーザーの URL に作用します - ユーザー フォルダーに保存されます"
+    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_DONT_WORK_MSG = "ソース {user_id} からの YouTube Cookie は、ユーザー {i} の形式検出のためにユーザーの URL では機能しません"
+    YTDLP_FAILED_DOWNLOAD_YOUTUBE_COOKIES_MSG = "ユーザー {i} の形式検出のため、ソース {user_id} から YouTube Cookie をダウンロードできませんでした"
+    YTDLP_ALL_YOUTUBE_COOKIE_SOURCES_FAILED_MSG = "すべての YouTube Cookie ソースがユーザー {user_id} の形式検出に失敗しました。Cookie なしで試行します"
+    YTDLP_NO_YOUTUBE_COOKIE_SOURCES_CONFIGURED_MSG = "ユーザー {user_id} の形式検出用に設定された YouTube Cookie ソースがありません。Cookie なしで試行します。"
+    YTDLP_NO_YOUTUBE_COOKIES_FOUND_MSG = "ユーザー {user_id} のフォーマット検出用の YouTube Cookie が見つかりませんでした。新しいクッキーを取得しようとしています"
+    YTDLP_USING_YOUTUBE_COOKIES_ALREADY_VALIDATED_MSG = "ユーザー {user_id} のフォーマット検出に YouTube Cookie を使用する (常に確認するメニューで検証済み)"
+    YTDLP_NO_YOUTUBE_COOKIES_FOUND_ATTEMPTING_RESTORE_MSG = "ユーザー {user_id} のフォーマット検出用の YouTube Cookie が見つかりませんでした。復元を試みています..."
+    YTDLP_COPIED_GLOBAL_COOKIE_FILE_MSG = "フォーマット検出のためにグローバル Cookie ファイルをユーザー {user_id} フォルダーにコピーしました"
+    YTDLP_FAILED_COPY_GLOBAL_COOKIE_FILE_MSG = "ユーザー {error} のグローバル Cookie ファイルのコピーに失敗しました: {user_id}"
+    YTDLP_USING_NO_COOKIES_FOR_DOMAIN_MSG = "get_video_formats のドメインに --no-cookies を使用する: {url}"
     
     # App instance messages
-    APP_INSTANCE_NOT_INITIALIZED_MSG = "アプリはまだ初期化されていません。 __VAR_0__ にアクセスできません"
+    APP_INSTANCE_NOT_INITIALIZED_MSG = "アプリはまだ初期化されていません。 {name} にアクセスできません"
     
     # Caption messages
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>キャプション:</b> <code>{caption}</code>\n<b>ユーザーID:</b> <code>{user_id}</code>\n<b>ユーザー名:</b> <code>{users_name}</code>\n<b>動画ファイルID:</b> <code>{video_file_id}</code>"
-    CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor のエラー: __VAR_0__"
-    CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor で予期しないエラーが発生しました: __VAR_0__"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 動画 URL</a> __VAR_0__'
+    CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor のエラー: {error}"
+    CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor で予期しないエラーが発生しました: {error}"
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 動画 URL</a>{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL によるアクセス"
@@ -1906,11 +1906,11 @@ class Messages(object):
     DB_LOG_FOR_USER_ADDED_MSG = "追加されたユーザーのログ"
     DB_DATABASE_CREATED_MSG = "データベースが作成されました"
     DB_BOT_STARTED_MSG = "ボットが開始されました"
-    DB_RELOAD_CACHE_EVERY_PERSISTED_MSG = "RELOAD_CACHE_EVERY が config.py に永続化されました: __VAR_0__h"
-    DB_PLAYLIST_PART_ALREADY_CACHED_MSG = "プレイリスト部分はすでにキャッシュされています: __VAR_0__ 、スキップしています"
+    DB_RELOAD_CACHE_EVERY_PERSISTED_MSG = "RELOAD_CACHE_EVERY が config.py に永続化されました: {hours}h"
+    DB_PLAYLIST_PART_ALREADY_CACHED_MSG = "プレイリスト部分はすでにキャッシュされています: {path_parts} 、スキップしています"
     DB_GET_CACHED_PLAYLIST_VIDEOS_NO_CACHE_MSG = "get_cached_playlist_videos: URL/品質バリアントのキャッシュが見つからず、空の辞書を返します"
-    DB_GET_CACHED_PLAYLIST_COUNT_FAST_COUNT_MSG = "get_cached_playlist_count: 広い範囲の高速カウント: __VAR_0__ キャッシュされたビデオ"
-    DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_MSG = "get_cached_message_ids: ハッシュ __VAR_1__ 、品質 __VAR_0__ のキャッシュが見つかりませんでした"
+    DB_GET_CACHED_PLAYLIST_COUNT_FAST_COUNT_MSG = "get_cached_playlist_count: 広い範囲の高速カウント: {cached_count} キャッシュされたビデオ"
+    DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_MSG = "get_cached_message_ids: ハッシュ {quality_key} {url_hash}_0__ のキャッシュが見つかりませんでした"
     DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_ANY_VARIANT_MSG = "get_cached_message_ids: どの URL バリアントでもキャッシュが見つからず、None を返します"
     
     # Database cache auto-reload messages
@@ -1923,19 +1923,19 @@ class Messages(object):
     DB_AUTO_CACHE_INTERVAL_UPDATED_MSG = "⏱️ Firebaseキャッシュの自動間隔が更新されました!\n\n📊 ステータス: ✅ 有効\n⏰ スケジュール: 00:00から{interval}時間ごと\n🕒 次回再読み込み: {next_exec} ({delta_min}分後)"
     DB_AUTO_CACHE_RELOADING_STARTED_MSG = "🔄 Firebaseキャッシュの自動再読み込みが開始されました!\n\n📊 ステータス: ✅ 有効\n⏰ スケジュール: 00:00から{interval}時間ごと\n🕒 次回再読み込み: {next_exec} ({delta_min}分後)"
     DB_AUTO_CACHE_RELOADING_STOPPED_BY_ADMIN_MSG = "🛑 Firebaseキャッシュの自動再読み込みが停止されました!\n\n📊 ステータス: ❌ 無効\n💡 再有効化するには /auto_cache on を使用してください"
-    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "自動リロードが有効です。次は __VAR_0__ で"
+    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "自動リロードが有効です。次は {next_exec} で"
     DB_AUTO_CACHE_RELOAD_DISABLED_LOG_MSG = "自動リロードは管理者によって無効にされています。"
-    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "自動リロード間隔は __VAR_1__h に設定されます。次は __VAR_0__ で"
-    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "自動リロードが開始されました。次は __VAR_0__ で"
+    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "自動リロード間隔は {next_exec}h に設定されます。次{interval}__ で"
+    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "自動リロードが開始されました。次は {next_exec} で"
     DB_AUTO_CACHE_RELOAD_STOPPED_LOG_MSG = "自動リロードは管理者によって停止されました。"
     
     # Database cache messages (console output)
-    DB_FIREBASE_CACHE_LOADED_MSG = "✅ Firebase キャッシュがロードされました: __VAR_0__ ルート ノード"
-    DB_FIREBASE_CACHE_NOT_FOUND_MSG = "⚠️ Firebase キャッシュ ファイルが見つかりません。空のキャッシュから始まります: __VAR_0__"
-    DB_FAILED_LOAD_FIREBASE_CACHE_MSG = "❌ Firebase キャッシュのロードに失敗しました: __VAR_0__"
-    DB_FIREBASE_CACHE_RELOADED_MSG = "✅ Firebase キャッシュがリロードされました: __VAR_0__ ルート ノード"
-    DB_FIREBASE_CACHE_FILE_NOT_FOUND_MSG = "⚠️ Firebase キャッシュ ファイルが見つかりません: __VAR_0__"
-    DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Firebase キャッシュのリロードに失敗しました: __VAR_0__"
+    DB_FIREBASE_CACHE_LOADED_MSG = "✅ Firebase キャッシュがロードされました: {count} ルート ノード"
+    DB_FIREBASE_CACHE_NOT_FOUND_MSG = "⚠️ Firebase キャッシュ ファイルが見つかりません。空のキャッシュから始まります: {cache_file}"
+    DB_FAILED_LOAD_FIREBASE_CACHE_MSG = "❌ Firebase キャッシュのロードに失敗しました: {error}"
+    DB_FIREBASE_CACHE_RELOADED_MSG = "✅ Firebase キャッシュがリロードされました: {count} ルート ノード"
+    DB_FIREBASE_CACHE_FILE_NOT_FOUND_MSG = "⚠️ Firebase キャッシュ ファイルが見つかりません: {cache_file}"
+    DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Firebase キャッシュのリロードに失敗しました: {error}"
     
     # Database user ban messages
     DB_USER_BANNED_MSG = "🚫 あなたはボットへのアクセスを禁止されています!"
@@ -1967,8 +1967,8 @@ class Messages(object):
     HELPER_APP_INSTANCE_NONE_MSG = "check_user でアプリ インスタンスが None になっています"
     HELPER_CHECK_FILE_SIZE_LIMIT_INFO_DICT_NONE_MSG = "check_file_size_limit: info_dict が None なので、ダウンロードが許可されます"
     HELPER_CHECK_SUBS_LIMITS_INFO_DICT_NONE_MSG = "check_subs_limits: info_dict は None で、字幕の埋め込みが許可されます"
-    HELPER_CHECK_SUBS_LIMITS_CHECKING_LIMITS_MSG = "check_subs_limits: 制限のチェック - max_quality= __VAR_2__ p、max_duration= __VAR_1__ s、max_size= __VAR_0__ MB"
-    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "check_subs_limits: info_dict キー: __VAR_0__"
+    HELPER_CHECK_SUBS_LIMITS_CHECKING_LIMITS_MSG = "check_subs_limits: 制限のチェック - max_quality= {max_size} p、max_duration={max_duration}_ s、max_{max_quality}AR_0__ MB"
+    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "check_subs_limits: info_dict キー: {keys}"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_DURATION_MSG = "字幕の埋め込みをスキップしました: 長さ{duration}秒が制限{max_duration}秒を超えています"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_SIZE_MSG = "字幕の埋め込みをスキップしました: サイズ{size_mb:.2f}MBが制限{max_size}MBを超えています"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_QUALITY_MSG = "字幕の埋め込みをスキップしました: 品質{width}x{height}（最小辺{min_side}p）が制限{max_quality}pを超えています"
@@ -1984,8 +1984,8 @@ class Messages(object):
     
     # POT helper messages
     HELPER_POT_PROVIDER_DISABLED_MSG = "PO トークンプロバイダーが構成で無効になっています"
-    HELPER_POT_URL_NOT_YOUTUBE_MSG = "URL __VAR_0__ は YouTube ドメインではないため、PO トークンをスキップします"
-    HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG = "PO トークン プロバイダーは __VAR_0__ では利用できず、標準の YouTube 抽出にフォールバックします"
+    HELPER_POT_URL_NOT_YOUTUBE_MSG = "URL {url} は YouTube ドメインではないため、PO トークンをスキップします"
+    HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG = "PO トークン プロバイダーは {base_url} では利用できず、標準の YouTube 抽出にフォールバックします"
     HELPER_POT_PROVIDER_CACHE_CLEARED_MSG = "PO トークン プロバイダーのキャッシュがクリアされました。次のリクエストで利用可能かどうかを確認します"
     HELPER_POT_GENERIC_ARGS_MSG = "generic:impersonate=chrome,youtubetab:skip=authcheck"
     
@@ -1994,7 +1994,7 @@ class Messages(object):
     HELPER_USER_NAME_MSG = "ユーザー"
     HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG = "Flood waitが検出されました。{wait_seconds}秒待機中"
     HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG = "Flood waitが検出されましたが、時間を抽出できませんでした。{retry_delay}秒待機中"
-    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "msg_seqno エラーが検出されました。__VAR_0__ 秒間スリープ状態になります"
+    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "msg_seqno エラーが検出されました。{retry_delay} 秒間スリープ状態になります"
     HELPER_MESSAGE_ID_INVALID_MSG = "MESSAGE_ID_INVALID"
     HELPER_MESSAGE_DELETE_FORBIDDEN_MSG = "MESSAGE_DELETE_FORBIDDEN"
     
@@ -2160,8 +2160,8 @@ class Messages(object):
     KEYBOARD_2X3_BUTTON_MSG = "📱 2x3"
     
     # Image Command Messages
-    IMAGE_URL_CAPTION_MSG = "🔗[画像URL]( __VAR_0__ )"
-    IMAGE_ERROR_MSG = "❌ エラー: __VAR_0__"
+    IMAGE_URL_CAPTION_MSG = "🔗[画像URL]( {url} )"
+    IMAGE_ERROR_MSG = "❌ エラー: {str(e)}"
     
     # Format Command Messages
     FORMAT_BACK_BUTTON_MSG = "🔙Back"
@@ -2180,7 +2180,7 @@ class Messages(object):
     FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (enter your own)"
     
     # Cookies Command Messages
-    COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1- __VAR_0__ )"
+    COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1- {max} )"
     COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 ブラウザから"
     COOKIES_TWITTER_BUTTON_MSG = "🐦ツイッター/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"
@@ -2211,7 +2211,7 @@ class Messages(object):
     COOKIE_MENU_SAVE_INFO_MSG = "Cookie ファイルは cookie.txt としてフォルダーに保存されます。"
     COOKIE_MENU_TIP_HEADER_MSG = "ヒント: 直接コマンドを使用することもできます。"
     COOKIE_MENU_TIP_YOUTUBE_MSG = "• <code>/cookie youtube</code> – Cookie をダウンロードして検証します。"
-    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – インデックスによる特定のソースを使用します (1– __VAR_0__ )"
+    COOKIE_MENU_TIP_YOUTUBE_INDEX_MSG = "• <code>/cookie youtube 1</code> – インデックスによる特定のソースを使用します (1– {max_index} )"
     COOKIE_MENU_TIP_VERIFY_MSG = "次に、<code>/check_cookie</code> で検証します (RickRoll でテスト)。"
 
     # Subs command button messages
@@ -2224,8 +2224,8 @@ class Messages(object):
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝キャプション"
 
     # Audio upload completion messages
-    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 部分的に完了 - __VAR_1__ / __VAR_0__ 音声ファイルがアップロードされました。"
-    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ 音声が正常にダウンロードされ、送信されました - __VAR_0__ ファイルがアップロードされました。"
+    AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 部分的に完了 - {total_files{successful_uploads}_0__ 音声ファイルがアップロードされました。"
+    AUDIO_SUCCESSFULLY_COMPLETED_MSG = "✅ 音声が正常にダウンロードされ、送信されました - {total_files} ファイルがアップロードされました。"
 
     # TikTok private account messages
     TIKTOK_PRIVATE_ACCOUNT_MSG = (

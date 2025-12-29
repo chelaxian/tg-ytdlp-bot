@@ -4,7 +4,7 @@
       "blocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1767000289
+          "timestamp": 1767000696
         }
       },
       "logs": {
@@ -21,13 +21,13 @@
       "unblocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1767000289
+          "timestamp": 1767000696
         }
       },
       "users": {
         "0": {
           "ID": "0",
-          "timestamp": 1767000289
+          "timestamp": 1767000696
         }
       },
       "channel_guard": {
@@ -191,10 +191,18 @@
             "name": "🤍Weaam Hasan🤍",
             "last_left_ts": 1767000547.0,
             "blocked": false
+          },
+          "5953911194": {
+            "ID": "5953911194",
+            "first_left_ts": 1767001415.0,
+            "username": null,
+            "name": "Abdullah",
+            "last_left_ts": 1767001415.0,
+            "blocked": false
           }
         },
         "state": {
-          "last_event_id": 936723268284
+          "last_event_id": 936732054852
         }
       }
     },

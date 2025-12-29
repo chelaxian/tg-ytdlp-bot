@@ -338,7 +338,7 @@ Yi amfani da:
 
     ERROR_OCCURRED_MSG = "❌ <b>Kuskure ya faru</b>\n\n<code>{url}</code>\n\nKuskure: {error}"
 
-    ERROR_SENDING_VIDEO_MSG = "❌ Kuskure wajen aika aika: __VAR_0__"
+    ERROR_SENDING_VIDEO_MSG = "❌ Kuskure wajen aika aika: {error}"
     ERROR_UNKNOWN_MSG = "❌ Kuskure da ba a sani ba: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Babu isasshen sarari na diski don saukewa bidiyoyi."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Girman fayil ya wuce iyakar {limit} GB. Da fatan za a zaɓi fayil ƙarami a cikin girman da aka yarda."
@@ -509,7 +509,7 @@ Yi amfani da:
     # Subtitles command messages
     SUBS_DISABLED_MSG = "✅ An kashe rubutun ƙasa kuma an kashe yanayin Luôn Hỏi."
     SUBS_ALWAYS_ASK_ENABLED_MSG = "✅ An kunna SUBS Luôn Hỏi."
-    SUBS_LANGUAGE_SET_MSG = "✅ An saita yaren rubutu zuwa: __VAR_1__ __VAR_0__"
+    SUBS_LANGUAGE_SET_MSG = "✅ An saita yaren rubutu zuwa: {flag} {name}"
     SUBS_WARNING_MSG = (
         "<blockquote>❗️GARGADI: saboda tasirin CPU mai girma wannan aikin yana da sannu a hankali (kusa da lokaci na gaske) kuma an iyakance shi zuwa:\n"
         "- Matsakaicin inganci 720p\n"
@@ -589,7 +589,7 @@ Yi amfani da:
     SEARCH_CLOSED_MSG = "An rufe"
     
     # Proxy command messages
-    PROXY_ENABLED_MSG = "✅ Wakili __VAR_0__."
+    PROXY_ENABLED_MSG = "✅ Wakili {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_MENU_TEXT_MSG = "Kunna ko kashe amfani da uwar garken proxy don duk ayyukan yt-dlp?"
     PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe amfani da uwar garken proxy ({count} suna samuwa) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna, za a zaɓi proxies ta amfani da hanyar {method}."
@@ -627,7 +627,7 @@ Yi amfani da:
     NSFW_BLUR_ENABLED_CALLBACK_MSG = "An kunna blur NSFW."
     
     # MediaInfo command messages
-    MEDIAINFO_ENABLED_MSG = "✅ MediaInfo __VAR_0__."
+    MEDIAINFO_ENABLED_MSG = "✅ MediaInfo {status}."
     MEDIAINFO_MENU_TITLE_MSG = "Kunna ko kashe aika MediaInfo don fayilolin da aka sauke?"
     MEDIAINFO_MENU_CLOSED_MSG = "An rufe menu."
     MEDIAINFO_ENABLED_CONFIRM_MSG = "✅ An kunna MediaInfo. Bayan saukewa, za a aika bayanin fayil."
@@ -840,7 +840,7 @@ Yi amfani da:
         "• CLEAN_QUERY: {clean_query}\n"
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
     )
-    ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Kuskuren sake loda ma'ajiyar batsa: __VAR_0__"
+    ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Kuskuren sake loda ma'ajiyar batsa: {error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ Da fatan za a ba da URL don duba.\nYadda ake amfani: <code>/check_porn &lt;URL&gt;</code>"
     ADMIN_CHECK_PORN_INVALID_URL_MSG = "❌ Da fatan za a ba da URL mai inganci.\nYadda ake amfani: <code>/check_porn &lt;URL&gt;</code>"
     ADMIN_CHECKING_URL_MSG = "🔍 Ana duba URL don abun ciki na NSFW...\n<code>{url}</code>"
@@ -850,7 +850,7 @@ Yi amfani da:
         "<b>Matsayi:</b> <b>{status_text}</b>\n\n"
         "<b>Explanation:</b>\n{explanation}"
     )
-    ADMIN_ERROR_CHECKING_URL_MSG = "❌ Kuskuren duba URL: __VAR_0__"
+    ADMIN_ERROR_CHECKING_URL_MSG = "❌ Kuskuren duba URL: {error}"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "An tsabtace cookies."
@@ -973,10 +973,10 @@ Yi amfani da:
     COOKIES_FILE_TOO_LARGE_MSG = "❌ Fayil ɗin ya yi girma da yawa. Matsakaicin girman shine 100 KB."
     COOKIES_INVALID_FORMAT_MSG = "❌ Fayiloli na wannan tsari ne kawai aka yarda .txt."
     COOKIES_INVALID_COOKIE_MSG = "❌ Fayil ɗin baya kama kuki.txt (babu layi '# Netscape HTTP Fayil kuki')."
-    COOKIES_ERROR_READING_MSG = "❌ Kuskuren karanta fayil: __VAR_0__"
+    COOKIES_ERROR_READING_MSG = "❌ Kuskuren karanta fayil: {error}"
     COOKIES_FILE_EXISTS_MSG = "✅ Fayil na kuki yana wanzu kuma yana da tsari daidai"
-    COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ __VAR_1__ Fayil na kuki yayi girma da yawa! Matsakaicin 100KB, ya samu __VAR_0__KB."
-    COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ __VAR_0__ an zazzage fayil ɗin kuki kuma an adana shi azaman kuki.txt a cikin babban fayil ɗin ku.</b>"
+    COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {size} Fayil na kuki yayi girma da yawa! Matsakaicin 100KB, ya samu {service}"
+    COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ {service} an zazzage fayil ɗin kuki kuma an adana shi azaman kuki.txt a cikin babban fayil ɗin ku.</b>"
     COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ Tushen kuki na {service} baya samuwa (matsayi {status}). Da fatan za a sake gwadawa daga baya."
     COOKIES_ERROR_DOWNLOADING_MSG = "❌ Kuskure wajen saukewa fayil cookie na {service}. Da fatan za a sake gwadawa daga baya."
     COOKIES_USER_PROVIDED_MSG = "<b>✅ Mai amfani ya ba da sabon fayil ɗin kuki.</b>"
@@ -993,8 +993,8 @@ Yi amfani da:
     KEYBOARD_ACTIVATED_MSG = "🎹 keyboard an kunna!"
     
     # Additional subtitles command messages
-    SUBS_LANGUAGE_SET_MSG = "✅ An saita harshen taken zuwa: __VAR_1____ __VAR_0__"
-    SUBS_LANGUAGE_AUTO_SET_MSG = "✅ An saita harshen subtitle zuwa: __VAR_1____ __VAR_0____ tare da kunna AUTO/TRANS."
+    SUBS_LANGUAGE_SET_MSG = "✅ An saita harshen taken zuwa: {name}__ {flag}"
+    SUBS_LANGUAGE_AUTO_SET_MSG = "✅ An saita harshen subtitle zuwa: {name}__ {flag}tare da kunna AUTO/TRANS."
     SUBS_LANGUAGE_MENU_CLOSED_MSG = "An rufe menu harshen subtitr."
     SUBS_DOWNLOADING_MSG = "💬 Ana saukewa subtitr..."
     
@@ -1010,9 +1010,9 @@ Yi amfani da:
     COOKIE_FALLBACK_UNAVAILABLE_MSG = "❌ Tushen kuki na fallback baya samuwa (matsayi {status}). Gwada /cookie ko loda cookie.txt."
     COOKIE_FALLBACK_ERROR_MSG = "❌ Kuskure wajen saukewa cookie fallback. Gwada /cookie ko loda cookie.txt."
     COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Kuskure da ba zato ba tsammani yayin saukewa cookie fallback."
-    COOKIES_BROWSER_NOT_INSTALLED_MSG = "⚠️ __VAR_0____ ba a shigar da mai binciken ba."
-    COOKIES_SAVED_USING_BROWSER_MSG = "✅ Kukis da aka ajiye ta amfani da burauza: __VAR_0__"
-    COOKIES_FAILED_TO_SAVE_MSG = "❌ An kasa ajiye kukis: __VAR_0__"
+    COOKIES_BROWSER_NOT_INSTALLED_MSG = "⚠️ {browser}__ ba a shigar da mai binciken ba."
+    COOKIES_SAVED_USING_BROWSER_MSG = "✅ Kukis da aka ajiye ta amfani da burauza: {browser}"
+    COOKIES_FAILED_TO_SAVE_MSG = "❌ An kasa ajiye kukis: {error}"
     COOKIES_YOUTUBE_WORKING_PROPERLY_MSG = "✅ Kukis na YouTube suna aiki daidai"
     COOKIES_YOUTUBE_EXPIRED_INVALID_MSG = "❌ YouTube cookies are expired or invalid\n\nUse /cookie to get new cookies"
     
@@ -1026,7 +1026,7 @@ Yi amfani da:
     COOKIES_INVALID_FILE_FORMAT_MSG = "❌ Tsarin fayil mara inganci"
     COOKIES_FILE_TOO_LARGE_CALLBACK_MSG = "❌ Fayil ya yi girma sosai"
     COOKIES_DOWNLOADED_SUCCESSFULLY_MSG = "✅ An sauke kukis cikin nasara"
-    COOKIES_SERVER_ERROR_MSG = "❌ Kuskuren uwar garken __VAR_0__"
+    COOKIES_SERVER_ERROR_MSG = "❌ Kuskuren uwar garken {status}"
     COOKIES_DOWNLOAD_FAILED_MSG = "❌ saukewa ya kasa"
     COOKIES_UNEXPECTED_ERROR_MSG = "❌ Kuskuren da ba a zata ba"
     COOKIES_BROWSER_NOT_INSTALLED_CALLBACK_MSG = "⚠️ Ba a shigar da Browser ba."
@@ -1056,8 +1056,8 @@ Yi amfani da:
     
     # Additional document caption messages
     MEDIAINFO_DOCUMENT_CAPTION_MSG = "<blockquote>📊 MediaInfo</blockquote>"
-    ADMIN_USER_LOGS_CAPTION_MSG = "__VAR_0__ - duk rajistan ayyukan"
-    ADMIN_BOT_DATA_CAPTION_MSG = "__VAR_1__ - duk __VAR_0__"
+    ADMIN_USER_LOGS_CAPTION_MSG = "{user_id} - duk rajistan ayyukan"
+    ADMIN_BOT_DATA_CAPTION_MSG = "{path} - duk {bot_name}"
     
     # Additional cookies command messages (missing ones)
     DOWNLOAD_FROM_URL_BUTTON_MSG = "📥 Zazzagewa daga URL mai nisa"
@@ -1084,7 +1084,7 @@ Yi amfani da:
     LINK_ERROR_GETTING_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
     
     # Additional cookies command messages (more)
-    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Fihirisar kuki mara inganci na YouTube: __VAR_1__. Akwai kewayon 1-__VAR_0__"
+    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Fihirisar kuki mara inganci na YouTube: {total_urls}. Akwai kewayon{selected_index}0__"
     COOKIES_DOWNLOADING_CHECKING_MSG = "🔄 Ana saukewa da duba kukis na YouTube...\n\nƘoƙari {attempt} na {total}"
     COOKIES_DOWNLOADING_TESTING_MSG = "🔄 Ana saukewa da duba kukis na YouTube...\n\nƘoƙari {attempt} na {total}\n🔍 Ana gwada kukis..."
     COOKIES_SUCCESS_VALIDATED_MSG = "✅ An sauke da tabbatar da kukis na YouTube cikin nasara!\n\nAn yi amfani da tushe {source} na {total}"
@@ -1096,7 +1096,7 @@ Yi amfani da:
     
     # Additional subtitles command messages
     SUBS_INVALID_ARGUMENT_MSG = "❌ **Hujja mara inganci!**\n\n"
-    SUBS_LANGUAGE_SET_STATUS_MSG = "✅ Saitin harshe mai taken: __VAR_1____ __VAR_0__"
+    SUBS_LANGUAGE_SET_STATUS_MSG = "✅ Saitin harshe mai taken: {name}__ {flag}"
     
     # Additional subtitles command messages (more)
     SUBS_EXAMPLE_AUTO_MSG = "Misali: `/ subs en auto`"
@@ -1133,54 +1133,54 @@ Yi amfani da:
     SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Yanayin auto-subtitr {status}"
     
     # Subtitles log messages
-    SUBS_DISABLED_LOG_MSG = "An kashe SUBS ta hanyar umarni: __VAR_0__"
-    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Koyaushe Tambayi yana kunna ta hanyar umarni: __VAR_0__"
-    SUBS_LANGUAGE_SET_LOG_MSG = "An saita harshen SUBS ta hanyar umarni: __VAR_0__"
-    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "Harshen SUBS + an saita yanayin atomatik ta hanyar umarni: __VAR_0____ auto"
+    SUBS_DISABLED_LOG_MSG = "An kashe SUBS ta hanyar umarni: {arg}"
+    SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Koyaushe Tambayi yana kunna ta hanyar umarni: {arg}"
+    SUBS_LANGUAGE_SET_LOG_MSG = "An saita harshen SUBS ta hanyar umarni: {arg}"
+    SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "Harshen SUBS + an saita yanayin atomatik ta hanyar umarni: {arg}__ auto"
     SUBS_MENU_OPENED_LOG_MSG = "Mai amfani ya buɗe/subs menu."
-    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "Mai amfani ya saita yaren magana zuwa: __VAR_0__"
-    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "Mai amfani ya canza yanayin AUTO/TRANS zuwa: __VAR_0__"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Mai amfani yana juyawa Koyaushe Tambayi yanayin zuwa: __VAR_0____"
+    SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "Mai amfani ya saita yaren magana zuwa: {lang_code}"
+    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "Mai amfani ya canza yanayin AUTO/TRANS zuwa: {new_auto}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Mai amfani yana juyawa Koyaushe Tambayi yanayin zuwa: {new_always_ask}__"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "Mai amfani ya nemi kukis daga mai lilo."
     COOKIES_BROWSER_SELECTION_SENT_LOG_MSG = "Maɓallin zaɓin mai lilo da aka aika tare da shigar masu bincike kawai."
     COOKIES_BROWSER_SELECTION_CLOSED_LOG_MSG = "An rufe zaɓin mai lilo."
     COOKIES_FALLBACK_SUCCESS_LOG_MSG = "Komawa COOKIE_URL an yi amfani da shi cikin nasara (an ɓoye tushen)"
-    COOKIES_FALLBACK_FAILED_LOG_MSG = "Komawa COOKIE_URL ya kasa: matsayi =__VAR_0____ (boye)"
-    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "Komawa COOKIE_URL kuskuren bazata: __VAR_1____: __VAR_0____"
-    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "Browser __VAR_0____ ba a sanya shi ba."
-    COOKIES_SAVED_BROWSER_LOG_MSG = "Ajiye kukis ta amfani da burauza: __VAR_0__"
-    COOKIES_FILE_SAVED_USER_LOG_MSG = "An ajiye fayil ɗin kuki don mai amfani __VAR_0__."
+    COOKIES_FALLBACK_FAILED_LOG_MSG = "Komawa COOKIE_URL ya kasa: matsayi ={status}__ (boye)"
+    COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "Komawa COOKIE_URL kuskuren bazata: {error}__: {error_type}"
+    COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "Browser {browser}__ ba a sanya shi ba."
+    COOKIES_SAVED_BROWSER_LOG_MSG = "Ajiye kukis ta amfani da burauza: {browser}"
+    COOKIES_FILE_SAVED_USER_LOG_MSG = "An ajiye fayil ɗin kuki don mai amfani {user_id}."
     COOKIES_FILE_WORKING_LOG_MSG = "Fayil ɗin kuki yana wanzu, yana da tsari daidai, kuma kukis na YouTube suna aiki."
     COOKIES_FILE_EXPIRED_LOG_MSG = "Fayil ɗin kuki yana wanzu kuma yana da tsari daidai, amma kukis na YouTube ya ƙare."
     COOKIES_FILE_CORRECT_FORMAT_LOG_MSG = "Fayil ɗin kuki yana wanzu kuma yana da tsari daidai."
     COOKIES_FILE_INCORRECT_FORMAT_LOG_MSG = "Fayil ɗin kuki yana wanzu amma yana da tsarin da ba daidai ba."
     COOKIES_FILE_NOT_FOUND_LOG_MSG = "Ba a sami fayil ɗin kuki ba."
-    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "__VAR_1__ URL kuki babu komai ga mai amfani __VAR_0__."
-    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "__VAR_0__ URL kuki ba .txt (boye) bane"
-    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "__VAR_1__ Fayil ɗin kuki yayi girma sosai: __VAR_0____ bytes (an ɓoye tushen)"
-    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "__VAR_1__ Fayil ɗin kuki da aka zazzage don mai amfani __VAR_0__ (an ɓoye tushen)."
+    COOKIES_SERVICE_URL_EMPTY_LOG_MSG = "{user_id} URL kuki babu komai ga mai amfani {service}."
+    COOKIES_SERVICE_URL_NOT_TXT_LOG_MSG = "{service} URL kuki ba .txt (boye) bane"
+    COOKIES_SERVICE_FILE_TOO_LARGE_LOG_MSG = "{size} Fayil ɗin kuki yayi girma sosai: {service}bytes (an ɓoye tushen)"
+    COOKIES_SERVICE_FILE_DOWNLOADED_LOG_MSG = "{user_id} Fayil ɗin kuki da aka zazzage don mai amfani {service} (an ɓoye tushen)."
     
     # Admin log messages
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Ba a samo rubutun ba: __VAR_0__"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Ba a samo rubutun ba: {user_id}"
     ADMIN_FAILED_SEND_STATUS_LOG_MSG = "An kasa aika saƙon matsayi na farko"
     ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG = "Kuskure wajen gudanar da {script_path}: {stdout}\n{stderr}"
     ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Sake loda cache na Firebase ta ɗawainiya ta atomatik."
     ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Admin ya sake shigar da cache na Firebase."
-    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Kuskuren sake loda ma'ajiyar Wuta: __VAR_0__"
+    ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Kuskuren sake loda ma'ajiyar Wuta: {error}"
     ADMIN_BROADCAST_INITIATED_LOG_MSG = "An fara watsa shirye-shirye. Rubutu:\n{broadcast_text}"
     ADMIN_BROADCAST_SENT_LOG_MSG = "An aika saƙon watsa shirye-shirye ga duk masu amfani."
-    ADMIN_BROADCAST_FAILED_LOG_MSG = "An kasa watsa saƙo: __VAR_0__"
-    ADMIN_CACHE_CLEARED_LOG_MSG = "Admin __VAR_1____ share cache don URL: __VAR_0__"
-    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "Admin __VAR_1____ ya fara rubutun sabunta jerin batsa: __VAR_0__"
-    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "Rubutun sabunta jerin batsa ya kammala cikin nasara daga admin __VAR_0__"
-    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "Rubutun sabunta jerin batsa ya gaza daga admin __VAR_1____: __VAR_0__"
-    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Admin __VAR_1____ yayi kokarin gudanar da rubutun da babu shi: __VAR_0__"
-    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "Kuskuren gudanar da rubutun sabunta batsa daga admin __VAR_1__: __VAR_0__"
-    ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "Admin __VAR_0____ ya fara sake kunna cache na batsa"
-    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "Kuskuren sake loda cache na batsa daga admin __VAR_1____: __VAR_0__"
-    ADMIN_PORN_CHECK_LOG_MSG = "Admin __VAR_2____ an duba URL na NSFW: __VAR_1____ - Sakamako: __VAR_0__"
+    ADMIN_BROADCAST_FAILED_LOG_MSG = "An kasa watsa saƙo: {error}"
+    ADMIN_CACHE_CLEARED_LOG_MSG = "Admin {user_id} share cache don URL: {url}"
+    ADMIN_PORN_UPDATE_STARTED_LOG_MSG = "Admin {script_path}__ ya fara rubutun sabunta jerin bat{user_id}_0__"
+    ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG = "Rubutun sabunta jerin batsa ya kammala cikin nasara daga admin {user_id}"
+    ADMIN_PORN_UPDATE_FAILED_LOG_MSG = "Rubutun sabunta jerin batsa ya gaza daga admin {error}__: {user_id}"
+    ADMIN_SCRIPT_NOT_FOUND_LOG_MSG = "Admin {script_path}__ yayi kokarin gudanar da rubutun da babu s{user_id}_0__"
+    ADMIN_PORN_UPDATE_ERROR_LOG_MSG = "Kuskuren gudanar da rubutun sabunta batsa daga admin {error}: {user_id}"
+    ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG = "Admin {user_id}__ ya fara sake kunna cache na batsa"
+    ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG = "Kuskuren sake loda cache na batsa daga admin {error}__: {user_id}"
+    ADMIN_PORN_CHECK_LOG_MSG = "Admin {status}__ an duba URL na NSFW: _{url}_ - Sakamako: __VAR{user_id}"
     
     # Format log messages
     FORMAT_CHANGE_REQUESTED_LOG_MSG = "User requested format change."
@@ -1201,29 +1201,29 @@ Yi amfani da:
     FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "An rufe menu tsari na al'ada"
     
     # Link log messages
-    LINK_EXTRACTED_LOG_MSG = "An fitar da hanyar haɗin kai tsaye don mai amfani __VAR_1____ daga __VAR_0__"
-    LINK_EXTRACTION_FAILED_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye don mai amfani __VAR_2____ daga __VAR_1____: __VAR_0__"
-    LINK_COMMAND_ERROR_LOG_MSG = "Kuskure a cikin umarnin hanyar haɗin yanar gizo don mai amfani __VAR_1__: __VAR_0__"
+    LINK_EXTRACTED_LOG_MSG = "An fitar da hanyar haɗin kai tsaye don mai amfani {user_id} daga {url}"
+    LINK_EXTRACTION_FAILED_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye don mai amfani {user_id} daga {url}: {error}"
+    LINK_COMMAND_ERROR_LOG_MSG = "Kuskure a cikin umarnin hanyar haɗin yanar gizo don mai amfani {error}: {user_id}"
     
     # Keyboard log messages
-    KEYBOARD_SET_LOG_MSG = "Mai amfani __VAR_1____ saita madannai zuwa __VAR_0__"
-    KEYBOARD_SET_CALLBACK_LOG_MSG = "Mai amfani __VAR_1____ saita madannai zuwa __VAR_0__"
+    KEYBOARD_SET_LOG_MSG = "Mai amfani {setting}__ saita madannai zuwa {user_id}"
+    KEYBOARD_SET_CALLBACK_LOG_MSG = "Mai amfani {setting}__ saita madannai zuwa {user_id}"
     
     # MediaInfo log messages
-    MEDIAINFO_SET_COMMAND_LOG_MSG = "An saita MediaInfo ta hanyar umarni: __VAR_0__"
+    MEDIAINFO_SET_COMMAND_LOG_MSG = "An saita MediaInfo ta hanyar umarni: {arg}"
     MEDIAINFO_MENU_OPENED_LOG_MSG = "Mai amfani ya buɗe /menun info."
     MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: rufe."
     MEDIAINFO_ENABLED_LOG_MSG = "An kunna MediaInfo."
     MEDIAINFO_DISABLED_LOG_MSG = "An kashe MediaInfo."
     
     # Split log messages
-    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "An saita girman da aka saita zuwa __VAR_0____ bytes ta hanyar muhawara."
+    SPLIT_SIZE_SET_ARGUMENT_LOG_MSG = "An saita girman da aka saita zuwa {size}__ bytes ta hanyar muhawara."
     SPLIT_MENU_OPENED_LOG_MSG = "Mai amfani ya buɗe / raba menu."
     SPLIT_SELECTION_CLOSED_LOG_MSG = "An rufe zaɓin raba."
-    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "An saita girman da aka saita zuwa __VAR_0____ bytes."
+    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "An saita girman da aka saita zuwa {size}__ bytes."
     
     # Proxy log messages
-    PROXY_SET_COMMAND_LOG_MSG = "Saitin wakili ta hanyar umarni: __VAR_0__"
+    PROXY_SET_COMMAND_LOG_MSG = "Saitin wakili ta hanyar umarni: {arg}"
     PROXY_MENU_OPENED_LOG_MSG = "Mai amfani ya buɗe/menu na wakili."
     PROXY_MENU_CLOSED_LOG_MSG = "Wakili: rufe."
     PROXY_ENABLED_LOG_MSG = "An kunna wakili"
@@ -1237,13 +1237,13 @@ Yi amfani da:
     AUDIO_HINT_CLOSED_LOG_MSG = "An rufe alamar sauti."
     
     # Down and Up log messages
-    DIRECT_LINK_MENU_CREATED_LOG_MSG = "Menu na hanyar haɗin kai kai tsaye ƙirƙira ta hanyar maɓallin LINK don mai amfani __VAR_1__ daga __VAR_0__"
-    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta hanyar maɓallin LINK don mai amfani __VAR_2__ daga __VAR_1____: __VAR_0__"
-    LIST_COMMAND_EXECUTED_LOG_MSG = "An aiwatar da umarnin LIST don mai amfani __VAR_1__,, url: __VAR_0__"
-    QUICK_EMBED_LOG_MSG = "Saurin Shiga: __VAR_0__"
-    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Koyaushe Tambayi Menu da aka aika don __VAR_0__"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Ƙirƙiri menu na halaye masu kyau don mai amfani __VAR_1____ bayan kuskure: __VAR_0__"
-    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Tambayi kuskuren menu koyaushe don __VAR_1__: __VAR_0__"
+    DIRECT_LINK_MENU_CREATED_LOG_MSG = "Menu na hanyar haɗin kai kai tsaye ƙirƙira ta hanyar maɓallin LINK don mai amfani {user_id} daga {url}"
+    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta hanyar maɓallin LINK don mai amfani {error} daga {url}: {user_id}"
+    LIST_COMMAND_EXECUTED_LOG_MSG = "An aiwatar da umarnin LIST don mai amfani {user_id}, url: {url}"
+    QUICK_EMBED_LOG_MSG = "Saurin Shiga: {embed_url}"
+    ALWAYS_ASK_MENU_SENT_LOG_MSG = "Koyaushe Tambayi Menu da aka aika don {url}"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Ƙirƙiri menu na halaye masu kyau don mai amfani {error}__ bayan kuskure: {user_id}"
+    ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Tambayi kuskuren menu koyaushe don {error}: {url}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Ana gyara tsari ta hanyar /args settings"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Audio"
     ALWAYS_ASK_VIDEO_TYPE_MSG = "Bidiyo"
@@ -1263,7 +1263,7 @@ Yi amfani da:
     DOWN_UP_ID_MSG = "ID"
     DOWN_UP_DOWNLOADED_VIDEO_MSG = "☑️ Zazzage bidiyo."
     DOWN_UP_PROCESSING_UPLOAD_MSG = "📤 Ana aiwatar da upload..."
-    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "📤 Rarrabe bangare __VAR_0__ an loda fayil"
+    DOWN_UP_SPLITTED_PART_UPLOADED_MSG = "📤 Rarrabe bangare {part} an loda fayil"
     DOWN_UP_UPLOAD_COMPLETE_MSG = "✅ An gama yin lodi"
     DOWN_UP_FILES_UPLOADED_MSG = "fayilolin uploaded"
     
@@ -1283,7 +1283,7 @@ Yi amfani da:
     AA_ERROR_GETTING_CAPTION_MSG = "❌ Kuskure wajen samun bayani: {error_msg}"
     AA_NO_DESCRIPTION_AVAILABLE_MSG = "⚠️ Bayanin bidiyo ba ya samuwa"
     AA_ERROR_SENDING_CAPTION_MSG = "❌ Kuskure wajen aika bayani: {error_msg}"
-    CAPTION_SENT_LOG_MSG = "📝 Bayanin bidiyo da aka aika ga mai amfani __VAR_2____ don __VAR_1____ (__VAR_0__)"
+    CAPTION_SENT_LOG_MSG = "📝 Bayanin bidiyo da aka aika ga mai amfani {title}__ don {url} ({user_id}"
     ALWAYS_ASK_STARTING_GALLERY_DL_MSG = "🖼 Fara gallery-dl…"
     
     # Always Ask Menu F-String Messages
@@ -1383,12 +1383,12 @@ Yi amfani da:
     ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>Rashin bidiyo:</b>"
     ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>Rashin sauti:</b>"
     ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ An gaza samun hanyoyin rafi"
-    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Ana fitar da hanyar haɗin kai tsaye ta Tambayi Menu na Koyaushe don mai amfani __VAR_1__ daga __VAR_0__"
-    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta Koyaushe Tambayi menu don mai amfani __VAR_2____ daga __VAR_1____: __VAR_0__"
-    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "An fitar da hanyar haɗin kai tsaye ta hanyar ƙasa_da_up_with_format don mai amfani __VAR_1____ daga __VAR_0__"
-    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta hanyar ƙasa_da_up_with_format don mai amfani __VAR_2____ daga __VAR_1____: __VAR_0__"
-    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Ana fitar da hanyar haɗin kai tsaye ta down_da_audio don mai amfani __VAR_1____ daga __VAR_0__"
-    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta hanyar ƙasa_da_audio don mai amfani __VAR_2____ daga __VAR_1____: __VAR_0__"
+    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Ana fitar da hanyar haɗin kai tsaye ta Tambayi Menu na Koyaushe don mai amfani {user_id} daga {url}"
+    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta Koyaushe Tambayi menu don mai amfani {error}__ daga {url}: {user_id}"
+    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "An fitar da hanyar haɗin kai tsaye ta hanyar ƙasa_da_up_with_format don mai amfani {user_id} daga {url}"
+    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta hanyar ƙasa_da_up_with_format don mai amfani {error}__ daga {url}: {user_id}"
+    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Ana fitar da hanyar haɗin kai tsaye ta down_da_audio don mai amfani {user_id} daga {url}"
+    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "An kasa cire hanyar haɗin kai tsaye ta hanyar ƙasa_da_audio don mai amfani {error}__ daga {url}: {user_id}"
     
     # Audio processing messages
     AUDIO_SENT_FROM_CACHE_MSG = "✅ Ana aika sauti daga cache."
@@ -1397,29 +1397,29 @@ Yi amfani da:
     AUDIO_DOWNLOAD_ERROR_MSG = "Kuskure ya faru yayin zazzagewar odiyo."
     AUDIO_DOWNLOAD_COMPLETE_MSG = "{process}\n{bar}   100.0%"
     AUDIO_EXTRACTION_FAILED_MSG = "❌ An kasa fitar da bayanin mai jiwuwa"
-    AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Tsallake nau'in fayil mara tallafi a lissafin waƙa a index __VAR_0__"
+    AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Tsallake nau'in fayil mara tallafi a lissafin waƙa a index {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "Fayil mai jiwuwa ba a samo shi ba bayan zazzagewa."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Ana loda fayil ɗin sauti...\n{bar}   100.0%"
-    AUDIO_SEND_FAILED_MSG = "❌ An kasa aika sauti: __VAR_0__"
-    PLAYLIST_AUDIO_SENT_LOG_MSG = "An aika sautin jigon waƙa: __VAR_3__/ __VAR_2____ fayiloli (mai inganci=__VAR_1__) ga mai amfani__VAR_0__"
-    AUDIO_DOWNLOAD_FAILED_MSG = "❌ An kasa sauke sauti: __VAR_0__"
+    AUDIO_SEND_FAILED_MSG = "❌ An kasa aika sauti: {error}"
+    PLAYLIST_AUDIO_SENT_LOG_MSG = "An aika sautin jigon waƙa: {user_id}/ {quality}__ fayiloli (mai inganci={total}) ga mai amfani{sent}"
+    AUDIO_DOWNLOAD_FAILED_MSG = "❌ An kasa sauke sauti: {error}"
     DOWNLOAD_TIMEOUT_MSG = "⏰ An soke zazzagewa saboda ƙarewar lokaci (awanni 2)"
     VIDEO_DOWNLOAD_COMPLETE_MSG = "{process}\n{bar}   100.0%"
     
     # FFmpeg messages
-    VIDEO_FILE_NOT_FOUND_MSG = "❌ Ba a samo fayil ɗin bidiyo ba: __VAR_0__"
-    VIDEO_PROCESSING_ERROR_MSG = "❌ Kuskuren sarrafa bidiyo: __VAR_0__"
+    VIDEO_FILE_NOT_FOUND_MSG = "❌ Ba a samo fayil ɗin bidiyo ba: {filename}"
+    VIDEO_PROCESSING_ERROR_MSG = "❌ Kuskuren sarrafa bidiyo: {error}"
     
     # Sender messages
-    ERROR_SENDING_DESCRIPTION_FILE_MSG = "❌ Kuskuren aika fayil bayanin: __VAR_0__"
+    ERROR_SENDING_DESCRIPTION_FILE_MSG = "❌ Kuskuren aika fayil bayanin: {error}"
     CHANGE_CAPTION_HINT_MSG = "<blockquote>📝 idan kuna son canza taken bidiyo - amsa bidiyo tare da sabon rubutu</blockquote>"
     
     # Always Ask Menu Messages
     NO_SUBTITLES_DETECTED_MSG = "Ba a gano fassarar magana ba"
-    VIDEO_PROGRESS_MSG = "<b>Bidiyo: </b> __VAR_1____ / __VAR_0__"
-    AUDIO_PROGRESS_MSG = "<b>Audio: </b> __VAR_1____ / __VAR_0__"
-    URL_PROGRESS_MSG = "<b>URL:</b> __VAR_1____ / __VAR_0__"
-    MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL ya wuce: __VAR_1__/__VAR_0__"
+    VIDEO_PROGRESS_MSG = "<b>Bidiyo: </b> {total}__ / {current}"
+    AUDIO_PROGRESS_MSG = "<b>Audio: </b> {total}__ / {current}"
+    URL_PROGRESS_MSG = "<b>URL:</b> {total}__ / {current}"
+    MULTI_URL_LIMIT_EXCEEDED_MSG = "❌ URL ya wuce: {limit}/{count}"
     MULTI_URL_COMPLETED_MSG = "An gama aiwatarwa"
     MULTI_URL_RANGE_NOT_ALLOWED_MSG = "❌ Ba a ba da izinin jeri na waƙa a yanayin URL da yawa. Aika URL guda ɗaya kawai ba tare da jeri ba (*1*5, /vid 1-10, da sauransu)."
     
@@ -1430,11 +1430,11 @@ Yi amfani da:
     CHOOSE_SUBTITLE_LANGUAGE_MSG = "Zaɓi harshe subtitle"
     NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG = "Babu madadin harsunan mai jiwuwa"
     CHOOSE_AUDIO_LANGUAGE_MSG = "Zaɓi harshe mai jiwuwa"
-    PAGE_NUMBER_MSG = "Shafi __VAR_0__"
+    PAGE_NUMBER_MSG = "Shafi {page}"
     TOTAL_PROGRESS_MSG = "Jimlar Ci gaba"
     SUBTITLE_MENU_CLOSED_MSG = "Menu na subtitle ya rufe."
-    SUBTITLE_LANGUAGE_SET_MSG = "Saitin harshe mai taken: __VAR_0__"
-    AUDIO_SET_MSG = "Saitin sauti: __VAR_0__"
+    SUBTITLE_LANGUAGE_SET_MSG = "Saitin harshe mai taken: {value}"
+    AUDIO_SET_MSG = "Saitin sauti: {value}"
     FILTERS_UPDATED_MSG = "An sabunta masu tacewa"
     
     # Always Ask Menu Buttons
@@ -1449,14 +1449,14 @@ Yi amfani da:
     # Live Stream Messages
     LIVE_STREAM_DETECTED_MSG = "🚫 **An Gano Rafi Kai Tsaye**\n\nBa a yarda da zazzage rafukan kai tsaye masu gudana ko marasa iyaka.\n\nDa fatan za a jira rafin ya ƙare kuma ku sake gwadawa lokacin:\n• An san tsawon rafi\n• Rafin ya ƙare\n"
     LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>Zazzagewar Rafi kai tsaye</b>"
-    LIVE_STREAM_CHUNK_NUMBER_MSG = "Ciki __VAR_0__"
-    LIVE_STREAM_CHUNK_SIZE_MSG = "Matsakaicin girman: __VAR_0__"
-    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "Jimlar tsawon lokaci: __VAR_0____ dakika"
+    LIVE_STREAM_CHUNK_NUMBER_MSG = "Ciki {chunk}"
+    LIVE_STREAM_CHUNK_SIZE_MSG = "Matsakaicin girman: {size}"
+    LIVE_STREAM_ACCUMULATED_DURATION_MSG = "Jimlar tsawon lokaci: {duration}__ dakika"
     LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>Rafi Kai Tsaye - Bangare {chunk}</b>\n⏱ Tsawon lokaci: {duration} sec\n📦 Girma: {size}"
-    LIVE_STREAM_CHUNK_TITLE_MSG = "Ciki __VAR_0__"
+    LIVE_STREAM_CHUNK_TITLE_MSG = "Ciki {chunk}"
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>Kammala Zazzagewar Rafi Kai tsaye</b>"
-    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "An zazzage __VAR_0____ guntun (s)"
-    LIVE_STREAM_TOTAL_DURATION_MSG = "Jimlar tsawon lokaci: __VAR_0____ dakika"
+    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "An zazzage {chunks}__ guntun (s)"
+    LIVE_STREAM_TOTAL_DURATION_MSG = "Jimlar tsawon lokaci: {duration}__ dakika"
     LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>An Dakatar Da Zazzagewar Rafi Kai Tsaye</b>"
     LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "An share littafin adireshin mai amfani (wataƙila ta / tsaftataccen umarni)"
     LIVE_STREAM_FILE_DELETED_MSG = "An share fayil ɗin chunk (wataƙila ta / tsaftataccen umarni)"
@@ -1509,39 +1509,39 @@ Yi amfani da:
     PORN_CONTENT_CANNOT_DOWNLOAD_MSG = "Mai amfani ya shigar da abun ciki haramun. Ba za a iya saukewa ba."
     
     # Additional Log Messages
-    NSFW_BLUR_SET_COMMAND_LOG_MSG = "NSFW blur saita ta hanyar umarni: __VAR_0__"
+    NSFW_BLUR_SET_COMMAND_LOG_MSG = "NSFW blur saita ta hanyar umarni: {arg}"
     NSFW_MENU_OPENED_LOG_MSG = "Mai amfani ya buɗe /nsfw menu."
     NSFW_MENU_CLOSED_LOG_MSG = "NSFW: rufe."
-    COOKIES_DOWNLOAD_FAILED_LOG_MSG = "An kasa sauke __VAR_1____ kuki: matsayi=__VAR_0__ (an ɓoye url)"
-    COOKIES_DOWNLOAD_ERROR_LOG_MSG = "Kuskuren zazzage __VAR_1____ kuki: __VAR_0____ (an ɓoye url)"
-    COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "Kuskuren da ba a zata ba yayin zazzage __VAR_2____ kuki (ɓoye url): __VAR_1____: __VAR_0__"
-    COOKIES_FILE_UPDATED_LOG_MSG = "An sabunta fayil ɗin kuki don mai amfani __VAR_0__."
-    COOKIES_INVALID_CONTENT_LOG_MSG = "Abun cikin kuki mara inganci wanda mai amfani __VAR_0__ ya bayar."
-    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "Kuki URLs na YouTube fanko ne ga mai amfani __VAR_0__."
-    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "An sauke cookies ɗin YouTube kuma an inganta su don mai amfani __VAR_1____ daga tushen __VAR_0__."
-    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "Duk tushen kuki na YouTube sun kasa ga mai amfani __VAR_0__."
-    ADMIN_CHECK_PORN_ERROR_LOG_MSG = "Kuskuren check_batsa daga admin __VAR_1____: __VAR_0__"
-    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Saitin girman ɓangaren saiti zuwa __VAR_0____ bytes."
+    COOKIES_DOWNLOAD_FAILED_LOG_MSG = "An kasa sauke {status}__ kuki: matsayi=_{service}(an ɓoye url)"
+    COOKIES_DOWNLOAD_ERROR_LOG_MSG = "Kuskuren zazzage {error}__ kuki: {service} (an ɓoye url)"
+    COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "Kuskuren da ba a zata ba yayin zazzage {error}__ kuki (ɓoye url): {error_type}:{service}_"
+    COOKIES_FILE_UPDATED_LOG_MSG = "An sabunta fayil ɗin kuki don mai amfani {user_id}."
+    COOKIES_INVALID_CONTENT_LOG_MSG = "Abun cikin kuki mara inganci wanda mai amfani {user_id} ya bayar."
+    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "Kuki URLs na YouTube fanko ne ga mai amfani {user_id}."
+    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "An sauke cookies ɗin YouTube kuma an inganta su don mai amfani {source}__ daga tushen _{user_id}"
+    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "Duk tushen kuki na YouTube sun kasa ga mai amfani {user_id}."
+    ADMIN_CHECK_PORN_ERROR_LOG_MSG = "Kuskuren check_batsa daga admin {error}__: {admin_id}"
+    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Saitin girman ɓangaren saiti zuwa {size}__ bytes."
     VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG = "An gama loda bidiyo tare da tsagawar fayil."
-    PLAYLIST_VIDEOS_SENT_LOG_MSG = "Bidiyon lissafin waƙa da aka aika: __VAR_3__/ __VAR_2____ fayiloli (mai inganci=__VAR_1__) ga mai amfani __VAR_0__"
-    UNKNOWN_ERROR_MSG = "❌ Kuskuren da ba a sani ba: __VAR_0__"
-    SKIPPING_UNSUPPORTED_FILE_TYPE_MSG = "Tsallake nau'in fayil mara tallafi a lissafin waƙa a index __VAR_0__"
+    PLAYLIST_VIDEOS_SENT_LOG_MSG = "Bidiyon lissafin waƙa da aka aika: {user_id}/ {quality}__ fayiloli (mai inganci={total}) ga mai amfani {sent}"
+    UNKNOWN_ERROR_MSG = "❌ Kuskuren da ba a sani ba: {error}"
+    SKIPPING_UNSUPPORTED_FILE_TYPE_MSG = "Tsallake nau'in fayil mara tallafi a lissafin waƙa a index {index}"
     FFMPEG_NOT_FOUND_MSG = "❌ FFmpeg not found. Please install FFmpeg."
-    CONVERSION_TO_MP4_FAILED_MSG = "❌ Juya zuwa MP4 ya kasa: __VAR_0__"
+    CONVERSION_TO_MP4_FAILED_MSG = "❌ Juya zuwa MP4 ya kasa: {error}"
     EMBEDDING_SUBTITLES_WARNING_MSG = "⚠️ Saka subtitr na iya ɗaukar lokaci mai tsawo (har zuwa minti 1 a kowane minti 1 na bidiyo)!\n🔥 Ana fara ƙone subtitr..."
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Ba za a iya shigar da rubutun kalmomi ba saboda iyaka (inganci / tsawon lokaci / girman)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Babu rubutun ra'ayi don harshen da aka zaɓa"
-    ERROR_SENDING_VIDEO_MSG = "❌ Kuskuren aika bidiyo: __VAR_0__"
-    PLAYLIST_VIDEOS_SENT_MSG = "✅ Bidiyon lissafin waƙa da aka aika: __VAR_1____/__VAR_0____ fayiloli."
+    ERROR_SENDING_VIDEO_MSG = "❌ Kuskuren aika bidiyo: {error}"
+    PLAYLIST_VIDEOS_SENT_MSG = "✅ Bidiyon lissafin waƙa da aka aika: {total}__/{sent} fayiloli."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ An soke zazzagewa saboda ƙarewar lokaci (awanni 2)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ An kasa zazzage bidiyo: {error}"
-    ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ Kuskure: __VAR_0__"
+    ERROR_SUBTITLES_NOT_FOUND_MSG = "❌ Kuskure: {error}"
     
     # Args command error messages
     ARGS_JSON_MUST_BE_OBJECT_MSG = "❌ JSON dole ne ya zama abu (kamus)."
     ARGS_INVALID_JSON_FORMAT_MSG = "❌ Tsarin JSON mara inganci. Da fatan za a ba da ingantaccen JSON."
-    ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ Dole ne kimar ta kasance tsakanin __VAR_1__ da __VAR_0__."
-    ARGS_PARAM_SET_TO_MSG = "✅ __VAR_1____ saita zuwa: <code>__VAR_0____ </code>"
+    ARGS_VALUE_MUST_BE_BETWEEN_MSG = "❌ Dole ne kimar ta kasance tsakanin {max_val} da {min_val}."
+    ARGS_PARAM_SET_TO_MSG = "✅ {value}__ saita zuwa: <code>{description} </code>"
     
     # Args command button texts
     ARGS_TRUE_BUTTON_MSG = "✅ Gaskiya"
@@ -1566,20 +1566,20 @@ Yi amfani da:
     
     # Down and Up error messages
     DOWN_UP_AV1_NOT_AVAILABLE_MSG = "❌ Tsarin AV1 baya samuwa don wannan bidiyon.\n\nTsare-tsare da Ake Samu:\n{formats_text}"
-    DOWN_UP_ERROR_DOWNLOADING_MSG = "❌ Kuskuren saukewa: __VAR_0__"
-    DOWN_UP_NO_VIDEOS_PLAYLIST_MSG = "❌ Ba a sami bidiyo a lissafin waƙa a index __VAR_0__."
+    DOWN_UP_ERROR_DOWNLOADING_MSG = "❌ Kuskuren saukewa: {error_message}"
+    DOWN_UP_NO_VIDEOS_PLAYLIST_MSG = "❌ Ba a sami bidiyo a lissafin waƙa a index {index}."
     DOWN_UP_VIDEO_CONVERSION_FAILED_INVALID_MSG = "❌ **Juyar da Bidiyo Ya Gaza**\n\nBa za a iya juyar da bidiyon zuwa MP4 ba saboda kuskuren hujja mara inganci.\n\n"
     DOWN_UP_VIDEO_CONVERSION_FAILED_MSG = "❌ **Juyar da Bidiyo Ya Gaza**\n\nBa za a iya juyar da bidiyon zuwa MP4 ba.\n\n"
     DOWN_UP_FAILED_STREAM_LINKS_MSG = "❌ An kasa samun hanyoyin shiga rafi"
     DOWN_UP_ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
-    DOWN_UP_NO_CONTENT_FOUND_MSG = "❌ Babu abun ciki da aka samu a index __VAR_0__"
+    DOWN_UP_NO_CONTENT_FOUND_MSG = "❌ Babu abun ciki da aka samu a index {index}"
 
     # Always Ask Menu error messages
     AA_ERROR_ORIGINAL_NOT_FOUND_MSG = "❌ Kuskure: Ba a sami saƙon asali ba."
     AA_ERROR_URL_NOT_FOUND_MSG = "❌ Kuskure: URL bai samu ba."
     AA_ERROR_URL_NOT_EMBEDDABLE_MSG = "❌ Ba za a iya saka wannan URL ɗin ba."
-    AA_ERROR_CODEC_NOT_AVAILABLE_MSG = "❌ __VAR_0____ codec babu don wannan bidiyon"
-    AA_ERROR_FORMAT_NOT_AVAILABLE_MSG = "❌ __VAR_0____ babu shi don wannan bidiyon"
+    AA_ERROR_CODEC_NOT_AVAILABLE_MSG = "❌ {codec}__ codec babu don wannan bidiyon"
+    AA_ERROR_FORMAT_NOT_AVAILABLE_MSG = "❌ {format}__ babu shi don wannan bidiyon"
     
     # Always Ask Menu button texts
     AA_AVC_BUTTON_MSG = "✅ AVC"
@@ -1602,7 +1602,7 @@ Yi amfani da:
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Try later."
     
     # Cookies command button texts
-    COOKIES_BROWSER_BUTTON_MSG = "✅ __VAR_0__"
+    COOKIES_BROWSER_BUTTON_MSG = "✅ {browser_name}"
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Duba Kuki"
     
     # Proxy command button texts
@@ -1645,15 +1645,15 @@ Yi amfani da:
     ADMIN_STATUS_CLEAN_TEXT_MSG = "Tsaftace"
     
     # Admin command additional messages
-    ADMIN_ERROR_PROCESSING_REPLY_MSG = "Kuskuren sarrafa saƙon amsa ga mai amfani __VAR_1____: __VAR_0__"
-    ADMIN_ERROR_SENDING_BROADCAST_MSG = "Kuskuren aika watsa shirye-shirye ga mai amfani __VAR_1__: __VAR_0__"
+    ADMIN_ERROR_PROCESSING_REPLY_MSG = "Kuskuren sarrafa saƙon amsa ga mai amfani {error}__: {user}"
+    ADMIN_ERROR_SENDING_BROADCAST_MSG = "Kuskuren aika watsa shirye-shirye ga mai amfani {error}: {user}"
     ADMIN_LOGS_FORMAT_MSG = "Rajistan ayyuka na {bot_name}\nMai amfani: {user_id}\nJimlar rajistan ayyuka: {total}\nLokaci na yanzu: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nJimlar {path}: {count}\nLokaci na yanzu: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>Jimlar Masu Amfani: {count}</i>\nNa Ƙarshe 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "Ma'ajiyar batsa ta admin __VAR_11____. Yankunan: __VAR_10__ PROXY_DOMAINS: __VAR_3__, PROXY_2_DOMAINS: __VAR_2____, CLEAN_QUERY: __VAR_1____, BABU_COOKIE_DOMAINS: __VAR_0__"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "Ma'ajiyar batsa ta admin {admin_id}. Yankunan: {domains}, Kalmomin: {keywords}, Shafukan: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
-    ARGS_ERROR_SENDING_TIMEOUT_MSG = "Kuskuren aika saƙon ƙarewar lokaci: __VAR_0__"
+    ARGS_ERROR_SENDING_TIMEOUT_MSG = "Kuskuren aika saƙon ƙarewar lokaci: {error}"
     
     # Language selection messages
     LANG_SELECTION_MSG = "🌍 <b>Zaɓi harshe</b>"
@@ -1663,30 +1663,30 @@ Yi amfani da:
     # Clean command additional messages
     
     # Cookies command additional messages
-    COOKIES_BROWSER_CALLBACK_MSG = "[BROWSER] dawo da kira: __VAR_0__"
-    COOKIES_ADDING_BROWSER_MONITORING_MSG = "Ƙara maɓallin sa ido na burauza tare da URL: __VAR_0__"
-    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "Ba a saita URL na mai bincike ba: __VAR_0__"
+    COOKIES_BROWSER_CALLBACK_MSG = "[BROWSER] dawo da kira: {callback_data}"
+    COOKIES_ADDING_BROWSER_MONITORING_MSG = "Ƙara maɓallin sa ido na burauza tare da URL: {miniapp_url}"
+    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "Ba a saita URL na mai bincike ba: {miniapp_url}"
     
     # Format command additional messages
     
     # Keyboard command additional messages
     KEYBOARD_SETTING_UPDATED_MSG = "🎹 **Keyboard setting updated!**\n\nNew setting: **{setting}**"
-    KEYBOARD_FAILED_HIDE_MSG = "An kasa ɓoye maɓallan madannai: __VAR_0__"
+    KEYBOARD_FAILED_HIDE_MSG = "An kasa ɓoye maɓallan madannai: {error}"
     
     # Link command additional messages
-    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Yin amfani da kukis na YouTube masu aiki don haɓaka hanyar haɗi don mai amfani __VAR_0__"
-    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "Babu kukis na YouTube masu aiki don haɓaka hanyar haɗin yanar gizo don mai amfani __VAR_0__"
-    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Amfani da kukis na YouTube don haɓaka hanyar haɗin yanar gizo don mai amfani __VAR_0__"
-    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Babu kukis na YouTube da aka samo don cire haɗin haɗin mai amfani __VAR_0__"
-    LINK_COPIED_GLOBAL_COOKIE_FILE_MSG = "An kwafi fayil ɗin kuki na duniya zuwa ga mai amfani __VAR_0____ babban fayil don cire haɗin haɗin"
+    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Yin amfani da kukis na YouTube masu aiki don haɓaka hanyar haɗi don mai amfani {user_id}"
+    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "Babu kukis na YouTube masu aiki don haɓaka hanyar haɗin yanar gizo don mai amfani {user_id}"
+    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Amfani da kukis na YouTube don haɓaka hanyar haɗin yanar gizo don mai amfani {user_id}"
+    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Babu kukis na YouTube da aka samo don cire haɗin haɗin mai amfani {user_id}"
+    LINK_COPIED_GLOBAL_COOKIE_FILE_MSG = "An kwafi fayil ɗin kuki na duniya zuwa ga mai amfani {user_id}__ babban fayil don cire haɗin haɗin"
     
     # MediaInfo command additional messages
-    MEDIAINFO_USER_REQUESTED_MSG = "[MEDIAINFO] Mai amfani __VAR_0____ ya nemi umarnin mediyainfo"
-    MEDIAINFO_USER_IS_ADMIN_MSG = "[MEDIAINFO] Mai amfani __VAR_1____ shine admin: __VAR_0__"
-    MEDIAINFO_USER_IS_IN_CHANNEL_MSG = "[MEDIAINFO] Mai amfani __VAR_1____ yana cikin tashar: __VAR_0____"
-    MEDIAINFO_ACCESS_DENIED_MSG = "[MEDIAINFO] An hana mai amfani __VAR_0____ damar - ba admin ba kuma ba cikin tashar ba"
-    MEDIAINFO_ACCESS_GRANTED_MSG = "[MEDIAINFO] An ba da damar mai amfani __VAR_0__"
-    MEDIAINFO_CALLBACK_MSG = "[MEDIAINFO] sake kiran waya: __VAR_0__"
+    MEDIAINFO_USER_REQUESTED_MSG = "[MEDIAINFO] Mai amfani {user_id}__ ya nemi umarnin mediyainfo"
+    MEDIAINFO_USER_IS_ADMIN_MSG = "[MEDIAINFO] Mai amfani {is_admin}__ shine admin:{user_id}_"
+    MEDIAINFO_USER_IS_IN_CHANNEL_MSG = "[MEDIAINFO] Mai amfani {is_in_channel}__ yana cikin ta{user_id}AR_0____"
+    MEDIAINFO_ACCESS_DENIED_MSG = "[MEDIAINFO] An hana mai amfani {user_id}__ damar - ba admin ba kuma ba cikin tashar ba"
+    MEDIAINFO_ACCESS_GRANTED_MSG = "[MEDIAINFO] An ba da damar mai amfani {user_id}"
+    MEDIAINFO_CALLBACK_MSG = "[MEDIAINFO] sake kiran waya: {callback_data}"
     
     # URL Parser error messages
     URL_PARSER_ADMIN_ONLY_MSG = "❌ Wannan umarnin yana samuwa ne kawai ga masu gudanarwa."
@@ -1696,30 +1696,30 @@ Yi amfani da:
     HELPER_FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Iyakar ambaliya. Gwada daga baya."
     
     # Database error messages
-    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ REST kuskuren wartsakewa: __VAR_0__"
-    DB_ERROR_CLOSING_SESSION_MSG = "❌ Kuskuren rufe zaman Firebase: __VAR_0__"
-    DB_ERROR_INITIALIZING_BASE_MSG = "❌ Kuskuren fara tsarin db tushe: __VAR_0__"
+    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ REST kuskuren wartsakewa: {error}"
+    DB_ERROR_CLOSING_SESSION_MSG = "❌ Kuskuren rufe zaman Firebase: {error}"
+    DB_ERROR_INITIALIZING_BASE_MSG = "❌ Kuskuren fara tsarin db tushe: {error}"
 
     DB_NOT_ALL_PARAMETERS_SET_MSG = "❌ Ba a saita duk sigogi a cikin config.py (FIREBASE_CONF, FIREBASE_USER, FIREBASE_PASSWORD)"
     DB_DATABASE_URL_NOT_SET_MSG = "❌ FIREBASE_CONF.Ba a saita tushen bayanaiURL ba"
     DB_API_KEY_NOT_SET_MSG = "❌ FIREBASE_CONF.apiKey ba a saita don samun idToken ba"
-    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Kuskuren zazzage juji na Firebase: __VAR_0__"
+    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Kuskuren zazzage juji na Firebase: {error}"
     DB_FAILED_DOWNLOAD_DUMP_REST_MSG = "❌ Ba a yi nasarar sauke juji na Firebase ta hanyar REST ba"
-    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ Kuskure a cikin _zazzagewa_da_sakewa_cache: __VAR_0__"
-    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ Kuskure yana tafiyar da cache ta atomatik (kokarin __VAR_2____/__VAR_1____): __VAR_0__"
+    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ Kuskure a cikin _zazzagewa_da_sakewa_cache: {error}"
+    DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ Kuskure yana tafiyar da cache ta atomatik (kokarin {error}__/{max_retries}){attempt}__"
     DB_ALL_RETRY_ATTEMPTS_FAILED_MSG = "❌ Duk ƙoƙarin sake gwadawa ya ci tura"
-    DB_STARTING_FIREBASE_DUMP_MSG = "🔄 Fara saukar da juji na Firebase a __VAR_0__"
+    DB_STARTING_FIREBASE_DUMP_MSG = "🔄 Fara saukar da juji na Firebase a {datetime}"
     DB_DEPENDENCY_NOT_AVAILABLE_MSG = "⚠️ Babu Dogara: buƙatu ko Zama"
     DB_DATABASE_EMPTY_MSG = "⚠️ Database ba komai"
     
     # Magic.py error messages
-    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ Kuskuren rufe logger: __VAR_0__"
-    MAGIC_ERROR_DURING_CLEANUP_MSG = "❌ Kuskure yayin tsaftacewa: __VAR_0__"
+    MAGIC_ERROR_CLOSING_LOGGER_MSG = "❌ Kuskuren rufe logger: {error}"
+    MAGIC_ERROR_DURING_CLEANUP_MSG = "❌ Kuskure yayin tsaftacewa: {error}"
     
     # Update from repo error messages
-    UPDATE_CLONE_ERROR_MSG = "❌ Kuskuren clone: __VAR_0__"
+    UPDATE_CLONE_ERROR_MSG = "❌ Kuskuren clone: {error}"
     UPDATE_CLONE_TIMEOUT_MSG = "❌ Lokacin ƙarewar Clone"
-    UPDATE_CLONE_EXCEPTION_MSG = "❌ Banda Clone: __VAR_0__"
+    UPDATE_CLONE_EXCEPTION_MSG = "❌ Banda Clone: {error}"
     UPDATE_CANCELED_BY_USER_MSG = "❌ Mai amfani ya soke sabuntawa"
 
     # Update from repo success messages
@@ -1740,25 +1740,25 @@ Yi amfani da:
     DOWNLOAD_STATUS_WAITING_FRAGMENTS_MSG = "jiran gutsuttsura"
     
     # Restore from backup messages
-    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ Ba a sami Ajiyayyen __VAR_0__ a cikin _maajiyar/"
-    RESTORE_FAILED_RESTORE_MSG = "❌ An kasa dawo da __VAR_2____ -> __VAR_1____: __VAR_0__"
-    RESTORE_SUCCESS_RESTORED_MSG = "✅ An dawo dashi: __VAR_0__"
+    RESTORE_BACKUP_NOT_FOUND_MSG = "❌ Ba a sami Ajiyayyen {ts} a cikin _maajiyar/"
+    RESTORE_FAILED_RESTORE_MSG = "❌ An kasa dawo da {e}__ -> {dest_path}VA{src}"
+    RESTORE_SUCCESS_RESTORED_MSG = "✅ An dawo dashi: {dest_path}"
     
     # Image command messages
     IMG_INSTAGRAM_AUTH_ERROR_MSG = "❌ <b>{error_type}</b>\n\n<b>URL:</b> <code>{url}</code>\n\n<b>Cikakkun Bayanai:</b> {error_details}\n\nAn dakatar da saukewa saboda kuskure mai mahimmanci.\n\n💡 <b>Shawara:</b> Idan kuna samun kuskuren 401 Ba a ba da izini ba, gwada amfani da umarnin <code>/cookie instagram</code> ko aika kukis ɗinku don tabbatar da asusun tare da Instagram."
     
     # Porn filter messages
-    PORN_DOMAIN_BLACKLIST_MSG = "❌ Domain in the blacklist: __VAR_0__"
-    PORN_KEYWORDS_FOUND_MSG = "❌ An samo kalmomin batsa: __VAR_0__"
-    PORN_DOMAIN_WHITELIST_MSG = "✅ Domain in whitelist: __VAR_0__"
-    PORN_WHITELIST_KEYWORDS_MSG = "✅ An samo mahimmin kalmomi masu farar fata: __VAR_0__"
+    PORN_DOMAIN_BLACKLIST_MSG = "❌ Domain in the blacklist: {domain_parts}"
+    PORN_KEYWORDS_FOUND_MSG = "❌ An samo kalmomin batsa: {keywords}"
+    PORN_DOMAIN_WHITELIST_MSG = "✅ Domain in whitelist: {domain}"
+    PORN_WHITELIST_KEYWORDS_MSG = "✅ An samo mahimmin kalmomi masu farar fata: {keywords}"
     PORN_NO_KEYWORDS_FOUND_MSG = "✅ Ba a sami kalmomin batsa ba"
     
     # Audio download messages
-    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ Kuskuren TikTok API a index __VAR_0__,, tsallakewa zuwa sauti na gaba..."
+    AUDIO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ Kuskuren TikTok API a index {index},, tsallakewa zuwa sauti na gaba..."
     
     # Video download messages  
-    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ Kuskuren API na TikTok a index __VAR_0__,, tsallake zuwa bidiyo na gaba..."
+    VIDEO_TIKTOK_API_ERROR_SKIP_MSG = "⚠️ Kuskuren API na TikTok a index {index},, tsallake zuwa bidiyo na gaba..."
     
     # URL Parser messages
     URL_PARSER_USER_ENTERED_URL_LOG_MSG = "Mai amfani ya shigar da <b>url</b>\n <b>sunan mai amfani:</b> {user_name}\nURL: {url}"
@@ -1768,7 +1768,7 @@ Yi amfani da:
     CHANNEL_JOIN_BUTTON_MSG = "Shiga Channel"
     
     # Handler registry messages
-    HANDLER_REGISTERING_MSG = "🔍 Mai Rijista: __VAR_1____ - __VAR_0____"
+    HANDLER_REGISTERING_MSG = "🔍 Mai Rijista: {func_name}__ {handler_type}____"
     
     # Clean command button messages
     CLEAN_COOKIE_DOWNLOAD_BUTTON_MSG = "📥/kuki - Zazzage kukis na 5"
@@ -1778,7 +1778,7 @@ Yi amfani da:
     
     # List command messages
     LIST_CLOSE_BUTTON_MSG = "🔚 Rufe"
-    LIST_AVAILABLE_FORMATS_HEADER_MSG = "Akwai tsari don: __VAR_0__"
+    LIST_AVAILABLE_FORMATS_HEADER_MSG = "Akwai tsari don: {url}"
     LIST_FORMATS_FILE_NAME_MSG = "formats_{user_id}.txt"
     
     # Other handlers button messages
@@ -1819,85 +1819,85 @@ Yi amfani da:
     FFMPEG_ERROR_CREATING_THUMBNAIL_WITH_FFMPEG_MSG = "Kuskure wajen ƙirƙirar ƙaramin hoto tare da FFmpeg: {error}"
     
     # Gallery-dl messages
-    GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "Tsallake sashin daidaitawa mara-dict: __VAR_1__=__VAR_0____"
-    GALLERY_DL_SETTING_CONFIG_MSG = "Saita __VAR_2____.__VAR_1____ = __VAR_0____"
-    GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] Amfani da kukis mai amfani: __VAR_0__"
-    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Amfani da kukis na YouTube don mai amfani __VAR_0__"
-    GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG = "An kwafi fayil ɗin kuki na duniya zuwa babban fayil ɗin mai amfani __VAR_0__"
-    GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG = "[gallery-dl] Amfani da kwafin kukis na duniya azaman kukis masu amfani: __VAR_0__"
-    GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG = "An kasa yin kwafin fayil ɗin kuki na duniya don mai amfani __VAR_1____: __VAR_0__"
-    GALLERY_DL_USING_NO_COOKIES_MSG = "Amfani --no-kukis don yanki: __VAR_0__"
-    GALLERY_DL_PROXY_REQUESTED_FAILED_MSG = "An nemi wakili amma ya kasa shigo da/samun daidaitawa: __VAR_0__"
-    GALLERY_DL_FORCE_USING_PROXY_MSG = "Tilasta amfani da wakili don gallery-dl: __VAR_0____"
+    GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "Tsallake sashin daidaitawa mara-dict: {opts}={section}"
+    GALLERY_DL_SETTING_CONFIG_MSG = "Saita {value}__.{key} = {section}"
+    GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] Amfani da kukis mai amfani: {cookie_path}"
+    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Amfani da kukis na YouTube don mai amfani {user_id}"
+    GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG = "An kwafi fayil ɗin kuki na duniya zuwa babban fayil ɗin mai amfani {user_id}"
+    GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG = "[gallery-dl] Amfani da kwafin kukis na duniya azaman kukis masu amfani: {cookie_path}"
+    GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG = "An kasa yin kwafin fayil ɗin kuki na duniya don mai amfani {error}__: {user_id}"
+    GALLERY_DL_USING_NO_COOKIES_MSG = "Amfani --no-kukis don yanki: {url}"
+    GALLERY_DL_PROXY_REQUESTED_FAILED_MSG = "An nemi wakili amma ya kasa shigo da/samun daidaitawa: {error}"
+    GALLERY_DL_FORCE_USING_PROXY_MSG = "Tilasta amfani da wakili don gallery-dl: {proxy_url}__"
     GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG = "An nemi wakili amma saitin wakili bai cika ba"
-    GALLERY_DL_PROXY_HELPER_FAILED_MSG = "Mataimakin wakili ya kasa: __VAR_0__"
+    GALLERY_DL_PROXY_HELPER_FAILED_MSG = "Mataimakin wakili ya kasa: {error}"
     GALLERY_DL_PARSING_EXTRACTOR_ITEMS_MSG = "Ana nazarin abubuwan cirewa..."
-    GALLERY_DL_ITEM_COUNT_MSG = "Abu __VAR_1__: __VAR_0__"
-    GALLERY_DL_FOUND_METADATA_TAG2_MSG = "An samo metadata (tag 2): __VAR_0____"
-    GALLERY_DL_FOUND_URL_TAG3_MSG = "An samo URL (tag 3): __VAR_1__, metadata: __VAR_0__"
-    GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "An samo metadata (gado): __VAR_0____"
-    GALLERY_DL_FOUND_URL_LEGACY_MSG = "An samo URL (gado): __VAR_0__"
-    GALLERY_DL_FOUND_FILENAME_MSG = "Sunan fayil da aka samo: __VAR_0__"
-    GALLERY_DL_FOUND_DIRECTORY_MSG = "An samo littafin adireshi: __VAR_0__"
-    GALLERY_DL_FOUND_EXTENSION_MSG = "An sami tsawo: __VAR_0__"
-    GALLERY_DL_PARSED_ITEMS_MSG = "An rarraba __VAR_2____ abubuwa, bayani: __VAR_1____, koma baya: __VAR_0__"
-    GALLERY_DL_SETTING_CONFIG_MSG2 = "Saita tsarin gallery-dl: __VAR_0__"
+    GALLERY_DL_ITEM_COUNT_MSG = "Abu {item}: {count}"
+    GALLERY_DL_FOUND_METADATA_TAG2_MSG = "An samo metadata (tag 2): {info}__"
+    GALLERY_DL_FOUND_URL_TAG3_MSG = "An samo URL (tag 3): {metadata}, metadata:{url}_"
+    GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "An samo metadata (gado): {info}__"
+    GALLERY_DL_FOUND_URL_LEGACY_MSG = "An samo URL (gado): {url}"
+    GALLERY_DL_FOUND_FILENAME_MSG = "Sunan fayil da aka samo: {filename}"
+    GALLERY_DL_FOUND_DIRECTORY_MSG = "An samo littafin adireshi: {directory}"
+    GALLERY_DL_FOUND_EXTENSION_MSG = "An sami tsawo: {extension}"
+    GALLERY_DL_PARSED_ITEMS_MSG = "An rarraba {fallback}__ abubuwa, bayani:{info}___, koma baya: {count}"
+    GALLERY_DL_SETTING_CONFIG_MSG2 = "Saita tsarin gallery-dl: {config}"
     GALLERY_DL_TRYING_STRATEGY_A_MSG = "Dabarun Gwajin A: extractor.find + abubuwa()"
     GALLERY_DL_EXTRACTOR_MODULE_NOT_FOUND_MSG = "gallery_dl.extractor module ba a samu"
     GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG = "gallery_dl.extractor.find() babu a cikin wannan ginin"
-    GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "Mai cire kira.find(__VAR_0__)"
+    GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "Mai cire kira.find({url})"
     GALLERY_DL_NO_EXTRACTOR_MATCHED_MSG = "Babu mai cirewa da ya dace da URL"
-    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "Saita kukis akan mai cirewa: __VAR_0__"
-    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "An kasa saita kukis akan mai cirewa: __VAR_0____"
+    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "Saita kukis akan mai cirewa: {cookie_path}"
+    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "An kasa saita kukis akan mai cirewa: {error}__"
     GALLERY_DL_EXTRACTOR_FOUND_CALLING_ITEMS_MSG = "An samo mai cirewa, kira abubuwa()"
-    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "Dabarun A ya yi nasara, ya sami bayani: __VAR_0__"
+    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "Dabarun A ya yi nasara, ya sami bayani: {info}"
     GALLERY_DL_STRATEGY_A_NO_VALID_INFO_MSG = "Dabarun A: extractor.items() ya dawo babu ingantaccen bayani"
-    GALLERY_DL_STRATEGY_A_FAILED_MSG = "Dabarar A (extractor.find) ta kasa: __VAR_0__"
-    GALLERY_DL_FALLBACK_METADATA_MSG = "Bayanan da aka dawo daga --get-urls: jimlar=__VAR_0__"
+    GALLERY_DL_STRATEGY_A_FAILED_MSG = "Dabarar A (extractor.find) ta kasa: {error}"
+    GALLERY_DL_FALLBACK_METADATA_MSG = "Bayanan da aka dawo daga --get-urls: jimlar={total}"
     GALLERY_DL_ALL_STRATEGIES_FAILED_MSG = "Duk dabarun sun kasa samun metadata"
-    GALLERY_DL_FAILED_EXTRACT_IMAGE_INFO_MSG = "An kasa fitar da bayanin hoto: __VAR_0__"
+    GALLERY_DL_FAILED_EXTRACT_IMAGE_INFO_MSG = "An kasa fitar da bayanin hoto: {error}"
     GALLERY_DL_JOB_MODULE_NOT_FOUND_MSG = "gallery_dl.job module ba a samu (karshe shigar?)"
     GALLERY_DL_DOWNLOAD_JOB_NOT_AVAILABLE_MSG = "gallery_dl.job.DownloadAiki ba ya samuwa a cikin wannan ginin"
     GALLERY_DL_SEARCHING_DOWNLOADED_FILES_MSG = "Neman fayilolin da aka sauke a cikin littafin gallery-dl"
     GALLERY_DL_TRYING_FIND_FILES_BY_NAMES_MSG = "Ƙoƙarin nemo fayiloli ta sunaye daga mai cirewa"
     
     # Sender messages
-    SENDER_ERROR_READING_USER_ARGS_MSG = "Kuskuren karanta args mai amfani ga __VAR_1__: __VAR_0__"
-    SENDER_FFPROBE_BYPASS_ERROR_MSG = "[FFPROBE BYPASS] Kuskure yayin sarrafa bidiyo __VAR_1____: __VAR_0__"
-    SENDER_USER_SEND_AS_FILE_ENABLED_MSG = "Mai amfani __VAR_0____ ya kunna send_as_file, yana aikawa azaman takarda"
+    SENDER_ERROR_READING_USER_ARGS_MSG = "Kuskuren karanta args mai amfani ga {error}: {user_id}"
+    SENDER_FFPROBE_BYPASS_ERROR_MSG = "[FFPROBE BYPASS] Kuskure yayin sarrafa bidiyo {error}__: {video_path}"
+    SENDER_USER_SEND_AS_FILE_ENABLED_MSG = "Mai amfani {user_id}__ ya kunna send_as_file, yana aikawa azaman takarda"
     SENDER_SEND_VIDEO_TIMED_OUT_MSG = "send_video ya ƙare akai-akai; komawa zuwa send_document"
     SENDER_CAPTION_TOO_LONG_MSG = "Taken ya yi tsayi sosai, yana ƙoƙari tare da ƙaramin taken"
     SENDER_SEND_VIDEO_MINIMAL_CAPTION_TIMED_OUT_MSG = "send_video (ƙaramin taken) ya ƙare; koma baya zuwa send_document"
-    SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Kuskuren aika bidiyo tare da ƙaramin taken: __VAR_0____"
-    SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Kuskuren aika cikakken bayanin fayil: __VAR_0__"
-    SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Kuskuren cire fayil ɗin bayanin ɗan lokaci: __VAR_0__"
+    SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Kuskuren aika bidiyo tare da ƙaramin taken: {error}__"
+    SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Kuskuren aika cikakken bayanin fayil: {error}"
+    SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Kuskuren cire fayil ɗin bayanin ɗan lokaci: {error}"
     
     # YT-DLP hook messages
-    YTDLP_SKIPPING_MATCH_FILTER_MSG = "Tsallake match_filter don yanki a cikin NO_FILTER_DOMAINS: __VAR_0____"
-    YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Duba kukis na YouTube na yanzu akan URL na mai amfani don gano tsarin ga mai amfani __VAR_0__"
-    YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Kukis na YouTube da suka wanzu suna aiki akan URL na mai amfani don gano tsari ga mai amfani __VAR_0__ - ta amfani da su"
-    YTDLP_EXISTING_YOUTUBE_COOKIES_FAILED_MSG = "Kukis ɗin YouTube ɗin da suka wanzu sun gaza akan URL na mai amfani, suna ƙoƙarin samun sababbi don gano tsari ga mai amfani __VAR_0__"
-    YTDLP_TRYING_YOUTUBE_COOKIE_SOURCE_MSG = "Ana gwada tushen kuki na YouTube __VAR_1____ don gano tsari don mai amfani __VAR_0__"
-    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_WORK_MSG = "Kukis na YouTube daga tushen __VAR_1____ suna aiki akan URL na mai amfani don gano tsari ga mai amfani __VAR_0___ - an adana shi zuwa babban fayil ɗin mai amfani"
-    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_DONT_WORK_MSG = "Kukis na YouTube daga tushen __VAR_1____ basa aiki akan URL na mai amfani don gano tsarin ga mai amfani __VAR_0__"
-    YTDLP_FAILED_DOWNLOAD_YOUTUBE_COOKIES_MSG = "An kasa sauke kukis na YouTube daga tushen __VAR_1____ don gano tsarin ga mai amfani __VAR_0__"
-    YTDLP_ALL_YOUTUBE_COOKIE_SOURCES_FAILED_MSG = "Duk tushen kuki na YouTube sun gaza don gano tsarin mai amfani __VAR_0__, ba tare da kukis ba"
-    YTDLP_NO_YOUTUBE_COOKIE_SOURCES_CONFIGURED_MSG = "Babu tushen kuki na YouTube da aka saita don gano tsari don mai amfani __VAR_0__, da zai gwada ba tare da kukis"
-    YTDLP_NO_YOUTUBE_COOKIES_FOUND_MSG = "Babu kukis na YouTube da aka samo don gano tsarin mai amfani __VAR_0__, yana ƙoƙarin samun sababbi"
-    YTDLP_USING_YOUTUBE_COOKIES_ALREADY_VALIDATED_MSG = "Amfani da kukis na YouTube don gano tsari ga mai amfani __VAR_0__ (an riga an inganta shi a cikin Menu na Tambayi Koyaushe)"
-    YTDLP_NO_YOUTUBE_COOKIES_FOUND_ATTEMPTING_RESTORE_MSG = "Babu kukis na YouTube da aka samo don gano tsarin mai amfani __VAR_0__, yana ƙoƙarin maidowa..."
-    YTDLP_COPIED_GLOBAL_COOKIE_FILE_MSG = "An kwafi fayil ɗin kuki na duniya zuwa ga mai amfani __VAR_0____ babban fayil don gano tsari"
-    YTDLP_FAILED_COPY_GLOBAL_COOKIE_FILE_MSG = "An kasa yin kwafin fayil ɗin kuki na duniya don mai amfani __VAR_1____: __VAR_0__"
-    YTDLP_USING_NO_COOKIES_FOR_DOMAIN_MSG = "Amfani da --no-kukis don yanki a cikin tsarin get_video_formats: __VAR_0____"
+    YTDLP_SKIPPING_MATCH_FILTER_MSG = "Tsallake match_filter don yanki a cikin NO_FILTER_DOMAINS: {url}__"
+    YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Duba kukis na YouTube na yanzu akan URL na mai amfani don gano tsarin ga mai amfani {user_id}"
+    YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Kukis na YouTube da suka wanzu suna aiki akan URL na mai amfani don gano tsari ga mai amfani {user_id} - ta amfani da su"
+    YTDLP_EXISTING_YOUTUBE_COOKIES_FAILED_MSG = "Kukis ɗin YouTube ɗin da suka wanzu sun gaza akan URL na mai amfani, suna ƙoƙarin samun sababbi don gano tsari ga mai amfani {user_id}"
+    YTDLP_TRYING_YOUTUBE_COOKIE_SOURCE_MSG = "Ana gwada tushen kuki na YouTube {user_id}__ don gano tsari don mai amfani {i}"
+    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_WORK_MSG = "Kukis na YouTube daga tushen {user_id}__ suna aiki akan URL na mai amfani don gano tsari ga mai amfani {i}_ - an adana shi zuwa babban fayil ɗin mai amfani"
+    YTDLP_YOUTUBE_COOKIES_FROM_SOURCE_DONT_WORK_MSG = "Kukis na YouTube daga tushen {user_id}__ basa aiki akan URL na mai amfani don gano tsarin ga mai amfani {i}"
+    YTDLP_FAILED_DOWNLOAD_YOUTUBE_COOKIES_MSG = "An kasa sauke kukis na YouTube daga tushen {user_id}__ don gano tsarin ga mai amfani {i}"
+    YTDLP_ALL_YOUTUBE_COOKIE_SOURCES_FAILED_MSG = "Duk tushen kuki na YouTube sun gaza don gano tsarin mai amfani {user_id}, ba tare da kukis ba"
+    YTDLP_NO_YOUTUBE_COOKIE_SOURCES_CONFIGURED_MSG = "Babu tushen kuki na YouTube da aka saita don gano tsari don mai amfani {user_id}, da zai gwada ba tare da kukis"
+    YTDLP_NO_YOUTUBE_COOKIES_FOUND_MSG = "Babu kukis na YouTube da aka samo don gano tsarin mai amfani {user_id}, yana ƙoƙarin samun sababbi"
+    YTDLP_USING_YOUTUBE_COOKIES_ALREADY_VALIDATED_MSG = "Amfani da kukis na YouTube don gano tsari ga mai amfani {user_id} (an riga an inganta shi a cikin Menu na Tambayi Koyaushe)"
+    YTDLP_NO_YOUTUBE_COOKIES_FOUND_ATTEMPTING_RESTORE_MSG = "Babu kukis na YouTube da aka samo don gano tsarin mai amfani {user_id}, yana ƙoƙarin maidowa..."
+    YTDLP_COPIED_GLOBAL_COOKIE_FILE_MSG = "An kwafi fayil ɗin kuki na duniya zuwa ga mai amfani {user_id}__ babban fayil don gano tsari"
+    YTDLP_FAILED_COPY_GLOBAL_COOKIE_FILE_MSG = "An kasa yin kwafin fayil ɗin kuki na duniya don mai amfani {error}__: {user_id}"
+    YTDLP_USING_NO_COOKIES_FOR_DOMAIN_MSG = "Amfani da --no-kukis don yanki a cikin tsarin get_video_formats: {url}__"
     
     # App instance messages
-    APP_INSTANCE_NOT_INITIALIZED_MSG = "App har yanzu ba a fara aiki ba. Ba za a iya shiga __VAR_0__"
+    APP_INSTANCE_NOT_INITIALIZED_MSG = "App har yanzu ba a fara aiki ba. Ba za a iya shiga {name}"
     
     # Caption messages
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Caption:</b> <code>{caption}</code>\n<b>User id:</b> <code>{user_id}</code>\n<b>User first name:</b> <code>{users_name}</code>\n<b>Video file id:</b> <code>{video_file_id}</code>"
-    CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Kuskure a cikin taken_edita: __VAR_0____"
-    CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Kuskuren da ba a zata ba a cikin taken_edita: __VAR_0____"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="__VAR_1____">🔗 URL na Bidiyo</a>__VAR_0__'
+    CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Kuskure a cikin taken_edita: {error}__"
+    CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Kuskuren da ba a zata ba a cikin taken_edita: {error}__"
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL na Bidiyo</a>{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL ba ya cikin tsari"
@@ -1906,11 +1906,11 @@ Yi amfani da:
     DB_LOG_FOR_USER_ADDED_MSG = "Shiga don ƙara mai amfani"
     DB_DATABASE_CREATED_MSG = "db ya yi"
     DB_BOT_STARTED_MSG = "Bot ya fara"
-    DB_RELOAD_CACHE_EVERY_PERSISTED_MSG = "RELOAD_CACHE_KOWA ya dage don daidaitawa.py: __VAR_0__h"
-    DB_PLAYLIST_PART_ALREADY_CACHED_MSG = "An riga an adana ɓangaren lissafin waƙa: __VAR_0__, tsallakewa"
+    DB_RELOAD_CACHE_EVERY_PERSISTED_MSG = "RELOAD_CACHE_KOWA ya dage don daidaitawa.py: {hours}h"
+    DB_PLAYLIST_PART_ALREADY_CACHED_MSG = "An riga an adana ɓangaren lissafin waƙa: {path_parts}, tsallakewa"
     DB_GET_CACHED_PLAYLIST_VIDEOS_NO_CACHE_MSG = "get_cached_playlist_videos: babu cache da aka samo don kowane URL / bambance-bambancen inganci, maido da komai."
-    DB_GET_CACHED_PLAYLIST_COUNT_FAST_COUNT_MSG = "get_cached_playlist_count: ƙidaya mai sauri don babban kewayo: __VAR_0____ bidiyo da aka adana"
-    DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_MSG = "get_cached_message_ids: ba a sami cache don hash __VAR_1____, inganci __VAR_0__"
+    DB_GET_CACHED_PLAYLIST_COUNT_FAST_COUNT_MSG = "get_cached_playlist_count: ƙidaya mai sauri don babban kewayo: {cached_count}__ bidiyo da aka adana"
+    DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_MSG = "get_cached_message_ids: ba a sami cache don hash {quality_key}__, inga{url_hash}_0__"
     DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_ANY_VARIANT_MSG = "get_cached_message_ids: babu cache da aka samo don kowane bambance-bambancen URL, dawo da Babu"
     
     # Database cache auto-reload messages
@@ -1923,19 +1923,19 @@ Yi amfani da:
     DB_AUTO_CACHE_INTERVAL_UPDATED_MSG = "⏱️ Auto Firebase cache interval updated!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
     DB_AUTO_CACHE_RELOADING_STARTED_MSG = "🔄 Auto Firebase cache reloading started!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
     DB_AUTO_CACHE_RELOADING_STOPPED_BY_ADMIN_MSG = "🛑 Auto Firebase cache reloading stopped!\n\n📊 Status: ❌ DISABLED\n💡 Use /auto_cache on to re-enable"
-    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "ANA SANYA sake lodi ta atomatik; na gaba a __VAR_0__"
+    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "ANA SANYA sake lodi ta atomatik; na gaba a {next_exec}"
     DB_AUTO_CACHE_RELOAD_DISABLED_LOG_MSG = "Mai gudanarwa ya RUSHE."
-    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "An saita tazarar sake lodi ta atomatik zuwa __VAR_1__h; na gaba a __VAR_0__"
-    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "An fara saukewa ta atomatik; na gaba a __VAR_0__"
+    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "An saita tazarar sake lodi ta atomatik zuwa {next_exec}h; na gaba {interval}__"
+    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "An fara saukewa ta atomatik; na gaba a {next_exec}"
     DB_AUTO_CACHE_RELOAD_STOPPED_LOG_MSG = "Admin ya dakatar da sake kunnawa ta atomatik."
     
     # Database cache messages (console output)
-    DB_FIREBASE_CACHE_LOADED_MSG = "✅ An loda cache na Firebase: __VAR_0____ tushen nodes"
-    DB_FIREBASE_CACHE_NOT_FOUND_MSG = "⚠️ Ba a samo fayil ɗin cache na Firebase ba, yana farawa da ma'ajin mara komai: __VAR_0__"
-    DB_FAILED_LOAD_FIREBASE_CACHE_MSG = "❌ An kasa loda cache na wuta: __VAR_0__"
-    DB_FIREBASE_CACHE_RELOADED_MSG = "✅ Sake loda cache na Firebase: __VAR_0____ tushen nodes"
-    DB_FIREBASE_CACHE_FILE_NOT_FOUND_MSG = "⚠️ Ba a samo fayil ɗin cache na Firebase: __VAR_0__"
-    DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Ba a yi nasarar sake shigar da cache na wuta ba: __VAR_0__"
+    DB_FIREBASE_CACHE_LOADED_MSG = "✅ An loda cache na Firebase: {count}__ tushen nodes"
+    DB_FIREBASE_CACHE_NOT_FOUND_MSG = "⚠️ Ba a samo fayil ɗin cache na Firebase ba, yana farawa da ma'ajin mara komai: {cache_file}"
+    DB_FAILED_LOAD_FIREBASE_CACHE_MSG = "❌ An kasa loda cache na wuta: {error}"
+    DB_FIREBASE_CACHE_RELOADED_MSG = "✅ Sake loda cache na Firebase: {count}__ tushen nodes"
+    DB_FIREBASE_CACHE_FILE_NOT_FOUND_MSG = "⚠️ Ba a samo fayil ɗin cache na Firebase: {cache_file}"
+    DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Ba a yi nasarar sake shigar da cache na wuta ba: {error}"
     
     # Database user ban messages
     DB_USER_BANNED_MSG = "🚫 An hana ku daga bot!"
@@ -1946,7 +1946,7 @@ Yi amfani da:
     AA_VLC_IOS_MSG = "🎬 <b><a href=\"https://itunes.apple.com/app/apple-store/id650377962\">VLC Player (iOS)</a></b>\n\n<i>Danna maɓalli don kwafi URL na rafi, sannan liƙa shi a cikin app na VLC</i>"
     AA_VLC_ANDROID_MSG = "🎬 <b><a href=\"https://play.google.com/store/apps/details?id=org.videolan.vlc\">VLC Player (Android)</a></b>\n\n<i>Danna maɓalli don kwafi URL na rafi, sannan liƙa shi a cikin app na VLC</i>"
     AA_ERROR_GETTING_LINK_MSG = "❌ <b>Kuskure wajen samun hanyar haɗi:</b>\n{error_msg}"
-    AA_ERROR_SENDING_FORMATS_MSG = "❌ Kuskuren aika fayil ɗin tsari: __VAR_0__"
+    AA_ERROR_SENDING_FORMATS_MSG = "❌ Kuskuren aika fayil ɗin tsari: {error}"
     AA_FAILED_GET_FORMATS_MSG = "❌ An kasa samun tsare-tsare:\n<code>{output}</code>"
     AA_PROCESSING_WAIT_MSG = "🔎 Ana nazari... (jiran dakika 6)"
     AA_PROCESSING_MSG = "🔎 Ana nazarin..."
@@ -1967,11 +1967,11 @@ Yi amfani da:
     HELPER_APP_INSTANCE_NONE_MSG = "Misalin aikace-aikacen babu wanda yake cikin check_user"
     HELPER_CHECK_FILE_SIZE_LIMIT_INFO_DICT_NONE_MSG = "check_file_size_limit: info_dict ba komai bane, yana bada izinin saukewa"
     HELPER_CHECK_SUBS_LIMITS_INFO_DICT_NONE_MSG = "check_subs_limits: info_dict ba komai ba ne, yana ba da izinin saka juzu'i"
-    HELPER_CHECK_SUBS_LIMITS_CHECKING_LIMITS_MSG = "check_sub_liits: iyakoki - max_quality=__VAR_2__p, max_duration=__VAR_1____s, max_size=__VAR_0__MB"
-    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "check_subs_liits: info_dict keys: __VAR_0__"
-    HELPER_SUBTITLE_EMBEDDING_SKIPPED_DURATION_MSG = "Ƙaddamar da rubutun da aka tsallake: tsawon lokaci __VAR_1____ ya wuce iyaka __VAR_0__s"
-    HELPER_SUBTITLE_EMBEDDING_SKIPPED_SIZE_MSG = "Ƙirƙirar rubutun da aka tsallake: girman __VAR_1__MB ya wuce iyaka __VAR_0__MB"
-    HELPER_SUBTITLE_EMBEDDING_SKIPPED_QUALITY_MSG = "Ƙaddamar da rubutun da aka tsallake: ingancin __VAR_3__ x____VAR_2____ (gefen min __VAR_1__p) ya wuce iyaka __VAR_0__p"
+    HELPER_CHECK_SUBS_LIMITS_CHECKING_LIMITS_MSG = "check_sub_liits: iyakoki - max_quality={max_size}p, max_duration{max_duration}___s, max{max_quality}AR_0__MB"
+    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "check_subs_liits: info_dict keys: {keys}"
+    HELPER_SUBTITLE_EMBEDDING_SKIPPED_DURATION_MSG = "Ƙaddamar da rubutun da aka tsallake: tsawon lokaci {max_duration}__ ya wuce i{duration}R_0__s"
+    HELPER_SUBTITLE_EMBEDDING_SKIPPED_SIZE_MSG = "Ƙirƙirar rubutun da aka tsallake: girman {size_mb:.2f}MB ya wuce iyaka {max_size}MB"
+    HELPER_SUBTITLE_EMBEDDING_SKIPPED_QUALITY_MSG = "Ƙaddamar da rubutun da aka tsallake: ingancin {max_quality}{min_side}_2____ (gefen{height}R_1__p) ya wuce iy{width}_0__p"
     HELPER_COMMAND_TYPE_TIKTOK_MSG = "TikTok"
     HELPER_COMMAND_TYPE_INSTAGRAM_MSG = "Instagram"
     HELPER_COMMAND_TYPE_PLAYLIST_MSG = "lissafin waƙa"
@@ -1984,17 +1984,17 @@ Yi amfani da:
     
     # POT helper messages
     HELPER_POT_PROVIDER_DISABLED_MSG = "An kashe mai ba da alamar PO a cikin saitin"
-    HELPER_POT_URL_NOT_YOUTUBE_MSG = "URL __VAR_0____ ba yanki ba ne na YouTube, yana tsallake alamar PO"
-    HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG = "Babu mai ba da alamar PO a __VAR_0____, yana komawa zuwa daidaitaccen hakar YouTube"
+    HELPER_POT_URL_NOT_YOUTUBE_MSG = "URL {url}__ ba yanki ba ne na YouTube, yana tsallake alamar PO"
+    HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG = "Babu mai ba da alamar PO a {base_url}__, yana komawa zuwa daidaitaccen hakar YouTube"
     HELPER_POT_PROVIDER_CACHE_CLEARED_MSG = "An share cache mai bada alamar PO, zai duba samuwa akan buƙatu na gaba"
     HELPER_POT_GENERIC_ARGS_MSG = "generic:impersonate=chrome,youtubetab:skip=authcheck"
     
     # Safe messenger messages
     HELPER_APP_INSTANCE_NOT_AVAILABLE_MSG = "Misalin app bai samuwa tukuna"
     HELPER_USER_NAME_MSG = "Mai amfani"
-    HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG = "An gano jiran ambaliyar ruwa, barci na tsawon __VAR_0____"
-    HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG = "An gano jirar ambaliya amma ba a iya cire lokaci ba, barci na tsawon __VAR_0____"
-    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "msg_seqno an gano kuskure, barci na __VAR_0____"
+    HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG = "An gano jiran ambaliyar ruwa, barci na tsawon {wait_seconds}__"
+    HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG = "An gano jirar ambaliya amma ba a iya cire lokaci ba, barci na tsawon {retry_delay}__"
+    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "msg_seqno an gano kuskure, barci na {retry_delay}__"
     HELPER_MESSAGE_ID_INVALID_MSG = "MESSAGE_ID_INVALID"
     HELPER_MESSAGE_DELETE_FORBIDDEN_MSG = "MESSAGE_DELETE_FORBIDDEN"
     
@@ -2028,7 +2028,7 @@ Yi amfani da:
     URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Misalai:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direct order)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (reverse order)"
     URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Hakanan duba: /audio, /img, /help, /playlist, /settings"
-    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "Mai amfani __VAR_0____ add_bot_to_group umarni"
+    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "Mai amfani {user_id}__ add_bot_to_group umarni"
 
     # YouTube messages
     YOUTUBE_FAILED_EXTRACT_ID_MSG = "An kasa fitar da ID na YouTube"
@@ -2160,8 +2160,8 @@ Yi amfani da:
     KEYBOARD_2X3_BUTTON_MSG = "2x3 ku"
     
     # Image Command Messages
-    IMAGE_URL_CAPTION_MSG = "🔗[Hotuna URL](__VAR_0__)"
-    IMAGE_ERROR_MSG = "❌ Kuskure: __VAR_0__"
+    IMAGE_URL_CAPTION_MSG = "🔗[Hotuna URL]({url})"
+    IMAGE_ERROR_MSG = "❌ Kuskure: {error}"
     
     # Format Command Messages
     FORMAT_BACK_BUTTON_MSG = "🔙Back"
@@ -2180,7 +2180,7 @@ Yi amfani da:
     FORMAT_CUSTOM_BUTTON_MSG = "🎚 Custom (enter your own)"
     
     # Cookies Command Messages
-    COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1-__VAR_0__)"
+    COOKIES_YOUTUBE_BUTTON_MSG = "📺 YouTube (1-{max})"
     COOKIES_FROM_BROWSER_BUTTON_MSG = "🌐 Daga Browser"
     COOKIES_TWITTER_BUTTON_MSG = "🐦 Twitter/X"
     COOKIES_TIKTOK_BUTTON_MSG = "🎵 TikTok"

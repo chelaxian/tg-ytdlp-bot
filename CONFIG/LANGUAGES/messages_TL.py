@@ -769,7 +769,7 @@ Gamitin:
     ADMIN_SCRIPT_NOT_FOUND_MSG = "❌ Hindi nahanap ang script: {script_path}"
     ADMIN_DOWNLOADING_MSG = "⏳ Nagda-download ng bagong Firebase dump gamit ang {script_path} ..."
     ADMIN_CACHE_RELOADED_MSG = "✅ Matagumpay na na-reload ang cache ng Firebase!"
-    ADMIN_CACHE_FAILED_MSG = "❌ Nabigong i-reload ang cache ng Firebase. Suriin kung may __VAR_0__."
+    ADMIN_CACHE_FAILED_MSG = "❌ Nabigong i-reload ang cache ng Firebase. Suriin kung may {cache_file}."
     ADMIN_ERROR_RELOADING_MSG = "❌ Error sa pag-reload ng cache: {error}"
     ADMIN_ERROR_SCRIPT_MSG = "❌ Error sa pagpapatakbo ng {script_path}:\n{stdout}\n{stderr}"
     ADMIN_PROMO_SENT_MSG = "<b>✅ Ipinadala ang mensahe ng promo sa lahat ng iba pang user</b>"
@@ -1151,7 +1151,7 @@ Gamitin:
     COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "Fallback COOKIE_URL hindi inaasahang error: {error_type}: {error}"
     COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "Browser {browser} hindi naka-install."
     COOKIES_SAVED_BROWSER_LOG_MSG = "Na-save ang cookies gamit ang browser: {browser}"
-    COOKIES_FILE_SAVED_USER_LOG_MSG = "Na-save ang cookie file para sa user na si __VAR_0__."
+    COOKIES_FILE_SAVED_USER_LOG_MSG = "Na-save ang cookie file para sa user na si {user_id}."
     COOKIES_FILE_WORKING_LOG_MSG = "Umiiral ang cookie file, may tamang format, at gumagana ang cookies sa YouTube."
     COOKIES_FILE_EXPIRED_LOG_MSG = "Umiiral ang cookie file at may tamang format, ngunit ang cookies sa YouTube ay nag-expire na."
     COOKIES_FILE_CORRECT_FORMAT_LOG_MSG = "Umiiral ang cookie file at may tamang format."
@@ -1201,13 +1201,13 @@ Gamitin:
     FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Sarado ang custom format menu"
     
     # Link log messages
-    LINK_EXTRACTED_LOG_MSG = "Na-extract ang direktang link para sa user na si __VAR_1__ mula sa {url}"
+    LINK_EXTRACTED_LOG_MSG = "Na-extract ang direktang link para sa user na si {url} mula sa {url}"
     LINK_EXTRACTION_FAILED_LOG_MSG = "Nabigong i-extract ang direktang link para sa user na {user_id} mula sa {url}: {error}"
-    LINK_COMMAND_ERROR_LOG_MSG = "Error sa utos ng link para sa user na __VAR_1__: {error}"
+    LINK_COMMAND_ERROR_LOG_MSG = "Error sa utos ng link para sa user na {error}: {error}"
     
     # Keyboard log messages
-    KEYBOARD_SET_LOG_MSG = "Itinakda ng user na si __VAR_1__ ang keyboard sa {setting}"
-    KEYBOARD_SET_CALLBACK_LOG_MSG = "Itinakda ng user na si __VAR_1__ ang keyboard sa {setting}"
+    KEYBOARD_SET_LOG_MSG = "Itinakda ng user na si {setting} ang keyboard sa {setting}"
+    KEYBOARD_SET_CALLBACK_LOG_MSG = "Itinakda ng user na si {setting} ang keyboard sa {setting}"
     
     # MediaInfo log messages
     MEDIAINFO_SET_COMMAND_LOG_MSG = "Itinakda ang MediaInfo sa pamamagitan ng command: {arg}"
@@ -1237,12 +1237,12 @@ Gamitin:
     AUDIO_HINT_CLOSED_LOG_MSG = "Isinara ang pahiwatig ng audio."
     
     # Down and Up log messages
-    DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direktang menu ng link na ginawa sa pamamagitan ng LINK button para sa user na si __VAR_1__ mula sa {url}"
-    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Nabigong i-extract ang direktang link sa pamamagitan ng LINK button para sa user na si __VAR_2__ mula sa {url}: {error}"
-    LIST_COMMAND_EXECUTED_LOG_MSG = "LIST command na naisakatuparan para sa user na __VAR_1__, url: {url}"
-    QUICK_EMBED_LOG_MSG = "Mabilis na I-embed: __VAR_0__"
+    DIRECT_LINK_MENU_CREATED_LOG_MSG = "Direktang menu ng link na ginawa sa pamamagitan ng LINK button para sa user na si {url} mula sa {url}"
+    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Nabigong i-extract ang direktang link sa pamamagitan ng LINK button para sa user na si {error} mula sa {url}: {error}"
+    LIST_COMMAND_EXECUTED_LOG_MSG = "LIST command na naisakatuparan para sa user na {url}, url: {url}"
+    QUICK_EMBED_LOG_MSG = "Mabilis na I-embed: {embed_url}"
     ALWAYS_ASK_MENU_SENT_LOG_MSG = "Palaging Ask menu na ipinadala para sa {url}"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Gumawa ng naka-cache na menu ng mga katangian para sa user na si __VAR_1__ pagkatapos ng error: {error}"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Gumawa ng naka-cache na menu ng mga katangian para sa user na si {error} pagkatapos ng error: {error}"
     ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Laging Magtanong ng error sa menu para sa {url}: {error}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Naayos ang format sa pamamagitan ng mga setting ng /args"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Audio"
@@ -1383,9 +1383,9 @@ Gamitin:
     ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>Video stream:</b>"
     ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>Audio stream:</b>"
     ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ Nabigong makakuha ng mga link ng stream"
-    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Direktang link na kinuha sa pamamagitan ng Always Ask menu para sa user na si __VAR_1__ mula sa {url}"
+    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Direktang link na kinuha sa pamamagitan ng Always Ask menu para sa user na si {url} mula sa {url}"
     DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Nabigong i-extract ang direktang link sa pamamagitan ng Always Ask menu para sa user na {user_id} mula sa {url}: {error}"
-    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Direktang link na nakuha sa pamamagitan ng down_and_up_with_format para sa user na __VAR_1__ mula sa {url}"
+    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Direktang link na nakuha sa pamamagitan ng down_and_up_with_format para sa user na {url} mula sa {url}"
     DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Nabigong i-extract ang direktang link sa pamamagitan ng down_and_up_with_format para sa user {user_id} mula sa {url}: {error}"
     DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Kinukuha ang direktang link sa pamamagitan ng down_and_audio para sa user {user_id} mula sa {url}"
     DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Nabigong i-extract ang direktang link sa pamamagitan ng down_and_audio para sa user na {user_id} mula sa {url}: {error}"
@@ -1434,7 +1434,7 @@ Gamitin:
     TOTAL_PROGRESS_MSG = "Kabuuang Pag-unlad"
     SUBTITLE_MENU_CLOSED_MSG = "Isinara ang subtitle menu."
     SUBTITLE_LANGUAGE_SET_MSG = "Nakatakdang wika ng subtitle: {value}"
-    AUDIO_SET_MSG = "Audio set: __VAR_0__"
+    AUDIO_SET_MSG = "Audio set: {value}"
     FILTERS_UPDATED_MSG = "Na-update ang mga filter"
     
     # Always Ask Menu Buttons
@@ -1515,10 +1515,10 @@ Gamitin:
     COOKIES_DOWNLOAD_FAILED_LOG_MSG = "Nabigong i-download ang {service} cookie: status={status} (nakatago ang url)"
     COOKIES_DOWNLOAD_ERROR_LOG_MSG = "Error sa pag-download ng {service} cookie: {error} (nakatago ang url)"
     COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "Hindi inaasahang error habang dina-download ang {service} cookie (nakatago ang url): {error_type}: {error}"
-    COOKIES_FILE_UPDATED_LOG_MSG = "Na-update ang cookie file para sa user na si __VAR_0__."
+    COOKIES_FILE_UPDATED_LOG_MSG = "Na-update ang cookie file para sa user na si {user_id}."
     COOKIES_INVALID_CONTENT_LOG_MSG = "Di-wastong nilalaman ng cookie na ibinigay ng user {user_id}."
     COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "Walang laman ang mga URL ng cookie ng YouTube para sa user na {user_id}."
-    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "Na-download at na-validate ang cookies ng YouTube para sa user na si __VAR_1__ mula sa source {source}."
+    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "Na-download at na-validate ang cookies ng YouTube para sa user na si {source} mula sa source {source}."
     COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "Nabigo ang lahat ng pinagmumulan ng cookie sa YouTube para sa user na {user_id}."
     ADMIN_CHECK_PORN_ERROR_LOG_MSG = "Error sa check_porn command ng admin {admin_id}: {error}"
     SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Ang laki ng hating bahagi ay nakatakda sa {size} byte."
@@ -1674,10 +1674,10 @@ Gamitin:
     KEYBOARD_FAILED_HIDE_MSG = "Nabigong itago ang keyboard: {error}"
     
     # Link command additional messages
-    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Paggamit ng gumaganang cookies sa YouTube para sa pagkuha ng link para sa user na si __VAR_0__"
-    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "Walang gumaganang cookies sa YouTube na available para sa pagkuha ng link para sa user na si __VAR_0__"
-    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Paggamit ng umiiral nang cookies sa YouTube para sa pagkuha ng link para sa user na si __VAR_0__"
-    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Walang nakitang cookies sa YouTube para sa pagkuha ng link para sa user na si __VAR_0__"
+    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Paggamit ng gumaganang cookies sa YouTube para sa pagkuha ng link para sa user na si {user_id}"
+    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "Walang gumaganang cookies sa YouTube na available para sa pagkuha ng link para sa user na si {user_id}"
+    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Paggamit ng umiiral nang cookies sa YouTube para sa pagkuha ng link para sa user na si {user_id}"
+    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Walang nakitang cookies sa YouTube para sa pagkuha ng link para sa user na si {user_id}"
     LINK_COPIED_GLOBAL_COOKIE_FILE_MSG = "Kinopya ang global cookie file sa user {user_id} folder para sa pagkuha ng link"
     
     # MediaInfo command additional messages
@@ -1778,7 +1778,7 @@ Gamitin:
     
     # List command messages
     LIST_CLOSE_BUTTON_MSG = "🔚 Isara"
-    LIST_AVAILABLE_FORMATS_HEADER_MSG = "Mga available na format para sa: __VAR_0__"
+    LIST_AVAILABLE_FORMATS_HEADER_MSG = "Mga available na format para sa: {url}"
     LIST_FORMATS_FILE_NAME_MSG = "formats_{user_id}.txt"
     
     # Other handlers button messages
@@ -1822,7 +1822,7 @@ Gamitin:
     GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "Nilaktawan ang seksyong hindi dict na config: {section}={opts}"
     GALLERY_DL_SETTING_CONFIG_MSG = "Nakatakda ang {section}.{key} = {value}"
     GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] Gumagamit ng cookies ng user: {cookie_path}"
-    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Paggamit ng cookies sa YouTube para sa user na si __VAR_0__"
+    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Paggamit ng cookies sa YouTube para sa user na si {user_id}"
     GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG = "Kinopya ang pandaigdigang file ng cookie sa folder na {user_id} ng user"
     GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG = "[gallery-dl] Gumagamit ng kinopyang pandaigdigang cookies bilang cookies ng user: {cookie_path}"
     GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG = "Nabigong kopyahin ang pandaigdigang cookie file para sa user na {user_id}: {error}"
@@ -1891,7 +1891,7 @@ Gamitin:
     YTDLP_USING_NO_COOKIES_FOR_DOMAIN_MSG = "Gumagamit ng --no-cookies para sa domain sa get_video_formats: {url}"
     
     # App instance messages
-    APP_INSTANCE_NOT_INITIALIZED_MSG = "Hindi pa nasimulan ang app. Hindi ma-access ang __VAR_0__"
+    APP_INSTANCE_NOT_INITIALIZED_MSG = "Hindi pa nasimulan ang app. Hindi ma-access ang {name}"
     
     # Caption messages
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Caption:</b> <code>{caption}</code>\n<b>ID ng user:</b> <code>{user_id}</code>\n<b>Unang pangalan ng user:</b> <code>{users_name}</code>\n<b>ID ng file ng video:</b> <code>{video_file_id}</code>"
@@ -1923,10 +1923,10 @@ Gamitin:
     DB_AUTO_CACHE_INTERVAL_UPDATED_MSG = "⏱️ Auto Firebase cache interval updated!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
     DB_AUTO_CACHE_RELOADING_STARTED_MSG = "🔄 Auto Firebase cache reloading started!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
     DB_AUTO_CACHE_RELOADING_STOPPED_BY_ADMIN_MSG = "🛑 Auto Firebase cache reloading stopped!\n\n📊 Status: ❌ DISABLED\n💡 Use /auto_cache on to re-enable"
-    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "Naka-enable ang auto reload; susunod sa __VAR_0__"
+    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "Naka-enable ang auto reload; susunod sa {next_exec}"
     DB_AUTO_CACHE_RELOAD_DISABLED_LOG_MSG = "Na-disable ng admin ang auto reload."
-    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "Itinakda sa {interval}h; susunod sa __VAR_0__"
-    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "Nagsimula ang auto reload; susunod sa __VAR_0__"
+    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "Itinakda sa {interval}h; susunod sa {interval}"
+    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "Nagsimula ang auto reload; susunod sa {next_exec}"
     DB_AUTO_CACHE_RELOAD_STOPPED_LOG_MSG = "Itinigil ng admin ang auto reload."
     
     # Database cache messages (console output)
@@ -2028,7 +2028,7 @@ Gamitin:
     URL_EXTRACTOR_VID_HELP_EXAMPLES_MSG = "Mga halimbawa:"
     URL_EXTRACTOR_VID_HELP_EXAMPLE_1_MSG = "• <code>/vid 3-7 https://youtube.com/playlist?list=123abc</code> (direktang pagkakasunod-sunod)\n• <code>/vid -3-7 https://youtube.com/playlist?list=123abc</code> (baligtad na pagkakasunod-sunod)"
     URL_EXTRACTOR_VID_HELP_ALSO_SEE_MSG = "Tingnan din: /audio, /img, /help, /playlist, /settings"
-    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "Isinara ng user na __VAR_0__ ang add_bot_to_group na utos"
+    URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG = "Isinara ng user na {user_id} ang add_bot_to_group na utos"
 
     # YouTube messages
     YOUTUBE_FAILED_EXTRACT_ID_MSG = "Nabigong i-extract ang YouTube ID"
