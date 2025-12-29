@@ -6,10 +6,19 @@ from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.logger import logger
 
+def _is_youtube_domain(hostname: str) -> bool:
+    """Безопасная проверка YouTube домена"""
+    if not hostname:
+        return False
+    hostname_lower = hostname.lower()
+    return hostname_lower in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+           hostname_lower.endswith('.youtube.com') or hostname_lower.endswith('.youtu.be')
+
 def youtube_to_short_url(url: str) -> str:
     """Converts youtube.com/watch?v=... to youtu.be/... while preserving query parameters."""
     parsed = urlparse(url)
-    if 'youtube.com' in parsed.netloc and parsed.path == '/watch':
+    netloc_lower = (parsed.netloc or '').lower()
+    if _is_youtube_domain(netloc_lower) and parsed.path == '/watch':
         qs = parse_qs(parsed.query)
         v = qs.get('v', [None])[0]
         if v:
@@ -20,7 +29,7 @@ def youtube_to_short_url(url: str) -> str:
             if query_str:
                 return f'{base}?{query_str}'
             return base
-    elif 'youtube.com' in parsed.netloc and parsed.path.startswith('/shorts/'):
+    elif _is_youtube_domain(netloc_lower) and parsed.path.startswith('/shorts/'):
         # For YouTube Shorts, convert to youtu.be format
         video_id = parsed.path.split('/')[2]  # /shorts/VIDEO_ID
         if video_id:
@@ -31,7 +40,8 @@ def youtube_to_short_url(url: str) -> str:
 def youtube_to_long_url(url: str) -> str:
     """Converts youtu.be/... to youtube.com/watch?v=... while preserving query parameters."""
     parsed = urlparse(url)
-    if 'youtu.be' in parsed.netloc:
+    netloc_lower = (parsed.netloc or '').lower()
+    if _is_youtube_domain(netloc_lower) and (netloc_lower == 'youtu.be' or netloc_lower.endswith('.youtu.be')):
         video_id = parsed.path.lstrip('/')
         if video_id:
             qs = parsed.query
@@ -39,7 +49,7 @@ def youtube_to_long_url(url: str) -> str:
             if qs:
                 return f'{base}&{qs}'
             return base
-    elif 'youtube.com' in parsed.netloc and parsed.path.startswith('/shorts/'):
+    elif _is_youtube_domain(netloc_lower) and parsed.path.startswith('/shorts/'):
         # For YouTube Shorts, convert to watch format
         video_id = parsed.path.split('/')[2]  # /shorts/VIDEO_ID
         if video_id:
@@ -49,7 +59,8 @@ def youtube_to_long_url(url: str) -> str:
 
 def is_youtube_url(url: str) -> bool:
     parsed = urlparse(url)
-    return 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc
+    netloc_lower = (parsed.netloc or '').lower()
+    return _is_youtube_domain(netloc_lower)
 
 
 def extract_youtube_id(url: str, user_id=None) -> str:
@@ -102,11 +113,12 @@ def youtube_to_piped_url(url: str) -> str:
         path = parsed.path
         query = parsed.query
         # 1) короткая форма youtu.be/ID
-        if 'youtu.be' in domain:
+        domain_lower = domain.lower()
+        if _is_youtube_domain(domain_lower) and (domain_lower == 'youtu.be' or domain_lower.endswith('.youtu.be')):
             video_id = path.lstrip('/')
             return f"https://{Config.PIPED_DOMAIN}/api/video/download?v={video_id}&q=18"
         # 2) полная форма
-        if 'youtube.com' in domain:
+        if _is_youtube_domain(domain_lower):
             # shorts -> watch
             if path.startswith('/shorts/'):
                 parts = path.split('/')

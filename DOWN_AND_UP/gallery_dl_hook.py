@@ -170,7 +170,18 @@ def _prepare_user_cookies_and_proxy(url: str, user_id, use_proxy: bool, config: 
 
     # Add Instagram-specific headers to prevent "useragent mismatch" error
     # Only if user hasn't set custom User-Agent
-    if "instagram.com" in url.lower():
+    # Безопасная проверка домена через urlparse
+    is_instagram = False
+    try:
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        instagram_hostname = (parsed_url.hostname or '').lower()
+        is_instagram = instagram_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
+                      instagram_hostname.endswith('.instagram.com') or instagram_hostname.endswith('.instagr.am')
+    except Exception:
+        pass
+    
+    if is_instagram:
         # Check if user has set custom User-Agent
         user_has_custom_ua = (
             'extractor' in config and 
@@ -521,17 +532,29 @@ def download_image(url: str, user_id=None, use_proxy: bool = False, output_dir: 
                                     ])
                                     
                                     # Также пробуем с gallery-dl структурой каталогов
-                                    if 'twitter' in url.lower() or 'x.com' in url.lower():
+                                    # Безопасная проверка доменов через urlparse
+                                    try:
+                                        from urllib.parse import urlparse
+                                        parsed_url = urlparse(url)
+                                        url_hostname = (parsed_url.hostname or '').lower()
+                                        is_twitter = url_hostname in ('twitter.com', 'www.twitter.com', 'x.com', 'www.x.com') or \
+                                                   url_hostname.endswith('.twitter.com') or url_hostname.endswith('.x.com')
+                                        is_vk = url_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or url_hostname.endswith('.vk.com')
+                                        is_2ch = url_hostname in ('2ch.hk', 'www.2ch.hk') or url_hostname.endswith('.2ch.hk') or '2ch' in url_hostname
+                                    except Exception:
+                                        is_twitter = is_vk = is_2ch = False
+                                    
+                                    if is_twitter:
                                         possible_paths.extend([
                                             f"gallery-dl/twitter/{full_filename}",
                                             f"gallery-dl/twitter/{metadata.get('author', {}).get('nick', 'unknown')}/{full_filename}"
                                         ])
-                                    elif 'vk.com' in url.lower():
+                                    elif is_vk:
                                         possible_paths.extend([
                                             f"gallery-dl/vk/{full_filename}",
                                             f"gallery-dl/vk/{metadata.get('user', {}).get('id', 'unknown')}/wall/{full_filename}"
                                         ])
-                                    elif '2ch.hk' in url.lower() or '2ch' in url.lower():
+                                    elif is_2ch:
                                         possible_paths.extend([
                                             f"gallery-dl/2ch/{full_filename}",
                                             f"gallery-dl/2ch/b/{metadata.get('thread', {}).get('id', 'unknown')}/{full_filename}"
@@ -614,12 +637,33 @@ def get_total_media_count(url: str, user_id=None, use_proxy: bool = False) -> in
             cfg_path = f.name
         try:
             # For VK specifically, --simulate is notoriously slow; jump straight to --get-urls
-            if 'vk.com' in url.lower():
+            # Безопасная проверка домена через urlparse
+            is_vk_url = False
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                vk_hostname = (parsed_url.hostname or '').lower()
+                is_vk_url = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+            except Exception:
+                pass
+            
+            if is_vk_url:
                 logger.info("VK domain detected, skipping --simulate and using --get-urls directly")
                 return _get_total_media_count_fallback(url, user_id, use_proxy, cfg_path)
             
             # For Instagram, use special method with Instagram-specific config
-            if 'instagram.com' in url.lower():
+            # Безопасная проверка домена через urlparse
+            is_instagram_url = False
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                instagram_hostname = (parsed_url.hostname or '').lower()
+                is_instagram_url = instagram_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
+                                  instagram_hostname.endswith('.instagram.com') or instagram_hostname.endswith('.instagr.am')
+            except Exception:
+                pass
+            
+            if is_instagram_url:
                 # Check if Instagram should skip simulation (from GALLERYDL_FALLBACK_DOMAINS)
                 from CONFIG.domains import DomainsConfig
                 if 'instagram.com' in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS:
@@ -667,7 +711,18 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
     """Fallback method using --get-urls for sites that don't work with --simulate"""
     try:
         # Special handling for Instagram - use different approach
-        if 'instagram.com' in url.lower():
+        # Безопасная проверка домена через urlparse
+        is_instagram_url = False
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            instagram_hostname = (parsed_url.hostname or '').lower()
+            is_instagram_url = instagram_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
+                              instagram_hostname.endswith('.instagram.com') or instagram_hostname.endswith('.instagr.am')
+        except Exception:
+            pass
+        
+        if is_instagram_url:
             # Check if Instagram should skip simulation (from GALLERYDL_FALLBACK_DOMAINS)
             from CONFIG.domains import DomainsConfig
             if 'instagram.com' in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS:
@@ -680,7 +735,17 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
         cmd = _add_cookies_to_cmd(cmd, url, user_id)
         logger.info(f"Fallback counting via --get-urls: {' '.join(cmd)}")
         # VK альбомы могут быть большими – увеличим таймаут для VK
-        timeout_sec = 30 if 'vk.com' in url.lower() else 15
+        # Безопасная проверка домена через urlparse
+        is_vk_url = False
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            vk_hostname = (parsed_url.hostname or '').lower()
+            is_vk_url = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+        except Exception:
+            pass
+        
+        timeout_sec = 30 if is_vk_url else 15
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
         except subprocess.TimeoutExpired:
@@ -690,7 +755,17 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
             lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
             logger.info(f"Fallback detected {len(lines)} media items")
             # Add warning for VK about video limitation
-            if 'vk.com' in url.lower():
+            # Безопасная проверка домена через urlparse
+            is_vk_url_warning = False
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                vk_hostname = (parsed_url.hostname or '').lower()
+                is_vk_url_warning = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+            except Exception:
+                pass
+            
+            if is_vk_url_warning:
                 logger.warning("Note: Gallery-dl only supports images from VK, not videos")
             return len(lines)
         else:

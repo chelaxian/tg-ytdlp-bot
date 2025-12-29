@@ -792,8 +792,16 @@ def checking_cookie_file(app, message):
                     if not parts:
                         continue
                     domain = parts[0].lower()
-                    if 'youtube.com' in domain:
-                        return True
+                    # Безопасная проверка домена через urlparse
+                    try:
+                        from urllib.parse import urlparse
+                        parsed_domain = urlparse(f"https://{domain}")
+                        domain_hostname = (parsed_domain.hostname or '').lower()
+                        if domain_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                           domain_hostname.endswith('.youtube.com') or domain_hostname.endswith('.youtu.be'):
+                            return True
+                    except Exception:
+                        pass
                 return False
             if _has_youtube_domain(cookie_content):
                 if test_youtube_cookies(file_path, user_id=user_id):
@@ -2217,17 +2225,29 @@ def try_download_with_cookie_fallback(user_id: int, url: str, download_func, *ar
         return retry_download_with_different_cookies(user_id, url, download_func, *args, **kwargs)
     
     # Определяем сервис по домену
+    # Безопасная проверка доменов через urlparse
     service_name = None
-    if 'instagram.com' in url or 'instagr.am' in url:
-        service_name = 'instagram'
-    elif 'twitter.com' in url or 'x.com' in url:
-        service_name = 'twitter'
-    elif 'tiktok.com' in url:
-        service_name = 'tiktok'
-    elif 'vk.com' in url:
-        service_name = 'vk'
-    elif 'facebook.com' in url or 'fb.com' in url:
-        service_name = 'facebook'
+    try:
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        url_hostname = (parsed_url.hostname or '').lower()
+        
+        if url_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
+           url_hostname.endswith('.instagram.com') or url_hostname.endswith('.instagr.am'):
+            service_name = 'instagram'
+        elif url_hostname in ('twitter.com', 'www.twitter.com', 'x.com', 'www.x.com') or \
+             url_hostname.endswith('.twitter.com') or url_hostname.endswith('.x.com'):
+            service_name = 'twitter'
+        elif url_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+             url_hostname.endswith('.tiktok.com'):
+            service_name = 'tiktok'
+        elif url_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or url_hostname.endswith('.vk.com'):
+            service_name = 'vk'
+        elif url_hostname in ('facebook.com', 'www.facebook.com', 'fb.com', 'www.fb.com') or \
+             url_hostname.endswith('.facebook.com') or url_hostname.endswith('.fb.com'):
+            service_name = 'facebook'
+    except Exception:
+        pass
     
     logger.info(f"Trying cookie fallback for non-YouTube URL: {url}, service: {service_name}")
     
@@ -2573,18 +2593,28 @@ def get_service_name_from_url(url: str) -> str | None:
     Returns:
         str | None: Название сервиса или None
     """
-    url_lower = url.lower()
-    
-    if 'instagram.com' in url_lower:
-        return 'instagram'
-    elif 'tiktok.com' in url_lower:
-        return 'tiktok'
-    elif 'twitter.com' in url_lower or 'x.com' in url_lower:
-        return 'twitter'
-    elif 'vk.com' in url_lower:
-        return 'vk'
-    elif 'facebook.com' in url_lower:
-        return 'facebook'
+    # Безопасная проверка доменов через urlparse
+    try:
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        url_hostname = (parsed_url.hostname or '').lower()
+        
+        if url_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
+           url_hostname.endswith('.instagram.com') or url_hostname.endswith('.instagr.am'):
+            return 'instagram'
+        elif url_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+             url_hostname.endswith('.tiktok.com'):
+            return 'tiktok'
+        elif url_hostname in ('twitter.com', 'www.twitter.com', 'x.com', 'www.x.com') or \
+             url_hostname.endswith('.twitter.com') or url_hostname.endswith('.x.com'):
+            return 'twitter'
+        elif url_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or url_hostname.endswith('.vk.com'):
+            return 'vk'
+        elif url_hostname in ('facebook.com', 'www.facebook.com', 'fb.com', 'www.fb.com') or \
+             url_hostname.endswith('.facebook.com') or url_hostname.endswith('.fb.com'):
+            return 'facebook'
+    except Exception:
+        pass
     
     return None
 

@@ -390,11 +390,25 @@ def check_playlist_range_limits(url, video_start_with, video_end_with, app, mess
     if not should_apply_limits_to_admin(user_id=user_id, message=message):
         return True  # Для админов с отключенными ограничениями всегда разрешаем
 
+    # Безопасная проверка доменов через urlparse
+    is_tiktok_url = False
+    is_instagram_url = False
+    try:
+        from urllib.parse import urlparse
+        parsed_url = urlparse(str(url) if url else '')
+        url_hostname = (parsed_url.hostname or '').lower()
+        is_tiktok_url = url_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+                       url_hostname.endswith('.tiktok.com')
+        is_instagram_url = url_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
+                          url_hostname.endswith('.instagram.com') or url_hostname.endswith('.instagr.am')
+    except Exception:
+        pass
+    
     url_l = str(url).lower() if url else ''
-    if 'tiktok.com' in url_l:
+    if is_tiktok_url:
         max_count = Config.MAX_TIKTOK_COUNT
         service = 'TikTok'
-    elif 'instagram.com' in url_l:
+    elif is_instagram_url:
         max_count = Config.MAX_TIKTOK_COUNT
         service = 'Instagram'
     else:
@@ -424,9 +438,9 @@ def check_playlist_range_limits(url, video_start_with, video_end_with, app, mess
     
     if count is not None and count > max_count:
         # Determine command type based on URL
-        if 'tiktok.com' in url_l:
+        if is_tiktok_url:
             command_type = safe_get_messages(user_id).HELPER_COMMAND_TYPE_TIKTOK_MSG
-        elif 'instagram.com' in url_l:
+        elif is_instagram_url:
             command_type = safe_get_messages(user_id).HELPER_COMMAND_TYPE_INSTAGRAM_MSG
         else:
             command_type = safe_get_messages(user_id).HELPER_COMMAND_TYPE_PLAYLIST_MSG

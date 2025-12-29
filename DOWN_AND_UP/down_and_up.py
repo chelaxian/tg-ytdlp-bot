@@ -2702,7 +2702,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             thumb_source_url = video_page_url or url
             
             # Try to download YouTube thumbnail first
-            if ("youtube.com" in thumb_source_url or "youtu.be" in thumb_source_url):
+            # Безопасная проверка домена через urlparse
+            try:
+                from urllib.parse import urlparse
+                parsed_thumb_url = urlparse(thumb_source_url)
+                thumb_hostname = (parsed_thumb_url.hostname or '').lower()
+                is_youtube = thumb_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                            thumb_hostname.endswith('.youtube.com') or thumb_hostname.endswith('.youtu.be')
+            except Exception:
+                is_youtube = False
+            
+            if is_youtube:
                 try:
                     yt_id = video_id or None
                     if not yt_id:

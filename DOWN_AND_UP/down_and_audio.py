@@ -1518,7 +1518,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         try:
             logger.info(f"Downloading thumbnail for URL: {url}")
             # Try to download YouTube thumbnail first
-            if ("youtube.com" in url or "youtu.be" in url):
+            # Безопасная проверка домена через urlparse
+            is_youtube = False
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                url_hostname = (parsed_url.hostname or '').lower()
+                is_youtube = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
+                            url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
+            except Exception:
+                pass
+            
+            if is_youtube:
                 try:
                     # Extract YouTube video ID
                     import re
