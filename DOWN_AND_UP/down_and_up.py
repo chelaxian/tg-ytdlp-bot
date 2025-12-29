@@ -1081,13 +1081,37 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Для обычных случаев (включая отрицательные индексы, уже преобразованные в положительные)
                 playlist_items_str = str(current_index)
             
+            # Get user's custom yt-dlp arguments first to check thumbnail settings
+            from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options
+            user_args = get_user_ytdlp_args(user_id, url)
+            
+            # Check if user wants to embed thumbnail (default is True)
+            embed_thumbnail = user_args.get('embed_thumbnail', True)  # Default True
+            write_thumbnail = user_args.get('writethumbnail', True)  # Default True
+            
+            # Warn if embed_thumbnail is enabled but write_thumbnail is not
+            if embed_thumbnail and not write_thumbnail:
+                logger.info(f"User {user_id} enabled embed_thumbnail but not write_thumbnail. EmbedThumbnail will try to use metadata thumbnails if available.")
+            
+            # Build postprocessors list based on user settings
+            postprocessors = [{'key': 'FFmpegMetadata'}]
+            if embed_thumbnail:
+                # Add EmbedThumbnail (enabled by default)
+                # Note: EmbedThumbnail will work even without write_thumbnail if thumbnail is available in metadata
+                # Errors during embedding will be handled gracefully and won't stop download
+                postprocessors.insert(0, {'key': 'EmbedThumbnail'})
+                logger.info(f"User {user_id} embed_thumbnail={embed_thumbnail}, adding EmbedThumbnail postprocessor")
+            
+            # Check if user wants to ignore errors (default is False)
+            # Note: ignore_errors is converted to ignoreerrors in get_user_ytdlp_args
+            ignore_errors = user_args.get('ignoreerrors', False) if user_args else False
+            
             common_opts = {
                 'playlist_items': playlist_items_str,
                 'outtmpl': original_outtmpl,
-                'postprocessors': [
-                    {'key': 'EmbedThumbnail'},
-                    {'key': 'FFmpegMetadata'}
-                ],
+                'postprocessors': postprocessors,
+                # Only use ignoreerrors if user explicitly enabled it via /args
+                'ignoreerrors': ignore_errors,
                 # Allow Unicode characters in filenames
                 'restrictfilenames': False,
                 'extractor_args': {
@@ -1096,7 +1120,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 },
                 'referer': url,
                 'geo_bypass': True,
-                'check_certificate': False,
+                # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
                 'live_from_start': True if not did_live_from_start_retry else False
                 #'socket_timeout': 60,  # Increase socket timeout
                 #'retries': 15,  # Increase retries
@@ -1141,11 +1165,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             
             common_opts['match_filter'] = sanitize_and_filter
             
-            # Add user's custom yt-dlp arguments
-            from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options
-            user_args = get_user_ytdlp_args(user_id, url)
+            # Add user's custom yt-dlp arguments (after postprocessors are set)
             if user_args:
-                common_opts.update(user_args)
+                # Remove embed_thumbnail from user_args as it's already handled via postprocessors
+                user_args_copy = user_args.copy()
+                user_args_copy.pop('embed_thumbnail', None)
+                # ignoreerrors is already set above based on user's ignore_errors setting
+                user_args_copy.pop('ignoreerrors', None)
+                common_opts.update(user_args_copy)
             
             # Configure subtitle options based on user settings
             if need_subs and is_youtube_url(url):
@@ -1578,6 +1605,43 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Check for postprocessing errors (including conversion failures for m3u8 streams)
                 if "Postprocessing" in error_message:
+                    # Check for thumbnail-related postprocessor errors (non-critical, don't stop download)
+                    error_lower = error_message.lower()
+                    thumbnail_errors = [
+                        "embedthumbnail",
+                        "embed_thumbnail", 
+                        "writethumbnail",
+                        "write_thumbnail",
+                        "thumbnail",
+                        "cover",
+                        "artwork"
+                    ]
+                    
+                    # If error is related to thumbnail postprocessing, log and continue
+                    if any(thumb_error in error_lower for thumb_error in thumbnail_errors):
+                        logger.warning(f"Thumbnail postprocessor error (non-critical, continuing): {error_message}")
+                        # Check if file was actually downloaded (info_dict exists)
+                        if info_dict:
+                            logger.info("Video file downloaded successfully, continuing despite thumbnail error")
+                            return info_dict
+                        # If no info_dict, check if file exists on disk anyway
+                        # Postprocessors run after download, so file should exist even if info_dict is missing
+                        try:
+                            # Try to find downloaded file in user directory
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                # Look for video files (common extensions)
+                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
+                                if video_files:
+                                    logger.info(f"Found video file(s) despite thumbnail error: {video_files[0]}, continuing")
+                                    # Return None to let the code find the file later
+                                    return None
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for files: {check_e}")
+                        # If we can't verify file exists, log warning but don't stop - let normal error handling proceed
+                        logger.warning("Thumbnail error detected but cannot verify file existence - letting normal error handling proceed")
+                        # Don't return here - let it fall through to normal error handling
+                    
                     # Check for conversion failed errors (common with m3u8 streams)
                     if "Conversion failed" in error_message:
                         postprocessing_message = (

@@ -541,7 +541,7 @@ class Messages(object):
     SUBS_ERROR_MSG = "❌ Помилка завантаження субтитрів: {error}"
     
     # Split command messages
-    SPLIT_SIZE_SET_MSG = "✅ Розмір розділеної частини встановлено на: __VAR_0__"
+    SPLIT_SIZE_SET_MSG = "✅ Розмір розділеної частини встановлено на: {size}"
     SPLIT_INVALID_SIZE_MSG = (
         "❌ **Недійсний розмір!**\n\n"
         "**Дійсний діапазон:** 100MB до 2GB\n\n"
@@ -780,7 +780,7 @@ class Messages(object):
     CHANNEL_GUARD_PENDING_EMPTY_MSG = "🛡️ Черга порожня — з каналу ще ніхто не вийшов."
     CHANNEL_GUARD_PENDING_HEADER_MSG = "🛡️ <b>Черга банів</b>\nВсього очікує: {total}"
     CHANNEL_GUARD_PENDING_ROW_MSG = "• <code>{user_id}</code> — {name} @{username} (зліва: {last_left})"
-    CHANNEL_GUARD_PENDING_MORE_MSG = "… і ще __VAR_0__ користувачів."
+    CHANNEL_GUARD_PENDING_MORE_MSG = "… і ще {extra} користувачів."
     CHANNEL_GUARD_PENDING_FOOTER_MSG = "Використовуйте /block_user show • all • auto • 10s"
     CHANNEL_GUARD_BLOCKED_ALL_MSG = "✅ Заблоковані користувачі з черги: {count}"
     CHANNEL_GUARD_AUTO_ENABLED_MSG = "⚙️ Автоматичне блокування ввімкнено: нові користувачі будуть негайно забанені."
@@ -793,7 +793,7 @@ class Messages(object):
     CHANNEL_GUARD_NO_ACCESS_MSG = "❌ Немає доступу до журналу активності каналу. Боти не можуть читати журнали адміністратора. Надайте CHANNEL_GUARD_SESSION_STRING у конфігурації з сеансом користувача, щоб увімкнути цю функцію."
     BAN_TIME_USAGE_MSG = "❌ Використання: {command} <10s|6m|5h|4d|3w|2M|1y>"
     BAN_TIME_INTERVAL_INVALID_MSG = "❌ Використовуйте такі формати, як 10s, 6m, 5h, 4d, 3w, 2M або 1y."
-    BAN_TIME_SET_MSG = "🕒 Інтервал сканування журналу каналу встановлено на __VAR_0__."
+    BAN_TIME_SET_MSG = "🕒 Інтервал сканування журналу каналу встановлено на {interval}."
     BAN_TIME_REPORT_MSG = (
         "🛡️ Channel scan report\n"
         "Run at: {run_ts}\n"
@@ -975,7 +975,7 @@ class Messages(object):
     COOKIES_INVALID_COOKIE_MSG = "❌ Файл не схожий на cookie.txt (немає рядка «# Netscape HTTP Cookie File»)."
     COOKIES_ERROR_READING_MSG = "❌ Помилка читання файлу: {error}"
     COOKIES_FILE_EXISTS_MSG = "✅ Файл cookie існує та має правильний формат"
-    COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {service} файл cookie завеликий! Макс. 100 КБ, отримано __VAR_0__ КБ."
+    COOKIES_FILE_TOO_LARGE_DOWNLOAD_MSG = "❌ {service} файл cookie завеликий! Макс. 100 КБ, отримано {service} КБ."
     COOKIES_FILE_DOWNLOADED_MSG = "<b>✅ {service} файл cookie завантажено та збережено як cookie.txt у вашій папці.</b>"
     COOKIES_SOURCE_UNAVAILABLE_MSG = "❌ {service} cookie source is unavailable (status {status}). Please try again later."
     COOKIES_ERROR_DOWNLOADING_MSG = "❌ Помилка завантаження {service} файлу cookie. Спробуйте пізніше."
@@ -1084,7 +1084,7 @@ class Messages(object):
     LINK_ERROR_GETTING_MSG = "❌ <b>Error getting link:</b>\n{error_msg}"
     
     # Additional cookies command messages (more)
-    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Недійсний індекс файлів cookie YouTube: {selected_index}. Доступний діапазон 1-__VAR_0__"
+    COOKIES_INVALID_YOUTUBE_INDEX_MSG = "❌ Недійсний індекс файлів cookie YouTube: {selected_index}. Доступний діапазон 1-{selected_index}"
     COOKIES_DOWNLOADING_CHECKING_MSG = "🔄 Downloading and checking YouTube cookies...\n\nAttempt {attempt} of {total}"
     COOKIES_DOWNLOADING_TESTING_MSG = "🔄 Downloading and checking YouTube cookies...\n\nAttempt {attempt} of {total}\n🔍 Testing cookies..."
     COOKIES_SUCCESS_VALIDATED_MSG = "✅ YouTube cookies successfully downloaded and validated!\n\nUsed source {source} of {total}"
@@ -1133,14 +1133,14 @@ class Messages(object):
     SUBS_AUTO_MODE_TOGGLE_MSG = "✅ Режим автопідписів {status}"
     
     # Subtitles log messages
-    SUBS_DISABLED_LOG_MSG = "SUBS вимкнено за допомогою команди: __VAR_0__"
+    SUBS_DISABLED_LOG_MSG = "SUBS вимкнено за допомогою команди: {arg}"
     SUBS_ALWAYS_ASK_ENABLED_LOG_MSG = "SUBS Always Ask увімкнено за допомогою команди: {arg}"
-    SUBS_LANGUAGE_SET_LOG_MSG = "Мова SUBS, встановлена за допомогою команди: __VAR_0__"
+    SUBS_LANGUAGE_SET_LOG_MSG = "Мова SUBS, встановлена за допомогою команди: {arg}"
     SUBS_LANGUAGE_AUTO_SET_LOG_MSG = "Мова SUBS + автоматичний режим, встановлений командою: {arg} auto"
     SUBS_MENU_OPENED_LOG_MSG = "Користувач відкрив меню /subs."
     SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG = "Користувач встановив мову субтитрів: {lang_code}"
-    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "Користувач перемкнув режим AUTO/TRANS на: __VAR_0__"
-    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Користувач перемкнув режим «Завжди запитувати» на: __VAR_0__"
+    SUBS_AUTO_MODE_TOGGLED_LOG_MSG = "Користувач перемкнув режим AUTO/TRANS на: {new_auto}"
+    SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG = "Користувач перемкнув режим «Завжди запитувати» на: {new_always_ask}"
     
     # Cookies log messages
     COOKIES_BROWSER_REQUESTED_LOG_MSG = "Користувач запросив файли cookie з браузера."
@@ -1150,8 +1150,8 @@ class Messages(object):
     COOKIES_FALLBACK_FAILED_LOG_MSG = "Помилка резервної URL-адреси COOKIE_URL: status={status} (приховано)"
     COOKIES_FALLBACK_UNEXPECTED_ERROR_LOG_MSG = "Неочікувана помилка резервного COOKIE_URL: {error_type}: {error}"
     COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG = "Браузер {browser} не встановлено."
-    COOKIES_SAVED_BROWSER_LOG_MSG = "Файли cookie, збережені за допомогою браузера: __VAR_0__"
-    COOKIES_FILE_SAVED_USER_LOG_MSG = "Файл cookie збережено для користувача __VAR_0__."
+    COOKIES_SAVED_BROWSER_LOG_MSG = "Файли cookie, збережені за допомогою браузера: {browser}"
+    COOKIES_FILE_SAVED_USER_LOG_MSG = "Файл cookie збережено для користувача {user_id}."
     COOKIES_FILE_WORKING_LOG_MSG = "Файл cookie існує, має правильний формат, а файли cookie YouTube працюють."
     COOKIES_FILE_EXPIRED_LOG_MSG = "Файл cookie існує та має правильний формат, але термін дії файлів cookie YouTube минув."
     COOKIES_FILE_CORRECT_FORMAT_LOG_MSG = "Файл cookie існує та має правильний формат."
@@ -1201,16 +1201,16 @@ class Messages(object):
     FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG = "Custom format menu closed"
     
     # Link log messages
-    LINK_EXTRACTED_LOG_MSG = "Пряме посилання для користувача __VAR_1__ отримано з {url}"
+    LINK_EXTRACTED_LOG_MSG = "Пряме посилання для користувача {url} отримано з {url}"
     LINK_EXTRACTION_FAILED_LOG_MSG = "Не вдалося отримати пряме посилання для користувача {user_id} з {url}: {error}"
-    LINK_COMMAND_ERROR_LOG_MSG = "Помилка в команді посилання для користувача __VAR_1__: {error}"
+    LINK_COMMAND_ERROR_LOG_MSG = "Помилка в команді посилання для користувача {error}: {error}"
     
     # Keyboard log messages
     KEYBOARD_SET_LOG_MSG = "Користувач {user_id} встановив клавіатуру на {setting}"
     KEYBOARD_SET_CALLBACK_LOG_MSG = "Користувач {user_id} встановив клавіатуру на {setting}"
     
     # MediaInfo log messages
-    MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo встановлюється за допомогою команди: __VAR_0__"
+    MEDIAINFO_SET_COMMAND_LOG_MSG = "MediaInfo встановлюється за допомогою команди: {arg}"
     MEDIAINFO_MENU_OPENED_LOG_MSG = "Користувач відкрив меню /mediainfo."
     MEDIAINFO_MENU_CLOSED_LOG_MSG = "MediaInfo: закрито."
     MEDIAINFO_ENABLED_LOG_MSG = "MediaInfo увімкнено."
@@ -1238,11 +1238,11 @@ class Messages(object):
     
     # Down and Up log messages
     DIRECT_LINK_MENU_CREATED_LOG_MSG = "Меню прямого посилання, створене за допомогою кнопки LINK для користувача {user_id} з {url}"
-    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Не вдалося отримати пряме посилання за допомогою кнопки LINK для користувача __VAR_2__ з {url}: {error}"
+    DIRECT_LINK_EXTRACTION_FAILED_LOG_MSG = "Не вдалося отримати пряме посилання за допомогою кнопки LINK для користувача {error} з {url}: {error}"
     LIST_COMMAND_EXECUTED_LOG_MSG = "Команда LIST виконана для користувача {user_id}, url: {url}"
     QUICK_EMBED_LOG_MSG = "Швидке вставлення: {embed_url}"
     ALWAYS_ASK_MENU_SENT_LOG_MSG = "Меню \"Завжди запитувати\" надіслано для {url}"
-    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Створено меню кешованих якостей для користувача __VAR_1__ після помилки: {error}"
+    CACHED_QUALITIES_MENU_CREATED_LOG_MSG = "Створено меню кешованих якостей для користувача {error} після помилки: {error}"
     ALWAYS_ASK_MENU_ERROR_LOG_MSG = "Помилка меню «Завжди запитувати» для {url}: {error}"
     ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG = "Формат фіксується за допомогою параметрів /args"
     ALWAYS_ASK_AUDIO_TYPE_MSG = "Аудіо"
@@ -1383,12 +1383,12 @@ class Messages(object):
     ALWAYS_ASK_VIDEO_STREAM_MSG = "🎬 <b>Відеопотік:</b>"
     ALWAYS_ASK_AUDIO_STREAM_MSG = "🎵 <b>Аудіопотік:</b>"
     ALWAYS_ASK_FAILED_TO_GET_STREAM_LINKS_MSG = "❌ Не вдалося отримати посилання на потік"
-    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Пряме посилання, отримане через меню «Завжди запитувати» для користувача __VAR_1__ з {url}"
-    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Не вдалося отримати пряме посилання через меню «Завжди запитувати» для користувача __VAR_2__ з {url}: {error}"
-    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Пряме посилання, отримане через down_and_up_with_format для користувача __VAR_1__ з {url}"
-    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Не вдалося отримати пряме посилання через down_and_up_with_format для користувача __VAR_2__ з {url}: {error}"
-    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Пряме посилання, отримане через down_and_audio для користувача __VAR_1__ з {url}"
-    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Не вдалося отримати пряме посилання через down_and_audio для користувача __VAR_2__ з {url}: {error}"
+    DIRECT_LINK_EXTRACTED_ALWAYS_ASK_LOG_MSG = "Пряме посилання, отримане через меню «Завжди запитувати» для користувача {url} з {url}"
+    DIRECT_LINK_FAILED_ALWAYS_ASK_LOG_MSG = "Не вдалося отримати пряме посилання через меню «Завжди запитувати» для користувача {error} з {url}: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_UP_LOG_MSG = "Пряме посилання, отримане через down_and_up_with_format для користувача {url} з {url}"
+    DIRECT_LINK_FAILED_DOWN_UP_LOG_MSG = "Не вдалося отримати пряме посилання через down_and_up_with_format для користувача {error} з {url}: {error}"
+    DIRECT_LINK_EXTRACTED_DOWN_AUDIO_LOG_MSG = "Пряме посилання, отримане через down_and_audio для користувача {url} з {url}"
+    DIRECT_LINK_FAILED_DOWN_AUDIO_LOG_MSG = "Не вдалося отримати пряме посилання через down_and_audio для користувача {error} з {url}: {error}"
     
     # Audio processing messages
     AUDIO_SENT_FROM_CACHE_MSG = "✅ Аудіо надіслано з кешу."
@@ -1450,12 +1450,12 @@ class Messages(object):
     LIVE_STREAM_DETECTED_MSG = "🚫 **Виявлено пряму трансляцію**\n\nЗавантаження поточних або нескінченних прямих трансляцій заборонено.\n\nБудь ласка, зачекайте, поки трансляція закінчиться, і спробуйте завантажити знову, коли:\n• Тривалість трансляції відома\n• Трансляція закінчилася\n"
     LIVE_STREAM_DOWNLOAD_PROGRESS_MSG = "📡 <b>Завантаження прямої трансляції</b>"
     LIVE_STREAM_CHUNK_NUMBER_MSG = "Чанк {chunk}"
-    LIVE_STREAM_CHUNK_SIZE_MSG = "Максимальний розмір: __VAR_0__"
+    LIVE_STREAM_CHUNK_SIZE_MSG = "Максимальний розмір: {size}"
     LIVE_STREAM_ACCUMULATED_DURATION_MSG = "Загальна тривалість: {duration} сек"
     LIVE_STREAM_CHUNK_CAPTION_MSG = "📡 <b>Пряма трансляція - Частина {chunk}</b>\n⏱ Тривалість: {duration} сек\n📦 Розмір: {size}"
     LIVE_STREAM_CHUNK_TITLE_MSG = "Чанк {chunk}"
     LIVE_STREAM_DOWNLOAD_COMPLETE_MSG = "✅ <b>Завантаження прямої трансляції завершено</b>"
-    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "Завантажено фрагмент(и) __VAR_0__"
+    LIVE_STREAM_CHUNKS_DOWNLOADED_MSG = "Завантажено фрагмент(и) {chunks}"
     LIVE_STREAM_TOTAL_DURATION_MSG = "Загальна тривалість: {duration} сек"
     LIVE_STREAM_DOWNLOAD_STOPPED_MSG = "⏹ <b>Завантаження прямої трансляції зупинено</b>"
     LIVE_STREAM_USER_DIRECTORY_DELETED_MSG = "Каталог користувача видалено (ймовірно, командою /clean)"
@@ -1515,13 +1515,13 @@ class Messages(object):
     COOKIES_DOWNLOAD_FAILED_LOG_MSG = "Не вдалося завантажити {service} cookie: status={status} (URL-адреса прихована)"
     COOKIES_DOWNLOAD_ERROR_LOG_MSG = "Помилка завантаження {service} cookie: {error} (URL-адресу приховано)"
     COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG = "Неочікувана помилка під час завантаження {service} cookie (URL-адресу приховано): {error_type}: {error}"
-    COOKIES_FILE_UPDATED_LOG_MSG = "Файл cookie оновлено для користувача __VAR_0__."
+    COOKIES_FILE_UPDATED_LOG_MSG = "Файл cookie оновлено для користувача {user_id}."
     COOKIES_INVALID_CONTENT_LOG_MSG = "Недійсний вміст файлів cookie, наданий користувачем {user_id}."
-    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "URL-адреси файлів cookie YouTube порожні для користувача __VAR_0__."
-    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "Файли cookie YouTube завантажено та перевірено для користувача __VAR_1__ з джерела {source}."
-    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "Для користувача __VAR_0__ не вдалося створити всі джерела файлів cookie YouTube."
+    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "URL-адреси файлів cookie YouTube порожні для користувача {user_id}."
+    COOKIES_YOUTUBE_DOWNLOADED_VALIDATED_LOG_MSG = "Файли cookie YouTube завантажено та перевірено для користувача {source} з джерела {source}."
+    COOKIES_YOUTUBE_ALL_FAILED_LOG_MSG = "Для користувача {user_id} не вдалося створити всі джерела файлів cookie YouTube."
     ADMIN_CHECK_PORN_ERROR_LOG_MSG = "Помилка в команді check_porn адміністратора {admin_id}: {error}"
-    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Розмір розділеної частини встановлено на __VAR_0__ байтів."
+    SPLIT_SIZE_SET_CALLBACK_LOG_MSG = "Розмір розділеної частини встановлено на {size} байтів."
     VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG = "Завантаження відео завершено з розділенням файлу."
     PLAYLIST_VIDEOS_SENT_LOG_MSG = "Відео зі списків відтворення надіслано: {sent}/{total} файли (якість={quality}) користувачу {user_id}"
     UNKNOWN_ERROR_MSG = "❌ Невідома помилка: {error}"
@@ -1602,7 +1602,7 @@ class Messages(object):
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Обмеження повені. Спробуйте пізніше."
     
     # Cookies command button texts
-    COOKIES_BROWSER_BUTTON_MSG = "✅ __VAR_0__"
+    COOKIES_BROWSER_BUTTON_MSG = "✅ {browser_name}"
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Перевірте файли cookie"
     
     # Proxy command button texts
@@ -1664,20 +1664,20 @@ class Messages(object):
     
     # Cookies command additional messages
     COOKIES_BROWSER_CALLBACK_MSG = "Зворотний виклик [BROWSER]: {callback_data}"
-    COOKIES_ADDING_BROWSER_MONITORING_MSG = "Додавання кнопки моніторингу браузера з URL: __VAR_0__"
-    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "URL-адресу моніторингу браузера не налаштовано: __VAR_0__"
+    COOKIES_ADDING_BROWSER_MONITORING_MSG = "Додавання кнопки моніторингу браузера з URL: {miniapp_url}"
+    COOKIES_BROWSER_MONITORING_URL_NOT_CONFIGURED_MSG = "URL-адресу моніторингу браузера не налаштовано: {miniapp_url}"
     
     # Format command additional messages
     
     # Keyboard command additional messages
     KEYBOARD_SETTING_UPDATED_MSG = "🎹 **Налаштування клавіатури оновлено!**\n\nНове налаштування: **{setting}**"
-    KEYBOARD_FAILED_HIDE_MSG = "Не вдалося приховати клавіатуру: __VAR_0__"
+    KEYBOARD_FAILED_HIDE_MSG = "Не вдалося приховати клавіатуру: {error}"
     
     # Link command additional messages
-    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Використання робочих файлів cookie YouTube для отримання посилань для користувача __VAR_0__"
-    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "Немає робочих файлів cookie YouTube для отримання посилань для користувача __VAR_0__"
-    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Використання наявних файлів cookie YouTube для отримання посилань для користувача __VAR_0__"
-    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Не знайдено файлів cookie YouTube для отримання посилань для користувача __VAR_0__"
+    LINK_USING_WORKING_YOUTUBE_COOKIES_MSG = "Використання робочих файлів cookie YouTube для отримання посилань для користувача {user_id}"
+    LINK_NO_WORKING_YOUTUBE_COOKIES_MSG = "Немає робочих файлів cookie YouTube для отримання посилань для користувача {user_id}"
+    LINK_USING_EXISTING_YOUTUBE_COOKIES_MSG = "Використання наявних файлів cookie YouTube для отримання посилань для користувача {user_id}"
+    LINK_NO_YOUTUBE_COOKIES_FOUND_MSG = "Не знайдено файлів cookie YouTube для отримання посилань для користувача {user_id}"
     LINK_COPIED_GLOBAL_COOKIE_FILE_MSG = "Глобальний файл cookie скопійовано в папку користувача {user_id} для вилучення посилання"
     
     # MediaInfo command additional messages
@@ -1696,16 +1696,16 @@ class Messages(object):
     HELPER_FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Межа повені. Спробуйте пізніше."
     
     # Database error messages
-    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ Помилка оновлення маркера REST: __VAR_0__"
+    DB_REST_TOKEN_REFRESH_ERROR_MSG = "❌ Помилка оновлення маркера REST: {error}"
     DB_ERROR_CLOSING_SESSION_MSG = "❌ Помилка закриття сеансу Firebase: {error}"
-    DB_ERROR_INITIALIZING_BASE_MSG = "❌ Помилка ініціалізації базової структури бази даних: __VAR_0__"
+    DB_ERROR_INITIALIZING_BASE_MSG = "❌ Помилка ініціалізації базової структури бази даних: {error}"
 
     DB_NOT_ALL_PARAMETERS_SET_MSG = "❌ Не всі параметри встановлюються в config.py (FIREBASE_CONF, FIREBASE_USER, FIREBASE_PASSWORD)"
     DB_DATABASE_URL_NOT_SET_MSG = "❌ FIREBASE_CONF.databaseURL не встановлено"
     DB_API_KEY_NOT_SET_MSG = "❌ FIREBASE_CONF.apiKey не встановлено для отримання idToken"
-    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Помилка завантаження дампа Firebase: __VAR_0__"
+    DB_ERROR_DOWNLOADING_DUMP_MSG = "❌ Помилка завантаження дампа Firebase: {error}"
     DB_FAILED_DOWNLOAD_DUMP_REST_MSG = "❌ Не вдалося завантажити дамп Firebase через REST"
-    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ Помилка в _download_and_reload_cache: __VAR_0__"
+    DB_ERROR_DOWNLOAD_RELOAD_CACHE_MSG = "❌ Помилка в _download_and_reload_cache: {error}"
     DB_ERROR_RUNNING_AUTO_RELOAD_MSG = "❌ Помилка запуску auto reload_cache (спроба {attempt}/{max_retries}): {error}"
     DB_ALL_RETRY_ATTEMPTS_FAILED_MSG = "❌ Усі повторні спроби не вдалися"
     DB_STARTING_FIREBASE_DUMP_MSG = "🔄 Початок завантаження дампа Firebase з {datetime}"
@@ -1719,7 +1719,7 @@ class Messages(object):
     # Update from repo error messages
     UPDATE_CLONE_ERROR_MSG = "❌ Помилка клонування: {error}"
     UPDATE_CLONE_TIMEOUT_MSG = "❌ Час очікування клонування"
-    UPDATE_CLONE_EXCEPTION_MSG = "❌ Виняток клону: __VAR_0__"
+    UPDATE_CLONE_EXCEPTION_MSG = "❌ Виняток клону: {error}"
     UPDATE_CANCELED_BY_USER_MSG = "❌ Оновлення скасовано користувачем"
 
     # Update from repo success messages
@@ -1822,13 +1822,13 @@ class Messages(object):
     GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG = "Пропускання розділу конфігурації non-dict: {section}={opts}"
     GALLERY_DL_SETTING_CONFIG_MSG = "Налаштування {section}.{key} = {value}"
     GALLERY_DL_USING_USER_COOKIES_MSG = "[gallery-dl] Використання файлів cookie користувача: {cookie_path}"
-    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Використання файлів cookie YouTube для користувача __VAR_0__"
-    GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG = "Глобальний файл cookie скопійовано в папку користувача __VAR_0__"
-    GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG = "[gallery-dl] Використання скопійованих глобальних файлів cookie як файлів cookie користувача: __VAR_0__"
-    GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG = "Не вдалося скопіювати глобальний файл cookie для користувача __VAR_1__: {error}"
+    GALLERY_DL_USING_YOUTUBE_COOKIES_MSG = "Використання файлів cookie YouTube для користувача {user_id}"
+    GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG = "Глобальний файл cookie скопійовано в папку користувача {user_id}"
+    GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG = "[gallery-dl] Використання скопійованих глобальних файлів cookie як файлів cookie користувача: {cookie_path}"
+    GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG = "Не вдалося скопіювати глобальний файл cookie для користувача {error}: {error}"
     GALLERY_DL_USING_NO_COOKIES_MSG = "Використання --no-cookies для домену: {url}"
-    GALLERY_DL_PROXY_REQUESTED_FAILED_MSG = "Проксі-сервер запитав, але не вдалося імпортувати/отримати конфігурацію: __VAR_0__"
-    GALLERY_DL_FORCE_USING_PROXY_MSG = "Примусово використовувати проксі для gallery-dl: __VAR_0__"
+    GALLERY_DL_PROXY_REQUESTED_FAILED_MSG = "Проксі-сервер запитав, але не вдалося імпортувати/отримати конфігурацію: {error}"
+    GALLERY_DL_FORCE_USING_PROXY_MSG = "Примусово використовувати проксі для gallery-dl: {proxy_url}"
     GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG = "Проксі-сервер запитується, але налаштування проксі-сервера не завершено"
     GALLERY_DL_PROXY_HELPER_FAILED_MSG = "Помилка проксі-сервера: {error}"
     GALLERY_DL_PARSING_EXTRACTOR_ITEMS_MSG = "Розбір елементів екстрактора..."
@@ -1836,26 +1836,26 @@ class Messages(object):
     GALLERY_DL_FOUND_METADATA_TAG2_MSG = "Знайдено метадані (тег 2): {info}"
     GALLERY_DL_FOUND_URL_TAG3_MSG = "Знайдено URL (тег 3): {url}, метадані: {metadata}"
     GALLERY_DL_FOUND_METADATA_LEGACY_MSG = "Знайдено метадані (застарілі): {info}"
-    GALLERY_DL_FOUND_URL_LEGACY_MSG = "Знайдено URL (застаріла): __VAR_0__"
+    GALLERY_DL_FOUND_URL_LEGACY_MSG = "Знайдено URL (застаріла): {url}"
     GALLERY_DL_FOUND_FILENAME_MSG = "Назва знайденого файлу: {filename}"
     GALLERY_DL_FOUND_DIRECTORY_MSG = "Знайдено каталог: {directory}"
     GALLERY_DL_FOUND_EXTENSION_MSG = "Знайдено розширення: {extension}"
     GALLERY_DL_PARSED_ITEMS_MSG = "Проаналізовано {count} елементів, інформація: {info}, запасний варіант: {fallback}"
-    GALLERY_DL_SETTING_CONFIG_MSG2 = "Налаштування конфігурації gallery-dl: __VAR_0__"
+    GALLERY_DL_SETTING_CONFIG_MSG2 = "Налаштування конфігурації gallery-dl: {config}"
     GALLERY_DL_TRYING_STRATEGY_A_MSG = "Спроба стратегії A: extractor.find + items()"
     GALLERY_DL_EXTRACTOR_MODULE_NOT_FOUND_MSG = "модуль gallery_dl.extractor не знайдено"
     GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG = "gallery_dl.extractor.find() недоступний у цій збірці"
     GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG = "Виклик extractor.find({url})"
     GALLERY_DL_NO_EXTRACTOR_MATCHED_MSG = "Жоден екстрактор не відповідає URL-адресі"
-    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "Налаштування файлів cookie для екстрактора: __VAR_0__"
-    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "Не вдалося встановити файли cookie для екстрактора: __VAR_0__"
+    GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG = "Налаштування файлів cookie для екстрактора: {cookie_path}"
+    GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG = "Не вдалося встановити файли cookie для екстрактора: {error}"
     GALLERY_DL_EXTRACTOR_FOUND_CALLING_ITEMS_MSG = "Екстрактор знайдено, виклик елементів()"
-    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "Стратегія A виконана успішно, отримано інформацію: __VAR_0__"
+    GALLERY_DL_STRATEGY_A_SUCCEEDED_MSG = "Стратегія A виконана успішно, отримано інформацію: {info}"
     GALLERY_DL_STRATEGY_A_NO_VALID_INFO_MSG = "Стратегія A: extractor.items() не повернув дійсну інформацію"
-    GALLERY_DL_STRATEGY_A_FAILED_MSG = "Стратегія A (extractor.find) не вдалася: __VAR_0__"
+    GALLERY_DL_STRATEGY_A_FAILED_MSG = "Стратегія A (extractor.find) не вдалася: {error}"
     GALLERY_DL_FALLBACK_METADATA_MSG = "Запасні метадані з --get-urls: total={total}"
     GALLERY_DL_ALL_STRATEGIES_FAILED_MSG = "Усім стратегіям не вдалося отримати метадані"
-    GALLERY_DL_FAILED_EXTRACT_IMAGE_INFO_MSG = "Не вдалося отримати інформацію про зображення: __VAR_0__"
+    GALLERY_DL_FAILED_EXTRACT_IMAGE_INFO_MSG = "Не вдалося отримати інформацію про зображення: {error}"
     GALLERY_DL_JOB_MODULE_NOT_FOUND_MSG = "модуль gallery_dl.job не знайдено (порушена інсталяція?)"
     GALLERY_DL_DOWNLOAD_JOB_NOT_AVAILABLE_MSG = "gallery_dl.job.DownloadJob недоступний у цій збірці"
     GALLERY_DL_SEARCHING_DOWNLOADED_FILES_MSG = "Пошук завантажених файлів у каталозі gallery-dl"
@@ -1864,7 +1864,7 @@ class Messages(object):
     # Sender messages
     SENDER_ERROR_READING_USER_ARGS_MSG = "Помилка читання аргументів користувача для {user_id}: {error}"
     SENDER_FFPROBE_BYPASS_ERROR_MSG = "[FFPROBE BYPASS] Помилка під час обробки відео{video_path}: {error}"
-    SENDER_USER_SEND_AS_FILE_ENABLED_MSG = "Користувач __VAR_0__ увімкнув send_as_file, надсилаючи як документ"
+    SENDER_USER_SEND_AS_FILE_ENABLED_MSG = "Користувач {user_id} увімкнув send_as_file, надсилаючи як документ"
     SENDER_SEND_VIDEO_TIMED_OUT_MSG = "тайм-аут send_video неодноразово минув; повернення до send_document"
     SENDER_CAPTION_TOO_LONG_MSG = "Підпис задовгий, спробуйте створити мінімальну кількість підписів"
     SENDER_SEND_VIDEO_MINIMAL_CAPTION_TIMED_OUT_MSG = "send_video (мінімальний титр) минув; повернення до send_document"
@@ -1873,8 +1873,8 @@ class Messages(object):
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Помилка видалення тимчасового файлу опису: {error}"
     
     # YT-DLP hook messages
-    YTDLP_SKIPPING_MATCH_FILTER_MSG = "Пропуск match_filter для домену в NO_FILTER_DOMAINS: __VAR_0__"
-    YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Перевірка наявних файлів cookie YouTube на URL-адресі користувача для визначення формату для користувача __VAR_0__"
+    YTDLP_SKIPPING_MATCH_FILTER_MSG = "Пропуск match_filter для домену в NO_FILTER_DOMAINS: {url}"
+    YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Перевірка наявних файлів cookie YouTube на URL-адресі користувача для визначення формату для користувача {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Існуючі файли cookie YouTube працюють з URL-адресою користувача для визначення формату для користувача {user_id} — їх використання"
     YTDLP_EXISTING_YOUTUBE_COOKIES_FAILED_MSG = "Помилка існуючих файлів cookie YouTube на URL-адресі користувача, спроба отримати нові для визначення формату для користувача {user_id}"
     YTDLP_TRYING_YOUTUBE_COOKIE_SOURCE_MSG = "Випробування джерела файлів cookie YouTube {i} для виявлення формату для користувача {user_id}"
@@ -1886,9 +1886,9 @@ class Messages(object):
     YTDLP_NO_YOUTUBE_COOKIES_FOUND_MSG = "Файли cookie YouTube не знайдено для визначення формату для користувача {user_id}, спроба отримати нові"
     YTDLP_USING_YOUTUBE_COOKIES_ALREADY_VALIDATED_MSG = "Використання файлів cookie YouTube для визначення формату для користувача {user_id} (вже перевірено в меню «Завжди запитувати»)"
     YTDLP_NO_YOUTUBE_COOKIES_FOUND_ATTEMPTING_RESTORE_MSG = "Файли cookie YouTube не знайдено для визначення формату для користувача {user_id}, намагаючись відновити..."
-    YTDLP_COPIED_GLOBAL_COOKIE_FILE_MSG = "Глобальний файл cookie скопійовано в папку користувача __VAR_0__ для визначення формату"
-    YTDLP_FAILED_COPY_GLOBAL_COOKIE_FILE_MSG = "Не вдалося скопіювати глобальний файл cookie для користувача __VAR_1__: {error}"
-    YTDLP_USING_NO_COOKIES_FOR_DOMAIN_MSG = "Використання --no-cookies для домену в get_video_formats: __VAR_0__"
+    YTDLP_COPIED_GLOBAL_COOKIE_FILE_MSG = "Глобальний файл cookie скопійовано в папку користувача {user_id} для визначення формату"
+    YTDLP_FAILED_COPY_GLOBAL_COOKIE_FILE_MSG = "Не вдалося скопіювати глобальний файл cookie для користувача {error}: {error}"
+    YTDLP_USING_NO_COOKIES_FOR_DOMAIN_MSG = "Використання --no-cookies для домену в get_video_formats: {url}"
     
     # App instance messages
     APP_INSTANCE_NOT_INITIALIZED_MSG = "Додаток ще не ініціалізовано. Неможливо отримати доступ до {name}"
@@ -1896,7 +1896,7 @@ class Messages(object):
     # Caption messages
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Caption:</b> <code>{caption}</code>\n<b>User id:</b> <code>{user_id}</code>\n<b>User first name:</b> <code>{users_name}</code>\n<b>Video file id:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Помилка в caption_editor: {error}"
-    CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Неочікувана помилка в caption_editor: __VAR_0__"
+    CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Неочікувана помилка в caption_editor: {error}"
     CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL-адреса відео</a>{bot_mention}'
     
     # Database messages
@@ -1906,11 +1906,11 @@ class Messages(object):
     DB_LOG_FOR_USER_ADDED_MSG = "Журнал для користувача додано"
     DB_DATABASE_CREATED_MSG = "db створено"
     DB_BOT_STARTED_MSG = "Бот запущений"
-    DB_RELOAD_CACHE_EVERY_PERSISTED_MSG = "RELOAD_CACHE_EVERY зберігається в config.py: __VAR_0__h"
+    DB_RELOAD_CACHE_EVERY_PERSISTED_MSG = "RELOAD_CACHE_EVERY зберігається в config.py: {hours}h"
     DB_PLAYLIST_PART_ALREADY_CACHED_MSG = "Частина списку відтворення вже кешована: {path_parts}, пропуск"
     DB_GET_CACHED_PLAYLIST_VIDEOS_NO_CACHE_MSG = "get_cached_playlist_videos: кеш не знайдено для будь-якого варіанта URL/якості, повертає порожній dict"
     DB_GET_CACHED_PLAYLIST_COUNT_FAST_COUNT_MSG = "get_cached_playlist_count: швидкий підрахунок для великого діапазону: {cached_count} кешованих відео"
-    DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_MSG = "get_cached_message_ids: кеш не знайдено для хешу __VAR_1__, якість __VAR_0__"
+    DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_MSG = "get_cached_message_ids: кеш не знайдено для хешу {quality_key}, які{url_hash}_0__"
     DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_ANY_VARIANT_MSG = "get_cached_message_ids: кеш не знайдено для будь-якого варіанту URL-адреси, повертає None"
     
     # Database cache auto-reload messages
@@ -1923,15 +1923,15 @@ class Messages(object):
     DB_AUTO_CACHE_INTERVAL_UPDATED_MSG = "⏱️ Auto Firebase cache interval updated!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
     DB_AUTO_CACHE_RELOADING_STARTED_MSG = "🔄 Auto Firebase cache reloading started!\n\n📊 Status: ✅ ENABLED\n⏰ Schedule: every {interval} hours from 00:00\n🕒 Next reload: {next_exec} (in {delta_min} minutes)"
     DB_AUTO_CACHE_RELOADING_STOPPED_BY_ADMIN_MSG = "🛑 Auto Firebase cache reloading stopped!\n\n📊 Status: ❌ DISABLED\n💡 Use /auto_cache on to re-enable"
-    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "Автоматичне перезавантаження УВІМКНЕНО; наступний о __VAR_0__"
+    DB_AUTO_CACHE_RELOAD_ENABLED_LOG_MSG = "Автоматичне перезавантаження УВІМКНЕНО; наступний о {next_exec}"
     DB_AUTO_CACHE_RELOAD_DISABLED_LOG_MSG = "Автоматичне перезавантаження ВИМКНЕНО адміністратором."
-    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "Інтервал автоматичного перезавантаження встановлено на __VAR_1__h; наступний о __VAR_0__"
-    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "Розпочато автоматичне перезавантаження; наступний о __VAR_0__"
+    DB_AUTO_CACHE_INTERVAL_SET_LOG_MSG = "Інтервал автоматичного перезавантаження встановлено на {next_exec}h; наступний {interval}__"
+    DB_AUTO_CACHE_RELOAD_STARTED_LOG_MSG = "Розпочато автоматичне перезавантаження; наступний о {next_exec}"
     DB_AUTO_CACHE_RELOAD_STOPPED_LOG_MSG = "Автоматичне перезавантаження зупинено адміністратором."
     
     # Database cache messages (console output)
     DB_FIREBASE_CACHE_LOADED_MSG = "✅ Завантажено кеш Firebase: {count} кореневих вузлів"
-    DB_FIREBASE_CACHE_NOT_FOUND_MSG = "⚠️ Файл кешу Firebase не знайдено, починається з порожнього кешу: __VAR_0__"
+    DB_FIREBASE_CACHE_NOT_FOUND_MSG = "⚠️ Файл кешу Firebase не знайдено, починається з порожнього кешу: {cache_file}"
     DB_FAILED_LOAD_FIREBASE_CACHE_MSG = "❌ Не вдалося завантажити кеш firebase: {error}"
     DB_FIREBASE_CACHE_RELOADED_MSG = "✅ Перезавантажено кеш Firebase: {count} кореневих вузлів"
     DB_FIREBASE_CACHE_FILE_NOT_FOUND_MSG = "⚠️ Файл кешу Firebase не знайдено: {cache_file}"
@@ -1968,7 +1968,7 @@ class Messages(object):
     HELPER_CHECK_FILE_SIZE_LIMIT_INFO_DICT_NONE_MSG = "check_file_size_limit: info_dict має значення None, що дозволяє завантажувати"
     HELPER_CHECK_SUBS_LIMITS_INFO_DICT_NONE_MSG = "check_subs_limits: info_dict має значення None, що дозволяє вставляти субтитри"
     HELPER_CHECK_SUBS_LIMITS_CHECKING_LIMITS_MSG = "check_subs_limits: обмеження перевірки - max_quality={max_quality}p, max_duration={max_duration}s, max_size={max_size}MB"
-    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "check_subs_limits: ключі info_dict: __VAR_0__"
+    HELPER_CHECK_SUBS_LIMITS_INFO_DICT_KEYS_MSG = "check_subs_limits: ключі info_dict: {keys}"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_DURATION_MSG = "Вбудовування субтитрів пропущено: тривалість {duration}с перевищує обмеження {max_duration}с"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_SIZE_MSG = "Вбудовування субтитрів пропущено: розмір {size_mb:.2f}MB перевищує обмеження {max_size}MB"
     HELPER_SUBTITLE_EMBEDDING_SKIPPED_QUALITY_MSG = "Вбудовування субтитрів пропущено: якість {width}x{height} (мінімальна сторона {min_side}p) перевищує обмеження {max_quality}p"
@@ -1994,7 +1994,7 @@ class Messages(object):
     HELPER_USER_NAME_MSG = "Користувач"
     HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG = "Виявлено очікування повені, сплячий режим {wait_seconds} секунд"
     HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG = "Виявлено очікування повені, але не вдалося отримати час, сплячий режим {retry_delay} секунд"
-    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "Виявлено помилку msg_seqno, сплячий режим __VAR_0__ секунд"
+    HELPER_MSG_SEQNO_ERROR_DETECTED_MSG = "Виявлено помилку msg_seqno, сплячий режим {retry_delay} секунд"
     HELPER_MESSAGE_ID_INVALID_MSG = "MESSAGE_ID_INVALID"
     HELPER_MESSAGE_DELETE_FORBIDDEN_MSG = "MESSAGE_DELETE_FORBIDDEN"
     

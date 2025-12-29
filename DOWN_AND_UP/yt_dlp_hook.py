@@ -69,7 +69,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
         },
         'referer': url,
         'geo_bypass': True,
-        'check_certificate': False,
+        # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
         'live_from_start': True
     }
     
@@ -81,6 +81,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
         logger.info(safe_get_messages(user_id).YTDLP_SKIPPING_MATCH_FILTER_MSG.format(url=url))
     
     # Add user's custom yt-dlp arguments (but exclude format to get all available formats)
+    # This includes default values for check_certificate and no_check_certificates
     if user_id is not None:
         from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options
         user_args = get_user_ytdlp_args(user_id, url)
