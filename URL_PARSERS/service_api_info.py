@@ -5,6 +5,7 @@ import shutil
 from functools import lru_cache
 from typing import Dict, Optional, Tuple
 from datetime import datetime
+from urllib.parse import urlparse
 
 import requests
 
@@ -330,51 +331,195 @@ def _guess_username_from_url(url: str, service: Optional[str]) -> Optional[str]:
     return None
 
 
+def _is_domain_match(hostname: str, domain: str) -> bool:
+    """
+    Безопасно проверяет, соответствует ли hostname указанному домену.
+    Учитывает поддомены (например, www.twitter.com соответствует twitter.com).
+    """
+    if not hostname or not domain:
+        return False
+    hostname_lower = hostname.lower()
+    domain_lower = domain.lower()
+    # Точное совпадение или домен является суффиксом hostname
+    return hostname_lower == domain_lower or hostname_lower.endswith('.' + domain_lower)
+
+
 def _detect_service(url: str) -> Optional[str]:
     if not url:
         return None
+    
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            # Если не удалось распарсить hostname, используем старый метод как fallback
+            u = url.lower()
+            if "instagram.com" in u or "instagr.am" in u:
+                return "instagram"
+            if "tiktok.com" in u or "vm.tiktok.com" in u or "vt.tiktok.com" in u:
+                return "tiktok"
+            if "twitter.com" in u or "x.com" in u:
+                return "x"
+            if "vk.com" in u or "vkontakte.ru" in u or "vkvideo.ru" in u:
+                return "vk"
+            if "youtube.com" in u or "youtu.be" in u or "music.youtube.com" in u:
+                return "youtube"
+            if "reddit.com" in u or "redd.it" in u:
+                return "reddit"
+            if "pinterest.com" in u or "pin.it" in u:
+                return "pinterest"
+            if "flickr.com" in u:
+                return "flickr"
+            if "deviantart.com" in u:
+                return "deviantart"
+            if "imgur.com" in u:
+                return "imgur"
+            if "tumblr.com" in u:
+                return "tumblr"
+            if "pixiv.net" in u:
+                return "pixiv"
+            if "artstation.com" in u:
+                return "artstation"
+            if "danbooru.donmai.us" in u or "danbooru" in u:
+                return "danbooru"
+            if "gelbooru.com" in u:
+                return "gelbooru"
+            if "yande.re" in u or "yande" in u:
+                return "yandere"
+            if "sankakucomplex.com" in u or "c.sankakucomplex.com" in u or "chan.sankaku" in u:
+                return "sankaku"
+            if "e621.net" in u:
+                return "e621"
+            if "rule34.xxx" in u or "rule34.paheal.net" in u:
+                return "rule34"
+            if "behance.net" in u or "behance.com" in u:
+                return "behance"
+            return None
+        
+        hostname_lower = hostname.lower()
+        
+        # Безопасная проверка доменов через hostname
+        if _is_domain_match(hostname_lower, "instagram.com") or _is_domain_match(hostname_lower, "instagr.am"):
+            return "instagram"
+        if _is_domain_match(hostname_lower, "tiktok.com") or _is_domain_match(hostname_lower, "vm.tiktok.com") or _is_domain_match(hostname_lower, "vt.tiktok.com"):
+            return "tiktok"
+        if _is_domain_match(hostname_lower, "twitter.com") or _is_domain_match(hostname_lower, "x.com"):
+            return "x"
+        if _is_domain_match(hostname_lower, "vk.com") or _is_domain_match(hostname_lower, "vkontakte.ru") or _is_domain_match(hostname_lower, "vkvideo.ru"):
+            return "vk"
+        if _is_domain_match(hostname_lower, "youtube.com") or _is_domain_match(hostname_lower, "youtu.be") or _is_domain_match(hostname_lower, "music.youtube.com"):
+            return "youtube"
+        if _is_domain_match(hostname_lower, "reddit.com") or _is_domain_match(hostname_lower, "redd.it"):
+            return "reddit"
+        if _is_domain_match(hostname_lower, "pinterest.com") or _is_domain_match(hostname_lower, "pin.it"):
+            return "pinterest"
+        if _is_domain_match(hostname_lower, "flickr.com"):
+            return "flickr"
+        if _is_domain_match(hostname_lower, "deviantart.com"):
+            return "deviantart"
+        if _is_domain_match(hostname_lower, "imgur.com"):
+            return "imgur"
+        if _is_domain_match(hostname_lower, "tumblr.com"):
+            return "tumblr"
+        if _is_domain_match(hostname_lower, "pixiv.net"):
+            return "pixiv"
+        if _is_domain_match(hostname_lower, "artstation.com"):
+            return "artstation"
+        if _is_domain_match(hostname_lower, "danbooru.donmai.us"):
+            return "danbooru"
+        if _is_domain_match(hostname_lower, "gelbooru.com"):
+            return "gelbooru"
+        if _is_domain_match(hostname_lower, "yande.re"):
+            return "yandere"
+        if _is_domain_match(hostname_lower, "sankakucomplex.com") or _is_domain_match(hostname_lower, "c.sankakucomplex.com") or _is_domain_match(hostname_lower, "chan.sankakucomplex.com"):
+            return "sankaku"
+        if _is_domain_match(hostname_lower, "e621.net"):
+            return "e621"
+        if _is_domain_match(hostname_lower, "rule34.xxx") or _is_domain_match(hostname_lower, "rule34.paheal.net"):
+            return "rule34"
+        if _is_domain_match(hostname_lower, "behance.net") or _is_domain_match(hostname_lower, "behance.com"):
+            return "behance"
+        # Video platforms
+        if _is_domain_match(hostname_lower, "vimeo.com"):
+            return "vimeo"
+        if _is_domain_match(hostname_lower, "dailymotion.com") or _is_domain_match(hostname_lower, "dai.ly"):
+            return "dailymotion"
+        if _is_domain_match(hostname_lower, "rutube.ru"):
+            return "rutube"
+        if _is_domain_match(hostname_lower, "twitch.tv"):
+            return "twitch"
+        if _is_domain_match(hostname_lower, "facebook.com"):
+            return "facebook"
+        if _is_domain_match(hostname_lower, "pornhub.com") or _is_domain_match(hostname_lower, "pornhub.org"):
+            return "pornhub"
+        if _is_domain_match(hostname_lower, "bilibili.com") or _is_domain_match(hostname_lower, "bilibili.tv") or _is_domain_match(hostname_lower, "bili.im"):
+            return "bilibili"
+        if _is_domain_match(hostname_lower, "nicovideo.jp"):
+            return "niconico"
+        if _is_domain_match(hostname_lower, "soundcloud.com") or _is_domain_match(hostname_lower, "on.soundcloud.com"):
+            return "soundcloud"
+        if _is_domain_match(hostname_lower, "bandcamp.com"):
+            return "bandcamp"
+        if _is_domain_match(hostname_lower, "mixcloud.com"):
+            return "mixcloud"
+        if _is_domain_match(hostname_lower, "spotify.com"):
+            return "spotify"
+        if _is_domain_match(hostname_lower, "music.apple.com"):
+            return "apple_music"
+        if _is_domain_match(hostname_lower, "deezer.com"):
+            return "deezer"
+        if _is_domain_match(hostname_lower, "tidal.com"):
+            return "tidal"
+        if _is_domain_match(hostname_lower, "kick.com"):
+            return "kick"
+        if _is_domain_match(hostname_lower, "redgifs.com"):
+            return "redgifs"
+        if _is_domain_match(hostname_lower, "snapchat.com"):
+            return "snapchat"
+        if _is_domain_match(hostname_lower, "tnaflix.com") or _is_domain_match(hostname_lower, "m.tnaflix.com"):
+            return "tnaflix"
+        if _is_domain_match(hostname_lower, "eporner.com"):
+            return "eporner"
+        if _is_domain_match(hostname_lower, "pornzog.com"):
+            return "pornzog"
+        if _is_domain_match(hostname_lower, "porntrex.com"):
+            return "porntrex"
+        if _is_domain_match(hostname_lower, "curiositystream.com"):
+            return "curiositystream"
+        if _is_domain_match(hostname_lower, "xvideos.com") or _is_domain_match(hostname_lower, "xvideos3.com"):
+            return "xvideos"
+        if _is_domain_match(hostname_lower, "xnxx.com") or _is_domain_match(hostname_lower, "xnxx.tv"):
+            return "xnxx"
+        if _is_domain_match(hostname_lower, "xhamster.com") or _is_domain_match(hostname_lower, "fra.xhamster2.com") or _is_domain_match(hostname_lower, "xhamster1.desi") or _is_domain_match(hostname_lower, "xhchannel.com"):
+            return "xhamster"
+        if _is_domain_match(hostname_lower, "youporn.com"):
+            return "youporn"
+        if _is_domain_match(hostname_lower, "redtube.com"):
+            return "redtube"
+        if _is_domain_match(hostname_lower, "spankbang.com"):
+            return "spankbang"
+        if _is_domain_match(hostname_lower, "porntube.com"):
+            return "porntube"
+        if _is_domain_match(hostname_lower, "onlyfans.com"):
+            return "onlyfans"
+        if _is_domain_match(hostname_lower, "patreon.com"):
+            return "patreon"
+        if _is_domain_match(hostname_lower, "boosty.to"):
+            return "boosty"
+        if _is_domain_match(hostname_lower, "ok.ru"):
+            return "okru"
+        if _is_domain_match(hostname_lower, "pikabu.ru"):
+            return "pikabu"
+        if _is_domain_match(hostname_lower, "zen.yandex.ru"):
+            return "yandex_zen"
+        if _is_domain_match(hostname_lower, "drive.google.com") or _is_domain_match(hostname_lower, "docs.google.com") or _is_domain_match(hostname_lower, "share.google.com"):
+            return "google_drive"
+    except Exception:
+        # В случае ошибки парсинга URL используем старый метод как fallback
+        pass
+    
+    # Fallback: если парсинг не удался, используем старый метод (менее безопасный, но работает)
     u = url.lower()
-    if "instagram.com" in u or "instagr.am" in u:
-        return "instagram"
-    if "tiktok.com" in u or "vm.tiktok.com" in u or "vt.tiktok.com" in u:
-        return "tiktok"
-    if "twitter.com" in u or "x.com" in u:
-        return "x"
-    if "vk.com" in u or "vkontakte.ru" in u or "vkvideo.ru" in u:
-        return "vk"
-    if "youtube.com" in u or "youtu.be" in u or "music.youtube.com" in u:
-        return "youtube"
-    if "reddit.com" in u or "redd.it" in u:
-        return "reddit"
-    if "pinterest.com" in u or "pin.it" in u:
-        return "pinterest"
-    if "flickr.com" in u:
-        return "flickr"
-    if "deviantart.com" in u:
-        return "deviantart"
-    if "imgur.com" in u:
-        return "imgur"
-    if "tumblr.com" in u:
-        return "tumblr"
-    if "pixiv.net" in u:
-        return "pixiv"
-    if "artstation.com" in u:
-        return "artstation"
-    if "danbooru.donmai.us" in u or "danbooru" in u:
-        return "danbooru"
-    if "gelbooru.com" in u:
-        return "gelbooru"
-    if "yande.re" in u or "yande" in u:
-        return "yandere"
-    if "sankakucomplex.com" in u or "c.sankakucomplex.com" in u or "chan.sankaku" in u:
-        return "sankaku"
-    if "e621.net" in u:
-        return "e621"
-    if "rule34.xxx" in u or "rule34.paheal.net" in u:
-        return "rule34"
-    if "behance.net" in u or "behance.com" in u:
-        return "behance"
-    # Video platforms
     if "vimeo.com" in u:
         return "vimeo"
     if "dailymotion.com" in u or "dai.ly" in u:

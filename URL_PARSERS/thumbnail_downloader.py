@@ -17,6 +17,19 @@ from HELPERS.logger import logger
 import yt_dlp
 
 
+def _is_domain_match(hostname: str, domain: str) -> bool:
+    """
+    Безопасно проверяет, соответствует ли hostname указанному домену.
+    Учитывает поддомены (например, www.twitter.com соответствует twitter.com).
+    """
+    if not hostname or not domain:
+        return False
+    hostname_lower = hostname.lower()
+    domain_lower = domain.lower()
+    # Точное совпадение или домен является суффиксом hostname
+    return hostname_lower == domain_lower or hostname_lower.endswith('.' + domain_lower)
+
+
 def extract_service_info(url: str) -> Tuple[str, str]:
     """
     Extract service type and video ID from URL
@@ -393,11 +406,11 @@ def extract_service_info(url: str) -> Tuple[str, str]:
                     return 'google_drive', match.group(1)
         
         # Pinterest
-        elif 'pin.it' in netloc:
+        elif _is_domain_match(netloc, 'pin.it'):
             return 'pinterest', ''
         
         # Vidyard
-        elif 'share.vidyard.com' in netloc:
+        elif _is_domain_match(netloc, 'share.vidyard.com'):
             if '/watch/' in path:
                 match = re.search(r'/watch/([^/?]+)', path)
                 if match:

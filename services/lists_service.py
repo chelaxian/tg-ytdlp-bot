@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Any, List
 import shutil
+from urllib.parse import urlparse
+import ipaddress
 
 from CONFIG.domains import DomainsConfig
 from CONFIG.config import Config
@@ -170,6 +172,61 @@ def update_lists() -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 
+def _validate_url_for_ssrf(url: str) -> tuple[bool, str]:
+    """
+    Валидирует URL для предотвращения SSRF атак.
+    Возвращает (is_valid, error_message).
+    """
+    if not url:
+        return False, "URL is empty"
+    
+    try:
+        parsed = urlparse(url)
+        
+        # Разрешаем только HTTP и HTTPS
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Invalid scheme: {parsed.scheme}. Only http and https are allowed"
+        
+        # Проверяем хост
+        host = parsed.hostname
+        if not host:
+            return False, "URL must have a hostname"
+        
+        host_lower = host.lower()
+        
+        # Блокируем localhost и его варианты
+        blocked_hosts = {
+            'localhost',
+            '127.0.0.1',
+            '0.0.0.0',
+            '::1',
+            '[::1]',
+        }
+        if host_lower in blocked_hosts:
+            return False, f"Blocked hostname: {host}"
+        
+        # Блокируем внутренние IP адреса
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False, f"Blocked private/reserved IP: {host}"
+            # Блокируем метаданные облачных сервисов (169.254.169.254)
+            if str(ip) == '169.254.169.254':
+                return False, f"Blocked metadata service IP: {host}"
+        except ValueError:
+            # Не IP адрес, проверяем домен
+            # Блокируем домены, которые могут указывать на внутренние ресурсы
+            if host_lower.endswith('.local') or host_lower.endswith('.internal'):
+                return False, f"Blocked internal domain: {host}"
+            # Блокируем домены, содержащие localhost
+            if 'localhost' in host_lower:
+                return False, f"Blocked hostname containing localhost: {host}"
+        
+        return True, ""
+    except Exception as e:
+        return False, f"URL validation error: {str(e)}"
+
+
 def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dict[str, Any]:
     """
     Обновляет списки из URL (для Docker режима).
@@ -181,6 +238,11 @@ def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dic
     try:
         # Скачиваем porn_domains.txt
         if porn_domains_url:
+            # Валидация URL для предотвращения SSRF
+            is_valid, error_msg = _validate_url_for_ssrf(porn_domains_url)
+            if not is_valid:
+                return {"status": "error", "message": f"Invalid porn_domains URL: {error_msg}"}
+            
             try:
                 response = requests.get(porn_domains_url, timeout=30)
                 response.raise_for_status()
@@ -193,6 +255,11 @@ def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dic
         
         # Скачиваем porn_keywords.txt
         if porn_keywords_url:
+            # Валидация URL для предотвращения SSRF
+            is_valid, error_msg = _validate_url_for_ssrf(porn_keywords_url)
+            if not is_valid:
+                return {"status": "error", "message": f"Invalid porn_keywords URL: {error_msg}"}
+            
             try:
                 response = requests.get(porn_keywords_url, timeout=30)
                 response.raise_for_status()
