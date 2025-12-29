@@ -4185,6 +4185,21 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                             thumbnail_url = info.get('thumbnail')
                             if thumbnail_url:
                                 try:
+                                    # Валидация URL для предотвращения SSRF
+                                    from urllib.parse import urlparse
+                                    import ipaddress
+                                    parsed_thumb = urlparse(thumbnail_url)
+                                    thumb_host = (parsed_thumb.hostname or '').lower()
+                                    if thumb_host in ('localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]') or \
+                                       thumb_host.endswith('.local') or thumb_host.endswith('.internal') or \
+                                       'localhost' in thumb_host:
+                                        try:
+                                            ip = ipaddress.ip_address(thumb_host)
+                                            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or str(ip) == '169.254.169.254':
+                                                logger.warning(f"Blocked SSRF attempt: invalid thumbnail URL {thumbnail_url}")
+                                                raise ValueError("Invalid thumbnail URL")
+                                        except ValueError:
+                                            pass
                                     response = requests.get(thumbnail_url, timeout=10)
                                     if response.status_code == 200 and len(response.content) <= 1024 * 1024:
                                         with open(thumb_path, "wb") as f:

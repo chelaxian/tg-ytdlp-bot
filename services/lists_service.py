@@ -238,6 +238,11 @@ def _safe_get_with_redirect_validation(url: str, timeout: int = 30) -> requests.
     from urllib3.util.retry import Retry
     from urllib.parse import urljoin
     
+    # Валидация входного URL для предотвращения SSRF
+    is_valid, error_msg = _validate_url_for_ssrf(url)
+    if not is_valid:
+        raise ValueError(f"Invalid URL: {error_msg}")
+    
     session = requests.Session()
     
     # Настраиваем retry стратегию

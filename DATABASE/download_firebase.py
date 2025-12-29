@@ -142,6 +142,27 @@ def download_firebase_dump():
         # Downloading data with retry logic
         print(safe_get_messages().ALWAYS_ASK_DOWNLOADING_DATABASE_MSG)
         url = f"{database_url}/.json?auth={id_token}"
+        
+        # Валидация URL для предотвращения SSRF
+        try:
+            from urllib.parse import urlparse
+            import ipaddress
+            parsed_url = urlparse(url)
+            url_host = (parsed_url.hostname or '').lower()
+            if url_host in ('localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]') or \
+               url_host.endswith('.local') or url_host.endswith('.internal') or \
+               'localhost' in url_host:
+                try:
+                    ip = ipaddress.ip_address(url_host)
+                    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or str(ip) == '169.254.169.254':
+                        print(f"❌ Blocked SSRF attempt: invalid database URL")
+                        return False
+                except ValueError:
+                    pass
+        except Exception as e:
+            print(f"❌ URL validation error: {e}")
+            return False
+        
         download_timeout = (DOWNLOAD_CONNECT_TIMEOUT, DOWNLOAD_READ_TIMEOUT)
 
         response = None

@@ -8,6 +8,7 @@ import re
 import requests
 import shutil
 import tempfile
+import ipaddress
 from urllib.parse import urlparse
 from typing import Optional, Tuple
 from CONFIG.config import Config
@@ -15,6 +16,61 @@ from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.logger import logger
 import yt_dlp
+
+
+def _validate_url_for_ssrf(url: str) -> tuple[bool, str]:
+    """
+    Валидирует URL для предотвращения SSRF атак.
+    Возвращает (is_valid, error_message).
+    """
+    if not url:
+        return False, "URL is empty"
+    
+    try:
+        parsed = urlparse(url)
+        
+        # Разрешаем только HTTP и HTTPS
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Invalid scheme: {parsed.scheme}. Only http and https are allowed"
+        
+        # Проверяем хост
+        host = parsed.hostname
+        if not host:
+            return False, "URL must have a hostname"
+        
+        host_lower = host.lower()
+        
+        # Блокируем localhost и его варианты
+        blocked_hosts = {
+            'localhost',
+            '127.0.0.1',
+            '0.0.0.0',
+            '::1',
+            '[::1]',
+        }
+        if host_lower in blocked_hosts:
+            return False, f"Blocked hostname: {host}"
+        
+        # Блокируем внутренние IP адреса
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False, f"Blocked private/reserved IP: {host}"
+            # Блокируем метаданные облачных сервисов (169.254.169.254)
+            if str(ip) == '169.254.169.254':
+                return False, f"Blocked metadata service IP: {host}"
+        except ValueError:
+            # Не IP адрес, проверяем домен
+            # Блокируем домены, которые могут указывать на внутренние ресурсы
+            if host_lower.endswith('.local') or host_lower.endswith('.internal'):
+                return False, f"Blocked internal domain: {host}"
+            # Блокируем домены, содержащие localhost
+            if 'localhost' in host_lower:
+                return False, f"Blocked hostname containing localhost: {host}"
+        
+        return True, ""
+    except Exception as e:
+        return False, f"URL validation error: {str(e)}"
 
 
 def _is_domain_match(hostname: str, domain: str) -> bool:
@@ -466,6 +522,11 @@ def download_vimeo_thumbnail(video_id: str, dest: str) -> bool:
                 video_info = data[0]
                 thumbnail_url = video_info.get('thumbnail_large') or video_info.get('thumbnail_medium')
                 if thumbnail_url:
+                    # Валидация URL для предотвращения SSRF
+                    is_valid, error_msg = _validate_url_for_ssrf(thumbnail_url)
+                    if not is_valid:
+                        logger.warning(f"Invalid thumbnail URL from Vimeo API: {error_msg}")
+                        return False
                     img_response = requests.get(thumbnail_url, timeout=10)
                     if img_response.status_code == 200:
                         with open(dest, 'wb') as f:
@@ -487,6 +548,11 @@ def download_dailymotion_thumbnail(video_id: str, dest: str) -> bool:
             data = response.json()
             thumbnail_url = data.get('thumbnail_large_url')
             if thumbnail_url:
+                # Валидация URL для предотвращения SSRF
+                is_valid, error_msg = _validate_url_for_ssrf(thumbnail_url)
+                if not is_valid:
+                    logger.warning(f"Invalid thumbnail URL from Dailymotion API: {error_msg}")
+                    return False
                 img_response = requests.get(thumbnail_url, timeout=10)
                 if img_response.status_code == 200:
                     with open(dest, 'wb') as f:
