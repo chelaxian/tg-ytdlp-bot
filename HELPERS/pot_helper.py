@@ -34,6 +34,25 @@ def check_pot_provider_availability(base_url: str) -> bool:
         return _pot_provider_cache['available']
     
     try:
+        # Валидация URL для предотвращения SSRF (но разрешаем localhost для локального сервиса)
+        from urllib.parse import urlparse
+        import ipaddress
+        parsed_url = urlparse(base_url)
+        url_host = (parsed_url.hostname or '').lower()
+        # Разрешаем localhost для локального PO token провайдера, но блокируем другие внутренние ресурсы
+        if url_host not in ('localhost', '127.0.0.1') and \
+           (url_host.endswith('.local') or url_host.endswith('.internal') or 'localhost' in url_host):
+            try:
+                ip = ipaddress.ip_address(url_host)
+                if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or str(ip) == '169.254.169.254') and \
+                   str(ip) not in ('127.0.0.1', '::1'):
+                    logger.warning(f"Blocked SSRF attempt: invalid PO token provider URL {base_url}")
+                    _pot_provider_cache['available'] = False
+                    _pot_provider_cache['last_check'] = current_time
+                    return False
+            except ValueError:
+                pass
+        
         # Быстрая проверка доступности провайдера
         # PO token провайдер может возвращать 404 для корневого пути, но это означает что сервис работает
         response = requests.get(base_url, timeout=5)

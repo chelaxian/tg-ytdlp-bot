@@ -958,6 +958,17 @@ def _download_content(url: str, timeout: int = 30, user_id: int | None = None, a
     if not url:
         return False, None, None, "empty-url"
     
+    # Валидация URL для предотвращения SSRF
+    try:
+        from services.lists_service import _validate_url_for_ssrf
+        is_valid, error_msg = _validate_url_for_ssrf(url)
+        if not is_valid:
+            logger.warning(f"[COOKIES] Blocked SSRF attempt: {error_msg}")
+            return False, None, None, f"invalid-url: {error_msg}"
+    except Exception as e:
+        logger.warning(f"[COOKIES] URL validation error: {e}")
+        return False, None, None, f"validation-error: {str(e)}"
+    
     sess = Session()
     sess.trust_env = False
     proxy_reason = None

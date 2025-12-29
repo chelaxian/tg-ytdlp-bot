@@ -2,6 +2,7 @@ import re
 import json
 import os
 import shutil
+import ipaddress
 from functools import lru_cache
 from typing import Dict, Optional, Tuple
 from datetime import datetime
@@ -124,6 +125,12 @@ def _load_cookies_from_file(cookie_path: str) -> requests.cookies.RequestsCookie
 
 def _http_get(url: str, timeout: int = DEFAULT_TIMEOUT_SECONDS, user_id: int = None) -> Optional[str]:
     try:
+        # Валидация URL для предотвращения SSRF
+        is_valid, error_msg = _validate_url_for_ssrf(url)
+        if not is_valid:
+            print(f"[HTTP_GET] Blocked SSRF attempt: {error_msg}")
+            return None
+        
         session = _create_session_with_cookies(user_id)
         resp = session.get(url, timeout=timeout, allow_redirects=True)
         if resp.ok:
@@ -136,6 +143,12 @@ def _http_get(url: str, timeout: int = DEFAULT_TIMEOUT_SECONDS, user_id: int = N
 
 def _http_get_json(url: str, timeout: int = DEFAULT_TIMEOUT_SECONDS, user_id: int = None) -> Optional[Dict]:
     try:
+        # Валидация URL для предотвращения SSRF
+        is_valid, error_msg = _validate_url_for_ssrf(url)
+        if not is_valid:
+            print(f"[HTTP_GET_JSON] Blocked SSRF attempt: {error_msg}")
+            return None
+        
         session = _create_session_with_cookies(user_id)
         resp = session.get(url, timeout=timeout, allow_redirects=True)
         if resp.ok:
@@ -329,6 +342,61 @@ def _guess_username_from_url(url: str, service: Optional[str]) -> Optional[str]:
     except Exception:
         return None
     return None
+
+
+def _validate_url_for_ssrf(url: str) -> tuple[bool, str]:
+    """
+    Валидирует URL для предотвращения SSRF атак.
+    Возвращает (is_valid, error_message).
+    """
+    if not url:
+        return False, "URL is empty"
+    
+    try:
+        parsed = urlparse(url)
+        
+        # Разрешаем только HTTP и HTTPS
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Invalid scheme: {parsed.scheme}. Only http and https are allowed"
+        
+        # Проверяем хост
+        host = parsed.hostname
+        if not host:
+            return False, "URL must have a hostname"
+        
+        host_lower = host.lower()
+        
+        # Блокируем localhost и его варианты
+        blocked_hosts = {
+            'localhost',
+            '127.0.0.1',
+            '0.0.0.0',
+            '::1',
+            '[::1]',
+        }
+        if host_lower in blocked_hosts:
+            return False, f"Blocked hostname: {host}"
+        
+        # Блокируем внутренние IP адреса
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False, f"Blocked private/reserved IP: {host}"
+            # Блокируем метаданные облачных сервисов (169.254.169.254)
+            if str(ip) == '169.254.169.254':
+                return False, f"Blocked metadata service IP: {host}"
+        except ValueError:
+            # Не IP адрес, проверяем домен
+            # Блокируем домены, которые могут указывать на внутренние ресурсы
+            if host_lower.endswith('.local') or host_lower.endswith('.internal'):
+                return False, f"Blocked internal domain: {host}"
+            # Блокируем домены, содержащие localhost
+            if 'localhost' in host_lower:
+                return False, f"Blocked hostname containing localhost: {host}"
+        
+        return True, ""
+    except Exception as e:
+        return False, f"URL validation error: {str(e)}"
 
 
 def _is_domain_match(hostname: str, domain: str) -> bool:
