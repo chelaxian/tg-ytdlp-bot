@@ -334,19 +334,19 @@ def _detect_service(url: str) -> Optional[str]:
     if not url:
         return None
     u = url.lower()
-    if "instagram.com" in u:
+    if "instagram.com" in u or "instagr.am" in u:
         return "instagram"
-    if "tiktok.com" in u:
+    if "tiktok.com" in u or "vm.tiktok.com" in u or "vt.tiktok.com" in u:
         return "tiktok"
     if "twitter.com" in u or "x.com" in u:
         return "x"
-    if "vk.com" in u or "vkontakte.ru" in u:
+    if "vk.com" in u or "vkontakte.ru" in u or "vkvideo.ru" in u:
         return "vk"
-    if "youtube.com" in u or "youtu.be" in u:
+    if "youtube.com" in u or "youtu.be" in u or "music.youtube.com" in u:
         return "youtube"
-    if "reddit.com" in u:
+    if "reddit.com" in u or "redd.it" in u:
         return "reddit"
-    if "pinterest.com" in u:
+    if "pinterest.com" in u or "pin.it" in u:
         return "pinterest"
     if "flickr.com" in u:
         return "flickr"
@@ -374,6 +374,81 @@ def _detect_service(url: str) -> Optional[str]:
         return "rule34"
     if "behance.net" in u or "behance.com" in u:
         return "behance"
+    # Video platforms
+    if "vimeo.com" in u:
+        return "vimeo"
+    if "dailymotion.com" in u or "dai.ly" in u:
+        return "dailymotion"
+    if "rutube.ru" in u:
+        return "rutube"
+    if "twitch.tv" in u:
+        return "twitch"
+    if "facebook.com" in u:
+        return "facebook"
+    if "pornhub.com" in u or "pornhub.org" in u:
+        return "pornhub"
+    if "bilibili.com" in u or "bilibili.tv" in u or "bili.im" in u:
+        return "bilibili"
+    if "nicovideo.jp" in u:
+        return "niconico"
+    if "soundcloud.com" in u or "on.soundcloud.com" in u:
+        return "soundcloud"
+    if "bandcamp.com" in u:
+        return "bandcamp"
+    if "mixcloud.com" in u:
+        return "mixcloud"
+    if "spotify.com" in u:
+        return "spotify"
+    if "music.apple.com" in u:
+        return "apple_music"
+    if "deezer.com" in u:
+        return "deezer"
+    if "tidal.com" in u:
+        return "tidal"
+    if "kick.com" in u:
+        return "kick"
+    if "redgifs.com" in u:
+        return "redgifs"
+    if "snapchat.com" in u:
+        return "snapchat"
+    if "tnaflix.com" in u or "m.tnaflix.com" in u:
+        return "tnaflix"
+    if "eporner.com" in u:
+        return "eporner"
+    if "pornzog.com" in u:
+        return "pornzog"
+    if "porntrex.com" in u:
+        return "porntrex"
+    if "curiositystream.com" in u:
+        return "curiositystream"
+    if "xvideos.com" in u or "xvideos3.com" in u:
+        return "xvideos"
+    if "xnxx.com" in u or "xnxx.tv" in u:
+        return "xnxx"
+    if "xhamster.com" in u or "fra.xhamster2.com" in u or "xhamster1.desi" in u or "xhchannel.com" in u:
+        return "xhamster"
+    if "youporn.com" in u:
+        return "youporn"
+    if "redtube.com" in u:
+        return "redtube"
+    if "spankbang.com" in u:
+        return "spankbang"
+    if "porntube.com" in u:
+        return "porntube"
+    if "onlyfans.com" in u:
+        return "onlyfans"
+    if "patreon.com" in u:
+        return "patreon"
+    if "boosty.to" in u:
+        return "boosty"
+    if "ok.ru" in u:
+        return "okru"
+    if "pikabu.ru" in u:
+        return "pikabu"
+    if "zen.yandex.ru" in u:
+        return "yandex_zen"
+    if "drive.google.com" in u or "docs.google.com" in u or "share.google" in u:
+        return "google_drive"
     return None
 
 
@@ -1145,6 +1220,230 @@ def _extract_behance_info(url: str, user_id: int = None) -> Tuple[Optional[str],
     return (None, "Behance")
 
 
+# -------- Universal OpenGraph extractor for services without specific APIs --------
+
+
+def _extract_via_opengraph(url: str, service_name: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Универсальная функция для извлечения информации через OpenGraph мета-теги.
+    Используется для сервисов без публичных API.
+    """
+    try:
+        html = _http_get(url, user_id=user_id)
+        metas = _extract_meta(html or "")
+        title = metas.get("og:title") or metas.get("twitter:title")
+        site = metas.get("og:site_name") or service_name
+        author = metas.get("og:site_name") or metas.get("twitter:site") or metas.get("author")
+        
+        # Если есть автор, используем его, иначе используем title
+        if author:
+            # Убираем @ если есть
+            author = author.strip().lstrip('@')
+            return (author, site)
+        elif title:
+            return (title, site)
+    except Exception as e:
+        print(f"[{service_name.upper()}_INFO] OpenGraph error: {e}")
+        pass
+    
+    return (None, service_name)
+
+
+# -------- Video Platforms --------
+
+
+def _extract_vimeo_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    # Try oEmbed first
+    try:
+        name, provider = _extract_via_oembed(url, (
+            "https://vimeo.com/api/oembed.json?url={url}",
+        ), user_id=user_id)
+        if name:
+            return (name, provider or "Vimeo")
+    except Exception as e:
+        print(f"[VIMEO_INFO] oEmbed error: {e}")
+        pass
+    
+    return _extract_via_opengraph(url, "Vimeo", user_id)
+
+
+def _extract_dailymotion_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Dailymotion", user_id)
+
+
+def _extract_rutube_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Rutube", user_id)
+
+
+def _extract_twitch_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Twitch", user_id)
+
+
+def _extract_facebook_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Facebook", user_id)
+
+
+def _extract_pornhub_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Pornhub", user_id)
+
+
+def _extract_bilibili_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Bilibili", user_id)
+
+
+def _extract_niconico_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Niconico", user_id)
+
+
+def _extract_soundcloud_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    # Try oEmbed first
+    try:
+        name, provider = _extract_via_oembed(url, (
+            "https://soundcloud.com/oembed?url={url}",
+        ), user_id=user_id)
+        if name:
+            return (name, provider or "SoundCloud")
+    except Exception as e:
+        print(f"[SOUNDCLOUD_INFO] oEmbed error: {e}")
+        pass
+    
+    return _extract_via_opengraph(url, "SoundCloud", user_id)
+
+
+def _extract_bandcamp_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    # Try oEmbed first
+    try:
+        name, provider = _extract_via_oembed(url, (
+            "https://bandcamp.com/EmbeddedPlayer/oembed?url={url}",
+        ), user_id=user_id)
+        if name:
+            return (name, provider or "Bandcamp")
+    except Exception as e:
+        print(f"[BANDCAMP_INFO] oEmbed error: {e}")
+        pass
+    
+    return _extract_via_opengraph(url, "Bandcamp", user_id)
+
+
+def _extract_mixcloud_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    # Try oEmbed first
+    try:
+        name, provider = _extract_via_oembed(url, (
+            "https://app.mixcloud.com/oembed/?url={url}",
+        ), user_id=user_id)
+        if name:
+            return (name, provider or "Mixcloud")
+    except Exception as e:
+        print(f"[MIXCLOUD_INFO] oEmbed error: {e}")
+        pass
+    
+    return _extract_via_opengraph(url, "Mixcloud", user_id)
+
+
+def _extract_spotify_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Spotify", user_id)
+
+
+def _extract_apple_music_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Apple Music", user_id)
+
+
+def _extract_deezer_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Deezer", user_id)
+
+
+def _extract_tidal_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Tidal", user_id)
+
+
+def _extract_kick_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Kick", user_id)
+
+
+def _extract_redgifs_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "RedGifs", user_id)
+
+
+def _extract_snapchat_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Snapchat", user_id)
+
+
+def _extract_tnaflix_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "TNAFlix", user_id)
+
+
+def _extract_eporner_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Eporner", user_id)
+
+
+def _extract_pornzog_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Pornzog", user_id)
+
+
+def _extract_porntrex_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Porntrex", user_id)
+
+
+def _extract_curiositystream_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "CuriosityStream", user_id)
+
+
+def _extract_xvideos_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "XVideos", user_id)
+
+
+def _extract_xnxx_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "XNXX", user_id)
+
+
+def _extract_xhamster_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "XHamster", user_id)
+
+
+def _extract_youporn_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "YouPorn", user_id)
+
+
+def _extract_redtube_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Redtube", user_id)
+
+
+def _extract_spankbang_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "SpankBang", user_id)
+
+
+def _extract_porntube_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "PornTube", user_id)
+
+
+def _extract_onlyfans_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "OnlyFans", user_id)
+
+
+def _extract_patreon_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Patreon", user_id)
+
+
+def _extract_boosty_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Boosty", user_id)
+
+
+def _extract_okru_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Odnoklassniki", user_id)
+
+
+def _extract_pikabu_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Pikabu", user_id)
+
+
+def _extract_yandex_zen_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Yandex.Dzen", user_id)
+
+
+def _extract_google_drive_info(url: str, user_id: int = None) -> Tuple[Optional[str], Optional[str]]:
+    return _extract_via_opengraph(url, "Google Drive", user_id)
+
+
 SERVICE_HANDLERS = {
     "instagram": _extract_instagram_info,
     "tiktok": _extract_tiktok_info,
@@ -1168,6 +1467,44 @@ SERVICE_HANDLERS = {
     "e621": _extract_e621_info,
     "rule34": _extract_rule34_info,
     "behance": _extract_behance_info,
+    # Video platforms
+    "vimeo": _extract_vimeo_info,
+    "dailymotion": _extract_dailymotion_info,
+    "rutube": _extract_rutube_info,
+    "twitch": _extract_twitch_info,
+    "facebook": _extract_facebook_info,
+    "pornhub": _extract_pornhub_info,
+    "bilibili": _extract_bilibili_info,
+    "niconico": _extract_niconico_info,
+    "soundcloud": _extract_soundcloud_info,
+    "bandcamp": _extract_bandcamp_info,
+    "mixcloud": _extract_mixcloud_info,
+    "spotify": _extract_spotify_info,
+    "apple_music": _extract_apple_music_info,
+    "deezer": _extract_deezer_info,
+    "tidal": _extract_tidal_info,
+    "kick": _extract_kick_info,
+    "redgifs": _extract_redgifs_info,
+    "snapchat": _extract_snapchat_info,
+    "tnaflix": _extract_tnaflix_info,
+    "eporner": _extract_eporner_info,
+    "pornzog": _extract_pornzog_info,
+    "porntrex": _extract_porntrex_info,
+    "curiositystream": _extract_curiositystream_info,
+    "xvideos": _extract_xvideos_info,
+    "xnxx": _extract_xnxx_info,
+    "xhamster": _extract_xhamster_info,
+    "youporn": _extract_youporn_info,
+    "redtube": _extract_redtube_info,
+    "spankbang": _extract_spankbang_info,
+    "porntube": _extract_porntube_info,
+    "onlyfans": _extract_onlyfans_info,
+    "patreon": _extract_patreon_info,
+    "boosty": _extract_boosty_info,
+    "okru": _extract_okru_info,
+    "pikabu": _extract_pikabu_info,
+    "yandex_zen": _extract_yandex_zen_info,
+    "google_drive": _extract_google_drive_info,
 }
 
 SERVICE_DATE_HANDLERS = {
@@ -1175,7 +1512,8 @@ SERVICE_DATE_HANDLERS = {
     "tiktok": _extract_tiktok_date,
     "x": _extract_x_date,
     "youtube": _extract_youtube_date,
-    # Добавьте другие сервисы по мере необходимости
+    # Для остальных сервисов используется fallback через OpenGraph мета-теги
+    # в функции get_service_date
 }
 
 
@@ -1218,30 +1556,43 @@ def build_tags(info: Dict[str, Optional[str]]) -> Tuple[str, Optional[str]]:
     """
     Формирует пару (service_tag, account_tag) вида ("#instagram", "#some_account").
     Второй элемент может быть None, если аккаунт не распознан.
+    Never raises exceptions - returns safe defaults on error
     """
-    service = info.get("service") or ""
-    account = info.get("account_display") or ""
-    if not service:
+    try:
+        if not info:
+            return ("", None)
+        service = info.get("service") or ""
+        account = info.get("account_display") or ""
+        if not service:
+            return ("", None)
+        service_tag = f"#{service}"
+        account_tag: Optional[str] = None
+        if account:
+            try:
+                slug = _normalize_slug(account)
+                if slug:
+                    account_tag = f"#{slug}"
+            except Exception:
+                pass  # Ignore slug normalization errors
+        return (service_tag, account_tag)
+    except Exception:
         return ("", None)
-    service_tag = f"#{service}"
-    account_tag: Optional[str] = None
-    if account:
-        slug = _normalize_slug(account)
-        if slug:
-            account_tag = f"#{slug}"
-    return (service_tag, account_tag)
 
 
 def get_account_tag(url: str, user_id: int = None) -> str:
     """
     Удобный интерфейс: возвращает строку хэштегов для сообщения.
     Пример: "#instagram #some_account" или просто "#instagram".
+    Never raises exceptions - returns empty string on error
     """
-    info = get_service_account_info(url, user_id)
-    service_tag, account_tag = build_tags(info)
-    if service_tag and account_tag:
-        return f"{service_tag} {account_tag}"
-    return service_tag or ""
+    try:
+        info = get_service_account_info(url, user_id)
+        service_tag, account_tag = build_tags(info)
+        if service_tag and account_tag:
+            return f"{service_tag} {account_tag}"
+        return service_tag or ""
+    except Exception:
+        return ""
 
 
 @lru_cache(maxsize=512)

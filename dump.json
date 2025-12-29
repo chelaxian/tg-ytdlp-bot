@@ -1,55 +1,229 @@
 {
-    "bot": {
-      "tgytdlp_bot": {
-        "blocked_users": {
+  "bot": {
+    "tgytdlp_bot": {
+      "blocked_users": {
+        "0": {
+          "ID": "0",
+          "timestamp": 1767000289
+        }
+      },
+      "logs": {
+        "0": {
           "0": {
             "ID": "0",
-            "timestamp": 1763537791
-          }
-        },
-        "logs": {
-          "0": {
-            "0": {
-              "ID": "0",
-              "name": "test",
-              "timestamp": "1763537791",
-              "title": "test.mp4",
-              "urls": "https://example.com/"
-            }
-          }
-        },
-        "unblocked_users": {
-          "0": {
-            "ID": "0",
-            "timestamp": 1763537791
-          }
-        },
-        "users": {
-          "0": {
-            "ID": "0",
-            "timestamp": 1763537791
+            "name": "test",
+            "timestamp": "1763537791",
+            "title": "test.mp4",
+            "urls": "https://example.com/"
           }
         }
       },
-      "video_cache": {
+      "unblocked_users": {
         "0": {
-          "best": "0"
+          "ID": "0",
+          "timestamp": 1767000289
+        }
+      },
+      "users": {
+        "0": {
+          "ID": "0",
+          "timestamp": 1767000289
+        }
+      },
+      "channel_guard": {
+        "leavers": {
+          "7535185391": {
+            "ID": "7535185391",
+            "first_left_ts": 1766826515.0,
+            "username": "Minlittlebaby",
+            "name": "Reza",
+            "last_left_ts": 1766826515.0,
+            "blocked": false
+          },
+          "97310279": {
+            "ID": "97310279",
+            "first_left_ts": 1766830043.0,
+            "username": "meluns",
+            "name": "Mehran Koosha",
+            "last_left_ts": 1766830043.0,
+            "blocked": false
+          },
+          "8448399070": {
+            "ID": "8448399070",
+            "first_left_ts": 1766832635.0,
+            "username": null,
+            "name": "Бабушка Лида",
+            "last_left_ts": 1766832635.0,
+            "blocked": false
+          },
+          "7777153604": {
+            "ID": "7777153604",
+            "first_left_ts": 1766833771.0,
+            "username": null,
+            "name": "Mazhar",
+            "last_left_ts": 1766833771.0,
+            "blocked": false
+          },
+          "5023821074": {
+            "ID": "5023821074",
+            "first_left_ts": 1766833774.0,
+            "username": "RU_53",
+            "name": "°~SUKUNA~°",
+            "last_left_ts": 1766833774.0,
+            "blocked": false
+          },
+          "603727209": {
+            "ID": "603727209",
+            "first_left_ts": 1766843562.0,
+            "username": null,
+            "name": "@",
+            "last_left_ts": 1766843562.0,
+            "blocked": false
+          },
+          "384755438": {
+            "ID": "384755438",
+            "first_left_ts": 1766845816.0,
+            "username": null,
+            "name": "Ehsan",
+            "last_left_ts": 1766845816.0,
+            "blocked": false
+          },
+          "6927099259": {
+            "ID": "6927099259",
+            "first_left_ts": 1766861771.0,
+            "username": null,
+            "name": "Leonel",
+            "last_left_ts": 1766861771.0,
+            "blocked": false
+          },
+          "628083801": {
+            "ID": "628083801",
+            "first_left_ts": 1766881858.0,
+            "username": "Danikileitor",
+            "name": "Daniel Marcos Guerra Gómez",
+            "last_left_ts": 1766881858.0,
+            "blocked": false
+          },
+          "6588783098": {
+            "ID": "6588783098",
+            "first_left_ts": 1766906116.0,
+            "username": null,
+            "name": "LasGidi 🐾 FX 🔝👑",
+            "last_left_ts": 1766906116.0,
+            "blocked": false
+          },
+          "7762812548": {
+            "ID": "7762812548",
+            "first_left_ts": 1766906874.0,
+            "username": "Living_x",
+            "name": "Rohan🤍⚕️[ Budding Medico ]",
+            "last_left_ts": 1766906874.0,
+            "blocked": false
+          },
+          "1055945969": {
+            "ID": "1055945969",
+            "first_left_ts": 1766909563.0,
+            "username": "HashtagAlireza",
+            "name": "⨺lirᴇzᴀ",
+            "last_left_ts": 1766909563.0,
+            "blocked": false
+          },
+          "1225755069": {
+            "ID": "1225755069",
+            "first_left_ts": 1766923828.0,
+            "username": "Mehdi_P1401",
+            "name": "مهدی",
+            "last_left_ts": 1766923828.0,
+            "blocked": false
+          },
+          "357578455": {
+            "ID": "357578455",
+            "first_left_ts": 1766930282.0,
+            "username": "jabbajabba",
+            "name": "❤️",
+            "last_left_ts": 1766930282.0,
+            "blocked": false
+          },
+          "895971363": {
+            "ID": "895971363",
+            "first_left_ts": 1766936057.0,
+            "username": null,
+            "name": "Abd Allah",
+            "last_left_ts": 1766936057.0,
+            "blocked": false
+          },
+          "465348701": {
+            "ID": "465348701",
+            "first_left_ts": 1766949070.0,
+            "username": "amir_hfb",
+            "name": "aʍɨʀɦօssɛɨռ",
+            "last_left_ts": 1766949070.0,
+            "blocked": false
+          },
+          "1676168501": {
+            "ID": "1676168501",
+            "first_left_ts": 1766950065.0,
+            "username": "hamzauser1",
+            "name": "Hamza TBT",
+            "last_left_ts": 1766950065.0,
+            "blocked": false
+          },
+          "7532925994": {
+            "ID": "7532925994",
+            "first_left_ts": 1766989688.0,
+            "username": "Triforal",
+            "name": "ֆȶɛքɦǟռɨɛ",
+            "last_left_ts": 1766989688.0,
+            "blocked": false
+          },
+          "5092655071": {
+            "ID": "5092655071",
+            "first_left_ts": 1766998222.0,
+            "username": "Davidm0702",
+            "name": "David",
+            "last_left_ts": 1766998222.0,
+            "blocked": false
+          },
+          "6695004329": {
+            "ID": "6695004329",
+            "first_left_ts": 1767000547.0,
+            "username": "weaamhasan",
+            "name": "🤍Weaam Hasan🤍",
+            "last_left_ts": 1767000547.0,
+            "blocked": false
+          }
         },
-        "images": {
-          "0": [
+        "state": {
+          "last_event_id": 936723268284
+        }
+      }
+    },
+    "video_cache": {
+      "0": {
+        "best": "0"
+      },
+      "images": {
+        "0": [
+          null,
+          "0"
+        ]
+      },
+      "playlists": {
+        "0": {
+          "best": [
             null,
             "0"
           ]
-        },
-        "playlists": {
-          "0": {
-            "best": [
-              null,
-              "0"
-            ]
-          }
         }
+      },
+      "8121df52829fcfbd01294a724cbc16cb": {
+        "best": "76169"
+      },
+      "095f69648d52b24702480f71d02a2c97": {
+        "1080p": "76185",
+        "720p": "76189",
+        "mp3": "76190"
       }
     }
   }
-  
+}

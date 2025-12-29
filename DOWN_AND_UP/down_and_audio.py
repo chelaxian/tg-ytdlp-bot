@@ -963,9 +963,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                },
                'referer': url,
                'geo_bypass': True,
-               'check_certificate': False,
+               # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
                'live_from_start': True if not did_live_from_start_retry else False,
-               'writethumbnail': True,  # Enable thumbnail writing for manual embedding
                'writesubtitles': False,  # Disable subtitles for audio
                'writeautomaticsub': False,  # Disable auto subtitles for audio
             }
@@ -999,8 +998,20 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Add user's custom yt-dlp arguments
             from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options
             user_args = get_user_ytdlp_args(user_id, url)
+            
+            # Check if user wants to ignore errors (default is False)
+            # Note: ignore_errors is converted to ignoreerrors in get_user_ytdlp_args
+            ignore_errors = user_args.get('ignoreerrors', False) if user_args else False
+            
             if user_args:
-                ytdl_opts.update(user_args)
+                # writethumbnail will be set from user_args (default True)
+                # ignoreerrors is set based on user's ignore_errors setting
+                user_args_copy = user_args.copy()
+                user_args_copy.pop('ignoreerrors', None)
+                ytdl_opts.update(user_args_copy)
+            
+            # Only use ignoreerrors if user explicitly enabled it via /args
+            ytdl_opts['ignoreerrors'] = ignore_errors
             
             # Log final yt-dlp options for debugging
             log_ytdlp_options(user_id, ytdl_opts, "audio_download")
@@ -1173,6 +1184,43 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Check for postprocessing errors (including conversion failures)
                 if "Postprocessing" in error_text:
                     error_lower = error_text.lower()
+                    
+                    # Check for thumbnail-related postprocessor errors (non-critical, don't stop download)
+                    thumbnail_errors = [
+                        "embedthumbnail",
+                        "embed_thumbnail",
+                        "writethumbnail", 
+                        "write_thumbnail",
+                        "thumbnail",
+                        "cover",
+                        "artwork"
+                    ]
+                    
+                    # If error is related to thumbnail postprocessing, log and continue
+                    if any(thumb_error in error_lower for thumb_error in thumbnail_errors):
+                        logger.warning(f"Thumbnail postprocessor error (non-critical, continuing): {error_text}")
+                        # Check if file was actually downloaded (info_dict exists)
+                        if info_dict:
+                            logger.info("Audio file downloaded successfully, continuing despite thumbnail error")
+                            return info_dict
+                        # If no info_dict, check if file exists on disk anyway
+                        # Postprocessors run after download, so file should exist even if info_dict is missing
+                        try:
+                            # Try to find downloaded file in user directory
+                            if os.path.exists(user_folder):
+                                files = os.listdir(user_folder)
+                                # Look for audio files (common extensions)
+                                audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.opus', '.ogg', '.flac', '.wav', '.aac'))]
+                                if audio_files:
+                                    logger.info(f"Found audio file(s) despite thumbnail error: {audio_files[0]}, continuing")
+                                    # Return None to let the code find the file later
+                                    return None
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for files: {check_e}")
+                        # If we can't verify file exists, log warning but don't stop - let normal error handling proceed
+                        logger.warning("Thumbnail error detected but cannot verify file existence - letting normal error handling proceed")
+                        # Don't return here - let it fall through to normal error handling
+                    
                     # Check for conversion failed errors (case-insensitive)
                     if "conversion failed" in error_lower:
                         postprocessing_message = (
@@ -1674,9 +1722,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                            },
                            'referer': url,
                            'geo_bypass': True,
-                           'check_certificate': False,
+                           # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
                            'live_from_start': True if not did_live_from_start_retry else False,
-                           'writethumbnail': True,
                            'writesubtitles': False,
                            'writeautomaticsub': False,
                         }
@@ -1686,6 +1733,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             ytdl_opts['match_filter'] = create_smart_match_filter(user_id=user_id, message=message)
                         
                         # Add user's custom yt-dlp arguments
+                        # writethumbnail will be set from user_args if user enabled write_thumbnail
                         if user_args:
                             ytdl_opts.update(user_args)
                         
@@ -1832,58 +1880,69 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_NOT_FOUND_MSG)
                 continue
 
-            # Embed cover into MP3 file if thumbnail is available
+            # Embed cover into MP3 file if thumbnail is available (enabled by default)
+            # Errors during embedding are handled gracefully and won't stop download
             try:
-                logger.info(f"Looking for thumbnails for audio file: {audio_file}")
-                logger.info(f"User folder contents: {os.listdir(user_folder)}")
+                # Check if user disabled embed_thumbnail (default is True)
+                from COMMANDS.args_cmd import get_user_args
+                user_args_local = get_user_args(user_id)
+                embed_thumbnail_enabled = user_args_local.get("embed_thumbnail", True) if user_args_local else True  # Default True
+                write_thumbnail_enabled = user_args_local.get("write_thumbnail", True) if user_args_local else True  # Default True
                 
-                # Use pre-downloaded thumbnail if available
-                cover_path = None
-                if thumbnail_path and os.path.exists(thumbnail_path):
-                    cover_path = thumbnail_path
-                    logger.info(f"Using pre-downloaded thumbnail: {cover_path}")
+                if not embed_thumbnail_enabled:
+                    logger.info(f"User {user_id} has embed_thumbnail disabled, skipping thumbnail embedding")
                 else:
-                    # Fallback: look for any thumbnail files
-                    logger.info("Pre-downloaded thumbnail not found, searching for any thumbnails")
-                    for file in os.listdir(user_folder):
-                        if file.endswith(('.jpg', '.jpeg', '.png', '.webp')) and file != downloaded_file:
-                            thumb_path = os.path.join(user_folder, file)
-                            if os.path.exists(thumb_path):
-                                cover_path = thumb_path
-                                logger.info(f"Found thumbnail: {cover_path}")
-                                break
-                
-                # Embed cover if found
-                if cover_path and os.path.exists(cover_path):
-                    logger.info(f"Embedding cover {cover_path} into {audio_file}")
+                    logger.info(f"User {user_id} embed_thumbnail enabled (default), looking for thumbnails for audio file: {audio_file}")
+                    logger.info(f"User folder contents: {os.listdir(user_folder)}")
                     
-                    # Extract metadata for embedding
-                    original_title = info_dict.get("original_title", info_dict.get("title", ""))
-                    artist = info_dict.get("artist") or info_dict.get("uploader") or info_dict.get("channel", "")
-                    album = info_dict.get("album", "")
-                    
-                    # Remove artist name from title if it's included
-                    title_for_metadata = original_title
-                    if artist and artist in original_title:
-                        # Remove artist name from title (e.g., "Rick Astley - Never Gonna Give You Up" -> "Never Gonna Give You Up")
-                        title_for_metadata = original_title.replace(f"{artist} - ", "").replace(f"{artist}: ", "").strip()
-                        logger.info(f"Removed artist from title: '{original_title}' -> '{title_for_metadata}'")
-                    
-                    logger.info(f"Metadata - Title: {title_for_metadata}, Artist: {artist}, Album: {album}")
-                    
-                    success = embed_cover_mp3(audio_file, cover_path, title=title_for_metadata, artist=artist, album=album)
-                    if success:
-                        logger.info(f"Successfully embedded cover in audio file: {audio_file}")
+                    # Use pre-downloaded thumbnail if available
+                    cover_path = None
+                    if thumbnail_path and os.path.exists(thumbnail_path):
+                        cover_path = thumbnail_path
+                        logger.info(f"Using pre-downloaded thumbnail: {cover_path}")
                     else:
-                        logger.warning(f"Failed to embed cover in audio file: {audio_file}")
-                else:
-                    logger.warning(f"No thumbnail found for audio file: {audio_file}")
-                    logger.warning(f"Available files in {user_folder}: {os.listdir(user_folder)}")
+                        # Fallback: look for any thumbnail files (from write_thumbnail)
+                        logger.info("Pre-downloaded thumbnail not found, searching for any thumbnails")
+                        for file in os.listdir(user_folder):
+                            if file.endswith(('.jpg', '.jpeg', '.png', '.webp')) and file != downloaded_file:
+                                thumb_path = os.path.join(user_folder, file)
+                                if os.path.exists(thumb_path):
+                                    cover_path = thumb_path
+                                    logger.info(f"Found thumbnail: {cover_path}")
+                                    break
+                    
+                    # Embed cover if found
+                    if cover_path and os.path.exists(cover_path):
+                        logger.info(f"Embedding cover {cover_path} into {audio_file}")
+                        
+                        # Extract metadata for embedding
+                        original_title = info_dict.get("original_title", info_dict.get("title", ""))
+                        artist = info_dict.get("artist") or info_dict.get("uploader") or info_dict.get("channel", "")
+                        album = info_dict.get("album", "")
+                        
+                        # Remove artist name from title if it's included
+                        title_for_metadata = original_title
+                        if artist and artist in original_title:
+                            # Remove artist name from title (e.g., "Rick Astley - Never Gonna Give You Up" -> "Never Gonna Give You Up")
+                            title_for_metadata = original_title.replace(f"{artist} - ", "").replace(f"{artist}: ", "").strip()
+                            logger.info(f"Removed artist from title: '{original_title}' -> '{title_for_metadata}'")
+                        
+                        logger.info(f"Metadata - Title: {title_for_metadata}, Artist: {artist}, Album: {album}")
+                        
+                        success = embed_cover_mp3(audio_file, cover_path, title=title_for_metadata, artist=artist, album=album)
+                        if success:
+                            logger.info(f"Successfully embedded cover in audio file: {audio_file}")
+                        else:
+                            logger.warning(f"Failed to embed cover in audio file: {audio_file} (continuing without cover)")
+                    else:
+                        logger.info(f"No thumbnail found for audio file: {audio_file} (continuing without cover)")
+                        logger.debug(f"Available files in {user_folder}: {os.listdir(user_folder)}")
                     
             except Exception as e:
-                logger.error(f"Error embedding cover in audio file {audio_file}: {e}")
+                # Don't let thumbnail embedding errors stop the download
+                logger.warning(f"Error embedding cover in audio file {audio_file}: {e} (continuing without cover)")
                 import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
 
             audio_files.append(audio_file)
 

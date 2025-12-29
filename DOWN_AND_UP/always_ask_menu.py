@@ -4124,18 +4124,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 elif entry_url:
                     # Для других сервисов используем универсальный загрузчик
                     try:
-                        service_name = "unknown"
-                        if 'vk.com' in entry_url:
-                            service_name = "vk"
-                        elif 'tiktok.com' in entry_url:
-                            service_name = "tiktok"
-                        elif any(x in entry_url for x in ['twitter.com', 'x.com']):
-                            service_name = "twitter"
-                        # Добавьте другие сервисы по необходимости
+                        # Используем функцию extract_service_info для определения сервиса
+                        from URL_PARSERS.thumbnail_downloader import extract_service_info
+                        service, _ = extract_service_info(entry_url)
                         
-                        if service_name != "unknown":
-                            entry_thumb_path = os.path.join(thumb_dir, f"{service_name}_thumb_{entry_id}.jpg")
-                            if download_universal_thumbnail(entry_url, entry_thumb_path):
+                        if service and service != 'unknown':
+                            entry_thumb_path = os.path.join(thumb_dir, f"{service}_thumb_{entry_id}.jpg")
+                            # Для плейлистов передаем app и message для возможности извлечения из Telegram embed
+                            if download_universal_thumbnail(entry_url, entry_thumb_path, user_id, app=app, message=message):
                                 logger.info(f"✅ Скачана обложка для видео {entry_id}: {entry_thumb_path}")
                     except Exception as e:
                         logger.warning(f"⚠️ Не удалось скачать обложку для видео {entry_id}: {e}")
@@ -4151,94 +4147,33 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 thumb_path = None
         else:
             # Try to download thumbnail for non-YouTube services
-            service_name = "unknown"
-            if 'vk.com' in url:
-                service_name = "vk"
-            elif 'tiktok.com' in url:
-                service_name = "tiktok"
-            elif any(x in url for x in ['twitter.com', 'x.com']):
-                service_name = "twitter"
-            elif 'facebook.com' in url:
-                service_name = "facebook"
-            elif 'pornhub.com' in url or 'pornhub.org' in url:
-                service_name = "pornhub"
-            elif any(x in url for x in ['instagram.com', 'instagr.am']):
-                service_name = "instagram"
-            elif 'vimeo.com' in url:
-                service_name = "vimeo"
-            elif any(x in url for x in ['dailymotion.com', 'dai.ly']):
-                service_name = "dailymotion"
-            elif 'rutube.ru' in url:
-                service_name = "rutube"
-            elif 'twitch.tv' in url:
-                service_name = "twitch"
-            elif 'boosty.to' in url:
-                service_name = "boosty"
-            elif 'ok.ru' in url:
-                service_name = "okru"
-            elif any(x in url for x in ['reddit.com', 'redd.it']):
-                service_name = "reddit"
-            elif 'pikabu.ru' in url:
-                service_name = "pikabu"
-            elif 'zen.yandex.ru' in url:
-                service_name = "yandex_zen"
-            elif any(x in url for x in ['drive.google.com', 'docs.google.com']):
-                service_name = "google_drive"
-            elif 'redtube.com' in url:
-                service_name = "redtube"
-            elif 'bilibili.com' in url:
-                service_name = "bilibili"
-            elif 'nicovideo.jp' in url:
-                service_name = "niconico"
-            elif 'xvideos.com' in url:
-                service_name = "xvideos"
-            elif 'xnxx.com' in url:
-                service_name = "xnxx"
-            elif 'youporn.com' in url:
-                service_name = "youporn"
-            elif 'xhamster.com' in url:
-                service_name = "xhamster"
-            elif 'porntube.com' in url:
-                service_name = "porntube"
-            elif 'spankbang.com' in url:
-                service_name = "spankbang"
-            elif 'onlyfans.com' in url:
-                service_name = "onlyfans"
-            elif 'patreon.com' in url:
-                service_name = "patreon"
-            elif 'soundcloud.com' in url:
-                service_name = "soundcloud"
-            elif 'bandcamp.com' in url:
-                service_name = "bandcamp"
-            elif 'mixcloud.com' in url:
-                service_name = "mixcloud"
-            elif 'deezer.com' in url:
-                service_name = "deezer"
-            elif 'spotify.com' in url:
-                service_name = "spotify"
-            elif 'music.apple.com' in url:
-                service_name = "apple_music"
-            elif 'tidal.com' in url:
-                service_name = "tidal"
-            
-            if service_name != "unknown":
-                thumb_path = os.path.join(user_dir, f"{service_name}_thumb_{video_id or 'unknown'}.jpg")
-                try:
-                    if download_universal_thumbnail(url, thumb_path):
-                        thumb_path = thumb_path
-                    else:
-                        thumbnail_url = info.get('thumbnail')
-                        if thumbnail_url:
-                            try:
-                                response = requests.get(thumbnail_url, timeout=10)
-                                if response.status_code == 200 and len(response.content) <= 1024 * 1024:
-                                    with open(thumb_path, "wb") as f:
-                                        f.write(response.content)
-                                    thumb_path = thumb_path
-                            except Exception:
-                                pass
-                except Exception:
-                    pass
+            # Используем функцию extract_service_info для определения сервиса
+            try:
+                from URL_PARSERS.thumbnail_downloader import extract_service_info
+                service, _ = extract_service_info(url)
+                
+                if service and service != 'unknown':
+                    thumb_path = os.path.join(thumb_dir, f"{service}_thumb_{video_id or 'unknown'}.jpg")
+                    try:
+                        # Передаем app и message для возможности извлечения из Telegram embed
+                        if download_universal_thumbnail(url, thumb_path, user_id, app=app, message=message):
+                            thumb_path = thumb_path
+                        else:
+                            # Fallback: попробуем скачать обложку из метаданных yt-dlp
+                            thumbnail_url = info.get('thumbnail')
+                            if thumbnail_url:
+                                try:
+                                    response = requests.get(thumbnail_url, timeout=10)
+                                    if response.status_code == 200 and len(response.content) <= 1024 * 1024:
+                                        with open(thumb_path, "wb") as f:
+                                            f.write(response.content)
+                                        thumb_path = thumb_path
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
+            except Exception:
+                pass
         # At this point, lack of thumbnail must NOT block further UI
         # --- Detect available audio dubs (languages) once per menu open ---
         filters_state = get_filters(user_id)

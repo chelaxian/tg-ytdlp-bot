@@ -202,12 +202,12 @@ YTDLP_PARAMS = {
     "embed_thumbnail": {
         "type": "boolean",
         "description_key": "ARGS_EMBED_THUMBNAIL_DESC_MSG",
-        "default": False
+        "default": True
     },
     "write_thumbnail": {
         "type": "boolean",
         "description_key": "ARGS_WRITE_THUMBNAIL_DESC_MSG",
-        "default": False
+        "default": True
     },
     "concurrent_fragments": {
         "type": "number",
@@ -258,7 +258,7 @@ YTDLP_PARAMS = {
     "no_check_certificates": {
         "type": "boolean",
         "description_key": "ARGS_NO_CHECK_CERTIFICATES_DESC_MSG",
-        "default": False
+        "default": True
     },
     "username": {
         "type": "text",
@@ -1755,11 +1755,57 @@ def get_user_ytdlp_args(user_id: int, url: str = None) -> Dict[str, Any]:
     """Get user's yt-dlp arguments for use in download functions"""
     user_args = get_user_args(user_id)
     logger.info(f"User {user_id} args loaded: {user_args}")
-    if not user_args:
-        return {}
     
     # Convert user args to yt-dlp format
     ytdlp_args = {}
+    
+    # Set default values for options (enabled/disabled by default)
+    # These will be overridden if user explicitly set them
+    default_write_thumbnail = True
+    default_embed_thumbnail = True
+    default_check_certificate = False
+    default_no_check_certificates = True
+    
+    # Check if user explicitly set these options
+    if user_args:
+        write_thumbnail_set = "write_thumbnail" in user_args
+        embed_thumbnail_set = "embed_thumbnail" in user_args
+        check_certificate_set = "check_certificate" in user_args
+        no_check_certificates_set = "no_check_certificates" in user_args
+    else:
+        write_thumbnail_set = False
+        embed_thumbnail_set = False
+        check_certificate_set = False
+        no_check_certificates_set = False
+    
+    # Apply defaults if not explicitly set by user
+    if not write_thumbnail_set:
+        ytdlp_args["writethumbnail"] = default_write_thumbnail
+        logger.info(f"User {user_id} write_thumbnail not set, using default: {default_write_thumbnail}")
+    if not embed_thumbnail_set:
+        ytdlp_args["embed_thumbnail"] = default_embed_thumbnail
+        logger.info(f"User {user_id} embed_thumbnail not set, using default: {default_embed_thumbnail}")
+    
+    # Apply defaults for certificate options with mutual exclusivity
+    # If user set one, automatically set the opposite
+    if check_certificate_set and user_args:
+        # User explicitly set check_certificate, ensure no_check_certificates is opposite
+        ytdlp_args["check_certificate"] = user_args["check_certificate"]
+        ytdlp_args["no_check_certificates"] = not user_args["check_certificate"]
+        logger.info(f"User {user_id} set check_certificate={user_args['check_certificate']}, auto-setting no_check_certificates={not user_args['check_certificate']}")
+    elif no_check_certificates_set and user_args:
+        # User explicitly set no_check_certificates, ensure check_certificate is opposite
+        ytdlp_args["no_check_certificates"] = user_args["no_check_certificates"]
+        ytdlp_args["check_certificate"] = not user_args["no_check_certificates"]
+        logger.info(f"User {user_id} set no_check_certificates={user_args['no_check_certificates']}, auto-setting check_certificate={not user_args['no_check_certificates']}")
+    else:
+        # Neither is set, apply defaults
+        ytdlp_args["check_certificate"] = default_check_certificate
+        ytdlp_args["no_check_certificates"] = default_no_check_certificates
+        logger.info(f"User {user_id} certificate options not set, using defaults: check_certificate={default_check_certificate}, no_check_certificates={default_no_check_certificates}")
+    
+    if not user_args:
+        return ytdlp_args
     
     # Priority parameters - these override other format settings
     if "video_format" in user_args:
@@ -1801,11 +1847,44 @@ def get_user_ytdlp_args(user_id: int, url: str = None) -> Dict[str, Any]:
                 except json.JSONDecodeError:
                     pass
         
-        elif param_name in ["geo_bypass", "check_certificate", "live_from_start", "no_live_from_start", "hls_use_mpegts", 
-                           "no_playlist", "no_part", "no_continue", "embed_metadata", "embed_thumbnail", 
-                           "write_thumbnail", "force_ipv4", "force_ipv6", "legacy_server_connect", 
-                           "no_check_certificates", "ignore_errors"]:
+        elif param_name in ["geo_bypass", "live_from_start", "no_live_from_start", "hls_use_mpegts", 
+                           "force_ipv4", "force_ipv6", "legacy_server_connect"]:
             ytdlp_args[param_name] = value
+        
+        elif param_name in ["check_certificate", "no_check_certificates"]:
+            # These are already handled above with mutual exclusivity, skip to avoid overwriting
+            pass
+        
+        elif param_name == "ignore_errors":
+            # Convert ignore_errors to ignoreerrors for yt-dlp Python API
+            ytdlp_args["ignoreerrors"] = value
+        
+        elif param_name == "no_playlist":
+            # Convert no_playlist to noplaylist for yt-dlp Python API
+            ytdlp_args["noplaylist"] = value
+        
+        elif param_name == "no_part":
+            # Convert no_part to nopart for yt-dlp Python API
+            ytdlp_args["nopart"] = value
+        
+        elif param_name == "no_continue":
+            # Convert no_continue to continue_dl (inverted value) for yt-dlp Python API
+            # no_continue=True means continue_dl=False
+            ytdlp_args["continue_dl"] = not value
+        
+        elif param_name == "embed_metadata":
+            # embed_metadata is handled via postprocessors, not as direct yt-dlp arg
+            # Store it for later use in download functions
+            ytdlp_args["embed_metadata"] = value
+        
+        elif param_name == "write_thumbnail":
+            # Convert write_thumbnail to writethumbnail for yt-dlp Python API
+            ytdlp_args["writethumbnail"] = value
+        
+        elif param_name == "embed_thumbnail":
+            # embed_thumbnail is handled via postprocessors, not as direct yt-dlp arg
+            # Store it for later use in download functions
+            ytdlp_args["embed_thumbnail"] = value
         
         elif param_name == "audio_format":
             if value and value != "best":
@@ -1821,7 +1900,11 @@ def get_user_ytdlp_args(user_id: int, url: str = None) -> Dict[str, Any]:
             if value and "format" not in ytdlp_args:
                 ytdlp_args["format"] = value
         
-        elif param_name in ["sleep_interval", "max_sleep_interval", "retries", "concurrent_fragments", 
+        elif param_name == "concurrent_fragments":
+            # Convert concurrent_fragments to concurrent_fragment_downloads for yt-dlp Python API
+            ytdlp_args["concurrent_fragment_downloads"] = int(value)
+        
+        elif param_name in ["sleep_interval", "max_sleep_interval", "retries", 
                            "http_chunk_size", "sleep_subtitles"]:
             ytdlp_args[param_name] = int(value)
         
