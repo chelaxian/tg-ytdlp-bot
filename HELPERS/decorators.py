@@ -10,7 +10,7 @@ from HELPERS.logger import logger
 from HELPERS.safe_messeger import safe_send_message
 from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.config import Config
-from DATABASE.firebase_init import is_user_blocked
+from DATABASE.firebase_init import is_user_blocked, is_user_ignored
 
 def app_handler(func):
     """Decorator to automatically inject app instance"""
@@ -94,6 +94,26 @@ def send_reply_keyboard_always(user_id, mode="2x3"):
 def reply_with_keyboard(func):
     """Wrapper for any custom action that adds reply keyboard"""
     def wrapper(*args, **kwargs):
+        # Check if user is ignored BEFORE executing function (highest priority)
+        message = None
+        if 'message' in kwargs:
+            message = kwargs['message']
+        elif len(args) > 1 and hasattr(args[1], 'chat'):
+            message = args[1]  # Pyrogram handlers: (app, message)
+        elif len(args) > 0 and hasattr(args[0], 'chat'):
+            message = args[0]
+        
+        if message:
+            user_id = message.chat.id
+            
+            # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
+            text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+            is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+            
+            if not is_ignore_command:
+                if is_user_ignored(message):
+                    return  # User is ignored, no response at all - don't execute function, don't send keyboard
+        
         result = func(*args, **kwargs)
         # Determine user_id from arguments (Pyrogram message/chat)
         user_id = None
@@ -105,6 +125,11 @@ def reply_with_keyboard(func):
             user_id = getattr(args[1].chat, 'id', None)
         
         if user_id:
+            # Check if user is still not ignored (double check before sending keyboard)
+            if message:
+                if is_user_ignored(message):
+                    return result  # Don't send keyboard if user is ignored
+            
             # Check if keyboard is enabled for this user
             user_dir = f'./users/{user_id}'
             keyboard_file = f'{user_dir}/keyboard.txt'
@@ -209,10 +234,18 @@ def check_user_not_blocked(func):
             user_id = message.chat.id
             is_admin = int(user_id) in Config.ADMIN
             
-            # Skip check for admins
+            # First check if user is ignored (highest priority - ignored users get no response at all)
+            # Even admins can be ignored, but ignore/unignore commands are always allowed
+            text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+            is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+            
+            if not is_ignore_command:
+                if is_user_ignored(message):
+                    return  # User is ignored, no response at all (even for admins)
+            
+            # Skip block check for admins
             if not is_admin:
                 # Check if this is a block/unblock command (should be allowed)
-                text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
                 is_block_command = text.startswith(Config.BLOCK_USER_COMMAND) or text.startswith(Config.UNBLOCK_USER_COMMAND)
                 
                 if not is_block_command:

@@ -813,6 +813,12 @@ class Messages(object):
     ADMIN_USER_UNBLOCKED_MSG = "کاربر از مسدودیت خارج شد 🔓✅\n \nID: <code>{user_id}</code>\nتاریخ خارج شدن از مسدودیت: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> قبلاً از مسدودیت خارج شده است ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ کاربران از مسدودیت خارج شدند: {count}\n⏱ مهر زمانی: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ استفاده: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "کاربر نادیده گرفته شد 👁️❌\n \nشناسه: <code>{user_id}</code>\nتاریخ نادیده گرفته شده: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> قبلاً نادیده گرفته شده است ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ استفاده: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "کاربر دیگر نادیده گرفته نمی‌شود 👁️✅\n \nشناسه: <code>{user_id}</code>\nتاریخ عدم نادیده گرفتن: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> نادیده گرفته نمی‌شود ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>زمان اجرای ربات -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ لطفاً یک URL برای پاک کردن کش ارائه دهید.\nاستفاده: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ لطفاً یک URL معتبر ارائه دهید.\nاستفاده: <code>/uncache &lt;URL&gt;</code>"

@@ -813,6 +813,12 @@ Use:
     ADMIN_USER_UNBLOCKED_MSG = "صارف ان بلاک 🔓✅\n \nID: <code>{user_id}</code>\nان بلاک کی تاریخ: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> پہلے سے ان بلاک ہے ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ ان بلاک شدہ صارفین: {count}\n⏱ ٹائم اسٹیمپ: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ استعمال: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "صارف کو نظر انداز کیا گیا 👁️❌\n \nشناخت: <code>{user_id}</code>\nنظر انداز کی تاریخ: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> پہلے سے نظر انداز کیا جا رہا ہے ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ استعمال: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "صارف اب نظر انداز نہیں کیا جا رہا 👁️✅\n \nشناخت: <code>{user_id}</code>\nنظر انداز نہ کرنے کی تاریخ: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> نظر انداز نہیں کیا جا رہا ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>بوٹ چلنے کا وقت -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ براہ کرم cache صاف کرنے کے لیے URL فراہم کریں۔\nاستعمال: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ براہ کرم درست URL فراہم کریں۔\nاستعمال: <code>/uncache &lt;URL&gt;</code>"

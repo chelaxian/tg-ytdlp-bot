@@ -786,6 +786,12 @@ class Messages(object):
     ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ الاستخدام: /unblock_user <user_id>"
     ADMIN_USER_UNBLOCKED_MSG = "تم إلغاء حظر المستخدم 🔓✅\n \nالمعرف: <code>{user_id}</code>\nتاريخ إلغاء الحظر: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> غير محظور بالفعل ✅😐"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ الاستخدام: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "تم تجاهل المستخدم 👁️❌\n \nالمعرف: <code>{user_id}</code>\nتاريخ التجاهل: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> متجاهل بالفعل ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ الاستخدام: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "لم يعد المستخدم متجاهلاً 👁️✅\n \nالمعرف: <code>{user_id}</code>\nتاريخ إلغاء التجاهل: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> غير متجاهل ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>وقت تشغيل البوت -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ يرجى تقديم رابط لمسح التخزين المؤقت.\nالاستخدام: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ يرجى تقديم رابط صحيح.\nالاستخدام: <code>/uncache &lt;URL&gt;</code>"
@@ -852,6 +858,12 @@ class Messages(object):
         "آخر event_id: {last_event_id}"
     )
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ تم إلغاء حظر المستخدمين: {count}\n⏱ الطابع الزمني: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ الاستخدام: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "تم تجاهل المستخدم 👁️❌\n \nالمعرف: <code>{user_id}</code>\nتاريخ التجاهل: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> متجاهل بالفعل ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ الاستخدام: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "لم يعد المستخدم متجاهلاً 👁️✅\n \nالمعرف: <code>{user_id}</code>\nتاريخ إلغاء التجاهل: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> غير متجاهل ✅😐"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "تم تنظيف ملفات تعريف الارتباط."

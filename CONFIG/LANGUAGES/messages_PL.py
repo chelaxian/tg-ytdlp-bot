@@ -782,6 +782,21 @@ Użyj:
         "<b>Wyjaśnienie:</b>\n{explanation}"
     )
     ADMIN_ERROR_CHECKING_URL_MSG = "❌ Błąd podczas sprawdzania URL: {error}"
+    ADMIN_BLOCK_USER_USAGE_MSG = "❌ Użycie: /block_user <user_id>"
+    ADMIN_CANNOT_DELETE_ADMIN_MSG = "🚫 Administrator nie może usunąć administratora"
+    ADMIN_USER_BLOCKED_MSG = "Użytkownik zablokowany 🔒❌\n \nID: <code>{user_id}</code>\nData blokady: {date}"
+    ADMIN_USER_ALREADY_BLOCKED_MSG = "<code>{user_id}</code> jest już zablokowany ❌😐"
+    ADMIN_NOT_ADMIN_MSG = "🚫 Przepraszam! Nie jesteś administratorem"
+    ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ Użycie: /unblock_user <user_id>"
+    ADMIN_USER_UNBLOCKED_MSG = "Użytkownik odblokowany 🔓✅\n \nID: <code>{user_id}</code>\nData odblokowania: {date}"
+    ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> jest już odblokowany ✅😐"
+    ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Odblokowani użytkownicy: {count}\n⏱ Znacznik czasu: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Użycie: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Użytkownik zignorowany 👁️❌\n \nID: <code>{user_id}</code>\nData ignorowania: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> jest już ignorowany ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Użycie: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Użytkownik nie jest już ignorowany 👁️✅\n \nID: <code>{user_id}</code>\nData zaprzestania ignorowania: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> nie jest ignorowany ✅😐"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "Ciasteczka wyczyszczone."

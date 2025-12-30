@@ -23,9 +23,9 @@ from COMMANDS.keyboard_cmd import keyboard_command, keyboard_callback_handler
 from COMMANDS.proxy_cmd import proxy_command
 from COMMANDS.link_cmd import link_command
 from COMMANDS.image_cmd import image_command
-from COMMANDS.admin_cmd import get_user_log, send_promo_message, block_user, unblock_user, check_runtime, get_user_details, uncache_command, reload_firebase_cache_command, ban_time_command
+from COMMANDS.admin_cmd import get_user_log, send_promo_message, block_user, unblock_user, ignore_user, unignore_user, check_runtime, get_user_details, uncache_command, reload_firebase_cache_command, ban_time_command
 from DATABASE.cache_db import auto_cache_command
-from DATABASE.firebase_init import is_user_blocked
+from DATABASE.firebase_init import is_user_blocked, is_user_ignored
 import os
 from URL_PARSERS.video_extractor import video_url_extractor
 from URL_PARSERS.playlist_utils import is_playlist_with_range
@@ -107,6 +107,13 @@ def url_distractor(app, message):
     text = message.text.strip()
     logger.info(f"🔍 [DEBUG] url_distractor: text после strip='{text}'")
     
+    # Check if user is ignored (highest priority - ignored users get no response at all)
+    # Even admins can be ignored, but ignore/unignore commands are always allowed
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    if not is_ignore_command:
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admins)
+    
     # Check if user is blocked (except for admins, block/unblock commands, and /lang command)
     if not is_admin:
         # Allow block/unblock commands and /lang command to be processed even if user is blocked
@@ -116,10 +123,13 @@ def url_distractor(app, message):
             if is_user_blocked(message):
                 return  # User is blocked, message already sent by is_user_blocked
     
-    # Check command rate limit (for all commands, not just URLs)
-    from HELPERS.command_limiter import check_command_limit
+    # Anti-bot protection check
+    from HELPERS.anti_bot_protection import check_and_ban_user, record_user_activity
     from CONFIG.messages import safe_get_messages
     from HELPERS.safe_messeger import safe_send_message
+    
+    # Record user activity for 24/7 detection and timer interval detection
+    record_user_activity(user_id, is_admin, message_text=text)
     
     # Check if this is a command (starts with / or is an emoji command)
     is_command = text.startswith('/') or text in [
@@ -128,6 +138,15 @@ def url_distractor(app, message):
     ]
     
     if is_command:
+        # Check for duplicate commands (anti-bot protection)
+        command_text = text.split()[0] if text.split() else text  # Get command name only
+        should_ban, ban_reason = check_and_ban_user(user_id, command_text, is_command=True, is_admin=is_admin, full_message_text=text)
+        if should_ban:
+            # User was banned, stop processing
+            return
+        
+        # Check command rate limit (for all commands, not just URLs)
+        from HELPERS.command_limiter import check_command_limit
         allowed, cmd_limit_msg = check_command_limit(user_id, is_admin)
         if not allowed:
             messages = safe_get_messages(user_id)
@@ -424,6 +443,14 @@ def url_distractor(app, message):
             return
         # /block_user
         if is_command_separated(text, Config.BLOCK_USER_COMMAND):
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        # /ignore_user
+        if is_command_separated(text, Config.IGNORE_USER_COMMAND):
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        # /unignore_user
+        if is_command_separated(text, Config.UNIGNORE_USER_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
         # /broadcast
@@ -1128,6 +1155,13 @@ def url_distractor(app, message):
                 url_match = re.search(r"https?://\S+", final_text)
                 raw_url = url_match.group(0) if url_match else ""
                 
+                # Anti-bot protection check for URLs
+                if raw_url:
+                    should_ban, ban_reason = check_and_ban_user(user_id, raw_url, is_command=False, is_admin=is_admin, full_message_text=final_text)
+                    if should_ban:
+                        # User was banned, stop processing
+                        return
+                
                 # Проверка черного списка доменов (самая ранняя проверка, до любых попыток обработки)
                 if raw_url:
                     parsed = urlparse(raw_url)
@@ -1279,6 +1313,16 @@ def url_distractor(app, message):
         # /unblock_user Command
         if is_command_separated(text, Config.UNBLOCK_USER_COMMAND):
             unblock_user(app, message)
+            return
+
+        # /ignore_user Command
+        if is_command_separated(text, Config.IGNORE_USER_COMMAND):
+            ignore_user(app, message)
+            return
+
+        # /unignore_user Command
+        if is_command_separated(text, Config.UNIGNORE_USER_COMMAND):
+            unignore_user(app, message)
             return
 
         # /ban_time Command
