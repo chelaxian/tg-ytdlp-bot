@@ -412,6 +412,12 @@ def url_distractor(app, message):
         if is_command_separated(text, Config.GET_USER_DETAILS_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
+        # /all_blocked, /all_unblocked, /all_users
+        if text == "/all_blocked" or text.startswith("/all_blocked ") or \
+           text == "/all_unblocked" or text.startswith("/all_unblocked ") or \
+           text == "/all_users" or text.startswith("/all_users "):
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
         # /unblock_user
         if is_command_separated(text, Config.UNBLOCK_USER_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
@@ -1285,6 +1291,21 @@ def url_distractor(app, message):
             check_runtime(message)
             return
 
+        # /all_blocked Command - Get blocked users
+        if text == "/all_blocked" or text.startswith("/all_blocked "):
+            get_user_details(app, message)
+            return
+        
+        # /all_unblocked Command - Get unblocked users
+        if text == "/all_unblocked" or text.startswith("/all_unblocked "):
+            get_user_details(app, message)
+            return
+        
+        # /all_users Command - Get all users
+        if text == "/all_users" or text.startswith("/all_users "):
+            get_user_details(app, message)
+            return
+        
         # /All Command for User Details
         if is_command_separated(text, Config.GET_USER_DETAILS_COMMAND):
             get_user_details(app, message)
@@ -1301,12 +1322,12 @@ def url_distractor(app, message):
             return
 
         # /reload_cache Command - Reload cache for URL
-        if Config.RELOAD_CACHE_COMMAND in text:
+        if text == Config.RELOAD_CACHE_COMMAND or text.startswith(Config.RELOAD_CACHE_COMMAND + " "):
             reload_firebase_cache_command(app, message)
             return
 
         # /auto_cache Command - Toggle automatic cache reloading
-        if Config.AUTO_CACHE_COMMAND in text:
+        if text == Config.AUTO_CACHE_COMMAND or text.startswith(Config.AUTO_CACHE_COMMAND + " "):
             auto_cache_command(app, message)
             return
 
