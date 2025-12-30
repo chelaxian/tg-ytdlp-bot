@@ -45,4 +45,3 @@ else
     echo "❌ Update finished with errors"
     echo "Please check the logs above"
 fi
-
