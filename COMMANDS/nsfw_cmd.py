@@ -27,6 +27,13 @@ def nsfw_command(app, message):
     user_id = getattr(message.from_user, "id", None) or chat_id
     storage_id = chat_id
     is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is blocked (except for admins and groups)
+    if chat_type == "private" and not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return  # User is blocked, message already sent by is_user_blocked
+    
     is_in_channel = is_user_in_channel(app, message)
     logger.info(LoggerMsg.NSFW_USER_REQUESTED_COMMAND_LOG_MSG.format(user_id=user_id))
     logger.info(LoggerMsg.NSFW_USER_IS_ADMIN_LOG_MSG.format(user_id=user_id, is_admin=is_admin))

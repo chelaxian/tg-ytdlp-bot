@@ -107,6 +107,15 @@ def url_distractor(app, message):
     text = message.text.strip()
     logger.info(f"🔍 [DEBUG] url_distractor: text после strip='{text}'")
     
+    # Check if user is blocked (except for admins, block/unblock commands, and /lang command)
+    if not is_admin:
+        # Allow block/unblock commands and /lang command to be processed even if user is blocked
+        is_block_command = text.startswith(Config.BLOCK_USER_COMMAND) or text.startswith(Config.UNBLOCK_USER_COMMAND)
+        is_lang_command = text.startswith("/lang") or text.startswith("/lang@")
+        if not is_block_command and not is_lang_command:
+            if is_user_blocked(message):
+                return  # User is blocked, message already sent by is_user_blocked
+    
     # Check command rate limit (for all commands, not just URLs)
     from HELPERS.command_limiter import check_command_limit
     from CONFIG.messages import safe_get_messages

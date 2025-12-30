@@ -3,6 +3,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # Removed circular import
+from CONFIG.config import Config
 
 class Messages(object):
     #######################################################
@@ -1938,7 +1939,7 @@ Yi amfani da:
     DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Ba a yi nasarar sake shigar da cache na wuta ba: {error}"
     
     # Database user ban messages
-    DB_USER_BANNED_MSG = "🚫 An hana ku daga bot!"
+    DB_USER_BANNED_MSG = f"🚫 An hana ku daga bot! Don cire haram, tuntuɓi {Config.ADMIN_USERNAME}\n<blockquote>P.S. Kada ka bar tashar - za a hana ka kai tsaye ⛔️</blockquote>\n🌍Canza harshe /lang"
     
     # Always Ask Menu messages
     AA_NO_VIDEO_FORMATS_FOUND_MSG = "❔ Ba a sami tsarin bidiyo ba. Ana ƙoƙarin mai saukar da hoto…"

@@ -3,6 +3,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # Removed circular import
+from CONFIG.config import Config
 
 class Messages(object):
     #######################################################
@@ -1938,7 +1939,7 @@ Kullanın:
     DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Firebase önbelleği yeniden yüklenemedi: {error}"
     
     # Database user ban messages
-    DB_USER_BANNED_MSG = "🚫 Bottan yasaklandınız!"
+    DB_USER_BANNED_MSG = f"🚫 Bottan yasaklandınız! Yasak kaldırmak için {Config.ADMIN_USERNAME} ile iletişime geçin\n<blockquote>P.S. Kanaldan ayrılmayın - otomatik olarak yasaklanacaksınız ⛔️</blockquote>\n🌍Dili değiştir /lang"
     
     # Always Ask Menu messages
     AA_NO_VIDEO_FORMATS_FOUND_MSG = "❔ Hiçbir video formatı bulunamadı. Resim indirici deneniyor…"

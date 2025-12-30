@@ -312,7 +312,15 @@ def subs_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """Handle /subs command - show language selection menu"""
     user_id = message.from_user.id
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is blocked (except for admins)
+    if not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return  # User is blocked, message already sent by is_user_blocked
+    
+    if not is_admin and not is_user_in_channel(app, message):
         return
 
 

@@ -9,6 +9,8 @@ from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
 from HELPERS.safe_messeger import safe_send_message
 from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.config import Config
+from DATABASE.firebase_init import is_user_blocked
 
 def app_handler(func):
     """Decorator to automatically inject app instance"""
@@ -188,6 +190,36 @@ def background_handler(func=None, *, label=None):
             logger.exception(f"[HANDLER-CRASH] {context}")
             raise
 
+    return wrapper
+
+def check_user_not_blocked(func):
+    """Decorator to check if user is blocked before processing command"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Extract message from args or kwargs
+        message = None
+        if args and len(args) >= 2 and hasattr(args[1], 'chat'):
+            message = args[1]  # Pyrogram handlers: (app, message)
+        elif 'message' in kwargs:
+            message = kwargs['message']
+        elif args and len(args) >= 1 and hasattr(args[0], 'chat'):
+            message = args[0]  # Some handlers: (message,)
+        
+        if message:
+            user_id = message.chat.id
+            is_admin = int(user_id) in Config.ADMIN
+            
+            # Skip check for admins
+            if not is_admin:
+                # Check if this is a block/unblock command (should be allowed)
+                text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+                is_block_command = text.startswith(Config.BLOCK_USER_COMMAND) or text.startswith(Config.UNBLOCK_USER_COMMAND)
+                
+                if not is_block_command:
+                    if is_user_blocked(message):
+                        return  # User is blocked, message already sent by is_user_blocked
+        
+        return func(*args, **kwargs)
     return wrapper
 
     

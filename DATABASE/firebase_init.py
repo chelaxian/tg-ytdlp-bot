@@ -536,7 +536,7 @@ def is_user_blocked(message):
         blocked_users = [int(k) for k in blocked_data.keys()] if isinstance(blocked_data, dict) else []
     
     if int(message.chat.id) in blocked_users:
-        send_to_all(message, safe_get_messages().DB_USER_BANNED_MSG)
+        send_to_all(message, safe_get_messages(message.chat.id).DB_USER_BANNED_MSG)
         return True
     else:
         return False

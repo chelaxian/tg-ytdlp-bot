@@ -390,8 +390,16 @@ def cookies_from_browser(app, message):
         message: Сообщение команды
     """
     user_id = message.chat.id
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is blocked (except for admins)
+    if not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return  # User is blocked, message already sent by is_user_blocked
+    
     # For non-admins, we check the subscription
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    if not is_admin and not is_user_in_channel(app, message):
         return
 
     # Logging a request for cookies from browser

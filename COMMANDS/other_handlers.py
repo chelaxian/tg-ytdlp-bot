@@ -51,10 +51,18 @@ def help_msg_callback(app, callback_query):
 def audio_command_handler(app, message):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is blocked (except for admins)
+    if not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return  # User is blocked, message already sent by is_user_blocked
+    
     if get_active_download(user_id):
         safe_send_message(user_id, safe_get_messages(user_id).AUDIO_WAIT_MSG, reply_parameters=ReplyParameters(message_id=message.id))
         return
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    if not is_admin and not is_user_in_channel(app, message):
         return
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
@@ -125,7 +133,15 @@ def audio_command_handler(app, message):
 @background_handler(label="link_command")
 def link_command_handler(app, message):
     user_id = message.chat.id
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is blocked (except for admins)
+    if not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return  # User is blocked, message already sent by is_user_blocked
+    
+    if not is_admin and not is_user_in_channel(app, message):
         return
     link_command(app, message)
 
@@ -134,7 +150,15 @@ def link_command_handler(app, message):
 @background_handler(label="proxy_command")
 def proxy_command_handler(app, message):
     user_id = message.chat.id
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is blocked (except for admins)
+    if not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return  # User is blocked, message already sent by is_user_blocked
+    
+    if not is_admin and not is_user_in_channel(app, message):
         return
     proxy_command(app, message)
 
@@ -146,7 +170,15 @@ def proxy_command_handler(app, message):
 def playlist_command(app, message):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is blocked (except for admins)
+    if not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return  # User is blocked, message already sent by is_user_blocked
+    
+    if not is_admin and not is_user_in_channel(app, message):
         return
 
     keyboard = InlineKeyboardMarkup([
