@@ -2176,7 +2176,7 @@ Add a dedicated systemd unit (see `etc/systemd/system/tg-ytdlp-bot.service` as a
 
 ---
 
-## 💖 Support 
+## 💖 Support
 
 If you find this project helpful, please consider:
 
