@@ -3,6 +3,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # Removed circular import
+from CONFIG.config import Config
 
 class Messages(object):
     #######################################################
@@ -1938,7 +1939,7 @@ class Messages(object):
     DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Firebase 캐시 다시 로드 실패: {error}"
     
     # Database user ban messages
-    DB_USER_BANNED_MSG = "🚫 봇에서 차단되었습니다!"
+    DB_USER_BANNED_MSG = f"🚫 봇에서 차단되었습니다! 차단 해제를 원하시면 {Config.ADMIN_USERNAME}에게 문의하세요\n<blockquote>P.S. 채널을 떠나지 마세요 - 자동으로 차단됩니다 ⛔️</blockquote>\n🌍언어 변경 /lang"
     
     # Always Ask Menu messages
     AA_NO_VIDEO_FORMATS_FOUND_MSG = "❔ 비디오 형식을 찾을 수 없습니다. 이미지 다운로더 시도 중…"

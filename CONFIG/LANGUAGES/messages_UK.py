@@ -3,6 +3,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # Removed circular import
+from CONFIG.config import Config
 
 class Messages(object):
     #######################################################
@@ -1938,7 +1939,7 @@ class Messages(object):
     DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Не вдалося перезавантажити кеш Firebase: {error}"
     
     # Database user ban messages
-    DB_USER_BANNED_MSG = "🚫 Ви забанені в роботі бота!"
+    DB_USER_BANNED_MSG = f"🚫 Ви забанені в роботі бота! Для розблокування зверніться до {Config.ADMIN_USERNAME}\n<blockquote>P.S. Не покидайте канал - ви будете автоматично заблоковані ⛔️</blockquote>\n🌍Змінити мову /lang"
     
     # Always Ask Menu messages
     AA_NO_VIDEO_FORMATS_FOUND_MSG = "❔ Відеоформати не знайдено. Спроба завантажувача зображень…"

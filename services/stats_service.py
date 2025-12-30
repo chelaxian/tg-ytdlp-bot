@@ -108,6 +108,8 @@ def block_user(user_id: int, reason: str = "manual") -> None:
     ts = str(int(time.time()))
     payload = {"ID": str(user_id), "timestamp": ts, "blocked_reason": reason}
     _blocked_users_node().child(str(user_id)).set(payload)
+    # Удаляем пользователя из списка разблокированных при блокировке
+    _unblocked_users_node().child(str(user_id)).remove()
     collector = get_stats_collector()
     collector.block_user_local(user_id, reason=reason)
     guard = get_channel_guard()

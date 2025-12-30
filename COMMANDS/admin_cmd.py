@@ -646,6 +646,8 @@ def block_user(app, message):
         if b_user_id not in b_users:
             data = {"ID": b_user_id, "timestamp": str(dt)}
             db.child(f"{Config.BOT_DB_PATH}/blocked_users/{b_user_id}").set(data)
+            # Удаляем пользователя из списка разблокированных при блокировке
+            db.child(f"{Config.BOT_DB_PATH}/unblocked_users/{b_user_id}").remove()
             send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_BLOCKED_MSG.format(user_id=b_user_id, date=datetime.fromtimestamp(dt)))
             if guard:
                 guard.mark_user_blocked(b_user_id, reason="manual")

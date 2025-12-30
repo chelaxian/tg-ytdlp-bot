@@ -525,18 +525,39 @@ def check_user(message):
 # Checking user is Blocked or not
 def is_user_blocked(message):
     messages = safe_get_messages(message.chat.id)
+    user_id = int(message.chat.id)
     use_firebase = getattr(Config, 'USE_FIREBASE', True)
+    
     if use_firebase:
+        # Проверяем список разблокированных пользователей (приоритет)
+        unblocked = db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("unblocked_users").get().each()
+        unblocked_users = [int(u_user.key()) for u_user in unblocked] if unblocked else []
+        
+        # Если пользователь в списке разблокированных, он не заблокирован
+        if user_id in unblocked_users:
+            return False
+        
+        # Проверяем список заблокированных пользователей
         blocked = db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("blocked_users").get().each()
         blocked_users = [int(b_user.key()) for b_user in blocked] if blocked else []
     else:
         # В локальном режиме проверяем через локальный кэш
         from DATABASE.cache_db import get_from_local_cache
+        
+        # Проверяем список разблокированных пользователей (приоритет)
+        unblocked_data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "unblocked_users"])
+        unblocked_users = [int(k) for k in unblocked_data.keys()] if isinstance(unblocked_data, dict) else []
+        
+        # Если пользователь в списке разблокированных, он не заблокирован
+        if user_id in unblocked_users:
+            return False
+        
+        # Проверяем список заблокированных пользователей
         blocked_data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "blocked_users"])
         blocked_users = [int(k) for k in blocked_data.keys()] if isinstance(blocked_data, dict) else []
     
-    if int(message.chat.id) in blocked_users:
-        send_to_all(message, safe_get_messages().DB_USER_BANNED_MSG)
+    if user_id in blocked_users:
+        send_to_all(message, safe_get_messages(message.chat.id).DB_USER_BANNED_MSG)
         return True
     else:
         return False

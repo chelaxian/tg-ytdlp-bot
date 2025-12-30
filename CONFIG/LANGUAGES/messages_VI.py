@@ -3,6 +3,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # Removed circular import
+from CONFIG.config import Config
 
 class Messages(object):
     #######################################################
@@ -1938,7 +1939,7 @@ Use:
     DB_FAILED_RELOAD_FIREBASE_CACHE_MSG = "❌ Không thể tải lại cache Firebase: {error}"
     
     # Database user ban messages
-    DB_USER_BANNED_MSG = "🚫 Bạn đã bị cấm sử dụng bot!"
+    DB_USER_BANNED_MSG = f"🚫 Bạn đã bị cấm sử dụng bot! Để được gỡ cấm, liên hệ với {Config.ADMIN_USERNAME}\n<blockquote>P.S. Đừng rời khỏi kênh - bạn sẽ bị cấm tự động ⛔️</blockquote>\n🌍Thay đổi ngôn ngữ /lang"
     
     # Always Ask Menu messages
     AA_NO_VIDEO_FORMATS_FOUND_MSG = "❔ Không tìm thấy định dạng video. Đang thử trình tải hình ảnh…"

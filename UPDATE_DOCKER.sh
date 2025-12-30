@@ -199,4 +199,3 @@ log_info "Для просмотра логов конкретного серви
 echo "  $DOCKER_COMPOSE logs -f bot"
 echo "  $DOCKER_COMPOSE logs -f dashboard"
 echo "  $DOCKER_COMPOSE logs -f warp"
-
