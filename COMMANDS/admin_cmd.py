@@ -366,7 +366,19 @@ def get_user_details(app, message):
     messages = safe_get_messages(message.chat.id)
     # Lazy import
     from DATABASE.cache_db import get_from_local_cache
-    command = message.text.split(Config.GET_USER_DETAILS_COMMAND)[1].strip()
+    
+    # Обработка команд /all_blocked, /all_unblocked и /all_users
+    text = message.text.strip()
+    if text == "/all_blocked" or text.startswith("/all_blocked"):
+        command = "_blocked"
+    elif text == "/all_unblocked" or text.startswith("/all_unblocked"):
+        command = "_unblocked"
+    elif text == "/all_users" or text.startswith("/all_users"):
+        command = "_users"
+    else:
+        # Стандартная обработка для /all с суффиксами
+        command = message.text.split(Config.GET_USER_DETAILS_COMMAND)[1].strip()
+    
     path_map = {
         "_blocked": "blocked_users",
         "_unblocked": "unblocked_users",
