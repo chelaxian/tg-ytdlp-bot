@@ -3365,7 +3365,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             app.edit_message_text(user_id, status_msg.id, "⚠️ No additional audio tracks found")
                                     except Exception as e:
                                         logger.error(f"Error in audio tracks postprocessing: {e}")
-                                        import traceback
                                         logger.error(traceback.format_exc())
                                 
                                 # Download and embed all subtitles if needed
@@ -3422,11 +3421,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             app.edit_message_text(user_id, status_msg.id, "⚠️ No subtitles found")
                                     except Exception as e:
                                         logger.error(f"Error in subtitles postprocessing: {e}")
-                                        import traceback
                                         logger.error(traceback.format_exc())
                         except Exception as e:
                             logger.error(f"Error in MKV postprocessing: {e}")
-                            import traceback
                             logger.error(traceback.format_exc())
                         
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)

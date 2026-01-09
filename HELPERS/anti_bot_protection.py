@@ -30,13 +30,20 @@ _user_message_timestamps: Dict[int, List[float]] = defaultdict(list)  # {user_id
 _user_message_intervals: Dict[int, List[float]] = defaultdict(list)  # {user_id: [intervals, ...]} for timer detection
 _lock = threading.Lock()
 
+# Bot start time (set on first load)
+_bot_start_time: Optional[float] = None
+
 # File for persistence
 _ANTI_BOT_DATA_FILE = "CONFIG/.anti_bot_data.json"
 
 
 def _load_from_disk():
     """Load anti-bot data from disk"""
-    global _user_url_history, _user_command_history, _user_activity_hours
+    global _user_url_history, _user_command_history, _user_activity_hours, _bot_start_time
+    
+    # Initialize bot start time on first load
+    if _bot_start_time is None:
+        _bot_start_time = time.time()
     
     if os.path.exists(_ANTI_BOT_DATA_FILE):
         try:
@@ -393,9 +400,18 @@ def _check_suspicious_patterns(message_text: str) -> Optional[str]:
 
 
 def _check_24h_activity(user_id: int, current_time: float) -> Optional[str]:
-    """Check if user is active 24/7 (no sleep pattern). Returns ban reason if detected."""
+    """Check if user is active 24/7 (no sleep pattern). Returns ban reason if detected.
+    
+    Checks if user was active in each of the hours within 23 hours since bot start.
+    """
     if not LimitsConfig.ANTI_BOT_PROTECTION_ENABLED:
         return None
+    
+    global _bot_start_time
+    
+    # Initialize bot start time if not set
+    if _bot_start_time is None:
+        _bot_start_time = current_time
     
     _cleanup_old_data(user_id, current_time)
     
@@ -403,25 +419,71 @@ def _check_24h_activity(user_id: int, current_time: float) -> Optional[str]:
         if user_id not in _user_activity_hours:
             _user_activity_hours[user_id] = {}
         
-        # Get current hour (0-23)
-        current_hour = datetime.fromtimestamp(current_time).hour
+        # Calculate hours since bot start
+        hours_since_start = (current_time - _bot_start_time) / 3600.0
+        
+        # Calculate which hour since bot start this activity belongs to
+        hour_since_start = int(hours_since_start)
         
         # Update activity for current hour
-        _user_activity_hours[user_id][current_hour] = current_time
+        _user_activity_hours[user_id][hour_since_start] = current_time
         
-        # Check how many different hours user was active in last 24 hours
-        window = LimitsConfig.ANTI_BOT_24H_WINDOW
-        active_hours = {
-            hour for hour, ts in _user_activity_hours[user_id].items()
-            if current_time - ts < window
-        }
-        
-        if len(active_hours) >= LimitsConfig.ANTI_BOT_24H_ACTIVITY_LIMIT:
-            reason = (
-                f"Обнаружена активность 24/7 (подозрение на бота): "
-                f"активность в {len(active_hours)} разных часах в течение 24 часов"
-            )
-            return reason
+        # Determine how many hours to check
+        if hours_since_start < 23:
+            # Less than 23 hours have passed, check activity in each of the passed hours
+            hours_to_check = hour_since_start + 1  # +1 to include current hour (0-indexed)
+            active_hours_count = 0
+            
+            for hour_offset in range(hours_to_check):
+                # Calculate the timestamp range for this hour since bot start
+                hour_start_time = _bot_start_time + (hour_offset * 3600)
+                hour_end_time = hour_start_time + 3600
+                
+                # Check if user was active in this hour
+                user_activities = [
+                    ts for h, ts in _user_activity_hours[user_id].items()
+                    if hour_start_time <= ts < hour_end_time
+                ]
+                
+                if user_activities:
+                    active_hours_count += 1
+            
+            # Check if user was active in all passed hours
+            if active_hours_count >= hours_to_check:
+                reason = (
+                    f"Обнаружена активность 24/7 (подозрение на бота): "
+                    f"активность в каждом из {active_hours_count} часов в течение {hours_to_check} часов с момента запуска"
+                )
+                return reason
+        else:
+            # 23+ hours have passed, check activity in each of the last 23 hours (excluding current hour)
+            # This creates a sliding window that constantly shifts
+            hours_to_check = 23
+            active_hours_count = 0
+            
+            # Check last 23 hours, excluding current hour
+            # We check from 24 hours ago to 1 hour ago (23 hours total, excluding current)
+            for hour_offset in range(1, 24):  # From 1 to 23 hours ago
+                # Calculate the timestamp range for this hour (from hour_offset hours ago)
+                hour_start_time = current_time - (hour_offset * 3600)
+                hour_end_time = hour_start_time + 3600
+                
+                # Check if user was active in this hour
+                user_activities = [
+                    ts for h, ts in _user_activity_hours[user_id].items()
+                    if hour_start_time <= ts < hour_end_time
+                ]
+                
+                if user_activities:
+                    active_hours_count += 1
+            
+            # Check if user was active in all 23 hours (excluding current)
+            if active_hours_count >= LimitsConfig.ANTI_BOT_24H_ACTIVITY_LIMIT:
+                reason = (
+                    f"Обнаружена активность 24/7 (подозрение на бота): "
+                    f"активность в {active_hours_count} из 23 часов в течение последних 23 часов (не считая текущий час)"
+                )
+                return reason
     
     _save_to_disk()
     return None
