@@ -719,10 +719,11 @@ def ask_filter_callback(app, callback_query):
                     m = _re.search(r'https?://[^\s\*#]+', url_text)
                     url = m.group(0) if m else url_text
                     try:
-                        from COMMANDS.subtitles_cmd import get_or_compute_subs_langs, load_subs_langs_cache
+                        from COMMANDS.subtitles_cmd import get_or_compute_subs_langs
                         normal, auto = get_or_compute_subs_langs(user_id, url)
                         langs = sorted(set(normal) | set(auto))
                     except Exception:
+                        # Use local function load_subs_langs_cache (defined in this file)
                         normal, auto = load_subs_langs_cache(user_id, url)
                         langs = sorted(set(normal) | set(auto))
                     if langs:

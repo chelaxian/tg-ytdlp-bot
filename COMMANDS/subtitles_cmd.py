@@ -857,7 +857,7 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Returns a list of available languages of subtitles. Circrats 429 and 'Requested Format ...'."""
     # import os, random, time, yt_dlp
 
-    MAX_RETRIES = 1
+    MAX_RETRIES = 2
     def backoff(i):  # short, because the listing itself usually does not meet the limits
         return (3, 5, 10)[min(i, 2)] + random.uniform(0, 2)
 
@@ -1169,7 +1169,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     One income Info, select 1 track. For URL with auto transmission (tlang =)
     We do not sort out the FMT so as not to catch 429. Json3/SRV3 convertibly locally.
     """
-    MAX_RETRIES = 1
+    MAX_RETRIES = 2
     RTL_CJK = {'ar', 'fa', 'ur', 'ps', 'iw', 'he', 'zh', 'zh-Hans', 'zh-Hant', 'ja', 'ko'}
 
     def _rand_jitter(base, spread=2.5):
@@ -1235,7 +1235,10 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             if r.status_code == 429:
                 logger.warning(f"{LoggerMsg.SUBS_TIMEDTEXT_429_LOG_MSG}")
-                time.sleep(_rand_jitter(12, 6))
+                # Increase wait time for 429 errors - exponential backoff
+                wait_time = _rand_jitter(15 + (i * 10), 5)
+                logger.warning(f"timedtext 429 ({url_tt}), sleep a bit")
+                time.sleep(wait_time)
                 continue
 
             logger.error(f"{LoggerMsg.SUBS_TIMEDTEXT_HTTP_ERROR_LOG_MSG}")
@@ -1352,9 +1355,26 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                         ok = True
                         break
 
-            if not ok or os.path.getsize(dst) < 200:
+            if not ok:
                 try: os.remove(dst)
                 except Exception: pass
+                logger.warning(f"Could not download/too small -> None")
+                # Continue to next attempt instead of returning None immediately
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(_rand_jitter(10 + (attempt * 5)))
+                    continue
+                logger.warning(LoggerMsg.SUBS_COULD_NOT_DOWNLOAD_LOG_MSG)
+                return None
+            
+            # Check file size only if download was successful
+            if os.path.exists(dst) and os.path.getsize(dst) < 200:
+                try: os.remove(dst)
+                except Exception: pass
+                logger.warning(f"Downloaded file too small (< 200 bytes) -> None")
+                # Continue to next attempt instead of returning None immediately
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(_rand_jitter(10 + (attempt * 5)))
+                    continue
                 logger.warning(LoggerMsg.SUBS_COULD_NOT_DOWNLOAD_LOG_MSG)
                 return None
 
@@ -1456,6 +1476,24 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
         status_msg = safe_send_message(user_id, safe_get_messages(user_id).SUBS_DOWNLOADING_MSG, reply_parameters=ReplyParameters(message_id=message.id))
         
         # Download subtitles
+        # If available_langs is not provided or empty, get it from cache or fetch it
+        if not available_langs:
+            try:
+                # Try to get from cache first
+                normal_langs = _subs_check_cache.get(f"{url}_{user_id}_normal_langs", [])
+                auto_langs = _subs_check_cache.get(f"{url}_{user_id}_auto_langs", [])
+                if auto_mode:
+                    available_langs = auto_langs if auto_langs else normal_langs
+                else:
+                    available_langs = normal_langs if normal_langs else auto_langs
+                
+                # If still empty, fetch it
+                if not available_langs:
+                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+            except Exception as e:
+                logger.error(f"Error getting available languages: {e}")
+                available_langs = []
+        
         subs_path = download_subtitles_ytdlp(url, user_id, user_dir, available_langs)
         
         if subs_path and os.path.exists(subs_path):
