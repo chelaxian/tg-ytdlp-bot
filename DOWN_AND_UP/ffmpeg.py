@@ -1357,7 +1357,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         from COMMANDS.subtitles_cmd import get_available_subs_languages, lang_match
         from COMMANDS.subtitles_cmd import get_user_subs_auto_mode
         from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
-        from URL_PARSERS.url_extractor import add_pot_to_ytdl_opts
+        from HELPERS.pot_helper import add_pot_to_ytdl_opts
         from CONFIG.config import Config
         
         # Get available languages

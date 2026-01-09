@@ -4520,12 +4520,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 auto_mode = get_user_subs_auto_mode(user_id)
                 subs_available = ""
                 # Audio language marker for rows (keep UI light; summary shows selection)
-                if subs_enabled:
+                if subs_enabled and is_youtube_url(url):
+                    found_type = check_subs_availability(url, user_id, q, return_type=True)
                     if sel_ext == 'mkv':
-                        # Для MKV при включённых субтитрах показываем без ограничений
-                        subs_available = "💬"
-                    elif is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                        found_type = check_subs_availability(url, user_id, q, return_type=True)
+                        # Для MKV при включённых субтитрах показываем на всех кнопках качества, если есть доступные субтитры
+                        if found_type is not None:  # Any subtitles found (auto or normal)
+                            subs_available = "💬"
+                    elif w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
+                        # Для MP4 проверяем лимиты
                         if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                             temp_info = {
                                 'duration': info.get('duration'),
@@ -4963,15 +4965,45 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         
         # Audio/subs selection summary line
         fstate = get_filters(user_id)
+        sel_ext = fstate.get("ext", "mp4")
+        is_mkv = (sel_ext == "mkv")
+        
+        # Audio selection summary
         sel_audio_lang = fstate.get("audio_lang")
+        selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+        audio_all_dubs = fstate.get("audio_all_dubs", False)
+        
+        # Subtitle selection summary
         subs_enabled = is_subs_enabled(user_id)
         subs_lang = get_user_subs_language(user_id) if subs_enabled else None
+        selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+        subs_all_selected = fstate.get("subs_all_selected", False)
+        
         summary_parts = []
-        if sel_audio_lang:
+        
+        # Show audio selection
+        if is_mkv:
+            if audio_all_dubs:
+                summary_parts.append("🗣 ALL")
+            elif selected_audio_langs:
+                summary_parts.append(f"🗣 {', '.join(selected_audio_langs)}")
+            elif sel_audio_lang:
+                summary_parts.append(f"🗣 {sel_audio_lang}")
+        elif sel_audio_lang:
             summary_parts.append(f"🗣 {sel_audio_lang}")
-        # Always show chosen subtitle language if subs are enabled
-        if subs_enabled and subs_lang:
-            summary_parts.append(f"💬 {subs_lang}")
+        
+        # Show subtitle selection
+        if subs_enabled:
+            if is_mkv:
+                if subs_all_selected:
+                    summary_parts.append("💬 ALL")
+                elif selected_subs_langs:
+                    summary_parts.append(f"💬 {', '.join(selected_subs_langs)}")
+                elif subs_lang:
+                    summary_parts.append(f"💬 {subs_lang}")
+            elif subs_lang:
+                summary_parts.append(f"💬 {subs_lang}")
+        
         if summary_parts:
             cap += "<blockquote>" + " | ".join(summary_parts) + "</blockquote>\n"
         # --- YouTube expanded block ---
@@ -5321,10 +5353,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 subs_available = ""
                 subs_enabled = is_subs_enabled(user_id)
                 auto_mode = get_user_subs_auto_mode(user_id)
-                if subs_enabled:
+                if subs_enabled and is_youtube_url(url):
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                     if sel_ext == 'mkv':
-                        subs_available = "💬"
-                    elif is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
+                        # Для MKV при включённых субтитрах показываем на всех кнопках качества, если есть доступные субтитры
+                        if found_type is not None:  # Any subtitles found (auto or normal)
+                            subs_available = "💬"
+                    elif w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                         # Check if we're in Always Ask mode
                         is_always_ask_mode = is_subs_always_ask(user_id)
                         
