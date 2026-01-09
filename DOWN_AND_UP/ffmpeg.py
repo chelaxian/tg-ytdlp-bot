@@ -955,10 +955,11 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         return False
 
 
-def download_all_audio_tracks(url, user_id, video_dir, available_langs, use_proxy=False):
+def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use_proxy=False, info_dict=None):
     """
     Download all available audio tracks separately for MKV multi-track support.
     Returns list of downloaded audio file paths with language info.
+    If info_dict is provided, uses it instead of fetching again.
     """
     try:
         import yt_dlp
@@ -966,47 +967,66 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs, use_prox
         from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
         from URL_PARSERS.url_extractor import add_pot_to_ytdl_opts
         
-        if not available_langs or len(available_langs) <= 1:
-            logger.info("No multiple audio tracks available, skipping download")
-            return []
-        
         # Get video info to find all audio formats
-        info_opts = {
-            'quiet': True,
-            'no_warnings': True,
-            'skip_download': True,
-            'noplaylist': True,
-        }
-        
-        # Add cookies
-        user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
-        if os.path.exists(user_cookie_path):
-            info_opts['cookiefile'] = user_cookie_path
-        
-        # Add proxy
-        info_opts = add_proxy_to_ytdl_opts(info_opts, url, user_id)
-        
-        # Add PO token
-        info_opts = add_pot_to_ytdl_opts(info_opts, url)
-        
-        with yt_dlp.YoutubeDL(info_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        if info_dict:
+            info = info_dict
+            logger.info("Using provided info_dict for audio tracks discovery")
+        else:
+            info_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'skip_download': True,
+                'noplaylist': True,
+            }
+            
+            # Add cookies
+            user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+            if os.path.exists(user_cookie_path):
+                info_opts['cookiefile'] = user_cookie_path
+            
+            # Add proxy
+            info_opts = add_proxy_to_ytdl_opts(info_opts, url, user_id)
+            
+            # Add PO token
+            info_opts = add_pot_to_ytdl_opts(info_opts, url)
+            
+            with yt_dlp.YoutubeDL(info_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
         
         # Find all audio-only formats with different languages
+        # Collect all unique languages from audio-only formats
+        all_audio_langs = set()
         audio_tracks = []
         for fmt in info.get('formats', []):
-            if (fmt.get('vcodec') == 'none' and fmt.get('acodec') and 
-                fmt.get('language') and fmt.get('language') in available_langs):
-                audio_tracks.append({
-                    'format_id': fmt.get('format_id'),
-                    'language': fmt.get('language'),
-                    'acodec': fmt.get('acodec'),
-                    'ext': fmt.get('ext', 'm4a')
-                })
+            if fmt.get('vcodec') == 'none' and fmt.get('acodec') and fmt.get('language'):
+                lang = fmt.get('language')
+                all_audio_langs.add(lang)
+                # If available_langs is provided, filter by it; otherwise use all languages
+                if available_langs is None or lang in available_langs:
+                    audio_tracks.append({
+                        'format_id': fmt.get('format_id'),
+                        'language': lang,
+                        'acodec': fmt.get('acodec'),
+                        'ext': fmt.get('ext', 'm4a')
+                    })
+        
+        logger.info(f"Found {len(audio_tracks)} audio tracks to download (total available languages: {len(all_audio_langs)})")
         
         if not audio_tracks:
             logger.info("No audio tracks found for download")
             return []
+        
+        # Remove duplicates (same language might have multiple formats)
+        seen_langs = set()
+        unique_tracks = []
+        for track in audio_tracks:
+            lang = track['language']
+            if lang not in seen_langs:
+                seen_langs.add(lang)
+                unique_tracks.append(track)
+        
+        logger.info(f"Downloading {len(unique_tracks)} unique audio tracks: {[t['language'] for t in unique_tracks]}")
+        audio_tracks = unique_tracks
         
         # Download each audio track
         downloaded_tracks = []
@@ -1115,28 +1135,30 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
         for track in valid_tracks:
             cmd += ['-i', track['path']]
         
-        # Map video and original audio
-        cmd += ['-map', '0:v', '-map', '0:a?']
+        # Map video and original audio from the main video file
+        cmd += ['-map', '0:v']
+        # Map original audio if it exists (it should, as we downloaded video+audio)
+        cmd += ['-map', '0:a?']
         
-        # Map all additional audio tracks
+        # Map all additional audio tracks from downloaded files
         for i in range(len(valid_tracks)):
             cmd += ['-map', f'{i+1}:a']
         
-        # Copy video and audio codecs
+        # Copy video and audio codecs (no re-encoding)
         cmd += ['-c', 'copy', '-c:a', 'copy']
         
         # Add language metadata for each audio track
-        # Original audio track (if exists)
-        # Note: We'll set language for original track if we can detect it, otherwise use 'und'
+        # Original audio track (from the main video file) - try to detect language or use 'und'
+        # Check if original audio has language info by examining the first additional track
         original_lang = 'und'
-        if valid_tracks:
-            # Try to detect original language from video metadata or use first additional track
-            original_lang = valid_tracks[0]['language'].split('-')[0] if '-' in valid_tracks[0]['language'] else 'und'
+        # Try to detect from video file metadata or use a default
+        # For now, we'll use 'und' for original and set proper languages for additional tracks
         cmd += ['-metadata:s:a:0', f'language={original_lang}']
         
-        # Additional audio tracks
+        # Additional audio tracks (index starts from 1 because 0 is original)
         for i, track in enumerate(valid_tracks):
             lang_code = track['language'].split('-')[0] if '-' in track['language'] else track['language']
+            # Audio track index is i+1 because 0 is the original audio from video file
             cmd += ['-metadata:s:a:' + str(i+1), f'language={lang_code}']
         
         cmd += [output_path]

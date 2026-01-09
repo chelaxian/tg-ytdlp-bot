@@ -331,7 +331,7 @@ def get_filters(user_id):
     f = _ASK_FILTERS.get(str(user_id))
     if not f:
         # defaults: filters hidden to keep UI simple
-        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False}
+        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": []}
         _ASK_FILTERS[str(user_id)] = f
     return f
 
@@ -693,12 +693,12 @@ def ask_filter_callback(app, callback_query):
             if is_mkv:
                 # Multiple selection mode for MKV
                 if value == "ALL":
-                    # Select all available languages
+                    # Select all available languages - clear individual selections
                     fstate["subs_all_selected"] = True
                     fstate["selected_subs_langs"] = []  # Empty means all
                     fstate["selected_subs_lang"] = None
                 else:
-                    # Toggle individual language selection
+                    # Toggle individual language selection - clear ALL selection
                     selected_subs_langs = fstate.get("selected_subs_langs", []) or []
                     if value in selected_subs_langs:
                         # Deselect
@@ -707,7 +707,7 @@ def ask_filter_callback(app, callback_query):
                         # Select
                         selected_subs_langs.append(value)
                     fstate["selected_subs_langs"] = selected_subs_langs
-                    fstate["subs_all_selected"] = False
+                    fstate["subs_all_selected"] = False  # Clear ALL when selecting individual languages
                     fstate["selected_subs_lang"] = None
                 save_filters(user_id, fstate)
                 
@@ -784,20 +784,62 @@ def ask_filter_callback(app, callback_query):
             is_mkv = (sel_ext == "mkv")
             
             rows, row = [], []
-            # Add ALL button for MKV if multiple languages available
-            if is_mkv and len(langs) > 1:
-                rows.append([InlineKeyboardButton("✅ ALL", callback_data="askf|audio_lang|ALL")])
+            selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+            audio_all_dubs = fstate.get("audio_all_dubs", False)
+            
+            # Get original language from video info if available
+            original_lang = None
+            try:
+                from DOWN_AND_UP.yt_dlp_hook import get_video_formats
+                info = get_video_formats(url, user_id, cookies_already_checked=True)
+                # Try to get original language from video metadata
+                video_lang = info.get('language') or info.get('original_language')
+                # Try to find matching language in available_dubs
+                if video_lang:
+                    # Check if video_lang is in available languages
+                    if video_lang in langs:
+                        original_lang = video_lang
+                    else:
+                        # Try to find partial match (e.g., 'en' matches 'en-US')
+                        for lang in sorted(langs):
+                            if lang.startswith(video_lang.split('-')[0]) or video_lang.startswith(lang.split('-')[0]):
+                                original_lang = lang
+                                break
+                # If still not found, use the first available language as default
+                if not original_lang and langs:
+                    original_lang = sorted(langs)[0]
+            except Exception:
+                # If we can't get info, use first available language as default
+                if langs:
+                    original_lang = sorted(langs)[0]
+            
+            # If no languages are selected and we have original language, select it by default
+            if is_mkv and not selected_audio_langs and not audio_all_dubs and original_lang and original_lang in langs:
+                if original_lang not in selected_audio_langs:
+                    selected_audio_langs = [original_lang]
+                    fstate["selected_audio_langs"] = selected_audio_langs
+                    save_filters(user_id, fstate)
+                    # Update local variable for display
+                    selected_audio_langs = fstate.get("selected_audio_langs", []) or []
             
             for i, lang in enumerate(sorted(langs)):
                 # Use robust flag lookup for DUBS (strict overrides first)
                 flag = _dub_flag(lang)
-                label = f"{flag} {lang}" if flag else lang
+                # Add checkmark if selected (for MKV multiple selection) - but not if ALL is selected
+                checkmark = "✅ " if is_mkv and lang in selected_audio_langs and not audio_all_dubs else ""
+                label = f"{checkmark}{flag} {lang}" if flag else f"{checkmark}{lang}"
                 row.append(InlineKeyboardButton(label, callback_data=f"askf|audio_lang|{lang}"))
                 if (i+1) % 3 == 0:
                     rows.append(row)
                     row = []
             if row:
                 rows.append(row)
+            
+            # Add ALL button at the end for MKV if multiple languages available
+            if is_mkv and len(langs) > 1:
+                all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
+                rows.append([InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL")])
+            
             rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
             try:
                 callback_query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
@@ -810,28 +852,96 @@ def ask_filter_callback(app, callback_query):
             return
         if kind == "audio_lang":
             fstate = get_filters(user_id)
-            if value == "ALL":
-                # Store ALL selection for MKV
-                fstate["audio_lang"] = "ALL"
-                fstate["audio_all_dubs"] = True
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
+            if is_mkv:
+                # Multiple selection mode for MKV
+                if value == "ALL":
+                    # Toggle ALL selection - clear individual selections
+                    if fstate.get("audio_all_dubs", False):
+                        # Deselect ALL
+                        fstate["audio_all_dubs"] = False
+                        fstate["selected_audio_langs"] = []
+                    else:
+                        # Select ALL - clear all individual selections
+                        fstate["audio_all_dubs"] = True
+                        fstate["selected_audio_langs"] = []  # Clear individual selections when ALL is selected
+                    fstate["audio_lang"] = None
+                else:
+                    # Toggle individual language selection - clear ALL selection
+                    selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+                    if value in selected_audio_langs:
+                        # Deselect
+                        selected_audio_langs.remove(value)
+                    else:
+                        # Select
+                        selected_audio_langs.append(value)
+                    fstate["selected_audio_langs"] = selected_audio_langs
+                    fstate["audio_all_dubs"] = False  # Clear ALL when selecting individual languages
+                    fstate["audio_lang"] = None
+                save_filters(user_id, fstate)
+                
+                # Reload the keyboard to show updated checkmarks
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    fstate = get_filters(user_id)
+                    langs = fstate.get("available_dubs", [])
+                    if langs:
+                        rows, row = [], []
+                        selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+                        audio_all_dubs = fstate.get("audio_all_dubs", False)
+                        
+                        for i, lang in enumerate(sorted(langs)):
+                            flag = _dub_flag(lang)
+                            # Add checkmark if selected - but not if ALL is selected
+                            checkmark = "✅ " if lang in selected_audio_langs and not audio_all_dubs else ""
+                            label = f"{checkmark}{flag} {lang}" if flag else f"{checkmark}{lang}"
+                            row.append(InlineKeyboardButton(label, callback_data=f"askf|audio_lang|{lang}"))
+                            if (i+1) % 3 == 0:
+                                rows.append(row)
+                                row = []
+                        if row:
+                            rows.append(row)
+                        
+                        # Add ALL button at the end (with checkmark if selected)
+                        if len(langs) > 1:
+                            all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
+                            rows.append([InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL")])
+                        
+                        rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
+                        try:
+                            callback_query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+                        except Exception:
+                            pass
+                try:
+                    if value == "ALL":
+                        callback_query.answer("✅ All audio tracks selected" if fstate.get("audio_all_dubs", False) else "All audio tracks deselected")
+                    else:
+                        callback_query.answer("Language toggled")
+                except Exception:
+                    pass
             else:
+                # Single selection mode for MP4
                 fstate["audio_lang"] = value
                 fstate["audio_all_dubs"] = False
-            save_filters(user_id, fstate)
-            original_message = callback_query.message.reply_to_message
-            if original_message:
-                url_text = original_message.text or (original_message.caption or "")
-                import re as _re
-                m = _re.search(r'https?://[^\s\*#]+', url_text)
-                url = m.group(0) if m else url_text
-                ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
-            try:
-                if value == "ALL":
-                    callback_query.answer("✅ All audio tracks selected")
-                else:
+                fstate["selected_audio_langs"] = []
+                save_filters(user_id, fstate)
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
+                try:
                     callback_query.answer(safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
-            except Exception:
-                pass
+                except Exception:
+                    pass
             return
         if kind == "dubs" and value in ("back", "close"):
             original_message = callback_query.message.reply_to_message
@@ -6031,9 +6141,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             pass
         # Use format with AVC codec and MP4 container priority for {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} quality
         # with fallback to bv+ba/best if no AVC+MP4 available
-        if audio_all_dubs and sel_ext == "mkv":
-            # For MKV with ALL dubs, download video + best audio (will add all tracks via postprocessing)
-            # Note: ba* means best audio, not all audio. We'll handle multiple tracks in postprocessing.
+        if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+            # For MKV with selected dubs, download video + original audio (no language filter)
+            # Selected audio tracks will be downloaded separately in postprocessing
             fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba/bv*[vcodec*={sel_codec}]+ba/bv*[ext={sel_ext}]+ba/bv+ba/best"
         else:
             audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
@@ -6145,8 +6255,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         prev = 144
                     else:
                         prev = 0
-                    if audio_all_dubs and sel_ext == "mkv":
-                        # For MKV with ALL dubs, download video + best audio (will add all tracks via postprocessing)
+                    if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+                        # For MKV with selected dubs, download video + original audio (no language filter)
+                        # Selected audio tracks will be downloaded separately in postprocessing
                         fmt = f"bv*[vcodec*={sel_codec}][height<={real_height}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={real_height}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
                     else:
                         audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""

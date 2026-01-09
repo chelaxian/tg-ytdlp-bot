@@ -124,6 +124,10 @@ def set_session_mkv_override(user_id, value):
     messages = safe_get_messages(user_id)
     _SESSION_MKV_OVERRIDE[str(user_id)] = bool(value)
 
+def get_session_mkv_override(user_id):
+    messages = safe_get_messages(user_id)
+    return _SESSION_MKV_OVERRIDE.get(str(user_id), None)
+
 def clear_session_mkv_override(user_id):
     messages = safe_get_messages(user_id)
     _SESSION_MKV_OVERRIDE.pop(str(user_id), None)

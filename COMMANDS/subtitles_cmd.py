@@ -1642,11 +1642,6 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
     total_languages = len(all_langs)
     total_pages = math.ceil(total_languages / (LANGS_PER_ROW * ROWS_PER_PAGE))
 
-    # Add ALL button for MKV if multiple languages available
-    if is_mkv and total_languages > 1:
-        all_button_text = "✅ ALL" if subs_all_selected else "ALL"
-        keyboard.append([InlineKeyboardButton(all_button_text, callback_data="askf|subs_lang|ALL")])
-
     # Cut for the current page
     start_idx = page * LANGS_PER_ROW * ROWS_PER_PAGE
     end_idx = start_idx + LANGS_PER_ROW * ROWS_PER_PAGE
@@ -1658,14 +1653,19 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
         for j in range(LANGS_PER_ROW):
             if i + j < len(current_page_langs):
                 lang_code, lang_info = current_page_langs[i + j]
-                # Add checkmark if selected (for MKV multiple selection)
-                checkmark = "✅ " if is_mkv and lang_code in selected_subs_langs else ""
+                # Add checkmark if selected (for MKV multiple selection) - but not if ALL is selected
+                checkmark = "✅ " if is_mkv and lang_code in selected_subs_langs and not subs_all_selected else ""
                 button_text = f"{checkmark}{lang_info['flag']} {lang_info['name']}"
                 row.append(InlineKeyboardButton(
                     button_text,
                     callback_data=f"askf|subs_lang|{lang_code}"
                 ))
         keyboard.append(row)
+    
+    # Add ALL button at the end for MKV if multiple languages available (only on first page)
+    if is_mkv and total_languages > 1 and page == 0:
+        all_button_text = "✅ ALL" if subs_all_selected else "ALL"
+        keyboard.append([InlineKeyboardButton(all_button_text, callback_data="askf|subs_lang|ALL")])
 
     # Navigation
     nav_row = []

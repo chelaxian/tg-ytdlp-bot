@@ -749,16 +749,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         try:
             from COMMANDS.format_cmd import get_session_mkv_override
             session_mkv = get_session_mkv_override(user_id)
+            logger.info(f"Session MKV override for user {user_id}: {session_mkv}")
             if session_mkv is not None:
                 # Use session override
                 effective_merge_format = 'mkv' if session_mkv else user_merge_format
+                logger.info(f"Using session MKV override: effective_merge_format={effective_merge_format}")
             else:
                 effective_merge_format = user_merge_format
-        except Exception:
+                logger.info(f"No session override, using user preference: effective_merge_format={effective_merge_format}")
+        except Exception as e:
+            logger.error(f"Error checking session MKV override: {e}")
             effective_merge_format = user_merge_format
         
         if format_override:
             attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': effective_merge_format}]
+            logger.info(f"Created attempts with format_override and merge_output_format={effective_merge_format}")
         else:
             # if use_default_format is True, then do not take from format.txt, but use default ones
             if use_default_format:
@@ -1279,10 +1284,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             try:
                 from COMMANDS.format_cmd import get_session_mkv_override, get_user_mkv_preference
                 mkv_on = get_session_mkv_override(user_id)
+                logger.info(f"MKV session override for user {user_id}: {mkv_on}")
                 if mkv_on is None:
                     # Fallback to user preference if no session override
                     mkv_on = get_user_mkv_preference(user_id)
-            except Exception:
+                    logger.info(f"MKV user preference for user {user_id}: {mkv_on}")
+                else:
+                    logger.info(f"Using MKV session override: {mkv_on}")
+            except Exception as e:
+                logger.error(f"Error checking MKV preference: {e}")
                 mkv_on = False
 
             # Adjust attempts' merge_output_format based on MKV preference
@@ -1291,6 +1301,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     for _attempt in attempts:
                         if isinstance(_attempt, dict):
                             _attempt['merge_output_format'] = 'mkv'
+                    # Also set in common_opts to ensure it's applied
+                    common_opts['merge_output_format'] = 'mkv'
                 else:
                     for _attempt in attempts:
                         if isinstance(_attempt, dict) and 'merge_output_format' not in _attempt:
@@ -1300,6 +1312,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 pass
 
             ytdl_opts = {**common_opts, **attempt_opts}
+            
+            # Ensure MKV format is applied even if it wasn't in attempts
+            if mkv_on:
+                ytdl_opts['merge_output_format'] = 'mkv'
+                logger.info(f"MKV mode enabled: setting merge_output_format=mkv, remux_video=mkv")
             
             # Add proxy configuration if needed
             if use_proxy:
@@ -1343,10 +1360,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
             
             # If MKV is ON, remux to mkv; else to mp4
+            # Ensure merge_output_format is also set correctly
             if mkv_on:
                 ytdl_opts['remux_video'] = 'mkv'
+                # Force merge_output_format to mkv if not already set
+                if 'merge_output_format' not in ytdl_opts or ytdl_opts.get('merge_output_format') != 'mkv':
+                    ytdl_opts['merge_output_format'] = 'mkv'
+                    logger.info("Forcing merge_output_format=mkv for MKV mode")
             else:
-                ytdl_opts['remux_video'] = 'mp4'
+                # Only set remux_video to mp4 if MKV is explicitly OFF
+                # But respect merge_output_format if it's already set to mkv
+                if 'merge_output_format' in ytdl_opts and ytdl_opts['merge_output_format'] == 'mkv':
+                    ytdl_opts['remux_video'] = 'mkv'
+                else:
+                    ytdl_opts['remux_video'] = 'mp4'
             try:
                 logger.info(f"Starting yt-dlp extraction for URL: {url}")
                 logger.info(f"yt-dlp options: {ytdl_opts}")
@@ -3269,35 +3296,33 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 try:
                                     filters_state = get_filters(user_id)
                                     audio_all_dubs = filters_state.get("audio_all_dubs", False)
+                                    selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
                                     selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
                                     subs_all_selected = filters_state.get("subs_all_selected", False)
                                 except Exception:
                                     audio_all_dubs = False
+                                    selected_audio_langs = []
                                     selected_subs_langs = []
                                     subs_all_selected = False
                                 
                                 video_dir = os.path.dirname(after_rename_abs_path)
                                 
-                                # Download and embed all audio tracks if needed
-                                if audio_all_dubs:
+                                # Download and embed audio tracks if needed (ALL or selected languages)
+                                if audio_all_dubs or selected_audio_langs:
                                     try:
-                                        # Get available audio languages from info_dict
-                                        available_audio_langs = []
-                                        if info_dict:
-                                            lang_seen = set()
-                                            for f in info_dict.get('formats', []):
-                                                if (f.get('vcodec') == 'none' and f.get('acodec') and f.get('language')):
-                                                    lang = f.get('language')
-                                                    if lang and lang not in lang_seen:
-                                                        lang_seen.add(lang)
-                                                        available_audio_langs.append(lang)
-                                        
-                                        if len(available_audio_langs) > 1:
-                                            logger.info(f"Downloading all audio tracks for MKV: {available_audio_langs}")
+                                        # Download selected audio tracks (ALL or specific languages)
+                                        if audio_all_dubs:
+                                            logger.info("Downloading ALL available audio tracks for MKV")
                                             status_msg = app.send_message(user_id, "🎵 Downloading all audio tracks...")
-                                            
-                                            from DOWN_AND_UP.ffmpeg import download_all_audio_tracks, embed_all_audio_tracks_to_mkv
-                                            audio_tracks = download_all_audio_tracks(url, user_id, video_dir, available_audio_langs, use_proxy=use_proxy)
+                                            available_langs = None  # Download all
+                                        else:
+                                            logger.info(f"Downloading selected audio tracks for MKV: {selected_audio_langs}")
+                                            status_msg = app.send_message(user_id, f"🎵 Downloading {len(selected_audio_langs)} audio tracks...")
+                                            available_langs = selected_audio_langs  # Download only selected
+                                        
+                                        from DOWN_AND_UP.ffmpeg import download_all_audio_tracks, embed_all_audio_tracks_to_mkv
+                                        # Pass selected languages or None for all, and pass info_dict to avoid re-fetching
+                                        audio_tracks = download_all_audio_tracks(url, user_id, video_dir, available_langs=available_langs, use_proxy=use_proxy, info_dict=info_dict)
                                             
                                             if audio_tracks:
                                                 logger.info(f"Embedding {len(audio_tracks)} audio tracks into MKV")
