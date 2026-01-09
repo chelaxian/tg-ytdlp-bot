@@ -1404,111 +1404,125 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         # Use tv client for reliability
         info_opts['extractor_args'] = {'youtube': {'player_client': ['tv']}}
         
+        # Reuse the same ydl instance for both extract_info and urlopen
+        # Reuse the same ydl instance for both extract_info and urlopen
         with yt_dlp.YoutubeDL(info_opts) as ydl:
             info = ydl.extract_info(url, download=False)
         
-        # Get subtitles dict
-        subs_dict = {}
-        if not auto_mode:
-            subs_dict = info.get('subtitles', {}) or {}
-            auto_dict = info.get('automatic_captions', {}) or {}
-            for k, v in auto_dict.items():
-                subs_dict.setdefault(k, v)
-        else:
-            subs_dict = info.get('automatic_captions', {}) or {}
-            normal_dict = info.get('subtitles', {}) or {}
-            for k, v in normal_dict.items():
-                subs_dict.setdefault(k, v)
-        
-        # Download each subtitle language
-        downloaded_subs = []
-        preferred = ('srt', 'vtt', 'ttml', 'json3', 'srv3')
-        
-        for lang in langs_to_download:
-            try:
-                # Find matching language
-                found_lang = lang_match(lang, list(subs_dict.keys()))
-                if not found_lang:
-                    continue
-                
-                tracks = subs_dict.get(found_lang) or []
-                if not tracks:
-                    alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
-                    tracks = subs_dict.get(alt, []) if alt else []
-                
-                if not tracks:
-                    continue
-                
-                # Select best format
-                track = min(
-                    tracks,
-                    key=lambda t: preferred.index((t.get('ext') or '').lower())
-                    if (t.get('ext') or '').lower() in preferred else 999
-                )
-                
-                ext = (track.get('ext') or 'txt').lower()
-                track_url = track.get('url', '')
-                
-                # Download subtitle
-                import requests
-                import time
-                import random
-                
-                sess = requests.Session()
-                headers = {
-                    "User-Agent": "Mozilla/5.0",
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Referer": "https://www.youtube.com/",
-                    "Origin": "https://www.youtube.com",
-                }
-                
-                # Simple throttling
-                time.sleep(random.uniform(0.5, 1.5))
-                
-                r = sess.get(track_url, headers=headers, timeout=25)
-                if r.status_code != 200 or not r.content:
-                    continue
-                
-                # Save subtitle
-                subtitle_filename = f"subs_{lang}.{ext}"
-                subtitle_path = os.path.join(video_dir, subtitle_filename)
-                
-                with open(subtitle_path, "wb") as f:
-                    f.write(r.content)
-                
-                # Convert to SRT if needed
-                if ext == 'vtt':
-                    try:
-                        from COMMANDS.subtitles_cmd import _convert_vtt_to_srt
-                        subtitle_path = _convert_vtt_to_srt(subtitle_path)
-                    except Exception as e:
-                        logger.error(f"Failed to convert VTT to SRT: {e}")
-                        continue
-                elif ext in ('json3', 'srv3'):
-                    try:
-                        from COMMANDS.subtitles_cmd import _convert_json3_srv3_to_srt
-                        subtitle_path = _convert_json3_srv3_to_srt(subtitle_path)
-                    except Exception as e:
-                        logger.error(f"Failed to convert JSON3/SRV3 to SRT: {e}")
-                        continue
-                
-                # Ensure UTF-8
+            # Get subtitles dict
+            subs_dict = {}
+            if not auto_mode:
+                subs_dict = info.get('subtitles', {}) or {}
+                auto_dict = info.get('automatic_captions', {}) or {}
+                for k, v in auto_dict.items():
+                    subs_dict.setdefault(k, v)
+            else:
+                subs_dict = info.get('automatic_captions', {}) or {}
+                normal_dict = info.get('subtitles', {}) or {}
+                for k, v in normal_dict.items():
+                    subs_dict.setdefault(k, v)
+            
+            # Download each subtitle language
+            downloaded_subs = []
+            preferred = ('srt', 'vtt', 'ttml', 'json3', 'srv3')
+            
+            for lang in langs_to_download:
                 try:
-                    from COMMANDS.subtitles_cmd import ensure_utf8_srt
-                    subtitle_path = ensure_utf8_srt(subtitle_path)
+                    # Find matching language
+                    found_lang = lang_match(lang, list(subs_dict.keys()))
+                    if not found_lang:
+                        continue
+                    
+                    tracks = subs_dict.get(found_lang) or []
+                    if not tracks:
+                        alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
+                        tracks = subs_dict.get(alt, []) if alt else []
+                    
+                    if not tracks:
+                        continue
+                    
+                    # Select best format
+                    track = min(
+                        tracks,
+                        key=lambda t: preferred.index((t.get('ext') or '').lower())
+                        if (t.get('ext') or '').lower() in preferred else 999
+                    )
+                    
+                    ext = (track.get('ext') or 'txt').lower()
+                    track_url = track.get('url', '')
+                    
+                    # Download subtitle using yt-dlp transport (with cookies, proxy, PO token)
+                    # Reuse the same ydl instance that was used for extract_info
+                    subtitle_filename = f"subs_{lang}.{ext}"
+                    subtitle_path = os.path.join(video_dir, subtitle_filename)
+                    
+                    # Use yt-dlp transport for downloading (same instance with all configs)
+                    try:
+                        from COMMANDS.subtitles_cmd import _timedtext_throttle
+                        
+                        # Apply throttling to avoid 429 errors
+                        _timedtext_throttle(min_interval=8.0, jitter=3.0)
+                        
+                        # Download using yt-dlp transport (reuses cookies, proxy, PO token)
+                        with ydl.urlopen(track_url) as resp:
+                            data = resp.read()
+                        
+                        if not data or len(data) == 0:
+                            logger.warning(f"Empty subtitle data for {lang}")
+                            continue
+                        
+                        # Save subtitle
+                        with open(subtitle_path, "wb") as f:
+                            f.write(data)
+                            
+                    except Exception as e:
+                        err_str = str(e)
+                        if "429" in err_str or "Too Many Requests" in err_str:
+                            logger.warning(f"429 error downloading subtitle {lang}, skipping")
+                        else:
+                            logger.error(f"Failed to download subtitle {lang}: {e}")
+                        continue
+                    
+                    # Convert to SRT if needed
+                    if ext == 'vtt':
+                        try:
+                            from COMMANDS.subtitles_cmd import _convert_vtt_to_srt
+                            subtitle_path = _convert_vtt_to_srt(subtitle_path)
+                        except Exception as e:
+                            logger.error(f"Failed to convert VTT to SRT: {e}")
+                            continue
+                    elif ext in ('json3', 'srv3'):
+                        try:
+                            from COMMANDS.subtitles_cmd import _convert_json3_srv3_to_srt
+                            subtitle_path = _convert_json3_srv3_to_srt(subtitle_path)
+                        except Exception as e:
+                            logger.error(f"Failed to convert JSON3/SRV3 to SRT: {e}")
+                            continue
+                    elif ext == 'ttml':
+                        try:
+                            from COMMANDS.subtitles_cmd import _convert_ttml_to_srt
+                            subtitle_path = _convert_ttml_to_srt(subtitle_path)
+                        except Exception as e:
+                            logger.error(f"Failed to convert TTML to SRT: {e}")
+                            continue
+                    
+                    # Ensure UTF-8
+                    try:
+                        from COMMANDS.subtitles_cmd import ensure_utf8_srt
+                        subtitle_path = ensure_utf8_srt(subtitle_path)
+                    except Exception as e:
+                        logger.error(f"Failed to ensure UTF-8: {e}")
+                        continue
+                    
+                    if subtitle_path and os.path.exists(subtitle_path) and os.path.getsize(subtitle_path) > 0:
+                        downloaded_subs.append({
+                            'path': subtitle_path,
+                            'language': lang
+                        })
+                        logger.info(f"Downloaded subtitle: {lang} -> {subtitle_path}")
                 except Exception as e:
-                    logger.error(f"Failed to ensure UTF-8: {e}")
+                    logger.error(f"Failed to download subtitle {lang}: {e}")
                     continue
-                
-                if subtitle_path and os.path.exists(subtitle_path) and os.path.getsize(subtitle_path) > 0:
-                    downloaded_subs.append({
-                        'path': subtitle_path,
-                        'language': lang
-                    })
-                    logger.info(f"Downloaded subtitle: {lang} -> {subtitle_path}")
-            except Exception as e:
-                logger.error(f"Failed to download subtitle {lang}: {e}")
-                continue
         
         return downloaded_subs
     except Exception as e:

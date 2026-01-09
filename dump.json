@@ -215,10 +215,18 @@
             "name": "Danila Kokin",
             "last_left_ts": 1767983188.0,
             "blocked": false
+          },
+          "8362211803": {
+            "ID": "8362211803",
+            "first_left_ts": 1767995667.0,
+            "username": "Best_Trading_Mentorvvip",
+            "name": "Account Manager",
+            "last_left_ts": 1767995667.0,
+            "blocked": false
           }
         },
         "state": {
-          "last_event_id": 946803438300
+          "last_event_id": 946990082424
         }
       }
     },

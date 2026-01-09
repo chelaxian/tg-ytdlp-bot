@@ -3385,7 +3385,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             app.edit_message_text(user_id, status_msg.id, "💬 Embedding subtitles into MKV...")
                                             
                                             # Use existing embed_subs_to_video function which now supports multiple tracks
-                                            from DOWN_AND_UP.ffmpeg import embed_subs_to_video
+                                            # (already imported at the top of the file)
                                             
                                             def subs_update_callback(progress, eta):
                                                 try:

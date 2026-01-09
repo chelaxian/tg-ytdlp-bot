@@ -40,8 +40,9 @@ _ANTI_BOT_DATA_FILE = "CONFIG/.anti_bot_data.json"
 def _load_from_disk():
     """Load anti-bot data from disk"""
     global _user_url_history, _user_command_history, _user_activity_hours, _bot_start_time
+    global _user_message_history, _user_message_timestamps, _user_message_intervals
     
-    # Initialize bot start time on first load
+    # Initialize bot start time - will be loaded from file or set to current time
     if _bot_start_time is None:
         _bot_start_time = time.time()
     
@@ -49,6 +50,10 @@ def _load_from_disk():
         try:
             with open(_ANTI_BOT_DATA_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+                
+                # Load bot start time (if exists, otherwise keep current time)
+                if 'bot_start_time' in data:
+                    _bot_start_time = float(data['bot_start_time'])
                 
                 # Load URL history
                 _user_url_history = {
@@ -74,28 +79,53 @@ def _load_from_disk():
                     for k, v in data.get('message_history', {}).items()
                 }
                 
-                # Load message intervals (not critical, can be empty on load)
-                # Intervals will be recalculated as messages come in
+                # Load message timestamps
+                _user_message_timestamps = {
+                    int(k): [float(ts) for ts in v]
+                    for k, v in data.get('message_timestamps', {}).items()
+                }
+                
+                # Load message intervals
+                _user_message_intervals = {
+                    int(k): [float(interval) for interval in v]
+                    for k, v in data.get('message_intervals', {}).items()
+                }
+                
+                logger.info(f"Loaded anti-bot data from disk: {len(_user_url_history)} users with URL history, "
+                          f"{len(_user_command_history)} users with command history, "
+                          f"{len(_user_activity_hours)} users with activity hours, "
+                          f"bot_start_time: {datetime.fromtimestamp(_bot_start_time).strftime('%Y-%m-%d %H:%M:%S')}")
         except Exception as e:
             logger.error(f"Failed to load anti-bot data: {e}")
             _user_url_history = defaultdict(list)
             _user_command_history = defaultdict(list)
             _user_activity_hours = defaultdict(dict)
+            _user_message_history = defaultdict(list)
+            _user_message_timestamps = defaultdict(list)
+            _user_message_intervals = defaultdict(list)
+            # Set bot start time to current time if load failed
+            _bot_start_time = time.time()
     else:
         _user_url_history = defaultdict(list)
         _user_command_history = defaultdict(list)
         _user_activity_hours = defaultdict(dict)
         _user_message_history = defaultdict(list)
-        _user_message_history = defaultdict(list)
+        _user_message_timestamps = defaultdict(list)
+        _user_message_intervals = defaultdict(list)
+        # Set bot start time to current time on first run
+        _bot_start_time = time.time()
+        logger.info(f"Initialized new anti-bot data file, bot_start_time: {datetime.fromtimestamp(_bot_start_time).strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 def _save_to_disk():
     """Save anti-bot data to disk"""
+    global _bot_start_time
     try:
         os.makedirs(os.path.dirname(_ANTI_BOT_DATA_FILE), exist_ok=True)
         
         with _lock:
             data = {
+                'bot_start_time': _bot_start_time,
                 'url_history': {
                     str(k): v for k, v in _user_url_history.items()
                 },
@@ -108,13 +138,35 @@ def _save_to_disk():
                 },
                 'message_history': {
                     str(k): v for k, v in _user_message_history.items()
+                },
+                'message_timestamps': {
+                    str(k): v for k, v in _user_message_timestamps.items()
+                },
+                'message_intervals': {
+                    str(k): v for k, v in _user_message_intervals.items()
                 }
             }
         
-        with open(_ANTI_BOT_DATA_FILE, 'w', encoding='utf-8') as f:
+        # Write to temporary file first, then rename (atomic operation)
+        temp_file = _ANTI_BOT_DATA_FILE + '.tmp'
+        with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
+        
+        # Atomic rename
+        if os.path.exists(temp_file):
+            if os.path.exists(_ANTI_BOT_DATA_FILE):
+                os.replace(temp_file, _ANTI_BOT_DATA_FILE)
+            else:
+                os.rename(temp_file, _ANTI_BOT_DATA_FILE)
     except Exception as e:
         logger.error(f"Failed to save anti-bot data: {e}")
+        # Clean up temp file if it exists
+        temp_file = _ANTI_BOT_DATA_FILE + '.tmp'
+        if os.path.exists(temp_file):
+            try:
+                os.remove(temp_file)
+            except Exception:
+                pass
 
 
 def _cleanup_old_data(user_id: int, current_time: float):
@@ -310,7 +362,11 @@ def _check_flood(user_id: int, current_time: float) -> Optional[str]:
         
         # Add current timestamp
         timestamps.append(current_time)
-        
+    
+    # Save after updating timestamps
+    _save_to_disk()
+    
+    with _lock:
         # Check each second in the window
         # We need to verify that for each second in the last 'window' seconds,
         # there were at least 'max_per_second' messages
@@ -402,7 +458,10 @@ def _check_suspicious_patterns(message_text: str) -> Optional[str]:
 def _check_24h_activity(user_id: int, current_time: float) -> Optional[str]:
     """Check if user is active 24/7 (no sleep pattern). Returns ban reason if detected.
     
-    Checks if user was active in each of the hours within 23 hours since bot start.
+    Checks activity within a configurable window based on frequency settings:
+    - frequency = 24: activity in each of 24 hours (1+ activity per hour)
+    - frequency = 12: activity in 12 of 24 hours (1+ activity every 2 hours)
+    - frequency = 48: activity in each hour with 2+ activities per hour
     """
     if not LimitsConfig.ANTI_BOT_PROTECTION_ENABLED:
         return None
@@ -427,44 +486,77 @@ def _check_24h_activity(user_id: int, current_time: float) -> Optional[str]:
         
         # Update activity for current hour
         _user_activity_hours[user_id][hour_since_start] = current_time
+    
+    # Save after updating activity hours
+    _save_to_disk()
+    
+    # Get configuration
+    window_seconds = LimitsConfig.ANTI_BOT_24H_WINDOW
+    frequency = LimitsConfig.ANTI_BOT_24H_ACTIVITY_FREQUENCY
+    window_hours = window_seconds / 3600.0
+    
+    # Only check if at least window_hours have passed since bot start
+    if hours_since_start < window_hours:
+        # Not enough time has passed, just record activity and don't check
+        return None
+    
+    # Check activity in the sliding window (excluding current hour)
+    with _lock:
+        # Get all activity timestamps for this user
+        all_activities = [
+            ts for h, ts in _user_activity_hours[user_id].items()
+        ]
         
-        # Only check if at least 23 hours have passed since bot start
-        if hours_since_start < 23:
-            # Less than 23 hours have passed, just record activity and don't check
-            # We need to wait at least 23 hours before checking for 24/7 activity
-            _save_to_disk()
-            return None
-        else:
-            # 23+ hours have passed, check activity in each of the last 23 hours (excluding current hour)
-            # This creates a sliding window that constantly shifts
-            hours_to_check = 23
-            active_hours_count = 0
+        # Check each hour in the window (excluding current hour)
+        hours_in_window = int(window_hours)
+        active_hours = []  # List of hours with activity
+        hour_activity_counts = {}  # {hour_index: count} for frequency > window_hours
+        
+        for hour_offset in range(1, hours_in_window + 1):  # From 1 to window_hours hours ago
+            # Calculate the timestamp range for this hour
+            hour_start_time = current_time - (hour_offset * 3600)
+            hour_end_time = hour_start_time + 3600
             
-            # Check last 23 hours, excluding current hour
-            # We check from 24 hours ago to 1 hour ago (23 hours total, excluding current)
-            for hour_offset in range(1, 24):  # From 1 to 23 hours ago
-                # Calculate the timestamp range for this hour (from hour_offset hours ago)
-                hour_start_time = current_time - (hour_offset * 3600)
-                hour_end_time = hour_start_time + 3600
-                
-                # Check if user was active in this hour
-                user_activities = [
-                    ts for h, ts in _user_activity_hours[user_id].items()
-                    if hour_start_time <= ts < hour_end_time
-                ]
-                
-                if user_activities:
-                    active_hours_count += 1
+            # Count activities in this hour
+            activities_in_hour = [
+                ts for ts in all_activities
+                if hour_start_time <= ts < hour_end_time
+            ]
             
-            # Check if user was active in all 23 hours (excluding current)
-            if active_hours_count >= LimitsConfig.ANTI_BOT_24H_ACTIVITY_LIMIT:
+            if activities_in_hour:
+                active_hours.append(hour_offset)
+                hour_activity_counts[hour_offset] = len(activities_in_hour)
+        
+        # Determine check type based on frequency
+        if frequency <= hours_in_window:
+            # Frequency <= window: check if activity in required number of hours
+            # frequency = 24, window = 24: need activity in all 24 hours
+            # frequency = 12, window = 24: need activity in 12 hours (every 2 hours)
+            required_hours = frequency
+            if len(active_hours) >= required_hours:
                 reason = (
                     f"Обнаружена активность 24/7 (подозрение на бота): "
-                    f"активность в {active_hours_count} из 23 часов в течение последних 23 часов (не считая текущий час)"
+                    f"активность в {len(active_hours)} из {hours_in_window} часов "
+                    f"в течение {window_hours} часов (требуется: {required_hours} активных часов)"
+                )
+                return reason
+        else:
+            # Frequency > window: check if each hour has multiple activities
+            # frequency = 48, window = 24: need 2+ activities in each hour
+            required_per_hour = frequency // hours_in_window
+            hours_with_sufficient_activity = sum(
+                1 for count in hour_activity_counts.values()
+                if count >= required_per_hour
+            )
+            
+            if hours_with_sufficient_activity >= hours_in_window:
+                reason = (
+                    f"Обнаружена активность 24/7 (подозрение на бота): "
+                    f"в каждом из {hours_in_window} часов минимум {required_per_hour} активностей "
+                    f"в течение {window_hours} часов"
                 )
                 return reason
     
-    _save_to_disk()
     return None
 
 
@@ -762,6 +854,9 @@ def record_user_activity(user_id: int, is_admin: bool = False, message_text: Opt
         if user_id not in _user_message_timestamps:
             _user_message_timestamps[user_id] = []
         _user_message_timestamps[user_id].append(current_time)
+    
+    # Save after recording activity
+    _save_to_disk()
     
     _check_24h_activity(user_id, current_time)
 
