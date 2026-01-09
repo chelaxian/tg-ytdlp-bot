@@ -319,6 +319,31 @@ def check_subs_limits(info_dict, quality_key=None, message=None, user_id=None):
         # Проверяем, должны ли применяться ограничения к админу
         if not should_apply_limits_to_admin(user_id=user_id, message=message):
             return True  # Для админов с отключенными ограничениями всегда разрешаем
+        
+        # Check if MKV format is selected - skip limits for soft embedding
+        is_mkv = False
+        if user_id:
+            try:
+                from COMMANDS.format_cmd import get_user_mkv_preference
+                is_mkv = bool(get_user_mkv_preference(user_id))
+            except Exception:
+                pass
+        
+        # Also check if file is already MKV
+        if not is_mkv and message:
+            try:
+                # Check if we're processing an MKV file
+                from DOWN_AND_UP.always_ask_menu import get_filters
+                fstate = get_filters(user_id)
+                sel_ext = fstate.get("ext", "mp4")
+                is_mkv = (sel_ext == "mkv")
+            except Exception:
+                pass
+        
+        # Skip limits for MKV soft embedding (no CPU-intensive burning)
+        if is_mkv:
+            logger.info("MKV format detected - skipping subtitle limits for soft embedding")
+            return True
             
         # We get the parameters from the config
         max_quality = Config.MAX_SUB_QUALITY

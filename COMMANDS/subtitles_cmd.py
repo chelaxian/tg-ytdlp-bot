@@ -1603,6 +1603,21 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
     LANGS_PER_ROW = 3
     ROWS_PER_PAGE = per_page_rows
 
+    # Check if MKV format is selected for multiple selection
+    is_mkv = False
+    selected_subs_langs = []
+    subs_all_selected = False
+    if user_id:
+        try:
+            from DOWN_AND_UP.always_ask_menu import get_filters
+            fstate = get_filters(user_id)
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+            subs_all_selected = fstate.get("subs_all_selected", False)
+        except Exception:
+            pass
+
     # We get all languages with type indicators
     if langs_override is not None:
         all_langs = []
@@ -1627,6 +1642,11 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
     total_languages = len(all_langs)
     total_pages = math.ceil(total_languages / (LANGS_PER_ROW * ROWS_PER_PAGE))
 
+    # Add ALL button for MKV if multiple languages available
+    if is_mkv and total_languages > 1:
+        all_button_text = "✅ ALL" if subs_all_selected else "ALL"
+        keyboard.append([InlineKeyboardButton(all_button_text, callback_data="askf|subs_lang|ALL")])
+
     # Cut for the current page
     start_idx = page * LANGS_PER_ROW * ROWS_PER_PAGE
     end_idx = start_idx + LANGS_PER_ROW * ROWS_PER_PAGE
@@ -1638,7 +1658,9 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
         for j in range(LANGS_PER_ROW):
             if i + j < len(current_page_langs):
                 lang_code, lang_info = current_page_langs[i + j]
-                button_text = f"{lang_info['flag']} {lang_info['name']}"
+                # Add checkmark if selected (for MKV multiple selection)
+                checkmark = "✅ " if is_mkv and lang_code in selected_subs_langs else ""
+                button_text = f"{checkmark}{lang_info['flag']} {lang_info['name']}"
                 row.append(InlineKeyboardButton(
                     button_text,
                     callback_data=f"askf|subs_lang|{lang_code}"

@@ -25,3 +25,11 @@ brotlicffi>=1.2.0.0
 yt-dlp[default,curl-cffi]
 # Gallery-dl для скачивания картинок
 gallery-dl
+
+# Зависимости для admin_bot.py
+# Для SOCKS прокси используйте: pip install "python-telegram-bot[socks]"
+# Для обычной установки: pip install python-telegram-bot
+#python-telegram-bot[socks]>=20.0  # Включает поддержку SOCKS прокси
+#python-dateutil
+#paramiko
+#apt-get install sshpass

@@ -605,15 +605,45 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         is_mkv_file = video_path.lower().endswith('.mkv')
 
         if is_mkv_file or mkv_selected:
-            # Убедимся, что есть SRT (в UTF-8)
+            # Check for multiple subtitle selection from Always Ask menu
+            try:
+                from DOWN_AND_UP.always_ask_menu import get_filters
+                fstate = get_filters(user_id)
+                selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+                subs_all_selected = fstate.get("subs_all_selected", False)
+            except Exception:
+                selected_subs_langs = []
+                subs_all_selected = False
+            
+            # Get all SRT files
             srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
             if not srt_files:
                 logger.info(f"No .srt files found in {video_dir} for soft-mux MKV")
                 return False
-            subs_path = os.path.join(video_dir, srt_files[0])
-            subs_path = ensure_utf8_srt(subs_path)
-            if not subs_path or not os.path.exists(subs_path) or os.path.getsize(subs_path) == 0:
-                logger.error(f"Subtitle file invalid for MKV soft-mux: {subs_path}")
+            
+            # Filter SRT files based on selection
+            if subs_all_selected:
+                # Use all SRT files
+                filtered_srt_files = srt_files
+            elif selected_subs_langs:
+                # Use only selected languages (match by filename pattern)
+                filtered_srt_files = []
+                for srt_file in srt_files:
+                    # Check if filename contains any of the selected language codes
+                    srt_lower = srt_file.lower()
+                    for lang in selected_subs_langs:
+                        if lang.lower() in srt_lower:
+                            filtered_srt_files.append(srt_file)
+                            break
+                if not filtered_srt_files:
+                    # Fallback to all if no matches
+                    filtered_srt_files = srt_files
+            else:
+                # Single language mode - use first SRT file
+                filtered_srt_files = [srt_files[0]]
+            
+            if not filtered_srt_files:
+                logger.info(f"No matching .srt files found for soft-mux MKV")
                 return False
 
             # Подготавливаем путь вывода
@@ -625,22 +655,50 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             if not ffmpeg_path:
                 logger.error("ffmpeg not found for MKV soft-mux")
                 return False
-            cmd = [
-                ffmpeg_path, '-y',
-                '-i', video_path,
-                '-i', subs_path,
-                '-c', 'copy',
-                '-c:s', 'srt',
-                '-map', '0',
-                '-map', '1:0'
-            ]
-            # Язык субтитров, если указан
-            if subs_lang and subs_lang != 'OFF':
-                cmd += ['-metadata:s:s:0', f'language={subs_lang}']
+            
+            # Build ffmpeg command with multiple subtitle inputs
+            cmd = [ffmpeg_path, '-y', '-i', video_path]
+            
+            # Add all subtitle files as inputs
+            subs_paths = []
+            for srt_file in filtered_srt_files:
+                subs_path = os.path.join(video_dir, srt_file)
+                subs_path = ensure_utf8_srt(subs_path)
+                if subs_path and os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
+                    cmd += ['-i', subs_path]
+                    subs_paths.append(subs_path)
+            
+            if not subs_paths:
+                logger.error("No valid subtitle files for MKV soft-mux")
+                return False
+            
+            # Map video and audio streams, then all subtitle streams
+            cmd += ['-c', 'copy', '-c:s', 'srt', '-map', '0:v', '-map', '0:a']
+            
+            # Map all subtitle streams
+            for i in range(len(subs_paths)):
+                cmd += ['-map', f'{i+1}:0']
+            
+            # Add language metadata for each subtitle track
+            for i, srt_file in enumerate(filtered_srt_files):
+                # Try to extract language from filename
+                lang_code = None
+                srt_lower = srt_file.lower()
+                if subs_all_selected or selected_subs_langs:
+                    # Try to match with selected languages
+                    for lang in (selected_subs_langs if selected_subs_langs else []):
+                        if lang.lower() in srt_lower:
+                            lang_code = lang.split('-')[0] if '-' in lang else lang
+                            break
+                if not lang_code and subs_lang and subs_lang != 'OFF':
+                    lang_code = subs_lang.split('-')[0] if '-' in subs_lang else subs_lang
+                if lang_code:
+                    cmd += ['-metadata:s:s:' + str(i), f'language={lang_code}']
+            
             cmd += [output_path]
 
             try:
-                logger.info(f"Running ffmpeg soft-mux (MKV): {' '.join(cmd)}")
+                logger.info(f"Running ffmpeg soft-mux (MKV) with {len(subs_paths)} subtitle tracks: {' '.join(cmd)}")
                 subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
             except Exception as e:
                 logger.error(f"FFmpeg soft-mux failed: {e}")
@@ -671,7 +729,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                     os.remove(output_path)
                 return False
 
-            logger.info("Soft subtitle mux into MKV completed successfully")
+            logger.info(f"Soft subtitle mux into MKV completed successfully with {len(subs_paths)} tracks")
             return True
 
         # We get video parameters via FFPRobe (жёсткое прожигание для MP4 и прочих контейнеров)

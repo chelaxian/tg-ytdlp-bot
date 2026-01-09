@@ -331,7 +331,7 @@ def get_filters(user_id):
     f = _ASK_FILTERS.get(str(user_id))
     if not f:
         # defaults: filters hidden to keep UI simple
-        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": []}
+        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False}
         _ASK_FILTERS[str(user_id)] = f
     return f
 
@@ -659,6 +659,8 @@ def ask_filter_callback(app, callback_query):
                 normal = _subs_check_cache.get(f"{url}_{user_id}_normal_langs") or []
                 auto = _subs_check_cache.get(f"{url}_{user_id}_auto_langs") or []
             langs = sorted(set(normal) | set(auto))
+            # Preserve selected languages when navigating pages
+            fstate = get_filters(user_id)
             kb = get_language_keyboard_always_ask(page=page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
                 callback_query.edit_message_reply_markup(reply_markup=kb)
@@ -684,25 +686,83 @@ def ask_filter_callback(app, callback_query):
             callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         if kind == "subs_lang":
-            # Persist selected subtitle language as global setting used by embed logic
-            try:
-                save_user_subs_language(user_id, value)
-                # If user picks explicit language from SUBS menu – assume manual, not auto
-                save_user_subs_auto_mode(user_id, False)
-            except Exception:
-                pass
-            original_message = callback_query.message.reply_to_message
-            if original_message:
-                url_text = original_message.text or (original_message.caption or "")
-                import re as _re
-                m = _re.search(r'https?://[^\s\*#]+', url_text)
-                url = m.group(0) if m else url_text
-                # Close subs keyboard and rebuild Always Ask menu with selected lang in summary
-                ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
-            try:
-                callback_query.answer(safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=value))
-            except Exception:
-                pass
+            fstate = get_filters(user_id)
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
+            if is_mkv:
+                # Multiple selection mode for MKV
+                if value == "ALL":
+                    # Select all available languages
+                    fstate["subs_all_selected"] = True
+                    fstate["selected_subs_langs"] = []  # Empty means all
+                    fstate["selected_subs_lang"] = None
+                else:
+                    # Toggle individual language selection
+                    selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+                    if value in selected_subs_langs:
+                        # Deselect
+                        selected_subs_langs.remove(value)
+                    else:
+                        # Select
+                        selected_subs_langs.append(value)
+                    fstate["selected_subs_langs"] = selected_subs_langs
+                    fstate["subs_all_selected"] = False
+                    fstate["selected_subs_lang"] = None
+                save_filters(user_id, fstate)
+                
+                # Reload the keyboard to show updated checkmarks
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    try:
+                        from COMMANDS.subtitles_cmd import get_or_compute_subs_langs, load_subs_langs_cache
+                        normal, auto = get_or_compute_subs_langs(user_id, url)
+                        langs = sorted(set(normal) | set(auto))
+                    except Exception:
+                        normal, auto = load_subs_langs_cache(user_id, url)
+                        langs = sorted(set(normal) | set(auto))
+                    if langs:
+                        from COMMANDS.subtitles_cmd import get_language_keyboard_always_ask
+                        kb = get_language_keyboard_always_ask(page=0, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
+                        try:
+                            callback_query.edit_message_reply_markup(reply_markup=kb)
+                        except Exception:
+                            pass
+                try:
+                    if value == "ALL":
+                        callback_query.answer("✅ All subtitles selected")
+                    else:
+                        callback_query.answer("Language toggled")
+                except Exception:
+                    pass
+            else:
+                # Single selection mode for MP4
+                fstate["selected_subs_lang"] = value
+                fstate["selected_subs_langs"] = []
+                fstate["subs_all_selected"] = False
+                save_filters(user_id, fstate)
+                try:
+                    save_user_subs_language(user_id, value)
+                    # If user picks explicit language from SUBS menu – assume manual, not auto
+                    save_user_subs_auto_mode(user_id, False)
+                except Exception:
+                    pass
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    # Close subs keyboard and rebuild Always Ask menu with selected lang in summary
+                    ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
+                try:
+                    callback_query.answer(safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=value))
+                except Exception:
+                    pass
             return
         # DUBS open: show languages grid with flags
         if kind == "dubs" and value == "open":
@@ -719,7 +779,15 @@ def ask_filter_callback(app, callback_query):
             if not langs or len(langs) <= 1:
                 callback_query.answer(safe_get_messages(user_id).NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG, show_alert=True)
                 return
+            # Check if MKV format is selected
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
             rows, row = [], []
+            # Add ALL button for MKV if multiple languages available
+            if is_mkv and len(langs) > 1:
+                rows.append([InlineKeyboardButton("✅ ALL", callback_data="askf|audio_lang|ALL")])
+            
             for i, lang in enumerate(sorted(langs)):
                 # Use robust flag lookup for DUBS (strict overrides first)
                 flag = _dub_flag(lang)
@@ -741,7 +809,15 @@ def ask_filter_callback(app, callback_query):
                 pass
             return
         if kind == "audio_lang":
-            set_filter(user_id, kind, value)
+            fstate = get_filters(user_id)
+            if value == "ALL":
+                # Store ALL selection for MKV
+                fstate["audio_lang"] = "ALL"
+                fstate["audio_all_dubs"] = True
+            else:
+                fstate["audio_lang"] = value
+                fstate["audio_all_dubs"] = False
+            save_filters(user_id, fstate)
             original_message = callback_query.message.reply_to_message
             if original_message:
                 url_text = original_message.text or (original_message.caption or "")
@@ -750,7 +826,10 @@ def ask_filter_callback(app, callback_query):
                 url = m.group(0) if m else url_text
                 ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
             try:
-                callback_query.answer(safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
+                if value == "ALL":
+                    callback_query.answer("✅ All audio tracks selected")
+                else:
+                    callback_query.answer(safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
             except Exception:
                 pass
             return
@@ -1690,8 +1769,16 @@ def askq_callback(app, callback_query):
             # Use precomputed list from filters state for speed/stability
             fstate = get_filters(callback_query.from_user.id)
             langs = fstate.get('available_dubs', [])
+            # Check if MKV format is selected
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
             # Build buttons 3 per row with flags
             rows = []
+            # Add ALL button for MKV if multiple languages available
+            if is_mkv and len(langs) > 1:
+                rows.append([InlineKeyboardButton("✅ ALL", callback_data="askf|audio_lang|ALL")])
+            
             row = []
             for i, lang in enumerate(sorted(langs)):
                 # DUBS: use first part for flags (de from de-DE)
@@ -5880,9 +5967,13 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     sel_codec = filters_state.get("codec", "avc1")
     sel_ext = filters_state.get("ext", "mp4")
     sel_audio_lang = filters_state.get("audio_lang")
+    audio_all_dubs = filters_state.get("audio_all_dubs", False)
     
     # Get selected subtitle language from filters (for Always Ask mode)
     selected_subs_lang = filters_state.get("selected_subs_lang")
+    selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
+    subs_all_selected = filters_state.get("subs_all_selected", False)
+    
     if selected_subs_lang:
         # Temporarily save the selected subtitle language for this download
         from COMMANDS.subtitles_cmd import save_user_subs_language, save_user_subs_auto_mode
@@ -5940,8 +6031,12 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             pass
         # Use format with AVC codec and MP4 container priority for {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} quality
         # with fallback to bv+ba/best if no AVC+MP4 available
-        audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-        fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba{audio_filter}/bv*[ext={sel_ext}]+ba{audio_filter}/bv+ba/best"
+        if audio_all_dubs and sel_ext == "mkv":
+            # For MKV with ALL dubs, download video + all audio tracks
+            fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba*/bv*[vcodec*={sel_codec}]+ba*/bv*[ext={sel_ext}]+ba*/bv+ba*/best"
+        else:
+            audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+            fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba{audio_filter}/bv*[ext={sel_ext}]+ba{audio_filter}/bv+ba/best"
         quality_key = "best"
     else:
         try:
@@ -6016,8 +6111,12 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         prev = 144
                     else:
                         prev = 0
-                    audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                    if audio_all_dubs and sel_ext == "mkv":
+                        # For MKV with ALL dubs, download video + all audio tracks
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba*/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba*/bv*[vcodec*={sel_codec}]+ba*/bv+ba*/best"
+                    else:
+                        audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
                 else:
                     # Use the real height to form the format
                     real_height = get_real_height_for_quality(data, max_width, max_height)
