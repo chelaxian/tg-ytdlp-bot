@@ -1313,10 +1313,10 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
     rows.append(format_row)
     action_buttons = []
     if has_dubs:
-        action_buttons.append(InlineKeyboardButton("🗣 DUBS", callback_data="askf|dubs|open"))
+        action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_DUBS_BUTTON_MSG, callback_data="askf|dubs|open"))
     try:
         if is_subs_always_ask(user_id):
-            action_buttons.append(InlineKeyboardButton("💬 SUBS", callback_data="askf|subs|open"))
+            action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_SUBS_BUTTON_MSG, callback_data="askf|subs|open"))
     except Exception:
         pass
     
@@ -1953,23 +1953,7 @@ def askq_callback(app, callback_query):
             callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         # OLD LINK TOGGLE HANDLER REMOVED - now using submenu approach
-        if kind == "subs_lang":
-            # Handle subtitle language selection in Always Ask
-            selected_lang = value
-            # Store the selected subtitle language for this video
-            fstate = get_filters(user_id)
-            fstate['selected_subs_lang'] = selected_lang
-            save_filters(user_id, fstate)
-            callback_query.answer(safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=selected_lang))
-            # Return to main Always Ask menu
-            original_message = callback_query.message.reply_to_message
-            if original_message:
-                url_text = original_message.text or (original_message.caption or "")
-                import re as _re
-                m = _re.search(r'https?://[^\s\*#]+', url_text)
-                url = m.group(0) if m else url_text
-                ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
-            return
+        # subs_lang handler is now at the top of the function (line 688) to handle MKV multiple selection
         if kind == "dubs" and value == "close":
             # Close dubs menu without changing audio_lang
             original_message = callback_query.message.reply_to_message
