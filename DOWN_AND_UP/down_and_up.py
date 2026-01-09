@@ -3373,11 +3373,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         logger.info(f"Downloading all subtitles for MKV: all_selected={subs_all_selected}, langs={selected_subs_langs}")
                                         status_msg = app.send_message(user_id, "💬 Downloading all subtitles...")
                                         
+                                        # Get available dubs for ALL_DUBS filtering
+                                        available_dubs = filters_state.get("available_dubs", []) or []
+                                        
                                         from DOWN_AND_UP.ffmpeg import download_all_subtitles
                                         subtitle_tracks = download_all_subtitles(
                                             url, user_id, video_dir,
                                             selected_langs=selected_subs_langs if selected_subs_langs else None,
-                                            all_selected=subs_all_selected
+                                            all_selected=subs_all_selected,
+                                            available_dubs=available_dubs if subs_all_selected else None
                                         )
                                         
                                         if subtitle_tracks:
@@ -3402,7 +3406,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             
                                             embed_result = embed_subs_to_video(
                                                 after_rename_abs_path, user_id,
-                                                tg_update_callback=subs_update_callback, app=app, message=message
+                                                tg_update_callback=subs_update_callback, app=app, message=message,
+                                                subtitle_tracks=subtitle_tracks
                                             )
                                             
                                             if embed_result:

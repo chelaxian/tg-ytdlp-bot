@@ -796,6 +796,19 @@ def get_user_subs_language(user_id):
 
 def is_subs_enabled(user_id):
     messages = safe_get_messages(user_id)
+    # Check if Always Ask mode is enabled and subtitles are selected in Always Ask menu
+    try:
+        if is_subs_always_ask(user_id):
+            from DOWN_AND_UP.always_ask_menu import get_filters
+            fstate = get_filters(user_id)
+            selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+            subs_all_selected = fstate.get("subs_all_selected", False)
+            # If subtitles are selected in Always Ask menu, consider them enabled
+            if subs_all_selected or selected_subs_langs:
+                return True
+    except Exception:
+        pass
+    # Fallback to checking traditional subs.txt file
     lang = get_user_subs_language(user_id)
     return lang is not None and lang != "OFF"
 
@@ -1914,8 +1927,9 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
         for j in range(LANGS_PER_ROW):
             if i + j < len(current_page_langs):
                 lang_code, lang_info = current_page_langs[i + j]
-                # Add checkmark if selected (for MKV multiple selection) - but not if ALL is selected
-                checkmark = "✅ " if is_mkv and lang_code in selected_subs_langs and not subs_all_selected else ""
+                # Add checkmark if selected (for MKV multiple selection)
+                # Show checkmark if language is in selected_subs_langs (works for both individual selection and ALL DUBS)
+                checkmark = "✅ " if is_mkv and lang_code in selected_subs_langs else ""
                 button_text = f"{checkmark}{lang_info['flag']} {lang_info['name']}"
                 row.append(InlineKeyboardButton(
                     button_text,
@@ -1923,10 +1937,21 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
                 ))
         keyboard.append(row)
     
-    # Add ALL button at the end for MKV if multiple languages available (only on first page)
+    # Add ALL DUBS button at the end for MKV if multiple languages available (only on first page)
     if is_mkv and total_languages > 1 and page == 0:
-        all_button_text = "✅ ALL" if subs_all_selected else "ALL"
-        keyboard.append([InlineKeyboardButton(all_button_text, callback_data="askf|subs_lang|ALL")])
+        # Get available dubs from fstate
+        available_dubs = []
+        if user_id:
+            try:
+                from DOWN_AND_UP.always_ask_menu import get_filters
+                fstate = get_filters(user_id)
+                available_dubs = fstate.get("available_dubs", []) or []
+            except Exception:
+                pass
+        
+        # Always show ALL DUBS button (no fallback to ALL)
+        all_dubs_button_text = "✅ ALL DUBS" if subs_all_selected else "ALL DUBS"
+        keyboard.append([InlineKeyboardButton(all_dubs_button_text, callback_data="askf|subs_lang|ALL_DUBS")])
 
     # Navigation
     nav_row = []

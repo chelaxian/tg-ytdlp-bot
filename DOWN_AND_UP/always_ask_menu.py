@@ -634,7 +634,10 @@ def ask_filter_callback(app, callback_query):
             if not langs:
                 safe_callback_answer(callback_query, safe_get_messages(user_id).NO_SUBTITLES_DETECTED_MSG, show_alert=True)
                 return
-            kb = get_language_keyboard_always_ask(page=0, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
+            # Get current page from fstate or default to 0
+            fstate = get_filters(user_id)
+            current_page = fstate.get("subs_lang_page", 0)
+            kb = get_language_keyboard_always_ask(page=current_page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
                 callback_query.edit_message_reply_markup(reply_markup=kb)
             except Exception:
@@ -643,6 +646,11 @@ def ask_filter_callback(app, callback_query):
             return
         if kind == "subs_page":
             page = int(value)
+            # Save current page to fstate to preserve it when selecting languages
+            fstate = get_filters(user_id)
+            fstate["subs_lang_page"] = page
+            save_filters(user_id, fstate)
+            
             original_message = callback_query.message.reply_to_message
             if not original_message:
                 callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
@@ -660,7 +668,6 @@ def ask_filter_callback(app, callback_query):
                 auto = _subs_check_cache.get(f"{url}_{user_id}_auto_langs") or []
             langs = sorted(set(normal) | set(auto))
             # Preserve selected languages when navigating pages
-            fstate = get_filters(user_id)
             kb = get_language_keyboard_always_ask(page=page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
                 callback_query.edit_message_reply_markup(reply_markup=kb)
@@ -692,11 +699,37 @@ def ask_filter_callback(app, callback_query):
             
             if is_mkv:
                 # Multiple selection mode for MKV
-                if value == "ALL":
-                    # Select all available languages - clear individual selections
-                    fstate["subs_all_selected"] = True
-                    fstate["selected_subs_langs"] = []  # Empty means all
-                    fstate["selected_subs_lang"] = None
+                # Get current page from fstate to preserve it
+                current_page = fstate.get("subs_lang_page", 0)
+                
+                if value == "ALL_DUBS":
+                    # Select all languages that have dubs - add them to selected_subs_langs for visual feedback
+                    available_dubs = fstate.get("available_dubs", [])
+                    if available_dubs:
+                        # Add all dub languages to selected_subs_langs to show checkmarks
+                        fstate["selected_subs_langs"] = list(available_dubs)
+                        fstate["subs_all_selected"] = True
+                        fstate["selected_subs_lang"] = None
+                    else:
+                        # Fallback to all available if no dubs info
+                        # Try to get all available languages
+                        try:
+                            original_message = callback_query.message.reply_to_message
+                            if original_message:
+                                url_text = original_message.text or (original_message.caption or "")
+                                import re as _re
+                                m = _re.search(r'https?://[^\s\*#]+', url_text)
+                                url = m.group(0) if m else url_text
+                                from COMMANDS.subtitles_cmd import get_or_compute_subs_langs
+                                normal, auto = get_or_compute_subs_langs(user_id, url)
+                                all_langs = sorted(set(normal) | set(auto))
+                                fstate["selected_subs_langs"] = all_langs
+                            else:
+                                fstate["selected_subs_langs"] = []
+                        except Exception:
+                            fstate["selected_subs_langs"] = []
+                        fstate["subs_all_selected"] = True
+                        fstate["selected_subs_lang"] = None
                 else:
                     # Toggle individual language selection - clear ALL selection
                     selected_subs_langs = fstate.get("selected_subs_langs", []) or []
@@ -707,11 +740,11 @@ def ask_filter_callback(app, callback_query):
                         # Select
                         selected_subs_langs.append(value)
                     fstate["selected_subs_langs"] = selected_subs_langs
-                    fstate["subs_all_selected"] = False  # Clear ALL when selecting individual languages
+                    fstate["subs_all_selected"] = False  # Clear ALL/ALL DUBS when selecting/deselecting individual languages
                     fstate["selected_subs_lang"] = None
                 save_filters(user_id, fstate)
                 
-                # Reload the keyboard to show updated checkmarks
+                # Reload the keyboard to show updated checkmarks - preserve current page
                 original_message = callback_query.message.reply_to_message
                 if original_message:
                     url_text = original_message.text or (original_message.caption or "")
@@ -727,14 +760,14 @@ def ask_filter_callback(app, callback_query):
                         normal, auto = load_subs_langs_cache(user_id, url)
                         langs = sorted(set(normal) | set(auto))
                     if langs:
-                        kb = get_language_keyboard_always_ask(page=0, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
+                        kb = get_language_keyboard_always_ask(page=current_page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
                         try:
                             callback_query.edit_message_reply_markup(reply_markup=kb)
                         except Exception:
                             pass
                 try:
-                    if value == "ALL":
-                        callback_query.answer("✅ All subtitles selected")
+                    if value == "ALL_DUBS":
+                        callback_query.answer("✅ All dubs subtitles selected")
                     else:
                         callback_query.answer("Language toggled")
                 except Exception:
@@ -1913,6 +1946,11 @@ def askq_callback(app, callback_query):
         if kind == "subs_page":
             # Handle page navigation in Always Ask subtitle menu
             page = int(value)
+            # Save current page to fstate to preserve it when selecting languages
+            fstate = get_filters(user_id)
+            fstate["subs_lang_page"] = page
+            save_filters(user_id, fstate)
+            
             original_message = callback_query.message.reply_to_message
             if not original_message:
                 callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
@@ -4996,7 +5034,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         if subs_enabled:
             if is_mkv:
                 if subs_all_selected:
-                    summary_parts.append(f"💬 {safe_get_messages(user_id).ALWAYS_ASK_ALL_SUBTITLES_BUTTON_MSG.replace('💬 ', '')}")
+                    # Check if ALL DUBS mode (has available_dubs) or ALL mode
+                    available_dubs = fstate.get("available_dubs", []) or []
+                    if available_dubs and len(available_dubs) > 1:
+                        summary_parts.append("💬 ALL DUBS")
+                    else:
+                        summary_parts.append(f"💬 {safe_get_messages(user_id).ALWAYS_ASK_ALL_SUBTITLES_BUTTON_MSG.replace('💬 ', '')}")
                 elif selected_subs_langs:
                     # Map language codes to display names if available, otherwise use codes
                     display_langs = []

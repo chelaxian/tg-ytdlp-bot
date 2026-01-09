@@ -572,11 +572,12 @@ def get_video_info_ffprobe(video_path):
 
 
 
-def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, message=None):
+def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, message=None, subtitle_tracks=None):
     messages = safe_get_messages(user_id)
     """
     Burning (hardcode) subtitles in a video file, if there is any .SRT file and subs.txt
     tg_update_callback (Progress: Float, ETA: StR) - Function for updating the status in Telegram
+    subtitle_tracks: Optional list of dicts with 'path' and 'language' keys for successfully downloaded subtitles
     """
     try:
         if not video_path or not os.path.exists(video_path):
@@ -605,46 +606,63 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         is_mkv_file = video_path.lower().endswith('.mkv')
 
         if is_mkv_file or mkv_selected:
-            # Check for multiple subtitle selection from Always Ask menu
-            try:
-                from DOWN_AND_UP.always_ask_menu import get_filters
-                fstate = get_filters(user_id)
-                selected_subs_langs = fstate.get("selected_subs_langs", []) or []
-                subs_all_selected = fstate.get("subs_all_selected", False)
-            except Exception:
-                selected_subs_langs = []
-                subs_all_selected = False
-            
-            # Get all SRT files
-            srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
-            if not srt_files:
-                logger.info(f"No .srt files found in {video_dir} for soft-mux MKV")
-                return False
-            
-            # Filter SRT files based on selection
-            if subs_all_selected:
-                # Use all SRT files
-                filtered_srt_files = srt_files
-            elif selected_subs_langs:
-                # Use only selected languages (match by filename pattern)
+            # If subtitle_tracks is provided, use only successfully downloaded tracks
+            if subtitle_tracks and len(subtitle_tracks) > 0:
+                # Use the list of successfully downloaded subtitle tracks
                 filtered_srt_files = []
-                for srt_file in srt_files:
-                    # Check if filename contains any of the selected language codes
-                    srt_lower = srt_file.lower()
-                    for lang in selected_subs_langs:
-                        if lang.lower() in srt_lower:
-                            filtered_srt_files.append(srt_file)
-                            break
+                for track in subtitle_tracks:
+                    track_path = track.get('path', '')
+                    if track_path and os.path.exists(track_path) and os.path.getsize(track_path) > 0:
+                        # Get just the filename from the full path
+                        track_filename = os.path.basename(track_path)
+                        filtered_srt_files.append(track_filename)
+                
                 if not filtered_srt_files:
-                    # Fallback to all if no matches
-                    filtered_srt_files = srt_files
+                    logger.warning(f"No valid subtitle tracks found in provided list for soft-mux MKV")
+                    return False
+                
+                logger.info(f"Using {len(filtered_srt_files)} successfully downloaded subtitle tracks for MKV soft-mux")
             else:
-                # Single language mode - use first SRT file
-                filtered_srt_files = [srt_files[0]]
-            
-            if not filtered_srt_files:
-                logger.info(f"No matching .srt files found for soft-mux MKV")
-                return False
+                # Fallback: Check for multiple subtitle selection from Always Ask menu
+                try:
+                    from DOWN_AND_UP.always_ask_menu import get_filters
+                    fstate = get_filters(user_id)
+                    selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+                    subs_all_selected = fstate.get("subs_all_selected", False)
+                except Exception:
+                    selected_subs_langs = []
+                    subs_all_selected = False
+                
+                # Get all SRT files
+                srt_files = [f for f in os.listdir(video_dir) if f.lower().endswith('.srt')]
+                if not srt_files:
+                    logger.info(f"No .srt files found in {video_dir} for soft-mux MKV")
+                    return False
+                
+                # Filter SRT files based on selection
+                if subs_all_selected:
+                    # Use all SRT files
+                    filtered_srt_files = srt_files
+                elif selected_subs_langs:
+                    # Use only selected languages (match by filename pattern)
+                    filtered_srt_files = []
+                    for srt_file in srt_files:
+                        # Check if filename contains any of the selected language codes
+                        srt_lower = srt_file.lower()
+                        for lang in selected_subs_langs:
+                            if lang.lower() in srt_lower:
+                                filtered_srt_files.append(srt_file)
+                                break
+                    if not filtered_srt_files:
+                        # Fallback to all if no matches
+                        filtered_srt_files = srt_files
+                else:
+                    # Single language mode - use first SRT file
+                    filtered_srt_files = [srt_files[0]]
+                
+                if not filtered_srt_files:
+                    logger.info(f"No matching .srt files found for soft-mux MKV")
+                    return False
 
             # Подготавливаем путь вывода
             video_base = os.path.splitext(os.path.basename(video_path))[0]
@@ -681,17 +699,42 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             
             # Add language metadata for each subtitle track
             for i, srt_file in enumerate(filtered_srt_files):
-                # Try to extract language from filename
+                # Try to extract language from subtitle_tracks first, then fallback to filename
                 lang_code = None
-                srt_lower = srt_file.lower()
-                if subs_all_selected or selected_subs_langs:
-                    # Try to match with selected languages
-                    for lang in (selected_subs_langs if selected_subs_langs else []):
-                        if lang.lower() in srt_lower:
-                            lang_code = lang.split('-')[0] if '-' in lang else lang
-                            break
+                
+                if subtitle_tracks and len(subtitle_tracks) > 0:
+                    # Find matching track by filename
+                    for track in subtitle_tracks:
+                        track_path = track.get('path', '')
+                        track_filename = os.path.basename(track_path) if track_path else ''
+                        if track_filename == srt_file:
+                            track_lang = track.get('language', '')
+                            if track_lang:
+                                lang_code = track_lang.split('-')[0] if '-' in track_lang else track_lang
+                                break
+                
+                if not lang_code:
+                    # Fallback: Try to extract language from filename
+                    srt_lower = srt_file.lower()
+                    try:
+                        from DOWN_AND_UP.always_ask_menu import get_filters
+                        fstate = get_filters(user_id)
+                        selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+                        subs_all_selected = fstate.get("subs_all_selected", False)
+                    except Exception:
+                        selected_subs_langs = []
+                        subs_all_selected = False
+                    
+                    if subs_all_selected or selected_subs_langs:
+                        # Try to match with selected languages
+                        for lang in (selected_subs_langs if selected_subs_langs else []):
+                            if lang.lower() in srt_lower:
+                                lang_code = lang.split('-')[0] if '-' in lang else lang
+                                break
+                
                 if not lang_code and subs_lang and subs_lang != 'OFF':
                     lang_code = subs_lang.split('-')[0] if '-' in subs_lang else subs_lang
+                
                 if lang_code:
                     cmd += ['-metadata:s:s:' + str(i), f'language={lang_code}']
             
@@ -1347,10 +1390,18 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
         return False
 
 
-def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_selected=False):
+def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_selected=False, available_dubs=None):
     """
     Download all selected subtitles for MKV multi-track support.
     Returns list of downloaded subtitle file paths with language info.
+    
+    Args:
+        url: Video URL
+        user_id: User ID
+        video_dir: Directory to save subtitles
+        selected_langs: List of specific languages to download
+        all_selected: If True, download all available (or filtered by available_dubs if provided)
+        available_dubs: If provided and all_selected=True, filter subtitles to only languages that have dubs
     """
     try:
         import yt_dlp
@@ -1371,10 +1422,30 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
             return []
         
         # Determine which languages to download
-        if all_selected:
-            langs_to_download = all_available
-        elif selected_langs:
+        # Priority: selected_langs (if provided) > all_selected with available_dubs > all_selected > single language
+        if selected_langs and len(selected_langs) > 0:
+            # Use explicitly selected languages (from ALL DUBS or individual selection)
             langs_to_download = selected_langs
+            logger.info(f"Using {len(langs_to_download)} explicitly selected subtitle languages")
+        elif all_selected:
+            if available_dubs and len(available_dubs) > 0:
+                # Filter to only languages that have dubs (ALL DUBS mode)
+                # Match languages by base code (e.g., 'en' matches 'en-US', 'en-GB')
+                langs_to_download = []
+                for sub_lang in all_available:
+                    sub_base = sub_lang.split('-')[0] if '-' in sub_lang else sub_lang
+                    for dub_lang in available_dubs:
+                        dub_base = dub_lang.split('-')[0] if '-' in dub_lang else dub_lang
+                        if sub_base == dub_base or sub_lang == dub_lang:
+                            langs_to_download.append(sub_lang)
+                            break
+                # Remove duplicates while preserving order
+                langs_to_download = sorted(list(dict.fromkeys(langs_to_download)))
+                logger.info(f"ALL DUBS mode: filtering subtitles to {len(langs_to_download)} languages that have dubs")
+            else:
+                # Download all available languages (ALL mode)
+                langs_to_download = all_available
+                logger.info(f"ALL mode: downloading all {len(langs_to_download)} available subtitle languages")
         else:
             # Single language mode - use existing logic
             return []
