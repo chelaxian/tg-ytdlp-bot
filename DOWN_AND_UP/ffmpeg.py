@@ -965,7 +965,7 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
         import yt_dlp
         from COMMANDS.args_cmd import get_user_ytdlp_args
         from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
-        from URL_PARSERS.url_extractor import add_pot_to_ytdl_opts
+        from HELPERS.pot_helper import add_pot_to_ytdl_opts
         
         # Get video info to find all audio formats
         if info_dict:
@@ -997,20 +997,35 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
         # Collect all unique languages from audio-only formats
         all_audio_langs = set()
         audio_tracks = []
+        formats_count = len(info.get('formats', []))
+        logger.info(f"Scanning {formats_count} formats for audio tracks...")
+        
         for fmt in info.get('formats', []):
-            if fmt.get('vcodec') == 'none' and fmt.get('acodec') and fmt.get('language'):
-                lang = fmt.get('language')
+            # Check for audio-only formats (vcodec == 'none' and has acodec)
+            vcodec = fmt.get('vcodec', 'none')
+            acodec = fmt.get('acodec')
+            lang = fmt.get('language')
+            
+            if vcodec == 'none' and acodec:
+                # Some formats might not have language tag, skip them
+                if not lang:
+                    logger.debug(f"Skipping audio format {fmt.get('format_id')} - no language tag")
+                    continue
                 all_audio_langs.add(lang)
                 # If available_langs is provided, filter by it; otherwise use all languages
                 if available_langs is None or lang in available_langs:
                     audio_tracks.append({
                         'format_id': fmt.get('format_id'),
                         'language': lang,
-                        'acodec': fmt.get('acodec'),
+                        'acodec': acodec,
                         'ext': fmt.get('ext', 'm4a')
                     })
         
         logger.info(f"Found {len(audio_tracks)} audio tracks to download (total available languages: {len(all_audio_langs)})")
+        logger.info(f"Available languages: {sorted(all_audio_langs)}")
+        if available_langs is not None:
+            logger.info(f"Filtered by selected languages: {available_langs}")
+            logger.info(f"Languages to download: {[t['language'] for t in audio_tracks]}")
         
         if not audio_tracks:
             logger.info("No audio tracks found for download")

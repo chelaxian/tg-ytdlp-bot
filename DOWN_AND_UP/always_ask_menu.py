@@ -5100,7 +5100,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         fstate = get_filters(user_id)
         available_dubs = fstate.get("available_dubs", [])
         if len(available_dubs) > 1:  # More than 1 language means dubs are available
-            dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {len(available_dubs)} languages"
+            # Get selected audio language(s)
+            sel_audio_lang = fstate.get("audio_lang")
+            audio_all_dubs = fstate.get("audio_all_dubs", False)
+            selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+            
+            # Build dubs info string
+            if audio_all_dubs:
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: ALL ({len(available_dubs)} languages)"
+            elif selected_audio_langs:
+                # Show selected languages
+                langs_str = ", ".join(selected_audio_langs[:3])  # Show first 3
+                if len(selected_audio_langs) > 3:
+                    langs_str += f" +{len(selected_audio_langs) - 3} more"
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {langs_str} ({len(selected_audio_langs)}/{len(available_dubs)})"
+            elif sel_audio_lang:
+                # Single language selected (for MP4)
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {sel_audio_lang} ({len(available_dubs)} available)"
+            else:
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {len(available_dubs)} languages"
         
         # Add the info to caption - each type independently
         info_parts = []
