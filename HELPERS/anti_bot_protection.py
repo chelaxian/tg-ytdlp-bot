@@ -428,33 +428,12 @@ def _check_24h_activity(user_id: int, current_time: float) -> Optional[str]:
         # Update activity for current hour
         _user_activity_hours[user_id][hour_since_start] = current_time
         
-        # Determine how many hours to check
+        # Only check if at least 23 hours have passed since bot start
         if hours_since_start < 23:
-            # Less than 23 hours have passed, check activity in each of the passed hours
-            hours_to_check = hour_since_start + 1  # +1 to include current hour (0-indexed)
-            active_hours_count = 0
-            
-            for hour_offset in range(hours_to_check):
-                # Calculate the timestamp range for this hour since bot start
-                hour_start_time = _bot_start_time + (hour_offset * 3600)
-                hour_end_time = hour_start_time + 3600
-                
-                # Check if user was active in this hour
-                user_activities = [
-                    ts for h, ts in _user_activity_hours[user_id].items()
-                    if hour_start_time <= ts < hour_end_time
-                ]
-                
-                if user_activities:
-                    active_hours_count += 1
-            
-            # Check if user was active in all passed hours
-            if active_hours_count >= hours_to_check:
-                reason = (
-                    f"Обнаружена активность 24/7 (подозрение на бота): "
-                    f"активность в каждом из {active_hours_count} часов в течение {hours_to_check} часов с момента запуска"
-                )
-                return reason
+            # Less than 23 hours have passed, just record activity and don't check
+            # We need to wait at least 23 hours before checking for 24/7 activity
+            _save_to_disk()
+            return None
         else:
             # 23+ hours have passed, check activity in each of the last 23 hours (excluding current hour)
             # This creates a sliding window that constantly shifts
