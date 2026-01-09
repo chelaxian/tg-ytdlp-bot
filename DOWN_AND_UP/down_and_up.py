@@ -3323,35 +3323,35 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         from DOWN_AND_UP.ffmpeg import download_all_audio_tracks, embed_all_audio_tracks_to_mkv
                                         # Pass selected languages or None for all, and pass info_dict to avoid re-fetching
                                         audio_tracks = download_all_audio_tracks(url, user_id, video_dir, available_langs=available_langs, use_proxy=use_proxy, info_dict=info_dict)
+                                        
+                                        if audio_tracks:
+                                            logger.info(f"Embedding {len(audio_tracks)} audio tracks into MKV")
+                                            app.edit_message_text(user_id, status_msg.id, "🎵 Embedding audio tracks into MKV...")
                                             
-                                            if audio_tracks:
-                                                logger.info(f"Embedding {len(audio_tracks)} audio tracks into MKV")
-                                                app.edit_message_text(user_id, status_msg.id, "🎵 Embedding audio tracks into MKV...")
-                                                
-                                                def audio_update_callback(progress, eta):
-                                                    try:
-                                                        blocks = int(progress * 10)
-                                                        bar = '🟩' * blocks + '⬜️' * (10 - blocks)
-                                                        percent = int(progress * 100)
-                                                        app.edit_message_text(
-                                                            chat_id=user_id,
-                                                            message_id=status_msg.id,
-                                                            text=f"🎵 Embedding audio tracks...\n{bar} {percent}%\nETA: {eta} min"
-                                                        )
-                                                    except Exception:
-                                                        pass
-                                                
-                                                embed_result = embed_all_audio_tracks_to_mkv(
-                                                    after_rename_abs_path, audio_tracks, user_id,
-                                                    tg_update_callback=audio_update_callback, app=app, message=message
-                                                )
-                                                
-                                                if embed_result:
-                                                    app.edit_message_text(user_id, status_msg.id, "✅ All audio tracks embedded successfully!")
-                                                else:
-                                                    app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to embed some audio tracks")
+                                            def audio_update_callback(progress, eta):
+                                                try:
+                                                    blocks = int(progress * 10)
+                                                    bar = '🟩' * blocks + '⬜️' * (10 - blocks)
+                                                    percent = int(progress * 100)
+                                                    app.edit_message_text(
+                                                        chat_id=user_id,
+                                                        message_id=status_msg.id,
+                                                        text=f"🎵 Embedding audio tracks...\n{bar} {percent}%\nETA: {eta} min"
+                                                    )
+                                                except Exception:
+                                                    pass
+                                            
+                                            embed_result = embed_all_audio_tracks_to_mkv(
+                                                after_rename_abs_path, audio_tracks, user_id,
+                                                tg_update_callback=audio_update_callback, app=app, message=message
+                                            )
+                                            
+                                            if embed_result:
+                                                app.edit_message_text(user_id, status_msg.id, f"✅ All {len(audio_tracks)} audio tracks embedded successfully!")
                                             else:
-                                                app.edit_message_text(user_id, status_msg.id, "⚠️ No additional audio tracks found")
+                                                app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to embed some audio tracks")
+                                        else:
+                                            app.edit_message_text(user_id, status_msg.id, "⚠️ No additional audio tracks found")
                                     except Exception as e:
                                         logger.error(f"Error in audio tracks postprocessing: {e}")
                                         import traceback
