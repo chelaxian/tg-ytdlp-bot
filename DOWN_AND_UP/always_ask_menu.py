@@ -726,7 +726,6 @@ def ask_filter_callback(app, callback_query):
                         normal, auto = load_subs_langs_cache(user_id, url)
                         langs = sorted(set(normal) | set(auto))
                     if langs:
-                        from COMMANDS.subtitles_cmd import get_language_keyboard_always_ask
                         kb = get_language_keyboard_always_ask(page=0, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
                         try:
                             callback_query.edit_message_reply_markup(reply_markup=kb)

@@ -355,16 +355,7 @@ def subs_command(app, message):
             send_to_logger(message, safe_get_messages(user_id).SUBS_ALWAYS_ASK_ENABLED_LOG_MSG.format(arg=arg))
             return
         
-        # /subs ru (language code)
-        elif arg in LANGUAGES:
-            save_user_subs_language(user_id, arg)
-            lang_info = LANGUAGES[arg]
-            from HELPERS.safe_messeger import safe_send_message
-            safe_send_message(user_id, safe_get_messages(user_id).SUBS_LANGUAGE_SET_MSG.format(flag=lang_info['flag'], name=lang_info['name']), message=message)
-            send_to_logger(message, safe_get_messages(user_id).SUBS_LANGUAGE_SET_LOG_MSG.format(arg=arg))
-            return
-        
-        # /subs ru auto (language + auto mode)
+        # /subs ru auto (language + auto mode) - check this BEFORE single language check
         elif len(parts) >= 3 and parts[2].lower() == "auto" and arg in LANGUAGES:
             save_user_subs_language(user_id, arg)
             save_user_subs_auto_mode(user_id, True)
@@ -372,6 +363,17 @@ def subs_command(app, message):
             from HELPERS.safe_messeger import safe_send_message
             safe_send_message(user_id, safe_get_messages(user_id).SUBS_LANGUAGE_AUTO_SET_MSG.format(flag=lang_info['flag'], name=lang_info['name']), message=message)
             send_to_logger(message, safe_get_messages(user_id).SUBS_LANGUAGE_AUTO_SET_LOG_MSG.format(arg=arg))
+            return
+        
+        # /subs ru (language code)
+        elif arg in LANGUAGES:
+            save_user_subs_language(user_id, arg)
+            # When setting language without "auto", disable auto mode to use manual subs
+            save_user_subs_auto_mode(user_id, False)
+            lang_info = LANGUAGES[arg]
+            from HELPERS.safe_messeger import safe_send_message
+            safe_send_message(user_id, safe_get_messages(user_id).SUBS_LANGUAGE_SET_MSG.format(flag=lang_info['flag'], name=lang_info['name']), message=message)
+            send_to_logger(message, safe_get_messages(user_id).SUBS_LANGUAGE_SET_LOG_MSG.format(arg=arg))
             return
         
         # Invalid argument

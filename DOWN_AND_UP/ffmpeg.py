@@ -995,6 +995,24 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
             with yt_dlp.YoutubeDL(info_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
         
+        # Find original audio language from the main video format (video+audio combined)
+        original_audio_lang = None
+        for fmt in info.get('formats', []):
+            # Look for the format that was actually downloaded (video+audio combined)
+            # Usually this is the format with both vcodec and acodec
+            if fmt.get('vcodec') != 'none' and fmt.get('acodec'):
+                lang = fmt.get('language')
+                if lang:
+                    original_audio_lang = lang
+                    logger.info(f"Detected original audio language from main video format: {original_audio_lang}")
+                    break
+        
+        # If not found in formats, try to get from video metadata
+        if not original_audio_lang:
+            original_audio_lang = info.get('language') or info.get('original_language')
+            if original_audio_lang:
+                logger.info(f"Detected original audio language from video metadata: {original_audio_lang}")
+        
         # Find all audio-only formats with different languages
         # Collect all unique languages from audio-only formats
         all_audio_langs = set()
@@ -1013,6 +1031,19 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
                 if not lang:
                     logger.debug(f"Skipping audio format {fmt.get('format_id')} - no language tag")
                     continue
+                
+                # Skip original language - it's already in the main video
+                if original_audio_lang and lang == original_audio_lang:
+                    logger.debug(f"Skipping original audio language {lang} - already in main video")
+                    continue
+                # Also check for partial matches (e.g., 'en' matches 'en-US')
+                if original_audio_lang:
+                    orig_base = original_audio_lang.split('-')[0]
+                    lang_base = lang.split('-')[0]
+                    if orig_base == lang_base:
+                        logger.debug(f"Skipping original audio language variant {lang} (matches {original_audio_lang}) - already in main video")
+                        continue
+                
                 all_audio_langs.add(lang)
                 # If available_langs is provided, filter by it; otherwise use all languages
                 if available_langs is None or lang in available_langs:
@@ -1043,6 +1074,8 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
                 unique_tracks.append(track)
         
         logger.info(f"Downloading {len(unique_tracks)} unique audio tracks: {[t['language'] for t in unique_tracks]}")
+        if original_audio_lang:
+            logger.info(f"Original audio language '{original_audio_lang}' will be used from main video (not downloaded separately)")
         audio_tracks = unique_tracks
         
         # Download each audio track
@@ -1104,18 +1137,23 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
                 logger.error(f"Failed to download audio track {track_info.get('language')}: {e}")
                 continue
         
-        return downloaded_tracks
+        # Return both downloaded tracks and original language info
+        return {
+            'tracks': downloaded_tracks,
+            'original_lang': original_audio_lang
+        }
     except Exception as e:
         logger.error(f"Error in download_all_audio_tracks: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return []
+        return {'tracks': [], 'original_lang': None}
 
 
-def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_callback=None, app=None, message=None):
+def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_callback=None, app=None, message=None, original_audio_lang=None):
     """
     Embed all audio tracks into MKV file as separate switchable tracks.
     audio_tracks: list of dicts with 'path' and 'language' keys
+    original_audio_lang: language code of the original audio track (already in the video)
     """
     try:
         if not video_path or not os.path.exists(video_path):
@@ -1165,12 +1203,44 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
         cmd += ['-c', 'copy', '-c:a', 'copy']
         
         # Add language metadata for each audio track
-        # Original audio track (from the main video file) - try to detect language or use 'und'
-        # Check if original audio has language info by examining the first additional track
-        original_lang = 'und'
-        # Try to detect from video file metadata or use a default
-        # For now, we'll use 'und' for original and set proper languages for additional tracks
-        cmd += ['-metadata:s:a:0', f'language={original_lang}']
+        # Original audio track (from the main video file)
+        if original_audio_lang:
+            # Use detected original language
+            orig_lang_code = original_audio_lang.split('-')[0] if '-' in original_audio_lang else original_audio_lang
+            cmd += ['-metadata:s:a:0', f'language={orig_lang_code}']
+            logger.info(f"Setting original audio track language to: {orig_lang_code}")
+        else:
+            # Try to detect from video file metadata using ffprobe
+            try:
+                import json
+                ffprobe_result = subprocess.run([
+                    'ffprobe', '-v', 'error',
+                    '-select_streams', 'a:0',
+                    '-show_entries', 'stream=tags:stream_tags=language',
+                    '-of', 'json', video_path
+                ], capture_output=True, text=True, encoding='utf-8', errors='replace')
+                
+                if ffprobe_result.returncode == 0:
+                    probe_data = json.loads(ffprobe_result.stdout)
+                    if 'streams' in probe_data and len(probe_data['streams']) > 0:
+                        stream = probe_data['streams'][0]
+                        if 'tags' in stream and 'language' in stream['tags']:
+                            detected_lang = stream['tags']['language']
+                            orig_lang_code = detected_lang.split('-')[0] if '-' in detected_lang else detected_lang
+                            cmd += ['-metadata:s:a:0', f'language={orig_lang_code}']
+                            logger.info(f"Detected original audio track language from video: {orig_lang_code}")
+                        else:
+                            cmd += ['-metadata:s:a:0', 'language=und']
+                            logger.info("No language tag in original audio stream, using 'und'")
+                    else:
+                        cmd += ['-metadata:s:a:0', 'language=und']
+                        logger.info("No audio stream found in video, using 'und'")
+                else:
+                    cmd += ['-metadata:s:a:0', 'language=und']
+                    logger.info("Could not probe video for audio language, using 'und'")
+            except Exception as e:
+                logger.warning(f"Could not detect original audio language: {e}, using 'und'")
+                cmd += ['-metadata:s:a:0', 'language=und']
         
         # Additional audio tracks (index starts from 1 because 0 is original)
         for i, track in enumerate(valid_tracks):

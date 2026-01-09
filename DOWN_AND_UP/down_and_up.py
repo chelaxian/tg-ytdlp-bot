@@ -3322,10 +3322,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         
                                         from DOWN_AND_UP.ffmpeg import download_all_audio_tracks, embed_all_audio_tracks_to_mkv
                                         # Pass selected languages or None for all, and pass info_dict to avoid re-fetching
-                                        audio_tracks = download_all_audio_tracks(url, user_id, video_dir, available_langs=available_langs, use_proxy=use_proxy, info_dict=info_dict)
+                                        audio_result = download_all_audio_tracks(url, user_id, video_dir, available_langs=available_langs, use_proxy=use_proxy, info_dict=info_dict)
                                         
-                                        if audio_tracks:
-                                            logger.info(f"Embedding {len(audio_tracks)} audio tracks into MKV")
+                                        # Extract tracks and original language from result
+                                        if isinstance(audio_result, dict):
+                                            audio_tracks = audio_result.get('tracks', [])
+                                            original_audio_lang = audio_result.get('original_lang')
+                                        else:
+                                            # Backward compatibility
+                                            audio_tracks = audio_result if audio_result else []
+                                            original_audio_lang = None
+                                        
+                                        if audio_tracks or original_audio_lang:
+                                            total_tracks = len(audio_tracks) + (1 if original_audio_lang else 0)
+                                            logger.info(f"Embedding {len(audio_tracks)} additional audio tracks + 1 original into MKV")
                                             app.edit_message_text(user_id, status_msg.id, "🎵 Embedding audio tracks into MKV...")
                                             
                                             def audio_update_callback(progress, eta):
@@ -3343,11 +3353,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             
                                             embed_result = embed_all_audio_tracks_to_mkv(
                                                 after_rename_abs_path, audio_tracks, user_id,
-                                                tg_update_callback=audio_update_callback, app=app, message=message
+                                                tg_update_callback=audio_update_callback, app=app, message=message,
+                                                original_audio_lang=original_audio_lang
                                             )
                                             
                                             if embed_result:
-                                                app.edit_message_text(user_id, status_msg.id, f"✅ All {len(audio_tracks)} audio tracks embedded successfully!")
+                                                app.edit_message_text(user_id, status_msg.id, f"✅ All {total_tracks} audio tracks embedded successfully!")
                                             else:
                                                 app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to embed some audio tracks")
                                         else:
