@@ -953,3 +953,457 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         import traceback
         logger.error(traceback.format_exc())
         return False
+
+
+def download_all_audio_tracks(url, user_id, video_dir, available_langs, use_proxy=False):
+    """
+    Download all available audio tracks separately for MKV multi-track support.
+    Returns list of downloaded audio file paths with language info.
+    """
+    try:
+        import yt_dlp
+        from COMMANDS.args_cmd import get_user_ytdlp_args
+        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
+        from URL_PARSERS.url_extractor import add_pot_to_ytdl_opts
+        
+        if not available_langs or len(available_langs) <= 1:
+            logger.info("No multiple audio tracks available, skipping download")
+            return []
+        
+        # Get video info to find all audio formats
+        info_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'skip_download': True,
+            'noplaylist': True,
+        }
+        
+        # Add cookies
+        user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            info_opts['cookiefile'] = user_cookie_path
+        
+        # Add proxy
+        info_opts = add_proxy_to_ytdl_opts(info_opts, url, user_id)
+        
+        # Add PO token
+        info_opts = add_pot_to_ytdl_opts(info_opts, url)
+        
+        with yt_dlp.YoutubeDL(info_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+        
+        # Find all audio-only formats with different languages
+        audio_tracks = []
+        for fmt in info.get('formats', []):
+            if (fmt.get('vcodec') == 'none' and fmt.get('acodec') and 
+                fmt.get('language') and fmt.get('language') in available_langs):
+                audio_tracks.append({
+                    'format_id': fmt.get('format_id'),
+                    'language': fmt.get('language'),
+                    'acodec': fmt.get('acodec'),
+                    'ext': fmt.get('ext', 'm4a')
+                })
+        
+        if not audio_tracks:
+            logger.info("No audio tracks found for download")
+            return []
+        
+        # Download each audio track
+        downloaded_tracks = []
+        user_args = get_user_ytdlp_args(user_id, url)
+        
+        for track_info in audio_tracks:
+            try:
+                lang = track_info['language']
+                format_id = track_info['format_id']
+                ext = track_info['ext']
+                
+                # Create output filename
+                audio_filename = f"audio_{lang}.{ext}"
+                audio_path = os.path.join(video_dir, audio_filename)
+                
+                # Download options
+                download_opts = {
+                    'format': format_id,
+                    'outtmpl': audio_path.replace(f'.{ext}', '.%(ext)s'),
+                    'quiet': True,
+                    'no_warnings': True,
+                    'noplaylist': True,
+                }
+                
+                # Add cookies
+                if os.path.exists(user_cookie_path):
+                    download_opts['cookiefile'] = user_cookie_path
+                
+                # Add proxy
+                download_opts = add_proxy_to_ytdl_opts(download_opts, url, user_id)
+                
+                # Add PO token
+                download_opts = add_pot_to_ytdl_opts(download_opts, url)
+                
+                # Download
+                with yt_dlp.YoutubeDL(download_opts) as ydl:
+                    ydl.download([url])
+                
+                # Check if file was downloaded
+                if os.path.exists(audio_path):
+                    downloaded_tracks.append({
+                        'path': audio_path,
+                        'language': lang
+                    })
+                    logger.info(f"Downloaded audio track: {lang} -> {audio_path}")
+                else:
+                    # Try to find file with any extension
+                    import glob
+                    pattern = audio_path.replace(f'.{ext}', '.*')
+                    found_files = glob.glob(pattern)
+                    if found_files:
+                        downloaded_tracks.append({
+                            'path': found_files[0],
+                            'language': lang
+                        })
+                        logger.info(f"Downloaded audio track: {lang} -> {found_files[0]}")
+            except Exception as e:
+                logger.error(f"Failed to download audio track {track_info.get('language')}: {e}")
+                continue
+        
+        return downloaded_tracks
+    except Exception as e:
+        logger.error(f"Error in download_all_audio_tracks: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return []
+
+
+def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_callback=None, app=None, message=None):
+    """
+    Embed all audio tracks into MKV file as separate switchable tracks.
+    audio_tracks: list of dicts with 'path' and 'language' keys
+    """
+    try:
+        if not video_path or not os.path.exists(video_path):
+            logger.error(f"Video file not found: {video_path}")
+            return False
+        
+        if not video_path.lower().endswith('.mkv'):
+            logger.error(f"Video file is not MKV: {video_path}")
+            return False
+        
+        if not audio_tracks:
+            logger.info("No audio tracks to embed")
+            return False
+        
+        video_dir = os.path.dirname(video_path)
+        video_base = os.path.splitext(os.path.basename(video_path))[0]
+        output_path = os.path.join(video_dir, f"{video_base}_with_audio_temp.mkv")
+        
+        ffmpeg_path = get_ffmpeg_path()
+        if not ffmpeg_path:
+            logger.error("ffmpeg not found for audio mux")
+            return False
+        
+        # Build ffmpeg command
+        cmd = [ffmpeg_path, '-y', '-i', video_path]
+        
+        # Filter valid tracks
+        valid_tracks = [t for t in audio_tracks if os.path.exists(t['path'])]
+        if not valid_tracks:
+            logger.warning("No valid audio tracks to embed")
+            return False
+        
+        # Add all audio files as inputs
+        for track in valid_tracks:
+            cmd += ['-i', track['path']]
+        
+        # Map video and original audio
+        cmd += ['-map', '0:v', '-map', '0:a?']
+        
+        # Map all additional audio tracks
+        for i in range(len(valid_tracks)):
+            cmd += ['-map', f'{i+1}:a']
+        
+        # Copy video and audio codecs
+        cmd += ['-c', 'copy', '-c:a', 'copy']
+        
+        # Add language metadata for each audio track
+        # Original audio track (if exists)
+        # Note: We'll set language for original track if we can detect it, otherwise use 'und'
+        original_lang = 'und'
+        if valid_tracks:
+            # Try to detect original language from video metadata or use first additional track
+            original_lang = valid_tracks[0]['language'].split('-')[0] if '-' in valid_tracks[0]['language'] else 'und'
+        cmd += ['-metadata:s:a:0', f'language={original_lang}']
+        
+        # Additional audio tracks
+        for i, track in enumerate(valid_tracks):
+            lang_code = track['language'].split('-')[0] if '-' in track['language'] else track['language']
+            cmd += ['-metadata:s:a:' + str(i+1), f'language={lang_code}']
+        
+        cmd += [output_path]
+        
+        try:
+            logger.info(f"Running ffmpeg to embed {len(valid_tracks)} audio tracks: {' '.join(cmd)}")
+            # Add progress tracking if callback provided
+            if tg_update_callback:
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    bufsize=1
+                )
+                progress = 0.0
+                last_update = time.time()
+                time_pattern = re.compile(r'time=([0-9:.]+)')
+                duration_pattern = re.compile(r'Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})')
+                total_duration = 0
+                
+                for line in proc.stdout:
+                    # Parse duration
+                    dur_match = duration_pattern.search(line)
+                    if dur_match:
+                        hours, minutes, seconds, centiseconds = map(int, dur_match.groups())
+                        total_duration = hours * 3600 + minutes * 60 + seconds + centiseconds / 100
+                    
+                    # Parse progress
+                    time_match = time_pattern.search(line)
+                    if time_match and total_duration > 0:
+                        time_str = time_match.group(1)
+                        try:
+                            parts = time_str.split(':')
+                            if len(parts) == 3:
+                                hours, minutes, seconds = map(float, parts)
+                                current_time = hours * 3600 + minutes * 60 + seconds
+                                progress = min(current_time / total_duration, 1.0)
+                                
+                                # Update progress every 2 seconds
+                                if time.time() - last_update >= 2.0:
+                                    eta_seconds = (total_duration - current_time) / max(progress, 0.01) if progress > 0 else 0
+                                    eta_minutes = int(eta_seconds / 60)
+                                    tg_update_callback(progress, eta_minutes)
+                                    last_update = time.time()
+                        except Exception:
+                            pass
+                
+                proc.wait()
+                if proc.returncode != 0:
+                    raise subprocess.CalledProcessError(proc.returncode, cmd)
+            else:
+                subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        except Exception as e:
+            logger.error(f"FFmpeg audio mux failed: {e}")
+            return False
+        
+        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            logger.error("Audio mux output missing or empty")
+            return False
+        
+        # Replace original file
+        backup_path = video_path + ".backup"
+        try:
+            os.rename(video_path, backup_path)
+            os.rename(output_path, video_path)
+            if os.path.exists(backup_path):
+                os.remove(backup_path)
+        except Exception as e:
+            logger.error(f"Error replacing MKV after audio mux: {e}")
+            # Rollback
+            try:
+                if os.path.exists(video_path):
+                    os.remove(video_path)
+                if os.path.exists(backup_path):
+                    os.rename(backup_path, video_path)
+            except Exception:
+                pass
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+        
+        # Clean up downloaded audio files
+        for track in audio_tracks:
+            try:
+                if os.path.exists(track['path']):
+                    os.remove(track['path'])
+            except Exception:
+                pass
+        
+        logger.info(f"Successfully embedded {len(audio_tracks)} audio tracks into MKV")
+        return True
+    except Exception as e:
+        logger.error(f"Error in embed_all_audio_tracks_to_mkv: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return False
+
+
+def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_selected=False):
+    """
+    Download all selected subtitles for MKV multi-track support.
+    Returns list of downloaded subtitle file paths with language info.
+    """
+    try:
+        import yt_dlp
+        from COMMANDS.subtitles_cmd import get_available_subs_languages, lang_match
+        from COMMANDS.subtitles_cmd import get_user_subs_auto_mode
+        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
+        from URL_PARSERS.url_extractor import add_pot_to_ytdl_opts
+        from CONFIG.config import Config
+        
+        # Get available languages
+        auto_mode = get_user_subs_auto_mode(user_id)
+        normal_langs = get_available_subs_languages(url, user_id, auto_only=False)
+        auto_langs = get_available_subs_languages(url, user_id, auto_only=True)
+        all_available = sorted(set(normal_langs) | set(auto_langs))
+        
+        if not all_available:
+            logger.info("No subtitles available")
+            return []
+        
+        # Determine which languages to download
+        if all_selected:
+            langs_to_download = all_available
+        elif selected_langs:
+            langs_to_download = selected_langs
+        else:
+            # Single language mode - use existing logic
+            return []
+        
+        if not langs_to_download:
+            return []
+        
+        # Get video info
+        info_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'skip_download': True,
+            'noplaylist': True,
+        }
+        
+        # Add cookies
+        user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+        if os.path.exists(user_cookie_path):
+            info_opts['cookiefile'] = user_cookie_path
+        
+        # Add proxy
+        info_opts = add_proxy_to_ytdl_opts(info_opts, url, user_id)
+        
+        # Add PO token
+        info_opts = add_pot_to_ytdl_opts(info_opts, url)
+        
+        # Use tv client for reliability
+        info_opts['extractor_args'] = {'youtube': {'player_client': ['tv']}}
+        
+        with yt_dlp.YoutubeDL(info_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+        
+        # Get subtitles dict
+        subs_dict = {}
+        if not auto_mode:
+            subs_dict = info.get('subtitles', {}) or {}
+            auto_dict = info.get('automatic_captions', {}) or {}
+            for k, v in auto_dict.items():
+                subs_dict.setdefault(k, v)
+        else:
+            subs_dict = info.get('automatic_captions', {}) or {}
+            normal_dict = info.get('subtitles', {}) or {}
+            for k, v in normal_dict.items():
+                subs_dict.setdefault(k, v)
+        
+        # Download each subtitle language
+        downloaded_subs = []
+        preferred = ('srt', 'vtt', 'ttml', 'json3', 'srv3')
+        
+        for lang in langs_to_download:
+            try:
+                # Find matching language
+                found_lang = lang_match(lang, list(subs_dict.keys()))
+                if not found_lang:
+                    continue
+                
+                tracks = subs_dict.get(found_lang) or []
+                if not tracks:
+                    alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
+                    tracks = subs_dict.get(alt, []) if alt else []
+                
+                if not tracks:
+                    continue
+                
+                # Select best format
+                track = min(
+                    tracks,
+                    key=lambda t: preferred.index((t.get('ext') or '').lower())
+                    if (t.get('ext') or '').lower() in preferred else 999
+                )
+                
+                ext = (track.get('ext') or 'txt').lower()
+                track_url = track.get('url', '')
+                
+                # Download subtitle
+                import requests
+                import time
+                import random
+                
+                sess = requests.Session()
+                headers = {
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": "https://www.youtube.com/",
+                    "Origin": "https://www.youtube.com",
+                }
+                
+                # Simple throttling
+                time.sleep(random.uniform(0.5, 1.5))
+                
+                r = sess.get(track_url, headers=headers, timeout=25)
+                if r.status_code != 200 or not r.content:
+                    continue
+                
+                # Save subtitle
+                subtitle_filename = f"subs_{lang}.{ext}"
+                subtitle_path = os.path.join(video_dir, subtitle_filename)
+                
+                with open(subtitle_path, "wb") as f:
+                    f.write(r.content)
+                
+                # Convert to SRT if needed
+                if ext == 'vtt':
+                    try:
+                        from COMMANDS.subtitles_cmd import _convert_vtt_to_srt
+                        subtitle_path = _convert_vtt_to_srt(subtitle_path)
+                    except Exception as e:
+                        logger.error(f"Failed to convert VTT to SRT: {e}")
+                        continue
+                elif ext in ('json3', 'srv3'):
+                    try:
+                        from COMMANDS.subtitles_cmd import _convert_json3_srv3_to_srt
+                        subtitle_path = _convert_json3_srv3_to_srt(subtitle_path)
+                    except Exception as e:
+                        logger.error(f"Failed to convert JSON3/SRV3 to SRT: {e}")
+                        continue
+                
+                # Ensure UTF-8
+                try:
+                    from COMMANDS.subtitles_cmd import ensure_utf8_srt
+                    subtitle_path = ensure_utf8_srt(subtitle_path)
+                except Exception as e:
+                    logger.error(f"Failed to ensure UTF-8: {e}")
+                    continue
+                
+                if subtitle_path and os.path.exists(subtitle_path) and os.path.getsize(subtitle_path) > 0:
+                    downloaded_subs.append({
+                        'path': subtitle_path,
+                        'language': lang
+                    })
+                    logger.info(f"Downloaded subtitle: {lang} -> {subtitle_path}")
+            except Exception as e:
+                logger.error(f"Failed to download subtitle {lang}: {e}")
+                continue
+        
+        return downloaded_subs
+    except Exception as e:
+        logger.error(f"Error in download_all_subtitles: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return []

@@ -745,8 +745,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         user_args = get_user_ytdlp_args(user_id, url)
         user_merge_format = user_args.get('merge_output_format', 'mp4')
         
+        # Check session MKV override first (from Always Ask menu)
+        try:
+            from COMMANDS.format_cmd import get_session_mkv_override
+            session_mkv = get_session_mkv_override(user_id)
+            if session_mkv is not None:
+                # Use session override
+                effective_merge_format = 'mkv' if session_mkv else user_merge_format
+            else:
+                effective_merge_format = user_merge_format
+        except Exception:
+            effective_merge_format = user_merge_format
+        
         if format_override:
-            attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': user_merge_format}]
+            attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': effective_merge_format}]
         else:
             # if use_default_format is True, then do not take from format.txt, but use default ones
             if use_default_format:
@@ -1263,13 +1275,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Always use progress_hooks, even for HLS
             common_opts['progress_hooks'] = [progress_func]
             # Respect MKV toggle: remux to mkv when MKV is ON; otherwise prefer mp4
+            # Check session override first (from Always Ask menu), then user preference
             try:
-                from COMMANDS.format_cmd import get_user_mkv_preference
-                mkv_on = get_user_mkv_preference(user_id)
+                from COMMANDS.format_cmd import get_session_mkv_override, get_user_mkv_preference
+                mkv_on = get_session_mkv_override(user_id)
+                if mkv_on is None:
+                    # Fallback to user preference if no session override
+                    mkv_on = get_user_mkv_preference(user_id)
             except Exception:
                 mkv_on = False
 
-            # Adjust attempts' merge_output_format based on WEBM preference
+            # Adjust attempts' merge_output_format based on MKV preference
             try:
                 if mkv_on:
                     for _attempt in attempts:
@@ -3235,6 +3251,148 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             
                             # Clear
                             clear_subs_check_cache()
+                        
+                        # MKV postprocessing: embed all audio tracks and subtitles if needed
+                        try:
+                            from COMMANDS.format_cmd import get_session_mkv_override
+                            from DOWN_AND_UP.always_ask_menu import get_filters
+                            
+                            session_mkv = get_session_mkv_override(user_id)
+                            if session_mkv is None:
+                                from COMMANDS.format_cmd import get_user_mkv_preference
+                                session_mkv = get_user_mkv_preference(user_id)
+                            
+                            is_mkv = session_mkv and after_rename_abs_path.lower().endswith('.mkv')
+                            
+                            if is_mkv:
+                                # Get filter state to check if we need to download all tracks
+                                try:
+                                    filters_state = get_filters(user_id)
+                                    audio_all_dubs = filters_state.get("audio_all_dubs", False)
+                                    selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
+                                    subs_all_selected = filters_state.get("subs_all_selected", False)
+                                except Exception:
+                                    audio_all_dubs = False
+                                    selected_subs_langs = []
+                                    subs_all_selected = False
+                                
+                                video_dir = os.path.dirname(after_rename_abs_path)
+                                
+                                # Download and embed all audio tracks if needed
+                                if audio_all_dubs:
+                                    try:
+                                        # Get available audio languages from info_dict
+                                        available_audio_langs = []
+                                        if info_dict:
+                                            lang_seen = set()
+                                            for f in info_dict.get('formats', []):
+                                                if (f.get('vcodec') == 'none' and f.get('acodec') and f.get('language')):
+                                                    lang = f.get('language')
+                                                    if lang and lang not in lang_seen:
+                                                        lang_seen.add(lang)
+                                                        available_audio_langs.append(lang)
+                                        
+                                        if len(available_audio_langs) > 1:
+                                            logger.info(f"Downloading all audio tracks for MKV: {available_audio_langs}")
+                                            status_msg = app.send_message(user_id, "🎵 Downloading all audio tracks...")
+                                            
+                                            from DOWN_AND_UP.ffmpeg import download_all_audio_tracks, embed_all_audio_tracks_to_mkv
+                                            audio_tracks = download_all_audio_tracks(url, user_id, video_dir, available_audio_langs, use_proxy=use_proxy)
+                                            
+                                            if audio_tracks:
+                                                logger.info(f"Embedding {len(audio_tracks)} audio tracks into MKV")
+                                                app.edit_message_text(user_id, status_msg.id, "🎵 Embedding audio tracks into MKV...")
+                                                
+                                                def audio_update_callback(progress, eta):
+                                                    try:
+                                                        blocks = int(progress * 10)
+                                                        bar = '🟩' * blocks + '⬜️' * (10 - blocks)
+                                                        percent = int(progress * 100)
+                                                        app.edit_message_text(
+                                                            chat_id=user_id,
+                                                            message_id=status_msg.id,
+                                                            text=f"🎵 Embedding audio tracks...\n{bar} {percent}%\nETA: {eta} min"
+                                                        )
+                                                    except Exception:
+                                                        pass
+                                                
+                                                embed_result = embed_all_audio_tracks_to_mkv(
+                                                    after_rename_abs_path, audio_tracks, user_id,
+                                                    tg_update_callback=audio_update_callback, app=app, message=message
+                                                )
+                                                
+                                                if embed_result:
+                                                    app.edit_message_text(user_id, status_msg.id, "✅ All audio tracks embedded successfully!")
+                                                else:
+                                                    app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to embed some audio tracks")
+                                            else:
+                                                app.edit_message_text(user_id, status_msg.id, "⚠️ No additional audio tracks found")
+                                    except Exception as e:
+                                        logger.error(f"Error in audio tracks postprocessing: {e}")
+                                        import traceback
+                                        logger.error(traceback.format_exc())
+                                
+                                # Download and embed all subtitles if needed
+                                if subs_all_selected or selected_subs_langs:
+                                    try:
+                                        logger.info(f"Downloading all subtitles for MKV: all_selected={subs_all_selected}, langs={selected_subs_langs}")
+                                        status_msg = app.send_message(user_id, "💬 Downloading all subtitles...")
+                                        
+                                        from DOWN_AND_UP.ffmpeg import download_all_subtitles
+                                        subtitle_tracks = download_all_subtitles(
+                                            url, user_id, video_dir,
+                                            selected_langs=selected_subs_langs if selected_subs_langs else None,
+                                            all_selected=subs_all_selected
+                                        )
+                                        
+                                        if subtitle_tracks:
+                                            logger.info(f"Embedding {len(subtitle_tracks)} subtitle tracks into MKV")
+                                            app.edit_message_text(user_id, status_msg.id, "💬 Embedding subtitles into MKV...")
+                                            
+                                            # Use existing embed_subs_to_video function which now supports multiple tracks
+                                            from DOWN_AND_UP.ffmpeg import embed_subs_to_video
+                                            
+                                            def subs_update_callback(progress, eta):
+                                                try:
+                                                    blocks = int(progress * 10)
+                                                    bar = '🟩' * blocks + '⬜️' * (10 - blocks)
+                                                    percent = int(progress * 100)
+                                                    app.edit_message_text(
+                                                        chat_id=user_id,
+                                                        message_id=status_msg.id,
+                                                        text=f"💬 Embedding subtitles...\n{bar} {percent}%\nETA: {eta} min"
+                                                    )
+                                                except Exception:
+                                                    pass
+                                            
+                                            embed_result = embed_subs_to_video(
+                                                after_rename_abs_path, user_id,
+                                                tg_update_callback=subs_update_callback, app=app, message=message
+                                            )
+                                            
+                                            if embed_result:
+                                                app.edit_message_text(user_id, status_msg.id, "✅ All subtitles embedded successfully!")
+                                            else:
+                                                app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to embed some subtitles")
+                                            
+                                            # Clean up subtitle files
+                                            for track in subtitle_tracks:
+                                                try:
+                                                    if os.path.exists(track['path']):
+                                                        os.remove(track['path'])
+                                                except Exception:
+                                                    pass
+                                        else:
+                                            app.edit_message_text(user_id, status_msg.id, "⚠️ No subtitles found")
+                                    except Exception as e:
+                                        logger.error(f"Error in subtitles postprocessing: {e}")
+                                        import traceback
+                                        logger.error(traceback.format_exc())
+                        except Exception as e:
+                            logger.error(f"Error in MKV postprocessing: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+                        
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         if not video_msg:
                             logger.error("send_videos returned None for single video; aborting cache save for this item")

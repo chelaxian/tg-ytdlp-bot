@@ -6032,8 +6032,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         # Use format with AVC codec and MP4 container priority for {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} quality
         # with fallback to bv+ba/best if no AVC+MP4 available
         if audio_all_dubs and sel_ext == "mkv":
-            # For MKV with ALL dubs, download video + all audio tracks
-            fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba*/bv*[vcodec*={sel_codec}]+ba*/bv*[ext={sel_ext}]+ba*/bv+ba*/best"
+            # For MKV with ALL dubs, download video + best audio (will add all tracks via postprocessing)
+            # Note: ba* means best audio, not all audio. We'll handle multiple tracks in postprocessing.
+            fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba/bv*[vcodec*={sel_codec}]+ba/bv*[ext={sel_ext}]+ba/bv+ba/best"
         else:
             audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
             fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba{audio_filter}/bv*[ext={sel_ext}]+ba{audio_filter}/bv+ba/best"
@@ -6083,8 +6084,12 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                     prev = 144
                 else:
                     prev = 0
-                audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-                fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                if audio_all_dubs and sel_ext == "mkv":
+                    # For MKV with ALL dubs, download video + all audio tracks
+                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba*/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba*/bv*[vcodec*={sel_codec}]+ba*/bv+ba*/best"
+                else:
+                    audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
             else:
                 # Determine the quality by the smaller side
                 min_side_quality = get_quality_by_min_side(max_width, max_height)
@@ -6112,8 +6117,8 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                     else:
                         prev = 0
                     if audio_all_dubs and sel_ext == "mkv":
-                        # For MKV with ALL dubs, download video + all audio tracks
-                        fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba*/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba*/bv*[vcodec*={sel_codec}]+ba*/bv+ba*/best"
+                        # For MKV with ALL dubs, download video + best audio (will add all tracks via postprocessing)
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
                     else:
                         audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
                         fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
@@ -6140,8 +6145,12 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         prev = 144
                     else:
                         prev = 0
-                    audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-                    fmt = f"bv*[vcodec*={sel_codec}][height<={real_height}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={real_height}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                    if audio_all_dubs and sel_ext == "mkv":
+                        # For MKV with ALL dubs, download video + best audio (will add all tracks via postprocessing)
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={real_height}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={real_height}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                    else:
+                        audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={real_height}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={real_height}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
             
             quality_key = data
             try:
