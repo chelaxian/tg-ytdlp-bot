@@ -6096,6 +6096,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     sel_ext = filters_state.get("ext", "mp4")
     sel_audio_lang = filters_state.get("audio_lang")
     audio_all_dubs = filters_state.get("audio_all_dubs", False)
+    selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
     
     # Get selected subtitle language from filters (for Always Ask mode)
     selected_subs_lang = filters_state.get("selected_subs_lang")
@@ -6212,9 +6213,10 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                     prev = 144
                 else:
                     prev = 0
-                if audio_all_dubs and sel_ext == "mkv":
-                    # For MKV with ALL dubs, download video + all audio tracks
-                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba*/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba*/bv*[vcodec*={sel_codec}]+ba*/bv+ba*/best"
+                if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+                    # For MKV with selected dubs, download video + original audio (no language filter)
+                    # Selected audio tracks will be downloaded separately in postprocessing
+                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
                 else:
                     audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
                     fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
@@ -6244,8 +6246,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         prev = 144
                     else:
                         prev = 0
-                    if audio_all_dubs and sel_ext == "mkv":
-                        # For MKV with ALL dubs, download video + best audio (will add all tracks via postprocessing)
+                    if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+                        # For MKV with selected dubs, download video + original audio (no language filter)
+                        # Selected audio tracks will be downloaded separately in postprocessing
                         fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
                     else:
                         audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
