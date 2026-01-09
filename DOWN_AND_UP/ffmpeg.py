@@ -1388,6 +1388,8 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
             'no_warnings': True,
             'skip_download': True,
             'noplaylist': True,
+            'format': 'best',
+            'ignore_no_formats_error': True,
         }
         
         # Add cookies

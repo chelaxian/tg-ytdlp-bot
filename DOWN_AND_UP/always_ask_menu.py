@@ -4996,13 +4996,31 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         if subs_enabled:
             if is_mkv:
                 if subs_all_selected:
-                    summary_parts.append("💬 ALL")
+                    summary_parts.append(f"💬 {safe_get_messages(user_id).ALWAYS_ASK_ALL_SUBTITLES_BUTTON_MSG.replace('💬 ', '')}")
                 elif selected_subs_langs:
-                    summary_parts.append(f"💬 {', '.join(selected_subs_langs)}")
+                    # Map language codes to display names if available, otherwise use codes
+                    display_langs = []
+                    for lang in selected_subs_langs:
+                        if lang in LANGUAGES:
+                            lang_info = LANGUAGES[lang]
+                            display_langs.append(lang_info.get('name', lang))
+                        else:
+                            display_langs.append(lang)
+                    summary_parts.append(f"💬 {', '.join(display_langs)}")
                 elif subs_lang:
-                    summary_parts.append(f"💬 {subs_lang}")
+                    if subs_lang in LANGUAGES:
+                        lang_info = LANGUAGES[subs_lang]
+                        display_lang = lang_info.get('name', subs_lang)
+                    else:
+                        display_lang = subs_lang
+                    summary_parts.append(f"💬 {display_lang}")
             elif subs_lang:
-                summary_parts.append(f"💬 {subs_lang}")
+                if subs_lang in LANGUAGES:
+                    lang_info = LANGUAGES[subs_lang]
+                    display_lang = lang_info.get('name', subs_lang)
+                else:
+                    display_lang = subs_lang
+                summary_parts.append(f"💬 {display_lang}")
         
         if summary_parts:
             cap += "<blockquote>" + " | ".join(summary_parts) + "</blockquote>\n"
