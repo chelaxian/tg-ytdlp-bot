@@ -968,6 +968,9 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
         from HELPERS.pot_helper import add_pot_to_ytdl_opts
         
         # Get video info to find all audio formats
+        # Define user_cookie_path early so it's available for downloads
+        user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
+        
         if info_dict:
             info = info_dict
             logger.info("Using provided info_dict for audio tracks discovery")
@@ -980,7 +983,6 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
             }
             
             # Add cookies
-            user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(user_cookie_path):
                 info_opts['cookiefile'] = user_cookie_path
             
