@@ -14,7 +14,7 @@ def safe_callback_answer(callback_query, text, show_alert=False):
     try:
         callback_query.answer(text, show_alert=show_alert)
     except Exception:
-        pass  # Query ID might be invalid after long operation 
+        pass  # Query ID might be invalid after long operation
 
 from HELPERS.app_instance import get_app
 from HELPERS.decorators import get_main_reply_keyboard
@@ -617,6 +617,13 @@ def validate_timecode_range(timecode_str, video_duration):
     Returns (is_valid, error_message, start_seconds, end_seconds)
     """
     try:
+        # Ensure video_duration is a number
+        try:
+            video_duration = float(video_duration) if video_duration else 0
+        except (ValueError, TypeError):
+            logger.error(f"Invalid video_duration type: {type(video_duration)}, value: {video_duration}")
+            return False, "INVALID_FORMAT", None, None
+        
         # Check format: should contain exactly one dash
         if timecode_str.count('-') != 1:
             return False, "INVALID_FORMAT", None, None
@@ -652,6 +659,8 @@ def validate_timecode_range(timecode_str, video_duration):
         return True, None, start_seconds, end_seconds
     except Exception as e:
         logger.error(f"Error validating timecode: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return False, "INVALID_FORMAT", None, None
 
 def parse_timecode_to_seconds(timecode_str):
@@ -717,6 +726,12 @@ def handle_trim_timecode(app, message, text, trim_state):
             return False
         
         video_duration = trim_state.get("video_duration", 0)
+        # Ensure video_duration is a number
+        try:
+            video_duration = float(video_duration) if video_duration else 0
+        except (ValueError, TypeError):
+            logger.error(f"Invalid video_duration in trim_state: {type(video_duration)}, value: {video_duration}")
+            return False
         
         # Validate timecode
         is_valid, error_type, start_seconds, end_seconds = validate_timecode_range(text, video_duration)
@@ -780,16 +795,67 @@ def handle_trim_timecode(app, message, text, trim_state):
         # Let's save it in a special way and check in down_and_up
         
         # Send confirmation
-        app.send_message(
-            user_id,
-            f"✅ {messages.ALWAYS_ASK_TRIM_BUTTON_MSG}: {start_timecode} - {end_timecode}\n\n{messages.ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG if hasattr(messages, 'ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG') else 'Скачивание...'}",
-            reply_parameters=ReplyParameters(message_id=message.id),
-            parse_mode=enums.ParseMode.HTML
-        )
+        try:
+            downloading_msg = getattr(messages, 'ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG', '📥 Downloading...')
+            app.send_message(
+                user_id,
+                f"✅ {messages.ALWAYS_ASK_TRIM_BUTTON_MSG}: {start_timecode} - {end_timecode}\n\n{downloading_msg}",
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception as e:
+            logger.error(f"Error sending confirmation message: {e}")
         
-        # Trigger download with trim sections
-        # The download_sections will be loaded automatically in down_and_up
-        ask_quality_menu(app, original_message, matching_url, "", download_dir=None)
+        # Trigger download with trim sections directly
+        # We'll call down_and_up directly with download_sections to skip quality menu
+        try:
+            logger.info(f"Triggering download with trim sections: {download_sections} for URL: {matching_url}")
+            from URL_PARSERS.tags import extract_url_range_tags
+            from DOWN_AND_UP.down_and_up import down_and_up
+            
+            # Extract playlist parameters from the original message
+            full_string = original_message.text or original_message.caption or ""
+            _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
+            
+            # Calculate video_count
+            if video_start_with < 0 and video_end_with < 0:
+                video_count = abs(video_end_with) - abs(video_start_with) + 1
+            elif video_start_with > video_end_with:
+                video_count = abs(video_start_with - video_end_with) + 1
+            else:
+                video_count = video_end_with - video_start_with + 1
+            
+            # Call down_and_up directly with download_sections
+            down_and_up(
+                app, 
+                original_message, 
+                matching_url, 
+                playlist_name, 
+                video_count, 
+                video_start_with, 
+                "",  # tags_text
+                force_no_title=False, 
+                format_override=None, 
+                quality_key="best",  # Use best quality for trimmed videos
+                cookies_already_checked=True, 
+                use_proxy=False, 
+                cached_video_info=None, 
+                clear_subs_cache_on_start=True, 
+                download_sections=download_sections
+            )
+        except Exception as e:
+            logger.error(f"Error triggering download: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            try:
+                app.send_message(
+                    user_id,
+                    f"❌ Error starting download: {str(e)}",
+                    reply_parameters=ReplyParameters(message_id=message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            except Exception:
+                pass
         
         return True
     except Exception as e:
