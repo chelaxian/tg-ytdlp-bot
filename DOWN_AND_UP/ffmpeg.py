@@ -585,16 +585,22 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             return False
         
         user_dir = os.path.join("users", str(user_id))
-        subs_file = os.path.join(user_dir, "subs.txt")
-        if not os.path.exists(subs_file):
-            logger.info(f"No subs.txt for user {user_id}, skipping embed_subs_to_video")
-            return False
         
-        with open(subs_file, "r", encoding="utf-8") as f:
-            subs_lang = f.read().strip()
-        if not subs_lang or subs_lang == "OFF":
-            logger.info(f"Subtitles disabled for user {user_id}")
-            return False
+        # If subtitle_tracks is provided, skip subs.txt check and use provided tracks
+        if subtitle_tracks and len(subtitle_tracks) > 0:
+            logger.info(f"Using provided subtitle_tracks ({len(subtitle_tracks)} tracks), skipping subs.txt check")
+        else:
+            # Old logic: check subs.txt file
+            subs_file = os.path.join(user_dir, "subs.txt")
+            if not os.path.exists(subs_file):
+                logger.info(f"No subs.txt for user {user_id}, skipping embed_subs_to_video")
+                return False
+            
+            with open(subs_file, "r", encoding="utf-8") as f:
+                subs_lang = f.read().strip()
+            if not subs_lang or subs_lang == "OFF":
+                logger.info(f"Subtitles disabled for user {user_id}")
+                return False
         
         video_dir = os.path.dirname(video_path)
         
@@ -609,19 +615,20 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             # If subtitle_tracks is provided, use only successfully downloaded tracks
             if subtitle_tracks and len(subtitle_tracks) > 0:
                 # Use the list of successfully downloaded subtitle tracks
-                filtered_srt_files = []
+                subs_paths = []
                 for track in subtitle_tracks:
                     track_path = track.get('path', '')
                     if track_path and os.path.exists(track_path) and os.path.getsize(track_path) > 0:
-                        # Get just the filename from the full path
-                        track_filename = os.path.basename(track_path)
-                        filtered_srt_files.append(track_filename)
+                        # Use full path from track_path
+                        subs_paths.append(track_path)
                 
-                if not filtered_srt_files:
+                if not subs_paths:
                     logger.warning(f"No valid subtitle tracks found in provided list for soft-mux MKV")
                     return False
                 
-                logger.info(f"Using {len(filtered_srt_files)} successfully downloaded subtitle tracks for MKV soft-mux")
+                logger.info(f"Using {len(subs_paths)} successfully downloaded subtitle tracks for MKV soft-mux")
+                # Set filtered_srt_files to empty to skip old logic
+                filtered_srt_files = []
             else:
                 # Fallback: Check for multiple subtitle selection from Always Ask menu
                 try:
@@ -678,13 +685,25 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             cmd = [ffmpeg_path, '-y', '-i', video_path]
             
             # Add all subtitle files as inputs
-            subs_paths = []
-            for srt_file in filtered_srt_files:
-                subs_path = os.path.join(video_dir, srt_file)
-                subs_path = ensure_utf8_srt(subs_path)
-                if subs_path and os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
-                    cmd += ['-i', subs_path]
-                    subs_paths.append(subs_path)
+            if subtitle_tracks and len(subtitle_tracks) > 0:
+                # Use full paths from subtitle_tracks - subs_paths already contains full paths
+                final_subs_paths = []
+                for subs_path in subs_paths:
+                    # Ensure UTF-8 encoding
+                    subs_path_utf8 = ensure_utf8_srt(subs_path)
+                    if subs_path_utf8 and os.path.exists(subs_path_utf8) and os.path.getsize(subs_path_utf8) > 0:
+                        cmd += ['-i', subs_path_utf8]
+                        final_subs_paths.append(subs_path_utf8)
+                subs_paths = final_subs_paths
+            else:
+                # Build paths from filenames (old logic)
+                subs_paths = []
+                for srt_file in filtered_srt_files:
+                    subs_path = os.path.join(video_dir, srt_file)
+                    subs_path = ensure_utf8_srt(subs_path)
+                    if subs_path and os.path.exists(subs_path) and os.path.getsize(subs_path) > 0:
+                        cmd += ['-i', subs_path]
+                        subs_paths.append(subs_path)
             
             if not subs_paths:
                 logger.error("No valid subtitle files for MKV soft-mux")
@@ -698,23 +717,19 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                 cmd += ['-map', f'{i+1}:0']
             
             # Add language metadata for each subtitle track
-            for i, srt_file in enumerate(filtered_srt_files):
-                # Try to extract language from subtitle_tracks first, then fallback to filename
-                lang_code = None
-                
-                if subtitle_tracks and len(subtitle_tracks) > 0:
-                    # Find matching track by filename
-                    for track in subtitle_tracks:
-                        track_path = track.get('path', '')
-                        track_filename = os.path.basename(track_path) if track_path else ''
-                        if track_filename == srt_file:
-                            track_lang = track.get('language', '')
-                            if track_lang:
-                                lang_code = track_lang.split('-')[0] if '-' in track_lang else track_lang
-                                break
-                
-                if not lang_code:
-                    # Fallback: Try to extract language from filename
+            if subtitle_tracks and len(subtitle_tracks) > 0:
+                # Use language from subtitle_tracks
+                for i, track in enumerate(subtitle_tracks):
+                    track_lang = track.get('language', '')
+                    if track_lang:
+                        # Extract base language code (e.g., 'en' from 'en-US' or 'en-orig')
+                        lang_code = track_lang.split('-')[0] if '-' in track_lang else track_lang
+                        cmd += ['-metadata:s:s:' + str(i), f'language={lang_code}']
+            else:
+                # Use filename-based language detection (old logic)
+                for i, srt_file in enumerate(filtered_srt_files):
+                    # Try to extract language from filename
+                    lang_code = None
                     srt_lower = srt_file.lower()
                     try:
                         from DOWN_AND_UP.always_ask_menu import get_filters
