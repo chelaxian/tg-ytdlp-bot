@@ -2229,6 +2229,11 @@ Use:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Assistir"  # TEMPORARIAMENTE DESABILITADO: o serviço poketube está fora do ar
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Descrição"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ CORTAR"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Cortar Vídeo</b>\n\nDuração do vídeo: <b>{start_time} - {end_time}</b>\n\nPor favor, envie o intervalo de tempo desejado no formato:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nExemplo: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Formato inválido. Por favor use: <code>HH:MM:SS-HH:MM:SS</code>\n\nExemplo: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Intervalo inválido. O tempo de início deve ser menor que o tempo de término."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ O intervalo de tempo está fora dos limites do vídeo.\n\nDuração do vídeo: <b>{start_time} - {end_time}</b>\n\nSeu intervalo deve estar dentro desses limites."
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Parcialmente concluído - {successful_uploads}/{total_files} arquivos de áudio enviados."

@@ -370,7 +370,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.info(f"Always Ask mode: no language selected -> NO SUBS")
         except Exception as e:
             logger.error(f"Error reading filters state for Always Ask mode: {e}")
-            logger.error(traceback.format_exc())
+            import traceback as tb
+            logger.error(tb.format_exc())
             # Fallback to old logic
             subs_lang = get_user_subs_language(user_id)
             if subs_lang and subs_lang not in ["OFF"]:
@@ -386,6 +387,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         logger.info(f"Manual mode: subs_enabled={subs_enabled}, found_type={found_type}, need_subs={need_subs}, user_id={user_id}")
     else:
         logger.info(f"Subtitle check skipped: subs_enabled={subs_enabled}, is_youtube={is_youtube_url(url)}, user_id={user_id}")
+    
+    # Initialize variables for Always Ask mode (needed later in subtitle configuration)
+    if not is_always_ask_mode or not is_youtube_url(url):
+        selected_subs_langs = []
+        subs_all_selected = False
     
     # Additional debug info
     if is_youtube_url(url):
@@ -1220,38 +1226,47 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             
             # Configure subtitle options based on user settings
             if need_subs and is_youtube_url(url):
-                subs_lang = get_user_subs_language(user_id)
-                auto_mode = get_user_subs_auto_mode(user_id)
-                
-                if subs_lang and subs_lang not in ["OFF"]:
-                    # Enable subtitle writing
-                    common_opts['writesubtitles'] = True
-                    common_opts['writeautomaticsub'] = auto_mode
-                    
-                    # Set subtitle language
-                    if subs_lang != "auto":
-                        common_opts['subtitleslangs'] = [subs_lang]
-                    
-                    logger.info(f"Enabled subtitle download for user {user_id}: lang={subs_lang}, auto_mode={auto_mode}")
+                # In Always Ask mode with multiple subtitle selection, skip yt-dlp subtitle download
+                # (subtitles will be downloaded separately in post-processing)
+                if is_always_ask_mode and (subs_all_selected or (selected_subs_langs and len(selected_subs_langs) > 0)):
+                    logger.info(f"Always Ask mode with multiple subtitles: skipping yt-dlp subtitle download, will download separately")
+                    common_opts['writesubtitles'] = False
+                    common_opts['writeautomaticsub'] = False
                 else:
-                    # Check availability and warn user if subtitles not found
-                    from COMMANDS.subtitles_cmd import get_available_subs_languages
-                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
-                    # Flexible check: search for an exact match or any language from the group
-                    lang_prefix = subs_lang.split('-')[0] if subs_lang else None
-                    found = False
-                    for l in available_langs:
-                        if l == subs_lang or (subs_lang and (l.startswith(subs_lang + '-') or l.startswith(subs_lang + '.'))) \
-                           or (lang_prefix and (l == lang_prefix or l.startswith(lang_prefix + '-') or l.startswith(lang_prefix + '.'))):
-                            found = True
-                            break
-                    if not found:
-                        from COMMANDS.subtitles_cmd import LANGUAGES
-                        app.send_message(
-                            user_id,
-                            f"⚠️ Subtitles for {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} not found for this video. Download without subtitles.",
-                            reply_parameters=ReplyParameters(message_id=message.id)
-                        )
+                    # Single language mode - use yt-dlp subtitle download
+                    subs_lang = get_user_subs_language(user_id)
+                    auto_mode = get_user_subs_auto_mode(user_id)
+                    
+                    if subs_lang and subs_lang not in ["OFF"]:
+                        # Enable subtitle writing
+                        common_opts['writesubtitles'] = True
+                        common_opts['writeautomaticsub'] = auto_mode
+                        
+                        # Set subtitle language
+                        if subs_lang != "auto":
+                            common_opts['subtitleslangs'] = [subs_lang]
+                        
+                        logger.info(f"Enabled subtitle download for user {user_id}: lang={subs_lang}, auto_mode={auto_mode}")
+                    else:
+                        # Check availability and warn user if subtitles not found
+                        from COMMANDS.subtitles_cmd import get_available_subs_languages
+                        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+                        # Flexible check: search for an exact match or any language from the group
+                        lang_prefix = subs_lang.split('-')[0] if subs_lang else None
+                        found = False
+                        for l in available_langs:
+                            if l == subs_lang or (subs_lang and (l.startswith(subs_lang + '-') or l.startswith(subs_lang + '.'))) \
+                               or (lang_prefix and (l == lang_prefix or l.startswith(lang_prefix + '-') or l.startswith(lang_prefix + '.'))):
+                                found = True
+                                break
+                        if not found and subs_lang:
+                            from COMMANDS.subtitles_cmd import LANGUAGES
+                            if subs_lang in LANGUAGES:
+                                app.send_message(
+                                    user_id,
+                                    f"⚠️ Subtitles for {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} not found for this video. Download without subtitles.",
+                                    reply_parameters=ReplyParameters(message_id=message.id)
+                                )
             else:
                 # Disable subtitle writing if subtitles are not needed
                 common_opts['writesubtitles'] = False
@@ -3925,7 +3940,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             send_to_logger(message, safe_get_messages(user_id).PLAYLIST_VIDEOS_SENT_LOG_MSG.format(sent=total_sent, total=len(requested_indices), quality=safe_quality_key, user_id=user_id))
 
     except Exception as e:
-        if "Download timeout exceeded" in str(e):
+        error_traceback = traceback.format_exc()
+        logger.error(f"Exception caught in down_and_up: type={type(e)}, value={e}, traceback:\n{error_traceback}")
+        
+        if e is None:
+            logger.error("CRITICAL: Exception object is None! This should never happen.")
+            error_msg = "Unknown error (exception was None)"
+        elif "Download timeout exceeded" in str(e):
             send_to_user(message, safe_get_messages(user_id).DOWNLOAD_CANCELLED_TIMEOUT_MSG)
             log_error_to_channel(message, LoggerMsg.DOWNLOAD_TIMEOUT_LOG, url)
         elif "'quality_key'" in str(e):

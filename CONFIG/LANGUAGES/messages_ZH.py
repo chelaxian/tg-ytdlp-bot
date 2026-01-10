@@ -2229,6 +2229,11 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗链接"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁观看"  # 暂时禁用：poketube服务已关闭
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝描述"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ 修剪"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>视频修剪</b>\n\n视频时长: <b>{start_time} - {end_time}</b>\n\n请以以下格式发送所需的时间范围:\n<code>HH:MM:SS-HH:MM:SS</code>\n\n示例: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ 格式无效。请使用: <code>HH:MM:SS-HH:MM:SS</code>\n\n示例: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ 范围无效。开始时间必须小于结束时间。"
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ 时间范围超出视频边界。\n\n视频时长: <b>{start_time} - {end_time}</b>\n\n您的范围必须在此限制内。"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 部分完成 - 已上传 {successful_uploads}/{total_files} 个音频文件。"
