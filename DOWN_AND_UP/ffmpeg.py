@@ -1608,7 +1608,14 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                     
                     # Download subtitle using yt-dlp transport (with cookies, proxy, PO token)
                     # Reuse the same ydl instance that was used for extract_info
-                    subtitle_filename = f"subs_{lang}.{ext}"
+                    # Sanitize language code for filename (remove invalid characters)
+                    import re
+                    safe_lang = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', lang)
+                    safe_lang = safe_lang.replace(' ', '_').strip('._')
+                    # Limit length to avoid filesystem issues
+                    if len(safe_lang) > 50:
+                        safe_lang = safe_lang[:50]
+                    subtitle_filename = f"subs_{safe_lang}.{ext}"
                     subtitle_path = os.path.join(video_dir, subtitle_filename)
                     
                     # Download subtitle - try all formats without delay, then try with proxy1 and proxy2
