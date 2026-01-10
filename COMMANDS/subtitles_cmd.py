@@ -1962,6 +1962,11 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
     if nav_row:
         keyboard.append(nav_row)
 
+    # OFF button for Always Ask (clears all subtitle selections)
+    keyboard.append([
+        InlineKeyboardButton(safe_get_messages(user_id).SUBS_OFF_BUTTON_MSG, callback_data="askf|subs_lang|OFF")
+    ])
+    
     # Back and Close buttons
     keyboard.append([
         InlineKeyboardButton(safe_get_messages(user_id).SUBS_BACK_BUTTON_MSG, callback_data="askf|subs|back"),

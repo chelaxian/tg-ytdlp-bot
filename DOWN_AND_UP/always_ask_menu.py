@@ -702,7 +702,12 @@ def ask_filter_callback(app, callback_query):
                 # Get current page from fstate to preserve it
                 current_page = fstate.get("subs_lang_page", 0)
                 
-                if value == "ALL_DUBS":
+                if value == "OFF":
+                    # Clear all subtitle selections
+                    fstate["selected_subs_langs"] = []
+                    fstate["subs_all_selected"] = False
+                    fstate["selected_subs_lang"] = None
+                elif value == "ALL_DUBS":
                     # Select all subtitle types (orig, auto, trans) for specific languages that have dubs
                     # Languages to include: English, Arabic, Bengali, Chinese, Chinese (Traditional), Dutch, French, German, Hebrew, Hindi, Indonesian, Italian, Japanese, Korean, Malayalam, Polish, Portuguese, Punjabi, Romanian, Russian, Spanish, Swahili, Tamil, Telugu, Thai, Turkish, Ukrainian, Urdu, Vietnamese
                     target_dub_languages = ['en', 'ar', 'bn', 'zh', 'zh-Hans', 'zh-Hant', 'nl', 'fr', 'de', 'he', 'hi', 'id', 'it', 'ja', 'ko', 'ml', 'pl', 'pt', 'pa', 'ro', 'ru', 'es', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'ur', 'vi']

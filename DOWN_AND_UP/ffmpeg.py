@@ -1611,67 +1611,143 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                     subtitle_filename = f"subs_{lang}.{ext}"
                     subtitle_path = os.path.join(video_dir, subtitle_filename)
                     
-                    # Use the same download logic as download_subtitles_ytdlp (with retry, backoff, 429 handling)
-                    from COMMANDS.subtitles_cmd import _timedtext_throttle
-                    import random
-                    import time
+                    # Download subtitle - try all formats without delay, then try with proxy1 and proxy2
+                    # No exponential backoff - we try different formats and different IPs immediately
+                    from CONFIG.config import Config
+                    from HELPERS.proxy_helper import build_proxy_url
                     
-                    def _download_once_with_ydl(ydl_instance, url_tt: str, dst_path: str, retries: int = 4) -> bool:
-                        """
-                        Download timedtext using yt-dlp transport (cookies/proxy/handlers/impersonate).
-                        This ensures cookies, proxy, and other yt-dlp mechanisms are properly applied.
-                        Same logic as in download_subtitles_ytdlp.
-                        """
-                        for i in range(retries):
-                            _timedtext_throttle(min_interval=8.0, jitter=3.0)
-                            
-                            try:
-                                # ydl.urlopen uses yt-dlp's transport layer with all configured options
-                                with ydl_instance.urlopen(url_tt) as resp:
-                                    data = resp.read()
-                            except Exception as e:
-                                # Some 429s surface as exceptions; handle via backoff
-                                data = b""
-                                err_str = str(e)
-                                if "429" in err_str or "Too Many Requests" in err_str:
-                                    # Exponential backoff: 60s, 120s, 240s, 300s max
-                                    wait = min(60 * (2 ** i), 300) + random.uniform(0, 10)
-                                    logger.warning(f"timedtext 429 ({url_tt}), sleep {wait:.1f}s")
-                                    time.sleep(wait)
-                                    continue
-                                logger.error(f"timedtext download error: {e}")
-                                time.sleep(5 + random.uniform(0, 2))
-                                continue
-                            
+                    def _download_with_ydl_instance(ydl_instance, url_tt: str, dst_path: str) -> bool:
+                        """Download using yt-dlp transport - no delays, just try once"""
+                        try:
+                            with ydl_instance.urlopen(url_tt) as resp:
+                                data = resp.read()
                             if data and len(data) > 0:
                                 with open(dst_path, "wb") as f:
                                     f.write(data)
                                 return True
-                            
-                            # Empty body can happen on rate-limit/bot checks too
-                            wait = min(60 * (2 ** i), 300) + random.uniform(0, 10)
-                            logger.warning(f"timedtext empty body, sleep {wait:.1f}s")
-                            time.sleep(wait)
-                        
+                        except Exception as e:
+                            err_str = str(e)
+                            if "429" in err_str or "Too Many Requests" in err_str:
+                                logger.debug(f"timedtext 429 for {lang}, will try different format/proxy")
+                            else:
+                                logger.debug(f"timedtext download error for {lang}: {e}")
                         return False
                     
-                    # Detect translated subs (tlang=) - these are more rate-limited
+                    # Detect translated subs (tlang=)
                     is_translated = 'tlang=' in track_url
                     
-                    # Download using the same retry logic as single subtitle download
+                    # Strategy: Try all formats without delay, then try with proxy1 and proxy2
                     ok = False
+                    
+                    # Step 1: Try all available formats for this track (without delay)
+                    preferred_formats = ['srt', 'vtt', 'ttml', 'json3', 'srv3']
                     if is_translated:
-                        # For translated tracks, use the URL as-is
-                        ok = _download_once_with_ydl(ydl, track_url, subtitle_path, retries=4)
+                        # For translated, prefer formats that are less rate-limited
+                        preferred_formats = ['srv3', 'json3', 'vtt', 'ttml', 'srt']
+                    
+                    # Try current format first
+                    if _download_with_ydl_instance(ydl, track_url, subtitle_path):
+                        ok = True
                     else:
-                        # For non-translated tracks, try the original URL first
-                        if _download_once_with_ydl(ydl, track_url, subtitle_path, retries=4):
-                            ok = True
-                        elif 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
-                            # Fallback: try VTT format
+                        # Try other formats without delay
+                        for fmt in preferred_formats:
+                            if fmt == ext:
+                                continue  # Already tried
                             q = '&' if '?' in track_url else '?'
-                            vtt_url = track_url + q + 'fmt=vtt'
-                            ok = _download_once_with_ydl(ydl, vtt_url, subtitle_path, retries=4)
+                            fmt_url = track_url + q + f'fmt={fmt}'
+                            if _download_with_ydl_instance(ydl, fmt_url, subtitle_path):
+                                ok = True
+                                break
+                    
+                    # Step 2: If failed, try with proxy1 (without delay)
+                    if not ok:
+                        try:
+                            proxy_config = {
+                                'type': Config.PROXY_TYPE,
+                                'ip': Config.PROXY_IP,
+                                'port': Config.PROXY_PORT,
+                                'user': Config.PROXY_USER,
+                                'password': Config.PROXY_PASSWORD
+                            }
+                            proxy_url = build_proxy_url(proxy_config)
+                            if proxy_url:
+                                # Create new ydl instance with proxy1
+                                proxy_info_opts = {
+                                    'quiet': True,
+                                    'no_warnings': True,
+                                    'skip_download': True,
+                                    'noplaylist': True,
+                                    'format': 'best',
+                                    'ignore_no_formats_error': True,
+                                    'cookiefile': user_cookie_path if os.path.exists(user_cookie_path) else None,
+                                    'extractor_args': {'youtube': {'player_client': ['tv']}},
+                                }
+                                if proxy_info_opts['cookiefile'] is None:
+                                    proxy_info_opts.pop('cookiefile')
+                                proxy_info_opts['proxy'] = proxy_url
+                                # Add PO token
+                                from HELPERS.pot_helper import add_pot_to_ytdl_opts
+                                proxy_info_opts = add_pot_to_ytdl_opts(proxy_info_opts, url)
+                                with yt_dlp.YoutubeDL(proxy_info_opts) as proxy_ydl:
+                                    # Try all formats with proxy1
+                                    if _download_with_ydl_instance(proxy_ydl, track_url, subtitle_path):
+                                        ok = True
+                                    else:
+                                        for fmt in preferred_formats:
+                                            if fmt == ext:
+                                                continue
+                                            q = '&' if '?' in track_url else '?'
+                                            fmt_url = track_url + q + f'fmt={fmt}'
+                                            if _download_with_ydl_instance(proxy_ydl, fmt_url, subtitle_path):
+                                                ok = True
+                                                break
+                        except Exception as e:
+                            logger.debug(f"Failed to try proxy1 for {lang}: {e}")
+                    
+                    # Step 3: If still failed, try with proxy2 (without delay)
+                    if not ok:
+                        try:
+                            proxy_config = {
+                                'type': Config.PROXY_2_TYPE,
+                                'ip': Config.PROXY_2_IP,
+                                'port': Config.PROXY_2_PORT,
+                                'user': Config.PROXY_2_USER,
+                                'password': Config.PROXY_2_PASSWORD
+                            }
+                            proxy_url = build_proxy_url(proxy_config)
+                            if proxy_url:
+                                # Create new ydl instance with proxy2
+                                proxy_info_opts = {
+                                    'quiet': True,
+                                    'no_warnings': True,
+                                    'skip_download': True,
+                                    'noplaylist': True,
+                                    'format': 'best',
+                                    'ignore_no_formats_error': True,
+                                    'cookiefile': user_cookie_path if os.path.exists(user_cookie_path) else None,
+                                    'extractor_args': {'youtube': {'player_client': ['tv']}},
+                                }
+                                if proxy_info_opts['cookiefile'] is None:
+                                    proxy_info_opts.pop('cookiefile')
+                                proxy_info_opts['proxy'] = proxy_url
+                                # Add PO token
+                                from HELPERS.pot_helper import add_pot_to_ytdl_opts
+                                proxy_info_opts = add_pot_to_ytdl_opts(proxy_info_opts, url)
+                                with yt_dlp.YoutubeDL(proxy_info_opts) as proxy_ydl:
+                                    # Try all formats with proxy2
+                                    if _download_with_ydl_instance(proxy_ydl, track_url, subtitle_path):
+                                        ok = True
+                                    else:
+                                        for fmt in preferred_formats:
+                                            if fmt == ext:
+                                                continue
+                                            q = '&' if '?' in track_url else '?'
+                                            fmt_url = track_url + q + f'fmt={fmt}'
+                                            if _download_with_ydl_instance(proxy_ydl, fmt_url, subtitle_path):
+                                                ok = True
+                                                break
+                        except Exception as e:
+                            logger.debug(f"Failed to try proxy2 for {lang}: {e}")
                     
                     if not ok:
                         try:
