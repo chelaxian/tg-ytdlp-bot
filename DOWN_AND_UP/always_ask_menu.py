@@ -333,6 +333,9 @@ def get_filters(user_id):
         # defaults: filters hidden to keep UI simple
         f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": []}
         _ASK_FILTERS[str(user_id)] = f
+        logger.info(f"[DEBUG] get_filters: created new default filters for user_id={user_id}")
+    else:
+        logger.info(f"[DEBUG] get_filters: retrieved existing filters for user_id={user_id}, selected_subs_langs={f.get('selected_subs_langs', [])}, subs_all_selected={f.get('subs_all_selected', False)}")
     return f
 
 def set_user_download_dir(user_id, download_dir):
@@ -468,6 +471,7 @@ def set_filter(user_id, kind, value):
 def save_filters(user_id, state):
     """Persist current in-memory filters back to the session map."""
     _ASK_FILTERS[str(user_id)] = dict(state)
+    logger.info(f"[DEBUG] save_filters: user_id={user_id}, selected_subs_langs={state.get('selected_subs_langs', [])}, subs_all_selected={state.get('subs_all_selected', False)}")
 
 def _ask_cache_path(user_id):
     user_dir = os.path.join("users", str(user_id))
@@ -882,10 +886,14 @@ def ask_filter_callback(app, callback_query):
             if row:
                 rows.append(row)
             
-            # Add ALL button at the end for MKV if multiple languages available
+            # Add ALL and OFF buttons in one row for MKV if multiple languages available
             if is_mkv and len(langs) > 1:
                 all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
-                rows.append([InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL")])
+                off_button_text = "OFF"
+                rows.append([
+                    InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL"),
+                    InlineKeyboardButton(off_button_text, callback_data="askf|audio_lang|OFF")
+                ])
             
             rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
             try:
@@ -914,6 +922,11 @@ def ask_filter_callback(app, callback_query):
                         # Select ALL - clear all individual selections
                         fstate["audio_all_dubs"] = True
                         fstate["selected_audio_langs"] = []  # Clear individual selections when ALL is selected
+                    fstate["audio_lang"] = None
+                elif value == "OFF":
+                    # Clear all audio track selections
+                    fstate["audio_all_dubs"] = False
+                    fstate["selected_audio_langs"] = []
                     fstate["audio_lang"] = None
                 else:
                     # Toggle individual language selection - clear ALL selection
@@ -955,10 +968,14 @@ def ask_filter_callback(app, callback_query):
                         if row:
                             rows.append(row)
                         
-                        # Add ALL button at the end (with checkmark if selected)
+                        # Add ALL and OFF buttons in one row (with checkmark if selected)
                         if len(langs) > 1:
                             all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
-                            rows.append([InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL")])
+                            off_button_text = "OFF"
+                            rows.append([
+                                InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL"),
+                                InlineKeyboardButton(off_button_text, callback_data="askf|audio_lang|OFF")
+                            ])
                         
                         rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
                         try:
@@ -968,6 +985,8 @@ def ask_filter_callback(app, callback_query):
                 try:
                     if value == "ALL":
                         callback_query.answer("✅ All audio tracks selected" if fstate.get("audio_all_dubs", False) else "All audio tracks deselected")
+                    elif value == "OFF":
+                        callback_query.answer("All audio tracks deselected")
                     else:
                         callback_query.answer("Language toggled")
                 except Exception:
@@ -1932,9 +1951,15 @@ def askq_callback(app, callback_query):
             
             # Build buttons 3 per row with flags
             rows = []
-            # Add ALL button for MKV if multiple languages available
+            # Add ALL and OFF buttons in one row for MKV if multiple languages available
             if is_mkv and len(langs) > 1:
-                rows.append([InlineKeyboardButton("✅ ALL", callback_data="askf|audio_lang|ALL")])
+                audio_all_dubs = fstate.get("audio_all_dubs", False)
+                all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
+                off_button_text = "OFF"
+                rows.append([
+                    InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL"),
+                    InlineKeyboardButton(off_button_text, callback_data="askf|audio_lang|OFF")
+                ])
             
             row = []
             for i, lang in enumerate(sorted(langs)):

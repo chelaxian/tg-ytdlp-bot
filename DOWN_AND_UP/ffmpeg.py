@@ -1501,11 +1501,15 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         from HELPERS.pot_helper import add_pot_to_ytdl_opts
         from CONFIG.config import Config
         
+        logger.info(f"[DEBUG] download_all_subtitles called: selected_langs={selected_langs}, all_selected={all_selected}, available_dubs={available_dubs}")
+        
         # Get available languages
         auto_mode = get_user_subs_auto_mode(user_id)
         normal_langs = get_available_subs_languages(url, user_id, auto_only=False)
         auto_langs = get_available_subs_languages(url, user_id, auto_only=True)
         all_available = sorted(set(normal_langs) | set(auto_langs))
+        
+        logger.info(f"[DEBUG] download_all_subtitles: normal_langs={normal_langs}, auto_langs={auto_langs}, all_available={all_available}")
         
         if not all_available:
             logger.info("No subtitles available")
@@ -1516,7 +1520,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         if selected_langs and len(selected_langs) > 0:
             # Use explicitly selected languages (from ALL DUBS or individual selection)
             langs_to_download = selected_langs
-            logger.info(f"Using {len(langs_to_download)} explicitly selected subtitle languages")
+            logger.info(f"Using {len(langs_to_download)} explicitly selected subtitle languages: {langs_to_download}")
         elif all_selected:
             if available_dubs and len(available_dubs) > 0:
                 # ALL DUBS mode: Select all subtitle types (orig, auto, trans) for specific languages

@@ -345,13 +345,40 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # Check Always Ask mode first - it overrides everything
     is_always_ask_mode = is_subs_always_ask(user_id)
     if is_always_ask_mode and is_youtube_url(url):
-        subs_lang = get_user_subs_language(user_id)
-        if subs_lang and subs_lang not in ["OFF"]:
-            need_subs = True
-            logger.info(f"Always Ask mode: user selected language '{subs_lang}' -> FORCE SUBS")
-        else:
-            need_subs = False
-            logger.info(f"Always Ask mode: no language selected -> NO SUBS")
+        # Check filters state for selected subtitle languages
+        try:
+            from DOWN_AND_UP.always_ask_menu import get_filters
+            filters_state = get_filters(user_id)
+            logger.info(f"[DEBUG] Always Ask mode: filters_state keys: {list(filters_state.keys())}")
+            logger.info(f"[DEBUG] Always Ask mode: full filters_state: {filters_state}")
+            selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
+            subs_all_selected = filters_state.get("subs_all_selected", False)
+            logger.info(f"[DEBUG] Always Ask mode: selected_subs_langs={selected_subs_langs}, type={type(selected_subs_langs)}, len={len(selected_subs_langs) if selected_subs_langs else 0}")
+            logger.info(f"[DEBUG] Always Ask mode: subs_all_selected={subs_all_selected}, type={type(subs_all_selected)}")
+            
+            if subs_all_selected or (selected_subs_langs and len(selected_subs_langs) > 0):
+                need_subs = True
+                logger.info(f"Always Ask mode: selected_subs_langs={selected_subs_langs}, subs_all_selected={subs_all_selected} -> FORCE SUBS")
+            else:
+                # Fallback to old logic (subs.txt) for backward compatibility
+                subs_lang = get_user_subs_language(user_id)
+                if subs_lang and subs_lang not in ["OFF"]:
+                    need_subs = True
+                    logger.info(f"Always Ask mode: user selected language '{subs_lang}' (from subs.txt) -> FORCE SUBS")
+                else:
+                    need_subs = False
+                    logger.info(f"Always Ask mode: no language selected -> NO SUBS")
+        except Exception as e:
+            logger.error(f"Error reading filters state for Always Ask mode: {e}")
+            logger.error(traceback.format_exc())
+            # Fallback to old logic
+            subs_lang = get_user_subs_language(user_id)
+            if subs_lang and subs_lang not in ["OFF"]:
+                need_subs = True
+                logger.info(f"Always Ask mode: user selected language '{subs_lang}' (fallback) -> FORCE SUBS")
+            else:
+                need_subs = False
+                logger.info(f"Always Ask mode: no language selected (fallback) -> NO SUBS")
     elif subs_enabled and is_youtube_url(url):
         found_type = check_subs_availability(url, user_id, safe_quality_key, return_type=True)
         # Determine subtitle availability once here
@@ -3295,11 +3322,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 # Get filter state to check if we need to download all tracks
                                 try:
                                     filters_state = get_filters(user_id)
+                                    logger.info(f"[DEBUG] MKV block: filters_state keys: {list(filters_state.keys())}")
+                                    logger.info(f"[DEBUG] MKV block: filters_state selected_subs_langs: {filters_state.get('selected_subs_langs', [])}")
+                                    logger.info(f"[DEBUG] MKV block: filters_state subs_all_selected: {filters_state.get('subs_all_selected', False)}")
                                     audio_all_dubs = filters_state.get("audio_all_dubs", False)
                                     selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
                                     selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
                                     subs_all_selected = filters_state.get("subs_all_selected", False)
-                                except Exception:
+                                    logger.info(f"[DEBUG] MKV block: extracted selected_subs_langs={selected_subs_langs}, subs_all_selected={subs_all_selected}")
+                                except Exception as e:
+                                    logger.error(f"[DEBUG] MKV block: error reading filters_state: {e}")
+                                    logger.error(traceback.format_exc())
                                     audio_all_dubs = False
                                     selected_audio_langs = []
                                     selected_subs_langs = []
@@ -3383,6 +3416,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         logger.error(traceback.format_exc())
                                 
                                 # Download and embed all subtitles if needed
+                                logger.info(f"[DEBUG] MKV subtitle check: subs_all_selected={subs_all_selected}, selected_subs_langs={selected_subs_langs}, type={type(selected_subs_langs)}, len={len(selected_subs_langs) if selected_subs_langs else 0}")
                                 if subs_all_selected or selected_subs_langs:
                                     try:
                                         logger.info(f"Downloading all subtitles for MKV: all_selected={subs_all_selected}, langs={selected_subs_langs}")
@@ -3391,6 +3425,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         # Get available dubs for ALL_DUBS filtering
                                         available_dubs = filters_state.get("available_dubs", []) or []
                                         
+                                        logger.info(f"[DEBUG] Calling download_all_subtitles with: selected_langs={selected_subs_langs}, all_selected={subs_all_selected}, available_dubs={available_dubs}")
                                         from DOWN_AND_UP.ffmpeg import download_all_subtitles
                                         subtitle_tracks = download_all_subtitles(
                                             url, user_id, video_dir,
@@ -3398,6 +3433,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             all_selected=subs_all_selected,
                                             available_dubs=available_dubs if subs_all_selected else None
                                         )
+                                        logger.info(f"[DEBUG] download_all_subtitles returned: {len(subtitle_tracks) if subtitle_tracks else 0} tracks")
                                         
                                         if subtitle_tracks:
                                             logger.info(f"Embedding {len(subtitle_tracks)} subtitle tracks into MKV")
