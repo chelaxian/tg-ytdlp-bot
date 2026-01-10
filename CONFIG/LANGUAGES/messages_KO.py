@@ -2229,6 +2229,11 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗링크"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝캡션"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ 자르기"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>비디오 자르기</b>\n\n비디오 길이: <b>{start_time} - {end_time}</b>\n\n원하는 시간 범위를 형식으로 보내주세요:\n<code>HH:MM:SS-HH:MM:SS</code>\n\n예: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ 잘못된 형식입니다. 다음을 사용하세요: <code>HH:MM:SS-HH:MM:SS</code>\n\n예: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ 잘못된 범위입니다. 시작 시간은 종료 시간보다 작아야 합니다."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ 시간 범위가 비디오 경계를 벗어났습니다.\n\n비디오 길이: <b>{start_time} - {end_time}</b>\n\n범위는 이러한 제한 내에 있어야 합니다."
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 부분 완료 - {successful_uploads}/{total_files} 오디오 파일이 업로드되었습니다."

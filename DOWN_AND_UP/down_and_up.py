@@ -123,16 +123,21 @@ def _handle_quality_key_error(e: Exception, split_msg_ids: list, is_playlist: bo
         # Save to cache if we have the necessary data
         if url and safe_quality_key and split_msg_ids and not is_playlist:
             logger.info(f"down_and_up: saving split video to cache after quality_key error: {split_msg_ids}")
-            _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id)
+            _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
         
         return True
     else:
         logger.warning(f"Upload complete condition NOT met after quality_key error: successful_uploads={successful_uploads}, len(indices_to_download)={len(indices_to_download)}, split_msg_ids={split_msg_ids}, is_playlist={is_playlist}")
         return False
 
-def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids: list, original_text: str = None, user_id: int = None):
+def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids: list, original_text: str = None, user_id: int = None, download_sections: str = None):
     """Save video to cache with channel type logging."""
     try:
+        # Don't cache trimmed videos
+        if download_sections:
+            logger.info(f"Skipping cache for trimmed video: url={url}, quality={safe_quality_key}, sections={download_sections}")
+            return
+        
         # Check if user has send_as_file enabled
         if user_id is not None:
             from COMMANDS.args_cmd import get_user_args
@@ -199,7 +204,7 @@ def determine_need_subs(subs_enabled, found_type, user_id):
     return need_subs
 
 #@reply_with_keyboard
-def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, clear_subs_cache_on_start=True):
+def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, clear_subs_cache_on_start=True, download_sections=None):
     # ВАЖНО: не сбрасываем источники YouTube‑куки без необходимости.
     # Если пользователь уже получил рабочие куки и мы пришли из Always Ask меню
     # (cookies_already_checked=True), повторный сброс и перебор источников только
@@ -211,6 +216,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         reset_checked_cookie_sources(user_id)
         logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new download task for user {user_id}")
     messages = safe_get_messages(message.chat.id)
+    
+    # Load trim sections if not provided
+    if download_sections is None:
+        from DOWN_AND_UP.always_ask_menu import load_trim_sections
+        download_sections = load_trim_sections(user_id, url)
+        if download_sections:
+            logger.info(f"Loaded trim sections for user {user_id}, URL: {url}, sections: {download_sections}")
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
@@ -556,7 +568,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Error reposting video from cache: {e}")
                         # Always save to cache regardless of subtitles or Always Ask mode
                         # The cache will be used for display purposes (rocket emoji) but not for reposting
-                        _save_video_cache_with_logging(url, safe_quality_key, [], original_text="", user_id=user_id)
+                        _save_video_cache_with_logging(url, safe_quality_key, [], original_text="", user_id=user_id, download_sections=download_sections)
                         # Don't show error message if we successfully got video from cache
                         # The video was already sent successfully in the try block
                 else:
@@ -1105,7 +1117,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         def try_download(url, attempt_opts):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata
+            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections
             
             # Ensure download directory exists before setting outtmpl
             try:
@@ -1182,6 +1194,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 #'read_timeout': 60,  # Read timeout
                 #'connect_timeout': 30  # Connect timeout
             }
+            
+            # Add download_sections if trim is enabled
+            if download_sections:
+                common_opts['download_sections'] = [download_sections]
+                # Add FFmpegVideoRemuxer postprocessor for cutting
+                # Check if already has postprocessors
+                has_remuxer = any(pp.get('key') == 'FFmpegVideoRemuxer' for pp in postprocessors)
+                if not has_remuxer:
+                    # Insert before FFmpegMetadata to ensure remuxing happens before metadata
+                    remuxer_index = next((i for i, pp in enumerate(postprocessors) if pp.get('key') == 'FFmpegMetadata'), len(postprocessors))
+                    postprocessors.insert(remuxer_index, {
+                        'key': 'FFmpegVideoRemuxer',
+                        'preferedformat': 'mp4',
+                    })
+                logger.info(f"Added download_sections: {download_sections} for user {user_id}")
             
             # Define sanitize_title_for_filename function
             def sanitize_title_for_filename(title):
@@ -3145,7 +3172,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Only save to cache if subtitles are not needed
                     if not need_subs:
-                        _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id)
+                        _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                     else:
                         logger.info(f"Split video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode}) - different users may need different languages")
                 else:
@@ -3649,7 +3676,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     # For single videos, save to regular cache
                                     # Only save to cache if subtitles are not needed
                                     if not is_nsfw and not need_subs:
-                                        _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id)
+                                        _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                                     elif is_nsfw:
                                         logger.info("NSFW content not cached")
                                     elif need_subs:
@@ -3743,7 +3770,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 # For single videos, save to regular cache
                                                 # Only save to cache if subtitles are not needed
                                                 if not is_nsfw and not need_subs:
-                                                    _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id)
+                                                    _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                                                 elif is_nsfw:
                                                     logger.info("NSFW content not cached (manual)")
                                                 elif need_subs:
@@ -3870,7 +3897,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         # For single videos, save to regular cache
                                         # Only save to cache if subtitles are not needed
                                         if not is_nsfw and not need_subs:
-                                            _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id)
+                                            _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                                         elif is_nsfw:
                                             logger.info("NSFW content not cached (error recovery)")
                                         elif need_subs:

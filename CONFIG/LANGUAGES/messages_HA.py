@@ -2229,6 +2229,11 @@ Yi amfani da:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Hanyar Haɗi"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Taken"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ YANKE"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Yanke Bidiyo</b>\n\nTsawon bidiyo: <b>{start_time} - {end_time}</b>\n\nDa fatan za a aika lokacin da ake so a cikin tsari:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisali: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Tsari mara inganci. Da fatan za a yi amfani: <code>HH:MM:SS-HH:MM:SS</code>\n\nMisali: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Range mara inganci. Lokacin farawa dole ne ya zama ƙasa da lokacin ƙarshe."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Lokacin lokaci yana waje da iyakokin bidiyo.\n\nTsawon bidiyo: <b>{start_time} - {end_time}</b>\n\nDole ne kewayon ku ya kasance cikin waɗannan iyakoki."
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ An kammala wani ɓangare - {successful_uploads}/{total_files} fayilolin sauti an loda su."

@@ -2229,6 +2229,11 @@ Ishlating:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Havola"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Tomosha qilish"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Sarlavha"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ KESISH"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Kesish</b>\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nIltimos, kerakli vaqt oralig'ini formatda yuboring:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Noto'g'ri format. Iltimos, ishlating: <code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Noto'g'ri oraliq. Boshlanish vaqti tugash vaqtidan kichik bo'lishi kerak."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Vaqt oralig'i video chegaralaridan tashqarida.\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nSizning oralig'ingiz bu chegaralar ichida bo'lishi kerak."
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Qisman yakunlandi - {successful_uploads}/{total_files} audio fayl yuklandi."

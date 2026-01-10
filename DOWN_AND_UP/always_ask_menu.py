@@ -555,6 +555,281 @@ def save_ask_info(user_id, url, info, download_dir=None):
     except Exception as e:
         logger.warning(f"Failed to save ask_formats.json: {e}")
 
+def save_trim_state(user_id, url, video_duration):
+    """Save trim state for user and URL"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        trim_state_file = os.path.join(user_dir, "trim_state.json")
+        data = {}
+        if os.path.exists(trim_state_file):
+            with open(trim_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        data[url] = {
+            "url": url,  # Save URL for easy retrieval
+            "video_duration": video_duration,
+            "timestamp": datetime.now().isoformat()
+        }
+        with open(trim_state_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f"Saved trim state for user {user_id}, URL: {url}")
+    except Exception as e:
+        logger.error(f"Failed to save trim state: {e}")
+
+def load_trim_state(user_id, url=None):
+    """Load trim state for user and URL (or any active state if url is None)"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        trim_state_file = os.path.join(user_dir, "trim_state.json")
+        if os.path.exists(trim_state_file):
+            with open(trim_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if url is None:
+                # Return first active state
+                for state_url, state in data.items():
+                    return state
+            return data.get(url)
+    except Exception as e:
+        logger.error(f"Failed to load trim state: {e}")
+    return None
+
+def clear_trim_state(user_id, url):
+    """Clear trim state for user and URL"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        trim_state_file = os.path.join(user_dir, "trim_state.json")
+        if os.path.exists(trim_state_file):
+            with open(trim_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if url in data:
+                del data[url]
+                with open(trim_state_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info(f"Cleared trim state for user {user_id}, URL: {url}")
+    except Exception as e:
+        logger.error(f"Failed to clear trim state: {e}")
+
+def validate_timecode_range(timecode_str, video_duration):
+    """
+    Validate timecode range in format HH:MM:SS-HH:MM:SS
+    Returns (is_valid, error_message, start_seconds, end_seconds)
+    """
+    try:
+        # Check format: should contain exactly one dash
+        if timecode_str.count('-') != 1:
+            return False, "INVALID_FORMAT", None, None
+        
+        parts = timecode_str.split('-')
+        if len(parts) != 2:
+            return False, "INVALID_FORMAT", None, None
+        
+        start_str = parts[0].strip()
+        end_str = parts[1].strip()
+        
+        # Parse start time
+        start_seconds = parse_timecode_to_seconds(start_str)
+        if start_seconds is None:
+            return False, "INVALID_FORMAT", None, None
+        
+        # Parse end time
+        end_seconds = parse_timecode_to_seconds(end_str)
+        if end_seconds is None:
+            return False, "INVALID_FORMAT", None, None
+        
+        # Check that start < end
+        if start_seconds >= end_seconds:
+            return False, "INVALID_RANGE", None, None
+        
+        # Check bounds: start >= 0, end <= video_duration
+        if start_seconds < 0:
+            return False, "OUT_OF_BOUNDS", None, None
+        
+        if end_seconds > video_duration:
+            return False, "OUT_OF_BOUNDS", None, None
+        
+        return True, None, start_seconds, end_seconds
+    except Exception as e:
+        logger.error(f"Error validating timecode: {e}")
+        return False, "INVALID_FORMAT", None, None
+
+def parse_timecode_to_seconds(timecode_str):
+    """
+    Parse timecode string (HH:MM:SS or MM:SS) to seconds
+    Returns seconds or None if invalid
+    """
+    try:
+        parts = timecode_str.split(':')
+        if len(parts) not in (2, 3):
+            return None
+        
+        # Validate all parts are digits
+        if not all(part.isdigit() for part in parts):
+            return None
+        
+        # Convert to integers
+        parts_int = [int(p) for p in parts]
+        
+        # Validate ranges: seconds and minutes 0-59
+        if len(parts) == 2:
+            # MM:SS format
+            minutes, seconds = parts_int
+            if seconds < 0 or seconds > 59 or minutes < 0:
+                return None
+            total_seconds = minutes * 60 + seconds
+        else:
+            # HH:MM:SS format
+            hours, minutes, seconds = parts_int
+            if seconds < 0 or seconds > 59 or minutes < 0 or minutes > 59 or hours < 0:
+                return None
+            total_seconds = hours * 3600 + minutes * 60 + seconds
+        
+        return total_seconds
+    except Exception:
+        return None
+
+def handle_trim_timecode(app, message, text, trim_state):
+    """
+    Handle timecode input from user in trim mode
+    Returns True if timecode was processed, False otherwise
+    """
+    try:
+        user_id = message.chat.id
+        messages = safe_get_messages(user_id)
+        
+        # Get URL from trim state (it's saved in the state)
+        matching_url = trim_state.get("url")
+        if not matching_url:
+            # Fallback: try to find URL in trim state file
+            user_dir = os.path.join("users", str(user_id))
+            trim_state_file = os.path.join(user_dir, "trim_state.json")
+            if os.path.exists(trim_state_file):
+                with open(trim_state_file, "r", encoding="utf-8") as f:
+                    all_states = json.load(f)
+                # Find the URL that matches this state
+                for url, state in all_states.items():
+                    if state.get("video_duration") == trim_state.get("video_duration"):
+                        matching_url = url
+                        break
+        
+        if not matching_url:
+            return False
+        
+        video_duration = trim_state.get("video_duration", 0)
+        
+        # Validate timecode
+        is_valid, error_type, start_seconds, end_seconds = validate_timecode_range(text, video_duration)
+        
+        if not is_valid:
+            # Format error message
+            if error_type == "INVALID_FORMAT":
+                error_msg = messages.ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG
+            elif error_type == "INVALID_RANGE":
+                error_msg = messages.ALWAYS_ASK_TRIM_INVALID_RANGE_MSG
+            elif error_type == "OUT_OF_BOUNDS":
+                # Format video duration for error message
+                hours = int(video_duration // 3600)
+                minutes = int((video_duration % 3600) // 60)
+                seconds = int(video_duration % 60)
+                end_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                error_msg = messages.ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG.format(
+                    start_time="00:00:00",
+                    end_time=end_time
+                )
+            else:
+                error_msg = messages.ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG
+            
+            app.send_message(
+                user_id,
+                error_msg,
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return True  # We processed it (even if invalid)
+        
+        # Timecode is valid, save it and trigger download
+        # Format timecode for yt-dlp: *HH:MM:SS-HH:MM:SS
+        hours_start = int(start_seconds // 3600)
+        minutes_start = int((start_seconds % 3600) // 60)
+        seconds_start = int(start_seconds % 60)
+        start_timecode = f"{hours_start:02d}:{minutes_start:02d}:{seconds_start:02d}"
+        
+        hours_end = int(end_seconds // 3600)
+        minutes_end = int((end_seconds % 3600) // 60)
+        seconds_end = int(end_seconds % 60)
+        end_timecode = f"{hours_end:02d}:{minutes_end:02d}:{seconds_end:02d}"
+        
+        download_sections = f"*{start_timecode}-{end_timecode}"
+        
+        # Save trim sections for this download
+        save_trim_sections(user_id, matching_url, download_sections)
+        
+        # Clear trim state
+        clear_trim_state(user_id, matching_url)
+        
+        # Get original message (the one with URL)
+        # We need to find it - it should be the last message before trim prompt
+        # For now, we'll create a fake message with the URL
+        from HELPERS.safe_messeger import fake_message
+        original_message = fake_message(user_id, matching_url)
+        
+        # Trigger download with trim sections
+        # We need to call ask_quality_menu or directly down_and_up
+        # But we need to pass download_sections somehow
+        # Let's save it in a special way and check in down_and_up
+        
+        # Send confirmation
+        app.send_message(
+            user_id,
+            f"✅ {messages.ALWAYS_ASK_TRIM_BUTTON_MSG}: {start_timecode} - {end_timecode}\n\n{messages.ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG if hasattr(messages, 'ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG') else 'Скачивание...'}",
+            reply_parameters=ReplyParameters(message_id=message.id),
+            parse_mode=enums.ParseMode.HTML
+        )
+        
+        # Trigger download with trim sections
+        # The download_sections will be loaded automatically in down_and_up
+        ask_quality_menu(app, original_message, matching_url, "", download_dir=None)
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error handling trim timecode: {e}")
+        return False
+
+def save_trim_sections(user_id, url, download_sections):
+    """Save trim sections for download"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        trim_sections_file = os.path.join(user_dir, "trim_sections.json")
+        data = {}
+        if os.path.exists(trim_sections_file):
+            with open(trim_sections_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        data[url] = download_sections
+        with open(trim_sections_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f"Saved trim sections for user {user_id}, URL: {url}, sections: {download_sections}")
+    except Exception as e:
+        logger.error(f"Failed to save trim sections: {e}")
+
+def load_trim_sections(user_id, url):
+    """Load trim sections for download"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        trim_sections_file = os.path.join(user_dir, "trim_sections.json")
+        if os.path.exists(trim_sections_file):
+            with open(trim_sections_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            sections = data.get(url)
+            if sections:
+                # Clear after loading
+                del data[url]
+                with open(trim_sections_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            return sections
+    except Exception as e:
+        logger.error(f"Failed to load trim sections: {e}")
+    return None
+
 def load_ask_info(user_id, url):
     try:
         # First try to find ask_formats.json in download directory
@@ -5659,6 +5934,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_LINK_BUTTON_MSG, callback_data="askq|link"))
         # Add LIST button - always available
         action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).LIST_BUTTON_TEXT, callback_data="askq|list"))
+        # Add TRIM button - always available
+        action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_TRIM_BUTTON_MSG, callback_data="askq|trim"))
         # Add IMAGE button only if qualities were NOT auto-detected
         if not found_quality_keys:
             action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).IMAGE_BUTTON_TEXT, callback_data="askq|image"))        
@@ -6271,6 +6548,62 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         download_subtitles_only(app, original_message, url, tags, available_langs, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
     
+    if data == "trim":
+        try:
+            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_TRIM_BUTTON_MSG)
+        except Exception:
+            pass
+        
+        # Get video info to show duration
+        try:
+            cached_info = load_ask_info(user_id, url)
+            if cached_info:
+                info = cached_info
+            else:
+                info = get_video_formats(url, user_id, cookies_already_checked=True)
+            
+            duration = info.get('duration', 0)
+            if not duration or duration <= 0:
+                app.send_message(
+                    user_id,
+                    safe_get_messages(user_id).AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG if hasattr(safe_get_messages(user_id), 'AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG') else "❌ Не удалось определить длительность видео.",
+                    reply_parameters=ReplyParameters(message_id=original_message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+                return
+            
+            # Format duration to HH:MM:SS
+            hours = int(duration // 3600)
+            minutes = int((duration % 3600) // 60)
+            seconds = int(duration % 60)
+            end_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            start_time = "00:00:00"
+            
+            # Save trim state for this user and URL
+            save_trim_state(user_id, url, duration)
+            
+            # Send prompt message
+            prompt_msg = safe_get_messages(user_id).ALWAYS_ASK_TRIM_PROMPT_MSG.format(
+                start_time=start_time,
+                end_time=end_time
+            )
+            
+            app.send_message(
+                user_id,
+                prompt_msg,
+                reply_parameters=ReplyParameters(message_id=original_message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception as e:
+            logger.error(f"Error in TRIM handler: {e}")
+            app.send_message(
+                user_id,
+                f"❌ Ошибка: {str(e)}",
+                reply_parameters=ReplyParameters(message_id=original_message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+        return
+    
     # Logic for forming the format with the real height
     if data == "best":
         try:
@@ -6472,7 +6805,7 @@ def get_complementary_audio_format(video_format_info, all_formats):
 
 # --- an auxiliary function for downloading with the format ---
 # @reply_with_keyboard
-def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None, proc_msg=None):
+def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None, proc_msg=None, download_sections=None):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
 
@@ -6637,7 +6970,11 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
     # Pass cached video info to avoid redundant API calls
     # Delete processing message before starting download
     delete_processing_message(app, user_id, proc_msg)
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key, cookies_already_checked=True, cached_video_info=info)
+    # Load trim sections if available
+    if download_sections is None:
+        download_sections = load_trim_sections(user_id, url)
+    
+    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key, cookies_already_checked=True, cached_video_info=info, download_sections=download_sections)
     # Cleanup temp subs languages cache after we kicked off download
     try:
         delete_subs_langs_cache(message.chat.id, url)

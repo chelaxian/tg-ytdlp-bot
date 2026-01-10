@@ -2229,6 +2229,11 @@ Use:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Liên kết"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Chú thích"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ CẮT"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Cắt Video</b>\n\nThời lượng video: <b>{start_time} - {end_time}</b>\n\nVui lòng gửi phạm vi thời gian mong muốn theo định dạng:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nVí dụ: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Định dạng không hợp lệ. Vui lòng sử dụng: <code>HH:MM:SS-HH:MM:SS</code>\n\nVí dụ: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Phạm vi không hợp lệ. Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Phạm vi thời gian nằm ngoài giới hạn của video.\n\nThời lượng video: <b>{start_time} - {end_time}</b>\n\nPhạm vi của bạn phải nằm trong các giới hạn này."
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Hoàn thành một phần - {successful_uploads}/{total_files} tệp âm thanh đã được tải lên."
