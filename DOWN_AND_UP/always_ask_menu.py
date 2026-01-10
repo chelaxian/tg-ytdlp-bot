@@ -532,7 +532,8 @@ def save_ask_info(user_id, url, info, download_dir=None):
             data[url] = {
                 "title": info.get("title"),
                 "id": info.get("id"),
-                "formats": info.get("formats", [])
+                "formats": info.get("formats", []),
+                "duration": info.get("duration")
             }
             with open(download_ask_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -547,7 +548,8 @@ def save_ask_info(user_id, url, info, download_dir=None):
             data[url] = {
                 "title": info.get("title"),
                 "id": info.get("id"),
-                "formats": info.get("formats", [])
+                "formats": info.get("formats", []),
+                "duration": info.get("duration")
             }
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -6559,14 +6561,30 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             cached_info = load_ask_info(user_id, url)
             if cached_info:
                 info = cached_info
+                logger.info(f"Using cached info for TRIM, duration: {info.get('duration')}")
             else:
                 info = get_video_formats(url, user_id, cookies_already_checked=True)
+                logger.info(f"Fetched fresh info for TRIM, duration: {info.get('duration')}")
             
             duration = info.get('duration', 0)
+            # Try to get duration from formats if not in main info
             if not duration or duration <= 0:
+                # Check if duration is in formats
+                formats = info.get('formats', [])
+                if formats:
+                    # Try to get duration from first format that has it
+                    for fmt in formats:
+                        if fmt.get('duration'):
+                            duration = fmt.get('duration')
+                            logger.info(f"Found duration in format: {duration}")
+                            break
+            
+            if not duration or duration <= 0:
+                logger.warning(f"Could not determine video duration for TRIM: url={url}, info_keys={list(info.keys()) if info else 'None'}")
+                error_msg = getattr(safe_get_messages(user_id), 'AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG', "❌ Could not determine video duration. Please try again or use a different video.")
                 app.send_message(
                     user_id,
-                    safe_get_messages(user_id).AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG if hasattr(safe_get_messages(user_id), 'AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG') else "❌ Не удалось определить длительность видео.",
+                    error_msg,
                     reply_parameters=ReplyParameters(message_id=original_message.id),
                     parse_mode=enums.ParseMode.HTML
                 )

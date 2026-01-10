@@ -2234,6 +2234,7 @@ Utilisez :
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Format invalide. Veuillez utiliser: <code>HH:MM:SS-HH:MM:SS</code>\n\nExemple: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Plage invalide. L'heure de début doit être inférieure à l'heure de fin."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ La plage horaire est en dehors des limites de la vidéo.\n\nDurée de la vidéo: <b>{start_time} - {end_time}</b>\n\nVotre plage doit être dans ces limites."
+    AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG = "❌ Impossible de déterminer la durée de la vidéo. Veuillez réessayer ou utiliser une autre vidéo."
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partiellement terminé - {successful_uploads}/{total_files} fichiers audio téléversés."
