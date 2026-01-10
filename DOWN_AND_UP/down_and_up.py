@@ -1238,11 +1238,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     from COMMANDS.subtitles_cmd import get_available_subs_languages
                     available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
                     # Flexible check: search for an exact match or any language from the group
-                    lang_prefix = subs_lang.split('-')[0]
+                    lang_prefix = subs_lang.split('-')[0] if subs_lang else None
                     found = False
                     for l in available_langs:
-                        if l == subs_lang or l.startswith(subs_lang + '-') or l.startswith(subs_lang + '.') \
-                           or l == lang_prefix or l.startswith(lang_prefix + '-') or l.startswith(lang_prefix + '.'):
+                        if l == subs_lang or (subs_lang and (l.startswith(subs_lang + '-') or l.startswith(subs_lang + '.'))) \
+                           or (lang_prefix and (l == lang_prefix or l.startswith(lang_prefix + '-') or l.startswith(lang_prefix + '.'))):
                             found = True
                             break
                     if not found:
