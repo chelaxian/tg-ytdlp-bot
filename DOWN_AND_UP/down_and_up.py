@@ -3321,8 +3321,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             available_langs = selected_audio_langs  # Download only selected
                                         
                                         from DOWN_AND_UP.ffmpeg import download_all_audio_tracks, embed_all_audio_tracks_to_mkv
+                                        # Find the format that was actually downloaded to get its language
+                                        downloaded_format = None
+                                        if info_dict and 'formats' in info_dict:
+                                            # Try to find format by quality_key if available
+                                            if quality_key:
+                                                for fmt in info_dict['formats']:
+                                                    if fmt.get('format_id') == quality_key:
+                                                        downloaded_format = fmt
+                                                        break
+                                            # If not found, try to find the best video+audio format
+                                            if not downloaded_format:
+                                                for fmt in info_dict['formats']:
+                                                    if fmt.get('vcodec') != 'none' and fmt.get('acodec'):
+                                                        downloaded_format = fmt
+                                                        break
                                         # Pass selected languages or None for all, and pass info_dict to avoid re-fetching
-                                        audio_result = download_all_audio_tracks(url, user_id, video_dir, available_langs=available_langs, use_proxy=use_proxy, info_dict=info_dict)
+                                        audio_result = download_all_audio_tracks(url, user_id, video_dir, available_langs=available_langs, use_proxy=use_proxy, info_dict=info_dict, downloaded_format=downloaded_format)
                                         
                                         # Extract tracks and original language from result
                                         if isinstance(audio_result, dict):

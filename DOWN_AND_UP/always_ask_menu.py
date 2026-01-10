@@ -703,33 +703,42 @@ def ask_filter_callback(app, callback_query):
                 current_page = fstate.get("subs_lang_page", 0)
                 
                 if value == "ALL_DUBS":
-                    # Select all languages that have dubs - add them to selected_subs_langs for visual feedback
-                    available_dubs = fstate.get("available_dubs", [])
-                    if available_dubs:
-                        # Add all dub languages to selected_subs_langs to show checkmarks
-                        fstate["selected_subs_langs"] = list(available_dubs)
-                        fstate["subs_all_selected"] = True
-                        fstate["selected_subs_lang"] = None
-                    else:
-                        # Fallback to all available if no dubs info
-                        # Try to get all available languages
-                        try:
-                            original_message = callback_query.message.reply_to_message
-                            if original_message:
-                                url_text = original_message.text or (original_message.caption or "")
-                                import re as _re
-                                m = _re.search(r'https?://[^\s\*#]+', url_text)
-                                url = m.group(0) if m else url_text
-                                from COMMANDS.subtitles_cmd import get_or_compute_subs_langs
-                                normal, auto = get_or_compute_subs_langs(user_id, url)
-                                all_langs = sorted(set(normal) | set(auto))
-                                fstate["selected_subs_langs"] = all_langs
-                            else:
-                                fstate["selected_subs_langs"] = []
-                        except Exception:
+                    # Select all subtitle types (orig, auto, trans) for specific languages that have dubs
+                    # Languages to include: English, Arabic, Bengali, Chinese, Chinese (Traditional), Dutch, French, German, Hebrew, Hindi, Indonesian, Italian, Japanese, Korean, Malayalam, Polish, Portuguese, Punjabi, Romanian, Russian, Spanish, Swahili, Tamil, Telugu, Thai, Turkish, Ukrainian, Urdu, Vietnamese
+                    target_dub_languages = ['en', 'ar', 'bn', 'zh', 'zh-Hans', 'zh-Hant', 'nl', 'fr', 'de', 'he', 'hi', 'id', 'it', 'ja', 'ko', 'ml', 'pl', 'pt', 'pa', 'ro', 'ru', 'es', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'ur', 'vi']
+                    
+                    # Get all available subtitle languages (normal + auto + trans)
+                    try:
+                        original_message = callback_query.message.reply_to_message
+                        if original_message:
+                            url_text = original_message.text or (original_message.caption or "")
+                            import re as _re
+                            m = _re.search(r'https?://[^\s\*#]+', url_text)
+                            url = m.group(0) if m else url_text
+                            from COMMANDS.subtitles_cmd import get_or_compute_subs_langs
+                            normal, auto = get_or_compute_subs_langs(user_id, url)
+                            all_available_subs = sorted(set(normal) | set(auto))
+                            
+                            # Filter to only languages from target_dub_languages (match by base code)
+                            selected_subs = []
+                            for sub_lang in all_available_subs:
+                                sub_base = sub_lang.split('-')[0] if '-' in sub_lang else sub_lang
+                                # Check if this subtitle language matches any target language
+                                for target_lang in target_dub_languages:
+                                    target_base = target_lang.split('-')[0] if '-' in target_lang else target_lang
+                                    # Match exact or base match (e.g., 'zh-Hans' matches 'zh', 'zh-Hant' matches 'zh')
+                                    if sub_lang == target_lang or sub_base == target_base:
+                                        selected_subs.append(sub_lang)
+                                        break
+                            
+                            fstate["selected_subs_langs"] = sorted(list(dict.fromkeys(selected_subs)))  # Remove duplicates
+                        else:
                             fstate["selected_subs_langs"] = []
-                        fstate["subs_all_selected"] = True
-                        fstate["selected_subs_lang"] = None
+                    except Exception:
+                        fstate["selected_subs_langs"] = []
+                    
+                    fstate["subs_all_selected"] = True
+                    fstate["selected_subs_lang"] = None
                 else:
                     # Toggle individual language selection - clear ALL selection
                     selected_subs_langs = fstate.get("selected_subs_langs", []) or []

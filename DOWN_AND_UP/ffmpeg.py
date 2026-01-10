@@ -998,11 +998,12 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
         return False
 
 
-def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use_proxy=False, info_dict=None):
+def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use_proxy=False, info_dict=None, downloaded_format=None):
     """
     Download all available audio tracks separately for MKV multi-track support.
     Returns list of downloaded audio file paths with language info.
     If info_dict is provided, uses it instead of fetching again.
+    If downloaded_format is provided, uses its language as the original audio language.
     """
     try:
         import yt_dlp
@@ -1038,23 +1039,48 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
             with yt_dlp.YoutubeDL(info_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
         
-        # Find original audio language from the main video format (video+audio combined)
+        # Find original audio language - use multiple methods for better accuracy
         original_audio_lang = None
-        for fmt in info.get('formats', []):
-            # Look for the format that was actually downloaded (video+audio combined)
-            # Usually this is the format with both vcodec and acodec
-            if fmt.get('vcodec') != 'none' and fmt.get('acodec'):
-                lang = fmt.get('language')
-                if lang:
-                    original_audio_lang = lang
-                    logger.info(f"Detected original audio language from main video format: {original_audio_lang}")
-                    break
         
-        # If not found in formats, try to get from video metadata
+        # Method 1: Use language from the actually downloaded format (most accurate)
+        if downloaded_format:
+            lang = downloaded_format.get('language')
+            if lang:
+                original_audio_lang = lang
+                logger.info(f"Detected original audio language from downloaded format: {original_audio_lang}")
+        
+        # Method 2: Try to get from video metadata
         if not original_audio_lang:
             original_audio_lang = info.get('language') or info.get('original_language')
             if original_audio_lang:
                 logger.info(f"Detected original audio language from video metadata: {original_audio_lang}")
+        
+        # Method 3: If not found, check which language appears most frequently in video+audio formats
+        if not original_audio_lang:
+            lang_counts = {}
+            for fmt in info.get('formats', []):
+                # Look for formats with both video and audio
+                if fmt.get('vcodec') != 'none' and fmt.get('acodec'):
+                    lang = fmt.get('language')
+                    if lang:
+                        # Count by base language (e.g., 'en' for 'en-US')
+                        base_lang = lang.split('-')[0] if '-' in lang else lang
+                        lang_counts[base_lang] = lang_counts.get(base_lang, 0) + 1
+            
+            if lang_counts:
+                # Get the most common language
+                original_audio_lang = max(lang_counts.items(), key=lambda x: x[1])[0]
+                logger.info(f"Detected original audio language from format frequency: {original_audio_lang} (appeared {lang_counts[original_audio_lang]} times)")
+        
+        # Method 4: If still not found, use first video+audio format
+        if not original_audio_lang:
+            for fmt in info.get('formats', []):
+                if fmt.get('vcodec') != 'none' and fmt.get('acodec'):
+                    lang = fmt.get('language')
+                    if lang:
+                        original_audio_lang = lang
+                        logger.info(f"Detected original audio language from first video format: {original_audio_lang}")
+                        break
         
         # Find all audio-only formats with different languages
         # Collect all unique languages from audio-only formats
@@ -1076,16 +1102,27 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
                     continue
                 
                 # Skip original language - it's already in the main video
-                if original_audio_lang and lang == original_audio_lang:
-                    logger.debug(f"Skipping original audio language {lang} - already in main video")
-                    continue
-                # Also check for partial matches (e.g., 'en' matches 'en-US')
+                # For Chinese, be more careful - zh-Hans and zh-Hant are different
+                # For other languages, check both exact match and base match
                 if original_audio_lang:
-                    orig_base = original_audio_lang.split('-')[0]
-                    lang_base = lang.split('-')[0]
-                    if orig_base == lang_base:
-                        logger.debug(f"Skipping original audio language variant {lang} (matches {original_audio_lang}) - already in main video")
+                    # Exact match
+                    if lang == original_audio_lang:
+                        logger.debug(f"Skipping original audio language {lang} - already in main video")
                         continue
+                    
+                    # For non-Chinese languages, check base match (e.g., 'en' matches 'en-US')
+                    # But preserve Chinese variants (zh-Hans vs zh-Hant)
+                    orig_base = original_audio_lang.split('-')[0] if '-' in original_audio_lang else original_audio_lang
+                    lang_base = lang.split('-')[0] if '-' in lang else lang
+                    
+                    # Only skip if base matches AND it's not a Chinese variant
+                    if orig_base == lang_base and not (orig_base == 'zh' and ('Hans' in original_audio_lang or 'Hant' in original_audio_lang or 'Hans' in lang or 'Hant' in lang)):
+                        # Check if it's the same variant
+                        orig_variant = original_audio_lang.split('-')[1] if '-' in original_audio_lang else None
+                        lang_variant = lang.split('-')[1] if '-' in lang else None
+                        if orig_variant == lang_variant or (orig_variant is None and lang_variant is None):
+                            logger.debug(f"Skipping original audio language variant {lang} (matches {original_audio_lang}) - already in main video")
+                            continue
                 
                 all_audio_langs.add(lang)
                 # If available_langs is provided, filter by it; otherwise use all languages
@@ -1107,14 +1144,38 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
             logger.info("No audio tracks found for download")
             return []
         
-        # Remove duplicates (same language might have multiple formats)
-        seen_langs = set()
-        unique_tracks = []
+        # Remove duplicates - for each language, keep the best quality format
+        # Group tracks by language (preserve full language codes like zh-Hans, zh-Hant, en-US, en-GB)
+        # Create a format lookup for quick access
+        format_lookup = {fmt.get('format_id'): fmt for fmt in info.get('formats', [])}
+        
+        lang_tracks = {}
         for track in audio_tracks:
             lang = track['language']
-            if lang not in seen_langs:
-                seen_langs.add(lang)
-                unique_tracks.append(track)
+            # Keep different variants of the same base language (e.g., en-US and en-GB are different)
+            # But for same exact language code, keep only the best quality
+            if lang not in lang_tracks:
+                lang_tracks[lang] = track
+            else:
+                # Compare quality - prefer higher bitrate or better codec
+                current = lang_tracks[lang]
+                current_fmt = format_lookup.get(current.get('format_id'), {})
+                new_fmt = format_lookup.get(track.get('format_id'), {})
+                
+                current_bitrate = current_fmt.get('abr', 0) or current_fmt.get('tbr', 0) or 0
+                new_bitrate = new_fmt.get('abr', 0) or new_fmt.get('tbr', 0) or 0
+                
+                # Prefer higher bitrate, or if equal, prefer better codec (OPUS > AAC > others)
+                codec_priority = {'opus': 3, 'aac': 2, 'mp3': 1, 'vorbis': 1}
+                current_codec = current.get('acodec', '').lower()
+                new_codec = track.get('acodec', '').lower()
+                current_codec_priority = codec_priority.get(current_codec.split('.')[0] if '.' in current_codec else current_codec, 0)
+                new_codec_priority = codec_priority.get(new_codec.split('.')[0] if '.' in new_codec else new_codec, 0)
+                
+                if new_bitrate > current_bitrate or (new_bitrate == current_bitrate and new_codec_priority > current_codec_priority):
+                    lang_tracks[lang] = track
+        
+        unique_tracks = list(lang_tracks.values())
         
         logger.info(f"Downloading {len(unique_tracks)} unique audio tracks: {[t['language'] for t in unique_tracks]}")
         if original_audio_lang:
@@ -1248,10 +1309,16 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
         # Add language metadata for each audio track
         # Original audio track (from the main video file)
         if original_audio_lang:
-            # Use detected original language
-            orig_lang_code = original_audio_lang.split('-')[0] if '-' in original_audio_lang else original_audio_lang
+            # Use detected original language - preserve full language codes (e.g., zh-Hans, zh-Hant)
+            # But for metadata, use ISO 639-1/639-2 codes (first part before hyphen)
+            # For Chinese variants, we need to handle them specially
+            if 'Hans' in original_audio_lang or 'Hant' in original_audio_lang:
+                # For Chinese, use base code 'zh' but we'll preserve variant info in track name if needed
+                orig_lang_code = 'zh'
+            else:
+                orig_lang_code = original_audio_lang.split('-')[0] if '-' in original_audio_lang else original_audio_lang
             cmd += ['-metadata:s:a:0', f'language={orig_lang_code}']
-            logger.info(f"Setting original audio track language to: {orig_lang_code}")
+            logger.info(f"Setting original audio track language to: {orig_lang_code} (from {original_audio_lang})")
         else:
             # Try to detect from video file metadata using ffprobe
             try:
@@ -1287,9 +1354,17 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
         
         # Additional audio tracks (index starts from 1 because 0 is original)
         for i, track in enumerate(valid_tracks):
-            lang_code = track['language'].split('-')[0] if '-' in track['language'] else track['language']
+            lang = track['language']
+            # For Chinese variants, use base code 'zh' for metadata
+            # But preserve the full language code in the track info
+            if 'Hans' in lang or 'Hant' in lang:
+                lang_code = 'zh'
+            else:
+                # For other languages, use base code (ISO 639-1/639-2)
+                lang_code = lang.split('-')[0] if '-' in lang else lang
             # Audio track index is i+1 because 0 is the original audio from video file
             cmd += ['-metadata:s:a:' + str(i+1), f'language={lang_code}']
+            logger.debug(f"Setting additional audio track {i+1} language to: {lang_code} (from {lang})")
         
         cmd += [output_path]
         
@@ -1429,19 +1504,26 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
             logger.info(f"Using {len(langs_to_download)} explicitly selected subtitle languages")
         elif all_selected:
             if available_dubs and len(available_dubs) > 0:
-                # Filter to only languages that have dubs (ALL DUBS mode)
-                # Match languages by base code (e.g., 'en' matches 'en-US', 'en-GB')
+                # ALL DUBS mode: Select all subtitle types (orig, auto, trans) for specific languages
+                # Languages to include: English, Arabic, Bengali, Chinese, Chinese (Traditional), Dutch, French, German, Hebrew, Hindi, Indonesian, Italian, Japanese, Korean, Malayalam, Polish, Portuguese, Punjabi, Romanian, Russian, Spanish, Swahili, Tamil, Telugu, Thai, Turkish, Ukrainian, Urdu, Vietnamese
+                target_dub_languages = ['en', 'ar', 'bn', 'zh', 'zh-Hans', 'zh-Hant', 'nl', 'fr', 'de', 'he', 'hi', 'id', 'it', 'ja', 'ko', 'ml', 'pl', 'pt', 'pa', 'ro', 'ru', 'es', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'ur', 'vi']
+                
+                # Filter to only languages from target_dub_languages (match by base code)
+                # Include all types: orig, auto, trans
                 langs_to_download = []
                 for sub_lang in all_available:
                     sub_base = sub_lang.split('-')[0] if '-' in sub_lang else sub_lang
-                    for dub_lang in available_dubs:
-                        dub_base = dub_lang.split('-')[0] if '-' in dub_lang else dub_lang
-                        if sub_base == dub_base or sub_lang == dub_lang:
+                    # Check if this subtitle language matches any target language
+                    for target_lang in target_dub_languages:
+                        target_base = target_lang.split('-')[0] if '-' in target_lang else target_lang
+                        # Match exact or base match (e.g., 'zh-Hans' matches 'zh', 'zh-Hant' matches 'zh')
+                        if sub_lang == target_lang or sub_base == target_base:
                             langs_to_download.append(sub_lang)
                             break
+                
                 # Remove duplicates while preserving order
                 langs_to_download = sorted(list(dict.fromkeys(langs_to_download)))
-                logger.info(f"ALL DUBS mode: filtering subtitles to {len(langs_to_download)} languages that have dubs")
+                logger.info(f"ALL DUBS mode: filtering subtitles to {len(langs_to_download)} languages from target list (all types: orig, auto, trans)")
             else:
                 # Download all available languages (ALL mode)
                 langs_to_download = all_available
@@ -1529,31 +1611,75 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                     subtitle_filename = f"subs_{lang}.{ext}"
                     subtitle_path = os.path.join(video_dir, subtitle_filename)
                     
-                    # Use yt-dlp transport for downloading (same instance with all configs)
-                    try:
-                        from COMMANDS.subtitles_cmd import _timedtext_throttle
-                        
-                        # Apply throttling to avoid 429 errors
-                        _timedtext_throttle(min_interval=8.0, jitter=3.0)
-                        
-                        # Download using yt-dlp transport (reuses cookies, proxy, PO token)
-                        with ydl.urlopen(track_url) as resp:
-                            data = resp.read()
-                        
-                        if not data or len(data) == 0:
-                            logger.warning(f"Empty subtitle data for {lang}")
-                            continue
-                        
-                        # Save subtitle
-                        with open(subtitle_path, "wb") as f:
-                            f.write(data)
+                    # Use the same download logic as download_subtitles_ytdlp (with retry, backoff, 429 handling)
+                    from COMMANDS.subtitles_cmd import _timedtext_throttle
+                    import random
+                    import time
+                    
+                    def _download_once_with_ydl(ydl_instance, url_tt: str, dst_path: str, retries: int = 4) -> bool:
+                        """
+                        Download timedtext using yt-dlp transport (cookies/proxy/handlers/impersonate).
+                        This ensures cookies, proxy, and other yt-dlp mechanisms are properly applied.
+                        Same logic as in download_subtitles_ytdlp.
+                        """
+                        for i in range(retries):
+                            _timedtext_throttle(min_interval=8.0, jitter=3.0)
                             
-                    except Exception as e:
-                        err_str = str(e)
-                        if "429" in err_str or "Too Many Requests" in err_str:
-                            logger.warning(f"429 error downloading subtitle {lang}, skipping")
-                        else:
-                            logger.error(f"Failed to download subtitle {lang}: {e}")
+                            try:
+                                # ydl.urlopen uses yt-dlp's transport layer with all configured options
+                                with ydl_instance.urlopen(url_tt) as resp:
+                                    data = resp.read()
+                            except Exception as e:
+                                # Some 429s surface as exceptions; handle via backoff
+                                data = b""
+                                err_str = str(e)
+                                if "429" in err_str or "Too Many Requests" in err_str:
+                                    # Exponential backoff: 60s, 120s, 240s, 300s max
+                                    wait = min(60 * (2 ** i), 300) + random.uniform(0, 10)
+                                    logger.warning(f"timedtext 429 ({url_tt}), sleep {wait:.1f}s")
+                                    time.sleep(wait)
+                                    continue
+                                logger.error(f"timedtext download error: {e}")
+                                time.sleep(5 + random.uniform(0, 2))
+                                continue
+                            
+                            if data and len(data) > 0:
+                                with open(dst_path, "wb") as f:
+                                    f.write(data)
+                                return True
+                            
+                            # Empty body can happen on rate-limit/bot checks too
+                            wait = min(60 * (2 ** i), 300) + random.uniform(0, 10)
+                            logger.warning(f"timedtext empty body, sleep {wait:.1f}s")
+                            time.sleep(wait)
+                        
+                        return False
+                    
+                    # Detect translated subs (tlang=) - these are more rate-limited
+                    is_translated = 'tlang=' in track_url
+                    
+                    # Download using the same retry logic as single subtitle download
+                    ok = False
+                    if is_translated:
+                        # For translated tracks, use the URL as-is
+                        ok = _download_once_with_ydl(ydl, track_url, subtitle_path, retries=4)
+                    else:
+                        # For non-translated tracks, try the original URL first
+                        if _download_once_with_ydl(ydl, track_url, subtitle_path, retries=4):
+                            ok = True
+                        elif 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
+                            # Fallback: try VTT format
+                            q = '&' if '?' in track_url else '?'
+                            vtt_url = track_url + q + 'fmt=vtt'
+                            ok = _download_once_with_ydl(ydl, vtt_url, subtitle_path, retries=4)
+                    
+                    if not ok:
+                        try:
+                            if os.path.exists(subtitle_path):
+                                os.remove(subtitle_path)
+                        except Exception:
+                            pass
+                        logger.warning(f"Could not download subtitle {lang}, skipping")
                         continue
                     
                     # Convert to SRT if needed
