@@ -2238,6 +2238,7 @@ class Messages(object):
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ نطاق غير صحيح. يجب أن يكون وقت البداية أقل من وقت النهاية."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ النطاق الزمني خارج حدود الفيديو.\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيجب أن يكون النطاق الخاص بك ضمن هذه الحدود."
     AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG = "❌ لم يتم تحديد مدة الفيديو. يرجى المحاولة مرة أخرى أو استخدام فيديو آخر."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>سيتم قص الفيديو:</b> {start_time} - {end_time}"
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗رابط"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁مشاهدة"  # معطل مؤقتًا: خدمة poketube معطلة
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝الوصف"

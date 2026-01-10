@@ -2235,6 +2235,7 @@ Usa:
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Rango inválido. El tiempo de inicio debe ser menor que el tiempo de finalización."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ El rango de tiempo está fuera de los límites del video.\n\nDuración del video: <b>{start_time} - {end_time}</b>\n\nTu rango debe estar dentro de estos límites."
     AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG = "❌ No se pudo determinar la duración del video. Por favor, inténtalo de nuevo o usa otro video."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>El video será recortado:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Completado parcialmente - {successful_uploads}/{total_files} archivos de audio subidos."

@@ -2234,6 +2234,7 @@ class Messages(object):
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Неверный диапазон. Время начала должно быть меньше времени окончания."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Диапазон времени выходит за границы видео.\n\nДлительность видео: <b>{start_time} - {end_time}</b>\n\nВаш диапазон должен быть в пределах этих границ."
     AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG = "❌ Не удалось определить длительность видео. Попробуйте еще раз или используйте другое видео."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Видео будет обрезано:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Частично завершено - {successful_uploads}/{total_files} аудио файлов загружено."

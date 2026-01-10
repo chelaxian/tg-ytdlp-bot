@@ -2234,6 +2234,7 @@ Ishlating:
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Noto'g'ri format. Iltimos, ishlating: <code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Noto'g'ri oraliq. Boshlanish vaqti tugash vaqtidan kichik bo'lishi kerak."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Vaqt oralig'i video chegaralaridan tashqarida.\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nSizning oralig'ingiz bu chegaralar ichida bo'lishi kerak."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video kesiladi:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Qisman yakunlandi - {successful_uploads}/{total_files} audio fayl yuklandi."

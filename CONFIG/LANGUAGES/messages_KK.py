@@ -2234,6 +2234,7 @@ class Messages(object):
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Жарамсыз формат. Өтінеміз, пайдаланыңыз: <code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Жарамсыз аралық. Басталу уақыты аяқталу уақытынан кіші болуы керек."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Уақыт аралығы бейненің шекараларынан тыс.\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nСіздің аралығыңыз осы шектеулер ішінде болуы керек."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Бейне қиылады:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Ішінара аяқталды - {successful_uploads}/{to{total_files}dio файлдары жүктеп салынды."

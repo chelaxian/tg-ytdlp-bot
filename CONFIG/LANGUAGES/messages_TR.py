@@ -2234,6 +2234,7 @@ Kullanın:
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Geçersiz format. Lütfen kullanın: <code>HH:MM:SS-HH:MM:SS</code>\n\nÖrnek: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Geçersiz aralık. Başlangıç zamanı bitiş zamanından küçük olmalıdır."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Zaman aralığı video sınırlarının dışında.\n\nVideo süresi: <b>{start_time} - {end_time}</b>\n\nAralığınız bu sınırlar içinde olmalıdır."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video kırpılacak:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Kısmen tamamlandı - {successful_uploads}/{total_files} ses dosyası yüklendi."

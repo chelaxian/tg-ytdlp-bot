@@ -2234,6 +2234,7 @@ Use:
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Định dạng không hợp lệ. Vui lòng sử dụng: <code>HH:MM:SS-HH:MM:SS</code>\n\nVí dụ: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Phạm vi không hợp lệ. Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Phạm vi thời gian nằm ngoài giới hạn của video.\n\nThời lượng video: <b>{start_time} - {end_time}</b>\n\nPhạm vi của bạn phải nằm trong các giới hạn này."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video sẽ được cắt:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Hoàn thành một phần - {successful_uploads}/{total_files} tệp âm thanh đã được tải lên."

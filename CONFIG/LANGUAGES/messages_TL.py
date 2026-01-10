@@ -2234,6 +2234,7 @@ Gamitin:
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Hindi wastong format. Mangyaring gamitin: <code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Hindi wastong range. Ang start time ay dapat na mas mababa kaysa sa end time."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Ang time range ay nasa labas ng mga hangganan ng video.\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nAng iyong range ay dapat na nasa loob ng mga limitasyong ito."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Ang video ay puputulin:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Bahagyang nakumpleto - {successful_uploads}/{total_files} audio files na na-upload."

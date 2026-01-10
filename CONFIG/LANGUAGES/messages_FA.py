@@ -2234,6 +2234,7 @@ class Messages(object):
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ فرمت نامعتبر. لطفاً استفاده کنید: <code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ محدوده نامعتبر. زمان شروع باید کمتر از زمان پایان باشد."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ محدوده زمانی خارج از مرزهای ویدیو است.\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nمحدوده شما باید در این محدودیت‌ها باشد."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>ویدیو برش داده می‌شود:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ به طور جزئی تکمیل شد - {successful_uploads}/{total_files} فایل صوتی آپلود شد."

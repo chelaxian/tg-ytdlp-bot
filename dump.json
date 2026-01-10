@@ -4,7 +4,7 @@
       "blocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768045338
+          "timestamp": 1768081370
         }
       },
       "logs": {
@@ -21,13 +21,13 @@
       "unblocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768045338
+          "timestamp": 1768081370
         }
       },
       "users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768045338
+          "timestamp": 1768081370
         }
       },
       "channel_guard": {
@@ -181,7 +181,7 @@
             "first_left_ts": 1767963990.0,
             "username": "iy_5iR",
             "name": "Iyas",
-            "last_left_ts": 1767963990.0,
+            "last_left_ts": 1768069491.0,
             "blocked": false
           },
           "7658325446": {
@@ -223,10 +223,74 @@
             "name": "Account Manager",
             "last_left_ts": 1767995667.0,
             "blocked": false
+          },
+          "939608938": {
+            "ID": "939608938",
+            "first_left_ts": 1768017571.0,
+            "username": "yassirix",
+            "name": "╰⁔╯☬•서까래•☬╰⁔╯",
+            "last_left_ts": 1768017571.0,
+            "blocked": false
+          },
+          "5520227675": {
+            "ID": "5520227675",
+            "first_left_ts": 1768019749.0,
+            "username": null,
+            "name": "Rockstar hb Solanki",
+            "last_left_ts": 1768019749.0,
+            "blocked": false
+          },
+          "1703105045": {
+            "ID": "1703105045",
+            "first_left_ts": 1768022186.0,
+            "username": "npprvtt",
+            "name": "نورمحمد",
+            "last_left_ts": 1768022186.0,
+            "blocked": false
+          },
+          "5105031801": {
+            "ID": "5105031801",
+            "first_left_ts": 1768037814.0,
+            "username": "PrinceEziukwu",
+            "name": "Prince Eziukwu",
+            "last_left_ts": 1768037814.0,
+            "blocked": false
+          },
+          "499367362": {
+            "ID": "499367362",
+            "first_left_ts": 1768045384.0,
+            "username": "WazerOne",
+            "name": "Grigoriy",
+            "last_left_ts": 1768045384.0,
+            "blocked": false
+          },
+          "6583010809": {
+            "ID": "6583010809",
+            "first_left_ts": 1768053405.0,
+            "username": null,
+            "name": "Bunyod",
+            "last_left_ts": 1768053405.0,
+            "blocked": false
+          },
+          "8596270141": {
+            "ID": "8596270141",
+            "first_left_ts": 1768064460.0,
+            "username": null,
+            "name": "A S",
+            "last_left_ts": 1768064460.0,
+            "blocked": false
+          },
+          "1805501678": {
+            "ID": "1805501678",
+            "first_left_ts": 1768065791.0,
+            "username": "WytKalashnikov",
+            "name": "Void Wytr",
+            "last_left_ts": 1768065791.0,
+            "blocked": false
           }
         },
         "state": {
-          "last_event_id": 946990082424
+          "last_event_id": 947720298156
         }
       }
     },

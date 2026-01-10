@@ -132,14 +132,19 @@ def url_distractor(app, message):
     record_user_activity(user_id, is_admin, message_text=text)
     
     # Check if user is in trim mode (waiting for timecode input)
-    from DOWN_AND_UP.always_ask_menu import load_trim_state, validate_timecode_range, clear_trim_state, handle_trim_timecode
-    trim_state = load_trim_state(user_id, None)  # Check for any active trim state
-    if trim_state:
-        # User is in trim mode, try to process as timecode
-        if handle_trim_timecode(app, message, text, trim_state):
-            return  # Timecode was processed, stop further processing
+    # If user sends a URL or command while in trim mode, clear trim mode
+    from DOWN_AND_UP.always_ask_menu import is_trim_mode, clear_trim_input_state
+    if is_trim_mode(user_id):
+        # User sent a URL or command while in trim mode - clear trim mode
+        clear_trim_input_state(user_id)
+        # Continue with normal URL processing
     
     # Check if this is a command (starts with / or is an emoji command)
+    # If user sends a command while in trim mode, clear trim mode
+    from DOWN_AND_UP.always_ask_menu import is_trim_mode, clear_trim_input_state
+    if is_trim_mode(user_id):
+        clear_trim_input_state(user_id)
+    
     is_command = text.startswith('/') or text in [
         "🧹", "🍪", "⚙️", "🔍", "🌐", "🔗", "📼", "📊", "✂️", "🎧", "💬", 
         "#️⃣", "🆘", "📃", "⏯️", "🎹", "🌎", "✅", "🖼", "🧰", "🔞", "🧾"

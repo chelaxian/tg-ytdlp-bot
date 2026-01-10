@@ -2235,6 +2235,7 @@ Verwenden Sie:
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Ungültiges Format. Bitte verwenden Sie: <code>HH:MM:SS-HH:MM:SS</code>\n\nBeispiel: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Ungültiger Bereich. Die Startzeit muss kleiner als die Endzeit sein."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Der Zeitbereich liegt außerhalb der Videogrenzen.\n\nVideodauer: <b>{start_time} - {end_time}</b>\n\nIhr Bereich muss innerhalb dieser Grenzen liegen."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video wird zugeschnitten:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Teilweise abgeschlossen - {successful_uploads}/{total_files} Audio-Dateien hochgeladen."

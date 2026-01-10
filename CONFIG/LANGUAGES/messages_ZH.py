@@ -2234,6 +2234,7 @@ class Messages(object):
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ 格式无效。请使用: <code>HH:MM:SS-HH:MM:SS</code>\n\n示例: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ 范围无效。开始时间必须小于结束时间。"
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ 时间范围超出视频边界。\n\n视频时长: <b>{start_time} - {end_time}</b>\n\n您的范围必须在此限制内。"
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>视频将被裁剪:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 部分完成 - 已上传 {successful_uploads}/{total_files} 个音频文件。"
