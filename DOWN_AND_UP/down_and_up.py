@@ -3427,13 +3427,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         
                                         logger.info(f"[DEBUG] Calling download_all_subtitles with: selected_langs={selected_subs_langs}, all_selected={subs_all_selected}, available_dubs={available_dubs}")
                                         from DOWN_AND_UP.ffmpeg import download_all_subtitles
-                                        subtitle_tracks = download_all_subtitles(
-                                            url, user_id, video_dir,
-                                            selected_langs=selected_subs_langs if selected_subs_langs else None,
-                                            all_selected=subs_all_selected,
-                                            available_dubs=available_dubs if subs_all_selected else None
-                                        )
-                                        logger.info(f"[DEBUG] download_all_subtitles returned: {len(subtitle_tracks) if subtitle_tracks else 0} tracks")
+                                        try:
+                                            subtitle_tracks = download_all_subtitles(
+                                                url, user_id, video_dir,
+                                                selected_langs=selected_subs_langs if selected_subs_langs else None,
+                                                all_selected=subs_all_selected,
+                                                available_dubs=available_dubs if subs_all_selected else None
+                                            )
+                                            # Ensure subtitle_tracks is a list, not None
+                                            if subtitle_tracks is None:
+                                                logger.warning("download_all_subtitles returned None, converting to empty list")
+                                                subtitle_tracks = []
+                                            logger.info(f"[DEBUG] download_all_subtitles returned: {len(subtitle_tracks) if subtitle_tracks else 0} tracks")
+                                        except Exception as subs_download_error:
+                                            logger.error(f"Error in download_all_subtitles: {subs_download_error}")
+                                            logger.error(traceback.format_exc())
+                                            subtitle_tracks = []
+                                            app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to download subtitles")
                                         
                                         if subtitle_tracks:
                                             logger.info(f"Embedding {len(subtitle_tracks)} subtitle tracks into MKV")
@@ -3941,7 +3951,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.debug(f"[SUBS] Failed to clear end cache: {_e}")
         else:
             logger.error(f"Error in video download: {e}")
-            send_to_user(message, safe_get_messages(user_id).FAILED_DOWNLOAD_VIDEO_MSG.format(error=e))
+            error_msg = str(e) if e else "Unknown error"
+            send_to_user(message, safe_get_messages(user_id).FAILED_DOWNLOAD_VIDEO_MSG.format(error=error_msg))
         
         # Immediate cleanup of temporary status messages on error
         try:

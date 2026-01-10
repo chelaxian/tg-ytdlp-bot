@@ -1581,7 +1581,16 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         # Reuse the same ydl instance for both extract_info and urlopen
         # Reuse the same ydl instance for both extract_info and urlopen
         with yt_dlp.YoutubeDL(info_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            try:
+                info = ydl.extract_info(url, download=False)
+                if not info:
+                    logger.error("yt-dlp extract_info returned None")
+                    return []
+            except Exception as e:
+                logger.error(f"Error extracting video info in download_all_subtitles: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                return []
         
             # Get subtitles dict
             subs_dict = {}
