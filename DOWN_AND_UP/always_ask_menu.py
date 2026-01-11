@@ -925,6 +925,20 @@ def handle_trim_timecode(app, message, text):
             return True  # We processed it (even if invalid)
         
         # Timecode is valid, save it and show quality menu
+        # Ensure start_seconds and end_seconds are numbers before formatting
+        try:
+            start_seconds = float(start_seconds) if start_seconds is not None else 0.0
+            end_seconds = float(end_seconds) if end_seconds is not None else 0.0
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error converting start_seconds/end_seconds to float: {e}, start_seconds={start_seconds}, end_seconds={end_seconds}")
+            app.send_message(
+                user_id,
+                f"❌ Ошибка при обработке таймкода: {str(e)}",
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return True
+        
         # Format timecode for yt-dlp: *HH:MM:SS-HH:MM:SS
         hours_start = int(start_seconds // 3600)
         minutes_start = int((start_seconds % 3600) // 60)
@@ -939,23 +953,61 @@ def handle_trim_timecode(app, message, text):
         download_sections = f"*{start_timecode}-{end_timecode}"
         
         # Save trim sections for this download
-        save_trim_sections(user_id, matching_url, download_sections)
+        logger.info(f"[TRIM DEBUG] Saving trim sections: {download_sections}")
+        try:
+            save_trim_sections(user_id, matching_url, download_sections)
+            logger.info(f"[TRIM DEBUG] Trim sections saved successfully")
+        except Exception as e:
+            logger.error(f"Error saving trim sections: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
         
         # Clear trim state and input state
-        clear_trim_state(user_id, matching_url)
-        clear_trim_input_state(user_id)
+        logger.info(f"[TRIM DEBUG] Clearing trim state and input state")
+        try:
+            clear_trim_state(user_id, matching_url)
+            logger.info(f"[TRIM DEBUG] Trim state cleared")
+        except Exception as e:
+            logger.error(f"Error clearing trim state: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Continue anyway - not critical
+        
+        try:
+            clear_trim_input_state(user_id)
+            logger.info(f"[TRIM DEBUG] Trim input state cleared")
+        except Exception as e:
+            logger.error(f"Error clearing trim input state: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Continue anyway - not critical
         
         # Get original message (the one with URL)
         # We need to find it - it should be the last message before trim prompt
         # For now, we'll create a fake message with the URL
-        from HELPERS.safe_messeger import fake_message
-        original_message = fake_message(user_id, matching_url)
+        logger.info(f"[TRIM DEBUG] Creating fake message for URL: {matching_url}")
+        try:
+            from HELPERS.safe_messeger import fake_message
+            original_message = fake_message(user_id, matching_url)
+            logger.info(f"[TRIM DEBUG] Fake message created successfully")
+        except Exception as e:
+            logger.error(f"Error creating fake message: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            app.send_message(
+                user_id,
+                f"❌ Ошибка при создании сообщения: {str(e)}",
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return True
         
         # Show quality menu instead of direct download
         # The trim sections will be loaded automatically in down_and_up_with_format
+        logger.info(f"[TRIM DEBUG] Calling ask_quality_menu with trim sections: {download_sections} for URL: {matching_url}")
         try:
-            logger.info(f"Showing quality menu with trim sections: {download_sections} for URL: {matching_url}")
             ask_quality_menu(app, original_message, matching_url, [], playlist_start_index=1, cb=None)
+            logger.info(f"[TRIM DEBUG] ask_quality_menu called successfully")
         except Exception as e:
             logger.error(f"Error showing quality menu: {e}")
             import traceback
@@ -963,7 +1015,7 @@ def handle_trim_timecode(app, message, text):
             try:
                 app.send_message(
                     user_id,
-                    f"❌ Error showing quality menu: {str(e)}",
+                    f"❌ Ошибка при показе меню качества: {str(e)}",
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
                 )
