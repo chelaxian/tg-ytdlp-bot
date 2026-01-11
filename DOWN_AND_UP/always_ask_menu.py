@@ -732,10 +732,14 @@ def validate_timecode_range(timecode_str, video_duration):
         if end_seconds is None:
             return False, "INVALID_FORMAT", None, None
         
-        # Ensure all values are numbers for comparison
-        start_seconds = float(start_seconds) if start_seconds is not None else 0
-        end_seconds = float(end_seconds) if end_seconds is not None else 0
-        video_duration = float(video_duration) if video_duration else 0
+        # Ensure all values are numbers for comparison (convert immediately after parsing)
+        try:
+            start_seconds = float(start_seconds) if start_seconds is not None else 0
+            end_seconds = float(end_seconds) if end_seconds is not None else 0
+            video_duration = float(video_duration) if video_duration else 0
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error converting timecode values to float: {e}, start_seconds={start_seconds}, end_seconds={end_seconds}, video_duration={video_duration}")
+            return False, "INVALID_FORMAT", None, None
         
         # Check that start < end
         if start_seconds >= end_seconds:
@@ -2695,7 +2699,9 @@ def askq_callback(app, callback_query):
             logger.info("Single video, using down_and_up_with_format")
             # Delete processing message before starting download
             delete_processing_message(app, user_id, None)
-            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=format_id, proc_msg=None)
+            # Load trim sections if available
+            download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=format_id, proc_msg=None, download_sections=download_sections)
         logger.info("Download process initiated successfully")
         return
     
@@ -2784,7 +2790,9 @@ def askq_callback(app, callback_query):
         else:
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
-            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=quality, proc_msg=proc_msg)
+            # Load trim sections if available
+            download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=quality, proc_msg=proc_msg, download_sections=download_sections)
         return
 
     original_message = callback_query.message.reply_to_message
@@ -6910,7 +6918,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     # Delete processing message before starting download
     delete_processing_message(app, user_id, proc_msg)
-    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key, proc_msg=proc_msg)
+    # Load trim sections if available (don't clear yet - will be cleared in down_and_up_with_format)
+    download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key, proc_msg=proc_msg, download_sections=download_sections)
 
 def analyze_format_type(format_info):
     """
