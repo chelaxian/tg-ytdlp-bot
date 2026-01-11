@@ -83,7 +83,7 @@ from HELPERS.safe_messeger import fake_message
 app = get_app()
 
 # Trim input states and timers (similar to args_cmd)
-trim_input_states = {}  # {user_id: {"url": url, "video_duration": duration}}
+trim_input_states = {}  # {user_id: {"url": url, "video_duration": duration, "original_message_id": msg_id, "original_chat_id": chat_id}}
 trim_input_timers = {}  # {user_id: timer_thread}
 trim_timeout_sent = set()  # {user_id} - flags to prevent duplicate timeout messages
 
@@ -610,7 +610,7 @@ def start_trim_timer(user_id):
     trim_input_timers[user_id] = timer
     logger.info(f"Started trim timer for user {user_id}")
 
-def save_trim_state(user_id, url, video_duration):
+def save_trim_state(user_id, url, video_duration, original_message_id=None, original_chat_id=None):
     """Save trim state for user and URL"""
     try:
         # Ensure video_duration is a number
@@ -626,16 +626,20 @@ def save_trim_state(user_id, url, video_duration):
         data[url] = {
             "url": url,  # Save URL for easy retrieval
             "video_duration": video_duration,  # Ensure it's a number
+            "original_message_id": original_message_id,  # Save original message ID
+            "original_chat_id": original_chat_id,  # Save original chat ID
             "timestamp": datetime.now().isoformat()
         }
         with open(trim_state_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        logger.info(f"Saved trim state for user {user_id}, URL: {url}, duration: {video_duration}")
+        logger.info(f"Saved trim state for user {user_id}, URL: {url}, duration: {video_duration}, message_id: {original_message_id}")
         
         # Also save to in-memory state for quick access
         trim_input_states[user_id] = {
             "url": url,
-            "video_duration": video_duration
+            "video_duration": video_duration,
+            "original_message_id": original_message_id,
+            "original_chat_id": original_chat_id
         }
         
         # Start timer for auto-close after 5 minutes
@@ -852,7 +856,9 @@ def handle_trim_timecode(app, message, text):
                 video_duration = float(file_state.get("video_duration", 0)) if file_state.get("video_duration") else 0
                 trim_input_states[user_id] = {
                     "url": file_state.get("url"),
-                    "video_duration": video_duration
+                    "video_duration": video_duration,
+                    "original_message_id": file_state.get("original_message_id"),
+                    "original_chat_id": file_state.get("original_chat_id", user_id)
                 }
                 start_trim_timer(user_id)
                 trim_state = trim_input_states[user_id]
@@ -983,34 +989,58 @@ def handle_trim_timecode(app, message, text):
             # Continue anyway - not critical
         
         # Get original message (the one with URL)
-        # We need to find it - it should be the last message before trim prompt
-        # For now, we'll create a fake message with the URL
-        logger.info(f"[TRIM DEBUG] Creating fake message for URL: {matching_url}")
-        try:
-            from HELPERS.safe_messeger import fake_message
-            # fake_message signature: fake_message(text, user_id, ...)
-            # Ensure user_id is int, not string
-            user_id_int = int(user_id) if isinstance(user_id, str) else user_id
-            original_message = fake_message(matching_url, user_id_int)
-            logger.info(f"[TRIM DEBUG] Fake message created successfully")
-        except Exception as e:
-            logger.error(f"Error creating fake message: {e}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            app.send_message(
-                user_id,
-                f"❌ Ошибка при создании сообщения: {str(e)}",
-                reply_parameters=ReplyParameters(message_id=message.id),
-                parse_mode=enums.ParseMode.HTML
-            )
-            return True
+        # Try to load saved original message info from trim state
+        logger.info(f"[TRIM DEBUG] Loading original message info for URL: {matching_url}")
+        original_message = None
+        original_message_id = trim_state.get("original_message_id")
+        original_chat_id = trim_state.get("original_chat_id", user_id)
+        
+        if original_message_id and original_chat_id:
+            try:
+                # Try to get the original message from Telegram
+                original_chat_id_int = int(original_chat_id) if isinstance(original_chat_id, str) else original_chat_id
+                original_message_id_int = int(original_message_id) if isinstance(original_message_id, str) else original_message_id
+                original_message = app.get_messages(original_chat_id_int, original_message_id_int)
+                logger.info(f"[TRIM DEBUG] Retrieved original message from Telegram: chat_id={original_chat_id_int}, message_id={original_message_id_int}")
+            except Exception as e:
+                logger.warning(f"[TRIM DEBUG] Could not retrieve original message from Telegram: {e}, creating fake message")
+                original_message = None
+        
+        # If we couldn't get the original message, create a fake one
+        if not original_message:
+            logger.info(f"[TRIM DEBUG] Creating fake message for URL: {matching_url}")
+            try:
+                from HELPERS.safe_messeger import fake_message
+                # fake_message signature: fake_message(text, user_id, ...)
+                # Ensure user_id is int, not string
+                user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+                original_message = fake_message(matching_url, user_id_int)
+                logger.info(f"[TRIM DEBUG] Fake message created successfully")
+            except Exception as e:
+                logger.error(f"Error creating fake message: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                app.send_message(
+                    user_id,
+                    f"❌ Ошибка при создании сообщения: {str(e)}",
+                    reply_parameters=ReplyParameters(message_id=message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+                return True
         
         # Show quality menu instead of direct download
         # The trim sections will be loaded automatically in down_and_up_with_format
         logger.info(f"[TRIM DEBUG] Calling ask_quality_menu with trim sections: {download_sections} for URL: {matching_url}")
         try:
-            ask_quality_menu(app, original_message, matching_url, [], playlist_start_index=1, cb=None)
-            logger.info(f"[TRIM DEBUG] ask_quality_menu called successfully")
+            # Pass original_message_id if we have it, so menu will reply to the original message
+            original_msg_id = None
+            if original_message and hasattr(original_message, 'id') and original_message.id:
+                original_msg_id = original_message.id
+            # If we have saved original_message_id from trim_state, use it
+            if not original_msg_id and original_message_id:
+                original_msg_id = int(original_message_id) if isinstance(original_message_id, str) else original_message_id
+            ask_quality_menu(app, original_message, matching_url, [], playlist_start_index=1, cb=None, original_message_id=original_msg_id)
+            logger.info(f"[TRIM DEBUG] ask_quality_menu called successfully with original_message_id={original_msg_id}")
         except Exception as e:
             logger.error(f"Error showing quality menu: {e}")
             import traceback
@@ -4251,7 +4281,7 @@ def sort_quality_key(quality_key):
         except ValueError:
             return 0  # for unknown formats
 
-def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range):
+def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range, original_message_id=None):
     messages = safe_get_messages(user_id)
     """
     Создает меню качества из кэшированных данных когда не удается получить новые.
@@ -4490,19 +4520,27 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                 try:
                     result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                     if result is None:
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                        # Use original_message_id if provided (for trim mode), otherwise use message.id
+                        reply_to_id = original_message_id if original_message_id is not None else message.id
+                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                 except Exception as edit_error:
                     if "MESSAGE_ID_INVALID" in str(edit_error):
                         logger.warning(f"Message ID invalid, sending new message: {edit_error}")
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                        # Use original_message_id if provided (for trim mode), otherwise use message.id
+                        reply_to_id = original_message_id if original_message_id is not None else message.id
+                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                     elif "BUTTON_TYPE_INVALID" in str(edit_error):
                         logger.warning(f"Button type invalid, sending without keyboard: {edit_error}")
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                        # Use original_message_id if provided (for trim mode), otherwise use message.id
+                        reply_to_id = original_message_id if original_message_id is not None else message.id
+                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML)
                     else:
                         raise edit_error
             else:
                 try:
-                    app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                    # Use original_message_id if provided (for trim mode), otherwise use message.id
+                    reply_to_id = original_message_id if original_message_id is not None else message.id
+                    app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                 except Exception as send_error:
                     if "BUTTON_TYPE_INVALID" in str(send_error):
                         logger.warning(f"Button type invalid, sending without keyboard: {send_error}")
@@ -4538,7 +4576,7 @@ def delete_processing_message(app, user_id, proc_msg):
     else:
         logger.warning(f"proc_msg is None for user {user_id}, cannot delete processing message")
 
-def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, download_dir=None):
+def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, download_dir=None, original_message_id=None):
     """Show quality selection menu for video"""
     # ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
     logger.info(f"🔍 [DEBUG] ask_quality_menu вызвана с параметрами:")
@@ -4679,7 +4717,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # Only send new processing message if this is the initial menu open (no callback)
         # If callback is provided, we should NOT edit the message here - let the final logic handle it
         if cb is None:
-            proc_msg = app.send_message(user_id, processing_text, reply_parameters=ReplyParameters(message_id=message.id), reply_markup=get_main_reply_keyboard())
+            # Use original_message_id if provided (for trim mode), otherwise use message.id
+            reply_to_id = original_message_id if original_message_id is not None else message.id
+            proc_msg = app.send_message(user_id, processing_text, reply_parameters=ReplyParameters(message_id=reply_to_id), reply_markup=get_main_reply_keyboard())
             # Save processing message to cache for deletion when download starts
             set_user_proc_msg(user_id, proc_msg)
         else:
@@ -6629,7 +6669,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # Сначала пробуем создать меню из кэшированных качеств
         try:
             logger.info(f"Attempting to create menu from cached qualities for user {user_id}")
-            if create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range):
+            if create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range, original_message_id=original_message_id):
                 logger.info(f"Successfully created cached qualities menu for user {user_id}")
                 send_to_logger(message, safe_get_messages(user_id).CACHED_QUALITIES_MENU_CREATED_LOG_MSG.format(user_id=user_id, error=str(e)))
                 return
@@ -6859,8 +6899,10 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             end_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
             start_time = "00:00:00"
             
-            # Save trim state for this user and URL
-            save_trim_state(user_id, url, duration)
+            # Save trim state for this user and URL, including original message info
+            original_message_id = original_message.id if original_message else None
+            original_chat_id = original_message.chat.id if original_message and hasattr(original_message, 'chat') else user_id
+            save_trim_state(user_id, url, duration, original_message_id=original_message_id, original_chat_id=original_chat_id)
             
             # Send prompt message
             prompt_msg = safe_get_messages(user_id).ALWAYS_ASK_TRIM_PROMPT_MSG.format(
