@@ -568,18 +568,6 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         import traceback
         logger.error(traceback.format_exc())
         return False
-            logger.error("FFmpeg error: File not found")
-        elif "permission denied" in error_text:
-            logger.error("FFmpeg error: Permission denied")
-        elif "codec" in error_text and ("not found" in error_text or "unsupported" in error_text):
-            logger.error("FFmpeg error: Codec not found or unsupported")
-        
-        return False
-    except Exception as e:
-        logger.error(f"Error extracting subclip: {e}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        return False
 
 
 # ####################################################################################
