@@ -496,43 +496,78 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
             logger.error(f"Video file not found: {video_path}")
             return False
         
-        # Normalize paths for universal compatibility (with quotes for FFmpeg)
-        normalized_video_path = normalize_path_for_ffmpeg(video_path, for_ffmpeg=True)
-        normalized_targetname = normalize_path_for_ffmpeg(targetname, for_ffmpeg=True)
+        # Use absolute paths without quotes for Linux
+        normalized_video_path = os.path.abspath(video_path)
+        normalized_targetname = os.path.abspath(targetname)
         
+        # First try with -c copy (fast, no re-encoding)
         cmd = [
             ffmpeg_path, '-y',
-            '-i', normalized_video_path,
             '-ss', str(start_time),
+            '-i', normalized_video_path,
             '-t', str(end_time - start_time),
             '-c', 'copy',
+            '-avoid_negative_ts', 'make_zero',
             normalized_targetname
         ]
         
         logger.info(f"Running ffmpeg extract command: {' '.join(cmd)}")
-        logger.info(f"Original video path: {video_path}")
-        logger.info(f"Normalized video path: {normalized_video_path}")
-        logger.info(f"Original target path: {targetname}")
-        logger.info(f"Normalized target path: {normalized_targetname}")
+        logger.info(f"Video path: {normalized_video_path}")
+        logger.info(f"Target path: {normalized_targetname}")
         
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
-        logger.info(f"FFmpeg extract completed successfully for {targetname}")
-        logger.info(f"Output file size: {os.path.getsize(targetname) if os.path.exists(targetname) else 'File not found'}")
-        return True
-    except subprocess.CalledProcessError as e:
-        error_details = ""
-        if e.stderr:
-            error_details = f"stderr: {e.stderr[:500]}"
-        if e.stdout:
-            error_details += f"\nstdout: {e.stdout[:500]}" if error_details else f"stdout: {e.stdout[:500]}"
-        
-        logger.error(f"FFmpeg extract error (code {e.returncode}): {error_details if error_details else str(e)}")
-        
-        # Try to identify common error types
-        error_text = (error_details + str(e)).lower()
-        if "invalid argument" in error_text or "invalid data" in error_text:
-            logger.error("FFmpeg error: Invalid argument - video format may be incompatible")
-        elif "no such file" in error_text or "cannot find" in error_text:
+        try:
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            if os.path.exists(targetname) and os.path.getsize(targetname) > 0:
+                logger.info(f"FFmpeg extract completed successfully for {targetname}")
+                logger.info(f"Output file size: {os.path.getsize(targetname)} bytes")
+                return True
+            else:
+                logger.warning(f"FFmpeg extract completed but output file is missing or empty, trying re-encode")
+                raise subprocess.CalledProcessError(1, cmd, "Output file missing or empty")
+        except subprocess.CalledProcessError as e:
+            # If -c copy fails, try with re-encoding (slower but more reliable)
+            logger.warning(f"FFmpeg extract with -c copy failed (code {e.returncode}), trying with re-encoding")
+            if e.stderr:
+                logger.error(f"FFmpeg stderr: {e.stderr[:1000]}")
+            if e.stdout:
+                logger.error(f"FFmpeg stdout: {e.stdout[:1000]}")
+            
+            # Try with re-encoding
+            cmd_reencode = [
+                ffmpeg_path, '-y',
+                '-ss', str(start_time),
+                '-i', normalized_video_path,
+                '-t', str(end_time - start_time),
+                '-c:v', 'libx264',
+                '-c:a', 'aac',
+                '-preset', 'fast',
+                '-crf', '23',
+                normalized_targetname
+            ]
+            
+            logger.info(f"Trying re-encode: {' '.join(cmd_reencode)}")
+            try:
+                result = subprocess.run(cmd_reencode, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+                if os.path.exists(targetname) and os.path.getsize(targetname) > 0:
+                    logger.info(f"FFmpeg extract with re-encoding completed successfully for {targetname}")
+                    logger.info(f"Output file size: {os.path.getsize(targetname)} bytes")
+                    return True
+                else:
+                    logger.error(f"FFmpeg re-encode completed but output file is missing or empty")
+                    return False
+            except subprocess.CalledProcessError as e2:
+                error_details = ""
+                if e2.stderr:
+                    error_details = f"stderr: {e2.stderr[:2000]}"
+                if e2.stdout:
+                    error_details += f"\nstdout: {e2.stdout[:2000]}" if error_details else f"stdout: {e2.stdout[:2000]}"
+                logger.error(f"FFmpeg re-encode error (code {e2.returncode}): {error_details if error_details else str(e2)}")
+                return False
+    except Exception as e:
+        logger.error(f"Unexpected error during FFmpeg extract: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return False
             logger.error("FFmpeg error: File not found")
         elif "permission denied" in error_text:
             logger.error("FFmpeg error: Permission denied")
