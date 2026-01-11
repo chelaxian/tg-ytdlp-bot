@@ -501,13 +501,15 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         normalized_targetname = os.path.abspath(targetname)
         
         # First try with -c copy (fast, no re-encoding)
+        # Use -to instead of -t for more precise cutting
         cmd = [
             ffmpeg_path, '-y',
             '-ss', str(start_time),
             '-i', normalized_video_path,
-            '-t', str(end_time - start_time),
+            '-to', str(end_time),
             '-c', 'copy',
             '-avoid_negative_ts', 'make_zero',
+            '-fflags', '+genpts',
             normalized_targetname
         ]
         
@@ -516,7 +518,7 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         logger.info(f"Target path: {normalized_targetname}")
         
         try:
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=300)
             if os.path.exists(targetname) and os.path.getsize(targetname) > 0:
                 logger.info(f"FFmpeg extract completed successfully for {targetname}")
                 logger.info(f"Output file size: {os.path.getsize(targetname)} bytes")
@@ -527,27 +529,28 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         except subprocess.CalledProcessError as e:
             # If -c copy fails, try with re-encoding (slower but more reliable)
             logger.warning(f"FFmpeg extract with -c copy failed (code {e.returncode}), trying with re-encoding")
-            if e.stderr:
-                logger.error(f"FFmpeg stderr: {e.stderr[:1000]}")
-            if e.stdout:
-                logger.error(f"FFmpeg stdout: {e.stdout[:1000]}")
+            full_stderr = e.stderr if e.stderr else ""
+            full_stdout = e.stdout if e.stdout else ""
+            logger.error(f"FFmpeg stderr (full): {full_stderr}")
+            logger.error(f"FFmpeg stdout (full): {full_stdout}")
             
-            # Try with re-encoding
+            # Try with re-encoding using -to for precise cutting
             cmd_reencode = [
                 ffmpeg_path, '-y',
                 '-ss', str(start_time),
                 '-i', normalized_video_path,
-                '-t', str(end_time - start_time),
+                '-to', str(end_time),
                 '-c:v', 'libx264',
                 '-c:a', 'aac',
                 '-preset', 'fast',
                 '-crf', '23',
+                '-movflags', '+faststart',
                 normalized_targetname
             ]
             
             logger.info(f"Trying re-encode: {' '.join(cmd_reencode)}")
             try:
-                result = subprocess.run(cmd_reencode, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+                result = subprocess.run(cmd_reencode, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=600)
                 if os.path.exists(targetname) and os.path.getsize(targetname) > 0:
                     logger.info(f"FFmpeg extract with re-encoding completed successfully for {targetname}")
                     logger.info(f"Output file size: {os.path.getsize(targetname)} bytes")
@@ -558,10 +561,13 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
             except subprocess.CalledProcessError as e2:
                 error_details = ""
                 if e2.stderr:
-                    error_details = f"stderr: {e2.stderr[:2000]}"
+                    error_details = f"stderr: {e2.stderr}"
                 if e2.stdout:
-                    error_details += f"\nstdout: {e2.stdout[:2000]}" if error_details else f"stdout: {e2.stdout[:2000]}"
+                    error_details += f"\nstdout: {e2.stdout}" if error_details else f"stdout: {e2.stdout}"
                 logger.error(f"FFmpeg re-encode error (code {e2.returncode}): {error_details if error_details else str(e2)}")
+                return False
+            except subprocess.TimeoutExpired:
+                logger.error(f"FFmpeg re-encode timed out after 600 seconds")
                 return False
     except Exception as e:
         logger.error(f"Unexpected error during FFmpeg extract: {e}")
