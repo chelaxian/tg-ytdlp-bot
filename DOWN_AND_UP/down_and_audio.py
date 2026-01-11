@@ -958,26 +958,17 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     logger.info(f"[TRIM AUDIO] Extracted trim times: start={trim_start_time}, end={trim_end_time}")
             
             # Build postprocessors list
-            postprocessors = []
-            
-            # If trim is enabled, add FFmpegVideoConvertor with trim parameters BEFORE extracting audio
-            # This ensures the video/audio stream is trimmed before audio extraction
-            if trim_start_time and trim_end_time:
-                postprocessors.append({
-                    'key': 'FFmpegVideoConvertor',
-                    'preferedformat': 'mp4',  # Temporary format for trimming
-                    'postprocessor_args': {
-                        'ffmpeg': ['-ss', trim_start_time, '-to', trim_end_time, '-c', 'copy']
-                    }
-                })
-                logger.info(f"[TRIM AUDIO] Added FFmpegVideoConvertor with trim: -ss {trim_start_time} -to {trim_end_time} -c copy")
-            
-            # Add audio extraction postprocessor
-            postprocessors.append({
+            # Note: download_sections already handles trimming, so we don't need FFmpegVideoConvertor
+            # with postprocessor_args (which is not supported anyway)
+            # The trimming will be done by download_sections, then we extract audio
+            postprocessors = [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': audio_format,
                 'preferredquality': '192',
-            })
+            }]
+            
+            if trim_start_time and trim_end_time:
+                logger.info(f"[TRIM AUDIO] Using download_sections for trimming: {download_sections}")
             
             # Add metadata postprocessor
             postprocessors.append({
