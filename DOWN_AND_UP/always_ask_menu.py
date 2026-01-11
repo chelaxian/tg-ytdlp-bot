@@ -691,11 +691,16 @@ def validate_timecode_range(timecode_str, video_duration):
     Returns (is_valid, error_message, start_seconds, end_seconds)
     """
     try:
-        # Ensure video_duration is a number
+        # Ensure video_duration is a number - convert immediately and explicitly
         try:
-            video_duration = float(video_duration) if video_duration else 0
-        except (ValueError, TypeError):
-            logger.error(f"Invalid video_duration type: {type(video_duration)}, value: {video_duration}")
+            if isinstance(video_duration, str):
+                video_duration = float(video_duration)
+            elif video_duration is None:
+                video_duration = 0.0
+            else:
+                video_duration = float(video_duration)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid video_duration type: {type(video_duration)}, value: {video_duration}, error: {e}")
             return False, "INVALID_FORMAT", None, None
         
         # Remove HTML tags (bold, italic, etc.)
@@ -733,12 +738,28 @@ def validate_timecode_range(timecode_str, video_duration):
             return False, "INVALID_FORMAT", None, None
         
         # Ensure all values are numbers for comparison (convert immediately after parsing)
+        # parse_timecode_to_seconds returns int, but we need float for comparison
         try:
-            start_seconds = float(start_seconds) if start_seconds is not None else 0
-            end_seconds = float(end_seconds) if end_seconds is not None else 0
-            video_duration = float(video_duration) if video_duration else 0
+            # Explicitly convert to float to avoid any type issues
+            if isinstance(start_seconds, str):
+                start_seconds = float(start_seconds)
+            else:
+                start_seconds = float(int(start_seconds)) if start_seconds is not None else 0.0
+            
+            if isinstance(end_seconds, str):
+                end_seconds = float(end_seconds)
+            else:
+                end_seconds = float(int(end_seconds)) if end_seconds is not None else 0.0
+            
+            # video_duration is already converted at the start of function, but ensure it's float
+            if isinstance(video_duration, str):
+                video_duration = float(video_duration)
+            elif not isinstance(video_duration, (int, float)):
+                video_duration = float(video_duration) if video_duration else 0.0
+            else:
+                video_duration = float(video_duration)
         except (ValueError, TypeError) as e:
-            logger.error(f"Error converting timecode values to float: {e}, start_seconds={start_seconds}, end_seconds={end_seconds}, video_duration={video_duration}")
+            logger.error(f"Error converting timecode values to float: {e}, start_seconds={start_seconds} (type: {type(start_seconds)}), end_seconds={end_seconds} (type: {type(end_seconds)}), video_duration={video_duration} (type: {type(video_duration)})")
             return False, "INVALID_FORMAT", None, None
         
         # Check that start < end
@@ -797,8 +818,10 @@ def parse_timecode_to_seconds(timecode_str):
                 return None
             total_seconds = hours * 3600 + minutes * 60 + seconds
         
-        return total_seconds
-    except Exception:
+        # Ensure we return an integer (not string or other type)
+        return int(total_seconds)
+    except Exception as e:
+        logger.error(f"Error parsing timecode '{timecode_str}': {e}")
         return None
 
 def handle_trim_timecode(app, message, text):
@@ -832,15 +855,21 @@ def handle_trim_timecode(app, message, text):
             return False
         
         video_duration = trim_state.get("video_duration", 0)
-        # Ensure video_duration is a number
+        # Ensure video_duration is a number BEFORE passing to validate_timecode_range
         try:
-            video_duration = float(video_duration) if video_duration else 0
-        except (ValueError, TypeError):
-            logger.error(f"Invalid video_duration in trim_state: {type(video_duration)}, value: {video_duration}")
+            # Convert to float immediately to avoid type comparison errors
+            if isinstance(video_duration, str):
+                video_duration = float(video_duration)
+            elif video_duration is None:
+                video_duration = 0.0
+            else:
+                video_duration = float(video_duration)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid video_duration in trim_state: {type(video_duration)}, value: {video_duration}, error: {e}")
             clear_trim_input_state(user_id)
             return False
         
-        # Validate timecode
+        # Validate timecode - video_duration is now guaranteed to be float
         is_valid, error_type, start_seconds, end_seconds = validate_timecode_range(text, video_duration)
         
         if not is_valid:
