@@ -1748,7 +1748,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
-                nonlocal error_message
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
@@ -2130,7 +2129,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     error_message_sent = True
                 return None
             except Exception as e:
-                nonlocal error_message
                 error_message = str(e)
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}")
                 # Auto-fallback to gallery-dl for obvious non-video cases
