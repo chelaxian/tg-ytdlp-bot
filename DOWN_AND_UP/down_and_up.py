@@ -2612,8 +2612,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"[TRIM] Video duration ({video_duration}s) is longer than expected ({expected_duration}s), applying explicit trim")
                             logger.info(f"[TRIM] Trimming video from {start_seconds}s to {end_seconds}s")
                             
-                            # Create temporary trimmed file
-                            temp_trimmed_path = downloaded_abs_path + '.trimmed.tmp'
+                            # Create temporary trimmed file with .mp4 extension so FFmpeg can detect format
+                            base_path = os.path.splitext(downloaded_abs_path)[0]
+                            temp_trimmed_path = base_path + '.trimmed.mp4'
                             from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
                             
                             if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):

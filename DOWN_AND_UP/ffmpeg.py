@@ -502,6 +502,7 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         
         # First try with -c copy (fast, no re-encoding)
         # Use -to instead of -t for more precise cutting
+        # Explicitly specify output format with -f mp4
         cmd = [
             ffmpeg_path, '-y',
             '-ss', str(start_time),
@@ -510,6 +511,7 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
             '-c', 'copy',
             '-avoid_negative_ts', 'make_zero',
             '-fflags', '+genpts',
+            '-f', 'mp4',
             normalized_targetname
         ]
         
@@ -535,6 +537,7 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
             logger.error(f"FFmpeg stdout (full): {full_stdout}")
             
             # Try with re-encoding using -to for precise cutting
+            # Explicitly specify output format with -f mp4
             cmd_reencode = [
                 ffmpeg_path, '-y',
                 '-ss', str(start_time),
@@ -545,6 +548,7 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
                 '-preset', 'fast',
                 '-crf', '23',
                 '-movflags', '+faststart',
+                '-f', 'mp4',
                 normalized_targetname
             ]
             
