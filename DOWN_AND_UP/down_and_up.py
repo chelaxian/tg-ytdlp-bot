@@ -2598,15 +2598,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     start_seconds = start_h * 3600 + start_m * 60 + start_s
                     end_seconds = end_h * 3600 + end_m * 60 + end_s
                     
-                    # Check video duration using ffprobe
+                    expected_duration = end_seconds - start_seconds
+                    
+                    # Check video duration using ffprobe to verify if trimming is needed
                     try:
                         from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
-                        video_info = get_video_info_ffprobe(downloaded_abs_path)
-                        video_duration = video_info.get('duration', 0) if video_info else 0
+                        width, height, video_duration = get_video_info_ffprobe(downloaded_abs_path)
+                        video_duration = float(video_duration) if video_duration else 0
                         
-                        # Only trim if video is longer than expected (download_sections didn't work)
-                        expected_duration = end_seconds - start_seconds
-                        if video_duration > expected_duration * 1.1:  # 10% tolerance
+                        # Always trim if video is longer than expected (download_sections didn't work)
+                        # Or if video is significantly different from expected (more than 5 seconds difference)
+                        if video_duration > expected_duration + 5:  # Allow 5 seconds tolerance
                             logger.info(f"[TRIM] Video duration ({video_duration}s) is longer than expected ({expected_duration}s), applying explicit trim")
                             logger.info(f"[TRIM] Trimming video from {start_seconds}s to {end_seconds}s")
                             
@@ -2628,11 +2630,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     except Exception:
                                         pass
                         else:
-                            logger.info(f"[TRIM] Video duration ({video_duration}s) matches expected ({expected_duration}s), no trimming needed")
+                            logger.info(f"[TRIM] Video duration ({video_duration}s) matches expected ({expected_duration}s), trimming may have worked via download_sections")
                     except Exception as trim_error:
-                        logger.error(f"[TRIM] Error checking/trimming video: {trim_error}")
-                        import traceback
-                        logger.error(traceback.format_exc())
+                        # If we can't check duration, still try to trim to be safe
+                        logger.warning(f"[TRIM] Error checking video duration: {trim_error}, attempting trim anyway")
+                        try:
+                            temp_trimmed_path = downloaded_abs_path + '.trimmed.tmp'
+                            from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
+                            
+                            if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
+                                import shutil
+                                shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s (duration check failed)")
+                            else:
+                                logger.error(f"[TRIM] Failed to trim video")
+                        except Exception as trim_exec_error:
+                            logger.error(f"[TRIM] Error during trim execution: {trim_exec_error}")
+                            import traceback
+                            logger.error(traceback.format_exc())
             write_logs(message, url, downloaded_file)
             
             # Save original filename for subtitle search
