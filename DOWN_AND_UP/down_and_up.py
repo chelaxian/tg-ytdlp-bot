@@ -654,6 +654,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             pass
         proc_msg_id = proc_msg.id
         error_message = ""
+        hls_file_found = False  # Initialize hls_file_found for HLS stream handling
         status_msg = None
         status_msg_id = None
         hourglass_msg = None
