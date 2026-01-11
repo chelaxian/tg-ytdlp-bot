@@ -1198,16 +1198,81 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Add download_sections if trim is enabled
             if download_sections:
                 common_opts['download_sections'] = [download_sections]
-                # Add FFmpegVideoRemuxer postprocessor for cutting
-                # Check if already has postprocessors
-                has_remuxer = any(pp.get('key') == 'FFmpegVideoRemuxer' for pp in postprocessors)
-                if not has_remuxer:
-                    # Insert before FFmpegMetadata to ensure remuxing happens before metadata
-                    remuxer_index = next((i for i, pp in enumerate(postprocessors) if pp.get('key') == 'FFmpegMetadata'), len(postprocessors))
-                    postprocessors.insert(remuxer_index, {
-                        'key': 'FFmpegVideoRemuxer',
-                        'preferedformat': 'mp4',
-                    })
+                
+                # Extract start and end times from download_sections format: *HH:MM:SS-HH:MM:SS
+                import re
+                trim_match = re.match(r'\*(\d{2}):(\d{2}):(\d{2})-(\d{2}):(\d{2}):(\d{2})', download_sections)
+                if trim_match:
+                    start_h, start_m, start_s, end_h, end_m, end_s = map(int, trim_match.groups())
+                    start_seconds = start_h * 3600 + start_m * 60 + start_s
+                    end_seconds = end_h * 3600 + end_m * 60 + end_s
+                    duration_seconds = end_seconds - start_seconds
+                    
+                    # Format times for ffmpeg: HH:MM:SS
+                    start_time_str = f"{start_h:02d}:{start_m:02d}:{start_s:02d}"
+                    end_time_str = f"{end_h:02d}:{end_m:02d}:{end_s:02d}"
+                    
+                    logger.info(f"[TRIM] Extracted trim times: start={start_time_str} ({start_seconds}s), end={end_time_str} ({end_seconds}s), duration={duration_seconds}s")
+                    
+                    # Add FFmpegVideoConvertor postprocessor with explicit trim parameters
+                    # This ensures trimming happens even if download_sections doesn't work
+                    # FFmpegVideoConvertor supports postprocessor_args for guaranteed trimming
+                    has_convertor = any(pp.get('key') == 'FFmpegVideoConvertor' for pp in postprocessors)
+                    if not has_convertor:
+                        # Insert before FFmpegMetadata to ensure conversion happens before metadata
+                        convertor_index = next((i for i, pp in enumerate(postprocessors) if pp.get('key') == 'FFmpegMetadata'), len(postprocessors))
+                        postprocessors.insert(convertor_index, {
+                            'key': 'FFmpegVideoConvertor',
+                            'preferedformat': 'mp4',
+                            # Add explicit trim parameters for guaranteed trimming
+                            'postprocessor_args': {
+                                'ffmpeg': ['-ss', start_time_str, '-to', end_time_str, '-c', 'copy']
+                            }
+                        })
+                        logger.info(f"[TRIM] Added FFmpegVideoConvertor with explicit trim: -ss {start_time_str} -to {end_time_str} -c copy")
+                    else:
+                        # Update existing convertor with trim parameters
+                        for pp in postprocessors:
+                            if pp.get('key') == 'FFmpegVideoConvertor':
+                                if 'postprocessor_args' not in pp:
+                                    pp['postprocessor_args'] = {}
+                                if 'ffmpeg' not in pp['postprocessor_args']:
+                                    pp['postprocessor_args']['ffmpeg'] = []
+                                # Remove existing -ss, -to, and -c copy if present
+                                filtered_args = []
+                                skip_next = False
+                                for i, arg in enumerate(pp['postprocessor_args']['ffmpeg']):
+                                    if skip_next:
+                                        skip_next = False
+                                        continue
+                                    if arg in ['-ss', '-to', '-c']:
+                                        skip_next = True
+                                        continue
+                                    filtered_args.append(arg)
+                                # Add new trim parameters at the beginning
+                                pp['postprocessor_args']['ffmpeg'] = ['-ss', start_time_str, '-to', end_time_str, '-c', 'copy'] + filtered_args
+                                logger.info(f"[TRIM] Updated existing FFmpegVideoConvertor with trim: -ss {start_time_str} -to {end_time_str} -c copy")
+                                break
+                    
+                    # Also add FFmpegVideoRemuxer for remuxing (if not already present)
+                    has_remuxer = any(pp.get('key') == 'FFmpegVideoRemuxer' for pp in postprocessors)
+                    if not has_remuxer:
+                        remuxer_index = next((i for i, pp in enumerate(postprocessors) if pp.get('key') == 'FFmpegMetadata'), len(postprocessors))
+                        postprocessors.insert(remuxer_index, {
+                            'key': 'FFmpegVideoRemuxer',
+                            'preferedformat': 'mp4',
+                        })
+                        logger.info(f"[TRIM] Added FFmpegVideoRemuxer for final remuxing")
+                else:
+                    logger.warning(f"[TRIM] Could not parse download_sections format: {download_sections}")
+                    # Still add remuxer without explicit trim (rely on download_sections)
+                    has_remuxer = any(pp.get('key') == 'FFmpegVideoRemuxer' for pp in postprocessors)
+                    if not has_remuxer:
+                        remuxer_index = next((i for i, pp in enumerate(postprocessors) if pp.get('key') == 'FFmpegMetadata'), len(postprocessors))
+                        postprocessors.insert(remuxer_index, {
+                            'key': 'FFmpegVideoRemuxer',
+                            'preferedformat': 'mp4',
+                        })
                 logger.info(f"Added download_sections: {download_sections} for user {user_id}")
             
             # Define sanitize_title_for_filename function
