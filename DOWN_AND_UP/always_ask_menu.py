@@ -2883,7 +2883,9 @@ def askq_callback(app, callback_query):
         elif quality == "mp3":
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
-            down_and_audio(app, original_message, url, tags, quality_key="mp3", format_override="ba", cookies_already_checked=True, cached_video_info=None)
+            # Load trim sections if available
+            download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            down_and_audio(app, original_message, url, tags, quality_key="mp3", format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
             return
         else:
             try:
@@ -3154,7 +3156,9 @@ def askq_callback(app, callback_query):
                 if data == "mp3":
                     # Delete processing message before starting download
                     delete_processing_message(app, user_id, proc_msg)
-                    down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start, format_override="ba", cookies_already_checked=True, cached_video_info=None)
+                    # Load trim sections if available
+                    download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+                    down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start, format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
                 else:
                     try:
                         # Form the correct format for the missing videos
@@ -3202,7 +3206,9 @@ def askq_callback(app, callback_query):
             if data == "mp3":
                 # Delete processing message before starting download
                 delete_processing_message(app, user_id, proc_msg)
-                down_and_audio(app, original_message, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None)
+                # Load trim sections if available
+                download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+                down_and_audio(app, original_message, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
             else:
                 try:
                     # Form the correct format for the new download
@@ -6831,7 +6837,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             video_count = video_end_with - video_start_with + 1
         # Delete processing message before starting download
         delete_processing_message(app, user_id, proc_msg)
-        down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None)
+        # Load trim sections if available
+        download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+        down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
         return
     
     if data == "subs_only":
@@ -7265,7 +7273,9 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
                     # Pass cookies_already_checked=True since we already checked cookies in get_video_formats
                     # Delete processing message before starting download
                     delete_processing_message(app, user_id, proc_msg)
-                    down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=fmt, cookies_already_checked=True, cached_video_info=info)
+                    # Load trim sections if available
+                    download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+                    down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=fmt, cookies_already_checked=True, cached_video_info=info, download_sections=download_sections)
                     return
                 
                 # If it's video-only, find complementary audio

@@ -279,7 +279,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         logger.info(f"Audio-only format detected in down_and_up: {format_override}, redirecting to down_and_audio")
         from DOWN_AND_UP.down_and_audio import down_and_audio
         # Pass cached video info to down_and_audio for optimization
-        down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=format_override, cookies_already_checked=cookies_already_checked, cached_video_info=cached_video_info)
+        # Load trim sections if available
+        if download_sections is None:
+            from DOWN_AND_UP.always_ask_menu import load_trim_sections
+            download_sections = load_trim_sections(user_id, url)
+        down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=format_override, cookies_already_checked=cookies_already_checked, cached_video_info=cached_video_info, download_sections=download_sections)
         return
     
     # Check if LINK mode is enabled - if yes, get direct link instead of downloading
@@ -1118,6 +1122,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         def try_download(url, attempt_opts):
             messages = safe_get_messages(message.chat.id)
             nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections
+            # Initialize hls_file_found for this download attempt
+            hls_file_found = False
             
             # Ensure download directory exists before setting outtmpl
             try:
@@ -1742,7 +1748,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
-                nonlocal error_message
+                nonlocal error_message, hls_file_found
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
@@ -2124,6 +2130,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     error_message_sent = True
                 return None
             except Exception as e:
+                nonlocal hls_file_found
                 error_message = str(e)
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}")
                 # Auto-fallback to gallery-dl for obvious non-video cases

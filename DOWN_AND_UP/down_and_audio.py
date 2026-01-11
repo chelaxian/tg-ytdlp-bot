@@ -211,13 +211,21 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
         return False
 
 # @reply_with_keyboard
-def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1, format_override=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None):
+def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1, format_override=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, download_sections=None):
     # Сбрасываем кеш проверенных источников куки для новой задачи загрузки
     user_id = message.chat.id
     from COMMANDS.cookies_cmd import reset_checked_cookie_sources
     reset_checked_cookie_sources(user_id)
     logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new audio download task for user {user_id}")
     messages = safe_get_messages(message.chat.id)
+    
+    # Load trim sections if not provided
+    if download_sections is None:
+        from DOWN_AND_UP.always_ask_menu import load_trim_sections
+        download_sections = load_trim_sections(user_id, url)
+        if download_sections:
+            logger.info(f"Loaded trim sections for audio download: user {user_id}, URL: {url}, sections: {download_sections}")
+    
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
@@ -914,7 +922,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
         def try_download_audio(url, current_index):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata, unknown_error_message_sent
+            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata, unknown_error_message_sent, download_sections
             # Use format_override if provided, otherwise use default 'ba'
             download_format = format_override if format_override else 'ba'
             
@@ -937,17 +945,48 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             else:
                 playlist_items_value = str(current_index)
 
+            # Extract start and end times from download_sections if trim is enabled
+            trim_start_time = None
+            trim_end_time = None
+            if download_sections:
+                import re
+                trim_match = re.match(r'\*(\d{2}):(\d{2}):(\d{2})-(\d{2}):(\d{2}):(\d{2})', download_sections)
+                if trim_match:
+                    start_h, start_m, start_s, end_h, end_m, end_s = map(int, trim_match.groups())
+                    trim_start_time = f"{start_h:02d}:{start_m:02d}:{start_s:02d}"
+                    trim_end_time = f"{end_h:02d}:{end_m:02d}:{end_s:02d}"
+                    logger.info(f"[TRIM AUDIO] Extracted trim times: start={trim_start_time}, end={trim_end_time}")
+            
+            # Build postprocessors list
+            postprocessors = []
+            
+            # If trim is enabled, add FFmpegVideoConvertor with trim parameters BEFORE extracting audio
+            # This ensures the video/audio stream is trimmed before audio extraction
+            if trim_start_time and trim_end_time:
+                postprocessors.append({
+                    'key': 'FFmpegVideoConvertor',
+                    'preferedformat': 'mp4',  # Temporary format for trimming
+                    'postprocessor_args': {
+                        'ffmpeg': ['-ss', trim_start_time, '-to', trim_end_time, '-c', 'copy']
+                    }
+                })
+                logger.info(f"[TRIM AUDIO] Added FFmpegVideoConvertor with trim: -ss {trim_start_time} -to {trim_end_time} -c copy")
+            
+            # Add audio extraction postprocessor
+            postprocessors.append({
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': audio_format,
+                'preferredquality': '192',
+            })
+            
+            # Add metadata postprocessor
+            postprocessors.append({
+                'key': 'FFmpegMetadata'   # equivalent to --add-metadata
+            })
+            
             ytdl_opts = {
                'format': download_format,
-               'postprocessors': [{
-                  'key': 'FFmpegExtractAudio',
-                  'preferredcodec': audio_format,
-                  'preferredquality': '192',
-               },
-               {
-                  'key': 'FFmpegMetadata'   # equivalent to --add-metadata
-               }                  
-                ],
+               'postprocessors': postprocessors,
                'prefer_ffmpeg': True,
                'extractaudio': True,
                # Для обратного порядка используем формат START:STOP:-1, иначе просто номер
@@ -968,6 +1007,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'writesubtitles': False,  # Disable subtitles for audio
                'writeautomaticsub': False,  # Disable auto subtitles for audio
             }
+            
+            # Add download_sections if trim is enabled
+            if download_sections:
+                ytdl_opts['download_sections'] = [download_sections]
+                logger.info(f"[TRIM AUDIO] Added download_sections: {download_sections} for user {user_id}")
             
             # Configure HLS-specific options if detected
             if is_hls:
