@@ -1926,6 +1926,52 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_NOT_FOUND_MSG)
                 continue
 
+            # Apply explicit trimming if download_sections was specified
+            # This ensures trimming even if download_sections didn't work (e.g., for HLS streams)
+            if download_sections and audio_file and os.path.exists(audio_file):
+                import re
+                trim_match = re.match(r'\*(\d{2}):(\d{2}):(\d{2})-(\d{2}):(\d{2}):(\d{2})', download_sections)
+                if trim_match:
+                    start_h, start_m, start_s, end_h, end_m, end_s = map(int, trim_match.groups())
+                    start_seconds = start_h * 3600 + start_m * 60 + start_s
+                    end_seconds = end_h * 3600 + end_m * 60 + end_s
+                    
+                    # Check audio duration using ffprobe
+                    try:
+                        from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
+                        audio_info = get_video_info_ffprobe(audio_file)
+                        audio_duration = audio_info.get('duration', 0) if audio_info else 0
+                        
+                        # Only trim if audio is longer than expected (download_sections didn't work)
+                        expected_duration = end_seconds - start_seconds
+                        if audio_duration > expected_duration * 1.1:  # 10% tolerance
+                            logger.info(f"[TRIM AUDIO] Audio duration ({audio_duration}s) is longer than expected ({expected_duration}s), applying explicit trim")
+                            logger.info(f"[TRIM AUDIO] Trimming audio from {start_seconds}s to {end_seconds}s")
+                            
+                            # Create temporary trimmed file
+                            temp_trimmed_path = audio_file + '.trimmed.tmp'
+                            from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
+                            
+                            if ffmpeg_extract_subclip(audio_file, start_seconds, end_seconds, temp_trimmed_path):
+                                # Replace original with trimmed version
+                                import shutil
+                                shutil.move(temp_trimmed_path, audio_file)
+                                logger.info(f"[TRIM AUDIO] Successfully trimmed audio to {end_seconds - start_seconds}s")
+                            else:
+                                logger.error(f"[TRIM AUDIO] Failed to trim audio, using original file")
+                                # Clean up temp file if it exists
+                                if os.path.exists(temp_trimmed_path):
+                                    try:
+                                        os.remove(temp_trimmed_path)
+                                    except Exception:
+                                        pass
+                        else:
+                            logger.info(f"[TRIM AUDIO] Audio duration ({audio_duration}s) matches expected ({expected_duration}s), no trimming needed")
+                    except Exception as trim_error:
+                        logger.error(f"[TRIM AUDIO] Error checking/trimming audio: {trim_error}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+
             # Embed cover into MP3 file if thumbnail is available (enabled by default)
             # Errors during embedding are handled gracefully and won't stop download
             try:

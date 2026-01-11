@@ -2587,6 +2587,52 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     downloaded_abs_path = os.path.abspath(os.path.join(dir_path, downloaded_file))
             
             logger.info(f"Selected downloaded file: {downloaded_file}")
+            
+            # Apply explicit trimming if download_sections was specified
+            # This ensures trimming even if download_sections didn't work (e.g., for HLS streams)
+            if download_sections and downloaded_abs_path and os.path.exists(downloaded_abs_path):
+                import re
+                trim_match = re.match(r'\*(\d{2}):(\d{2}):(\d{2})-(\d{2}):(\d{2}):(\d{2})', download_sections)
+                if trim_match:
+                    start_h, start_m, start_s, end_h, end_m, end_s = map(int, trim_match.groups())
+                    start_seconds = start_h * 3600 + start_m * 60 + start_s
+                    end_seconds = end_h * 3600 + end_m * 60 + end_s
+                    
+                    # Check video duration using ffprobe
+                    try:
+                        from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
+                        video_info = get_video_info_ffprobe(downloaded_abs_path)
+                        video_duration = video_info.get('duration', 0) if video_info else 0
+                        
+                        # Only trim if video is longer than expected (download_sections didn't work)
+                        expected_duration = end_seconds - start_seconds
+                        if video_duration > expected_duration * 1.1:  # 10% tolerance
+                            logger.info(f"[TRIM] Video duration ({video_duration}s) is longer than expected ({expected_duration}s), applying explicit trim")
+                            logger.info(f"[TRIM] Trimming video from {start_seconds}s to {end_seconds}s")
+                            
+                            # Create temporary trimmed file
+                            temp_trimmed_path = downloaded_abs_path + '.trimmed.tmp'
+                            from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
+                            
+                            if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
+                                # Replace original with trimmed version
+                                import shutil
+                                shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s")
+                            else:
+                                logger.error(f"[TRIM] Failed to trim video, using original file")
+                                # Clean up temp file if it exists
+                                if os.path.exists(temp_trimmed_path):
+                                    try:
+                                        os.remove(temp_trimmed_path)
+                                    except Exception:
+                                        pass
+                        else:
+                            logger.info(f"[TRIM] Video duration ({video_duration}s) matches expected ({expected_duration}s), no trimming needed")
+                    except Exception as trim_error:
+                        logger.error(f"[TRIM] Error checking/trimming video: {trim_error}")
+                        import traceback
+                        logger.error(traceback.format_exc())
             write_logs(message, url, downloaded_file)
             
             # Save original filename for subtitle search
