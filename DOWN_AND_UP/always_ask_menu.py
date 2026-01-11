@@ -988,7 +988,10 @@ def handle_trim_timecode(app, message, text):
         logger.info(f"[TRIM DEBUG] Creating fake message for URL: {matching_url}")
         try:
             from HELPERS.safe_messeger import fake_message
-            original_message = fake_message(user_id, matching_url)
+            # fake_message signature: fake_message(text, user_id, ...)
+            # Ensure user_id is int, not string
+            user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+            original_message = fake_message(matching_url, user_id_int)
             logger.info(f"[TRIM DEBUG] Fake message created successfully")
         except Exception as e:
             logger.error(f"Error creating fake message: {e}")
