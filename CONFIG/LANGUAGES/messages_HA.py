@@ -813,6 +813,12 @@ Yi amfani da:
     ADMIN_USER_UNBLOCKED_MSG = "An cire toshe mai amfani 🔓✅\n \nID: <code>{user_id}</code>\nKwanan wata cire toshe: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> an riga an cire toshe shi ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ An cire toshe masu amfani: {count}\n⏱ Alamar lokaci: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Amfani: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "An yi watsi da mai amfani 👁️❌\n \nID: <code>{user_id}</code>\nKwanan wata an yi watsi: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> an riga an yi watsi da shi ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Amfani: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Mai amfani ba a yi watsi da shi ba kuma 👁️✅\n \nID: <code>{user_id}</code>\nKwanan wata an cire watsi: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> ba a yi watsi da shi ba ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Lokacin gudanar da bot -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Da fatan za a ba da URL don share cache.\nAmfani: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Da fatan za a ba da URL mai inganci.\nAmfani: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ Yi amfani da:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Hanyar Haɗi"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Taken"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ YANKE"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Yanke Bidiyo</b>\n\nTsawon bidiyo: <b>{start_time} - {end_time}</b>\n\nDa fatan za a aika lokacin da ake so a cikin tsari:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisali: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Tsari mara inganci. Da fatan za a yi amfani: <code>HH:MM:SS-HH:MM:SS</code>\n\nMisali: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Range mara inganci. Lokacin farawa dole ne ya zama ƙasa da lokacin ƙarshe."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Lokacin lokaci yana waje da iyakokin bidiyo.\n\nTsawon bidiyo: <b>{start_time} - {end_time}</b>\n\nDole ne kewayon ku ya kasance cikin waɗannan iyakoki."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Bidiyo za a yanke:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ An kammala wani ɓangare - {successful_uploads}/{total_files} fayilolin sauti an loda su."

@@ -813,6 +813,12 @@ Ishlating:
     ADMIN_USER_UNBLOCKED_MSG = "Foydalanuvchi blokdan olindi 🔓✅\n \nID: <code>{user_id}</code>\nBlokdan olingan sana: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> allaqachon blokdan olingan ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Blokdan olingan foydalanuvchilar: {count}\n⏱ Vaqt belgisi: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Ishlatish: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Foydalanuvchi e'tiborsiz qoldirildi 👁️❌\n \nID: <code>{user_id}</code>\nE'tiborsiz qoldirilgan sana: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> allaqachon e'tiborsiz qoldirilgan ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Ishlatish: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Foydalanuvchi endi e'tiborsiz qoldirilmaydi 👁️✅\n \nID: <code>{user_id}</code>\nE'tiborsiz qoldirilmaslik sanasi: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> e'tiborsiz qoldirilmaydi ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Bot ish vaqti -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Keshni tozalash uchun URL kiriting.\nIshlatish: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Iltimos, to'g'ri URL kiriting.\nIshlatish: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ Ishlating:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Havola"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Tomosha qilish"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Sarlavha"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ KESISH"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Kesish</b>\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nIltimos, kerakli vaqt oralig'ini formatda yuboring:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Noto'g'ri format. Iltimos, ishlating: <code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Noto'g'ri oraliq. Boshlanish vaqti tugash vaqtidan kichik bo'lishi kerak."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Vaqt oralig'i video chegaralaridan tashqarida.\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nSizning oralig'ingiz bu chegaralar ichida bo'lishi kerak."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video kesiladi:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Qisman yakunlandi - {successful_uploads}/{total_files} audio fayl yuklandi."

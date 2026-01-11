@@ -51,13 +51,24 @@ def safe_write_file(file_path, content):
 def proxy_command(app, message):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        from DATABASE.firebase_init import is_user_ignored
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admins)
+    
     logger.info(LoggerMsg.PROXY_CMD_USER_REQUESTED_LOG_MSG.format(user_id=user_id))
-    logger.info(LoggerMsg.PROXY_CMD_USER_IS_ADMIN_LOG_MSG.format(user_id=user_id, is_admin=int(user_id) in Config.ADMIN))
+    logger.info(LoggerMsg.PROXY_CMD_USER_IS_ADMIN_LOG_MSG.format(user_id=user_id, is_admin=is_admin))
     
     is_in_channel = is_user_in_channel(app, message)
     logger.info(LoggerMsg.PROXY_CMD_USER_IS_IN_CHANNEL_LOG_MSG.format(user_id=user_id, is_in_channel=is_in_channel))
     
-    if int(user_id) not in Config.ADMIN and not is_in_channel:
+    if not is_admin and not is_in_channel:
         logger.info(LoggerMsg.PROXY_CMD_USER_ACCESS_DENIED_LOG_MSG.format(user_id=user_id))
         return
     

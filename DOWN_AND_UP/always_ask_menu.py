@@ -14,10 +14,10 @@ def safe_callback_answer(callback_query, text, show_alert=False):
     try:
         callback_query.answer(text, show_alert=show_alert)
     except Exception:
-        pass  # Query ID might be invalid after long operation 
+        pass  # Query ID might be invalid after long operation
 
 from HELPERS.app_instance import get_app
-from HELPERS.decorators import get_main_reply_keyboard
+from HELPERS.decorators import get_main_reply_keyboard, background_handler
 from HELPERS.logger import send_to_logger, logger, send_error_to_user, log_error_to_channel
 from HELPERS.safe_messeger import safe_send_message, safe_delete_messages
 from CONFIG.logger_msg import LoggerMsg
@@ -81,6 +81,11 @@ from HELPERS.safe_messeger import fake_message
 
 # Get app instance for decorators
 app = get_app()
+
+# Trim input states and timers (similar to args_cmd)
+trim_input_states = {}  # {user_id: {"url": url, "video_duration": duration, "original_message_id": msg_id, "original_chat_id": chat_id}}
+trim_input_timers = {}  # {user_id: timer_thread}
+trim_timeout_sent = set()  # {user_id} - flags to prevent duplicate timeout messages
 
 # Proxy functionality is now handled by COMMANDS.proxy_cmd
 logger.info(LoggerMsg.ALWAYS_ASK_IMPORTED_LOG_MSG.format(app_available=app is not None))
@@ -331,8 +336,11 @@ def get_filters(user_id):
     f = _ASK_FILTERS.get(str(user_id))
     if not f:
         # defaults: filters hidden to keep UI simple
-        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": []}
+        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": []}
         _ASK_FILTERS[str(user_id)] = f
+        logger.info(f"[DEBUG] get_filters: created new default filters for user_id={user_id}")
+    else:
+        logger.info(f"[DEBUG] get_filters: retrieved existing filters for user_id={user_id}, selected_subs_langs={f.get('selected_subs_langs', [])}, subs_all_selected={f.get('subs_all_selected', False)}")
     return f
 
 def set_user_download_dir(user_id, download_dir):
@@ -468,6 +476,7 @@ def set_filter(user_id, kind, value):
 def save_filters(user_id, state):
     """Persist current in-memory filters back to the session map."""
     _ASK_FILTERS[str(user_id)] = dict(state)
+    logger.info(f"[DEBUG] save_filters: user_id={user_id}, selected_subs_langs={state.get('selected_subs_langs', [])}, subs_all_selected={state.get('subs_all_selected', False)}")
 
 def _ask_cache_path(user_id):
     user_dir = os.path.join("users", str(user_id))
@@ -528,7 +537,8 @@ def save_ask_info(user_id, url, info, download_dir=None):
             data[url] = {
                 "title": info.get("title"),
                 "id": info.get("id"),
-                "formats": info.get("formats", [])
+                "formats": info.get("formats", []),
+                "duration": info.get("duration")
             }
             with open(download_ask_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -543,13 +553,556 @@ def save_ask_info(user_id, url, info, download_dir=None):
             data[url] = {
                 "title": info.get("title"),
                 "id": info.get("id"),
-                "formats": info.get("formats", [])
+                "formats": info.get("formats", []),
+                "duration": info.get("duration")
             }
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             logger.info(f"Created ask_formats.json in user directory: {path}")
     except Exception as e:
         logger.warning(f"Failed to save ask_formats.json: {e}")
+
+def clear_trim_input_state(user_id):
+    """Clear trim input state and timer"""
+    trim_input_states.pop(user_id, None)
+    timer = trim_input_timers.pop(user_id, None)
+    if timer:
+        try:
+            timer.cancel()
+        except Exception:
+            pass
+    trim_timeout_sent.discard(user_id)
+    logger.info(f"Cleared trim input state for user {user_id}")
+
+def start_trim_timer(user_id):
+    """Start a 5-minute timer to auto-close trim input state"""
+    import threading
+    def auto_close():
+        if user_id not in trim_input_timers:
+            return
+        if user_id in trim_timeout_sent:
+            return
+        trim_timeout_sent.add(user_id)
+        
+        clear_trim_input_state(user_id)
+        try:
+            messages = safe_get_messages(user_id)
+            timeout_msg = getattr(messages, 'AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG', '⏱️ Trim mode timed out after 5 minutes of inactivity.')
+            app.send_message(
+                user_id,
+                timeout_msg,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception:
+            pass
+    
+    # Cancel existing timer if any
+    existing_timer = trim_input_timers.get(user_id)
+    if existing_timer:
+        try:
+            existing_timer.cancel()
+        except Exception:
+            pass
+    
+    # Start new timer
+    timer = threading.Timer(300.0, auto_close)  # 5 minutes
+    timer.start()
+    trim_input_timers[user_id] = timer
+    logger.info(f"Started trim timer for user {user_id}")
+
+def save_trim_state(user_id, url, video_duration, original_message_id=None, original_chat_id=None):
+    """Save trim state for user and URL"""
+    try:
+        # Ensure video_duration is a number
+        video_duration = float(video_duration) if video_duration else 0
+        
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        trim_state_file = os.path.join(user_dir, "trim_state.json")
+        data = {}
+        if os.path.exists(trim_state_file):
+            with open(trim_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        data[url] = {
+            "url": url,  # Save URL for easy retrieval
+            "video_duration": video_duration,  # Ensure it's a number
+            "original_message_id": original_message_id,  # Save original message ID
+            "original_chat_id": original_chat_id,  # Save original chat ID
+            "timestamp": datetime.now().isoformat()
+        }
+        with open(trim_state_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f"Saved trim state for user {user_id}, URL: {url}, duration: {video_duration}, message_id: {original_message_id}")
+        
+        # Also save to in-memory state for quick access
+        trim_input_states[user_id] = {
+            "url": url,
+            "video_duration": video_duration,
+            "original_message_id": original_message_id,
+            "original_chat_id": original_chat_id
+        }
+        
+        # Start timer for auto-close after 5 minutes
+        start_trim_timer(user_id)
+    except Exception as e:
+        logger.error(f"Failed to save trim state: {e}")
+
+def load_trim_state(user_id, url=None):
+    """Load trim state for user and URL (or any active state if url is None)"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        trim_state_file = os.path.join(user_dir, "trim_state.json")
+        if os.path.exists(trim_state_file):
+            with open(trim_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if url is None:
+                # Return first active state
+                for state_url, state in data.items():
+                    return state
+            return data.get(url)
+    except Exception as e:
+        logger.error(f"Failed to load trim state: {e}")
+    return None
+
+def clear_trim_state(user_id, url):
+    """Clear trim state for user and URL"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        trim_state_file = os.path.join(user_dir, "trim_state.json")
+        if os.path.exists(trim_state_file):
+            with open(trim_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if url in data:
+                del data[url]
+                with open(trim_state_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info(f"Cleared trim state for user {user_id}, URL: {url}")
+        # Also clear in-memory state if it matches
+        if user_id in trim_input_states and trim_input_states[user_id].get("url") == url:
+            clear_trim_input_state(user_id)
+    except Exception as e:
+        logger.error(f"Failed to clear trim state: {e}")
+
+def is_trim_mode(user_id):
+    """Check if user is in trim input mode"""
+    return user_id in trim_input_states
+
+def validate_timecode_range(timecode_str, video_duration):
+    """
+    Validate timecode range in format HH:MM:SS-HH:MM:SS
+    Supports various dashes: -, –, —, −
+    Supports spaces around dash and HTML tags
+    Returns (is_valid, error_message, start_seconds, end_seconds)
+    """
+    try:
+        # Ensure video_duration is a number - convert immediately and explicitly
+        try:
+            if isinstance(video_duration, str):
+                video_duration = float(video_duration)
+            elif video_duration is None:
+                video_duration = 0.0
+            else:
+                video_duration = float(video_duration)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid video_duration type: {type(video_duration)}, value: {video_duration}, error: {e}")
+            return False, "INVALID_FORMAT", None, None
+        
+        # Remove HTML tags (bold, italic, etc.)
+        import re
+        text_clean = re.sub(r'<[^>]+>', '', str(timecode_str))
+        
+        # Remove all whitespace
+        text_clean = ''.join(text_clean.split())
+        
+        # Normalize different dash types to regular dash
+        # Support: regular dash (-), en dash (–), em dash (—), minus sign (−)
+        dash_chars = ['–', '—', '−', '\u2013', '\u2014', '\u2212']
+        for dash in dash_chars:
+            text_clean = text_clean.replace(dash, '-')
+        
+        # Check format: should contain exactly one dash
+        if text_clean.count('-') != 1:
+            return False, "INVALID_FORMAT", None, None
+        
+        parts = text_clean.split('-')
+        if len(parts) != 2:
+            return False, "INVALID_FORMAT", None, None
+        
+        start_str = parts[0].strip()
+        end_str = parts[1].strip()
+        
+        # Parse start time
+        start_seconds = parse_timecode_to_seconds(start_str)
+        if start_seconds is None:
+            return False, "INVALID_FORMAT", None, None
+        
+        # Parse end time
+        end_seconds = parse_timecode_to_seconds(end_str)
+        if end_seconds is None:
+            return False, "INVALID_FORMAT", None, None
+        
+        # Ensure all values are numbers for comparison (convert immediately after parsing)
+        # parse_timecode_to_seconds returns int, but we need float for comparison
+        try:
+            # Explicitly convert to float to avoid any type issues
+            if isinstance(start_seconds, str):
+                start_seconds = float(start_seconds)
+            else:
+                start_seconds = float(int(start_seconds)) if start_seconds is not None else 0.0
+            
+            if isinstance(end_seconds, str):
+                end_seconds = float(end_seconds)
+            else:
+                end_seconds = float(int(end_seconds)) if end_seconds is not None else 0.0
+            
+            # video_duration is already converted at the start of function, but ensure it's float
+            if isinstance(video_duration, str):
+                video_duration = float(video_duration)
+            elif not isinstance(video_duration, (int, float)):
+                video_duration = float(video_duration) if video_duration else 0.0
+            else:
+                video_duration = float(video_duration)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error converting timecode values to float: {e}, start_seconds={start_seconds} (type: {type(start_seconds)}), end_seconds={end_seconds} (type: {type(end_seconds)}), video_duration={video_duration} (type: {type(video_duration)})")
+            return False, "INVALID_FORMAT", None, None
+        
+        # Check that start < end
+        # Double-check types before comparison to avoid type errors
+        try:
+            start_seconds = float(start_seconds) if start_seconds is not None else 0.0
+            end_seconds = float(end_seconds) if end_seconds is not None else 0.0
+            video_duration = float(video_duration) if video_duration else 0.0
+        except (ValueError, TypeError) as e:
+            logger.error(f"Final type conversion failed: {e}, start_seconds={start_seconds}, end_seconds={end_seconds}, video_duration={video_duration}")
+            return False, "INVALID_FORMAT", None, None
+        
+        if start_seconds >= end_seconds:
+            return False, "INVALID_RANGE", None, None
+        
+        # Check bounds: start >= 0, end <= video_duration
+        
+        if start_seconds < 0:
+            return False, "OUT_OF_BOUNDS", None, None
+        
+        if end_seconds > video_duration:
+            return False, "OUT_OF_BOUNDS", None, None
+        
+        return True, None, start_seconds, end_seconds
+    except Exception as e:
+        logger.error(f"Error validating timecode: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return False, "INVALID_FORMAT", None, None
+
+def parse_timecode_to_seconds(timecode_str):
+    """
+    Parse timecode string (HH:MM:SS or MM:SS) to seconds
+    Supports HTML tags and extra whitespace
+    Returns seconds or None if invalid
+    """
+    try:
+        # Remove HTML tags and whitespace
+        import re
+        text_clean = re.sub(r'<[^>]+>', '', str(timecode_str)).strip()
+        
+        parts = text_clean.split(':')
+        if len(parts) not in (2, 3):
+            return None
+        
+        # Validate all parts are digits (after stripping)
+        parts_clean = [p.strip() for p in parts]
+        if not all(part.isdigit() for part in parts_clean):
+            return None
+        
+        # Convert to integers
+        parts_int = [int(p) for p in parts_clean]
+        
+        # Validate ranges: seconds and minutes 0-59
+        if len(parts) == 2:
+            # MM:SS format
+            minutes, seconds = parts_int
+            if seconds < 0 or seconds > 59 or minutes < 0:
+                return None
+            total_seconds = minutes * 60 + seconds
+        else:
+            # HH:MM:SS format
+            hours, minutes, seconds = parts_int
+            if seconds < 0 or seconds > 59 or minutes < 0 or minutes > 59 or hours < 0:
+                return None
+            total_seconds = hours * 3600 + minutes * 60 + seconds
+        
+        # Ensure we return an integer (not string or other type)
+        return int(total_seconds)
+    except Exception as e:
+        logger.error(f"Error parsing timecode '{timecode_str}': {e}")
+        return None
+
+def handle_trim_timecode(app, message, text):
+    """
+    Handle timecode input from user in trim mode
+    Returns True if timecode was processed, False otherwise
+    """
+    try:
+        user_id = message.chat.id
+        messages = safe_get_messages(user_id)
+        
+        # Get trim state from in-memory storage (faster)
+        trim_state = trim_input_states.get(user_id)
+        if not trim_state:
+            # Fallback: try to load from file
+            file_state = load_trim_state(user_id, None)
+            if file_state:
+                # Ensure video_duration is a number
+                video_duration = float(file_state.get("video_duration", 0)) if file_state.get("video_duration") else 0
+                trim_input_states[user_id] = {
+                    "url": file_state.get("url"),
+                    "video_duration": video_duration,
+                    "original_message_id": file_state.get("original_message_id"),
+                    "original_chat_id": file_state.get("original_chat_id", user_id)
+                }
+                start_trim_timer(user_id)
+                trim_state = trim_input_states[user_id]
+            else:
+                return False
+        
+        matching_url = trim_state.get("url")
+        if not matching_url:
+            return False
+        
+        video_duration = trim_state.get("video_duration", 0)
+        # Ensure video_duration is a number BEFORE passing to validate_timecode_range
+        try:
+            # Convert to float immediately to avoid type comparison errors
+            logger.info(f"[TRIM DEBUG] video_duration before conversion: {video_duration} (type: {type(video_duration)})")
+            if isinstance(video_duration, str):
+                video_duration = float(video_duration)
+            elif video_duration is None:
+                video_duration = 0.0
+            else:
+                video_duration = float(video_duration)
+            logger.info(f"[TRIM DEBUG] video_duration after conversion: {video_duration} (type: {type(video_duration)})")
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid video_duration in trim_state: {type(video_duration)}, value: {video_duration}, error: {e}")
+            clear_trim_input_state(user_id)
+            return False
+        
+        # Validate timecode - video_duration is now guaranteed to be float
+        logger.info(f"[TRIM DEBUG] Calling validate_timecode_range with text='{text}', video_duration={video_duration} (type: {type(video_duration)})")
+        try:
+            is_valid, error_type, start_seconds, end_seconds = validate_timecode_range(text, video_duration)
+            logger.info(f"[TRIM DEBUG] validate_timecode_range returned: is_valid={is_valid}, error_type={error_type}, start_seconds={start_seconds} (type: {type(start_seconds)}), end_seconds={end_seconds} (type: {type(end_seconds)})")
+        except Exception as e:
+            logger.error(f"Exception in validate_timecode_range: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            app.send_message(
+                user_id,
+                f"❌ Ошибка при проверке таймкода: {str(e)}",
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return True
+        
+        if not is_valid:
+            # Format error message
+            if error_type == "INVALID_FORMAT":
+                error_msg = messages.ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG
+            elif error_type == "INVALID_RANGE":
+                error_msg = messages.ALWAYS_ASK_TRIM_INVALID_RANGE_MSG
+            elif error_type == "OUT_OF_BOUNDS":
+                # Format video duration for error message
+                hours = int(video_duration // 3600)
+                minutes = int((video_duration % 3600) // 60)
+                seconds = int(video_duration % 60)
+                end_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                error_msg = messages.ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG.format(
+                    start_time="00:00:00",
+                    end_time=end_time
+                )
+            else:
+                error_msg = messages.ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG
+            
+            app.send_message(
+                user_id,
+                error_msg,
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return True  # We processed it (even if invalid)
+        
+        # Timecode is valid, save it and show quality menu
+        # Ensure start_seconds and end_seconds are numbers before formatting
+        try:
+            start_seconds = float(start_seconds) if start_seconds is not None else 0.0
+            end_seconds = float(end_seconds) if end_seconds is not None else 0.0
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error converting start_seconds/end_seconds to float: {e}, start_seconds={start_seconds}, end_seconds={end_seconds}")
+            app.send_message(
+                user_id,
+                f"❌ Ошибка при обработке таймкода: {str(e)}",
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return True
+        
+        # Format timecode for yt-dlp: *HH:MM:SS-HH:MM:SS
+        hours_start = int(start_seconds // 3600)
+        minutes_start = int((start_seconds % 3600) // 60)
+        seconds_start = int(start_seconds % 60)
+        start_timecode = f"{hours_start:02d}:{minutes_start:02d}:{seconds_start:02d}"
+        
+        hours_end = int(end_seconds // 3600)
+        minutes_end = int((end_seconds % 3600) // 60)
+        seconds_end = int(end_seconds % 60)
+        end_timecode = f"{hours_end:02d}:{minutes_end:02d}:{seconds_end:02d}"
+        
+        download_sections = f"*{start_timecode}-{end_timecode}"
+        
+        # Save trim sections for this download
+        logger.info(f"[TRIM DEBUG] Saving trim sections: {download_sections}")
+        try:
+            save_trim_sections(user_id, matching_url, download_sections)
+            logger.info(f"[TRIM DEBUG] Trim sections saved successfully")
+        except Exception as e:
+            logger.error(f"Error saving trim sections: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Clear trim state and input state
+        logger.info(f"[TRIM DEBUG] Clearing trim state and input state")
+        try:
+            clear_trim_state(user_id, matching_url)
+            logger.info(f"[TRIM DEBUG] Trim state cleared")
+        except Exception as e:
+            logger.error(f"Error clearing trim state: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Continue anyway - not critical
+        
+        try:
+            clear_trim_input_state(user_id)
+            logger.info(f"[TRIM DEBUG] Trim input state cleared")
+        except Exception as e:
+            logger.error(f"Error clearing trim input state: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Continue anyway - not critical
+        
+        # Get original message (the one with URL)
+        # Try to load saved original message info from trim state
+        logger.info(f"[TRIM DEBUG] Loading original message info for URL: {matching_url}")
+        original_message = None
+        original_message_id = trim_state.get("original_message_id")
+        original_chat_id = trim_state.get("original_chat_id", user_id)
+        
+        if original_message_id and original_chat_id:
+            try:
+                # Try to get the original message from Telegram
+                original_chat_id_int = int(original_chat_id) if isinstance(original_chat_id, str) else original_chat_id
+                original_message_id_int = int(original_message_id) if isinstance(original_message_id, str) else original_message_id
+                original_message = app.get_messages(original_chat_id_int, original_message_id_int)
+                logger.info(f"[TRIM DEBUG] Retrieved original message from Telegram: chat_id={original_chat_id_int}, message_id={original_message_id_int}")
+            except Exception as e:
+                logger.warning(f"[TRIM DEBUG] Could not retrieve original message from Telegram: {e}, creating fake message")
+                original_message = None
+        
+        # If we couldn't get the original message, create a fake one
+        if not original_message:
+            logger.info(f"[TRIM DEBUG] Creating fake message for URL: {matching_url}")
+            try:
+                from HELPERS.safe_messeger import fake_message
+                # fake_message signature: fake_message(text, user_id, ...)
+                # Ensure user_id is int, not string
+                user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+                original_message = fake_message(matching_url, user_id_int)
+                logger.info(f"[TRIM DEBUG] Fake message created successfully")
+            except Exception as e:
+                logger.error(f"Error creating fake message: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                app.send_message(
+                    user_id,
+                    f"❌ Ошибка при создании сообщения: {str(e)}",
+                    reply_parameters=ReplyParameters(message_id=message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+                return True
+        
+        # Show quality menu instead of direct download
+        # The trim sections will be loaded automatically in down_and_up_with_format
+        logger.info(f"[TRIM DEBUG] Calling ask_quality_menu with trim sections: {download_sections} for URL: {matching_url}")
+        try:
+            # Pass original_message_id if we have it, so menu will reply to the original message
+            original_msg_id = None
+            if original_message and hasattr(original_message, 'id') and original_message.id:
+                original_msg_id = original_message.id
+            # If we have saved original_message_id from trim_state, use it
+            if not original_msg_id and original_message_id:
+                original_msg_id = int(original_message_id) if isinstance(original_message_id, str) else original_message_id
+            ask_quality_menu(app, original_message, matching_url, [], playlist_start_index=1, cb=None, original_message_id=original_msg_id)
+            logger.info(f"[TRIM DEBUG] ask_quality_menu called successfully with original_message_id={original_msg_id}")
+        except Exception as e:
+            logger.error(f"Error showing quality menu: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            try:
+                app.send_message(
+                    user_id,
+                    f"❌ Ошибка при показе меню качества: {str(e)}",
+                    reply_parameters=ReplyParameters(message_id=message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            except Exception:
+                pass
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error handling trim timecode: {e}")
+        return False
+
+def save_trim_sections(user_id, url, download_sections):
+    """Save trim sections for download"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        trim_sections_file = os.path.join(user_dir, "trim_sections.json")
+        data = {}
+        if os.path.exists(trim_sections_file):
+            with open(trim_sections_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        data[url] = download_sections
+        with open(trim_sections_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f"Saved trim sections for user {user_id}, URL: {url}, sections: {download_sections}")
+    except Exception as e:
+        logger.error(f"Failed to save trim sections: {e}")
+
+def load_trim_sections(user_id, url, clear_after_use=False):
+    """Load trim sections for download
+    
+    Args:
+        user_id: User ID
+        url: Video URL
+        clear_after_use: If True, clear sections after loading (default: False)
+                        Set to True only when actually using for download
+    """
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        trim_sections_file = os.path.join(user_dir, "trim_sections.json")
+        if os.path.exists(trim_sections_file):
+            with open(trim_sections_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            sections = data.get(url)
+            if sections:
+                if clear_after_use:
+                    # Clear after loading (only when actually using for download)
+                    del data[url]
+                    with open(trim_sections_file, "w", encoding="utf-8") as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+                return sections
+    except Exception as e:
+        logger.error(f"Failed to load trim sections: {e}")
+    return None
 
 def load_ask_info(user_id, url):
     try:
@@ -634,7 +1187,10 @@ def ask_filter_callback(app, callback_query):
             if not langs:
                 safe_callback_answer(callback_query, safe_get_messages(user_id).NO_SUBTITLES_DETECTED_MSG, show_alert=True)
                 return
-            kb = get_language_keyboard_always_ask(page=0, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
+            # Get current page from fstate or default to 0
+            fstate = get_filters(user_id)
+            current_page = fstate.get("subs_lang_page", 0)
+            kb = get_language_keyboard_always_ask(page=current_page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
                 callback_query.edit_message_reply_markup(reply_markup=kb)
             except Exception:
@@ -643,6 +1199,11 @@ def ask_filter_callback(app, callback_query):
             return
         if kind == "subs_page":
             page = int(value)
+            # Save current page to fstate to preserve it when selecting languages
+            fstate = get_filters(user_id)
+            fstate["subs_lang_page"] = page
+            save_filters(user_id, fstate)
+            
             original_message = callback_query.message.reply_to_message
             if not original_message:
                 callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
@@ -659,6 +1220,7 @@ def ask_filter_callback(app, callback_query):
                 normal = _subs_check_cache.get(f"{url}_{user_id}_normal_langs") or []
                 auto = _subs_check_cache.get(f"{url}_{user_id}_auto_langs") or []
             langs = sorted(set(normal) | set(auto))
+            # Preserve selected languages when navigating pages
             kb = get_language_keyboard_always_ask(page=page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
                 callback_query.edit_message_reply_markup(reply_markup=kb)
@@ -684,25 +1246,123 @@ def ask_filter_callback(app, callback_query):
             callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         if kind == "subs_lang":
-            # Persist selected subtitle language as global setting used by embed logic
-            try:
-                save_user_subs_language(user_id, value)
-                # If user picks explicit language from SUBS menu – assume manual, not auto
-                save_user_subs_auto_mode(user_id, False)
-            except Exception:
-                pass
-            original_message = callback_query.message.reply_to_message
-            if original_message:
-                url_text = original_message.text or (original_message.caption or "")
-                import re as _re
-                m = _re.search(r'https?://[^\s\*#]+', url_text)
-                url = m.group(0) if m else url_text
-                # Close subs keyboard and rebuild Always Ask menu with selected lang in summary
-                ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
-            try:
-                callback_query.answer(safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=value))
-            except Exception:
-                pass
+            fstate = get_filters(user_id)
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
+            if is_mkv:
+                # Multiple selection mode for MKV
+                # Get current page from fstate to preserve it
+                current_page = fstate.get("subs_lang_page", 0)
+                
+                if value == "OFF":
+                    # Clear all subtitle selections
+                    fstate["selected_subs_langs"] = []
+                    fstate["subs_all_selected"] = False
+                    fstate["selected_subs_lang"] = None
+                elif value == "ALL_DUBS":
+                    # Select all subtitle types (orig, auto, trans) for specific languages that have dubs
+                    # Languages to include: English, Arabic, Bengali, Chinese, Chinese (Traditional), Dutch, French, German, Hebrew, Hindi, Indonesian, Italian, Japanese, Korean, Malayalam, Polish, Portuguese, Punjabi, Romanian, Russian, Spanish, Swahili, Tamil, Telugu, Thai, Turkish, Ukrainian, Urdu, Vietnamese
+                    target_dub_languages = ['en', 'ar', 'bn', 'zh', 'zh-Hans', 'zh-Hant', 'nl', 'fr', 'de', 'he', 'hi', 'id', 'it', 'ja', 'ko', 'ml', 'pl', 'pt', 'pa', 'ro', 'ru', 'es', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'ur', 'vi']
+                    
+                    # Get all available subtitle languages (normal + auto + trans)
+                    try:
+                        original_message = callback_query.message.reply_to_message
+                        if original_message:
+                            url_text = original_message.text or (original_message.caption or "")
+                            import re as _re
+                            m = _re.search(r'https?://[^\s\*#]+', url_text)
+                            url = m.group(0) if m else url_text
+                            from COMMANDS.subtitles_cmd import get_or_compute_subs_langs
+                            normal, auto = get_or_compute_subs_langs(user_id, url)
+                            all_available_subs = sorted(set(normal) | set(auto))
+                            
+                            # Filter to only languages from target_dub_languages (match by base code)
+                            selected_subs = []
+                            for sub_lang in all_available_subs:
+                                sub_base = sub_lang.split('-')[0] if '-' in sub_lang else sub_lang
+                                # Check if this subtitle language matches any target language
+                                for target_lang in target_dub_languages:
+                                    target_base = target_lang.split('-')[0] if '-' in target_lang else target_lang
+                                    # Match exact or base match (e.g., 'zh-Hans' matches 'zh', 'zh-Hant' matches 'zh')
+                                    if sub_lang == target_lang or sub_base == target_base:
+                                        selected_subs.append(sub_lang)
+                                        break
+                            
+                            fstate["selected_subs_langs"] = sorted(list(dict.fromkeys(selected_subs)))  # Remove duplicates
+                        else:
+                            fstate["selected_subs_langs"] = []
+                    except Exception:
+                        fstate["selected_subs_langs"] = []
+                    
+                    fstate["subs_all_selected"] = True
+                    fstate["selected_subs_lang"] = None
+                else:
+                    # Toggle individual language selection - clear ALL selection
+                    selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+                    if value in selected_subs_langs:
+                        # Deselect
+                        selected_subs_langs.remove(value)
+                    else:
+                        # Select
+                        selected_subs_langs.append(value)
+                    fstate["selected_subs_langs"] = selected_subs_langs
+                    fstate["subs_all_selected"] = False  # Clear ALL/ALL DUBS when selecting/deselecting individual languages
+                    fstate["selected_subs_lang"] = None
+                save_filters(user_id, fstate)
+                
+                # Reload the keyboard to show updated checkmarks - preserve current page
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    try:
+                        from COMMANDS.subtitles_cmd import get_or_compute_subs_langs
+                        normal, auto = get_or_compute_subs_langs(user_id, url)
+                        langs = sorted(set(normal) | set(auto))
+                    except Exception:
+                        # Use local function load_subs_langs_cache (defined in this file)
+                        normal, auto = load_subs_langs_cache(user_id, url)
+                        langs = sorted(set(normal) | set(auto))
+                    if langs:
+                        kb = get_language_keyboard_always_ask(page=current_page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
+                        try:
+                            callback_query.edit_message_reply_markup(reply_markup=kb)
+                        except Exception:
+                            pass
+                try:
+                    if value == "ALL_DUBS":
+                        callback_query.answer("✅ All dubs subtitles selected")
+                    else:
+                        callback_query.answer("Language toggled")
+                except Exception:
+                    pass
+            else:
+                # Single selection mode for MP4
+                fstate["selected_subs_lang"] = value
+                fstate["selected_subs_langs"] = []
+                fstate["subs_all_selected"] = False
+                save_filters(user_id, fstate)
+                try:
+                    save_user_subs_language(user_id, value)
+                    # If user picks explicit language from SUBS menu – assume manual, not auto
+                    save_user_subs_auto_mode(user_id, False)
+                except Exception:
+                    pass
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    # Close subs keyboard and rebuild Always Ask menu with selected lang in summary
+                    ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
+                try:
+                    callback_query.answer(safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=value))
+                except Exception:
+                    pass
             return
         # DUBS open: show languages grid with flags
         if kind == "dubs" and value == "open":
@@ -719,17 +1379,71 @@ def ask_filter_callback(app, callback_query):
             if not langs or len(langs) <= 1:
                 callback_query.answer(safe_get_messages(user_id).NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG, show_alert=True)
                 return
+            # Check if MKV format is selected
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
             rows, row = [], []
+            selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+            audio_all_dubs = fstate.get("audio_all_dubs", False)
+            
+            # Get original language from video info if available
+            original_lang = None
+            try:
+                from DOWN_AND_UP.yt_dlp_hook import get_video_formats
+                info = get_video_formats(url, user_id, cookies_already_checked=True)
+                # Try to get original language from video metadata
+                video_lang = info.get('language') or info.get('original_language')
+                # Try to find matching language in available_dubs
+                if video_lang:
+                    # Check if video_lang is in available languages
+                    if video_lang in langs:
+                        original_lang = video_lang
+                    else:
+                        # Try to find partial match (e.g., 'en' matches 'en-US')
+                        for lang in sorted(langs):
+                            if lang.startswith(video_lang.split('-')[0]) or video_lang.startswith(lang.split('-')[0]):
+                                original_lang = lang
+                                break
+                # If still not found, use the first available language as default
+                if not original_lang and langs:
+                    original_lang = sorted(langs)[0]
+            except Exception:
+                # If we can't get info, use first available language as default
+                if langs:
+                    original_lang = sorted(langs)[0]
+            
+            # If no languages are selected and we have original language, select it by default
+            if is_mkv and not selected_audio_langs and not audio_all_dubs and original_lang and original_lang in langs:
+                if original_lang not in selected_audio_langs:
+                    selected_audio_langs = [original_lang]
+                    fstate["selected_audio_langs"] = selected_audio_langs
+                    save_filters(user_id, fstate)
+                    # Update local variable for display
+                    selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+            
             for i, lang in enumerate(sorted(langs)):
                 # Use robust flag lookup for DUBS (strict overrides first)
                 flag = _dub_flag(lang)
-                label = f"{flag} {lang}" if flag else lang
+                # Add checkmark if selected (for MKV multiple selection) - but not if ALL is selected
+                checkmark = "✅ " if is_mkv and lang in selected_audio_langs and not audio_all_dubs else ""
+                label = f"{checkmark}{flag} {lang}" if flag else f"{checkmark}{lang}"
                 row.append(InlineKeyboardButton(label, callback_data=f"askf|audio_lang|{lang}"))
                 if (i+1) % 3 == 0:
                     rows.append(row)
                     row = []
             if row:
                 rows.append(row)
+            
+            # Add ALL and OFF buttons in one row for MKV if multiple languages available
+            if is_mkv and len(langs) > 1:
+                all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
+                off_button_text = "OFF"
+                rows.append([
+                    InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL"),
+                    InlineKeyboardButton(off_button_text, callback_data="askf|audio_lang|OFF")
+                ])
+            
             rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
             try:
                 callback_query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
@@ -741,18 +1455,108 @@ def ask_filter_callback(app, callback_query):
                 pass
             return
         if kind == "audio_lang":
-            set_filter(user_id, kind, value)
-            original_message = callback_query.message.reply_to_message
-            if original_message:
-                url_text = original_message.text or (original_message.caption or "")
-                import re as _re
-                m = _re.search(r'https?://[^\s\*#]+', url_text)
-                url = m.group(0) if m else url_text
-                ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
-            try:
-                callback_query.answer(safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
-            except Exception:
-                pass
+            fstate = get_filters(user_id)
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
+            if is_mkv:
+                # Multiple selection mode for MKV
+                if value == "ALL":
+                    # Toggle ALL selection - clear individual selections
+                    if fstate.get("audio_all_dubs", False):
+                        # Deselect ALL
+                        fstate["audio_all_dubs"] = False
+                        fstate["selected_audio_langs"] = []
+                    else:
+                        # Select ALL - clear all individual selections
+                        fstate["audio_all_dubs"] = True
+                        fstate["selected_audio_langs"] = []  # Clear individual selections when ALL is selected
+                    fstate["audio_lang"] = None
+                elif value == "OFF":
+                    # Clear all audio track selections
+                    fstate["audio_all_dubs"] = False
+                    fstate["selected_audio_langs"] = []
+                    fstate["audio_lang"] = None
+                else:
+                    # Toggle individual language selection - clear ALL selection
+                    selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+                    if value in selected_audio_langs:
+                        # Deselect
+                        selected_audio_langs.remove(value)
+                    else:
+                        # Select
+                        selected_audio_langs.append(value)
+                    fstate["selected_audio_langs"] = selected_audio_langs
+                    fstate["audio_all_dubs"] = False  # Clear ALL when selecting individual languages
+                    fstate["audio_lang"] = None
+                save_filters(user_id, fstate)
+                
+                # Reload the keyboard to show updated checkmarks
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    fstate = get_filters(user_id)
+                    langs = fstate.get("available_dubs", [])
+                    if langs:
+                        rows, row = [], []
+                        selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+                        audio_all_dubs = fstate.get("audio_all_dubs", False)
+                        
+                        for i, lang in enumerate(sorted(langs)):
+                            flag = _dub_flag(lang)
+                            # Add checkmark if selected - but not if ALL is selected
+                            checkmark = "✅ " if lang in selected_audio_langs and not audio_all_dubs else ""
+                            label = f"{checkmark}{flag} {lang}" if flag else f"{checkmark}{lang}"
+                            row.append(InlineKeyboardButton(label, callback_data=f"askf|audio_lang|{lang}"))
+                            if (i+1) % 3 == 0:
+                                rows.append(row)
+                                row = []
+                        if row:
+                            rows.append(row)
+                        
+                        # Add ALL and OFF buttons in one row (with checkmark if selected)
+                        if len(langs) > 1:
+                            all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
+                            off_button_text = "OFF"
+                            rows.append([
+                                InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL"),
+                                InlineKeyboardButton(off_button_text, callback_data="askf|audio_lang|OFF")
+                            ])
+                        
+                        rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
+                        try:
+                            callback_query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+                        except Exception:
+                            pass
+                try:
+                    if value == "ALL":
+                        callback_query.answer("✅ All audio tracks selected" if fstate.get("audio_all_dubs", False) else "All audio tracks deselected")
+                    elif value == "OFF":
+                        callback_query.answer("All audio tracks deselected")
+                    else:
+                        callback_query.answer("Language toggled")
+                except Exception:
+                    pass
+            else:
+                # Single selection mode for MP4
+                fstate["audio_lang"] = value
+                fstate["audio_all_dubs"] = False
+                fstate["selected_audio_langs"] = []
+                save_filters(user_id, fstate)
+                original_message = callback_query.message.reply_to_message
+                if original_message:
+                    url_text = original_message.text or (original_message.caption or "")
+                    import re as _re
+                    m = _re.search(r'https?://[^\s\*#]+', url_text)
+                    url = m.group(0) if m else url_text
+                    ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
+                try:
+                    callback_query.answer(safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
+                except Exception:
+                    pass
             return
         if kind == "dubs" and value in ("back", "close"):
             original_message = callback_query.message.reply_to_message
@@ -1124,10 +1928,10 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
     rows.append(format_row)
     action_buttons = []
     if has_dubs:
-        action_buttons.append(InlineKeyboardButton("🗣 DUBS", callback_data="askf|dubs|open"))
+        action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_DUBS_BUTTON_MSG, callback_data="askf|dubs|open"))
     try:
         if is_subs_always_ask(user_id):
-            action_buttons.append(InlineKeyboardButton("💬 SUBS", callback_data="askf|subs|open"))
+            action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_SUBS_BUTTON_MSG, callback_data="askf|subs|open"))
     except Exception:
         pass
     
@@ -1690,8 +2494,22 @@ def askq_callback(app, callback_query):
             # Use precomputed list from filters state for speed/stability
             fstate = get_filters(callback_query.from_user.id)
             langs = fstate.get('available_dubs', [])
+            # Check if MKV format is selected
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            
             # Build buttons 3 per row with flags
             rows = []
+            # Add ALL and OFF buttons in one row for MKV if multiple languages available
+            if is_mkv and len(langs) > 1:
+                audio_all_dubs = fstate.get("audio_all_dubs", False)
+                all_button_text = "✅ ALL" if audio_all_dubs else "ALL"
+                off_button_text = "OFF"
+                rows.append([
+                    InlineKeyboardButton(all_button_text, callback_data="askf|audio_lang|ALL"),
+                    InlineKeyboardButton(off_button_text, callback_data="askf|audio_lang|OFF")
+                ])
+            
             row = []
             for i, lang in enumerate(sorted(langs)):
                 # DUBS: use first part for flags (de from de-DE)
@@ -1716,6 +2534,11 @@ def askq_callback(app, callback_query):
         if kind == "subs_page":
             # Handle page navigation in Always Ask subtitle menu
             page = int(value)
+            # Save current page to fstate to preserve it when selecting languages
+            fstate = get_filters(user_id)
+            fstate["subs_lang_page"] = page
+            save_filters(user_id, fstate)
+            
             original_message = callback_query.message.reply_to_message
             if not original_message:
                 callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
@@ -1756,23 +2579,7 @@ def askq_callback(app, callback_query):
             callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         # OLD LINK TOGGLE HANDLER REMOVED - now using submenu approach
-        if kind == "subs_lang":
-            # Handle subtitle language selection in Always Ask
-            selected_lang = value
-            # Store the selected subtitle language for this video
-            fstate = get_filters(user_id)
-            fstate['selected_subs_lang'] = selected_lang
-            save_filters(user_id, fstate)
-            callback_query.answer(safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=selected_lang))
-            # Return to main Always Ask menu
-            original_message = callback_query.message.reply_to_message
-            if original_message:
-                url_text = original_message.text or (original_message.caption or "")
-                import re as _re
-                m = _re.search(r'https?://[^\s\*#]+', url_text)
-                url = m.group(0) if m else url_text
-                ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
-            return
+        # subs_lang handler is now at the top of the function (line 688) to handle MKV multiple selection
         if kind == "dubs" and value == "close":
             # Close dubs menu without changing audio_lang
             original_message = callback_query.message.reply_to_message
@@ -2031,7 +2838,9 @@ def askq_callback(app, callback_query):
             logger.info("Single video, using down_and_up_with_format")
             # Delete processing message before starting download
             delete_processing_message(app, user_id, None)
-            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=format_id, proc_msg=None)
+            # Load trim sections if available
+            download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=format_id, proc_msg=None, download_sections=download_sections)
         logger.info("Download process initiated successfully")
         return
     
@@ -2074,7 +2883,9 @@ def askq_callback(app, callback_query):
         elif quality == "mp3":
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
-            down_and_audio(app, original_message, url, tags, quality_key="mp3", format_override="ba", cookies_already_checked=True, cached_video_info=None)
+            # Load trim sections if available
+            download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            down_and_audio(app, original_message, url, tags, quality_key="mp3", format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
             return
         else:
             try:
@@ -2120,7 +2931,9 @@ def askq_callback(app, callback_query):
         else:
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
-            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=quality, proc_msg=proc_msg)
+            # Load trim sections if available
+            download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=quality, proc_msg=proc_msg, download_sections=download_sections)
         return
 
     original_message = callback_query.message.reply_to_message
@@ -2343,7 +3156,9 @@ def askq_callback(app, callback_query):
                 if data == "mp3":
                     # Delete processing message before starting download
                     delete_processing_message(app, user_id, proc_msg)
-                    down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start, format_override="ba", cookies_already_checked=True, cached_video_info=None)
+                    # Load trim sections if available
+                    download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+                    down_and_audio(app, original_message, url, tags, quality_key=used_quality_key, playlist_name=playlist_name, video_count=new_count, video_start_with=new_start, format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
                 else:
                     try:
                         # Form the correct format for the missing videos
@@ -2391,7 +3206,9 @@ def askq_callback(app, callback_query):
             if data == "mp3":
                 # Delete processing message before starting download
                 delete_processing_message(app, user_id, proc_msg)
-                down_and_audio(app, original_message, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None)
+                # Load trim sections if available
+                download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+                down_and_audio(app, original_message, url, tags, quality_key=data, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
             else:
                 try:
                     # Form the correct format for the new download
@@ -3470,7 +4287,7 @@ def sort_quality_key(quality_key):
         except ValueError:
             return 0  # for unknown formats
 
-def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range):
+def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range, original_message_id=None):
     messages = safe_get_messages(user_id)
     """
     Создает меню качества из кэшированных данных когда не удается получить новые.
@@ -3709,19 +4526,27 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                 try:
                     result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                     if result is None:
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                        # Use original_message_id if provided (for trim mode), otherwise use message.id
+                        reply_to_id = original_message_id if original_message_id is not None else message.id
+                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                 except Exception as edit_error:
                     if "MESSAGE_ID_INVALID" in str(edit_error):
                         logger.warning(f"Message ID invalid, sending new message: {edit_error}")
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                        # Use original_message_id if provided (for trim mode), otherwise use message.id
+                        reply_to_id = original_message_id if original_message_id is not None else message.id
+                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                     elif "BUTTON_TYPE_INVALID" in str(edit_error):
                         logger.warning(f"Button type invalid, sending without keyboard: {edit_error}")
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                        # Use original_message_id if provided (for trim mode), otherwise use message.id
+                        reply_to_id = original_message_id if original_message_id is not None else message.id
+                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML)
                     else:
                         raise edit_error
             else:
                 try:
-                    app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                    # Use original_message_id if provided (for trim mode), otherwise use message.id
+                    reply_to_id = original_message_id if original_message_id is not None else message.id
+                    app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
                 except Exception as send_error:
                     if "BUTTON_TYPE_INVALID" in str(send_error):
                         logger.warning(f"Button type invalid, sending without keyboard: {send_error}")
@@ -3757,7 +4582,7 @@ def delete_processing_message(app, user_id, proc_msg):
     else:
         logger.warning(f"proc_msg is None for user {user_id}, cannot delete processing message")
 
-def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, download_dir=None):
+def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, download_dir=None, original_message_id=None):
     """Show quality selection menu for video"""
     # ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
     logger.info(f"🔍 [DEBUG] ask_quality_menu вызвана с параметрами:")
@@ -3898,7 +4723,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # Only send new processing message if this is the initial menu open (no callback)
         # If callback is provided, we should NOT edit the message here - let the final logic handle it
         if cb is None:
-            proc_msg = app.send_message(user_id, processing_text, reply_parameters=ReplyParameters(message_id=message.id), reply_markup=get_main_reply_keyboard())
+            # Use original_message_id if provided (for trim mode), otherwise use message.id
+            reply_to_id = original_message_id if original_message_id is not None else message.id
+            proc_msg = app.send_message(user_id, processing_text, reply_parameters=ReplyParameters(message_id=reply_to_id), reply_markup=get_main_reply_keyboard())
             # Save processing message to cache for deletion when download starts
             set_user_proc_msg(user_id, proc_msg)
         else:
@@ -4339,12 +5166,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 auto_mode = get_user_subs_auto_mode(user_id)
                 subs_available = ""
                 # Audio language marker for rows (keep UI light; summary shows selection)
-                if subs_enabled:
+                if subs_enabled and is_youtube_url(url):
+                    found_type = check_subs_availability(url, user_id, q, return_type=True)
                     if sel_ext == 'mkv':
-                        # Для MKV при включённых субтитрах показываем без ограничений
-                        subs_available = "💬"
-                    elif is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
-                        found_type = check_subs_availability(url, user_id, q, return_type=True)
+                        # Для MKV при включённых субтитрах показываем на всех кнопках качества, если есть доступные субтитры
+                        if found_type is not None:  # Any subtitles found (auto or normal)
+                            subs_available = "💬"
+                    elif w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
+                        # Для MP4 проверяем лимиты
                         if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                             temp_info = {
                                 'duration': info.get('duration'),
@@ -4782,15 +5611,68 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         
         # Audio/subs selection summary line
         fstate = get_filters(user_id)
+        sel_ext = fstate.get("ext", "mp4")
+        is_mkv = (sel_ext == "mkv")
+        
+        # Audio selection summary
         sel_audio_lang = fstate.get("audio_lang")
+        selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+        audio_all_dubs = fstate.get("audio_all_dubs", False)
+        
+        # Subtitle selection summary
         subs_enabled = is_subs_enabled(user_id)
         subs_lang = get_user_subs_language(user_id) if subs_enabled else None
+        selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+        subs_all_selected = fstate.get("subs_all_selected", False)
+        
         summary_parts = []
-        if sel_audio_lang:
+        
+        # Show audio selection
+        if is_mkv:
+            if audio_all_dubs:
+                summary_parts.append("🗣 ALL")
+            elif selected_audio_langs:
+                summary_parts.append(f"🗣 {', '.join(selected_audio_langs)}")
+            elif sel_audio_lang:
+                summary_parts.append(f"🗣 {sel_audio_lang}")
+        elif sel_audio_lang:
             summary_parts.append(f"🗣 {sel_audio_lang}")
-        # Always show chosen subtitle language if subs are enabled
-        if subs_enabled and subs_lang:
-            summary_parts.append(f"💬 {subs_lang}")
+        
+        # Show subtitle selection
+        if subs_enabled:
+            if is_mkv:
+                if subs_all_selected:
+                    # Check if ALL DUBS mode (has available_dubs) or ALL mode
+                    available_dubs = fstate.get("available_dubs", []) or []
+                    if available_dubs and len(available_dubs) > 1:
+                        summary_parts.append("💬 ALL DUBS")
+                    else:
+                        summary_parts.append(f"💬 {safe_get_messages(user_id).ALWAYS_ASK_ALL_SUBTITLES_BUTTON_MSG.replace('💬 ', '')}")
+                elif selected_subs_langs:
+                    # Map language codes to display names if available, otherwise use codes
+                    display_langs = []
+                    for lang in selected_subs_langs:
+                        if lang in LANGUAGES:
+                            lang_info = LANGUAGES[lang]
+                            display_langs.append(lang_info.get('name', lang))
+                        else:
+                            display_langs.append(lang)
+                    summary_parts.append(f"💬 {', '.join(display_langs)}")
+                elif subs_lang:
+                    if subs_lang in LANGUAGES:
+                        lang_info = LANGUAGES[subs_lang]
+                        display_lang = lang_info.get('name', subs_lang)
+                    else:
+                        display_lang = subs_lang
+                    summary_parts.append(f"💬 {display_lang}")
+            elif subs_lang:
+                if subs_lang in LANGUAGES:
+                    lang_info = LANGUAGES[subs_lang]
+                    display_lang = lang_info.get('name', subs_lang)
+                else:
+                    display_lang = subs_lang
+                summary_parts.append(f"💬 {display_lang}")
+        
         if summary_parts:
             cap += "<blockquote>" + " | ".join(summary_parts) + "</blockquote>\n"
         # --- YouTube expanded block ---
@@ -4903,7 +5785,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         fstate = get_filters(user_id)
         available_dubs = fstate.get("available_dubs", [])
         if len(available_dubs) > 1:  # More than 1 language means dubs are available
-            dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {len(available_dubs)} languages"
+            # Get selected audio language(s)
+            sel_audio_lang = fstate.get("audio_lang")
+            audio_all_dubs = fstate.get("audio_all_dubs", False)
+            selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+            
+            # Build dubs info string
+            if audio_all_dubs:
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: ALL ({len(available_dubs)} languages)"
+            elif selected_audio_langs:
+                # Show selected languages
+                langs_str = ", ".join(selected_audio_langs[:3])  # Show first 3
+                if len(selected_audio_langs) > 3:
+                    langs_str += f" +{len(selected_audio_langs) - 3} more"
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {langs_str} ({len(selected_audio_langs)}/{len(available_dubs)})"
+            elif sel_audio_lang:
+                # Single language selected (for MP4)
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {sel_audio_lang} ({len(available_dubs)} available)"
+            else:
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {len(available_dubs)} languages"
         
         # Add the info to caption - each type independently
         info_parts = []
@@ -4914,6 +5814,22 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         
         if info_parts:
             cap += f"<blockquote>{''.join(info_parts)}</blockquote>\n"
+        
+        # --- Check if trim sections are saved for this URL ---
+        trim_sections = load_trim_sections(user_id, url)
+        if trim_sections:
+            # Parse trim sections to extract timecodes for display
+            # Format: *HH:MM:SS-HH:MM:SS
+            try:
+                trim_part = trim_sections.lstrip('*')
+                if '-' in trim_part:
+                    start_tc, end_tc = trim_part.split('-', 1)
+                    trim_info_msg = getattr(safe_get_messages(user_id), 'ALWAYS_ASK_TRIM_INFO_MSG', 
+                        f"✂️ <b>Video will be trimmed:</b> {start_tc} - {end_tc}")
+                    cap += f"\n{trim_info_msg.format(start_time=start_tc, end_time=end_tc)}\n"
+            except Exception:
+                pass
+        
         # --- tags ---
         if tags_text:
             cap += f"{tags_text}"
@@ -5122,10 +6038,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 subs_available = ""
                 subs_enabled = is_subs_enabled(user_id)
                 auto_mode = get_user_subs_auto_mode(user_id)
-                if subs_enabled:
+                if subs_enabled and is_youtube_url(url):
+                    found_type = check_subs_availability(url, user_id, quality_key, return_type=True)
                     if sel_ext == 'mkv':
-                        subs_available = "💬"
-                    elif is_youtube_url(url) and w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
+                        # Для MKV при включённых субтитрах показываем на всех кнопках качества, если есть доступные субтитры
+                        if found_type is not None:  # Any subtitles found (auto or normal)
+                            subs_available = "💬"
+                    elif w is not None and h is not None and min(int(w), int(h)) <= Config.MAX_SUB_QUALITY:
                         # Check if we're in Always Ask mode
                         is_always_ask_mode = is_subs_always_ask(user_id)
                         
@@ -5325,6 +6244,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_LINK_BUTTON_MSG, callback_data="askq|link"))
         # Add LIST button - always available
         action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).LIST_BUTTON_TEXT, callback_data="askq|list"))
+        # Add TRIM button - always available
+        action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_TRIM_BUTTON_MSG, callback_data="askq|trim"))
         # Add IMAGE button only if qualities were NOT auto-detected
         if not found_quality_keys:
             action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).IMAGE_BUTTON_TEXT, callback_data="askq|image"))        
@@ -5754,7 +6675,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # Сначала пробуем создать меню из кэшированных качеств
         try:
             logger.info(f"Attempting to create menu from cached qualities for user {user_id}")
-            if create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range):
+            if create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, original_text, is_playlist, playlist_range, original_message_id=original_message_id):
                 logger.info(f"Successfully created cached qualities menu for user {user_id}")
                 send_to_logger(message, safe_get_messages(user_id).CACHED_QUALITIES_MENU_CREATED_LOG_MSG.format(user_id=user_id, error=str(e)))
                 return
@@ -5880,9 +6801,14 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     sel_codec = filters_state.get("codec", "avc1")
     sel_ext = filters_state.get("ext", "mp4")
     sel_audio_lang = filters_state.get("audio_lang")
+    audio_all_dubs = filters_state.get("audio_all_dubs", False)
+    selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
     
     # Get selected subtitle language from filters (for Always Ask mode)
     selected_subs_lang = filters_state.get("selected_subs_lang")
+    selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
+    subs_all_selected = filters_state.get("subs_all_selected", False)
+    
     if selected_subs_lang:
         # Temporarily save the selected subtitle language for this download
         from COMMANDS.subtitles_cmd import save_user_subs_language, save_user_subs_auto_mode
@@ -5911,7 +6837,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             video_count = video_end_with - video_start_with + 1
         # Delete processing message before starting download
         delete_processing_message(app, user_id, proc_msg)
-        down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None)
+        # Load trim sections if available
+        download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+        down_and_audio(app, original_message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cookies_already_checked=True, cached_video_info=None, download_sections=download_sections)
         return
     
     if data == "subs_only":
@@ -5932,6 +6860,80 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         download_subtitles_only(app, original_message, url, tags, available_langs, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
     
+    if data == "trim":
+        try:
+            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_TRIM_BUTTON_MSG)
+        except Exception:
+            pass
+        
+        # Get video info to show duration
+        try:
+            cached_info = load_ask_info(user_id, url)
+            if cached_info:
+                info = cached_info
+                logger.info(f"Using cached info for TRIM, duration: {info.get('duration')}")
+            else:
+                info = get_video_formats(url, user_id, cookies_already_checked=True)
+                logger.info(f"Fetched fresh info for TRIM, duration: {info.get('duration')}")
+            
+            duration = info.get('duration', 0)
+            # Try to get duration from formats if not in main info
+            if not duration or duration <= 0:
+                # Check if duration is in formats
+                formats = info.get('formats', [])
+                if formats:
+                    # Try to get duration from first format that has it
+                    for fmt in formats:
+                        if fmt.get('duration'):
+                            duration = fmt.get('duration')
+                            logger.info(f"Found duration in format: {duration}")
+                            break
+            
+            if not duration or duration <= 0:
+                logger.warning(f"Could not determine video duration for TRIM: url={url}, info_keys={list(info.keys()) if info else 'None'}")
+                error_msg = getattr(safe_get_messages(user_id), 'AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG', "❌ Could not determine video duration. Please try again or use a different video.")
+                app.send_message(
+                    user_id,
+                    error_msg,
+                    reply_parameters=ReplyParameters(message_id=original_message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+                return
+            
+            # Format duration to HH:MM:SS
+            hours = int(duration // 3600)
+            minutes = int((duration % 3600) // 60)
+            seconds = int(duration % 60)
+            end_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            start_time = "00:00:00"
+            
+            # Save trim state for this user and URL, including original message info
+            original_message_id = original_message.id if original_message else None
+            original_chat_id = original_message.chat.id if original_message and hasattr(original_message, 'chat') else user_id
+            save_trim_state(user_id, url, duration, original_message_id=original_message_id, original_chat_id=original_chat_id)
+            
+            # Send prompt message
+            prompt_msg = safe_get_messages(user_id).ALWAYS_ASK_TRIM_PROMPT_MSG.format(
+                start_time=start_time,
+                end_time=end_time
+            )
+            
+            app.send_message(
+                user_id,
+                prompt_msg,
+                reply_parameters=ReplyParameters(message_id=original_message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception as e:
+            logger.error(f"Error in TRIM handler: {e}")
+            app.send_message(
+                user_id,
+                f"❌ Ошибка: {str(e)}",
+                reply_parameters=ReplyParameters(message_id=original_message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+        return
+    
     # Logic for forming the format with the real height
     if data == "best":
         try:
@@ -5940,8 +6942,13 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             pass
         # Use format with AVC codec and MP4 container priority for {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} quality
         # with fallback to bv+ba/best if no AVC+MP4 available
-        audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-        fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba{audio_filter}/bv*[ext={sel_ext}]+ba{audio_filter}/bv+ba/best"
+        if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+            # For MKV with selected dubs, download video + original audio (no language filter)
+            # Selected audio tracks will be downloaded separately in postprocessing
+            fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba/bv*[vcodec*={sel_codec}]+ba/bv*[ext={sel_ext}]+ba/bv+ba/best"
+        else:
+            audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+            fmt = f"bv*[vcodec*={sel_codec}][ext={sel_ext}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba{audio_filter}/bv*[ext={sel_ext}]+ba{audio_filter}/bv+ba/best"
         quality_key = "best"
     else:
         try:
@@ -5988,8 +6995,13 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                     prev = 144
                 else:
                     prev = 0
-                audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-                fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+                    # For MKV with selected dubs, download video + original audio (no language filter)
+                    # Selected audio tracks will be downloaded separately in postprocessing
+                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                else:
+                    audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
             else:
                 # Determine the quality by the smaller side
                 min_side_quality = get_quality_by_min_side(max_width, max_height)
@@ -6016,8 +7028,13 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         prev = 144
                     else:
                         prev = 0
-                    audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-                    fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                    if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+                        # For MKV with selected dubs, download video + original audio (no language filter)
+                        # Selected audio tracks will be downloaded separately in postprocessing
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                    else:
+                        audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={quality_val}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={quality_val}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
                 else:
                     # Use the real height to form the format
                     real_height = get_real_height_for_quality(data, max_width, max_height)
@@ -6041,8 +7058,13 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
                         prev = 144
                     else:
                         prev = 0
-                    audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang else ""
-                    fmt = f"bv*[vcodec*={sel_codec}][height<={real_height}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={real_height}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                    if (audio_all_dubs or selected_audio_langs) and sel_ext == "mkv":
+                        # For MKV with selected dubs, download video + original audio (no language filter)
+                        # Selected audio tracks will be downloaded separately in postprocessing
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={real_height}][height>{prev}]+ba/bv*[vcodec*={sel_codec}][height<={real_height}]+ba/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
+                    else:
+                        audio_filter = f"[language^={sel_audio_lang}]" if sel_audio_lang and sel_audio_lang != "ALL" else ""
+                        fmt = f"bv*[vcodec*={sel_codec}][height<={real_height}][height>{prev}]+ba{audio_filter}/bv*[vcodec*={sel_codec}][height<={real_height}]+ba{audio_filter}/bv*[vcodec*={sel_codec}]+ba/bv+ba/best"
             
             quality_key = data
             try:
@@ -6055,7 +7077,9 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     # Delete processing message before starting download
     delete_processing_message(app, user_id, proc_msg)
-    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key, proc_msg=proc_msg)
+    # Load trim sections if available (don't clear yet - will be cleared in down_and_up_with_format)
+    download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+    down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key, proc_msg=proc_msg, download_sections=download_sections)
 
 def analyze_format_type(format_info):
     """
@@ -6113,7 +7137,7 @@ def get_complementary_audio_format(video_format_info, all_formats):
 
 # --- an auxiliary function for downloading with the format ---
 # @reply_with_keyboard
-def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None, proc_msg=None):
+def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None, proc_msg=None, download_sections=None):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
 
@@ -6249,7 +7273,9 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
                     # Pass cookies_already_checked=True since we already checked cookies in get_video_formats
                     # Delete processing message before starting download
                     delete_processing_message(app, user_id, proc_msg)
-                    down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=fmt, cookies_already_checked=True, cached_video_info=info)
+                    # Load trim sections if available
+                    download_sections = load_trim_sections(user_id, url, clear_after_use=False)
+                    down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=fmt, cookies_already_checked=True, cached_video_info=info, download_sections=download_sections)
                     return
                 
                 # If it's video-only, find complementary audio
@@ -6278,7 +7304,11 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
     # Pass cached video info to avoid redundant API calls
     # Delete processing message before starting download
     delete_processing_message(app, user_id, proc_msg)
-    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key, cookies_already_checked=True, cached_video_info=info)
+    # Load trim sections if available (clear after use since we're downloading)
+    if download_sections is None:
+        download_sections = load_trim_sections(user_id, url, clear_after_use=True)
+    
+    down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=is_tiktok, format_override=fmt, quality_key=quality_key, cookies_already_checked=True, cached_video_info=info, download_sections=download_sections)
     # Cleanup temp subs languages cache after we kicked off download
     try:
         delete_subs_langs_cache(message.chat.id, url)
@@ -6325,4 +7355,24 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
             f.write(_json.dumps(payload, ensure_ascii=False, indent=2))
     except Exception as e:
         logger.warning(f"Failed to save available_qualities.txt: {e}")
+
+# Filter function to check if user is in trim input mode
+def _has_trim_state(flt, client, message) -> bool:
+    try:
+        user_id = message.chat.id
+        return user_id in trim_input_states
+    except Exception:
+        return False
+
+# Handler for trim timecode input (similar to args_text_handler)
+@app.on_message(filters.text & ~filters.regex(r'^/') & filters.create(_has_trim_state) & filters.private)
+@background_handler(label="trim_text_handler")
+def trim_text_handler(app, message):
+    """Handle text input for trim timecode in private chat using stored state"""
+    try:
+        handle_trim_timecode(app, message, message.text.strip())
+    except Exception as e:
+        logger.error(f"Error in trim_text_handler: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
     

@@ -813,6 +813,12 @@ class Messages(object):
     ADMIN_USER_UNBLOCKED_MSG = "ユーザーのブロックが解除されました 🔓✅\n \nID：<code>{user_id}</code>\nブロック解除日：{date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code>は既にブロック解除されています ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ ブロック解除されたユーザー：{count}\n⏱ タイムスタンプ：{date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ 使用方法：/ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "ユーザーを無視しました 👁️❌\n \nID：<code>{user_id}</code>\n無視した日付：{date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> は既に無視されています ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ 使用方法：/unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "ユーザーはもう無視されていません 👁️✅\n \nID：<code>{user_id}</code>\n無視を解除した日付：{date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> は無視されていません ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>ボット稼働時間 -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ キャッシュをクリアするURLを入力してください。\n使用方法：<code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ 有効なURLを入力してください。\n使用方法：<code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗リンク"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝キャプション"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ トリム"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>動画トリム</b>\n\n動画の長さ: <b>{start_time} - {end_time}</b>\n\n希望の時間範囲を次の形式で送信してください:\n<code>HH:MM:SS-HH:MM:SS</code>\n\n例: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ 無効な形式。次を使用してください: <code>HH:MM:SS-HH:MM:SS</code>\n\n例: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ 無効な範囲。開始時間は終了時間より小さくする必要があります。"
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ 時間範囲が動画の境界を超えています。\n\n動画の長さ: <b>{start_time} - {end_time}</b>\n\n範囲はこれらの制限内である必要があります。"
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>動画はトリミングされます:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 部分的に完了 - {total_files{successful_uploads}_0__ 音声ファイルがアップロードされました。"

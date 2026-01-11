@@ -782,6 +782,21 @@ Użyj:
         "<b>Wyjaśnienie:</b>\n{explanation}"
     )
     ADMIN_ERROR_CHECKING_URL_MSG = "❌ Błąd podczas sprawdzania URL: {error}"
+    ADMIN_BLOCK_USER_USAGE_MSG = "❌ Użycie: /block_user <user_id>"
+    ADMIN_CANNOT_DELETE_ADMIN_MSG = "🚫 Administrator nie może usunąć administratora"
+    ADMIN_USER_BLOCKED_MSG = "Użytkownik zablokowany 🔒❌\n \nID: <code>{user_id}</code>\nData blokady: {date}"
+    ADMIN_USER_ALREADY_BLOCKED_MSG = "<code>{user_id}</code> jest już zablokowany ❌😐"
+    ADMIN_NOT_ADMIN_MSG = "🚫 Przepraszam! Nie jesteś administratorem"
+    ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ Użycie: /unblock_user <user_id>"
+    ADMIN_USER_UNBLOCKED_MSG = "Użytkownik odblokowany 🔓✅\n \nID: <code>{user_id}</code>\nData odblokowania: {date}"
+    ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> jest już odblokowany ✅😐"
+    ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Odblokowani użytkownicy: {count}\n⏱ Znacznik czasu: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Użycie: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Użytkownik zignorowany 👁️❌\n \nID: <code>{user_id}</code>\nData ignorowania: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> jest już ignorowany ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Użycie: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Użytkownik nie jest już ignorowany 👁️✅\n \nID: <code>{user_id}</code>\nData zaprzestania ignorowania: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> nie jest ignorowany ✅😐"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "Ciasteczka wyczyszczone."
@@ -2153,6 +2168,12 @@ Użyj:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Obejrzyj"  # TYMCZASOWO WYŁĄCZONE: usługa poketube nie działa
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Podpis"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ PRZYTNIJ"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Przycinanie wideo</b>\n\nCzas trwania wideo: <b>{start_time} - {end_time}</b>\n\nProszę wysłać żądany zakres czasu w formacie:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nPrzykład: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Nieprawidłowy format. Proszę użyć: <code>HH:MM:SS-HH:MM:SS</code>\n\nPrzykład: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Nieprawidłowy zakres. Czas rozpoczęcia musi być mniejszy niż czas zakończenia."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Zakres czasu jest poza granicami wideo.\n\nCzas trwania wideo: <b>{start_time} - {end_time}</b>\n\nTwój zakres musi być w tych granicach."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Wideo zostanie przycięte:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Częściowo ukończone - {successful_uploads}/{total_files} plików audio przesłanych."

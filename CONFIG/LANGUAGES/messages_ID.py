@@ -813,6 +813,12 @@ Use:
     ADMIN_USER_UNBLOCKED_MSG = "Pengguna tidak diblokir 🔓✅\n \nID: <code>{user_id}</code>\nTanggal Tidak Diblokir: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> sudah tidak diblokir ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Pengguna yang tidak diblokir: {count}\n⏱ Timestamp: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Penggunaan: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Pengguna diabaikan 👁️❌\n \nID: <code>{user_id}</code>\nTanggal diabaikan: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> sudah diabaikan ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Penggunaan: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Pengguna tidak lagi diabaikan 👁️✅\n \nID: <code>{user_id}</code>\nTanggal tidak diabaikan: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> tidak diabaikan ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Waktu berjalan bot -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Silakan berikan URL untuk membersihkan cache.\nPenggunaan: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Silakan berikan URL yang valid.\nPenggunaan: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ Use:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Tautan"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Tonton"  # SEMENTARA DINONAKTIFKAN: layanan poketube sedang down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Deskripsi"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ POTONG"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Potong Video</b>\n\nDurasi video: <b>{start_time} - {end_time}</b>\n\nSilakan kirim rentang waktu yang diinginkan dalam format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nContoh: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Format tidak valid. Silakan gunakan: <code>HH:MM:SS-HH:MM:SS</code>\n\nContoh: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Rentang tidak valid. Waktu mulai harus kurang dari waktu akhir."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Rentang waktu berada di luar batas video.\n\nDurasi video: <b>{start_time} - {end_time}</b>\n\nRentang Anda harus berada dalam batas ini."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video akan dipotong:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Selesai sebagian - {successful_uploads}/{total_files} file audio diunggah."

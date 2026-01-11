@@ -813,6 +813,12 @@ Usa:
     ADMIN_USER_UNBLOCKED_MSG = "Utente sbloccato 🔓✅\n \nID: <code>{user_id}</code>\nData di sblocco: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> è già sbloccato ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Utenti sbloccati: {count}\n⏱ Timestamp: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Uso: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Utente ignorato 👁️❌\n \nID: <code>{user_id}</code>\nData di ignorato: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> è già ignorato ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Uso: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Utente non più ignorato 👁️✅\n \nID: <code>{user_id}</code>\nData di non più ignorato: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> non è ignorato ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Tempo di esecuzione del bot -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Fornisci un URL per cui cancellare la cache.\nUso: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Fornisci un URL valido.\nUso: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ Usa:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Didascalia"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ TAGLIA"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Taglia Video</b>\n\nDurata video: <b>{start_time} - {end_time}</b>\n\nSi prega di inviare l'intervallo di tempo desiderato nel formato:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nEsempio: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Formato non valido. Si prega di utilizzare: <code>HH:MM:SS-HH:MM:SS</code>\n\nEsempio: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Intervallo non valido. L'ora di inizio deve essere inferiore all'ora di fine."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ L'intervallo di tempo è fuori dai limiti del video.\n\nDurata video: <b>{start_time} - {end_time}</b>\n\nIl tuo intervallo deve essere entro questi limiti."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Il video sarà tagliato:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Parzialmente completato - {successful_uploads}/{total_files} file audio caricati."

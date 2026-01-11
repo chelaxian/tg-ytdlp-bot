@@ -53,6 +53,15 @@ def audio_command_handler(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        from DATABASE.firebase_init import is_user_ignored
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admins)
+    
     # Check if user is blocked (except for admins)
     if not is_admin:
         from DATABASE.firebase_init import is_user_blocked
@@ -135,6 +144,15 @@ def link_command_handler(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        from DATABASE.firebase_init import is_user_ignored
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admins)
+    
     # Check if user is blocked (except for admins)
     if not is_admin:
         from DATABASE.firebase_init import is_user_blocked
@@ -171,6 +189,15 @@ def playlist_command(app, message):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        from DATABASE.firebase_init import is_user_ignored
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admins)
     
     # Check if user is blocked (except for admins)
     if not is_admin:

@@ -813,6 +813,12 @@ Gamitin:
     ADMIN_USER_UNBLOCKED_MSG = "Na-unblock ang user 🔓✅\n \nID: <code>{user_id}</code>\nPetsa ng pag-unblock: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "Ang <code>{user_id}</code> ay na-unblock na ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Na-unblock na mga user: {count}\n⏱ Timestamp: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Paggamit: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Binabalewala ang user 👁️❌\n \nID: <code>{user_id}</code>\nPetsa ng pagbalewala: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> ay binabalewala na ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Paggamit: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Hindi na binabalewala ang user 👁️✅\n \nID: <code>{user_id}</code>\nPetsa ng hindi pagbalewala: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> ay hindi binabalewala ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Tagal ng pagtakbo ng bot -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Mangyaring magbigay ng URL upang i-clear ang cache.\nPaggamit: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Mangyaring magbigay ng wastong URL.\nPaggamit: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ Gamitin:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Panoorin"  # PANSAMANTALANG NAKA-DISABLE: down ang poketube service
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ TRIM"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Trim</b>\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nMangyaring ipadala ang nais na time range sa format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Hindi wastong format. Mangyaring gamitin: <code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Hindi wastong range. Ang start time ay dapat na mas mababa kaysa sa end time."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Ang time range ay nasa labas ng mga hangganan ng video.\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nAng iyong range ay dapat na nasa loob ng mga limitasyong ito."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Ang video ay puputulin:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Bahagyang nakumpleto - {successful_uploads}/{total_files} audio files na na-upload."

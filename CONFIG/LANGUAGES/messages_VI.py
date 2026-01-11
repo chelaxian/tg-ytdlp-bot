@@ -813,6 +813,12 @@ Use:
     ADMIN_USER_UNBLOCKED_MSG = "Người dùng đã được bỏ chặn 🔓✅\n \nID: <code>{user_id}</code>\nNgày bỏ chặn: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> đã được bỏ chặn ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Đã bỏ chặn người dùng: {count}\n⏱ Dấu thời gian: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Sử dụng: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Người dùng bị bỏ qua 👁️❌\n \nID: <code>{user_id}</code>\nNgày bỏ qua: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> đã bị bỏ qua ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Sử dụng: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Người dùng không còn bị bỏ qua 👁️✅\n \nID: <code>{user_id}</code>\nNgày không bỏ qua: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> không bị bỏ qua ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Thời gian chạy bot -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Vui lòng cung cấp URL để xóa cache.\nSử dụng: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Vui lòng cung cấp URL hợp lệ.\nSử dụng: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ Use:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Liên kết"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Chú thích"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ CẮT"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Cắt Video</b>\n\nThời lượng video: <b>{start_time} - {end_time}</b>\n\nVui lòng gửi phạm vi thời gian mong muốn theo định dạng:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nVí dụ: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Định dạng không hợp lệ. Vui lòng sử dụng: <code>HH:MM:SS-HH:MM:SS</code>\n\nVí dụ: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Phạm vi không hợp lệ. Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Phạm vi thời gian nằm ngoài giới hạn của video.\n\nThời lượng video: <b>{start_time} - {end_time}</b>\n\nPhạm vi của bạn phải nằm trong các giới hạn này."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video sẽ được cắt:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Hoàn thành một phần - {successful_uploads}/{total_files} tệp âm thanh đã được tải lên."

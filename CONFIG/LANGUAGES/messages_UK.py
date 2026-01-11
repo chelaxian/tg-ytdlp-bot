@@ -813,6 +813,12 @@ class Messages(object):
     ADMIN_USER_UNBLOCKED_MSG = "Користувача розблоковано 🔓✅\n \nID: <code>{user_id}</code>\nДата розблокування: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> уже розблоковано ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Unblocked users: {count}\n⏱ Timestamp: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Використання: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Користувача проігноровано 👁️❌\n \nID: <code>{user_id}</code>\nДата ігнорування: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> вже проігноровано ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Використання: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Користувача більше не ігнорується 👁️✅\n \nID: <code>{user_id}</code>\nДата зняття ігнорування: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> не ігнорується ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Час роботи бота -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Будь ласка, надайте URL для очищення кешу.\nВикористання: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Будь ласка, надайте дійсний URL.\nВикористання: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Посилання"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Дивитися"  # ТИМЧАСОВО ВИМКНЕНО: сервіс poketube не працює
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Опис"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ ОБРІЗКА"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Обрізка відео</b>\n\nТривалість відео: <b>{start_time} - {end_time}</b>\n\nБудь ласка, надішліть бажаний діапазон часу у форматі:\n<code>ГГ:ХХ:СС-ГГ:ХХ:СС</code>\n\nПриклад: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Невірний формат. Будь ласка, використовуйте: <code>ГГ:ХХ:СС-ГГ:ХХ:СС</code>\n\nПриклад: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Невірний діапазон. Час початку повинен бути меншим за час закінчення."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Діапазон часу виходить за межі відео.\n\nТривалість відео: <b>{start_time} - {end_time}</b>\n\nВаш діапазон повинен бути в межах цих обмежень."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Відео буде обрізано:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Частково завершено - {successful_uploads}/{total_files} аудіо файлів завантажено."

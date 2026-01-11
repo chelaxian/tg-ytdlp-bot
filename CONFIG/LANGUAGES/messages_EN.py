@@ -813,6 +813,12 @@ Use:
     ADMIN_USER_UNBLOCKED_MSG = "User unblocked 🔓✅\n \nID: <code>{user_id}</code>\nUnblocked Date: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> is already unblocked ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Unblocked users: {count}\n⏱ Timestamp: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Usage: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "User ignored 👁️❌\n \nID: <code>{user_id}</code>\nIgnored Date: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> is already ignored ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Usage: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "User no longer ignored 👁️✅\n \nID: <code>{user_id}</code>\nUnignored Date: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> is not ignored ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Bot running time -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Please provide a URL to clear cache for.\nUsage: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Please provide a valid URL.\nUsage: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,13 @@ Use:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Link"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ TRIM"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Trim</b>\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nPlease send the desired time range in format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nExample: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Invalid format. Please use: <code>HH:MM:SS-HH:MM:SS</code>\n\nExample: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Invalid range. Start time must be less than end time."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Time range is out of video bounds.\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nYour range must be within these limits."
+    AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG = "❌ Could not determine video duration. Please try again or use a different video."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video will be trimmed:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partially completed - {successful_uploads}/{total_files} audio files uploaded."

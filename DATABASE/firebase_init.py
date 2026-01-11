@@ -522,6 +522,26 @@ def check_user(message):
             db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("users").child(user_id_str).set(data)
 
 
+# Checking user is Ignored or not
+def is_user_ignored(message):
+    """
+    Проверяет, игнорируется ли пользователь.
+    Игнорируемые пользователи не получают никаких ответов от бота.
+    """
+    user_id = int(message.chat.id)
+    use_firebase = getattr(Config, 'USE_FIREBASE', True)
+    
+    if use_firebase:
+        ignored = db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("ignored_users").get().each()
+        ignored_users = [int(i_user.key()) for i_user in ignored] if ignored else []
+    else:
+        # В локальном режиме проверяем через локальный кэш
+        from DATABASE.cache_db import get_from_local_cache
+        ignored_data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "ignored_users"])
+        ignored_users = [int(k) for k in ignored_data.keys()] if isinstance(ignored_data, dict) else []
+    
+    return user_id in ignored_users
+
 # Checking user is Blocked or not
 def is_user_blocked(message):
     messages = safe_get_messages(message.chat.id)

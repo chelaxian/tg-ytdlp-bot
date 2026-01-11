@@ -5,6 +5,7 @@ import time
 import re
 import random
 import json
+import threading
 from HELPERS.app_instance import get_app
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.decorators import reply_with_keyboard, background_handler
@@ -22,12 +23,25 @@ from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 import os
 import glob
+import xml.etree.ElementTree as ET
 
 # Get app instance for decorators
 app = get_app()
 
 _subs_check_cache = globals().get('_subs_check_cache', {})
 _LAST_TIMEDTEXT_TS = globals().get('_LAST_TIMEDTEXT_TS', 0.0)
+# Global throttling lock for timedtext requests
+_TIMEDTEXT_LOCK = threading.Lock()
+_TIMEDTEXT_NEXT_TS = 0.0
+
+def _timedtext_throttle(min_interval: float = 8.0, jitter: float = 3.0) -> None:
+    """Throttle timedtext requests globally to reduce 429 risk."""
+    global _TIMEDTEXT_NEXT_TS
+    with _TIMEDTEXT_LOCK:
+        now = time.time()
+        if now < _TIMEDTEXT_NEXT_TS:
+            time.sleep(_TIMEDTEXT_NEXT_TS - now)
+        _TIMEDTEXT_NEXT_TS = time.time() + min_interval + random.uniform(0, jitter)
 
 # Per-session helpers to manage subtitle cache for a specific user+URL
 def clear_subs_cache_for(user_id: int, url: str) -> int:
@@ -314,6 +328,15 @@ def subs_command(app, message):
     user_id = message.from_user.id
     is_admin = int(user_id) in Config.ADMIN
     
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        from DATABASE.firebase_init import is_user_ignored
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admins)
+    
     # Check if user is blocked (except for admins)
     if not is_admin:
         from DATABASE.firebase_init import is_user_blocked
@@ -346,16 +369,7 @@ def subs_command(app, message):
             send_to_logger(message, safe_get_messages(user_id).SUBS_ALWAYS_ASK_ENABLED_LOG_MSG.format(arg=arg))
             return
         
-        # /subs ru (language code)
-        elif arg in LANGUAGES:
-            save_user_subs_language(user_id, arg)
-            lang_info = LANGUAGES[arg]
-            from HELPERS.safe_messeger import safe_send_message
-            safe_send_message(user_id, safe_get_messages(user_id).SUBS_LANGUAGE_SET_MSG.format(flag=lang_info['flag'], name=lang_info['name']), message=message)
-            send_to_logger(message, safe_get_messages(user_id).SUBS_LANGUAGE_SET_LOG_MSG.format(arg=arg))
-            return
-        
-        # /subs ru auto (language + auto mode)
+        # /subs ru auto (language + auto mode) - check this BEFORE single language check
         elif len(parts) >= 3 and parts[2].lower() == "auto" and arg in LANGUAGES:
             save_user_subs_language(user_id, arg)
             save_user_subs_auto_mode(user_id, True)
@@ -363,6 +377,17 @@ def subs_command(app, message):
             from HELPERS.safe_messeger import safe_send_message
             safe_send_message(user_id, safe_get_messages(user_id).SUBS_LANGUAGE_AUTO_SET_MSG.format(flag=lang_info['flag'], name=lang_info['name']), message=message)
             send_to_logger(message, safe_get_messages(user_id).SUBS_LANGUAGE_AUTO_SET_LOG_MSG.format(arg=arg))
+            return
+        
+        # /subs ru (language code)
+        elif arg in LANGUAGES:
+            save_user_subs_language(user_id, arg)
+            # When setting language without "auto", disable auto mode to use manual subs
+            save_user_subs_auto_mode(user_id, False)
+            lang_info = LANGUAGES[arg]
+            from HELPERS.safe_messeger import safe_send_message
+            safe_send_message(user_id, safe_get_messages(user_id).SUBS_LANGUAGE_SET_MSG.format(flag=lang_info['flag'], name=lang_info['name']), message=message)
+            send_to_logger(message, safe_get_messages(user_id).SUBS_LANGUAGE_SET_LOG_MSG.format(arg=arg))
             return
         
         # Invalid argument
@@ -771,6 +796,19 @@ def get_user_subs_language(user_id):
 
 def is_subs_enabled(user_id):
     messages = safe_get_messages(user_id)
+    # Check if Always Ask mode is enabled and subtitles are selected in Always Ask menu
+    try:
+        if is_subs_always_ask(user_id):
+            from DOWN_AND_UP.always_ask_menu import get_filters
+            fstate = get_filters(user_id)
+            selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+            subs_all_selected = fstate.get("subs_all_selected", False)
+            # If subtitles are selected in Always Ask menu, consider them enabled
+            if subs_all_selected or selected_subs_langs:
+                return True
+    except Exception:
+        pass
+    # Fallback to checking traditional subs.txt file
     lang = get_user_subs_language(user_id)
     return lang is not None and lang != "OFF"
 
@@ -846,7 +884,7 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Returns a list of available languages of subtitles. Circrats 429 and 'Requested Format ...'."""
     # import os, random, time, yt_dlp
 
-    MAX_RETRIES = 1
+    MAX_RETRIES = 2
     def backoff(i):  # short, because the listing itself usually does not meet the limits
         return (3, 5, 10)[min(i, 2)] + random.uniform(0, 2)
 
@@ -1152,13 +1190,140 @@ def _convert_json3_srv3_to_srt(path: str) -> str:
         return path
 
 
+def _convert_ttml_to_srt(path: str) -> str:
+    """TTML (Timed Text Markup Language) -> SRT conversion."""
+    try:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            raw = f.read()
+        
+        # Parse TTML XML
+        try:
+            root = ET.fromstring(raw)
+        except Exception:
+            # Try to fix common XML issues
+            raw = raw.replace('&', '&amp;')
+            root = ET.fromstring(raw)
+        
+        # Find namespace
+        ns = {'ttml': 'http://www.w3.org/ns/ttml'}
+        if root.tag.startswith('{'):
+            ns['ttml'] = root.tag.split('}')[0][1:]
+        
+        # Find body element
+        body = root.find('.//{%s}body' % ns['ttml'])
+        if body is None:
+            # Try without namespace
+            body = root.find('.//body')
+        
+        if body is None:
+            logger.warning("TTML: body element not found")
+            return path
+        
+        lines = []
+        idx = 1
+        
+        def parse_time(time_str: str) -> int:
+            """Convert TTML time format (e.g., '00:00:01.500' or '1.5s') to milliseconds."""
+            if not time_str:
+                return 0
+            time_str = time_str.strip()
+            # Handle seconds format (e.g., "1.5s" or "1.5")
+            if time_str.endswith('s') or time_str.endswith('S'):
+                try:
+                    return int(float(time_str[:-1]) * 1000)
+                except:
+                    return 0
+            # Handle clock format (e.g., "00:00:01.500" or "00:00:01,500")
+            time_str = time_str.replace(',', '.')
+            parts = time_str.split(':')
+            if len(parts) == 3:
+                try:
+                    h = int(parts[0])
+                    m = int(parts[1])
+                    s_parts = parts[2].split('.')
+                    s = int(s_parts[0])
+                    ms = int(s_parts[1]) if len(s_parts) > 1 else 0
+                    return h * 3600000 + m * 60000 + s * 1000 + ms
+                except:
+                    return 0
+            return 0
+        
+        def ms2ts(ms: int) -> str:
+            """Convert milliseconds to SRT timestamp format."""
+            h = ms // 3600000
+            ms %= 3600000
+            m = ms // 60000
+            ms %= 60000
+            s = ms // 1000
+            ms %= 1000
+            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+        
+        def extract_text(elem) -> str:
+            """Extract text from element, handling nested tags."""
+            text = elem.text or ""
+            for child in elem:
+                text += extract_text(child)
+                if child.tail:
+                    text += child.tail
+            # Remove HTML-like tags
+            text = re.sub(r'<[^>]+>', '', text)
+            # Decode XML entities
+            text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+            text = text.replace('&quot;', '"').replace('&apos;', "'")
+            return text.strip()
+        
+        # Find all p (paragraph) elements
+        paragraphs = body.findall('.//{%s}p' % ns['ttml'])
+        if not paragraphs:
+            paragraphs = body.findall('.//p')
+        
+        for p in paragraphs:
+            begin = p.get('begin') or p.get('{http://www.w3.org/ns/ttml}begin')
+            end = p.get('end') or p.get('{http://www.w3.org/ns/ttml}end')
+            dur = p.get('dur') or p.get('{http://www.w3.org/ns/ttml}dur')
+            
+            if not begin:
+                continue
+            
+            start_ms = parse_time(begin)
+            if end:
+                end_ms = parse_time(end)
+            elif dur:
+                end_ms = start_ms + parse_time(dur)
+            else:
+                end_ms = start_ms + 1000  # Default 1 second
+            
+            text = extract_text(p)
+            if not text:
+                continue
+            
+            lines += [str(idx), f"{ms2ts(start_ms)} --> {ms2ts(end_ms)}", text, '']
+            idx += 1
+        
+        if not lines:
+            logger.warning("TTML: No subtitle entries found")
+            return path
+        
+        srt_txt = _clean_srt_text('\n'.join(lines))
+        new_path = os.path.splitext(path)[0] + '.srt'
+        with open(new_path, 'w', encoding='utf-8') as f:
+            f.write(srt_txt)
+        os.remove(path)
+        return new_path
+    except Exception as e:
+        logger.warning(f"TTML->SRT convert fail: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return path
+
+
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     messages = safe_get_messages(user_id)
     """
     One income Info, select 1 track. For URL with auto transmission (tlang =)
     We do not sort out the FMT so as not to catch 429. Json3/SRV3 convertibly locally.
     """
-    MAX_RETRIES = 1
+    MAX_RETRIES = 3
     RTL_CJK = {'ar', 'fa', 'ur', 'ps', 'iw', 'he', 'zh', 'zh-Hans', 'zh-Hant', 'ja', 'ko'}
 
     def _rand_jitter(base, spread=2.5):
@@ -1199,36 +1364,42 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return any(ch.lower() in alpha for ch in text if ch.isalpha())
         return any(ord(ch) > 127 for ch in text if ch.isalpha())
 
-    def _download_once(url_tt: str, dst_path: str, retries: int = 2) -> bool:
-        global _LAST_TIMEDTEXT_TS
-        sess = requests.Session()
-        headers = {
-            "User-Agent": "Mozilla/5.0",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.youtube.com/",
-            "Origin":  "https://www.youtube.com",
-        }
+    def _download_once_with_ydl(ydl: yt_dlp.YoutubeDL, url_tt: str, dst_path: str, retries: int = 4) -> bool:
+        """
+        Download timedtext using yt-dlp transport (cookies/proxy/handlers/impersonate).
+        This ensures cookies, proxy, and other yt-dlp mechanisms are properly applied.
+        """
         for i in range(retries):
-            # Simple global Trottling
-            delta = time.time() - _LAST_TIMEDTEXT_TS
-            if delta and delta < 1.5:
-                time.sleep(1.5 - delta)
+            _timedtext_throttle(min_interval=8.0, jitter=3.0)
 
-            r = sess.get(url_tt, headers=headers, timeout=25)
-            _LAST_TIMEDTEXT_TS = time.time()
-
-            if r.status_code == 200 and r.content:
-                with open(dst_path, "wb") as f:
-                    f.write(r.content)
-                return True
-
-            if r.status_code == 429:
-                logger.warning(f"{LoggerMsg.SUBS_TIMEDTEXT_429_LOG_MSG}")
-                time.sleep(_rand_jitter(12, 6))
+            try:
+                # ydl.urlopen uses yt-dlp's transport layer with all configured options
+                with ydl.urlopen(url_tt) as resp:
+                    data = resp.read()
+            except Exception as e:
+                # Some 429s surface as exceptions; handle via backoff
+                data = b""
+                err_str = str(e)
+                if "429" in err_str or "Too Many Requests" in err_str:
+                    # Exponential backoff: 60s, 120s, 240s, 300s max
+                    wait = min(60 * (2 ** i), 300) + random.uniform(0, 10)
+                    logger.warning(f"timedtext 429 ({url_tt}), sleep {wait:.1f}s")
+                    time.sleep(wait)
+                    continue
+                logger.error(f"timedtext download error: {e}")
+                time.sleep(_rand_jitter(5, 2))
                 continue
 
-            logger.error(f"{LoggerMsg.SUBS_TIMEDTEXT_HTTP_ERROR_LOG_MSG}")
-            time.sleep(_rand_jitter(4))
+            if data and len(data) > 0:
+                with open(dst_path, "wb") as f:
+                    f.write(data)
+                return True
+
+            # Empty body can happen on rate-limit/bot checks too
+            wait = min(60 * (2 ** i), 300) + random.uniform(0, 10)
+            logger.warning(f"timedtext empty body, sleep {wait:.1f}s")
+            time.sleep(wait)
+
         return False
 
     for attempt in range(MAX_RETRIES):
@@ -1269,89 +1440,167 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
                 info_opts['cookiefile'] = Config.COOKIE_FILE_PATH
             
-            # Add proxy configuration if needed for this domain
-            from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
-            info_opts = add_proxy_to_ytdl_opts(info_opts, url)
+            # Add proxy configuration based on attempt number
+            # Attempt 0: use default proxy (via add_proxy_to_ytdl_opts)
+            # Attempt 1: use PROXY (Config.PROXY_*)
+            # Attempt 2: use PROXY_2 (Config.PROXY_2_*)
+            from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, build_proxy_url
+            
+            if attempt == 0:
+                # First attempt: use default proxy logic
+                info_opts = add_proxy_to_ytdl_opts(info_opts, url)
+            elif attempt == 1:
+                # Second attempt: use PROXY
+                proxy_config = {
+                    'type': Config.PROXY_TYPE,
+                    'ip': Config.PROXY_IP,
+                    'port': Config.PROXY_PORT,
+                    'user': Config.PROXY_USER,
+                    'password': Config.PROXY_PASSWORD
+                }
+                proxy_url = build_proxy_url(proxy_config)
+                if proxy_url:
+                    info_opts['proxy'] = proxy_url
+                    logger.info(f"Using PROXY for subtitle download attempt {attempt + 1}: {proxy_url}")
+            elif attempt == 2:
+                # Third attempt: use PROXY_2
+                proxy_config = {
+                    'type': Config.PROXY_2_TYPE,
+                    'ip': Config.PROXY_2_IP,
+                    'port': Config.PROXY_2_PORT,
+                    'user': Config.PROXY_2_USER,
+                    'password': Config.PROXY_2_PASSWORD
+                }
+                proxy_url = build_proxy_url(proxy_config)
+                if proxy_url:
+                    info_opts['proxy'] = proxy_url
+                    logger.info(f"Using PROXY_2 for subtitle download attempt {attempt + 1}: {proxy_url}")
             
             # Add PO token provider for YouTube domains
             info_opts = add_pot_to_ytdl_opts(info_opts, url)
 
+            # Reuse the same ydl instance for both extract_info and urlopen
             with yt_dlp.YoutubeDL(info_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
 
-            # Prefer union view: sometimes only one dict is filled depending on client
-            subs_dict = {}
-            if not auto_mode:
-                subs_dict = info.get('subtitles', {}) or {}
-                # merge automatic as fallbacks for listing
-                auto_dict = info.get('automatic_captions', {}) or {}
-                for k, v in auto_dict.items():
-                    subs_dict.setdefault(k, v)
-            else:
-                subs_dict = info.get('automatic_captions', {}) or {}
-                normal_dict = info.get('subtitles', {}) or {}
-                for k, v in normal_dict.items():
-                    subs_dict.setdefault(k, v)
-            tracks = subs_dict.get(found_lang) or []
-            if not tracks:
-                alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
-                tracks = subs_dict.get(alt, []) if alt else []
+                # Prefer union view: sometimes only one dict is filled depending on client
+                subs_dict = {}
+                if not auto_mode:
+                    subs_dict = info.get('subtitles', {}) or {}
+                    # merge automatic as fallbacks for listing
+                    auto_dict = info.get('automatic_captions', {}) or {}
+                    for k, v in auto_dict.items():
+                        subs_dict.setdefault(k, v)
+                else:
+                    subs_dict = info.get('automatic_captions', {}) or {}
+                    normal_dict = info.get('subtitles', {}) or {}
+                    for k, v in normal_dict.items():
+                        subs_dict.setdefault(k, v)
+                tracks = subs_dict.get(found_lang) or []
+                if not tracks:
+                    alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
+                    tracks = subs_dict.get(alt, []) if alt else []
 
-            if not tracks:
-                logger.error(LoggerMsg.SUBS_NO_TRACK_URL_FOUND_LOG_MSG)
-                return None
+                if not tracks:
+                    logger.error(LoggerMsg.SUBS_NO_TRACK_URL_FOUND_LOG_MSG)
+                    return None
 
-            # priority
-            preferred = ('srt', 'vtt', 'ttml', 'json3', 'srv3')
-            track = min(
-                tracks,
-                key=lambda t: preferred.index((t.get('ext') or '').lower())
-                if (t.get('ext') or '').lower() in preferred else 999
-            )
+                # Detect translated subs (tlang=) - these are more rate-limited
+                def _is_translated_track(t: dict) -> bool:
+                    u = (t.get("url") or "")
+                    return "tlang=" in u
 
-            ext = (track.get('ext') or 'txt').lower()
-            track_url = track.get('url', '')
-            # If the auto transmission (there is tlang =) - do not touch the FMT, make exactly one request
-            is_translated = 'tlang=' in track_url
+                any_translated = any(_is_translated_track(t) for t in tracks)
 
-            # Clean filename for Windows compatibility
-            title = info.get('title', 'video')
-            # Remove/replace invalid characters for Windows filenames
-            invalid_chars = '<>:"/\\|?*'
-            for char in invalid_chars:
-                title = title.replace(char, '_')
-            # Also replace other problematic characters
-            title = title.replace('|', '_').replace('\\', '_').replace('/', '_')
-            base_name = f"{title[:50]}.{found_lang}.{ext}"
-            dst = os.path.join(video_dir, base_name)
+                # Prefer formats that are easier on YouTube and convertible locally
+                # For translated tracks, SRT is often the most rate-limited -> keep it last
+                if any_translated:
+                    preferred = ('srv3', 'json3', 'vtt', 'ttml', 'srt')
+                else:
+                    preferred = ('vtt', 'ttml', 'srv3', 'json3', 'srt')
 
-            ok = False
-            if is_translated:
-                ok = _download_once(track_url, dst, retries=2)
-            else:
-                # You can try VTT first
-                urls_try = [track_url]
-                if 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
-                    # Add one FMT = VTT
-                    q = '&' if '?' in track_url else '?'
-                    urls_try.append(track_url + q + 'fmt=vtt')
-                # We take it in turn
-                for u in urls_try:
-                    if _download_once(u, dst, retries=2):
+                def _prio(t: dict) -> int:
+                    ext = ((t.get("ext") or "").lower())
+                    return preferred.index(ext) if ext in preferred else 999
+
+                # Pick best track by priority
+                track = min(tracks, key=_prio)
+
+                ext = (track.get('ext') or 'txt').lower()
+                track_url = track.get('url', '')
+                # If the auto transmission (there is tlang =) - do not touch the FMT, make exactly one request
+                is_translated = 'tlang=' in track_url
+
+                # Clean filename for Windows compatibility
+                title = info.get('title', 'video')
+                # Remove/replace invalid characters for Windows filenames
+                invalid_chars = '<>:"/\\|?*'
+                for char in invalid_chars:
+                    title = title.replace(char, '_')
+                # Also replace other problematic characters
+                title = title.replace('|', '_').replace('\\', '_').replace('/', '_')
+                base_name = f"{title[:50]}.{found_lang}.{ext}"
+                dst = os.path.join(video_dir, base_name)
+
+                # Download using yt-dlp transport (reuse the same ydl instance)
+                ok = False
+                if is_translated:
+                    # For translated tracks, use the URL as-is
+                    ok = _download_once_with_ydl(ydl, track_url, dst, retries=4)
+                else:
+                    # For non-translated tracks, try the original URL first
+                    if _download_once_with_ydl(ydl, track_url, dst, retries=4):
                         ok = True
-                        break
+                    elif 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
+                        # Fallback: try VTT format
+                        q = '&' if '?' in track_url else '?'
+                        vtt_url = track_url + q + 'fmt=vtt'
+                        ok = _download_once_with_ydl(ydl, vtt_url, dst, retries=4)
 
-            if not ok or os.path.getsize(dst) < 200:
-                try: os.remove(dst)
-                except Exception: pass
+            if not ok:
+                try: 
+                    if os.path.exists(dst):
+                        os.remove(dst)
+                except Exception: 
+                    pass
+                logger.warning(f"Could not download/too small -> None")
+                # Continue to next attempt instead of returning None immediately
+                if attempt < MAX_RETRIES - 1:
+                    # Reduced backoff for retries with different IP (proxy rotation)
+                    # Since we're using different IPs, we can reduce wait time
+                    wait_time = _rand_jitter(10 + (attempt * 5), 5) if attempt > 0 else _rand_jitter(30, 10)
+                    proxy_name = 'PROXY' if attempt == 1 else 'PROXY_2' if attempt == 2 else 'default proxy'
+                    logger.info(f"Waiting {wait_time:.1f}s before retry {attempt + 2}/{MAX_RETRIES} with {proxy_name}")
+                    time.sleep(wait_time)
+                    continue
+                logger.warning(LoggerMsg.SUBS_COULD_NOT_DOWNLOAD_LOG_MSG)
+                return None
+            
+            # Check file size only if download was successful
+            if os.path.exists(dst) and os.path.getsize(dst) < 200:
+                try: 
+                    os.remove(dst)
+                except Exception: 
+                    pass
+                logger.warning(f"Downloaded file too small (< 200 bytes) -> None")
+                # Continue to next attempt instead of returning None immediately
+                if attempt < MAX_RETRIES - 1:
+                    # Reduced backoff for retries with different IP (proxy rotation)
+                    wait_time = _rand_jitter(10 + (attempt * 5), 5) if attempt > 0 else _rand_jitter(30, 10)
+                    proxy_name = 'PROXY' if attempt == 1 else 'PROXY_2' if attempt == 2 else 'default proxy'
+                    logger.info(f"Waiting {wait_time:.1f}s before retry {attempt + 2}/{MAX_RETRIES} with {proxy_name}")
+                    time.sleep(wait_time)
+                    continue
                 logger.warning(LoggerMsg.SUBS_COULD_NOT_DOWNLOAD_LOG_MSG)
                 return None
 
-            # envelope
+            # envelope - convert to SRT if needed
             if ext == 'vtt':
                 dst = _convert_vtt_to_srt(dst)
             elif ext in ('json3', 'srv3'):
                 dst = _convert_json3_srv3_to_srt(dst)
+            elif ext == 'ttml':
+                dst = _convert_ttml_to_srt(dst)
 
             with open(dst, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
@@ -1381,17 +1630,33 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
         except yt_dlp.utils.DownloadError as e:
             if "429" in str(e):
                 logger.warning(f"{LoggerMsg.SUBS_429_TOO_MANY_REQUESTS_LOG_MSG}")
-                if attempt and attempt < MAX_RETRIES - 1:
-                    time.sleep(_rand_jitter(25 * (attempt + 1)))
+                if attempt < MAX_RETRIES - 1:
+                    # Reduced backoff for retries with different IP (proxy rotation)
+                    # Since we're using different IPs, we can reduce wait time
+                    wait_time = _rand_jitter(15 + (attempt * 5), 5) if attempt > 0 else _rand_jitter(30, 10)
+                    proxy_name = 'PROXY' if attempt == 1 else 'PROXY_2' if attempt == 2 else 'default proxy'
+                    logger.warning(f"429 error, waiting {wait_time:.1f}s before retry {attempt + 2}/{MAX_RETRIES} with {proxy_name}")
+                    time.sleep(wait_time)
                     continue
                 logger.error(LoggerMsg.SUBS_FINAL_ATTEMPT_FAILED_429_LOG_MSG)
                 return None
-            logger.error(f"{LoggerMsg.SUBS_DOWNLOAD_ERROR_LOG_MSG}")
+            logger.error(f"{LoggerMsg.SUBS_DOWNLOAD_ERROR_LOG_MSG}: {e}")
+            if attempt < MAX_RETRIES - 1:
+                # Reduced backoff for retries with different IP
+                wait_time = _rand_jitter(10 + (attempt * 5), 5) if attempt > 0 else _rand_jitter(20, 10)
+                proxy_name = 'PROXY' if attempt == 1 else 'PROXY_2' if attempt == 2 else 'default proxy'
+                logger.info(f"Waiting {wait_time:.1f}s before retry {attempt + 2}/{MAX_RETRIES} with {proxy_name}")
+                time.sleep(wait_time)
+                continue
             return None
         except Exception as e:
-            logger.error(f"{LoggerMsg.SUBS_UNEXPECTED_ERROR_LOG_MSG}")
-            if attempt and attempt < MAX_RETRIES - 1:
-                time.sleep(_rand_jitter(10))
+            logger.error(f"{LoggerMsg.SUBS_UNEXPECTED_ERROR_LOG_MSG}: {e}")
+            if attempt < MAX_RETRIES - 1:
+                # Reduced backoff for retries with different IP
+                wait_time = _rand_jitter(10 + (attempt * 5), 5) if attempt > 0 else _rand_jitter(20, 10)
+                proxy_name = 'PROXY' if attempt == 1 else 'PROXY_2' if attempt == 2 else 'default proxy'
+                logger.info(f"Waiting {wait_time:.1f}s before retry {attempt + 2}/{MAX_RETRIES} with {proxy_name}")
+                time.sleep(wait_time)
                 continue
             return None
 
@@ -1445,6 +1710,24 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
         status_msg = safe_send_message(user_id, safe_get_messages(user_id).SUBS_DOWNLOADING_MSG, reply_parameters=ReplyParameters(message_id=message.id))
         
         # Download subtitles
+        # If available_langs is not provided or empty, get it from cache or fetch it
+        if not available_langs:
+            try:
+                # Try to get from cache first
+                normal_langs = _subs_check_cache.get(f"{url}_{user_id}_normal_langs", [])
+                auto_langs = _subs_check_cache.get(f"{url}_{user_id}_auto_langs", [])
+                if auto_mode:
+                    available_langs = auto_langs if auto_langs else normal_langs
+                else:
+                    available_langs = normal_langs if normal_langs else auto_langs
+                
+                # If still empty, fetch it
+                if not available_langs:
+                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+            except Exception as e:
+                logger.error(f"Error getting available languages: {e}")
+                available_langs = []
+        
         subs_path = download_subtitles_ytdlp(url, user_id, user_dir, available_langs)
         
         if subs_path and os.path.exists(subs_path):
@@ -1594,6 +1877,21 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
     LANGS_PER_ROW = 3
     ROWS_PER_PAGE = per_page_rows
 
+    # Check if MKV format is selected for multiple selection
+    is_mkv = False
+    selected_subs_langs = []
+    subs_all_selected = False
+    if user_id:
+        try:
+            from DOWN_AND_UP.always_ask_menu import get_filters
+            fstate = get_filters(user_id)
+            sel_ext = fstate.get("ext", "mp4")
+            is_mkv = (sel_ext == "mkv")
+            selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+            subs_all_selected = fstate.get("subs_all_selected", False)
+        except Exception:
+            pass
+
     # We get all languages with type indicators
     if langs_override is not None:
         all_langs = []
@@ -1629,12 +1927,31 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
         for j in range(LANGS_PER_ROW):
             if i + j < len(current_page_langs):
                 lang_code, lang_info = current_page_langs[i + j]
-                button_text = f"{lang_info['flag']} {lang_info['name']}"
+                # Add checkmark if selected (for MKV multiple selection)
+                # Show checkmark if language is in selected_subs_langs (works for both individual selection and ALL DUBS)
+                checkmark = "✅ " if is_mkv and lang_code in selected_subs_langs else ""
+                button_text = f"{checkmark}{lang_info['flag']} {lang_info['name']}"
                 row.append(InlineKeyboardButton(
                     button_text,
                     callback_data=f"askf|subs_lang|{lang_code}"
                 ))
         keyboard.append(row)
+    
+    # Add ALL DUBS button at the end for MKV if multiple languages available (only on first page)
+    if is_mkv and total_languages > 1 and page == 0:
+        # Get available dubs from fstate
+        available_dubs = []
+        if user_id:
+            try:
+                from DOWN_AND_UP.always_ask_menu import get_filters
+                fstate = get_filters(user_id)
+                available_dubs = fstate.get("available_dubs", []) or []
+            except Exception:
+                pass
+        
+        # Always show ALL DUBS button (no fallback to ALL)
+        all_dubs_button_text = "✅ ALL DUBS" if subs_all_selected else "ALL DUBS"
+        keyboard.append([InlineKeyboardButton(all_dubs_button_text, callback_data="askf|subs_lang|ALL_DUBS")])
 
     # Navigation
     nav_row = []
@@ -1645,6 +1962,11 @@ def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, 
     if nav_row:
         keyboard.append(nav_row)
 
+    # OFF button for Always Ask (clears all subtitle selections)
+    keyboard.append([
+        InlineKeyboardButton(safe_get_messages(user_id).SUBS_OFF_BUTTON_MSG, callback_data="askf|subs_lang|OFF")
+    ])
+    
     # Back and Close buttons
     keyboard.append([
         InlineKeyboardButton(safe_get_messages(user_id).SUBS_BACK_BUTTON_MSG, callback_data="askf|subs|back"),

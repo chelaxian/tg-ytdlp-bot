@@ -813,6 +813,12 @@ class Messages(object):
     ADMIN_USER_UNBLOCKED_MSG = "用户已解封 🔓✅\n \nID：<code>{user_id}</code>\n解封日期：{date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> 已解封 ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ 已解封用户：{count}\n⏱ 时间戳：{date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ 用法：/ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "用户已忽略 👁️❌\n \nID：<code>{user_id}</code>\n忽略日期：{date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> 已被忽略 ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ 用法：/unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "用户不再被忽略 👁️✅\n \nID：<code>{user_id}</code>\n取消忽略日期：{date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> 未被忽略 ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>机器人运行时间 -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ 请提供要清除缓存的URL。\n用法：<code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ 请提供有效的URL。\n用法：<code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗链接"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁观看"  # 暂时禁用：poketube服务已关闭
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝描述"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ 修剪"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>视频修剪</b>\n\n视频时长: <b>{start_time} - {end_time}</b>\n\n请以以下格式发送所需的时间范围:\n<code>HH:MM:SS-HH:MM:SS</code>\n\n示例: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ 格式无效。请使用: <code>HH:MM:SS-HH:MM:SS</code>\n\n示例: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ 范围无效。开始时间必须小于结束时间。"
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ 时间范围超出视频边界。\n\n视频时长: <b>{start_time} - {end_time}</b>\n\n您的范围必须在此限制内。"
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>视频将被裁剪:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 部分完成 - 已上传 {successful_uploads}/{total_files} 个音频文件。"

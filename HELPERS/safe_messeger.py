@@ -31,6 +31,18 @@ def fake_message(text, user_id, command=None, original_chat_id=None, message_thr
     messages = safe_get_messages(user_id)
     m = SimpleNamespace()
     m.chat = SimpleNamespace()
+    # Ensure user_id is int (convert from string if needed)
+    if isinstance(user_id, str):
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            user_id = 0
+    # Ensure original_chat_id is int if provided
+    if original_chat_id is not None and isinstance(original_chat_id, str):
+        try:
+            original_chat_id = int(original_chat_id)
+        except (ValueError, TypeError):
+            original_chat_id = None
     # Use original_chat_id if provided, otherwise use user_id
     # Ensure we have a valid chat_id (fallback to -1 if both are None)
     chat_id = original_chat_id if original_chat_id is not None else user_id
@@ -39,7 +51,9 @@ def fake_message(text, user_id, command=None, original_chat_id=None, message_thr
     m.chat.id = chat_id
     m.chat.first_name = safe_get_messages(user_id).HELPER_USER_NAME_MSG
     # Set chat type based on chat_id (negative = group, positive = private)
-    m.chat.type = enums.ChatType.PRIVATE if (original_chat_id if original_chat_id is not None else user_id) > 0 else enums.ChatType.SUPERGROUP
+    # Ensure we compare numbers, not strings
+    comparison_id = int(original_chat_id) if original_chat_id is not None else int(user_id)
+    m.chat.type = enums.ChatType.PRIVATE if comparison_id > 0 else enums.ChatType.SUPERGROUP
     m.text = text
     m.first_name = m.chat.first_name
     m.reply_to_message = None

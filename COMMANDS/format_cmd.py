@@ -124,6 +124,10 @@ def set_session_mkv_override(user_id, value):
     messages = safe_get_messages(user_id)
     _SESSION_MKV_OVERRIDE[str(user_id)] = bool(value)
 
+def get_session_mkv_override(user_id):
+    messages = safe_get_messages(user_id)
+    return _SESSION_MKV_OVERRIDE.get(str(user_id), None)
+
 def clear_session_mkv_override(user_id):
     messages = safe_get_messages(user_id)
     _SESSION_MKV_OVERRIDE.pop(str(user_id), None)
@@ -138,6 +142,15 @@ def set_format(app, message):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        from DATABASE.firebase_init import is_user_ignored
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admins)
     
     # Check if user is blocked (except for admins)
     if not is_admin:

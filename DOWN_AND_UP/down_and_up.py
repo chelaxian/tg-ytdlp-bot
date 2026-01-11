@@ -123,16 +123,21 @@ def _handle_quality_key_error(e: Exception, split_msg_ids: list, is_playlist: bo
         # Save to cache if we have the necessary data
         if url and safe_quality_key and split_msg_ids and not is_playlist:
             logger.info(f"down_and_up: saving split video to cache after quality_key error: {split_msg_ids}")
-            _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id)
+            _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
         
         return True
     else:
         logger.warning(f"Upload complete condition NOT met after quality_key error: successful_uploads={successful_uploads}, len(indices_to_download)={len(indices_to_download)}, split_msg_ids={split_msg_ids}, is_playlist={is_playlist}")
         return False
 
-def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids: list, original_text: str = None, user_id: int = None):
+def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids: list, original_text: str = None, user_id: int = None, download_sections: str = None):
     """Save video to cache with channel type logging."""
     try:
+        # Don't cache trimmed videos
+        if download_sections:
+            logger.info(f"Skipping cache for trimmed video: url={url}, quality={safe_quality_key}, sections={download_sections}")
+            return
+        
         # Check if user has send_as_file enabled
         if user_id is not None:
             from COMMANDS.args_cmd import get_user_args
@@ -199,7 +204,7 @@ def determine_need_subs(subs_enabled, found_type, user_id):
     return need_subs
 
 #@reply_with_keyboard
-def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, clear_subs_cache_on_start=True):
+def down_and_up(app, message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=None, quality_key=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, clear_subs_cache_on_start=True, download_sections=None):
     # ВАЖНО: не сбрасываем источники YouTube‑куки без необходимости.
     # Если пользователь уже получил рабочие куки и мы пришли из Always Ask меню
     # (cookies_already_checked=True), повторный сброс и перебор источников только
@@ -211,6 +216,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         reset_checked_cookie_sources(user_id)
         logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new download task for user {user_id}")
     messages = safe_get_messages(message.chat.id)
+    
+    # Load trim sections if not provided
+    if download_sections is None:
+        from DOWN_AND_UP.always_ask_menu import load_trim_sections
+        download_sections = load_trim_sections(user_id, url)
+        if download_sections:
+            logger.info(f"Loaded trim sections for user {user_id}, URL: {url}, sections: {download_sections}")
     """
     Now if part of the playlist range is already cached, we first repost the cached indexes, then download and cache the missing ones, without finishing after reposting part of the range.
     """
@@ -267,7 +279,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         logger.info(f"Audio-only format detected in down_and_up: {format_override}, redirecting to down_and_audio")
         from DOWN_AND_UP.down_and_audio import down_and_audio
         # Pass cached video info to down_and_audio for optimization
-        down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=format_override, cookies_already_checked=cookies_already_checked, cached_video_info=cached_video_info)
+        # Load trim sections if available
+        if download_sections is None:
+            from DOWN_AND_UP.always_ask_menu import load_trim_sections
+            download_sections = load_trim_sections(user_id, url)
+        down_and_audio(app, message, url, tags_text, quality_key=quality_key, format_override=format_override, cookies_already_checked=cookies_already_checked, cached_video_info=cached_video_info, download_sections=download_sections)
         return
     
     # Check if LINK mode is enabled - if yes, get direct link instead of downloading
@@ -345,13 +361,41 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # Check Always Ask mode first - it overrides everything
     is_always_ask_mode = is_subs_always_ask(user_id)
     if is_always_ask_mode and is_youtube_url(url):
-        subs_lang = get_user_subs_language(user_id)
-        if subs_lang and subs_lang not in ["OFF"]:
-            need_subs = True
-            logger.info(f"Always Ask mode: user selected language '{subs_lang}' -> FORCE SUBS")
-        else:
-            need_subs = False
-            logger.info(f"Always Ask mode: no language selected -> NO SUBS")
+        # Check filters state for selected subtitle languages
+        try:
+            from DOWN_AND_UP.always_ask_menu import get_filters
+            filters_state = get_filters(user_id)
+            logger.info(f"[DEBUG] Always Ask mode: filters_state keys: {list(filters_state.keys())}")
+            logger.info(f"[DEBUG] Always Ask mode: full filters_state: {filters_state}")
+            selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
+            subs_all_selected = filters_state.get("subs_all_selected", False)
+            logger.info(f"[DEBUG] Always Ask mode: selected_subs_langs={selected_subs_langs}, type={type(selected_subs_langs)}, len={len(selected_subs_langs) if selected_subs_langs else 0}")
+            logger.info(f"[DEBUG] Always Ask mode: subs_all_selected={subs_all_selected}, type={type(subs_all_selected)}")
+            
+            if subs_all_selected or (selected_subs_langs and len(selected_subs_langs) > 0):
+                need_subs = True
+                logger.info(f"Always Ask mode: selected_subs_langs={selected_subs_langs}, subs_all_selected={subs_all_selected} -> FORCE SUBS")
+            else:
+                # Fallback to old logic (subs.txt) for backward compatibility
+                subs_lang = get_user_subs_language(user_id)
+                if subs_lang and subs_lang not in ["OFF"]:
+                    need_subs = True
+                    logger.info(f"Always Ask mode: user selected language '{subs_lang}' (from subs.txt) -> FORCE SUBS")
+                else:
+                    need_subs = False
+                    logger.info(f"Always Ask mode: no language selected -> NO SUBS")
+        except Exception as e:
+            logger.error(f"Error reading filters state for Always Ask mode: {e}")
+            import traceback as tb
+            logger.error(tb.format_exc())
+            # Fallback to old logic
+            subs_lang = get_user_subs_language(user_id)
+            if subs_lang and subs_lang not in ["OFF"]:
+                need_subs = True
+                logger.info(f"Always Ask mode: user selected language '{subs_lang}' (fallback) -> FORCE SUBS")
+            else:
+                need_subs = False
+                logger.info(f"Always Ask mode: no language selected (fallback) -> NO SUBS")
     elif subs_enabled and is_youtube_url(url):
         found_type = check_subs_availability(url, user_id, safe_quality_key, return_type=True)
         # Determine subtitle availability once here
@@ -359,6 +403,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         logger.info(f"Manual mode: subs_enabled={subs_enabled}, found_type={found_type}, need_subs={need_subs}, user_id={user_id}")
     else:
         logger.info(f"Subtitle check skipped: subs_enabled={subs_enabled}, is_youtube={is_youtube_url(url)}, user_id={user_id}")
+    
+    # Initialize variables for Always Ask mode (needed later in subtitle configuration)
+    if not is_always_ask_mode or not is_youtube_url(url):
+        selected_subs_langs = []
+        subs_all_selected = False
     
     # Additional debug info
     if is_youtube_url(url):
@@ -523,7 +572,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Error reposting video from cache: {e}")
                         # Always save to cache regardless of subtitles or Always Ask mode
                         # The cache will be used for display purposes (rocket emoji) but not for reposting
-                        _save_video_cache_with_logging(url, safe_quality_key, [], original_text="", user_id=user_id)
+                        _save_video_cache_with_logging(url, safe_quality_key, [], original_text="", user_id=user_id, download_sections=download_sections)
                         # Don't show error message if we successfully got video from cache
                         # The video was already sent successfully in the try block
                 else:
@@ -605,6 +654,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             pass
         proc_msg_id = proc_msg.id
         error_message = ""
+        hls_file_found = False  # Initialize hls_file_found for HLS stream handling
         status_msg = None
         status_msg_id = None
         hourglass_msg = None
@@ -745,8 +795,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         user_args = get_user_ytdlp_args(user_id, url)
         user_merge_format = user_args.get('merge_output_format', 'mp4')
         
+        # Check session MKV override first (from Always Ask menu)
+        try:
+            from COMMANDS.format_cmd import get_session_mkv_override
+            session_mkv = get_session_mkv_override(user_id)
+            logger.info(f"Session MKV override for user {user_id}: {session_mkv}")
+            if session_mkv is not None:
+                # Use session override
+                effective_merge_format = 'mkv' if session_mkv else user_merge_format
+                logger.info(f"Using session MKV override: effective_merge_format={effective_merge_format}")
+            else:
+                effective_merge_format = user_merge_format
+                logger.info(f"No session override, using user preference: effective_merge_format={effective_merge_format}")
+        except Exception as e:
+            logger.error(f"Error checking session MKV override: {e}")
+            effective_merge_format = user_merge_format
+        
         if format_override:
-            attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': user_merge_format}]
+            attempts = [{'format': format_override, 'prefer_ffmpeg': True, 'merge_output_format': effective_merge_format}]
+            logger.info(f"Created attempts with format_override and merge_output_format={effective_merge_format}")
         else:
             # if use_default_format is True, then do not take from format.txt, but use default ones
             if use_default_format:
@@ -1055,7 +1122,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         def try_download(url, attempt_opts):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata
+            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections, hls_file_found
+            # Initialize hls_file_found for this download attempt
+            hls_file_found = False
             
             # Ensure download directory exists before setting outtmpl
             try:
@@ -1133,6 +1202,48 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 #'connect_timeout': 30  # Connect timeout
             }
             
+            # Add download_sections if trim is enabled
+            if download_sections:
+                common_opts['download_sections'] = [download_sections]
+                
+                # Extract start and end times from download_sections format: *HH:MM:SS-HH:MM:SS
+                import re
+                trim_match = re.match(r'\*(\d{2}):(\d{2}):(\d{2})-(\d{2}):(\d{2}):(\d{2})', download_sections)
+                if trim_match:
+                    start_h, start_m, start_s, end_h, end_m, end_s = map(int, trim_match.groups())
+                    start_seconds = start_h * 3600 + start_m * 60 + start_s
+                    end_seconds = end_h * 3600 + end_m * 60 + end_s
+                    duration_seconds = end_seconds - start_seconds
+                    
+                    # Format times for ffmpeg: HH:MM:SS
+                    start_time_str = f"{start_h:02d}:{start_m:02d}:{start_s:02d}"
+                    end_time_str = f"{end_h:02d}:{end_m:02d}:{end_s:02d}"
+                    
+                    logger.info(f"[TRIM] Extracted trim times: start={start_time_str} ({start_seconds}s), end={end_time_str} ({end_seconds}s), duration={duration_seconds}s")
+                    
+                    # Note: FFmpegVideoConvertor doesn't support postprocessor_args in yt-dlp
+                    # We rely on download_sections for trimming, which is already added to ytdl_opts
+                    # Add FFmpegVideoRemuxer for remuxing after download_sections processing
+                    has_remuxer = any(pp.get('key') == 'FFmpegVideoRemuxer' for pp in postprocessors)
+                    if not has_remuxer:
+                        remuxer_index = next((i for i, pp in enumerate(postprocessors) if pp.get('key') == 'FFmpegMetadata'), len(postprocessors))
+                        postprocessors.insert(remuxer_index, {
+                            'key': 'FFmpegVideoRemuxer',
+                            'preferedformat': 'mp4',
+                        })
+                        logger.info(f"[TRIM] Added FFmpegVideoRemuxer for remuxing after download_sections trim")
+                else:
+                    logger.warning(f"[TRIM] Could not parse download_sections format: {download_sections}")
+                    # Still add remuxer without explicit trim (rely on download_sections)
+                    has_remuxer = any(pp.get('key') == 'FFmpegVideoRemuxer' for pp in postprocessors)
+                    if not has_remuxer:
+                        remuxer_index = next((i for i, pp in enumerate(postprocessors) if pp.get('key') == 'FFmpegMetadata'), len(postprocessors))
+                        postprocessors.insert(remuxer_index, {
+                            'key': 'FFmpegVideoRemuxer',
+                            'preferedformat': 'mp4',
+                        })
+                logger.info(f"Added download_sections: {download_sections} for user {user_id}")
+            
             # Define sanitize_title_for_filename function
             def sanitize_title_for_filename(title):
                 messages = safe_get_messages(message.chat.id)
@@ -1176,38 +1287,47 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             
             # Configure subtitle options based on user settings
             if need_subs and is_youtube_url(url):
-                subs_lang = get_user_subs_language(user_id)
-                auto_mode = get_user_subs_auto_mode(user_id)
-                
-                if subs_lang and subs_lang not in ["OFF"]:
-                    # Enable subtitle writing
-                    common_opts['writesubtitles'] = True
-                    common_opts['writeautomaticsub'] = auto_mode
-                    
-                    # Set subtitle language
-                    if subs_lang != "auto":
-                        common_opts['subtitleslangs'] = [subs_lang]
-                    
-                    logger.info(f"Enabled subtitle download for user {user_id}: lang={subs_lang}, auto_mode={auto_mode}")
+                # In Always Ask mode with multiple subtitle selection, skip yt-dlp subtitle download
+                # (subtitles will be downloaded separately in post-processing)
+                if is_always_ask_mode and (subs_all_selected or (selected_subs_langs and len(selected_subs_langs) > 0)):
+                    logger.info(f"Always Ask mode with multiple subtitles: skipping yt-dlp subtitle download, will download separately")
+                    common_opts['writesubtitles'] = False
+                    common_opts['writeautomaticsub'] = False
                 else:
-                    # Check availability and warn user if subtitles not found
-                    from COMMANDS.subtitles_cmd import get_available_subs_languages
-                    available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
-                    # Flexible check: search for an exact match or any language from the group
-                    lang_prefix = subs_lang.split('-')[0]
-                    found = False
-                    for l in available_langs:
-                        if l == subs_lang or l.startswith(subs_lang + '-') or l.startswith(subs_lang + '.') \
-                           or l == lang_prefix or l.startswith(lang_prefix + '-') or l.startswith(lang_prefix + '.'):
-                            found = True
-                            break
-                    if not found:
-                        from COMMANDS.subtitles_cmd import LANGUAGES
-                        app.send_message(
-                            user_id,
-                            f"⚠️ Subtitles for {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} not found for this video. Download without subtitles.",
-                            reply_parameters=ReplyParameters(message_id=message.id)
-                        )
+                    # Single language mode - use yt-dlp subtitle download
+                    subs_lang = get_user_subs_language(user_id)
+                    auto_mode = get_user_subs_auto_mode(user_id)
+                    
+                    if subs_lang and subs_lang not in ["OFF"]:
+                        # Enable subtitle writing
+                        common_opts['writesubtitles'] = True
+                        common_opts['writeautomaticsub'] = auto_mode
+                        
+                        # Set subtitle language
+                        if subs_lang != "auto":
+                            common_opts['subtitleslangs'] = [subs_lang]
+                        
+                        logger.info(f"Enabled subtitle download for user {user_id}: lang={subs_lang}, auto_mode={auto_mode}")
+                    else:
+                        # Check availability and warn user if subtitles not found
+                        from COMMANDS.subtitles_cmd import get_available_subs_languages
+                        available_langs = get_available_subs_languages(url, user_id, auto_only=auto_mode)
+                        # Flexible check: search for an exact match or any language from the group
+                        lang_prefix = subs_lang.split('-')[0] if subs_lang else None
+                        found = False
+                        for l in available_langs:
+                            if l == subs_lang or (subs_lang and (l.startswith(subs_lang + '-') or l.startswith(subs_lang + '.'))) \
+                               or (lang_prefix and (l == lang_prefix or l.startswith(lang_prefix + '-') or l.startswith(lang_prefix + '.'))):
+                                found = True
+                                break
+                        if not found and subs_lang:
+                            from COMMANDS.subtitles_cmd import LANGUAGES
+                            if subs_lang in LANGUAGES:
+                                app.send_message(
+                                    user_id,
+                                    f"⚠️ Subtitles for {LANGUAGES[subs_lang]['flag']} {LANGUAGES[subs_lang]['name']} not found for this video. Download without subtitles.",
+                                    reply_parameters=ReplyParameters(message_id=message.id)
+                                )
             else:
                 # Disable subtitle writing if subtitles are not needed
                 common_opts['writesubtitles'] = False
@@ -1263,18 +1383,29 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Always use progress_hooks, even for HLS
             common_opts['progress_hooks'] = [progress_func]
             # Respect MKV toggle: remux to mkv when MKV is ON; otherwise prefer mp4
+            # Check session override first (from Always Ask menu), then user preference
             try:
-                from COMMANDS.format_cmd import get_user_mkv_preference
-                mkv_on = get_user_mkv_preference(user_id)
-            except Exception:
+                from COMMANDS.format_cmd import get_session_mkv_override, get_user_mkv_preference
+                mkv_on = get_session_mkv_override(user_id)
+                logger.info(f"MKV session override for user {user_id}: {mkv_on}")
+                if mkv_on is None:
+                    # Fallback to user preference if no session override
+                    mkv_on = get_user_mkv_preference(user_id)
+                    logger.info(f"MKV user preference for user {user_id}: {mkv_on}")
+                else:
+                    logger.info(f"Using MKV session override: {mkv_on}")
+            except Exception as e:
+                logger.error(f"Error checking MKV preference: {e}")
                 mkv_on = False
 
-            # Adjust attempts' merge_output_format based on WEBM preference
+            # Adjust attempts' merge_output_format based on MKV preference
             try:
                 if mkv_on:
                     for _attempt in attempts:
                         if isinstance(_attempt, dict):
                             _attempt['merge_output_format'] = 'mkv'
+                    # Also set in common_opts to ensure it's applied
+                    common_opts['merge_output_format'] = 'mkv'
                 else:
                     for _attempt in attempts:
                         if isinstance(_attempt, dict) and 'merge_output_format' not in _attempt:
@@ -1284,6 +1415,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 pass
 
             ytdl_opts = {**common_opts, **attempt_opts}
+            
+            # Ensure MKV format is applied even if it wasn't in attempts
+            if mkv_on:
+                ytdl_opts['merge_output_format'] = 'mkv'
+                logger.info(f"MKV mode enabled: setting merge_output_format=mkv, remux_video=mkv")
             
             # Add proxy configuration if needed
             if use_proxy:
@@ -1327,10 +1463,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
             
             # If MKV is ON, remux to mkv; else to mp4
+            # Ensure merge_output_format is also set correctly
             if mkv_on:
                 ytdl_opts['remux_video'] = 'mkv'
+                # Force merge_output_format to mkv if not already set
+                if 'merge_output_format' not in ytdl_opts or ytdl_opts.get('merge_output_format') != 'mkv':
+                    ytdl_opts['merge_output_format'] = 'mkv'
+                    logger.info("Forcing merge_output_format=mkv for MKV mode")
             else:
-                ytdl_opts['remux_video'] = 'mp4'
+                # Only set remux_video to mp4 if MKV is explicitly OFF
+                # But respect merge_output_format if it's already set to mkv
+                if 'merge_output_format' in ytdl_opts and ytdl_opts['merge_output_format'] == 'mkv':
+                    ytdl_opts['remux_video'] = 'mkv'
+                else:
+                    ytdl_opts['remux_video'] = 'mp4'
             try:
                 logger.info(f"Starting yt-dlp extraction for URL: {url}")
                 logger.info(f"yt-dlp options: {ytdl_opts}")
@@ -1565,7 +1711,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
-                nonlocal error_message
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
@@ -2442,6 +2587,68 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     downloaded_abs_path = os.path.abspath(os.path.join(dir_path, downloaded_file))
             
             logger.info(f"Selected downloaded file: {downloaded_file}")
+            
+            # Apply explicit trimming if download_sections was specified
+            # This ensures trimming even if download_sections didn't work (e.g., for HLS streams)
+            if download_sections and downloaded_abs_path and os.path.exists(downloaded_abs_path):
+                import re
+                trim_match = re.match(r'\*(\d{2}):(\d{2}):(\d{2})-(\d{2}):(\d{2}):(\d{2})', download_sections)
+                if trim_match:
+                    start_h, start_m, start_s, end_h, end_m, end_s = map(int, trim_match.groups())
+                    start_seconds = start_h * 3600 + start_m * 60 + start_s
+                    end_seconds = end_h * 3600 + end_m * 60 + end_s
+                    
+                    expected_duration = end_seconds - start_seconds
+                    
+                    # Check video duration using ffprobe to verify if trimming is needed
+                    try:
+                        from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
+                        width, height, video_duration = get_video_info_ffprobe(downloaded_abs_path)
+                        video_duration = float(video_duration) if video_duration else 0
+                        
+                        # Always trim if video is longer than expected (download_sections didn't work)
+                        # Or if video is significantly different from expected (more than 5 seconds difference)
+                        if video_duration > expected_duration + 5:  # Allow 5 seconds tolerance
+                            logger.info(f"[TRIM] Video duration ({video_duration}s) is longer than expected ({expected_duration}s), applying explicit trim")
+                            logger.info(f"[TRIM] Trimming video from {start_seconds}s to {end_seconds}s")
+                            
+                            # Create temporary trimmed file with .mp4 extension so FFmpeg can detect format
+                            base_path = os.path.splitext(downloaded_abs_path)[0]
+                            temp_trimmed_path = base_path + '.trimmed.mp4'
+                            from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
+                            
+                            if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
+                                # Replace original with trimmed version
+                                import shutil
+                                shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s")
+                            else:
+                                logger.error(f"[TRIM] Failed to trim video, using original file")
+                                # Clean up temp file if it exists
+                                if os.path.exists(temp_trimmed_path):
+                                    try:
+                                        os.remove(temp_trimmed_path)
+                                    except Exception:
+                                        pass
+                        else:
+                            logger.info(f"[TRIM] Video duration ({video_duration}s) matches expected ({expected_duration}s), trimming may have worked via download_sections")
+                    except Exception as trim_error:
+                        # If we can't check duration, still try to trim to be safe
+                        logger.warning(f"[TRIM] Error checking video duration: {trim_error}, attempting trim anyway")
+                        try:
+                            temp_trimmed_path = downloaded_abs_path + '.trimmed.tmp'
+                            from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
+                            
+                            if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
+                                import shutil
+                                shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s (duration check failed)")
+                            else:
+                                logger.error(f"[TRIM] Failed to trim video")
+                        except Exception as trim_exec_error:
+                            logger.error(f"[TRIM] Error during trim execution: {trim_exec_error}")
+                            import traceback
+                            logger.error(traceback.format_exc())
             write_logs(message, url, downloaded_file)
             
             # Save original filename for subtitle search
@@ -3060,7 +3267,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Only save to cache if subtitles are not needed
                     if not need_subs:
-                        _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id)
+                        _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                     else:
                         logger.info(f"Split video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode}) - different users may need different languages")
                 else:
@@ -3235,6 +3442,193 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             
                             # Clear
                             clear_subs_check_cache()
+                        
+                        # MKV postprocessing: embed all audio tracks and subtitles if needed
+                        try:
+                            from COMMANDS.format_cmd import get_session_mkv_override
+                            from DOWN_AND_UP.always_ask_menu import get_filters
+                            
+                            session_mkv = get_session_mkv_override(user_id)
+                            if session_mkv is None:
+                                from COMMANDS.format_cmd import get_user_mkv_preference
+                                session_mkv = get_user_mkv_preference(user_id)
+                            
+                            is_mkv = session_mkv and after_rename_abs_path.lower().endswith('.mkv')
+                            
+                            if is_mkv:
+                                # Get filter state to check if we need to download all tracks
+                                try:
+                                    filters_state = get_filters(user_id)
+                                    logger.info(f"[DEBUG] MKV block: filters_state keys: {list(filters_state.keys())}")
+                                    logger.info(f"[DEBUG] MKV block: filters_state selected_subs_langs: {filters_state.get('selected_subs_langs', [])}")
+                                    logger.info(f"[DEBUG] MKV block: filters_state subs_all_selected: {filters_state.get('subs_all_selected', False)}")
+                                    audio_all_dubs = filters_state.get("audio_all_dubs", False)
+                                    selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
+                                    selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
+                                    subs_all_selected = filters_state.get("subs_all_selected", False)
+                                    logger.info(f"[DEBUG] MKV block: extracted selected_subs_langs={selected_subs_langs}, subs_all_selected={subs_all_selected}")
+                                except Exception as e:
+                                    logger.error(f"[DEBUG] MKV block: error reading filters_state: {e}")
+                                    logger.error(traceback.format_exc())
+                                    audio_all_dubs = False
+                                    selected_audio_langs = []
+                                    selected_subs_langs = []
+                                    subs_all_selected = False
+                                
+                                video_dir = os.path.dirname(after_rename_abs_path)
+                                
+                                # Download and embed audio tracks if needed (ALL or selected languages)
+                                if audio_all_dubs or selected_audio_langs:
+                                    try:
+                                        # Download selected audio tracks (ALL or specific languages)
+                                        if audio_all_dubs:
+                                            logger.info("Downloading ALL available audio tracks for MKV")
+                                            status_msg = app.send_message(user_id, "🎵 Downloading all audio tracks...")
+                                            available_langs = None  # Download all
+                                        else:
+                                            logger.info(f"Downloading selected audio tracks for MKV: {selected_audio_langs}")
+                                            status_msg = app.send_message(user_id, f"🎵 Downloading {len(selected_audio_langs)} audio tracks...")
+                                            available_langs = selected_audio_langs  # Download only selected
+                                        
+                                        from DOWN_AND_UP.ffmpeg import download_all_audio_tracks, embed_all_audio_tracks_to_mkv
+                                        # Find the format that was actually downloaded to get its language
+                                        downloaded_format = None
+                                        if info_dict and 'formats' in info_dict:
+                                            # Try to find format by quality_key if available
+                                            if quality_key:
+                                                for fmt in info_dict['formats']:
+                                                    if fmt.get('format_id') == quality_key:
+                                                        downloaded_format = fmt
+                                                        break
+                                            # If not found, try to find the best video+audio format
+                                            if not downloaded_format:
+                                                for fmt in info_dict['formats']:
+                                                    if fmt.get('vcodec') != 'none' and fmt.get('acodec'):
+                                                        downloaded_format = fmt
+                                                        break
+                                        # Pass selected languages or None for all, and pass info_dict to avoid re-fetching
+                                        audio_result = download_all_audio_tracks(url, user_id, video_dir, available_langs=available_langs, use_proxy=use_proxy, info_dict=info_dict, downloaded_format=downloaded_format)
+                                        
+                                        # Extract tracks and original language from result
+                                        if isinstance(audio_result, dict):
+                                            audio_tracks = audio_result.get('tracks', [])
+                                            original_audio_lang = audio_result.get('original_lang')
+                                        else:
+                                            # Backward compatibility
+                                            audio_tracks = audio_result if audio_result else []
+                                            original_audio_lang = None
+                                        
+                                        if audio_tracks or original_audio_lang:
+                                            total_tracks = len(audio_tracks) + (1 if original_audio_lang else 0)
+                                            logger.info(f"Embedding {len(audio_tracks)} additional audio tracks + 1 original into MKV")
+                                            app.edit_message_text(user_id, status_msg.id, "🎵 Embedding audio tracks into MKV...")
+                                            
+                                            def audio_update_callback(progress, eta):
+                                                try:
+                                                    blocks = int(progress * 10)
+                                                    bar = '🟩' * blocks + '⬜️' * (10 - blocks)
+                                                    percent = int(progress * 100)
+                                                    app.edit_message_text(
+                                                        chat_id=user_id,
+                                                        message_id=status_msg.id,
+                                                        text=f"🎵 Embedding audio tracks...\n{bar} {percent}%\nETA: {eta} min"
+                                                    )
+                                                except Exception:
+                                                    pass
+                                            
+                                            embed_result = embed_all_audio_tracks_to_mkv(
+                                                after_rename_abs_path, audio_tracks, user_id,
+                                                tg_update_callback=audio_update_callback, app=app, message=message,
+                                                original_audio_lang=original_audio_lang
+                                            )
+                                            
+                                            if embed_result:
+                                                app.edit_message_text(user_id, status_msg.id, f"✅ All {total_tracks} audio tracks embedded successfully!")
+                                            else:
+                                                app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to embed some audio tracks")
+                                        else:
+                                            app.edit_message_text(user_id, status_msg.id, "⚠️ No additional audio tracks found")
+                                    except Exception as e:
+                                        logger.error(f"Error in audio tracks postprocessing: {e}")
+                                        logger.error(traceback.format_exc())
+                                
+                                # Download and embed all subtitles if needed
+                                logger.info(f"[DEBUG] MKV subtitle check: subs_all_selected={subs_all_selected}, selected_subs_langs={selected_subs_langs}, type={type(selected_subs_langs)}, len={len(selected_subs_langs) if selected_subs_langs else 0}")
+                                if subs_all_selected or selected_subs_langs:
+                                    try:
+                                        logger.info(f"Downloading all subtitles for MKV: all_selected={subs_all_selected}, langs={selected_subs_langs}")
+                                        status_msg = app.send_message(user_id, "💬 Downloading all subtitles...")
+                                        
+                                        # Get available dubs for ALL_DUBS filtering
+                                        available_dubs = filters_state.get("available_dubs", []) or []
+                                        
+                                        logger.info(f"[DEBUG] Calling download_all_subtitles with: selected_langs={selected_subs_langs}, all_selected={subs_all_selected}, available_dubs={available_dubs}")
+                                        from DOWN_AND_UP.ffmpeg import download_all_subtitles
+                                        try:
+                                            subtitle_tracks = download_all_subtitles(
+                                                url, user_id, video_dir,
+                                                selected_langs=selected_subs_langs if selected_subs_langs else None,
+                                                all_selected=subs_all_selected,
+                                                available_dubs=available_dubs if subs_all_selected else None
+                                            )
+                                            # Ensure subtitle_tracks is a list, not None
+                                            if subtitle_tracks is None:
+                                                logger.warning("download_all_subtitles returned None, converting to empty list")
+                                                subtitle_tracks = []
+                                            logger.info(f"[DEBUG] download_all_subtitles returned: {len(subtitle_tracks) if subtitle_tracks else 0} tracks")
+                                        except Exception as subs_download_error:
+                                            logger.error(f"Error in download_all_subtitles: {subs_download_error}")
+                                            logger.error(traceback.format_exc())
+                                            subtitle_tracks = []
+                                            app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to download subtitles")
+                                        
+                                        if subtitle_tracks:
+                                            logger.info(f"Embedding {len(subtitle_tracks)} subtitle tracks into MKV")
+                                            app.edit_message_text(user_id, status_msg.id, "💬 Embedding subtitles into MKV...")
+                                            
+                                            # Use existing embed_subs_to_video function which now supports multiple tracks
+                                            # (already imported at the top of the file)
+                                            
+                                            def subs_update_callback(progress, eta):
+                                                try:
+                                                    blocks = int(progress * 10)
+                                                    bar = '🟩' * blocks + '⬜️' * (10 - blocks)
+                                                    percent = int(progress * 100)
+                                                    app.edit_message_text(
+                                                        chat_id=user_id,
+                                                        message_id=status_msg.id,
+                                                        text=f"💬 Embedding subtitles...\n{bar} {percent}%\nETA: {eta} min"
+                                                    )
+                                                except Exception:
+                                                    pass
+                                            
+                                            embed_result = embed_subs_to_video(
+                                                after_rename_abs_path, user_id,
+                                                tg_update_callback=subs_update_callback, app=app, message=message,
+                                                subtitle_tracks=subtitle_tracks
+                                            )
+                                            
+                                            if embed_result:
+                                                app.edit_message_text(user_id, status_msg.id, "✅ All subtitles embedded successfully!")
+                                            else:
+                                                app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to embed some subtitles")
+                                            
+                                            # Clean up subtitle files
+                                            for track in subtitle_tracks:
+                                                try:
+                                                    if os.path.exists(track['path']):
+                                                        os.remove(track['path'])
+                                                except Exception:
+                                                    pass
+                                        else:
+                                            app.edit_message_text(user_id, status_msg.id, "⚠️ No subtitles found")
+                                    except Exception as e:
+                                        logger.error(f"Error in subtitles postprocessing: {e}")
+                                        logger.error(traceback.format_exc())
+                        except Exception as e:
+                            logger.error(f"Error in MKV postprocessing: {e}")
+                            logger.error(traceback.format_exc())
+                        
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         if not video_msg:
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
@@ -3377,7 +3771,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     # For single videos, save to regular cache
                                     # Only save to cache if subtitles are not needed
                                     if not is_nsfw and not need_subs:
-                                        _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id)
+                                        _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                                     elif is_nsfw:
                                         logger.info("NSFW content not cached")
                                     elif need_subs:
@@ -3471,7 +3865,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 # For single videos, save to regular cache
                                                 # Only save to cache if subtitles are not needed
                                                 if not is_nsfw and not need_subs:
-                                                    _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id)
+                                                    _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                                                 elif is_nsfw:
                                                     logger.info("NSFW content not cached (manual)")
                                                 elif need_subs:
@@ -3598,7 +3992,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         # For single videos, save to regular cache
                                         # Only save to cache if subtitles are not needed
                                         if not is_nsfw and not need_subs:
-                                            _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id)
+                                            _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
                                         elif is_nsfw:
                                             logger.info("NSFW content not cached (error recovery)")
                                         elif need_subs:
@@ -3668,7 +4062,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             send_to_logger(message, safe_get_messages(user_id).PLAYLIST_VIDEOS_SENT_LOG_MSG.format(sent=total_sent, total=len(requested_indices), quality=safe_quality_key, user_id=user_id))
 
     except Exception as e:
-        if "Download timeout exceeded" in str(e):
+        error_traceback = traceback.format_exc()
+        logger.error(f"Exception caught in down_and_up: type={type(e)}, value={e}, traceback:\n{error_traceback}")
+        
+        if e is None:
+            logger.error("CRITICAL: Exception object is None! This should never happen.")
+            error_msg = "Unknown error (exception was None)"
+        elif "Download timeout exceeded" in str(e):
             send_to_user(message, safe_get_messages(user_id).DOWNLOAD_CANCELLED_TIMEOUT_MSG)
             log_error_to_channel(message, LoggerMsg.DOWNLOAD_TIMEOUT_LOG, url)
         elif "'quality_key'" in str(e):
@@ -3694,7 +4094,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.debug(f"[SUBS] Failed to clear end cache: {_e}")
         else:
             logger.error(f"Error in video download: {e}")
-            send_to_user(message, safe_get_messages(user_id).FAILED_DOWNLOAD_VIDEO_MSG.format(error=e))
+            error_msg = str(e) if e else "Unknown error"
+            send_to_user(message, safe_get_messages(user_id).FAILED_DOWNLOAD_VIDEO_MSG.format(error=error_msg))
         
         # Immediate cleanup of temporary status messages on error
         try:

@@ -813,6 +813,12 @@ class Messages(object):
     ADMIN_USER_UNBLOCKED_MSG = "کاربر از مسدودیت خارج شد 🔓✅\n \nID: <code>{user_id}</code>\nتاریخ خارج شدن از مسدودیت: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> قبلاً از مسدودیت خارج شده است ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ کاربران از مسدودیت خارج شدند: {count}\n⏱ مهر زمانی: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ استفاده: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "کاربر نادیده گرفته شد 👁️❌\n \nشناسه: <code>{user_id}</code>\nتاریخ نادیده گرفته شده: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> قبلاً نادیده گرفته شده است ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ استفاده: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "کاربر دیگر نادیده گرفته نمی‌شود 👁️✅\n \nشناسه: <code>{user_id}</code>\nتاریخ عدم نادیده گرفتن: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> نادیده گرفته نمی‌شود ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>زمان اجرای ربات -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ لطفاً یک URL برای پاک کردن کش ارائه دهید.\nاستفاده: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ لطفاً یک URL معتبر ارائه دهید.\nاستفاده: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗لینک"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁تماشا"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝عنوان"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ برش"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>برش ویدیو</b>\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nلطفاً محدوده زمانی مورد نظر را در قالب ارسال کنید:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ فرمت نامعتبر. لطفاً استفاده کنید: <code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ محدوده نامعتبر. زمان شروع باید کمتر از زمان پایان باشد."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ محدوده زمانی خارج از مرزهای ویدیو است.\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nمحدوده شما باید در این محدودیت‌ها باشد."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>ویدیو برش داده می‌شود:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ به طور جزئی تکمیل شد - {successful_uploads}/{total_files} فایل صوتی آپلود شد."

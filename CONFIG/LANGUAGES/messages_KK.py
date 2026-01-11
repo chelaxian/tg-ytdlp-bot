@@ -813,6 +813,12 @@ class Messages(object):
     ADMIN_USER_UNBLOCKED_MSG = "Пайдаланушы бұғаттан босатылды 🔓✅\n \nID: <code>{user_id}</code>\nБұғаттан босату күні: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> қазірдің өзінде бұғаттан босатылған ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Бұғаттан босатылған пайдаланушылар: {count}\n⏱ Уақыт белгісі: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Қолдану: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Пайдаланушы елемеуден өткізілді 👁️❌\n \nID: <code>{user_id}</code>\nЕлемеуден өткізілген күні: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> қазірдің өзінде елемеуден өткізілген ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Қолдану: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Пайдаланушы енді елемеуден өткізілмейді 👁️✅\n \nID: <code>{user_id}</code>\nЕлемеуден өткізілмеген күні: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> елемеуден өткізілмейді ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Бот жұмыс уақыты -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Кэшті тазарту үшін URL енгізіңіз.\nҚолдану: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Жарамды URL енгізіңіз.\nҚолдану: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Сілтеме"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Сипаттама"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ КЕСУ"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Бейне кесу</b>\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nӨтінеміз, қалаған уақыт аралығын форматта жіберіңіз:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Жарамсыз формат. Өтінеміз, пайдаланыңыз: <code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Жарамсыз аралық. Басталу уақыты аяқталу уақытынан кіші болуы керек."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Уақыт аралығы бейненің шекараларынан тыс.\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nСіздің аралығыңыз осы шектеулер ішінде болуы керек."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Бейне қиылады:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Ішінара аяқталды - {successful_uploads}/{to{total_files}dio файлдары жүктеп салынды."

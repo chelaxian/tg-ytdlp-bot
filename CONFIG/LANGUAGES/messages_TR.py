@@ -813,6 +813,12 @@ Kullanın:
     ADMIN_USER_UNBLOCKED_MSG = "Kullanıcı engeli kaldırıldı 🔓✅\n \nID: <code>{user_id}</code>\nEngel Kaldırma Tarihi: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code>'in engellemesi zaten kaldırıldı ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Engeli kaldırılan kullanıcılar: {count}\n⏱ Zaman damgası: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Kullanım: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Kullanıcı yok sayıldı 👁️❌\n \nID: <code>{user_id}</code>\nYok sayılma tarihi: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> zaten yok sayılıyor ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Kullanım: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Kullanıcı artık yok sayılmıyor 👁️✅\n \nID: <code>{user_id}</code>\nYok sayılmama tarihi: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> yok sayılmıyor ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Bot çalışma süresi -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Lütfen önbelleği temizlemek için bir URL girin.\nKullanım: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Lütfen geçerli bir URL girin.\nKullanım: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ Kullanın:
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Bağlantı"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁İzle"  # GEÇİCİ OLARAK DEVRE DIŞI: poketube hizmeti kapalı
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Açıklama"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ KES"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Kesme</b>\n\nVideo süresi: <b>{start_time} - {end_time}</b>\n\nLütfen istenen zaman aralığını formatında gönderin:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nÖrnek: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Geçersiz format. Lütfen kullanın: <code>HH:MM:SS-HH:MM:SS</code>\n\nÖrnek: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Geçersiz aralık. Başlangıç zamanı bitiş zamanından küçük olmalıdır."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Zaman aralığı video sınırlarının dışında.\n\nVideo süresi: <b>{start_time} - {end_time}</b>\n\nAralığınız bu sınırlar içinde olmalıdır."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>Video kırpılacak:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Kısmen tamamlandı - {successful_uploads}/{total_files} ses dosyası yüklendi."

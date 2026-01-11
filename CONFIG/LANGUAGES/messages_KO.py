@@ -813,6 +813,12 @@ class Messages(object):
     ADMIN_USER_UNBLOCKED_MSG = "사용자 차단이 해제되었습니다 🔓✅\n \nID: <code>{user_id}</code>\n차단 해제 날짜: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code>는 이미 차단 해제되었습니다 ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ 차단 해제된 사용자: {count}\n⏱ 타임스탬프: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ 사용법: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "사용자 무시됨 👁️❌\n \nID: <code>{user_id}</code>\n무시된 날짜: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code>는 이미 무시되고 있습니다 ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ 사용법: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "사용자가 더 이상 무시되지 않음 👁️✅\n \nID: <code>{user_id}</code>\n무시 해제 날짜: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code>는 무시되지 않습니다 ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>봇 실행 시간 -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ 캐시를 지울 URL을 입력해주세요.\n사용법: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ 유효한 URL을 입력해주세요.\n사용법: <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,12 @@ class Messages(object):
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗링크"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝캡션"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ 자르기"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>비디오 자르기</b>\n\n비디오 길이: <b>{start_time} - {end_time}</b>\n\n원하는 시간 범위를 형식으로 보내주세요:\n<code>HH:MM:SS-HH:MM:SS</code>\n\n예: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ 잘못된 형식입니다. 다음을 사용하세요: <code>HH:MM:SS-HH:MM:SS</code>\n\n예: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ 잘못된 범위입니다. 시작 시간은 종료 시간보다 작아야 합니다."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ 시간 범위가 비디오 경계를 벗어났습니다.\n\n비디오 길이: <b>{start_time} - {end_time}</b>\n\n범위는 이러한 제한 내에 있어야 합니다."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>비디오가 잘립니다:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ 부분 완료 - {successful_uploads}/{total_files} 오디오 파일이 업로드되었습니다."

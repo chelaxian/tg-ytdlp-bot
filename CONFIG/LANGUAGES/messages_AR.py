@@ -786,6 +786,12 @@ class Messages(object):
     ADMIN_UNBLOCK_USER_USAGE_MSG = "❌ الاستخدام: /unblock_user <user_id>"
     ADMIN_USER_UNBLOCKED_MSG = "تم إلغاء حظر المستخدم 🔓✅\n \nالمعرف: <code>{user_id}</code>\nتاريخ إلغاء الحظر: {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> غير محظور بالفعل ✅😐"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ الاستخدام: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "تم تجاهل المستخدم 👁️❌\n \nالمعرف: <code>{user_id}</code>\nتاريخ التجاهل: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> متجاهل بالفعل ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ الاستخدام: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "لم يعد المستخدم متجاهلاً 👁️✅\n \nالمعرف: <code>{user_id}</code>\nتاريخ إلغاء التجاهل: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> غير متجاهل ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>وقت تشغيل البوت -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ يرجى تقديم رابط لمسح التخزين المؤقت.\nالاستخدام: <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ يرجى تقديم رابط صحيح.\nالاستخدام: <code>/uncache &lt;URL&gt;</code>"
@@ -852,6 +858,12 @@ class Messages(object):
         "آخر event_id: {last_event_id}"
     )
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ تم إلغاء حظر المستخدمين: {count}\n⏱ الطابع الزمني: {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ الاستخدام: /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "تم تجاهل المستخدم 👁️❌\n \nالمعرف: <code>{user_id}</code>\nتاريخ التجاهل: {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> متجاهل بالفعل ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ الاستخدام: /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "لم يعد المستخدم متجاهلاً 👁️✅\n \nالمعرف: <code>{user_id}</code>\nتاريخ إلغاء التجاهل: {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> غير متجاهل ✅😐"
     
     # Clean command messages
     CLEAN_COOKIES_CLEANED_MSG = "تم تنظيف ملفات تعريف الارتباط."
@@ -2220,6 +2232,13 @@ class Messages(object):
     SUBS_AUTO_TRANS_BUTTON_MSG = "تلقائي/ترجمة"
 
     # Always Ask menu button messages
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ قص"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>قص الفيديو</b>\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيرجى إرسال النطاق الزمني المطلوب بالتنسيق:\n<code>س:د:ث-س:د:ث</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ تنسيق غير صحيح. يرجى استخدام: <code>س:د:ث-س:د:ث</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ نطاق غير صحيح. يجب أن يكون وقت البداية أقل من وقت النهاية."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ النطاق الزمني خارج حدود الفيديو.\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيجب أن يكون النطاق الخاص بك ضمن هذه الحدود."
+    AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG = "❌ لم يتم تحديد مدة الفيديو. يرجى المحاولة مرة أخرى أو استخدام فيديو آخر."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>سيتم قص الفيديو:</b> {start_time} - {end_time}"
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗رابط"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁مشاهدة"  # معطل مؤقتًا: خدمة poketube معطلة
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝الوصف"

@@ -813,6 +813,12 @@ Utilisez :
     ADMIN_USER_UNBLOCKED_MSG = "Utilisateur débloqué 🔓✅\n \nID : <code>{user_id}</code>\nDate de déblocage : {date}"
     ADMIN_USER_ALREADY_UNBLOCKED_MSG = "<code>{user_id}</code> est déjà débloqué ✅😐"
     ADMIN_UNBLOCK_ALL_DONE_MSG = "✅ Utilisateurs débloqués : {count}\n⏱ Horodatage : {date}"
+    ADMIN_IGNORE_USER_USAGE_MSG = "❌ Utilisation : /ignore_user <user_id>"
+    ADMIN_USER_IGNORED_MSG = "Utilisateur ignoré 👁️❌\n \nID : <code>{user_id}</code>\nDate d'ignoré : {date}"
+    ADMIN_USER_ALREADY_IGNORED_MSG = "<code>{user_id}</code> est déjà ignoré ❌😐"
+    ADMIN_UNIGNORE_USER_USAGE_MSG = "❌ Utilisation : /unignore_user <user_id>"
+    ADMIN_USER_UNIGNORED_MSG = "Utilisateur n'est plus ignoré 👁️✅\n \nID : <code>{user_id}</code>\nDate de ne plus ignorer : {date}"
+    ADMIN_USER_ALREADY_UNIGNORED_MSG = "<code>{user_id}</code> n'est pas ignoré ✅😐"
     ADMIN_BOT_RUNNING_TIME_MSG = "⏳ <i>Temps d'exécution du bot -</i> <b>{time}</b>"
     ADMIN_UNCACHE_USAGE_MSG = "❌ Veuillez fournir une URL pour effacer le cache.\nUtilisation : <code>/uncache &lt;URL&gt;</code>"
     ADMIN_UNCACHE_INVALID_URL_MSG = "❌ Veuillez fournir une URL valide.\nUtilisation : <code>/uncache &lt;URL&gt;</code>"
@@ -2223,6 +2229,13 @@ Utilisez :
     ALWAYS_ASK_LINK_BUTTON_MSG = "🔗Lien"
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Regarder"  # TEMPORAIREMENT DÉSACTIVÉ: le service poketube est en panne
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Description"
+    ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ COUPER"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Découpage Vidéo</b>\n\nDurée de la vidéo: <b>{start_time} - {end_time}</b>\n\nVeuillez envoyer la plage horaire souhaitée au format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nExemple: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Format invalide. Veuillez utiliser: <code>HH:MM:SS-HH:MM:SS</code>\n\nExemple: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Plage invalide. L'heure de début doit être inférieure à l'heure de fin."
+    ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ La plage horaire est en dehors des limites de la vidéo.\n\nDurée de la vidéo: <b>{start_time} - {end_time}</b>\n\nVotre plage doit être dans ces limites."
+    AA_ERROR_VIDEO_DURATION_UNKNOWN_MSG = "❌ Impossible de déterminer la durée de la vidéo. Veuillez réessayer ou utiliser une autre vidéo."
+    ALWAYS_ASK_TRIM_INFO_MSG = "✂️ <b>La vidéo sera coupée:</b> {start_time} - {end_time}"
 
     # Audio upload completion messages
     AUDIO_PARTIALLY_COMPLETED_MSG = "⚠️ Partiellement terminé - {successful_uploads}/{total_files} fichiers audio téléversés."

@@ -17,6 +17,8 @@ class CommandsConfig(object):
     COOKIES_FROM_BROWSER_COMMAND = "/cookies_from_browser"
     BLOCK_USER_COMMAND = "/block_user"
     UNBLOCK_USER_COMMAND = "/unblock_user"
+    IGNORE_USER_COMMAND = "/ignore_user"
+    UNIGNORE_USER_COMMAND = "/unignore_user"
     RUN_TIME = "/run_time"
     GET_USER_LOGS_COMMAND = "/log"
     CLEAN_COMMAND = "/clean"

@@ -15,7 +15,7 @@ import re
 from typing import Optional
 import threading
 # from DATABASE.cache_db import reload_firebase_cache, get_from_local_cache  # moved to lazy imports
-from DATABASE.firebase_init import db
+from DATABASE.firebase_init import db, is_user_ignored
 from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
 from URL_PARSERS.normalizer import normalize_url_for_cache, get_clean_playlist_url
 from HELPERS.limitter import TimeFormatter, is_user_in_channel
@@ -28,6 +28,7 @@ from HELPERS.channel_guard import (
 )
 # from DATABASE.cache_db import get_url_hash, db_child_by_path  # moved to lazy imports
 from HELPERS.logger import logger
+from HELPERS.anti_bot_protection import ban_user_from_channel
 from HELPERS.decorators import background_handler
 
 # Global variable for bot start time
@@ -41,7 +42,18 @@ app = get_app()
 def reload_firebase_cache_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """The processor of command for rebooting the local cache Firebase"""
-    if int(message.chat.id) not in Config.ADMIN:
+    user_id = message.chat.id
+    is_admin = int(user_id) in Config.ADMIN
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admin commands)
+    
+    if not is_admin:
         safe_send_message_with_auto_delete(message.chat.id, safe_get_messages(message.chat.id).ADMIN_ACCESS_DENIED_AUTO_DELETE_MSG, delete_after_seconds=60)
         return
     
@@ -658,8 +670,16 @@ def block_user(app, message):
         if b_user_id not in b_users:
             data = {"ID": b_user_id, "timestamp": str(dt)}
             db.child(f"{Config.BOT_DB_PATH}/blocked_users/{b_user_id}").set(data)
-            # Удаляем пользователя из списка разблокированных при блокировке
+            # Удаляем пользователя из списка разблокированных и игнорируемых при блокировке
             db.child(f"{Config.BOT_DB_PATH}/unblocked_users/{b_user_id}").remove()
+            db.child(f"{Config.BOT_DB_PATH}/ignored_users/{b_user_id}").remove()
+            
+            # Ban user from subscribe channel
+            try:
+                ban_user_from_channel(int(b_user_id), reason="manual_block")
+            except Exception as e:
+                logger.error(f"Failed to ban user {b_user_id} from channel: {e}")
+            
             send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_BLOCKED_MSG.format(user_id=b_user_id, date=datetime.fromtimestamp(dt)))
             if guard:
                 guard.mark_user_blocked(b_user_id, reason="manual")
@@ -726,9 +746,90 @@ def unblock_user(app, message):
         send_to_all(message, safe_get_messages(message.chat.id).ADMIN_NOT_ADMIN_MSG)
 
 
+# Ignore User
+
+def ignore_user(app, message):
+    messages = safe_get_messages(message.chat.id)
+    if int(message.chat.id) in Config.ADMIN:
+        dt = math.floor(time.time())
+        parts = (message.text or "").strip().split(maxsplit=1)
+        if len(parts) < 2:
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_IGNORE_USER_USAGE_MSG if hasattr(safe_get_messages(message.chat.id), 'ADMIN_IGNORE_USER_USAGE_MSG') else f"Usage: {Config.IGNORE_USER_COMMAND} <user_id>")
+            return
+        i_user_id = parts[1].strip()
+
+        try:
+            if int(i_user_id) in Config.ADMIN:
+                send_to_all(message, safe_get_messages(message.chat.id).ADMIN_CANNOT_DELETE_ADMIN_MSG)
+                return
+        except Exception:
+            pass
+
+        snapshot = db.child(f"{Config.BOT_DB_PATH}/ignored_users").get()
+        all_ignored_users = snapshot.each() if snapshot else []
+        i_users = [str(i_user.key()) for i_user in (all_ignored_users or []) if i_user is not None]
+
+        if i_user_id not in i_users:
+            data = {"ID": i_user_id, "timestamp": str(dt)}
+            db.child(f"{Config.BOT_DB_PATH}/ignored_users/{i_user_id}").set(data)
+            # Удаляем пользователя из списков заблокированных и разблокированных при игнорировании
+            db.child(f"{Config.BOT_DB_PATH}/blocked_users/{i_user_id}").remove()
+            db.child(f"{Config.BOT_DB_PATH}/unblocked_users/{i_user_id}").remove()
+            # Удаляем все логи пользователя из Firebase для экономии места в дампе кэша
+            db.child(f"{Config.BOT_DB_PATH}/logs/{i_user_id}").remove()
+            
+            # Ban user from subscribe channel
+            try:
+                ban_user_from_channel(int(i_user_id), reason="manual_ignore")
+            except Exception as e:
+                logger.error(f"Failed to ban user {i_user_id} from channel: {e}")
+            
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_IGNORED_MSG.format(user_id=i_user_id, date=datetime.fromtimestamp(dt)) if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_IGNORED_MSG') else f"User {i_user_id} ignored at {datetime.fromtimestamp(dt)}")
+        else:
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_ALREADY_IGNORED_MSG.format(user_id=i_user_id) if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_ALREADY_IGNORED_MSG') else f"User {i_user_id} is already ignored")
+    else:
+        send_to_all(message, safe_get_messages(message.chat.id).ADMIN_NOT_ADMIN_MSG)
+
+
+# Unignore User
+
+def unignore_user(app, message):
+    messages = safe_get_messages(message.chat.id)
+    if int(message.chat.id) in Config.ADMIN:
+        parts = (message.text or "").strip().split(maxsplit=1)
+        if len(parts) < 2:
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_UNIGNORE_USER_USAGE_MSG if hasattr(safe_get_messages(message.chat.id), 'ADMIN_UNIGNORE_USER_USAGE_MSG') else f"Usage: {Config.UNIGNORE_USER_COMMAND} <user_id>")
+            return
+        ui_user_id = parts[1].strip()
+
+        snapshot = db.child(f"{Config.BOT_DB_PATH}/ignored_users").get()
+        all_ignored_users = snapshot.each() if snapshot else []
+        i_users = [str(i_user.key()) for i_user in (all_ignored_users or []) if i_user is not None]
+
+        if ui_user_id in i_users:
+            dt = math.floor(time.time())
+            db.child(f"{Config.BOT_DB_PATH}/ignored_users/{ui_user_id}").remove()
+            send_to_user(
+                message, safe_get_messages(message.chat.id).ADMIN_USER_UNIGNORED_MSG.format(user_id=ui_user_id, date=datetime.fromtimestamp(dt)) if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_UNIGNORED_MSG') else f"User {ui_user_id} unignored at {datetime.fromtimestamp(dt)}")
+        else:
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_ALREADY_UNIGNORED_MSG.format(user_id=ui_user_id) if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_ALREADY_UNIGNORED_MSG') else f"User {ui_user_id} is not ignored")
+    else:
+        send_to_all(message, safe_get_messages(message.chat.id).ADMIN_NOT_ADMIN_MSG)
+
+
 def ban_time_command(app, message):
     messages = safe_get_messages(message.chat.id)
-    if int(message.chat.id) not in Config.ADMIN:
+    user_id = message.chat.id
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admin commands)
+    
+    if int(user_id) not in Config.ADMIN:
         send_to_all(message, messages.ADMIN_NOT_ADMIN_MSG)
         return
     parts = (message.text or "").strip().split(maxsplit=1)
@@ -782,11 +883,20 @@ def uncache_command(app, message):
     Admin command to clear cache for a specific URL
     Usage: /uncache <URL>
     """
+    user_id = message.chat.id
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admin commands)
+    
     # Lazy imports to avoid cycles
     from DATABASE.cache_db import get_url_hash
     from DATABASE.firebase_init import db_child_by_path
 
-    user_id = message.chat.id
     text = message.text.strip()
     if len(text.split()) < 2:
         send_to_user(message, safe_get_messages(message.chat.id).ADMIN_UNCACHE_USAGE_MSG)
@@ -854,7 +964,17 @@ def uncache_command(app, message):
 def update_porn_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """Admin command to run the porn list update script"""
-    if int(message.chat.id) not in Config.ADMIN:
+    user_id = message.chat.id
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admin commands)
+    
+    if int(user_id) not in Config.ADMIN:
         send_to_user(message, safe_get_messages(message.chat.id).ADMIN_ACCESS_DENIED_MSG)
         return
     
@@ -899,7 +1019,17 @@ def update_porn_command(app, message):
 def reload_porn_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """Admin command to reload porn domains and keywords cache without restarting the bot"""
-    if int(message.chat.id) not in Config.ADMIN:
+    user_id = message.chat.id
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admin commands)
+    
+    if int(user_id) not in Config.ADMIN:
         send_to_user(message, safe_get_messages(message.chat.id).ADMIN_ACCESS_DENIED_MSG)
         return
     
@@ -957,6 +1087,14 @@ def check_porn_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """Admin command to check if a URL is NSFW and get detailed explanation"""
     user_id = message.chat.id
+    
+    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    
+    if not is_ignore_command:
+        if is_user_ignored(message):
+            return  # User is ignored, no response at all (even for admin commands)
     
     # First check if user is subscribed to channel
     if not is_user_in_channel(app, message):
