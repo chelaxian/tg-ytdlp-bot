@@ -763,6 +763,15 @@ def validate_timecode_range(timecode_str, video_duration):
             return False, "INVALID_FORMAT", None, None
         
         # Check that start < end
+        # Double-check types before comparison to avoid type errors
+        try:
+            start_seconds = float(start_seconds) if start_seconds is not None else 0.0
+            end_seconds = float(end_seconds) if end_seconds is not None else 0.0
+            video_duration = float(video_duration) if video_duration else 0.0
+        except (ValueError, TypeError) as e:
+            logger.error(f"Final type conversion failed: {e}, start_seconds={start_seconds}, end_seconds={end_seconds}, video_duration={video_duration}")
+            return False, "INVALID_FORMAT", None, None
+        
         if start_seconds >= end_seconds:
             return False, "INVALID_RANGE", None, None
         
@@ -858,19 +867,35 @@ def handle_trim_timecode(app, message, text):
         # Ensure video_duration is a number BEFORE passing to validate_timecode_range
         try:
             # Convert to float immediately to avoid type comparison errors
+            logger.info(f"[TRIM DEBUG] video_duration before conversion: {video_duration} (type: {type(video_duration)})")
             if isinstance(video_duration, str):
                 video_duration = float(video_duration)
             elif video_duration is None:
                 video_duration = 0.0
             else:
                 video_duration = float(video_duration)
+            logger.info(f"[TRIM DEBUG] video_duration after conversion: {video_duration} (type: {type(video_duration)})")
         except (ValueError, TypeError) as e:
             logger.error(f"Invalid video_duration in trim_state: {type(video_duration)}, value: {video_duration}, error: {e}")
             clear_trim_input_state(user_id)
             return False
         
         # Validate timecode - video_duration is now guaranteed to be float
-        is_valid, error_type, start_seconds, end_seconds = validate_timecode_range(text, video_duration)
+        logger.info(f"[TRIM DEBUG] Calling validate_timecode_range with text='{text}', video_duration={video_duration} (type: {type(video_duration)})")
+        try:
+            is_valid, error_type, start_seconds, end_seconds = validate_timecode_range(text, video_duration)
+            logger.info(f"[TRIM DEBUG] validate_timecode_range returned: is_valid={is_valid}, error_type={error_type}, start_seconds={start_seconds} (type: {type(start_seconds)}), end_seconds={end_seconds} (type: {type(end_seconds)})")
+        except Exception as e:
+            logger.error(f"Exception in validate_timecode_range: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            app.send_message(
+                user_id,
+                f"❌ Ошибка при проверке таймкода: {str(e)}",
+                reply_parameters=ReplyParameters(message_id=message.id),
+                parse_mode=enums.ParseMode.HTML
+            )
+            return True
         
         if not is_valid:
             # Format error message
