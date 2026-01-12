@@ -4,7 +4,7 @@
       "blocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768167349
+          "timestamp": 1768204571
         }
       },
       "logs": {
@@ -21,13 +21,13 @@
       "unblocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768167349
+          "timestamp": 1768204571
         }
       },
       "users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768167349
+          "timestamp": 1768204571
         }
       },
       "channel_guard": {
@@ -175,10 +175,122 @@
             "name": "Yasso",
             "last_left_ts": 1768165888.0,
             "blocked": false
+          },
+          "524370226": {
+            "ID": "524370226",
+            "first_left_ts": 1768169343.0,
+            "username": "dodgroo",
+            "name": "Dasha",
+            "last_left_ts": 1768169343.0,
+            "blocked": false
+          },
+          "6618009618": {
+            "ID": "6618009618",
+            "first_left_ts": 1768169350.0,
+            "username": "Jon_24838",
+            "name": "A",
+            "last_left_ts": 1768169350.0,
+            "blocked": false
+          },
+          "6222534630": {
+            "ID": "6222534630",
+            "first_left_ts": 1768169432.0,
+            "username": "kimjunn91",
+            "name": "Kim Junn",
+            "last_left_ts": 1768169432.0,
+            "blocked": false
+          },
+          "5837697027": {
+            "ID": "5837697027",
+            "first_left_ts": 1768169791.0,
+            "username": null,
+            "name": "Youssef Mofaker",
+            "last_left_ts": 1768169791.0,
+            "blocked": false
+          },
+          "808927778": {
+            "ID": "808927778",
+            "first_left_ts": 1768169942.0,
+            "username": "sanekkeraso",
+            "name": "Котич",
+            "last_left_ts": 1768169942.0,
+            "blocked": false
+          },
+          "1751247232": {
+            "ID": "1751247232",
+            "first_left_ts": 1768172598.0,
+            "username": "tatiana_gherman",
+            "name": "Tatiana Gherman",
+            "last_left_ts": 1768172598.0,
+            "blocked": false
+          },
+          "6184309584": {
+            "ID": "6184309584",
+            "first_left_ts": 1768177790.0,
+            "username": null,
+            "name": "Jhon nill",
+            "last_left_ts": 1768177790.0,
+            "blocked": false
+          },
+          "5831443923": {
+            "ID": "5831443923",
+            "first_left_ts": 1768183375.0,
+            "username": "MuhammadIsyraf2012",
+            "name": "Muhammad Isyraf",
+            "last_left_ts": 1768183375.0,
+            "blocked": false
+          },
+          "1045350855": {
+            "ID": "1045350855",
+            "first_left_ts": 1768183442.0,
+            "username": null,
+            "name": "Iven",
+            "last_left_ts": 1768183442.0,
+            "blocked": false
+          },
+          "1146178778": {
+            "ID": "1146178778",
+            "first_left_ts": 1768186620.0,
+            "username": "abhinand_ss",
+            "name": "Abhinand",
+            "last_left_ts": 1768186620.0,
+            "blocked": false
+          },
+          "5014823352": {
+            "ID": "5014823352",
+            "first_left_ts": 1768189206.0,
+            "username": "omeroozturk",
+            "name": "Ömer",
+            "last_left_ts": 1768189206.0,
+            "blocked": false
+          },
+          "1125033974": {
+            "ID": "1125033974",
+            "first_left_ts": 1768192480.0,
+            "username": "ArabZotic",
+            "name": "Mustafa Al fateh",
+            "last_left_ts": 1768192480.0,
+            "blocked": false
+          },
+          "7355694761": {
+            "ID": "7355694761",
+            "first_left_ts": 1768200473.0,
+            "username": "yikkuen",
+            "name": "亿娟",
+            "last_left_ts": 1768200473.0,
+            "blocked": false
+          },
+          "801551263": {
+            "ID": "801551263",
+            "first_left_ts": 1768200587.0,
+            "username": "pherngpy",
+            "name": "pherng",
+            "last_left_ts": 1768200587.0,
+            "blocked": false
           }
         },
         "state": {
-          "last_event_id": 948666705644
+          "last_event_id": 948913019832
         }
       }
     },
