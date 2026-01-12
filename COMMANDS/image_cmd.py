@@ -3967,9 +3967,9 @@ def image_command(app, message):
                                             # Stop upload logging after upload completes or fails
                                             if status_msg and status_msg.id:
                                                 _stop_upload_logging(user_id, status_msg.id)
-                                                        logger.info(f"[IMG LOG] Open copy album sent to NSFW channel: {len(nsfw_log_media_group)} items")
-                                                    except Exception as fe:
-                                                        logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {fe}")
+                                        logger.info(f"[IMG LOG] Open copy album sent to NSFW channel: {len(nsfw_log_media_group)} items")
+                                    except Exception as fe:
+                                        logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {fe}")
                                     
                                     # Don't cache NSFW content
                                     logger.info(f"[IMG LOG] NSFW content sent to both channels (paid + history), not cached")
