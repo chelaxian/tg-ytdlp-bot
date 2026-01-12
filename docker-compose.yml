@@ -21,8 +21,10 @@ services:
     restart: unless-stopped
     logging: *default-logging
     depends_on:
-      - bgutil-provider
-      - warp
+      bgutil-provider:
+        condition: service_healthy
+      warp:
+        condition: service_started
     volumes:
       - .:/app
     working_dir: /app
@@ -60,6 +62,12 @@ services:
     network_mode: "container:tg-ytdlp-warp"
     ports: []
     expose: []
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:4416/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   warp:
     build: ./warp

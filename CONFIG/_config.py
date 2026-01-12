@@ -133,7 +133,8 @@ class Config(object):
     # PO token provider server URL
     # В docker-compose с network_mode: service:warp используем localhost:4416 (общий namespace)
     # Для локального запуска, если bgutil-provider запущен рядом, тоже подойдёт localhost:4416
-    YOUTUBE_POT_BASE_URL = "http://127.0.0.1:4416"
+    # Используем localhost вместо 127.0.0.1 для лучшей совместимости в Docker
+    YOUTUBE_POT_BASE_URL = "http://localhost:4416"
     # Disable innertube if tokens stop working
     YOUTUBE_POT_DISABLE_INNERTUBE = False
     ###########################################################
