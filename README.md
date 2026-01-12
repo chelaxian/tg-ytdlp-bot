@@ -22,6 +22,7 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 - 🔗 **Direct Links**: Get direct stream URLs for media players (VLC, MX Player, etc.)
 - 🌐 **Proxy Support**: Global proxy control for all downloads
 - 💬 **Subtitle Integration**: Intelligent subtitle handling with language detection
+- ✂️ **Video Trimming**: Trim videos to specific time ranges with frame-accurate cutting
 - 🏷️ **Tag System**: Organize your downloads with custom tags
 - 📊 **Usage Statistics**: Track your download history and usage
 - 🔒 **Privacy Focused**: User-specific settings and secure cookie handling
@@ -893,10 +894,20 @@ Interactive quality selection menu with advanced filtering and codec support.
 - **📹 DUBS Button**: Select audio language with flag indicators
   - Only appears when multiple audio languages are detected
   - Pagination support for long language lists
+  - **ALL** button: Automatically select all available audio tracks
+  - **OFF** button: Disable all additional audio tracks
 - **💬 SUBS Button**: Choose subtitle language with smart detection
   - Auto-generated vs. normal captions
   - Translation indicators
   - Pagination support
+  - **ALL DUBS** button: Automatically download subtitles for all languages that have dubbed audio tracks
+  - **OFF** button: Clear all selected subtitle languages
+- **✂️ TRIM Button**: Trim videos to specific time ranges
+  - Input format: `HH:MM:SS-HH:MM:SS` (e.g., `00:52:40-00:57:41`)
+  - Frame-accurate cutting with FFmpeg
+  - Automatic fallback to re-encoding if stream copy fails
+  - Trimmed videos are not cached (always fresh download)
+  - Works with all quality selections and codecs
 - **☑️ LINK Button**: Toggle direct link mode
   - When enabled (✅LINK), clicking quality buttons returns direct links instead of downloading
   - Respects all selected filters (codec, container, audio language, subtitles)
@@ -1181,6 +1192,39 @@ YOUTUBE_POT_DISABLE_INNERTUBE = False
 - **Admin Monitoring**: Provider health is automatically monitored and logged
 
 
+
+### 🎧 Multi-Track Audio & Subtitle Embedding (MKV)
+
+Advanced multi-track support for embedding multiple audio languages and subtitle tracks into MKV containers.
+
+**Features:**
+- **Multiple Audio Tracks**: Embed all selected audio languages as separate tracks in MKV
+  - Original audio track is always preserved and mapped first
+  - Each additional language becomes a separate audio track
+  - Full language code preservation (e.g., `zh-Hans`, `zh-Hant`, `en-US`, `en-GB`)
+  - Automatic best quality selection for each language (OPUS > AAC > MP3)
+  - Duplicate detection and quality-based selection
+- **Multiple Subtitle Tracks**: Embed all selected subtitle languages as separate tracks in MKV
+  - Supports original, auto-generated, and translated subtitles
+  - Automatic format conversion (VTT, JSON3, SRV3, TTML → SRT)
+  - UTF-8 encoding assurance
+  - Soft-muxing (no quality loss, subtitles as separate tracks)
+  - Partial success handling: if some subtitles fail to download, successfully downloaded ones are still embedded
+- **VP9 Codec Support**: Full support for VP9 video codec with multi-track audio/subtitle embedding
+- **Smart Language Detection**: Improved original language detection from video metadata
+- **Robust Download**: Retry logic with proxy rotation for subtitle downloads to handle rate limiting
+- **Visual Feedback**: Selected languages are marked with ✅ in the Always Ask menu
+
+**Usage:**
+1. Select **MKV** container in the CODEC menu
+2. Choose audio languages via **DUBS** button (or use **ALL** for all tracks)
+3. Choose subtitle languages via **SUBS** button (or use **ALL DUBS** for dubbing languages)
+4. Select video quality - all selected tracks will be embedded automatically
+
+**Supported Formats:**
+- **Video**: VP9, AV1, H.264/AVC
+- **Audio**: OPUS, AAC, MP3 (best quality selected per language)
+- **Subtitles**: SRT (with automatic conversion from VTT, JSON3, SRV3, TTML)
 
 ### Enhanced Format Selection (`/format`)
 

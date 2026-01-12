@@ -69,6 +69,7 @@ yt-dlp.1
 *.temp
 *.tmp
 dump.json
+get_string.py
 
 # Sample / experimental scripts
 gallery-dl/
