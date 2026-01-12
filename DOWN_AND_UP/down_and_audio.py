@@ -8,6 +8,7 @@ from HELPERS.logger import get_log_channel
 from CONFIG.logger_msg import LoggerMsg
 import threading
 import time
+import traceback
 import yt_dlp
 from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
@@ -45,6 +46,37 @@ from URL_PARSERS.tags import extract_url_range_tags
 
 # Get app instance for decorators
 app = get_app()
+
+# Dictionary to track active uploads for logging
+_active_audio_uploads = {}
+_active_audio_uploads_lock = threading.Lock()
+
+def _start_upload_logging(user_id, msg_id):
+    """Start logging upload activity to prevent watchdog false positives"""
+    stop_event = threading.Event()
+    key = (user_id, msg_id)
+    
+    with _active_audio_uploads_lock:
+        _active_audio_uploads[key] = stop_event
+    
+    def upload_logger():
+        while not stop_event.is_set():
+            logger.info("[Upload] Uploading audio to Telegram")
+            # Wait 10 seconds or until stop event
+            stop_event.wait(10.0)
+    
+    thread = threading.Thread(target=upload_logger, daemon=True)
+    thread.start()
+    return stop_event
+
+def _stop_upload_logging(user_id, msg_id):
+    """Stop logging upload activity"""
+    key = (user_id, msg_id)
+    with _active_audio_uploads_lock:
+        if key in _active_audio_uploads:
+            stop_event = _active_audio_uploads[key]
+            stop_event.set()
+            del _active_audio_uploads[key]
 
 
 def is_skippable_video_error(error_message: str) -> bool:
@@ -130,7 +162,6 @@ def create_telegram_thumbnail(cover_path, output_path, size=320):
             
     except Exception as e:
         logger.error(f"Error creating Telegram thumbnail: {e}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
@@ -206,7 +237,6 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
         return False
     except Exception as e:
         logger.error(f"Error embedding cover: {e}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
@@ -1984,7 +2014,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 logger.error(f"[TRIM AUDIO] Failed to trim audio")
                         except Exception as trim_exec_error:
                             logger.error(f"[TRIM AUDIO] Error during trim execution: {trim_exec_error}")
-                            import traceback
                             logger.error(traceback.format_exc())
 
             # Embed cover into MP3 file if thumbnail is available (enabled by default)
@@ -2048,7 +2077,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             except Exception as e:
                 # Don't let thumbnail embedding errors stop the download
                 logger.warning(f"Error embedding cover in audio file {audio_file}: {e} (continuing without cover)")
-                import traceback
                 logger.debug(f"Traceback: {traceback.format_exc()}")
 
             audio_files.append(audio_file)
@@ -2144,17 +2172,64 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None
                         )
                         
-                        audio_msg = app.send_paid_media(
-                            chat_id=user_id,
-                            media=[paid_audio],
-                            star_count=LimitsConfig.NSFW_STAR_COST,
-                            payload=str(Config.STAR_RECEIVER),
-                            reply_parameters=ReplyParameters(message_id=message.id),
-                        )
-                        logger.info("Paid NSFW audio sent to user")
+                        # Start upload logging to prevent watchdog false positives
+                        if proc_msg_id:
+                            _start_upload_logging(user_id, proc_msg_id)
+                        try:
+                            audio_msg = app.send_paid_media(
+                                chat_id=user_id,
+                                media=[paid_audio],
+                                star_count=LimitsConfig.NSFW_STAR_COST,
+                                payload=str(Config.STAR_RECEIVER),
+                                reply_parameters=ReplyParameters(message_id=message.id),
+                            )
+                            logger.info("Paid NSFW audio sent to user")
+                        finally:
+                            # Stop upload logging after upload completes or fails
+                            if proc_msg_id:
+                                _stop_upload_logging(user_id, proc_msg_id)
                     except Exception as e:
                         logger.error(f"Failed to send paid audio, falling back to regular: {e}")
                         # Fallback to regular audio or document
+                        # Start upload logging to prevent watchdog false positives
+                        if proc_msg_id:
+                            _start_upload_logging(user_id, proc_msg_id)
+                        try:
+                            if file_ext == '.mp3' or file_ext == '.m4a':
+                                # Send as audio for supported formats
+                                if telegram_thumb and os.path.exists(telegram_thumb):
+                                    audio_msg = app.send_audio(
+                                        chat_id=user_id, 
+                                        audio=audio_file, 
+                                        caption=caption_with_link, 
+                                        reply_parameters=ReplyParameters(message_id=message.id),
+                                        thumb=telegram_thumb
+                                    )
+                                else:
+                                    audio_msg = app.send_audio(
+                                        chat_id=user_id, 
+                                        audio=audio_file, 
+                                        caption=caption_with_link, 
+                                        reply_parameters=ReplyParameters(message_id=message.id)
+                                    )
+                            else:
+                                # Send as document for unsupported audio formats
+                                audio_msg = app.send_document(
+                                    chat_id=user_id, 
+                                    document=audio_file, 
+                                    caption=caption_with_link, 
+                                    reply_parameters=ReplyParameters(message_id=message.id)
+                                )
+                        finally:
+                            # Stop upload logging after upload completes or fails
+                            if proc_msg_id:
+                                _stop_upload_logging(user_id, proc_msg_id)
+                else:
+                    # Send regular audio for non-NSFW content or group chats
+                    # Start upload logging to prevent watchdog false positives
+                    if proc_msg_id:
+                        _start_upload_logging(user_id, proc_msg_id)
+                    try:
                         if file_ext == '.mp3' or file_ext == '.m4a':
                             # Send as audio for supported formats
                             if telegram_thumb and os.path.exists(telegram_thumb):
@@ -2165,6 +2240,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     reply_parameters=ReplyParameters(message_id=message.id),
                                     thumb=telegram_thumb
                                 )
+                                logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
                             else:
                                 audio_msg = app.send_audio(
                                     chat_id=user_id, 
@@ -2172,6 +2248,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     caption=caption_with_link, 
                                     reply_parameters=ReplyParameters(message_id=message.id)
                                 )
+                                logger.info("Audio sent without thumbnail")
                         else:
                             # Send as document for unsupported audio formats
                             audio_msg = app.send_document(
@@ -2180,36 +2257,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 caption=caption_with_link, 
                                 reply_parameters=ReplyParameters(message_id=message.id)
                             )
-                else:
-                    # Send regular audio for non-NSFW content or group chats
-                    if file_ext == '.mp3' or file_ext == '.m4a':
-                        # Send as audio for supported formats
-                        if telegram_thumb and os.path.exists(telegram_thumb):
-                            audio_msg = app.send_audio(
-                                chat_id=user_id, 
-                                audio=audio_file, 
-                                caption=caption_with_link, 
-                                reply_parameters=ReplyParameters(message_id=message.id),
-                                thumb=telegram_thumb
-                            )
-                            logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
-                        else:
-                            audio_msg = app.send_audio(
-                                chat_id=user_id, 
-                                audio=audio_file, 
-                                caption=caption_with_link, 
-                                reply_parameters=ReplyParameters(message_id=message.id)
-                            )
-                            logger.info("Audio sent without thumbnail")
-                    else:
-                        # Send as document for unsupported audio formats
-                        audio_msg = app.send_document(
-                            chat_id=user_id, 
-                            document=audio_file, 
-                            caption=caption_with_link, 
-                            reply_parameters=ReplyParameters(message_id=message.id)
-                        )
-                        logger.info(f"Audio sent as document (format: {file_ext})")
+                            logger.info(f"Audio sent as document (format: {file_ext})")
+                    finally:
+                        # Stop upload logging after upload completes or fails
+                        if proc_msg_id:
+                            _stop_upload_logging(user_id, proc_msg_id)
                 
                 # Use already determined content type
                 

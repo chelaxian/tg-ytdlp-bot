@@ -2647,7 +2647,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.error(f"[TRIM] Failed to trim video")
                         except Exception as trim_exec_error:
                             logger.error(f"[TRIM] Error during trim execution: {trim_exec_error}")
-                            import traceback
                             logger.error(traceback.format_exc())
             write_logs(message, url, downloaded_file)
             
