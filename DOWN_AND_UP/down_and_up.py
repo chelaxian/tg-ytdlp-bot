@@ -1734,12 +1734,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 logger.info("Download completed successfully")
                 
-                # Clear Always Ask menu states (TRIM, SUBS, DUBS) after successful download
-                try:
-                    from DOWN_AND_UP.always_ask_menu import clear_all_ask_menu_states
-                    clear_all_ask_menu_states(user_id)
-                except Exception as e:
-                    logger.error(f"Failed to clear Always Ask menu states after download: {e}")
+                # NOTE: Do NOT clear Always Ask menu states here!
+                # They are needed for MKV postprocessing (embedding audio tracks and subtitles)
+                # States will be cleared AFTER postprocessing is complete
                 
                 # Cache successful cookie result for future use
                 if not is_youtube_url(url):
@@ -3695,6 +3692,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             import traceback as tb_module
                             logger.error(tb_module.format_exc())
                         
+                        # NOTE: Do NOT clear Always Ask menu states here!
+                        # States are needed for all videos in playlist (if it's a playlist)
+                        # States will be cleared at the end of the function after ALL videos are processed
+                        
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         if not video_msg:
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
@@ -4241,5 +4242,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, playlist_indices)
             summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
             logger.info(f"[SUMMARY] Playlist cache (quality {safe_quality_key}):\n{summary}")
+        
+        # Clear Always Ask menu states (TRIM, SUBS, DUBS) at the end of function
+        # This ensures states are cleared after all postprocessing (including MKV embedding) is complete
+        try:
+            from DOWN_AND_UP.always_ask_menu import clear_all_ask_menu_states
+            clear_all_ask_menu_states(user_id)
+        except Exception as e:
+            logger.error(f"Failed to clear Always Ask menu states at end of function: {e}")
 
 #########################################

@@ -2496,3 +2496,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 error_key = f"{user_id}_{playlist_name}"
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
+        
+        # Clear Always Ask menu states (TRIM, SUBS, DUBS) at the end of function
+        # This ensures states are cleared after all operations are complete
+        try:
+            from DOWN_AND_UP.always_ask_menu import clear_all_ask_menu_states
+            clear_all_ask_menu_states(user_id)
+        except Exception as e:
+            logger.error(f"Failed to clear Always Ask menu states at end of down_and_audio: {e}")
