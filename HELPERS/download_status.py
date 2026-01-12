@@ -163,6 +163,9 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
 # Cache for throttling upload progress edits per message
 _last_upload_update_ts = {}
 
+# Cache for upload logging to prevent watchdog false positives
+_last_upload_log_ts = {}
+
 # Helper function to start cycle progress animation
 def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop, progress_data=None):
     messages = safe_get_messages(user_id)
@@ -275,6 +278,13 @@ def progress_bar(*args):
     last_ts = _last_upload_update_ts.get(key, 0)
     if now - last_ts < 1.0 and current < total:
         return
+    
+    # Log upload activity every 10 seconds to prevent watchdog false positives
+    last_log_ts = _last_upload_log_ts.get(key, 0)
+    if now - last_log_ts >= 10.0:
+        logger.info("[Upload] Uploading video to Telegram")
+        _last_upload_log_ts[key] = now
+    
     # Build a simple progress bar
     try:
         percent = (current / total * 100) if total else 0
