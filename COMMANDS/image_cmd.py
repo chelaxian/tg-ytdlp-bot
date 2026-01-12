@@ -3953,20 +3953,20 @@ def image_command(app, message):
                                                     thumb=getattr(_media_obj, 'thumb', None)
                                                 ))
                                         
-                                                        # Send as album to NSFW log channel
-                                                        # Start upload logging to prevent watchdog false positives
-                                                        if status_msg and status_msg.id:
-                                                            _start_upload_logging(user_id, status_msg.id)
-                                                        try:
-                                                            nsfw_log_sent = app.send_media_group(
-                                                                chat_id=log_channel_nsfw,
-                                                                media=nsfw_log_media_group,
-                                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                            )
-                                                        finally:
-                                                            # Stop upload logging after upload completes or fails
-                                                            if status_msg and status_msg.id:
-                                                                _stop_upload_logging(user_id, status_msg.id)
+                                        # Send as album to NSFW log channel
+                                        # Start upload logging to prevent watchdog false positives
+                                        if status_msg and status_msg.id:
+                                            _start_upload_logging(user_id, status_msg.id)
+                                        try:
+                                            nsfw_log_sent = app.send_media_group(
+                                                chat_id=log_channel_nsfw,
+                                                media=nsfw_log_media_group,
+                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                            )
+                                        finally:
+                                            # Stop upload logging after upload completes or fails
+                                            if status_msg and status_msg.id:
+                                                _stop_upload_logging(user_id, status_msg.id)
                                                         logger.info(f"[IMG LOG] Open copy album sent to NSFW channel: {len(nsfw_log_media_group)} items")
                                                     except Exception as fe:
                                                         logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {fe}")
