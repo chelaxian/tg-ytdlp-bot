@@ -501,13 +501,14 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         normalized_targetname = os.path.abspath(targetname)
         
         # First try with -c copy (fast, no re-encoding)
-        # Use -to instead of -t for more precise cutting
-        # Explicitly specify output format with -f mp4
+        # Use -ss after -i for more accurate seeking, then -t for duration
+        # This ensures frame-accurate cutting
+        duration = end_time - start_time
         cmd = [
             ffmpeg_path, '-y',
-            '-ss', str(start_time),
             '-i', normalized_video_path,
-            '-to', str(end_time),
+            '-ss', str(start_time),
+            '-t', str(duration),
             '-c', 'copy',
             '-avoid_negative_ts', 'make_zero',
             '-fflags', '+genpts',
@@ -551,13 +552,14 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
             logger.error(f"FFmpeg stderr (full): {full_stderr}")
             logger.error(f"FFmpeg stdout (full): {full_stdout}")
             
-            # Try with re-encoding using -to for precise cutting
+            # Try with re-encoding using -ss after -i and -t for precise cutting
             # Explicitly specify output format with -f mp4
+            duration = end_time - start_time
             cmd_reencode = [
                 ffmpeg_path, '-y',
-                '-ss', str(start_time),
                 '-i', normalized_video_path,
-                '-to', str(end_time),
+                '-ss', str(start_time),
+                '-t', str(duration),
                 '-c:v', 'libx264',
                 '-c:a', 'aac',
                 '-preset', 'fast',
