@@ -1261,8 +1261,16 @@ def image_command(app, message):
                     
                     # Set manual range to max allowed range for fallback only if not already set
                     if manual_range is None:
-                        manual_range = (1, fallback_limit)
-                        logger.info(f"[IMG FALLBACK] Using manual range for fallback: {manual_range}")
+                        # For admins with unlimited limit (fallback_limit = 0), use a reasonable default
+                        # or don't set end cap to allow downloading all available media
+                        if fallback_limit == 0:
+                            # For unlimited, use a large but reasonable number or None for open-ended
+                            # Use None to indicate open-ended range (download all available)
+                            manual_range = (1, None)
+                            logger.info(f"[IMG FALLBACK] Using open-ended manual range for unlimited admin: {manual_range}")
+                        else:
+                            manual_range = (1, fallback_limit)
+                            logger.info(f"[IMG FALLBACK] Using manual range for fallback: {manual_range}")
                     else:
                         logger.info(f"[IMG FALLBACK] Manual range already set from cache: {manual_range}")
                     
@@ -1398,41 +1406,60 @@ def image_command(app, message):
             if total_count and total_count > 0:
                 logger.info(f"[IMG RANGE DEBUG] Creating range buttons: total_count={total_count}, total_limit={total_limit}")
                 
-                # Calculate ranges based on total_count and limits
-            ranges = []
-            current_start = 1
-            batch_size = total_limit
-            
-            while current_start <= total_count:
-                current_end = min(current_start + batch_size - 1, total_count)
-                ranges.append((current_start, current_end))
-                current_start = current_end + 1
-            
-            logger.info(f"[IMG RANGE DEBUG] Created {len(ranges)} range buttons: {ranges}")
-            
-            # Create keyboard
-            keyboard = []
-            for start, end in ranges:
-                if end == total_count and start == 1:
-                    # Single range covering all
-                    button_text = f"📥 Download all ({total_count})"
+                # Check if we should auto-download instead of showing menu
+                # Auto-download if: unlimited limit (total_limit=0) OR total_count fits within limit
+                should_auto_download = False
+                if total_limit == 0:
+                    # Unlimited for admin - auto-download all
+                    should_auto_download = True
+                    logger.info(f"[IMG RANGE DEBUG] Unlimited limit detected, auto-downloading all {total_count} items")
+                elif total_count <= total_limit:
+                    # Total fits within limit - auto-download all
+                    should_auto_download = True
+                    logger.info(f"[IMG RANGE DEBUG] Total {total_count} fits within limit {total_limit}, auto-downloading all items")
+                
+                if should_auto_download:
+                    # Set manual range to download all and continue
+                    manual_range = (1, total_count)
+                    detected_total = total_count
+                    logger.info(f"[IMG RANGE DEBUG] Auto-download enabled, setting manual_range={manual_range}, detected_total={detected_total}")
                 else:
-                    button_text = f"📥 {start}-{end} ({end - start + 1})"
-                
-                callback_data = f"img_range|{start}|{end}|{url}"
-                keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
-            
-                # Add cancel button
-                keyboard.append([InlineKeyboardButton("❌ Cancel", callback_data="img_range|cancel")])
-                
-                safe_edit_message_text(
-                    user_id, status_msg.id,
-                    f"{safe_get_messages(user_id).IMG_FOUND_MEDIA_ITEMS_MSG.format(count=total_count)}\n\n"
-                    f"{safe_get_messages(user_id).IMG_SELECT_DOWNLOAD_RANGE_MSG}",
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode=enums.ParseMode.HTML
-                )
-                return
+                    # Show menu for user to select range
+                    # Calculate ranges based on total_count and limits
+                    ranges = []
+                    current_start = 1
+                    batch_size = total_limit if total_limit > 0 else total_count
+                    
+                    while current_start <= total_count:
+                        current_end = min(current_start + batch_size - 1, total_count)
+                        ranges.append((current_start, current_end))
+                        current_start = current_end + 1
+                    
+                    logger.info(f"[IMG RANGE DEBUG] Created {len(ranges)} range buttons: {ranges}")
+                    
+                    # Create keyboard
+                    keyboard = []
+                    for start, end in ranges:
+                        if end == total_count and start == 1:
+                            # Single range covering all
+                            button_text = f"📥 Download all ({total_count})"
+                        else:
+                            button_text = f"📥 {start}-{end} ({end - start + 1})"
+                        
+                        callback_data = f"img_range|{start}|{end}|{url}"
+                        keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
+                    
+                    # Add cancel button
+                    keyboard.append([InlineKeyboardButton("❌ Cancel", callback_data="img_range|cancel")])
+                    
+                    safe_edit_message_text(
+                        user_id, status_msg.id,
+                        f"{safe_get_messages(user_id).IMG_FOUND_MEDIA_ITEMS_MSG.format(count=total_count)}\n\n"
+                        f"{safe_get_messages(user_id).IMG_SELECT_DOWNLOAD_RANGE_MSG}",
+                        reply_markup=InlineKeyboardMarkup(keyboard),
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                    return
             else:
                 # Fallback case - we already set manual_range above
                 logger.info(f"[IMG FALLBACK] Skipping range menu creation, using manual_range: {manual_range}")
@@ -1458,8 +1485,13 @@ def image_command(app, message):
             
             # Set manual range to max allowed range for fallback only if not already set
             if manual_range is None:
-                manual_range = (1, fallback_limit)
-                logger.info(f"[IMG FALLBACK DOMAIN] Using manual range for fallback: {manual_range}")
+                # For admins with unlimited limit (fallback_limit = 0), use open-ended range
+                if fallback_limit == 0:
+                    manual_range = (1, None)
+                    logger.info(f"[IMG FALLBACK DOMAIN] Using open-ended manual range for unlimited admin: {manual_range}")
+                else:
+                    manual_range = (1, fallback_limit)
+                    logger.info(f"[IMG FALLBACK DOMAIN] Using manual range for fallback: {manual_range}")
             else:
                 logger.info(f"[IMG FALLBACK DOMAIN] Manual range already set from cache: {manual_range}")
             
@@ -1643,7 +1675,11 @@ def image_command(app, message):
             
             # Upper cap: if user provided end, respect it (but not above limit for non-admins)
             if original_manual_end_cap is not None:
-                if is_admin:
+                # Handle invalid range (1, 0) - treat as open-ended
+                if original_manual_end_cap == 0:
+                    logger.warning(f"[IMG] Invalid range end cap 0 detected, treating as open-ended range")
+                    manual_end_cap = None
+                elif is_admin:
                     manual_end_cap = original_manual_end_cap
                 else:
                     # Ensure total_limit is not None before comparison
@@ -1702,7 +1738,7 @@ def image_command(app, message):
         
         # Fallback: if no total detected but manual range specified, use the range
         if manual_range is not None and total_expected is None:
-            if manual_range[1] is not None:
+            if manual_range[1] is not None and manual_range[1] > 0:
                 # Правильный расчет для отрицательных индексов и обратного порядка
                 if manual_range[0] < 0 and manual_range[1] < 0:
                     total_expected = abs(manual_range[1]) - abs(manual_range[0]) + 1
@@ -1710,8 +1746,13 @@ def image_command(app, message):
                     total_expected = abs(manual_range[0] - manual_range[1]) + 1
                 else:
                     total_expected = manual_range[1] - manual_range[0] + 1
+            elif manual_range[1] == 0:
+                # Invalid range (1, 0) - treat as open-ended range starting from 1
+                logger.warning(f"[IMG FALLBACK] Invalid range (1, 0) detected, treating as open-ended range")
+                manual_range = (1, None)
+                total_expected = total_limit
             else:
-                # Open-ended range, use a reasonable default
+                # Open-ended range (manual_range[1] is None), use a reasonable default
                 if manual_range[0] < 0:
                     total_expected = abs(manual_range[0]) if is_admin else min(abs(manual_range[0]), total_limit)
                 else:

@@ -215,30 +215,72 @@ def _prepare_user_cookies_and_proxy(url: str, user_id, use_proxy: bool, config: 
         else:
             logger.info("[GALLERY_DL] Using user's custom User-Agent for Instagram")
 
+    # Check if this is VK URL - cookies are optional for VK
+    is_vk_url = False
+    try:
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        vk_hostname = (parsed_url.hostname or '').lower()
+        is_vk_url = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+    except Exception:
+        pass
+
     # cookies - use new caching system for non-YouTube sites
     if not is_youtube_url(url):
-        # For non-YouTube URLs, use new cookie fallback system
-        from COMMANDS.cookies_cmd import get_cookie_cache_result, try_non_youtube_cookie_fallback
-        cache_result = get_cookie_cache_result(user_id, url)
-        
-        if cache_result and cache_result['result']:
-            # Use cached successful cookies
-            config['extractor']['cookies'] = cache_result['cookie_path']
-            logger.info(f"Using cached cookies for gallery-dl non-YouTube URL: {url}")
-        elif os.path.exists(user_cookie_path):
-            config['extractor']['cookies'] = user_cookie_path
-            logger.info(safe_get_messages(user_id).GALLERY_DL_USING_USER_COOKIES_MSG.format(cookie_path=user_cookie_path))
+        # For VK, cookies are optional - try with cookies if available, but don't require them
+        if is_vk_url:
+            # For VK, try cookies if available, but don't fail if they don't exist
+            cache_result = None
+            try:
+                from COMMANDS.cookies_cmd import get_cookie_cache_result
+                cache_result = get_cookie_cache_result(user_id, url)
+            except Exception:
+                pass
+            
+            if cache_result and cache_result['result']:
+                # Use cached successful cookies
+                config['extractor']['cookies'] = cache_result['cookie_path']
+                logger.info(f"[VK] Using cached cookies for gallery-dl: {url}")
+            elif os.path.exists(user_cookie_path):
+                config['extractor']['cookies'] = user_cookie_path
+                logger.info(f"[VK] Using user cookies (optional): {user_cookie_path}")
+            else:
+                global_cookie_path = Config.COOKIE_FILE_PATH
+                if os.path.exists(global_cookie_path):
+                    try:
+                        create_directory(user_dir)
+                        shutil.copy2(global_cookie_path, user_cookie_path)
+                        config['extractor']['cookies'] = user_cookie_path
+                        logger.info(f"[VK] Using copied global cookies (optional): {user_cookie_path}")
+                    except Exception as e:
+                        logger.info(f"[VK] No cookies available, will try without cookies: {e}")
+                        # Don't set cookies - VK works without them
+                else:
+                    logger.info(f"[VK] No cookies available, will try without cookies (VK works without cookies)")
+                    # Don't set cookies - VK works without them
         else:
-            global_cookie_path = Config.COOKIE_FILE_PATH
-            if os.path.exists(global_cookie_path):
-                try:
-                    create_directory(user_dir)
-                    shutil.copy2(global_cookie_path, user_cookie_path)
-                    config['extractor']['cookies'] = user_cookie_path
-                    logger.info(safe_get_messages(user_id).GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG.format(user_id=user_id))
-                    logger.info(safe_get_messages(user_id).GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG.format(cookie_path=user_cookie_path))
-                except Exception as e:
-                    logger.error(safe_get_messages(user_id).GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG.format(user_id=user_id, error=e))
+            # For non-YouTube, non-VK URLs, use new cookie fallback system
+            from COMMANDS.cookies_cmd import get_cookie_cache_result, try_non_youtube_cookie_fallback
+            cache_result = get_cookie_cache_result(user_id, url)
+            
+            if cache_result and cache_result['result']:
+                # Use cached successful cookies
+                config['extractor']['cookies'] = cache_result['cookie_path']
+                logger.info(f"Using cached cookies for gallery-dl non-YouTube URL: {url}")
+            elif os.path.exists(user_cookie_path):
+                config['extractor']['cookies'] = user_cookie_path
+                logger.info(safe_get_messages(user_id).GALLERY_DL_USING_USER_COOKIES_MSG.format(cookie_path=user_cookie_path))
+            else:
+                global_cookie_path = Config.COOKIE_FILE_PATH
+                if os.path.exists(global_cookie_path):
+                    try:
+                        create_directory(user_dir)
+                        shutil.copy2(global_cookie_path, user_cookie_path)
+                        config['extractor']['cookies'] = user_cookie_path
+                        logger.info(safe_get_messages(user_id).GALLERY_DL_COPIED_GLOBAL_COOKIE_MSG.format(user_id=user_id))
+                        logger.info(safe_get_messages(user_id).GALLERY_DL_USING_COPIED_GLOBAL_COOKIES_MSG.format(cookie_path=user_cookie_path))
+                    except Exception as e:
+                        logger.error(safe_get_messages(user_id).GALLERY_DL_FAILED_COPY_GLOBAL_COOKIE_MSG.format(user_id=user_id, error=e))
     else:
         # For YouTube URLs, use existing logic
         if os.path.exists(user_cookie_path):
@@ -400,20 +442,33 @@ def get_image_info(url: str, user_id=None, use_proxy: bool = False):
                 raise AttributeError(safe_get_messages(user_id).GALLERY_DL_EXTRACTOR_FIND_NOT_AVAILABLE_MSG)
 
             logger.info(safe_get_messages(user_id).GALLERY_DL_CALLING_EXTRACTOR_FIND_MSG.format(url=url))
+            # For Instagram, cookies must be set via config BEFORE creating extractor
+            # InstagramPostExtractor reads cookies from config during initialization
             extractor = find_fn(url)
             if extractor is None:
                 raise RuntimeError(safe_get_messages(user_id).GALLERY_DL_NO_EXTRACTOR_MATCHED_MSG)
 
             # Try to set cookies on the extractor if it has the attribute
-            if hasattr(extractor, 'cookies') and config.get('extractor', {}).get('cookies'):
+            # Instagram and VK extractors use cookies from config, so this is mainly for other extractors
+            cookie_path = config.get('extractor', {}).get('cookies')
+            if cookie_path and os.path.exists(cookie_path):
                 try:
-                    cookie_path = config['extractor']['cookies']
-                    if os.path.exists(cookie_path):
-                        logger.info(safe_get_messages(user_id).GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG.format(cookie_path=cookie_path))
-                        # Try different ways to set cookies
+                    # Check extractor type
+                    extractor_class_name = extractor.__class__.__name__ if hasattr(extractor, '__class__') else ''
+                    is_instagram_extractor = 'Instagram' in extractor_class_name
+                    is_vk_extractor = 'Vk' in extractor_class_name or 'VK' in extractor_class_name
+                    
+                    if is_instagram_extractor or is_vk_extractor:
+                        # For Instagram and VK, cookies are already set via config, just log
+                        extractor_type = "Instagram" if is_instagram_extractor else "VK"
+                        logger.info(f"[GALLERY_DL] {extractor_type} extractor detected, cookies already set via config: {cookie_path}")
+                    else:
+                        # For other extractors, try to set cookies directly
                         if hasattr(extractor, 'set_cookies'):
+                            logger.info(safe_get_messages(user_id).GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG.format(cookie_path=cookie_path))
                             extractor.set_cookies(cookie_path)
                         elif hasattr(extractor, 'cookies'):
+                            logger.info(safe_get_messages(user_id).GALLERY_DL_SETTING_COOKIES_ON_EXTRACTOR_MSG.format(cookie_path=cookie_path))
                             extractor.cookies = cookie_path
                 except Exception as cookie_e:
                     logger.warning(safe_get_messages(user_id).GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG.format(error=cookie_e))
@@ -428,7 +483,53 @@ def get_image_info(url: str, user_id=None, use_proxy: bool = False):
                 logger.warning(safe_get_messages(user_id).GALLERY_DL_STRATEGY_A_NO_VALID_INFO_MSG)
 
         except Exception as inner_e:
+            error_msg = str(inner_e).lower()
             logger.warning(safe_get_messages(user_id).GALLERY_DL_STRATEGY_A_FAILED_MSG.format(error=inner_e))
+            
+            # For Instagram and VK-specific errors (like cookies/session attribute error), 
+            # try to continue with fallback instead of failing completely
+            if ('instagram' in error_msg or 'vk' in error_msg or 'vkwall' in error_msg) and \
+               ('cookies' in error_msg or 'session' in error_msg or 'attribute' in error_msg):
+                extractor_type = "Instagram" if 'instagram' in error_msg else "VK"
+                logger.info(f"[GALLERY_DL] {extractor_type} extractor error detected, will try fallback methods")
+                
+                # For VK, if cookies failed, try without cookies
+                if 'vk' in error_msg or 'vkwall' in error_msg:
+                    logger.info("[GALLERY_DL] VK extractor error with cookies, trying without cookies")
+                    try:
+                        # Create config without cookies for VK
+                        vk_config_no_cookies = {
+                            "extractor": {
+                                "timeout": 30,
+                                "retries": 3,
+                            },
+                            "output": {
+                                "mode": "info",
+                            },
+                        }
+                        # Apply proxy if needed
+                        vk_config_no_cookies = _prepare_user_cookies_and_proxy(url, user_id, use_proxy, vk_config_no_cookies)
+                        # Remove cookies for VK retry
+                        if 'extractor' in vk_config_no_cookies and 'cookies' in vk_config_no_cookies['extractor']:
+                            del vk_config_no_cookies['extractor']['cookies']
+                        
+                        logger.info("[GALLERY_DL] Retrying VK with config without cookies")
+                        _apply_config(vk_config_no_cookies, user_id)
+                        
+                        # Try Strategy A again without cookies
+                        ex_find = getattr(gallery_dl, "extractor", None)
+                        if ex_find:
+                            find_fn = getattr(ex_find, "find", None)
+                            if find_fn:
+                                extractor = find_fn(url)
+                                if extractor:
+                                    items_iter = extractor.items()
+                                    info = _first_info_from_items(items_iter, user_id)
+                                    if info:
+                                        logger.info("[GALLERY_DL] VK Strategy A succeeded without cookies")
+                                        return info
+                    except Exception as vk_no_cookies_e:
+                        logger.warning(f"[GALLERY_DL] VK retry without cookies also failed: {vk_no_cookies_e}")
 
         # Fallback: use --get-urls count only (no downloads)
         try:
@@ -436,8 +537,24 @@ def get_image_info(url: str, user_id=None, use_proxy: bool = False):
             if isinstance(total, int) and total > 0:
                 logger.info(safe_get_messages(user_id).GALLERY_DL_FALLBACK_METADATA_MSG.format(total=total))
                 return {"total": total, "title": "Unknown"}
-        except Exception as _:
-            pass
+        except Exception as fallback_e:
+            logger.warning(f"[GALLERY_DL] Fallback get_total_media_count also failed: {fallback_e}")
+            
+            # For VK, try without cookies as last resort
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                vk_hostname = (parsed_url.hostname or '').lower()
+                is_vk_url = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+                
+                if is_vk_url:
+                    logger.info("[GALLERY_DL] VK fallback failed, trying get_total_media_count without cookies")
+                    total_no_cookies = _get_total_media_count_fallback(url, user_id, use_proxy, None)
+                    if isinstance(total_no_cookies, int) and total_no_cookies > 0:
+                        logger.info(f"[GALLERY_DL] VK succeeded without cookies: {total_no_cookies} items")
+                        return {"total": total_no_cookies, "title": "Unknown"}
+            except Exception:
+                pass
 
         try:
             logger.error(safe_get_messages(user_id).GALLERY_DL_ALL_STRATEGIES_FAILED_MSG)
@@ -732,9 +849,7 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
                 return _get_instagram_media_count(url, user_id, use_proxy, cfg_path)
         
         cmd = [sys.executable, "-m", "gallery_dl", "--config", cfg_path, "--get-urls", url]
-        cmd = _add_cookies_to_cmd(cmd, url, user_id)
-        logger.info(f"Fallback counting via --get-urls: {' '.join(cmd)}")
-        # VK альбомы могут быть большими – увеличим таймаут для VK
+        # For VK, cookies are optional - only add if config has them
         # Безопасная проверка домена через urlparse
         is_vk_url = False
         try:
@@ -745,33 +860,45 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
         except Exception:
             pass
         
+        # Only add cookies if not VK or if config explicitly has cookies
+        if not is_vk_url or (cfg_path and os.path.exists(cfg_path)):
+            try:
+                import json
+                with open(cfg_path, 'r') as f:
+                    cfg_data = json.load(f)
+                    if cfg_data.get('extractor', {}).get('cookies'):
+                        cmd = _add_cookies_to_cmd(cmd, url, user_id)
+            except Exception:
+                if not is_vk_url:
+                    cmd = _add_cookies_to_cmd(cmd, url, user_id)
+        
+        logger.info(f"Fallback counting via --get-urls: {' '.join(cmd)}")
+        # VK альбомы могут быть большими – увеличим таймаут для VK
         timeout_sec = 30 if is_vk_url else 15
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
         except subprocess.TimeoutExpired:
             logger.warning(f"--get-urls timed out after {timeout_sec}s")
+            # For VK, try without cookies if timeout
+            if is_vk_url:
+                logger.info("[VK] Timeout with cookies, trying without cookies")
+                return _try_without_cookies(url, None, user_id)
             return None
         if result.returncode == 0:
             lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
             logger.info(f"Fallback detected {len(lines)} media items")
             # Add warning for VK about video limitation
-            # Безопасная проверка домена через urlparse
-            is_vk_url_warning = False
-            try:
-                from urllib.parse import urlparse
-                parsed_url = urlparse(url)
-                vk_hostname = (parsed_url.hostname or '').lower()
-                is_vk_url_warning = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
-            except Exception:
-                pass
-            
-            if is_vk_url_warning:
+            if is_vk_url:
                 logger.warning("Note: Gallery-dl only supports images from VK, not videos")
             return len(lines)
         else:
             logger.warning(f"Fallback get_total_media_count failed: {result.stderr[:400]}")
-            # Try without cookies for problematic sites
-            if any(domain in url.lower() for domain in ['vk.com', 'instagram.com', 'tiktok.com']):
+            # For VK, always try without cookies if failed with cookies
+            if is_vk_url:
+                logger.info("[VK] Failed with cookies, trying without cookies")
+                return _try_without_cookies(url, None, user_id)
+            # Try without cookies for other problematic sites
+            if any(domain in url.lower() for domain in ['instagram.com', 'tiktok.com']):
                 logger.info(f"Trying {url.split('/')[2]} without cookies...")
                 return _try_without_cookies(url, cfg_path, user_id)
             return None
@@ -857,8 +984,18 @@ def _get_instagram_media_count(url: str, user_id, use_proxy: bool, cfg_path: str
         return None
 
 def _try_without_cookies(url: str, cfg_path: str, user_id: int = None) -> int | None:
-    """Try without cookies as fallback for problematic sites"""
+    """Try without cookies as fallback for problematic sites (especially VK)"""
     try:
+        # Check if this is VK URL
+        is_vk_url = False
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            vk_hostname = (parsed_url.hostname or '').lower()
+            is_vk_url = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+        except Exception:
+            pass
+        
         # Create config without cookies
         no_cookies_cfg = {
             "extractor": {
@@ -867,21 +1004,24 @@ def _try_without_cookies(url: str, cfg_path: str, user_id: int = None) -> int | 
             }
         }
         
+        # For VK, use longer timeout
+        timeout_sec = 30 if is_vk_url else 15
+        
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(no_cookies_cfg, f)
             no_cookies_cfg_path = f.name
         
         try:
             cmd = [sys.executable, "-m", "gallery_dl", "--config", no_cookies_cfg_path, "--get-urls", url]
-            cmd = _add_cookies_to_cmd(cmd, url, user_id)
-            logger.info(f"Without cookies: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+            # Don't add cookies - this is the "without cookies" function
+            logger.info(f"[VK] Trying without cookies: {' '.join(cmd)}" if is_vk_url else f"Without cookies: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
             if result.returncode == 0:
                 lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
-                logger.info(f"Without cookies detected {len(lines)} media items")
+                logger.info(f"[VK] Without cookies detected {len(lines)} media items" if is_vk_url else f"Without cookies detected {len(lines)} media items")
                 return len(lines)
             else:
-                logger.warning(f"Without cookies failed: {result.stderr[:400]}")
+                logger.warning(f"[VK] Without cookies failed: {result.stderr[:400]}" if is_vk_url else f"Without cookies failed: {result.stderr[:400]}")
                 return None
         finally:
             try:
@@ -914,6 +1054,16 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
         # Gallery-dl uses 'output' and 'base-directory' keys (not in extractor)
         config["output"] = {"directory": [output_dir]}
         config["base-directory"] = output_dir
+    # Check if this is VK URL - cookies are optional
+    is_vk_url = False
+    try:
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        vk_hostname = (parsed_url.hostname or '').lower()
+        is_vk_url = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+    except Exception:
+        pass
+    
     config = _prepare_user_cookies_and_proxy(url, user_id, use_proxy, config)
     try:
         _apply_config(config, user_id)
@@ -925,10 +1075,94 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
             raise RuntimeError("gallery_dl.job.DownloadJob not available in this build")
         job = DownloadJob(url)
         status = job.run()
-        return status == 0
+        if status == 0:
+            return True
+        else:
+            # For VK, if failed with cookies, try without cookies
+            if is_vk_url and config.get('extractor', {}).get('cookies'):
+                logger.info("[VK] Download failed with cookies, trying without cookies")
+                config_no_cookies = {
+                    "extractor": {
+                        "timeout": 30,
+                        "retries": 3,
+                        "range": range_expr,
+                    },
+                }
+                if output_dir:
+                    config_no_cookies["output"] = {"directory": [output_dir]}
+                    config_no_cookies["base-directory"] = output_dir
+                # Apply proxy but not cookies
+                if use_proxy:
+                    try:
+                        from COMMANDS.proxy_cmd import get_proxy_config
+                        proxy_config = get_proxy_config()
+                        if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
+                            ptype = proxy_config['type']
+                            auth = ""
+                            if proxy_config.get('user') and proxy_config.get('password'):
+                                auth = f"{proxy_config['user']}:{proxy_config['password']}@"
+                            if ptype in ('http', 'https', 'socks4', 'socks5', 'socks5h'):
+                                proxy_url = f"{ptype}://{auth}{proxy_config['ip']}:{proxy_config['port']}"
+                                config_no_cookies["extractor"]["proxy"] = proxy_url
+                    except Exception:
+                        pass
+                
+                try:
+                    _apply_config(config_no_cookies, user_id)
+                    job_no_cookies = DownloadJob(url)
+                    status_no_cookies = job_no_cookies.run()
+                    if status_no_cookies == 0:
+                        logger.info("[VK] Download succeeded without cookies")
+                        return True
+                except Exception as vk_no_cookies_e:
+                    logger.warning(f"[VK] Download without cookies also failed: {vk_no_cookies_e}")
+            return False
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Failed to download range {range_expr}: {error_msg}")
+        
+        # For VK, if error is related to cookies/session, try without cookies
+        if is_vk_url and ('cookies' in error_msg.lower() or 'session' in error_msg.lower() or 'attribute' in error_msg.lower()):
+            logger.info("[VK] Error with cookies, trying download without cookies")
+            try:
+                config_no_cookies = {
+                    "extractor": {
+                        "timeout": 30,
+                        "retries": 3,
+                        "range": range_expr,
+                    },
+                }
+                if output_dir:
+                    config_no_cookies["output"] = {"directory": [output_dir]}
+                    config_no_cookies["base-directory"] = output_dir
+                # Apply proxy but not cookies
+                if use_proxy:
+                    try:
+                        from COMMANDS.proxy_cmd import get_proxy_config
+                        proxy_config = get_proxy_config()
+                        if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
+                            ptype = proxy_config['type']
+                            auth = ""
+                            if proxy_config.get('user') and proxy_config.get('password'):
+                                auth = f"{proxy_config['user']}:{proxy_config['password']}@"
+                            if ptype in ('http', 'https', 'socks4', 'socks5', 'socks5h'):
+                                proxy_url = f"{ptype}://{auth}{proxy_config['ip']}:{proxy_config['port']}"
+                                config_no_cookies["extractor"]["proxy"] = proxy_url
+                    except Exception:
+                        pass
+                
+                _apply_config(config_no_cookies, user_id)
+                job_mod = getattr(gallery_dl, "job", None)
+                if job_mod:
+                    DownloadJob = getattr(job_mod, "DownloadJob", None)
+                    if DownloadJob:
+                        job_no_cookies = DownloadJob(url)
+                        status_no_cookies = job_no_cookies.run()
+                        if status_no_cookies == 0:
+                            logger.info("[VK] Download succeeded without cookies after error")
+                            return True
+            except Exception as vk_retry_e:
+                logger.warning(f"[VK] Retry without cookies failed: {vk_retry_e}")
         
         # Check for fatal errors in exception message
         if _is_fatal_error(error_msg):
@@ -1227,6 +1461,62 @@ def download_image_range_cli(url: str, range_expr: str, user_id=None, use_proxy:
             if result.returncode != 0:
                 stderr_text = result.stderr[:400]
                 logger.warning(f"CLI range download failed [{result.returncode}]: {stderr_text}")
+                
+                # For VK, if failed with cookies, try without cookies
+                is_vk_url = False
+                try:
+                    from urllib.parse import urlparse
+                    parsed_url = urlparse(url)
+                    vk_hostname = (parsed_url.hostname or '').lower()
+                    is_vk_url = vk_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or vk_hostname.endswith('.vk.com')
+                except Exception:
+                    pass
+                
+                if is_vk_url and cfg.get('extractor', {}).get('cookies'):
+                    logger.info("[VK] CLI download failed with cookies, trying without cookies")
+                    try:
+                        # Create config without cookies
+                        vk_cfg_no_cookies = {"extractor": {"timeout": 30, "retries": 3}}
+                        if output_dir:
+                            vk_cfg_no_cookies["output"] = {"directory": [output_dir]}
+                            vk_cfg_no_cookies["base-directory"] = output_dir
+                        # Apply proxy but not cookies
+                        if use_proxy:
+                            try:
+                                from COMMANDS.proxy_cmd import get_proxy_config
+                                proxy_config = get_proxy_config()
+                                if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
+                                    ptype = proxy_config['type']
+                                    auth = ""
+                                    if proxy_config.get('user') and proxy_config.get('password'):
+                                        auth = f"{proxy_config['user']}:{proxy_config['password']}@"
+                                    if ptype in ('http', 'https', 'socks4', 'socks5', 'socks5h'):
+                                        proxy_url = f"{ptype}://{auth}{proxy_config['ip']}:{proxy_config['port']}"
+                                        vk_cfg_no_cookies["extractor"]["proxy"] = proxy_url
+                            except Exception:
+                                pass
+                        
+                        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                            json.dump(vk_cfg_no_cookies, f)
+                            vk_cfg_no_cookies_path = f.name
+                        try:
+                            vk_cmd = [sys.executable, "-m", "gallery_dl", "--config", vk_cfg_no_cookies_path, "--range", range_expr, url]
+                            # Don't add cookies
+                            vk_cmd_pretty = ' '.join(vk_cmd)
+                            logger.info(f"[VK] Downloading range via CLI without cookies: {vk_cmd_pretty}")
+                            vk_result = subprocess.run(vk_cmd, capture_output=True, text=True, timeout=600)
+                            if vk_result.returncode == 0:
+                                logger.info("[VK] CLI download succeeded without cookies")
+                                return True
+                            else:
+                                logger.warning(f"[VK] CLI download without cookies also failed: {vk_result.stderr[:400]}")
+                        finally:
+                            try:
+                                os.unlink(vk_cfg_no_cookies_path)
+                            except Exception:
+                                pass
+                    except Exception as vk_retry_e:
+                        logger.warning(f"[VK] Retry without cookies failed: {vk_retry_e}")
                 
                 # Check for common authentication and access errors
                 if _is_fatal_error(stderr_text):
