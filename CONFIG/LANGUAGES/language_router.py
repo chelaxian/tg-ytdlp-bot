@@ -293,15 +293,22 @@ class LanguageRouter:
             messages_file = os.path.basename(messages_path)
             module_name = f"CONFIG.LANGUAGES.{messages_file[:-3]}"  # Remove .py extension
             
+            logger.info(f"🔍 [import] Attempting to import {module_name} from {messages_path}")
+            
             # Clear any existing module from cache to force reload
             if module_name in sys.modules:
+                logger.info(f"🔍 [import] Clearing cached module {module_name}")
                 del sys.modules[module_name]
             
             # Import the module using absolute import
+            messages_module = None
             try:
                 # Try standard import first (works in both local and Docker)
+                logger.info(f"🔍 [import] Trying standard import for {module_name}")
                 messages_module = __import__(module_name, fromlist=['Messages'])
+                logger.info(f"✅ [import] Standard import successful")
             except (ImportError, ModuleNotFoundError) as e1:
+                logger.warning(f"⚠️ [import] Standard import failed: {e1}, trying importlib")
                 # Try alternative import method using importlib (more reliable fallback)
                 try:
                     import importlib.util
@@ -310,48 +317,72 @@ class LanguageRouter:
                         messages_module = importlib.util.module_from_spec(spec)
                         # Register module in sys.modules so it can be found later
                         sys.modules[module_name] = messages_module
+                        logger.info(f"🔍 [import] Executing module via importlib")
                         spec.loader.exec_module(messages_module)
+                        logger.info(f"✅ [import] importlib import successful")
                     else:
                         raise ImportError(f"Could not load module from {messages_path}")
                 except Exception as e2:
                     logger.error(f"❌ Both import methods failed. Standard: {e1}, importlib: {e2}")
+                    import traceback
+                    logger.error(traceback.format_exc())
                     raise ImportError(f"Could not import {module_name} from {messages_path}")
             
+            if not messages_module:
+                logger.error(f"❌ [import] Module is None after import")
+                return {}
+            
+            # Get Messages class
+            if not hasattr(messages_module, 'Messages'):
+                logger.error(f"❌ [import] Module {module_name} has no 'Messages' class. Available: {dir(messages_module)}")
+                return {}
+            
             messages_class = getattr(messages_module, 'Messages')
+            logger.info(f"✅ [import] Got Messages class: {messages_class}")
             
             messages_dict = {}
             
             # Get all attributes from the class itself (class variables)
             # Use __dict__ first as it's more reliable for class variables
             if hasattr(messages_class, '__dict__'):
-                for attr_name, attr_value in messages_class.__dict__.items():
+                class_dict = messages_class.__dict__
+                logger.info(f"🔍 [import] Class __dict__ has {len(class_dict)} items")
+                for attr_name, attr_value in class_dict.items():
                     if not attr_name.startswith('_') and not callable(attr_value):
                         messages_dict[attr_name] = attr_value
+                        if len(messages_dict) <= 5:
+                            logger.info(f"🔍 [import] Added attribute: {attr_name} = {str(attr_value)[:50]}...")
             
             # Also check dir() for any additional attributes
-            for attr_name in dir(messages_class):
+            all_attrs = dir(messages_class)
+            logger.info(f"🔍 [import] dir() returned {len(all_attrs)} attributes")
+            for attr_name in all_attrs:
                 if not attr_name.startswith('_') and attr_name not in messages_dict:
                     try:
                         attr_value = getattr(messages_class, attr_name)
                         # Only include non-callable attributes (exclude methods)
                         if not callable(attr_value):
                             messages_dict[attr_name] = attr_value
-                    except:
-                        pass
+                            if len(messages_dict) <= 10:
+                                logger.info(f"🔍 [import] Added from dir(): {attr_name}")
+                    except Exception as e:
+                        logger.debug(f"🔍 [import] Could not get attribute {attr_name}: {e}")
             
             # Debug: log sample of loaded messages
             if messages_dict:
                 sample_keys = list(messages_dict.keys())[:5]
                 logger.info(f"✅ Successfully loaded {len(messages_dict)} messages. Sample keys: {sample_keys}")
             else:
-                logger.warning(f"⚠️ Warning: No messages loaded from {messages_path}")
+                logger.error(f"❌ No messages loaded from {messages_path}")
+                logger.error(f"❌ Class __dict__ keys: {list(messages_class.__dict__.keys())[:20] if hasattr(messages_class, '__dict__') else 'N/A'}")
+                logger.error(f"❌ dir() sample: {all_attrs[:20]}")
             
             return messages_dict
             
         except Exception as e:
-            print(f"❌ Error in import loading: {e}")
+            logger.error(f"❌ Error in import loading: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             return {}
     
     def _evaluate_joined_str(self, node: ast.JoinedStr) -> str:

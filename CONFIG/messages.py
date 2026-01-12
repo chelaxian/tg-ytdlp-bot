@@ -27,19 +27,37 @@ class Messages(object):
         """
         self.user_id = user_id
         self.language_code = language_code
+        self._loading = False  # Flag to prevent infinite recursion
         try:
+            if not hasattr(self, '_loading'):
+                self._loading = False
+            
+            if self._loading:
+                logger.warning(f"⚠️ [Messages.__init__] Recursive call detected, returning empty dict")
+                self._messages = {}
+                return
+            
+            self._loading = True
             logger.info(f"🔍 [Messages.__init__] Loading messages for user_id={user_id}, language_code={language_code}")
             self._messages = get_messages(user_id, language_code)
             logger.info(f"🔍 [Messages.__init__] Got messages dict with {len(self._messages)} keys")
             # Debug: log if messages dict is empty
             if not self._messages:
                 logger.warning(f"⚠️ Warning: Empty messages dict for user_id={user_id}, language_code={language_code}")
-                # Try to get default language
-                if language_code != 'en':
+                # Try to get default language only if we're not already loading default
+                if language_code and language_code != 'en':
                     logger.info(f"🔄 Trying to load default language 'en'...")
-                    self._messages = get_messages(None, 'en')
-                    logger.info(f"🔍 [Messages.__init__] Default language dict has {len(self._messages)} keys")
+                    self._loading = False  # Reset flag before recursive call
+                    default_messages = get_messages(None, 'en')
+                    self._loading = True
+                    if default_messages:
+                        self._messages = default_messages
+                        logger.info(f"🔍 [Messages.__init__] Default language dict has {len(self._messages)} keys")
+                    else:
+                        logger.error(f"❌ Default language 'en' also returned empty dict!")
+            self._loading = False
         except Exception as e:
+            self._loading = False
             logger.error(f"❌ Error getting messages for user_id={user_id}, language_code={language_code}: {e}")
             import traceback
             logger.error(traceback.format_exc())
@@ -121,5 +139,20 @@ def safe_messages(user_id=None):
                     return f"[{name}]"
             return DummyMessages()
 
-# Backward compatibility - create default instance with English language
-messages = Messages(None, 'en')
+# Backward compatibility - create default instance lazily to avoid import-time issues
+# Note: This is created on first access, not at import time
+_messages_instance = None
+
+def _get_messages():
+    """Get or create default messages instance (lazy initialization)"""
+    global _messages_instance
+    if _messages_instance is None:
+        _messages_instance = Messages(None, 'en')
+    return _messages_instance
+
+# For backward compatibility - use a class that lazily creates the instance
+class _MessagesProxy:
+    def __getattr__(self, name):
+        return getattr(_get_messages(), name)
+
+messages = _MessagesProxy()
