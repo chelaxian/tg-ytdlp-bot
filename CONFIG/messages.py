@@ -33,26 +33,26 @@ class Messages(object):
                 self._loading = False
             
             if self._loading:
-                logger.warning(f"⚠️ [Messages.__init__] Recursive call detected, returning empty dict")
+                # logger.warning(f"⚠️ [Messages.__init__] Recursive call detected, returning empty dict")
                 self._messages = {}
                 return
             
             self._loading = True
-            logger.info(f"🔍 [Messages.__init__] Loading messages for user_id={user_id}, language_code={language_code}")
+            # logger.info(f"🔍 [Messages.__init__] Loading messages for user_id={user_id}, language_code={language_code}")
             self._messages = get_messages(user_id, language_code)
-            logger.info(f"🔍 [Messages.__init__] Got messages dict with {len(self._messages)} keys")
+            # logger.info(f"🔍 [Messages.__init__] Got messages dict with {len(self._messages)} keys")
             # Debug: log if messages dict is empty
             if not self._messages:
-                logger.warning(f"⚠️ Warning: Empty messages dict for user_id={user_id}, language_code={language_code}")
+                # logger.warning(f"⚠️ Warning: Empty messages dict for user_id={user_id}, language_code={language_code}")
                 # Try to get default language only if we're not already loading default
                 if language_code and language_code != 'en':
-                    logger.info(f"🔄 Trying to load default language 'en'...")
+                    # logger.info(f"🔄 Trying to load default language 'en'...")
                     self._loading = False  # Reset flag before recursive call
                     default_messages = get_messages(None, 'en')
                     self._loading = True
                     if default_messages:
                         self._messages = default_messages
-                        logger.info(f"🔍 [Messages.__init__] Default language dict has {len(self._messages)} keys")
+                        # logger.info(f"🔍 [Messages.__init__] Default language dict has {len(self._messages)} keys")
                     else:
                         logger.error(f"❌ Default language 'en' also returned empty dict!")
             self._loading = False
@@ -79,8 +79,8 @@ class Messages(object):
             if not hasattr(self, '_missing_logged'):
                 self._missing_logged = set()
             if name not in self._missing_logged and len(self._missing_logged) < 5:
-                logger.warning(f"⚠️ Message '{name}' not found in language dict (user_id={self.user_id}, lang={self.language_code}, dict_size={len(self._messages)})")
-                logger.info(f"🔍 Sample keys in dict: {list(self._messages.keys())[:10]}")
+                # logger.warning(f"⚠️ Message '{name}' not found in language dict (user_id={self.user_id}, lang={self.language_code}, dict_size={len(self._messages)})")
+                # logger.info(f"🔍 Sample keys in dict: {list(self._messages.keys())[:10]}")
                 self._missing_logged.add(name)
         elif not hasattr(self, '_messages') or not self._messages:
             if not hasattr(self, '_empty_logged'):

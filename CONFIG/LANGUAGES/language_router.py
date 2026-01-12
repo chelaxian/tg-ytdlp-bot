@@ -122,16 +122,17 @@ class LanguageRouter:
         messages_path = os.path.join(self.languages_dir, messages_file)
         
         try:
+            # Initial log only on first load (we know cache is empty here)
             logger.info(f"🔍 [load_messages] Loading language {language_code}, path: {messages_path}")
             # Load messages using import method (more reliable)
             messages_dict = self._load_messages_with_import(messages_path)
             
-            # Debug: log how many messages were loaded
+            # Log success on first load
             if messages_dict:
                 logger.info(f"✅ Loaded {len(messages_dict)} messages for language {language_code}")
-                # Log sample of loaded keys
-                sample_keys = list(messages_dict.keys())[:5]
-                logger.info(f"🔍 Sample keys: {sample_keys}")
+                # Log sample of loaded keys (commented out - too verbose)
+                # sample_keys = list(messages_dict.keys())[:5]
+                # logger.info(f"🔍 Sample keys: {sample_keys}")
             else:
                 logger.warning(f"⚠️ No messages loaded for language {language_code}, path: {messages_path}")
                 # Check if file exists
@@ -141,7 +142,7 @@ class LanguageRouter:
                     logger.error(f"❌ File does not exist: {messages_path}")
                 # Fall back to default language if current language failed
                 if language_code != self.default_language:
-                    logger.info(f"🔄 Falling back to default language: {self.default_language}")
+                    # logger.info(f"🔄 Falling back to default language: {self.default_language}")
                     return self.load_messages(self.default_language)
             
             # Cache the messages
@@ -293,20 +294,20 @@ class LanguageRouter:
             messages_file = os.path.basename(messages_path)
             module_name = f"CONFIG.LANGUAGES.{messages_file[:-3]}"  # Remove .py extension
             
-            logger.info(f"🔍 [import] Attempting to import {module_name} from {messages_path}")
+            # logger.info(f"🔍 [import] Attempting to import {module_name} from {messages_path}")
             
             # Clear any existing module from cache to force reload
             if module_name in sys.modules:
-                logger.info(f"🔍 [import] Clearing cached module {module_name}")
+                # logger.info(f"🔍 [import] Clearing cached module {module_name}")
                 del sys.modules[module_name]
             
             # Import the module using absolute import
             messages_module = None
             try:
                 # Try standard import first (works in both local and Docker)
-                logger.info(f"🔍 [import] Trying standard import for {module_name}")
+                # logger.info(f"🔍 [import] Trying standard import for {module_name}")
                 messages_module = __import__(module_name, fromlist=['Messages'])
-                logger.info(f"✅ [import] Standard import successful")
+                # logger.info(f"✅ [import] Standard import successful")
             except (ImportError, ModuleNotFoundError) as e1:
                 logger.warning(f"⚠️ [import] Standard import failed: {e1}, trying importlib")
                 # Try alternative import method using importlib (more reliable fallback)
@@ -317,9 +318,9 @@ class LanguageRouter:
                         messages_module = importlib.util.module_from_spec(spec)
                         # Register module in sys.modules so it can be found later
                         sys.modules[module_name] = messages_module
-                        logger.info(f"🔍 [import] Executing module via importlib")
+                        # logger.info(f"🔍 [import] Executing module via importlib")
                         spec.loader.exec_module(messages_module)
-                        logger.info(f"✅ [import] importlib import successful")
+                        # logger.info(f"✅ [import] importlib import successful")
                     else:
                         raise ImportError(f"Could not load module from {messages_path}")
                 except Exception as e2:
@@ -338,7 +339,7 @@ class LanguageRouter:
                 return {}
             
             messages_class = getattr(messages_module, 'Messages')
-            logger.info(f"✅ [import] Got Messages class: {messages_class}")
+            # logger.info(f"✅ [import] Got Messages class: {messages_class}")
             
             messages_dict = {}
             
@@ -346,16 +347,16 @@ class LanguageRouter:
             # Use __dict__ first as it's more reliable for class variables
             if hasattr(messages_class, '__dict__'):
                 class_dict = messages_class.__dict__
-                logger.info(f"🔍 [import] Class __dict__ has {len(class_dict)} items")
+                # logger.info(f"🔍 [import] Class __dict__ has {len(class_dict)} items")
                 for attr_name, attr_value in class_dict.items():
                     if not attr_name.startswith('_') and not callable(attr_value):
                         messages_dict[attr_name] = attr_value
-                        if len(messages_dict) <= 5:
-                            logger.info(f"🔍 [import] Added attribute: {attr_name} = {str(attr_value)[:50]}...")
+                        # if len(messages_dict) <= 5:
+                        #     logger.info(f"🔍 [import] Added attribute: {attr_name} = {str(attr_value)[:50]}...")
             
             # Also check dir() for any additional attributes
             all_attrs = dir(messages_class)
-            logger.info(f"🔍 [import] dir() returned {len(all_attrs)} attributes")
+            # logger.info(f"🔍 [import] dir() returned {len(all_attrs)} attributes")
             for attr_name in all_attrs:
                 if not attr_name.startswith('_') and attr_name not in messages_dict:
                     try:
@@ -363,15 +364,17 @@ class LanguageRouter:
                         # Only include non-callable attributes (exclude methods)
                         if not callable(attr_value):
                             messages_dict[attr_name] = attr_value
-                            if len(messages_dict) <= 10:
-                                logger.info(f"🔍 [import] Added from dir(): {attr_name}")
+                            # if len(messages_dict) <= 10:
+                            #     logger.info(f"🔍 [import] Added from dir(): {attr_name}")
                     except Exception as e:
-                        logger.debug(f"🔍 [import] Could not get attribute {attr_name}: {e}")
+                        # logger.debug(f"🔍 [import] Could not get attribute {attr_name}: {e}")
+                        pass
             
             # Debug: log sample of loaded messages
             if messages_dict:
-                sample_keys = list(messages_dict.keys())[:5]
-                logger.info(f"✅ Successfully loaded {len(messages_dict)} messages. Sample keys: {sample_keys}")
+                # sample_keys = list(messages_dict.keys())[:5]
+                # logger.info(f"✅ Successfully loaded {len(messages_dict)} messages. Sample keys: {sample_keys}")
+                pass
             else:
                 logger.error(f"❌ No messages loaded from {messages_path}")
                 logger.error(f"❌ Class __dict__ keys: {list(messages_class.__dict__.keys())[:20] if hasattr(messages_class, '__dict__') else 'N/A'}")
