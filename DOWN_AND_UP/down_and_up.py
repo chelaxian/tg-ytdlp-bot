@@ -3708,8 +3708,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             # Determine the correct log channel based on content type
                             from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                            # Use metadata from info_dict for proper NSFW detection (especially for VK playlists)
+                            video_title_for_check = info_dict.get("title", "") if info_dict else ""
+                            video_description_for_check = info_dict.get("description", "") if info_dict else ""
+                            video_caption_for_check = info_dict.get("caption", "") if info_dict else ""
+                            # Get tags from info_dict and tags_text_final
+                            video_tags_for_check = None
+                            if info_dict and info_dict.get("tags"):
+                                if isinstance(info_dict.get("tags"), list):
+                                    video_tags_for_check = ' '.join(str(t) for t in info_dict.get("tags"))
+                                else:
+                                    video_tags_for_check = str(info_dict.get("tags"))
+                            # Also check if #nsfw tag is already in tags_text_final (from generate_final_tags)
+                            has_nsfw_tag = "#nsfw" in tags_text_final.lower() if tags_text_final else False
+                            # Use metadata for NSFW check
+                            is_nsfw_from_metadata = is_porn(url, video_title_for_check, video_description_for_check, video_caption_for_check, tags=video_tags_for_check)
+                            is_nsfw = is_nsfw_from_metadata or has_nsfw_tag or user_forced_nsfw
+                            logger.info(f"[NSFW_CHECK] is_porn check for {url}: is_porn={is_nsfw_from_metadata}, has_nsfw_tag={has_nsfw_tag}, user_forced_nsfw={user_forced_nsfw}, final is_nsfw={is_nsfw}")
+                            logger.info(f"[NSFW_CHECK] title='{video_title_for_check[:100]}', description='{video_description_for_check[:100] if video_description_for_check else ''}', tags='{video_tags_for_check[:100] if video_tags_for_check else ''}'")
                             is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                             # Detect if actually sent as paid media
                             try:
@@ -3859,8 +3875,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     try:
                                         # Determine the correct log channel based on content type
                                         from HELPERS.porn import is_porn
-                                        is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                                        logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                                        # Use metadata from info_dict for proper NSFW detection (especially for VK playlists)
+                                        video_title_for_check = info_dict.get("title", "") if info_dict else ""
+                                        video_description_for_check = info_dict.get("description", "") if info_dict else ""
+                                        video_caption_for_check = info_dict.get("caption", "") if info_dict else ""
+                                        # Get tags from info_dict and tags_text_final
+                                        video_tags_for_check = None
+                                        if info_dict and info_dict.get("tags"):
+                                            if isinstance(info_dict.get("tags"), list):
+                                                video_tags_for_check = ' '.join(str(t) for t in info_dict.get("tags"))
+                                            else:
+                                                video_tags_for_check = str(info_dict.get("tags"))
+                                        # Also check if #nsfw tag is already in tags_text_final (from generate_final_tags)
+                                        has_nsfw_tag = "#nsfw" in tags_text_final.lower() if tags_text_final else False
+                                        # Use metadata for NSFW check
+                                        is_nsfw_from_metadata = is_porn(url, video_title_for_check, video_description_for_check, video_caption_for_check, tags=video_tags_for_check)
+                                        is_nsfw = is_nsfw_from_metadata or has_nsfw_tag or user_forced_nsfw
+                                        logger.info(f"[NSFW_CHECK] is_porn check for {url}: is_porn={is_nsfw_from_metadata}, has_nsfw_tag={has_nsfw_tag}, user_forced_nsfw={user_forced_nsfw}, final is_nsfw={is_nsfw}")
                                         is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                                         try:
                                             msg_is_paid = (
