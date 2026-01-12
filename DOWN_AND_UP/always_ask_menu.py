@@ -687,6 +687,76 @@ def is_trim_mode(user_id):
     """Check if user is in trim input mode"""
     return user_id in trim_input_states
 
+def get_active_functions(user_id, url):
+    """
+    Check which functions are active (TRIM, SUBS, DUBS) for a user and URL.
+    Returns dict with:
+    - has_trim: bool - TRIM is active
+    - has_subs: bool - SUBS are active (via /subs command or Always Ask menu)
+    - has_dubs: bool - DUBS are active (via Always Ask menu)
+    - should_disable_cache: bool - Cache should be disabled
+    """
+    has_trim = False
+    has_subs = False
+    has_dubs = False
+    
+    # Check TRIM
+    trim_sections = load_trim_sections(user_id, url, clear_after_use=False)
+    has_trim = trim_sections is not None and trim_sections != ""
+    
+    # Check SUBS - via /subs command or Always Ask menu
+    try:
+        # Check Always Ask menu filters
+        fstate = get_filters(user_id)
+        selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+        subs_all_selected = fstate.get("subs_all_selected", False)
+        if subs_all_selected or selected_subs_langs:
+            has_subs = True
+        else:
+            # Check /subs command
+            subs_lang = get_user_subs_language(user_id)
+            if subs_lang and subs_lang != "OFF":
+                has_subs = True
+    except Exception:
+        pass
+    
+    # Check DUBS - via Always Ask menu filters
+    try:
+        fstate = get_filters(user_id)
+        selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+        audio_all_dubs = fstate.get("audio_all_dubs", False)
+        if audio_all_dubs or selected_audio_langs:
+            has_dubs = True
+    except Exception:
+        pass
+    
+    should_disable_cache = has_trim or has_subs or has_dubs
+    
+    return {
+        "has_trim": has_trim,
+        "has_subs": has_subs,
+        "has_dubs": has_dubs,
+        "should_disable_cache": should_disable_cache
+    }
+
+def get_quality_button_prefix(user_id, url):
+    """
+    Get prefix emoji for quality buttons based on active functions.
+    Returns emoji string to prepend to quality button text.
+    """
+    active_funcs = get_active_functions(user_id, url)
+    prefix = ""
+    
+    # Order matters: TRIM first, then DUBS, then SUBS
+    if active_funcs["has_trim"]:
+        prefix += "✂️"
+    if active_funcs["has_dubs"]:
+        prefix += "🗣"
+    if active_funcs["has_subs"]:
+        prefix += "💬"
+    
+    return prefix
+
 def validate_timecode_range(timecode_str, video_duration):
     """
     Validate timecode range in format HH:MM:SS-HH:MM:SS
@@ -3261,8 +3331,14 @@ def askq_callback(app, callback_query):
     user_args = get_user_args(user_id)
     send_as_file = user_args.get("send_as_file", False)
     
-    if not need_subs and not is_subs_always_ask(user_id) and not send_as_file:
-
+    # Check active functions (TRIM, SUBS, DUBS) - skip cache repost if any are active
+    active_funcs = get_active_functions(user_id, url)
+    should_disable_cache = active_funcs["should_disable_cache"]
+    
+    if should_disable_cache:
+        logger.info(f"[CACHE] Active functions detected for user {user_id}, URL: {url}, skipping cache repost. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+        message_ids = None  # Force skip cache when any function is active
+    elif not need_subs and not is_subs_always_ask(user_id) and not send_as_file:
         message_ids = get_cached_message_ids(url, data)
         # Если кэш по основному URL не найден, проверяем кэш по уникальной ссылке видео (для одиночных видео из плейлиста)
         if not message_ids:
@@ -3539,7 +3615,15 @@ def show_manual_quality_menu(app, callback_query):
     original_text = original_message.text or original_message.caption or ""
     is_playlist = is_playlist_with_range(original_text)
     playlist_range = None
-    if is_playlist:
+    
+    # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+    active_funcs = get_active_functions(user_id, url)
+    should_disable_cache = active_funcs["should_disable_cache"]
+    
+    if should_disable_cache:
+        logger.info(f"[CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+        cached_qualities = set()  # Force empty cache when any function is active
+    elif is_playlist:
         _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
         playlist_range = (video_start_with, video_end_with)
         cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url)) if not send_as_file else set()
@@ -3570,14 +3654,20 @@ def show_manual_quality_menu(app, callback_query):
             total = len(indices)
             # Проверяем, должен ли админ видеть звездочки для NSFW
             should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
+            # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+            func_prefix = get_quality_button_prefix(user_id, url)
+            # Cache is disabled when functions are active, so no rocket emoji
+            icon = "🚀" if (n_cached > 0 and not is_nsfw and not func_prefix) else ("1⭐️" if should_show_star else "📹")
             postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-            button_text = f"{icon}{quality}{postfix}"
+            button_text = f"{func_prefix}{icon}{quality}{postfix}"
         else:
             # Проверяем, должен ли админ видеть звездочки для NSFW
             should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-            icon = "🚀" if (quality in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
-            button_text = f"{icon}{quality}"
+            # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+            func_prefix = get_quality_button_prefix(user_id, url)
+            # Cache is disabled when functions are active, so no rocket emoji
+            icon = "🚀" if (quality in cached_qualities and not is_nsfw and not func_prefix) else ("1⭐️" if should_show_star else "📹")
+            button_text = f"{func_prefix}{icon}{quality}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality}"))
 
     # {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality
@@ -3597,14 +3687,20 @@ def show_manual_quality_menu(app, callback_query):
         total = len(indices)
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
+        # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+        func_prefix = get_quality_button_prefix(user_id, url)
+        # Cache is disabled when functions are active, so no rocket emoji
+        icon = "🚀" if (n_cached > 0 and not is_nsfw and not func_prefix) else ("1⭐️" if should_show_star else "📹")
         postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-        button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality{postfix}"
+        button_text = f"{func_prefix}{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality{postfix}"
     else:
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if ("best" in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
-        button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality"
+        # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+        func_prefix = get_quality_button_prefix(user_id, url)
+        # Cache is disabled when functions are active, so no rocket emoji
+        icon = "🚀" if ("best" in cached_qualities and not is_nsfw and not func_prefix) else ("1⭐️" if should_show_star else "📹")
+        button_text = f"{func_prefix}{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality"
     buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_best"))
     
     # Form rows of 3 buttons
@@ -3630,14 +3726,20 @@ def show_manual_quality_menu(app, callback_query):
         total = len(indices)
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "🎧")
+        # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+        func_prefix = get_quality_button_prefix(user_id, url)
+        # Cache is disabled when functions are active, so no rocket emoji
+        icon = "🚀" if (n_cached > 0 and not is_nsfw and not func_prefix) else ("1⭐️" if should_show_star else "🎧")
         postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-        button_text = f"{icon} audio (mp3){postfix}"
+        button_text = f"{func_prefix}{icon} audio (mp3){postfix}"
     else:
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "🎧")
-        button_text = f"{icon} audio (mp3)"
+        # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+        func_prefix = get_quality_button_prefix(user_id, url)
+        # Cache is disabled when functions are active, so no rocket emoji
+        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw and not func_prefix) else ("1⭐️" if should_show_star else "🎧")
+        button_text = f"{func_prefix}{icon} audio (mp3)"
     keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality_key}")])
     
     # Add subtitles only button if enabled
@@ -4049,9 +4151,13 @@ def show_other_qualities_menu(app, callback_query, page=0):
         user_args = get_user_args(user_id)
         send_as_file = user_args.get("send_as_file", False)
         
-        # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled)
+        # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled or TRIM is active)
         cached_qualities = set()
-        if not send_as_file:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        active_funcs = get_active_functions(callback_query.from_user.id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if not send_as_file and not should_disable_cache:
             try:
                 cached_qualities = get_cached_qualities(url)
             except Exception:
@@ -4192,9 +4298,13 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
     user_args = get_user_args(user_id)
     send_as_file = user_args.get("send_as_file", False)
     
-    # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled)
+    # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled or TRIM is active)
     cached_qualities = set()
-    if not send_as_file:
+    # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+    active_funcs = get_active_functions(user_id, url)
+    should_disable_cache = active_funcs["should_disable_cache"]
+    
+    if not send_as_file and not should_disable_cache:
         try:
             cached_qualities = get_cached_qualities(url)
         except Exception:
@@ -4400,9 +4510,12 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                         indices = list(range(start, end + 1))
                     n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                     total = len(indices)
-                    icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+                    func_prefix = get_quality_button_prefix(user_id, url)
+                    # Cache is disabled when functions are active, so no rocket emoji
+                    icon = "🚀" if (n_cached > 0 and not is_nsfw and not func_prefix) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
                     postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-                    button_text = f"{icon}{quality_key}{postfix}"
+                    button_text = f"{func_prefix}{icon}{quality_key}{postfix}"
                 else:
                     # Проверяем кэш для одиночного видео
                     is_cached = quality_key in cached_qualities
@@ -4426,8 +4539,11 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                         except Exception as e:
                             logger.warning(f"⚠️ [CACHE] Ошибка при проверке кэша для одиночного видео: {e}")
                     
-                    icon = "🚀" if (is_cached and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-                    button_text = f"{icon}{quality_key}"
+                    # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+                    func_prefix = get_quality_button_prefix(user_id, url)
+                    # Cache is disabled when functions are active, so no rocket emoji
+                    icon = "🚀" if (is_cached and not is_nsfw and not func_prefix) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    button_text = f"{func_prefix}{icon}{quality_key}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
         # Всегда добавляем {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality
@@ -4446,12 +4562,18 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                 indices = list(range(start, end + 1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
             total = len(indices)
-            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+            # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+            func_prefix = get_quality_button_prefix(user_id, url)
+            # Cache is disabled when functions are active, so no rocket emoji
+            icon = "🚀" if (n_cached > 0 and not is_nsfw and not func_prefix) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
             postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-            button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
+            button_text = f"{func_prefix}{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
         else:
-            icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-            button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
+            # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+            func_prefix = get_quality_button_prefix(user_id, url)
+            # Cache is disabled when functions are active, so no rocket emoji
+            icon = "🚀" if (quality_key in cached_qualities and not is_nsfw and not func_prefix) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+            button_text = f"{func_prefix}{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
         # Всегда добавляем Other Qualities
@@ -4741,7 +4863,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         user_args = get_user_args(user_id)
         send_as_file = user_args.get("send_as_file", False)
         
-        if is_playlist:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if should_disable_cache:
+            logger.info(f"[CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_qualities = set()  # Force empty cache when any function is active
+        elif is_playlist:
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
             logger.info(f"🔍 [DEBUG] ask_quality_menu: после extract_url_range_tags: video_start_with={video_start_with}, video_end_with={video_end_with}")
             playlist_range = (video_start_with, video_end_with)
@@ -6071,9 +6200,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 
                 # Cache/icon (skip if send_as_file is enabled)
                 if send_as_file:
+                    # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+                    func_prefix = get_quality_button_prefix(user_id, url)
                     icon = "1⭐️" if (is_nsfw and is_private_chat) else "📹"
                     postfix = ""
-                    button_text = f"{icon}{quality_key}{subs_available}"
+                    button_text = f"{func_prefix}{icon}{quality_key}{subs_available}"
                 elif is_playlist and playlist_range:
                     # Правильное формирование indices для отрицательных индексов
                     start, end = playlist_range
@@ -6088,9 +6219,12 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         indices = list(range(start, end + 1))
                     n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                     total = len(indices)
-                    icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+                    func_prefix = get_quality_button_prefix(user_id, url)
+                    # Cache is disabled when functions are active, so no rocket emoji
+                    icon = "🚀" if (n_cached > 0 and not is_nsfw and not func_prefix) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
                     postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-                    button_text = f"{icon}{quality_key}{subs_available}{postfix}"
+                    button_text = f"{func_prefix}{icon}{quality_key}{subs_available}{postfix}"
                 else:
                     # Check if we're in Always Ask mode
                     is_always_ask_mode = is_subs_always_ask(user_id)
@@ -6124,8 +6258,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                             except Exception as e:
                                 logger.warning(f"⚠️ [CACHE] Ошибка при проверке кэша для одиночного видео: {e}")
                     
-                    icon = "🚀" if (is_cached and not need_subs and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-                    button_text = f"{icon}{quality_key}{subs_available}"
+                    # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+                    func_prefix = get_quality_button_prefix(user_id, url)
+                    # Cache is disabled when functions are active, so no rocket emoji
+                    icon = "🚀" if (is_cached and not need_subs and not is_nsfw and not func_prefix) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    button_text = f"{func_prefix}{icon}{quality_key}{subs_available}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         else:
             # Show only detected qualities derived from formats (one per quality)

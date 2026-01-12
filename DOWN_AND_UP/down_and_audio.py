@@ -401,8 +401,17 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     cached_videos = {}
     uncached_indices = []
     if quality_key and is_playlist:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        from DOWN_AND_UP.always_ask_menu import get_active_functions
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if should_disable_cache:
+            logger.info(f"[AUDIO CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_videos = {}
+            uncached_indices = requested_indices
         # Check if Always Ask mode is enabled - if yes, skip cache completely
-        if not is_subs_always_ask(user_id):
+        elif not is_subs_always_ask(user_id):
             # Check if content is NSFW - if so, skip cache lookup
             from HELPERS.porn import is_porn
             is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
@@ -482,8 +491,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             logger.info("[AUDIO CACHE] Skipping partial cache replay for negative range to avoid duplicate downloads")
             uncached_indices = requested_indices
     elif quality_key and not is_playlist:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        from DOWN_AND_UP.always_ask_menu import get_active_functions
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if should_disable_cache:
+            logger.info(f"[AUDIO CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_ids = None
         # Check if Always Ask mode is enabled - if yes, skip cache completely
-        if not is_subs_always_ask(user_id):
+        elif not is_subs_always_ask(user_id):
             # Check if content is NSFW - if so, skip cache lookup
             from HELPERS.porn import is_porn
             is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
@@ -2311,8 +2328,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     log_channel = get_log_channel("video")
                     forwarded_msg = safe_forward_messages(log_channel, user_id, [audio_msg.id])
                 
-                # Save to cache after sending audio (only for non-NSFW content)
-                if quality_key and forwarded_msg and not is_nsfw:
+                # Save to cache after sending audio (only for non-NSFW content and if no active functions)
+                # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+                from DOWN_AND_UP.always_ask_menu import get_active_functions
+                active_funcs = get_active_functions(user_id, url)
+                should_disable_cache = active_funcs["should_disable_cache"]
+                
+                if quality_key and forwarded_msg and not is_nsfw and not should_disable_cache:
                     if isinstance(forwarded_msg, list):
                         msg_ids = [m.id for m in forwarded_msg]
                     else:
@@ -2331,6 +2353,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         # For single audios, save to regular cache
                         logger.info(f"down_and_audio: saving to video cache: msg_ids={msg_ids}")
                         save_to_video_cache(url, quality_key, msg_ids, original_text=message.text or message.caption or "", user_id=user_id)
+                elif should_disable_cache:
+                    logger.info(f"[AUDIO CACHE] Skipping cache save because active functions detected. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
                 elif is_nsfw:
                     logger.info(f"down_and_audio: skipping cache for NSFW content (url={url})")
             except Exception as send_error:

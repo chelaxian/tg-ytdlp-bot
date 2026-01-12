@@ -130,12 +130,17 @@ def _handle_quality_key_error(e: Exception, split_msg_ids: list, is_playlist: bo
         logger.warning(f"Upload complete condition NOT met after quality_key error: successful_uploads={successful_uploads}, len(indices_to_download)={len(indices_to_download)}, split_msg_ids={split_msg_ids}, is_playlist={is_playlist}")
         return False
 
-def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids: list, original_text: str = None, user_id: int = None, download_sections: str = None):
+def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids: list, original_text: str = None, user_id: int = None, download_sections: str = None, has_subs: bool = False, has_dubs: bool = False):
     """Save video to cache with channel type logging."""
     try:
         # Don't cache trimmed videos
         if download_sections:
             logger.info(f"Skipping cache for trimmed video: url={url}, quality={safe_quality_key}, sections={download_sections}")
+            return
+        
+        # Don't cache videos with subs or dubs (different users may need different languages)
+        if has_subs or has_dubs:
+            logger.info(f"Skipping cache for video with subs ({has_subs}) or dubs ({has_dubs}): url={url}, quality={safe_quality_key}")
             return
         
         # Check if user has send_as_file enabled
@@ -407,6 +412,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # Initialize variables for Always Ask mode (needed later in subtitle configuration)
     if not is_always_ask_mode or not is_youtube_url(url):
         selected_subs_langs = []
+    
+    # Check for dubs (audio tracks) in Always Ask mode
+    has_dubs = False
+    if is_always_ask_mode and is_youtube_url(url):
+        try:
+            from DOWN_AND_UP.always_ask_menu import get_filters
+            filters_state = get_filters(user_id)
+            audio_all_dubs = filters_state.get("audio_all_dubs", False)
+            selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
+            if audio_all_dubs or selected_audio_langs:
+                has_dubs = True
+                logger.info(f"Always Ask mode: dubs detected - audio_all_dubs={audio_all_dubs}, selected_audio_langs={selected_audio_langs}")
+        except Exception as e:
+            logger.warning(f"Error checking for dubs: {e}")
         subs_all_selected = False
     
     # Additional debug info
@@ -572,7 +591,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Error reposting video from cache: {e}")
                         # Always save to cache regardless of subtitles or Always Ask mode
                         # The cache will be used for display purposes (rocket emoji) but not for reposting
-                        _save_video_cache_with_logging(url, safe_quality_key, [], original_text="", user_id=user_id, download_sections=download_sections)
+                        _save_video_cache_with_logging(url, safe_quality_key, [], original_text="", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
                         # Don't show error message if we successfully got video from cache
                         # The video was already sent successfully in the try block
                 else:
@@ -3267,7 +3286,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Only save to cache if subtitles are not needed
                     if not need_subs:
-                        _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
+                        _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
                     else:
                         logger.info(f"Split video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode}) - different users may need different languages")
                 else:
@@ -3777,8 +3796,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 else:
                                     # For single videos, save to regular cache
                                     # Only save to cache if subtitles are not needed
-                                    if not is_nsfw and not need_subs:
-                                        _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
+                                    if not is_nsfw and not need_subs and not has_dubs:
+                                        _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
                                     elif is_nsfw:
                                         logger.info("NSFW content not cached")
                                     elif need_subs:
@@ -3872,7 +3891,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 # For single videos, save to regular cache
                                                 # Only save to cache if subtitles are not needed
                                                 if not is_nsfw and not need_subs:
-                                                    _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
+                                                    _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
                                                 elif is_nsfw:
                                                     logger.info("NSFW content not cached (manual)")
                                                 elif need_subs:
@@ -3999,7 +4018,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         # For single videos, save to regular cache
                                         # Only save to cache if subtitles are not needed
                                         if not is_nsfw and not need_subs:
-                                            _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections)
+                                            _save_video_cache_with_logging(url, safe_quality_key, [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
                                         elif is_nsfw:
                                             logger.info("NSFW content not cached (error recovery)")
                                         elif need_subs:
