@@ -22,7 +22,7 @@ services:
     logging: *default-logging
     depends_on:
       bgutil-provider:
-        condition: service_healthy
+        condition: service_started
       warp:
         condition: service_started
     volumes:
@@ -62,12 +62,6 @@ services:
     network_mode: "container:tg-ytdlp-warp"
     ports: []
     expose: []
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:4416/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
   warp:
     build: ./warp
