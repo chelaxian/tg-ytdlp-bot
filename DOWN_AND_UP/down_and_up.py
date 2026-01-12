@@ -2602,7 +2602,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Check video duration using ffprobe to verify if trimming is needed
                     try:
-                        from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
+                        # get_video_info_ffprobe is already imported globally
                         width, height, video_duration = get_video_info_ffprobe(downloaded_abs_path)
                         video_duration = float(video_duration) if video_duration else 0
                         
@@ -2647,7 +2647,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.error(f"[TRIM] Failed to trim video")
                         except Exception as trim_exec_error:
                             logger.error(f"[TRIM] Error during trim execution: {trim_exec_error}")
-                            logger.error(traceback.format_exc())
+                            import traceback as tb_module
+                            logger.error(tb_module.format_exc())
             write_logs(message, url, downloaded_file)
             
             # Save original filename for subtitle search
@@ -3311,11 +3312,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             subs_enabled = is_subs_enabled(user_id)
                             # Get the real size of the video
                             try:
+                                # get_video_info_ffprobe is already imported globally
                                 width, height, _ = get_video_info_ffprobe(after_rename_abs_path)
                                 real_file_size = min(width, height)
                             except Exception as e:
                                 logger.error(f"[FFPROBE BYPASS] Error while processing video {after_rename_abs_path}: {e}")
-                                logger.error(traceback.format_exc())
+                                import traceback as tb_module
+                                logger.error(tb_module.format_exc())
                                 width, height = 0, 0
                                 real_file_size = 0
                             auto_mode = get_user_subs_auto_mode(user_id)
@@ -3468,7 +3471,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     logger.info(f"[DEBUG] MKV block: extracted selected_subs_langs={selected_subs_langs}, subs_all_selected={subs_all_selected}")
                                 except Exception as e:
                                     logger.error(f"[DEBUG] MKV block: error reading filters_state: {e}")
-                                    logger.error(traceback.format_exc())
+                                    import traceback as tb_module
+                                    logger.error(tb_module.format_exc())
                                     audio_all_dubs = False
                                     selected_audio_langs = []
                                     selected_subs_langs = []
@@ -3549,7 +3553,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             app.edit_message_text(user_id, status_msg.id, "⚠️ No additional audio tracks found")
                                     except Exception as e:
                                         logger.error(f"Error in audio tracks postprocessing: {e}")
-                                        logger.error(traceback.format_exc())
+                                        import traceback as tb_module
+                                        logger.error(tb_module.format_exc())
                                 
                                 # Download and embed all subtitles if needed
                                 logger.info(f"[DEBUG] MKV subtitle check: subs_all_selected={subs_all_selected}, selected_subs_langs={selected_subs_langs}, type={type(selected_subs_langs)}, len={len(selected_subs_langs) if selected_subs_langs else 0}")
@@ -3577,7 +3582,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             logger.info(f"[DEBUG] download_all_subtitles returned: {len(subtitle_tracks) if subtitle_tracks else 0} tracks")
                                         except Exception as subs_download_error:
                                             logger.error(f"Error in download_all_subtitles: {subs_download_error}")
-                                            logger.error(traceback.format_exc())
+                                            import traceback as tb_module
+                                            logger.error(tb_module.format_exc())
                                             subtitle_tracks = []
                                             app.edit_message_text(user_id, status_msg.id, "⚠️ Failed to download subtitles")
                                         
@@ -3623,10 +3629,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             app.edit_message_text(user_id, status_msg.id, "⚠️ No subtitles found")
                                     except Exception as e:
                                         logger.error(f"Error in subtitles postprocessing: {e}")
-                                        logger.error(traceback.format_exc())
+                                        import traceback as tb_module
+                                        logger.error(tb_module.format_exc())
                         except Exception as e:
                             logger.error(f"Error in MKV postprocessing: {e}")
-                            logger.error(traceback.format_exc())
+                            import traceback as tb_module
+                            logger.error(tb_module.format_exc())
                         
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                         if not video_msg:
@@ -4027,7 +4035,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         pass
                     except Exception as e:
                         logger.error(f"Error sending video: {e}")
-                        logger.error(traceback.format_exc())
+                        import traceback as tb_module
+                        logger.error(tb_module.format_exc())
                         send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)))
                         continue
         if successful_uploads == len(indices_to_download):
@@ -4061,7 +4070,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             send_to_logger(message, safe_get_messages(user_id).PLAYLIST_VIDEOS_SENT_LOG_MSG.format(sent=total_sent, total=len(requested_indices), quality=safe_quality_key, user_id=user_id))
 
     except Exception as e:
-        error_traceback = traceback.format_exc()
+        import traceback as tb_module
+        error_traceback = tb_module.format_exc()
         logger.error(f"Exception caught in down_and_up: type={type(e)}, value={e}, traceback:\n{error_traceback}")
         
         if e is None:

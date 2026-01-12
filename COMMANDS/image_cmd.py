@@ -221,6 +221,37 @@ def _generate_paid_cover_image(video_path, existing_thumb=None):
 # Get app instance for decorators
 app = get_app()
 
+# Dictionary to track active uploads for logging
+_active_img_uploads = {}
+_active_img_uploads_lock = threading.Lock()
+
+def _start_upload_logging(user_id, msg_id):
+    """Start logging upload activity to prevent watchdog false positives"""
+    stop_event = threading.Event()
+    key = (user_id, msg_id)
+    
+    with _active_img_uploads_lock:
+        _active_img_uploads[key] = stop_event
+    
+    def upload_logger():
+        while not stop_event.is_set():
+            logger.info("[Upload] Uploading media to Telegram")
+            # Wait 10 seconds or until stop event
+            stop_event.wait(10.0)
+    
+    thread = threading.Thread(target=upload_logger, daemon=True)
+    thread.start()
+    return stop_event
+
+def _stop_upload_logging(user_id, msg_id):
+    """Stop logging upload activity"""
+    key = (user_id, msg_id)
+    with _active_img_uploads_lock:
+        if key in _active_img_uploads:
+            stop_event = _active_img_uploads[key]
+            stop_event.set()
+            del _active_img_uploads[key]
+
 def _send_open_copy_to_nsfw_channel(file_path: str, caption: str, user_id: int, message_id: int, is_video: bool = False):
     messages = safe_get_messages(user_id)
     """Send open copy of media to NSFW channel for history"""
@@ -2084,13 +2115,21 @@ def image_command(app, message):
                                                 logger.info(f"{LoggerMsg.IMG_PAID_ATTEMPTING_ALBUM_LOG_MSG}")
                                                 logger.info(f"{LoggerMsg.IMG_PAID_ALBUM_DETAILS_LOG_MSG}")
                                                 
-                                                paid_msg = app.send_paid_media(
-                                                    user_id,
-                                                    media=album_items,
-                                                    star_count=LimitsConfig.NSFW_STAR_COST,
-                                                    payload=str(Config.STAR_RECEIVER),
-                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                # Start upload logging to prevent watchdog false positives
+                                                if status_msg and status_msg.id:
+                                                    _start_upload_logging(user_id, status_msg.id)
+                                                try:
+                                                    paid_msg = app.send_paid_media(
+                                                        user_id,
+                                                        media=album_items,
+                                                        star_count=LimitsConfig.NSFW_STAR_COST,
+                                                        payload=str(Config.STAR_RECEIVER),
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                    )
+                                                finally:
+                                                    # Stop upload logging after upload completes or fails
+                                                    if status_msg and status_msg.id:
+                                                        _stop_upload_logging(user_id, status_msg.id)
                                                 
                                                 logger.info(f"[IMG PAID] SUCCESS: send_paid_media returned: {type(paid_msg)}")
                                                 logger.info(f"[IMG PAID] SUCCESS: Response details: {paid_msg}")
@@ -2110,13 +2149,21 @@ def image_command(app, message):
                                                 for i, paid_media in enumerate(album_items):
                                                     try:
                                                         # Use same reply_parameters for all to group them
-                                                        individual_msg = app.send_paid_media(
-                                                            user_id,
-                                                            media=[paid_media],
-                                                            star_count=LimitsConfig.NSFW_STAR_COST,
-                                                            payload=str(Config.STAR_RECEIVER),
-                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                        )
+                                                        # Start upload logging to prevent watchdog false positives
+                                                        if status_msg and status_msg.id:
+                                                            _start_upload_logging(user_id, status_msg.id)
+                                                        try:
+                                                            individual_msg = app.send_paid_media(
+                                                                user_id,
+                                                                media=[paid_media],
+                                                                star_count=LimitsConfig.NSFW_STAR_COST,
+                                                                payload=str(Config.STAR_RECEIVER),
+                                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                            )
+                                                        finally:
+                                                            # Stop upload logging after upload completes or fails
+                                                            if status_msg and status_msg.id:
+                                                                _stop_upload_logging(user_id, status_msg.id)
                                                         if isinstance(individual_msg, list):
                                                             sent.extend(individual_msg)
                                                         elif individual_msg is not None:
@@ -2209,13 +2256,21 @@ def image_command(app, message):
                                                 logger.info(f"[IMG MAIN FALLBACK] Attempting album {album_start//max_album_size + 1} with {len(album_items)} items to user {user_id}")
                                                 logger.info(f"[IMG MAIN FALLBACK] Album details: star_count={LimitsConfig.NSFW_STAR_COST}, payload={Config.STAR_RECEIVER}")
                                                 
-                                                paid_msg = app.send_paid_media(
-                                                        user_id,
-                                                    media=album_items,
-                                                    star_count=LimitsConfig.NSFW_STAR_COST,
-                                                    payload=str(Config.STAR_RECEIVER),
-                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                # Start upload logging to prevent watchdog false positives
+                                                if status_msg and status_msg.id:
+                                                    _start_upload_logging(user_id, status_msg.id)
+                                                try:
+                                                    paid_msg = app.send_paid_media(
+                                                            user_id,
+                                                        media=album_items,
+                                                        star_count=LimitsConfig.NSFW_STAR_COST,
+                                                        payload=str(Config.STAR_RECEIVER),
+                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                        )
+                                                finally:
+                                                    # Stop upload logging after upload completes or fails
+                                                    if status_msg and status_msg.id:
+                                                        _stop_upload_logging(user_id, status_msg.id)
                                                 
                                                 logger.info(f"[IMG MAIN FALLBACK] SUCCESS: send_paid_media returned: {type(paid_msg)}")
                                                 logger.info(f"[IMG MAIN FALLBACK] SUCCESS: Response details: {paid_msg}")
@@ -2235,13 +2290,21 @@ def image_command(app, message):
                                                 for i, paid_media in enumerate(album_items):
                                                     try:
                                                         # Use same reply_parameters for all to group them
-                                                        individual_msg = app.send_paid_media(
-                                                        user_id,
-                                                            media=[paid_media],
-                                                            star_count=LimitsConfig.NSFW_STAR_COST,
-                                                            payload=str(Config.STAR_RECEIVER),
-                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                        )
+                                                        # Start upload logging to prevent watchdog false positives
+                                                        if status_msg and status_msg.id:
+                                                            _start_upload_logging(user_id, status_msg.id)
+                                                        try:
+                                                            individual_msg = app.send_paid_media(
+                                                            user_id,
+                                                                media=[paid_media],
+                                                                star_count=LimitsConfig.NSFW_STAR_COST,
+                                                                payload=str(Config.STAR_RECEIVER),
+                                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                            )
+                                                        finally:
+                                                            # Stop upload logging after upload completes or fails
+                                                            if status_msg and status_msg.id:
+                                                                _stop_upload_logging(user_id, status_msg.id)
                                                         if isinstance(individual_msg, list):
                                                             sent.extend(individual_msg)
                                                         elif individual_msg is not None:
@@ -2276,11 +2339,19 @@ def image_command(app, message):
                                             
                                             # Send open copy as album to NSFW channel
                                             log_channel_nsfw = get_log_channel("video", nsfw=True)
-                                            open_sent = app.send_media_group(
-                                                chat_id=log_channel_nsfw,
-                                                media=open_media_group,
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                open_sent = app.send_media_group(
+                                                    chat_id=log_channel_nsfw,
+                                                    media=open_media_group,
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             logger.info(f"[IMG LOG] Open copy album sent to NSFW channel for history: {len(open_media_group)} items")
                                         except Exception as e:
                                             logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {e}")
@@ -2317,12 +2388,20 @@ def image_command(app, message):
                                             # message_thread_id already extracted above
                                             logger.info(f"[IMG MEDIA_GROUP] About to send media group to chat_id={chat_id}, message_thread_id={message_thread_id}")
                                             
-                                            sent = app.send_media_group(
-                                                chat_id,
-                                                media=media_group,
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                message_thread_id=message_thread_id
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                sent = app.send_media_group(
+                                                    chat_id,
+                                                    media=media_group,
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                    message_thread_id=message_thread_id
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             logger.info(f"[IMG MEDIA_GROUP] Media group sent successfully")
                                             break
                                         except FloodWait as fw:
@@ -2417,11 +2496,19 @@ def image_command(app, message):
                                                         ))
                                                 
                                                 # Send as album to NSFW log channel
-                                                nsfw_log_sent = app.send_media_group(
-                                                    chat_id=log_channel_nsfw,
-                                                    media=nsfw_log_media_group,
-                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                # Start upload logging to prevent watchdog false positives
+                                                if status_msg and status_msg.id:
+                                                    _start_upload_logging(user_id, status_msg.id)
+                                                try:
+                                                    nsfw_log_sent = app.send_media_group(
+                                                        chat_id=log_channel_nsfw,
+                                                        media=nsfw_log_media_group,
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                    )
+                                                finally:
+                                                    # Stop upload logging after upload completes or fails
+                                                    if status_msg and status_msg.id:
+                                                        _stop_upload_logging(user_id, status_msg.id)
                                                 logger.info(f"[IMG LOG] NSFW media album sent to LOGS_NSFW_ID: {len(nsfw_log_media_group)} items")
                                             except Exception as fe:
                                                 logger.error(f"[IMG LOG] Failed to send NSFW media album to LOGS_NSFW_ID: {fe}")
@@ -2482,11 +2569,19 @@ def image_command(app, message):
                                                     ))
                                             
                                             # Send as album to regular log channel
-                                            regular_log_sent = app.send_media_group(
-                                                chat_id=log_channel,
-                                                media=regular_log_media_group,
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                regular_log_sent = app.send_media_group(
+                                                    chat_id=log_channel,
+                                                    media=regular_log_media_group,
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             logger.info(f"[IMG LOG] Regular media album sent to IMG channel: {len(regular_log_media_group)} items")
                                             
                                             # Cache regular content
@@ -2592,13 +2687,21 @@ def image_command(app, message):
                                                 logger.info(f"[IMG FALLBACK PAID] Attempting album {album_start//max_album_size + 1} with {len(album_items)} items to user {user_id}")
                                                 logger.info(f"[IMG FALLBACK PAID] Album details: star_count={LimitsConfig.NSFW_STAR_COST}, payload={Config.STAR_RECEIVER}")
                                                 
-                                                paid_msg = app.send_paid_media(
-                                                    user_id,
-                                                    media=album_items,
-                                                    star_count=LimitsConfig.NSFW_STAR_COST,
-                                                    payload=str(Config.STAR_RECEIVER),
-                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                # Start upload logging to prevent watchdog false positives
+                                                if status_msg and status_msg.id:
+                                                    _start_upload_logging(user_id, status_msg.id)
+                                                try:
+                                                    paid_msg = app.send_paid_media(
+                                                        user_id,
+                                                        media=album_items,
+                                                        star_count=LimitsConfig.NSFW_STAR_COST,
+                                                        payload=str(Config.STAR_RECEIVER),
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                    )
+                                                finally:
+                                                    # Stop upload logging after upload completes or fails
+                                                    if status_msg and status_msg.id:
+                                                        _stop_upload_logging(user_id, status_msg.id)
                                                 
                                                 logger.info(f"[IMG FALLBACK PAID] SUCCESS: send_paid_media returned: {type(paid_msg)}")
                                                 logger.info(f"[IMG FALLBACK PAID] SUCCESS: Response details: {paid_msg}")
@@ -2618,13 +2721,21 @@ def image_command(app, message):
                                                 for i, paid_media in enumerate(album_items):
                                                     try:
                                                         # Use same reply_parameters for all to group them
-                                                        individual_msg = app.send_paid_media(
-                                                            user_id,
-                                                            media=[paid_media],
-                                                            star_count=LimitsConfig.NSFW_STAR_COST,
-                                                            payload=str(Config.STAR_RECEIVER),
-                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                        )
+                                                        # Start upload logging to prevent watchdog false positives
+                                                        if status_msg and status_msg.id:
+                                                            _start_upload_logging(user_id, status_msg.id)
+                                                        try:
+                                                            individual_msg = app.send_paid_media(
+                                                                user_id,
+                                                                media=[paid_media],
+                                                                star_count=LimitsConfig.NSFW_STAR_COST,
+                                                                payload=str(Config.STAR_RECEIVER),
+                                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                            )
+                                                        finally:
+                                                            # Stop upload logging after upload completes or fails
+                                                            if status_msg and status_msg.id:
+                                                                _stop_upload_logging(user_id, status_msg.id)
                                                         if isinstance(individual_msg, list):
                                                             sent.extend(individual_msg)
                                                         elif individual_msg is not None:
@@ -2661,11 +2772,19 @@ def image_command(app, message):
                                             
                                             # Send open copy as album to NSFW channel
                                             log_channel_nsfw = get_log_channel("video", nsfw=True)
-                                            open_sent = app.send_media_group(
-                                                chat_id=log_channel_nsfw,
-                                                media=open_media_group,
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                open_sent = app.send_media_group(
+                                                    chat_id=log_channel_nsfw,
+                                                    media=open_media_group,
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             logger.info(f"[IMG LOG] Open copy album sent to NSFW channel for history: {len(open_media_group)} items")
                                         except Exception as e:
                                             logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {e}")
@@ -2713,13 +2832,21 @@ def image_command(app, message):
                                             logger.info(f"[IMG FALLBACK PAID] Attempting to send album with {len(paid_media_list)} items to user {user_id}")
                                             logger.info(f"[IMG FALLBACK PAID] Album details: star_count={LimitsConfig.NSFW_STAR_COST}, payload={Config.STAR_RECEIVER}")
                                             
-                                            paid_msg = app.send_paid_media(
-                                                user_id,
-                                                media=paid_media_list,
-                                                star_count=LimitsConfig.NSFW_STAR_COST,
-                                                payload=str(Config.STAR_RECEIVER),
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                paid_msg = app.send_paid_media(
+                                                    user_id,
+                                                    media=paid_media_list,
+                                                    star_count=LimitsConfig.NSFW_STAR_COST,
+                                                    payload=str(Config.STAR_RECEIVER),
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             
                                             logger.info(f"[IMG FALLBACK PAID] SUCCESS: send_paid_media returned: {type(paid_msg)}")
                                             logger.info(f"[IMG FALLBACK PAID] SUCCESS: Response details: {paid_msg}")
@@ -2838,13 +2965,21 @@ def image_command(app, message):
                                                     except:
                                                         paid_media_list.append(InputPaidMediaVideo(media=p))
                                             
-                                            sent_msg = app.send_paid_media(
-                                                user_id,
-                                                media=paid_media_list,
-                                                star_count=LimitsConfig.NSFW_STAR_COST,
-                                                payload=str(Config.STAR_RECEIVER),
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                sent_msg = app.send_paid_media(
+                                                    user_id,
+                                                    media=paid_media_list,
+                                                    star_count=LimitsConfig.NSFW_STAR_COST,
+                                                    payload=str(Config.STAR_RECEIVER),
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             if isinstance(sent_msg, list):
                                                 sent.extend(sent_msg)
                                             elif sent_msg is not None:
@@ -2873,12 +3008,20 @@ def image_command(app, message):
                                                         has_spoiler=should_apply_spoiler(user_id, nsfw_flag, is_private_chat)
                                                     ))
                                             
-                                            sent_msg = app.send_media_group(
-                                                chat_id,
-                                                media=media_group,
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                message_thread_id=message_thread_id
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                sent_msg = app.send_media_group(
+                                                    chat_id,
+                                                    media=media_group,
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                    message_thread_id=message_thread_id
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             if isinstance(sent_msg, list):
                                                 sent.extend(sent_msg)
                                             elif sent_msg is not None:
@@ -2947,11 +3090,19 @@ def image_command(app, message):
                                                                 ))
                                                         
                                                         # Send as album to NSFW log channel
-                                                        nsfw_log_sent = app.send_media_group(
-                                                            chat_id=log_channel_nsfw,
-                                                            media=nsfw_log_media_group,
-                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                        )
+                                                        # Start upload logging to prevent watchdog false positives
+                                                        if status_msg and status_msg.id:
+                                                            _start_upload_logging(user_id, status_msg.id)
+                                                        try:
+                                                            nsfw_log_sent = app.send_media_group(
+                                                                chat_id=log_channel_nsfw,
+                                                                media=nsfw_log_media_group,
+                                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                            )
+                                                        finally:
+                                                            # Stop upload logging after upload completes or fails
+                                                            if status_msg and status_msg.id:
+                                                                _stop_upload_logging(user_id, status_msg.id)
                                                         logger.info(f"[IMG LOG] Open copy album sent to NSFW channel: {len(nsfw_log_media_group)} items")
                                                     except Exception as fe:
                                                         logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {fe}")
@@ -2989,7 +3140,15 @@ def image_command(app, message):
                                                             if nsfw_media_group:
                                                                 nsfw_media_group[0].caption = f"NSFW Content (Album {len(nsfw_media_group)} items)"
                                                             
-                                                            app.send_media_group(chat_id=log_channel, media=nsfw_media_group)
+                                                            # Start upload logging to prevent watchdog false positives
+                                                            if status_msg and status_msg.id:
+                                                                _start_upload_logging(user_id, status_msg.id)
+                                                            try:
+                                                                app.send_media_group(chat_id=log_channel, media=nsfw_media_group)
+                                                            finally:
+                                                                # Stop upload logging after upload completes or fails
+                                                                if status_msg and status_msg.id:
+                                                                    _stop_upload_logging(user_id, status_msg.id)
                                                             logger.info(f"[IMG LOG] NSFW media album sent to NSFW channel: {len(nsfw_media_group)} items")
                                                         time.sleep(0.05)
                                                     except Exception as fe:
@@ -3044,11 +3203,19 @@ def image_command(app, message):
                                                                 ))
                                                         
                                                         # Send as album to regular log channel
-                                                        regular_log_sent = app.send_media_group(
-                                                            chat_id=log_channel,
-                                                            media=regular_log_media_group,
-                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                        )
+                                                        # Start upload logging to prevent watchdog false positives
+                                                        if status_msg and status_msg.id:
+                                                            _start_upload_logging(user_id, status_msg.id)
+                                                        try:
+                                                            regular_log_sent = app.send_media_group(
+                                                                chat_id=log_channel,
+                                                                media=regular_log_media_group,
+                                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                            )
+                                                        finally:
+                                                            # Stop upload logging after upload completes or fails
+                                                            if status_msg and status_msg.id:
+                                                                _stop_upload_logging(user_id, status_msg.id)
                                                         logger.info(f"[IMG LOG] Regular media album sent to IMG channel (fallback): {len(regular_log_media_group)} items")
                                                         
                                                         # Cache regular content
@@ -3082,12 +3249,20 @@ def image_command(app, message):
                                     last_exc = None
                                     while attempts < 5:
                                         try:
-                                            sent_msg = app.send_document(
-                                                user_id,
-                                                document=f,
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                message_thread_id=message_thread_id
-                                            )
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                sent_msg = app.send_document(
+                                                    user_id,
+                                                    document=f,
+                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                    message_thread_id=message_thread_id
+                                                )
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             break
                                         except FloodWait as fw:
                                             wait_s = int(getattr(fw, 'value', 0) or 0)
@@ -3213,13 +3388,21 @@ def image_command(app, message):
                                     
                                     logger.info(f"[IMG TAIL PAID] Sending paid media album {album_start//max_album_size + 1} with {len(album_items)} items")
                                     try:
-                                        paid_msg = app.send_paid_media(
-                                            user_id,
-                                            media=album_items,
-                                            star_count=LimitsConfig.NSFW_STAR_COST,
-                                            payload=str(Config.STAR_RECEIVER),
-                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                        )
+                                        # Start upload logging to prevent watchdog false positives
+                                        if status_msg and status_msg.id:
+                                            _start_upload_logging(user_id, status_msg.id)
+                                        try:
+                                            paid_msg = app.send_paid_media(
+                                                user_id,
+                                                media=album_items,
+                                                star_count=LimitsConfig.NSFW_STAR_COST,
+                                                payload=str(Config.STAR_RECEIVER),
+                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                            )
+                                        finally:
+                                            # Stop upload logging after upload completes or fails
+                                            if status_msg and status_msg.id:
+                                                _stop_upload_logging(user_id, status_msg.id)
                                         
                                         if isinstance(paid_msg, list):
                                             sent.extend(paid_msg)
@@ -3298,34 +3481,42 @@ def image_command(app, message):
                                 sent = []
                                 for m in media_group:
                                     try:
-                                        if isinstance(m, InputMediaPhoto):
-                                            paid_msg = app.send_paid_media(
-                                                user_id,
-                                                media=[InputPaidMediaPhoto(media=m.media)],
-                                                star_count=LimitsConfig.NSFW_STAR_COST,
-                                                payload=str(Config.STAR_RECEIVER),
-                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
-                                        else:
-                                            # Ensure cover for video
-                                            video_path = m.media if not hasattr(m.media, 'name') else m.media.name
-                                            _cover = ensure_paid_cover_embedded(video_path, getattr(m, 'thumb', None))
-                                            try:
+                                        # Start upload logging to prevent watchdog false positives
+                                        if status_msg and status_msg.id:
+                                            _start_upload_logging(user_id, status_msg.id)
+                                        try:
+                                            if isinstance(m, InputMediaPhoto):
                                                 paid_msg = app.send_paid_media(
                                                     user_id,
-                                                    media=[InputPaidMediaVideo(media=m.media, cover=_cover)],
+                                                    media=[InputPaidMediaPhoto(media=m.media)],
                                                     star_count=LimitsConfig.NSFW_STAR_COST,
                                                     payload=str(Config.STAR_RECEIVER),
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
                                                 )
-                                            except TypeError:
-                                                paid_msg = app.send_paid_media(
-                                                    user_id,
-                                                    media=[InputPaidMediaVideo(media=m.media)],
-                                                    star_count=LimitsConfig.NSFW_STAR_COST,
-                                                    payload=str(Config.STAR_RECEIVER),
-                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                            else:
+                                                # Ensure cover for video
+                                                video_path = m.media if not hasattr(m.media, 'name') else m.media.name
+                                                _cover = ensure_paid_cover_embedded(video_path, getattr(m, 'thumb', None))
+                                                try:
+                                                    paid_msg = app.send_paid_media(
+                                                        user_id,
+                                                        media=[InputPaidMediaVideo(media=m.media, cover=_cover)],
+                                                        star_count=LimitsConfig.NSFW_STAR_COST,
+                                                        payload=str(Config.STAR_RECEIVER),
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                    )
+                                                except TypeError:
+                                                    paid_msg = app.send_paid_media(
+                                                        user_id,
+                                                        media=[InputPaidMediaVideo(media=m.media)],
+                                                        star_count=LimitsConfig.NSFW_STAR_COST,
+                                                        payload=str(Config.STAR_RECEIVER),
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                    )
+                                        finally:
+                                            # Stop upload logging after upload completes or fails
+                                            if status_msg and status_msg.id:
+                                                _stop_upload_logging(user_id, status_msg.id)
                                         if isinstance(paid_msg, list):
                                             sent.extend(paid_msg)
                                         elif paid_msg is not None:
@@ -3357,12 +3548,20 @@ def image_command(app, message):
                                                     _itm.caption = None
                                     except Exception as _e:
                                         logger.debug(f"{LoggerMsg.IMG_TAIL_ALBUM_CAPTION_NORMALIZATION_SKIPPED_LOG_MSG}")
-                                    sent = app.send_media_group(
-                                        chat_id,
-                                        media=media_group,
-                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                        message_thread_id=message_thread_id
-                                    )
+                                    # Start upload logging to prevent watchdog false positives
+                                    if status_msg and status_msg.id:
+                                        _start_upload_logging(user_id, status_msg.id)
+                                    try:
+                                        sent = app.send_media_group(
+                                            chat_id,
+                                            media=media_group,
+                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                            message_thread_id=message_thread_id
+                                        )
+                                    finally:
+                                        # Stop upload logging after upload completes or fails
+                                        if status_msg and status_msg.id:
+                                            _stop_upload_logging(user_id, status_msg.id)
                                     break
                                 except FloodWait as fw:
                                     wait_s = int(getattr(fw, 'value', 0) or 0)
@@ -3424,11 +3623,19 @@ def image_command(app, message):
                                             ))
                                     
                                     # Send as album to NSFW log channel
-                                    nsfw_log_sent = app.send_media_group(
-                                        chat_id=log_channel_nsfw,
-                                        media=nsfw_log_media_group,
-                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                    )
+                                    # Start upload logging to prevent watchdog false positives
+                                    if status_msg and status_msg.id:
+                                        _start_upload_logging(user_id, status_msg.id)
+                                    try:
+                                        nsfw_log_sent = app.send_media_group(
+                                            chat_id=log_channel_nsfw,
+                                            media=nsfw_log_media_group,
+                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                        )
+                                    finally:
+                                        # Stop upload logging after upload completes or fails
+                                        if status_msg and status_msg.id:
+                                            _stop_upload_logging(user_id, status_msg.id)
                                     logger.info(f"[IMG LOG] Open copy album sent to NSFW channel: {len(nsfw_log_media_group)} items")
                                 except Exception as fe:
                                     logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {fe}")
@@ -3466,7 +3673,15 @@ def image_command(app, message):
                                         if nsfw_media_group:
                                             nsfw_media_group[0].caption = f"NSFW Content (Album {len(nsfw_media_group)} items)"
                                         
-                                        app.send_media_group(chat_id=log_channel, media=nsfw_media_group)
+                                        # Start upload logging to prevent watchdog false positives
+                                        if status_msg and status_msg.id:
+                                            _start_upload_logging(user_id, status_msg.id)
+                                        try:
+                                            app.send_media_group(chat_id=log_channel, media=nsfw_media_group)
+                                        finally:
+                                            # Stop upload logging after upload completes or fails
+                                            if status_msg and status_msg.id:
+                                                _stop_upload_logging(user_id, status_msg.id)
                                         logger.info(f"[IMG LOG] NSFW media album sent to NSFW channel: {len(nsfw_media_group)} items")
                                 except Exception as fe:
                                     logger.error(f"[IMG LOG] send_media_group (tail) failed for NSFW media: {fe}")
@@ -3516,11 +3731,19 @@ def image_command(app, message):
                                             ))
                                     
                                     # Send as album to regular log channel
-                                    regular_log_sent = app.send_media_group(
-                                        chat_id=log_channel,
-                                        media=regular_log_media_group,
-                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                    )
+                                    # Start upload logging to prevent watchdog false positives
+                                    if status_msg and status_msg.id:
+                                        _start_upload_logging(user_id, status_msg.id)
+                                    try:
+                                        regular_log_sent = app.send_media_group(
+                                            chat_id=log_channel,
+                                            media=regular_log_media_group,
+                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                        )
+                                    finally:
+                                        # Stop upload logging after upload completes or fails
+                                        if status_msg and status_msg.id:
+                                            _stop_upload_logging(user_id, status_msg.id)
                                     logger.info(f"[IMG LOG] Regular media album sent to IMG channel (tail): {len(regular_log_media_group)} items")
                                     
                                     # Cache regular content
@@ -3577,14 +3800,22 @@ def image_command(app, message):
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
                                                     )
                                                 else:
-                                                    sent_msg = app.send_photo(
-                                                        user_id,
-                                                        photo=f,
-                                                        caption=(tags_text_norm or ''),
-                                                        has_spoiler=should_apply_spoiler(user_id, nsfw_flag, is_private_chat),
-                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                        message_thread_id=message_thread_id
-                                                    )
+                                                    # Start upload logging to prevent watchdog false positives
+                                                    if status_msg and status_msg.id:
+                                                        _start_upload_logging(user_id, status_msg.id)
+                                                    try:
+                                                        sent_msg = app.send_photo(
+                                                            user_id,
+                                                            photo=f,
+                                                            caption=(tags_text_norm or ''),
+                                                            has_spoiler=should_apply_spoiler(user_id, nsfw_flag, is_private_chat),
+                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                            message_thread_id=message_thread_id
+                                                        )
+                                                    finally:
+                                                        # Stop upload logging after upload completes or fails
+                                                        if status_msg and status_msg.id:
+                                                            _stop_upload_logging(user_id, status_msg.id)
                                                 break
                                             except FloodWait as fw:
                                                 wait_s = int(getattr(fw, 'value', 0) or 0)
@@ -3611,23 +3842,39 @@ def image_command(app, message):
                                                         media_item = InputPaidMediaVideo(media=f, cover=_cover)
                                                     except TypeError:
                                                         media_item = InputPaidMediaVideo(media=f)
-                                                    sent_msg = app.send_paid_media(
-                                                        user_id,
-                                                        media=[media_item],
-                                                        star_count=LimitsConfig.NSFW_STAR_COST,
-                                                        payload=str(Config.STAR_RECEIVER),
-                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    # Start upload logging to prevent watchdog false positives
+                                                    if status_msg and status_msg.id:
+                                                        _start_upload_logging(user_id, status_msg.id)
+                                                    try:
+                                                        sent_msg = app.send_paid_media(
+                                                            user_id,
+                                                            media=[media_item],
+                                                            star_count=LimitsConfig.NSFW_STAR_COST,
+                                                            payload=str(Config.STAR_RECEIVER),
+                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                        )
+                                                    finally:
+                                                        # Stop upload logging after upload completes or fails
+                                                        if status_msg and status_msg.id:
+                                                            _stop_upload_logging(user_id, status_msg.id)
                                                 else:
-                                                    sent_msg = app.send_video(
-                                                        user_id,
-                                                        video=f,
-                                                        thumb=thumb if thumb and os.path.exists(thumb) else None,
-                                                        caption=(tags_text_norm or ''),
-                                                        has_spoiler=should_apply_spoiler(user_id, nsfw_flag, is_private_chat),
-                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                        message_thread_id=message_thread_id
-                                                    )
+                                                    # Start upload logging to prevent watchdog false positives
+                                                    if status_msg and status_msg.id:
+                                                        _start_upload_logging(user_id, status_msg.id)
+                                                    try:
+                                                        sent_msg = app.send_video(
+                                                            user_id,
+                                                            video=f,
+                                                            thumb=thumb if thumb and os.path.exists(thumb) else None,
+                                                            caption=(tags_text_norm or ''),
+                                                            has_spoiler=should_apply_spoiler(user_id, nsfw_flag, is_private_chat),
+                                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                            message_thread_id=message_thread_id
+                                                        )
+                                                    finally:
+                                                        # Stop upload logging after upload completes or fails
+                                                        if status_msg and status_msg.id:
+                                                            _stop_upload_logging(user_id, status_msg.id)
                                                 break
                                             except FloodWait as fw:
                                                 wait_s = int(getattr(fw, 'value', 0) or 0)
@@ -3706,15 +3953,23 @@ def image_command(app, message):
                                                     thumb=getattr(_media_obj, 'thumb', None)
                                                 ))
                                         
-                                        # Send as album to NSFW log channel
-                                        nsfw_log_sent = app.send_media_group(
-                                            chat_id=log_channel_nsfw,
-                                            media=nsfw_log_media_group,
-                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                        )
-                                        logger.info(f"[IMG LOG] Open copy album sent to NSFW channel: {len(nsfw_log_media_group)} items")
-                                    except Exception as fe:
-                                        logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {fe}")
+                                                        # Send as album to NSFW log channel
+                                                        # Start upload logging to prevent watchdog false positives
+                                                        if status_msg and status_msg.id:
+                                                            _start_upload_logging(user_id, status_msg.id)
+                                                        try:
+                                                            nsfw_log_sent = app.send_media_group(
+                                                                chat_id=log_channel_nsfw,
+                                                                media=nsfw_log_media_group,
+                                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                                            )
+                                                        finally:
+                                                            # Stop upload logging after upload completes or fails
+                                                            if status_msg and status_msg.id:
+                                                                _stop_upload_logging(user_id, status_msg.id)
+                                                        logger.info(f"[IMG LOG] Open copy album sent to NSFW channel: {len(nsfw_log_media_group)} items")
+                                                    except Exception as fe:
+                                                        logger.error(f"[IMG LOG] Failed to send open copy album to NSFW channel: {fe}")
                                     
                                     # Don't cache NSFW content
                                     logger.info(f"[IMG LOG] NSFW content sent to both channels (paid + history), not cached")
@@ -3749,7 +4004,15 @@ def image_command(app, message):
                                             if nsfw_media_group:
                                                 nsfw_media_group[0].caption = f"NSFW Content (Album {len(nsfw_media_group)} items)"
                                             
-                                            app.send_media_group(chat_id=log_channel, media=nsfw_media_group)
+                                            # Start upload logging to prevent watchdog false positives
+                                            if status_msg and status_msg.id:
+                                                _start_upload_logging(user_id, status_msg.id)
+                                            try:
+                                                app.send_media_group(chat_id=log_channel, media=nsfw_media_group)
+                                            finally:
+                                                # Stop upload logging after upload completes or fails
+                                                if status_msg and status_msg.id:
+                                                    _stop_upload_logging(user_id, status_msg.id)
                                             logger.info(f"[IMG LOG] NSFW media album sent to NSFW channel: {len(nsfw_media_group)} items")
                                     except Exception as fe:
                                         logger.error(f"[IMG LOG] send_media_group (tail-fallback) failed for NSFW media: {fe}")
@@ -3781,11 +4044,19 @@ def image_command(app, message):
                                                 ))
                                         
                                         # Send as album to regular log channel
-                                        regular_log_sent = app.send_media_group(
-                                            chat_id=log_channel,
-                                            media=regular_log_media_group,
-                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                        )
+                                        # Start upload logging to prevent watchdog false positives
+                                        if status_msg and status_msg.id:
+                                            _start_upload_logging(user_id, status_msg.id)
+                                        try:
+                                            regular_log_sent = app.send_media_group(
+                                                chat_id=log_channel,
+                                                media=regular_log_media_group,
+                                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                                            )
+                                        finally:
+                                            # Stop upload logging after upload completes or fails
+                                            if status_msg and status_msg.id:
+                                                _stop_upload_logging(user_id, status_msg.id)
                                         logger.info(f"[IMG LOG] Regular media album sent to IMG channel (tail-fallback): {len(regular_log_media_group)} items")
                                         
                                         # Cache regular content
@@ -3813,12 +4084,20 @@ def image_command(app, message):
                     p, orig = others_buffer.pop(0)
                     try:
                         with open(p, 'rb') as f:
-                            sent_msg = app.send_document(
-                                user_id,
-                                document=f,
-                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                message_thread_id=message_thread_id
-                            )
+                            # Start upload logging to prevent watchdog false positives
+                            if status_msg and status_msg.id:
+                                _start_upload_logging(user_id, status_msg.id)
+                            try:
+                                sent_msg = app.send_document(
+                                    user_id,
+                                    document=f,
+                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                    message_thread_id=message_thread_id
+                                )
+                            finally:
+                                # Stop upload logging after upload completes or fails
+                                if status_msg and status_msg.id:
+                                    _stop_upload_logging(user_id, status_msg.id)
                         sent_message_ids.append(sent_msg.id)
                         total_sent += 1
                         # Delete files immediately after sending (strict batching others)
@@ -3924,11 +4203,19 @@ def image_command(app, message):
                             if hasattr(_itm, 'caption'):
                                 _itm.caption = None
                     
-                    sent = app.send_media_group(
-                        user_id,
-                        media=media_group,
-                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                    )
+                    # Start upload logging to prevent watchdog false positives
+                    if status_msg and status_msg.id:
+                        _start_upload_logging(user_id, status_msg.id)
+                    try:
+                        sent = app.send_media_group(
+                            user_id,
+                            media=media_group,
+                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                        )
+                    finally:
+                        # Stop upload logging after upload completes or fails
+                        if status_msg and status_msg.id:
+                            _stop_upload_logging(user_id, status_msg.id)
                     sent_message_ids.extend([m.id for m in sent])
                     total_sent += len(media_group)
                     
