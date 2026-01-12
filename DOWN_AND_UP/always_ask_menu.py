@@ -684,18 +684,36 @@ def clear_trim_state(user_id, url):
         logger.error(f"Failed to clear trim state: {e}")
 
 def clear_trim_sections_for_url(user_id, url):
-    """Clear trim sections for specific URL"""
+    """Clear trim sections for specific URL (normalizes URL to handle YouTube variants)"""
     try:
+        # Normalize URL to ensure consistent lookup (handle YouTube URL variants)
+        from URL_PARSERS.normalizer import normalize_url_for_cache
+        from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+        
+        normalized_urls = [normalize_url_for_cache(url)]
+        if is_youtube_url(url):
+            normalized_urls.extend([
+                normalize_url_for_cache(youtube_to_short_url(url)),
+                normalize_url_for_cache(youtube_to_long_url(url))
+            ])
+        
         user_dir = os.path.join("users", str(user_id))
         trim_sections_file = os.path.join(user_dir, "trim_sections.json")
         if os.path.exists(trim_sections_file):
             with open(trim_sections_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            if url in data:
-                del data[url]
+            
+            # Clear all normalized URL variants
+            cleared = False
+            for normalized_url in set(normalized_urls):
+                if normalized_url in data:
+                    del data[normalized_url]
+                    cleared = True
+            
+            if cleared:
                 with open(trim_sections_file, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-                logger.info(f"Cleared trim sections for user {user_id}, URL: {url}")
+                logger.info(f"Cleared trim sections for user {user_id}, URL: {url}, normalized URLs: {set(normalized_urls)}")
     except Exception as e:
         logger.error(f"Failed to clear trim sections: {e}")
 
@@ -764,7 +782,7 @@ def get_active_functions(user_id, url):
     has_subs = False
     has_dubs = False
     
-    # Check TRIM
+    # Check TRIM - load_trim_sections now handles URL normalization internally
     trim_sections = load_trim_sections(user_id, url, clear_after_use=False)
     has_trim = trim_sections is not None and trim_sections != ""
     
@@ -1205,6 +1223,17 @@ def handle_trim_timecode(app, message, text):
 def save_trim_sections(user_id, url, download_sections):
     """Save trim sections for download"""
     try:
+        # Normalize URL to ensure consistent lookup (handle YouTube URL variants)
+        from URL_PARSERS.normalizer import normalize_url_for_cache
+        from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+        
+        normalized_urls = [normalize_url_for_cache(url)]
+        if is_youtube_url(url):
+            normalized_urls.extend([
+                normalize_url_for_cache(youtube_to_short_url(url)),
+                normalize_url_for_cache(youtube_to_long_url(url))
+            ])
+        
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
         trim_sections_file = os.path.join(user_dir, "trim_sections.json")
@@ -1212,10 +1241,14 @@ def save_trim_sections(user_id, url, download_sections):
         if os.path.exists(trim_sections_file):
             with open(trim_sections_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        data[url] = download_sections
+        
+        # Save for all normalized URL variants to ensure lookup works
+        for normalized_url in set(normalized_urls):
+            data[normalized_url] = download_sections
+        
         with open(trim_sections_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        logger.info(f"Saved trim sections for user {user_id}, URL: {url}, sections: {download_sections}")
+        logger.info(f"Saved trim sections for user {user_id}, URL: {url}, normalized URLs: {set(normalized_urls)}, sections: {download_sections}")
     except Exception as e:
         logger.error(f"Failed to save trim sections: {e}")
 
@@ -1229,16 +1262,37 @@ def load_trim_sections(user_id, url, clear_after_use=False):
                         Set to True only when actually using for download
     """
     try:
+        # Normalize URL to ensure consistent lookup (handle YouTube URL variants)
+        from URL_PARSERS.normalizer import normalize_url_for_cache
+        from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+        
+        normalized_urls = [normalize_url_for_cache(url)]
+        if is_youtube_url(url):
+            normalized_urls.extend([
+                normalize_url_for_cache(youtube_to_short_url(url)),
+                normalize_url_for_cache(youtube_to_long_url(url))
+            ])
+        
         user_dir = os.path.join("users", str(user_id))
         trim_sections_file = os.path.join(user_dir, "trim_sections.json")
         if os.path.exists(trim_sections_file):
             with open(trim_sections_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            sections = data.get(url)
+            
+            # Try all normalized URL variants
+            sections = None
+            for normalized_url in set(normalized_urls):
+                if normalized_url in data:
+                    sections = data[normalized_url]
+                    break
+            
             if sections:
                 if clear_after_use:
                     # Clear after loading (only when actually using for download)
-                    del data[url]
+                    # Clear all variants
+                    for normalized_url in set(normalized_urls):
+                        if normalized_url in data:
+                            del data[normalized_url]
                     with open(trim_sections_file, "w", encoding="utf-8") as f:
                         json.dump(data, f, ensure_ascii=False, indent=2)
                 return sections
@@ -4842,11 +4896,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
     
     # Clear Always Ask menu states before first showing (only if not from callback)
     # This ensures clean state - emojis are only shown after user explicitly selects options
+    # BUT: Do NOT clear TRIM sections if they are already saved (user has provided timecode range)
     if cb is None:
         try:
-            # Clear states for this URL to ensure clean menu
-            clear_trim_sections_for_url(user_id, url)
-            clear_trim_state(user_id, url)
+            # Check if TRIM sections are already saved - if so, don't clear them
+            trim_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            if not trim_sections:
+                # Only clear TRIM state if no sections are saved
+                clear_trim_sections_for_url(user_id, url)
+                clear_trim_state(user_id, url)
             # Note: We don't clear filters here because user might have set /subs command
             # Filters are cleared only on /clean or after successful download
         except Exception as e:
