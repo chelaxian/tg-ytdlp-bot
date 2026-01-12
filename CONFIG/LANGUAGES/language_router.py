@@ -6,7 +6,11 @@ Handles dynamic loading of messages based on user's selected language
 import os
 import sys
 import ast
+import logging
 from typing import Dict, Any, Optional
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 # Add the parent directory to the path to import CONFIG
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -66,7 +70,7 @@ class LanguageRouter:
                     if lang_code in self.available_languages:
                         return lang_code
         except Exception as e:
-            print(f"Error reading user language for {user_id}: {e}")
+            logger.error(f"Error reading user language for {user_id}: {e}")
         
         return self.default_language
     
@@ -94,7 +98,7 @@ class LanguageRouter:
             
             return True
         except Exception as e:
-            print(f"Error saving user language for {user_id}: {e}")
+            logger.error(f"Error saving user language for {user_id}: {e}")
             return False
     
     def load_messages(self, language_code: str = None) -> Dict[str, Any]:
@@ -118,17 +122,26 @@ class LanguageRouter:
         messages_path = os.path.join(self.languages_dir, messages_file)
         
         try:
+            logger.info(f"🔍 [load_messages] Loading language {language_code}, path: {messages_path}")
             # Load messages using import method (more reliable)
             messages_dict = self._load_messages_with_import(messages_path)
             
             # Debug: log how many messages were loaded
             if messages_dict:
-                print(f"✅ Loaded {len(messages_dict)} messages for language {language_code}")
+                logger.info(f"✅ Loaded {len(messages_dict)} messages for language {language_code}")
+                # Log sample of loaded keys
+                sample_keys = list(messages_dict.keys())[:5]
+                logger.info(f"🔍 Sample keys: {sample_keys}")
             else:
-                print(f"⚠️ No messages loaded for language {language_code}, path: {messages_path}")
+                logger.warning(f"⚠️ No messages loaded for language {language_code}, path: {messages_path}")
+                # Check if file exists
+                if os.path.exists(messages_path):
+                    logger.warning(f"⚠️ File exists but loading returned empty dict!")
+                else:
+                    logger.error(f"❌ File does not exist: {messages_path}")
                 # Fall back to default language if current language failed
                 if language_code != self.default_language:
-                    print(f"🔄 Falling back to default language: {self.default_language}")
+                    logger.info(f"🔄 Falling back to default language: {self.default_language}")
                     return self.load_messages(self.default_language)
             
             # Cache the messages
@@ -137,9 +150,9 @@ class LanguageRouter:
             return messages_dict
             
         except Exception as e:
-            print(f"❌ Error loading messages for language {language_code}: {e}")
+            logger.error(f"❌ Error loading messages for language {language_code}: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             # Fall back to default language
             if language_code != self.default_language:
                 return self.load_messages(self.default_language)
@@ -273,7 +286,7 @@ class LanguageRouter:
         try:
             # Verify file exists
             if not os.path.exists(messages_path):
-                print(f"❌ Messages file not found: {messages_path}")
+                logger.error(f"❌ Messages file not found: {messages_path}")
                 return {}
             
             # Get the module name from the file path
@@ -301,7 +314,7 @@ class LanguageRouter:
                     else:
                         raise ImportError(f"Could not load module from {messages_path}")
                 except Exception as e2:
-                    print(f"❌ Both import methods failed. Standard: {e1}, importlib: {e2}")
+                    logger.error(f"❌ Both import methods failed. Standard: {e1}, importlib: {e2}")
                     raise ImportError(f"Could not import {module_name} from {messages_path}")
             
             messages_class = getattr(messages_module, 'Messages')
@@ -329,9 +342,9 @@ class LanguageRouter:
             # Debug: log sample of loaded messages
             if messages_dict:
                 sample_keys = list(messages_dict.keys())[:5]
-                print(f"✅ Successfully loaded {len(messages_dict)} messages. Sample keys: {sample_keys}")
+                logger.info(f"✅ Successfully loaded {len(messages_dict)} messages. Sample keys: {sample_keys}")
             else:
-                print(f"⚠️ Warning: No messages loaded from {messages_path}")
+                logger.warning(f"⚠️ Warning: No messages loaded from {messages_path}")
             
             return messages_dict
             
@@ -422,9 +435,9 @@ def get_messages(user_id: int = None, language_code: str = None) -> Dict[str, An
             
         return language_router.load_messages(language_code)
     except Exception as e:
-        print(f"❌ Error in get_messages: {e}")
+        logger.error(f"❌ Error in get_messages: {e}")
         import traceback
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         return {}
 
 def get_message(message_key: str, user_id: int = None, language_code: str = None) -> str:
