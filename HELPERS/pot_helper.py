@@ -40,7 +40,7 @@ def check_pot_provider_availability(base_url: str) -> bool:
         parsed_url = urlparse(base_url)
         url_host = (parsed_url.hostname or '').lower()
         # Разрешаем localhost для локального PO token провайдера, но блокируем другие внутренние ресурсы
-        if url_host not in ('localhost', '127.0.0.1') and \
+        if url_host not in ('localhost', '127.0.0.1', '::1') and \
            (url_host.endswith('.local') or url_host.endswith('.internal') or 'localhost' in url_host):
             try:
                 ip = ipaddress.ip_address(url_host)

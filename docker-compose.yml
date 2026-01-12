@@ -21,8 +21,10 @@ services:
     restart: unless-stopped
     logging: *default-logging
     depends_on:
-      - bgutil-provider
-      - warp
+      bgutil-provider:
+        condition: service_started
+      warp:
+        condition: service_started
     volumes:
       - .:/app
     working_dir: /app
