@@ -46,13 +46,18 @@ class LanguageRouter:
         self.default_language = 'en'
         self._cached_messages = {}
         
-    def get_user_language(self, user_id: int) -> str:
+    def get_user_language(self, user_id) -> str:
         """
         Get user's selected language from lang.txt file in user directory
         Returns default language if not set
         """
         try:
-            user_dir = f'./users/{str(user_id)}'
+            # Handle both int and string user_id
+            user_id_str = str(user_id) if user_id is not None else None
+            if user_id_str is None:
+                return self.default_language
+                
+            user_dir = f'./users/{user_id_str}'
             lang_file = os.path.join(user_dir, 'lang.txt')
             
             if os.path.exists(lang_file):
@@ -283,18 +288,20 @@ class LanguageRouter:
             try:
                 # Try standard import first (works in both local and Docker)
                 messages_module = __import__(module_name, fromlist=['Messages'])
-            except (ImportError, ModuleNotFoundError):
+            except (ImportError, ModuleNotFoundError) as e1:
                 # Try alternative import method using importlib (more reliable fallback)
                 try:
                     import importlib.util
                     spec = importlib.util.spec_from_file_location(module_name, messages_path)
                     if spec and spec.loader:
                         messages_module = importlib.util.module_from_spec(spec)
+                        # Register module in sys.modules so it can be found later
+                        sys.modules[module_name] = messages_module
                         spec.loader.exec_module(messages_module)
                     else:
                         raise ImportError(f"Could not load module from {messages_path}")
                 except Exception as e2:
-                    print(f"❌ Both import methods failed: {e2}")
+                    print(f"❌ Both import methods failed. Standard: {e1}, importlib: {e2}")
                     raise ImportError(f"Could not import {module_name} from {messages_path}")
             
             messages_class = getattr(messages_module, 'Messages')
@@ -318,6 +325,13 @@ class LanguageRouter:
                             messages_dict[attr_name] = attr_value
                     except:
                         pass
+            
+            # Debug: log sample of loaded messages
+            if messages_dict:
+                sample_keys = list(messages_dict.keys())[:5]
+                print(f"✅ Successfully loaded {len(messages_dict)} messages. Sample keys: {sample_keys}")
+            else:
+                print(f"⚠️ Warning: No messages loaded from {messages_path}")
             
             return messages_dict
             
@@ -393,12 +407,25 @@ def get_messages(user_id: int = None, language_code: str = None) -> Dict[str, An
     """
     Convenience function to get messages for user or language
     """
-    if language_code is None and user_id is not None:
-        language_code = language_router.get_user_language(user_id)
-    elif language_code is None:
-        language_code = language_router.default_language
+    try:
+        # Convert user_id to int if it's a string (for compatibility)
+        if user_id is not None and isinstance(user_id, str):
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
+                pass  # Keep as string if conversion fails
         
-    return language_router.load_messages(language_code)
+        if language_code is None and user_id is not None:
+            language_code = language_router.get_user_language(user_id)
+        elif language_code is None:
+            language_code = language_router.default_language
+            
+        return language_router.load_messages(language_code)
+    except Exception as e:
+        print(f"❌ Error in get_messages: {e}")
+        import traceback
+        traceback.print_exc()
+        return {}
 
 def get_message(message_key: str, user_id: int = None, language_code: str = None) -> str:
     """

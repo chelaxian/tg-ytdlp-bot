@@ -69,8 +69,18 @@ def safe_get_messages(user_id=None, language_code=None):
     This function is GUARANTEED to return a Messages object
     """
     try:
+        # Convert user_id to int if it's a string (for compatibility)
+        if user_id is not None and isinstance(user_id, str):
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
+                pass  # Keep as string if conversion fails
+        
         return get_messages_instance(user_id, language_code)
-    except Exception:
+    except Exception as e:
+        print(f"❌ Error in safe_get_messages: {e}")
+        import traceback
+        traceback.print_exc()
         # If everything fails, return a minimal Messages object
         return Messages(None, None)
 
