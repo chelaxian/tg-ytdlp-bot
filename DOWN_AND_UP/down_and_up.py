@@ -2659,10 +2659,49 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
                             
                             if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
-                                # Replace original with trimmed version
-                                import shutil
-                                shutil.move(temp_trimmed_path, downloaded_abs_path)
-                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s")
+                                # Verify trimmed file exists and has correct size
+                                if os.path.exists(temp_trimmed_path) and os.path.getsize(temp_trimmed_path) > 0:
+                                    # Verify trimmed file duration
+                                    try:
+                                        _, _, trimmed_duration = get_video_info_ffprobe(temp_trimmed_path)
+                                        trimmed_duration = float(trimmed_duration) if trimmed_duration else 0
+                                        expected_trimmed_duration = end_seconds - start_seconds
+                                        
+                                        # Allow 5 seconds tolerance for trimmed duration
+                                        if abs(trimmed_duration - expected_trimmed_duration) <= 5:
+                                            # Replace original with trimmed version
+                                            import shutil
+                                            shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                            logger.info(f"[TRIM] Successfully trimmed video to {trimmed_duration}s (expected {expected_trimmed_duration}s)")
+                                            
+                                            # Verify replacement was successful
+                                            _, _, final_duration = get_video_info_ffprobe(downloaded_abs_path)
+                                            final_duration = float(final_duration) if final_duration else 0
+                                            logger.info(f"[TRIM] Final file duration after replacement: {final_duration}s")
+                                        else:
+                                            logger.error(f"[TRIM] Trimmed file duration ({trimmed_duration}s) doesn't match expected ({expected_trimmed_duration}s), keeping original")
+                                            # Clean up temp file
+                                            if os.path.exists(temp_trimmed_path):
+                                                try:
+                                                    os.remove(temp_trimmed_path)
+                                                except Exception:
+                                                    pass
+                                    except Exception as verify_error:
+                                        logger.error(f"[TRIM] Error verifying trimmed file: {verify_error}, keeping original")
+                                        # Clean up temp file
+                                        if os.path.exists(temp_trimmed_path):
+                                            try:
+                                                os.remove(temp_trimmed_path)
+                                            except Exception:
+                                                pass
+                                else:
+                                    logger.error(f"[TRIM] Trimmed file is missing or empty, keeping original")
+                                    # Clean up temp file if it exists
+                                    if os.path.exists(temp_trimmed_path):
+                                        try:
+                                            os.remove(temp_trimmed_path)
+                                        except Exception:
+                                            pass
                             else:
                                 logger.error(f"[TRIM] Failed to trim video, using original file")
                                 # Clean up temp file if it exists
@@ -2681,9 +2720,49 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
                             
                             if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
-                                import shutil
-                                shutil.move(temp_trimmed_path, downloaded_abs_path)
-                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s (duration check failed)")
+                                # Verify trimmed file exists and has correct size
+                                if os.path.exists(temp_trimmed_path) and os.path.getsize(temp_trimmed_path) > 0:
+                                    # Verify trimmed file duration
+                                    try:
+                                        _, _, trimmed_duration = get_video_info_ffprobe(temp_trimmed_path)
+                                        trimmed_duration = float(trimmed_duration) if trimmed_duration else 0
+                                        expected_trimmed_duration = end_seconds - start_seconds
+                                        
+                                        # Allow 5 seconds tolerance for trimmed duration
+                                        if abs(trimmed_duration - expected_trimmed_duration) <= 5:
+                                            # Replace original with trimmed version
+                                            import shutil
+                                            shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                            logger.info(f"[TRIM] Successfully trimmed video to {trimmed_duration}s (expected {expected_trimmed_duration}s, duration check failed)")
+                                            
+                                            # Verify replacement was successful
+                                            _, _, final_duration = get_video_info_ffprobe(downloaded_abs_path)
+                                            final_duration = float(final_duration) if final_duration else 0
+                                            logger.info(f"[TRIM] Final file duration after replacement: {final_duration}s")
+                                        else:
+                                            logger.error(f"[TRIM] Trimmed file duration ({trimmed_duration}s) doesn't match expected ({expected_trimmed_duration}s), keeping original")
+                                            # Clean up temp file
+                                            if os.path.exists(temp_trimmed_path):
+                                                try:
+                                                    os.remove(temp_trimmed_path)
+                                                except Exception:
+                                                    pass
+                                    except Exception as verify_error:
+                                        logger.error(f"[TRIM] Error verifying trimmed file: {verify_error}, keeping original")
+                                        # Clean up temp file
+                                        if os.path.exists(temp_trimmed_path):
+                                            try:
+                                                os.remove(temp_trimmed_path)
+                                            except Exception:
+                                                pass
+                                else:
+                                    logger.error(f"[TRIM] Trimmed file is missing or empty, keeping original")
+                                    # Clean up temp file if it exists
+                                    if os.path.exists(temp_trimmed_path):
+                                        try:
+                                            os.remove(temp_trimmed_path)
+                                        except Exception:
+                                            pass
                             else:
                                 logger.error(f"[TRIM] Failed to trim video")
                         except Exception as trim_exec_error:

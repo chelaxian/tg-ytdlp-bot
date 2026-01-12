@@ -6409,8 +6409,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     # Check if cache should be disabled
                     active_funcs = get_active_functions(user_id, url)
                     should_disable_cache = active_funcs["should_disable_cache"]
+                    # Проверяем, должен ли админ видеть звездочки для NSFW
+                    should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
                     # Show rocket only if cache is available AND functions are NOT active
-                    icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "📹")
                     postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
                     base_text = f"{icon}{quality_key}{subs_available}{postfix}"
                     func_suffix = get_quality_button_suffix(user_id, url, base_text)
@@ -6452,8 +6454,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     # Check if cache should be disabled
                     active_funcs = get_active_functions(user_id, url)
                     should_disable_cache = active_funcs["should_disable_cache"]
+                    # Проверяем, должен ли админ видеть звездочки для NSFW
+                    should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
                     # Show rocket only if cache is available AND functions are NOT active AND subs not needed
-                    icon = "🚀" if (is_cached and not need_subs and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    icon = "🚀" if (is_cached and not need_subs and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "📹")
                     base_text = f"{icon}{quality_key}{subs_available}"
                     func_suffix = get_quality_button_suffix(user_id, url, base_text)
                     button_text = f"{base_text}{func_suffix}"
