@@ -501,13 +501,14 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         normalized_targetname = os.path.abspath(targetname)
         
         # First try with -c copy (fast, no re-encoding)
-        # Use -to instead of -t for more precise cutting
-        # Explicitly specify output format with -f mp4
+        # Use -ss after -i for more accurate seeking, then -t for duration
+        # This ensures frame-accurate cutting
+        duration = end_time - start_time
         cmd = [
             ffmpeg_path, '-y',
-            '-ss', str(start_time),
             '-i', normalized_video_path,
-            '-to', str(end_time),
+            '-ss', str(start_time),
+            '-t', str(duration),
             '-c', 'copy',
             '-avoid_negative_ts', 'make_zero',
             '-fflags', '+genpts',
@@ -522,9 +523,24 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
         try:
             result = subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=300)
             if os.path.exists(targetname) and os.path.getsize(targetname) > 0:
-                logger.info(f"FFmpeg extract completed successfully for {targetname}")
-                logger.info(f"Output file size: {os.path.getsize(targetname)} bytes")
-                return True
+                # Verify trimmed file duration matches expected
+                try:
+                    _, _, trimmed_duration = get_video_info_ffprobe(targetname)
+                    trimmed_duration = float(trimmed_duration) if trimmed_duration else 0
+                    expected_duration = end_time - start_time
+                    
+                    # If duration doesn't match (more than 5 seconds difference), re-encode is needed
+                    if abs(trimmed_duration - expected_duration) > 5:
+                        logger.warning(f"FFmpeg extract with -c copy produced wrong duration ({trimmed_duration}s, expected {expected_duration}s), trying re-encode")
+                        raise subprocess.CalledProcessError(1, cmd, f"Duration mismatch: {trimmed_duration}s vs {expected_duration}s")
+                    
+                    logger.info(f"FFmpeg extract completed successfully for {targetname}")
+                    logger.info(f"Output file size: {os.path.getsize(targetname)} bytes")
+                    logger.info(f"Trimmed duration: {trimmed_duration}s (expected {expected_duration}s)")
+                    return True
+                except Exception as verify_error:
+                    logger.warning(f"Error verifying trimmed file duration: {verify_error}, trying re-encode")
+                    raise subprocess.CalledProcessError(1, cmd, f"Duration verification failed: {verify_error}")
             else:
                 logger.warning(f"FFmpeg extract completed but output file is missing or empty, trying re-encode")
                 raise subprocess.CalledProcessError(1, cmd, "Output file missing or empty")
@@ -536,13 +552,14 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
             logger.error(f"FFmpeg stderr (full): {full_stderr}")
             logger.error(f"FFmpeg stdout (full): {full_stdout}")
             
-            # Try with re-encoding using -to for precise cutting
+            # Try with re-encoding using -ss after -i and -t for precise cutting
             # Explicitly specify output format with -f mp4
+            duration = end_time - start_time
             cmd_reencode = [
                 ffmpeg_path, '-y',
-                '-ss', str(start_time),
                 '-i', normalized_video_path,
-                '-to', str(end_time),
+                '-ss', str(start_time),
+                '-t', str(duration),
                 '-c:v', 'libx264',
                 '-c:a', 'aac',
                 '-preset', 'fast',
@@ -556,6 +573,20 @@ def ffmpeg_extract_subclip(video_path, start_time, end_time, targetname):
             try:
                 result = subprocess.run(cmd_reencode, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=600)
                 if os.path.exists(targetname) and os.path.getsize(targetname) > 0:
+                    # Verify trimmed file duration matches expected
+                    try:
+                        _, _, trimmed_duration = get_video_info_ffprobe(targetname)
+                        trimmed_duration = float(trimmed_duration) if trimmed_duration else 0
+                        expected_duration = end_time - start_time
+                        
+                        # If duration still doesn't match, log warning but return True (re-encoding should work)
+                        if abs(trimmed_duration - expected_duration) > 5:
+                            logger.warning(f"FFmpeg re-encode produced duration ({trimmed_duration}s) that doesn't match expected ({expected_duration}s)")
+                        else:
+                            logger.info(f"Trimmed duration verified: {trimmed_duration}s (expected {expected_duration}s)")
+                    except Exception as verify_error:
+                        logger.warning(f"Error verifying re-encoded file duration: {verify_error}")
+                    
                     logger.info(f"FFmpeg extract with re-encoding completed successfully for {targetname}")
                     logger.info(f"Output file size: {os.path.getsize(targetname)} bytes")
                     return True

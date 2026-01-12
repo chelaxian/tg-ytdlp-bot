@@ -2659,10 +2659,49 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
                             
                             if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
-                                # Replace original with trimmed version
-                                import shutil
-                                shutil.move(temp_trimmed_path, downloaded_abs_path)
-                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s")
+                                # Verify trimmed file exists and has correct size
+                                if os.path.exists(temp_trimmed_path) and os.path.getsize(temp_trimmed_path) > 0:
+                                    # Verify trimmed file duration
+                                    try:
+                                        _, _, trimmed_duration = get_video_info_ffprobe(temp_trimmed_path)
+                                        trimmed_duration = float(trimmed_duration) if trimmed_duration else 0
+                                        expected_trimmed_duration = end_seconds - start_seconds
+                                        
+                                        # Allow 5 seconds tolerance for trimmed duration
+                                        if abs(trimmed_duration - expected_trimmed_duration) <= 5:
+                                            # Replace original with trimmed version
+                                            import shutil
+                                            shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                            logger.info(f"[TRIM] Successfully trimmed video to {trimmed_duration}s (expected {expected_trimmed_duration}s)")
+                                            
+                                            # Verify replacement was successful
+                                            _, _, final_duration = get_video_info_ffprobe(downloaded_abs_path)
+                                            final_duration = float(final_duration) if final_duration else 0
+                                            logger.info(f"[TRIM] Final file duration after replacement: {final_duration}s")
+                                        else:
+                                            logger.error(f"[TRIM] Trimmed file duration ({trimmed_duration}s) doesn't match expected ({expected_trimmed_duration}s), keeping original")
+                                            # Clean up temp file
+                                            if os.path.exists(temp_trimmed_path):
+                                                try:
+                                                    os.remove(temp_trimmed_path)
+                                                except Exception:
+                                                    pass
+                                    except Exception as verify_error:
+                                        logger.error(f"[TRIM] Error verifying trimmed file: {verify_error}, keeping original")
+                                        # Clean up temp file
+                                        if os.path.exists(temp_trimmed_path):
+                                            try:
+                                                os.remove(temp_trimmed_path)
+                                            except Exception:
+                                                pass
+                                else:
+                                    logger.error(f"[TRIM] Trimmed file is missing or empty, keeping original")
+                                    # Clean up temp file if it exists
+                                    if os.path.exists(temp_trimmed_path):
+                                        try:
+                                            os.remove(temp_trimmed_path)
+                                        except Exception:
+                                            pass
                             else:
                                 logger.error(f"[TRIM] Failed to trim video, using original file")
                                 # Clean up temp file if it exists
@@ -2681,9 +2720,49 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             from DOWN_AND_UP.ffmpeg import ffmpeg_extract_subclip
                             
                             if ffmpeg_extract_subclip(downloaded_abs_path, start_seconds, end_seconds, temp_trimmed_path):
-                                import shutil
-                                shutil.move(temp_trimmed_path, downloaded_abs_path)
-                                logger.info(f"[TRIM] Successfully trimmed video to {end_seconds - start_seconds}s (duration check failed)")
+                                # Verify trimmed file exists and has correct size
+                                if os.path.exists(temp_trimmed_path) and os.path.getsize(temp_trimmed_path) > 0:
+                                    # Verify trimmed file duration
+                                    try:
+                                        _, _, trimmed_duration = get_video_info_ffprobe(temp_trimmed_path)
+                                        trimmed_duration = float(trimmed_duration) if trimmed_duration else 0
+                                        expected_trimmed_duration = end_seconds - start_seconds
+                                        
+                                        # Allow 5 seconds tolerance for trimmed duration
+                                        if abs(trimmed_duration - expected_trimmed_duration) <= 5:
+                                            # Replace original with trimmed version
+                                            import shutil
+                                            shutil.move(temp_trimmed_path, downloaded_abs_path)
+                                            logger.info(f"[TRIM] Successfully trimmed video to {trimmed_duration}s (expected {expected_trimmed_duration}s, duration check failed)")
+                                            
+                                            # Verify replacement was successful
+                                            _, _, final_duration = get_video_info_ffprobe(downloaded_abs_path)
+                                            final_duration = float(final_duration) if final_duration else 0
+                                            logger.info(f"[TRIM] Final file duration after replacement: {final_duration}s")
+                                        else:
+                                            logger.error(f"[TRIM] Trimmed file duration ({trimmed_duration}s) doesn't match expected ({expected_trimmed_duration}s), keeping original")
+                                            # Clean up temp file
+                                            if os.path.exists(temp_trimmed_path):
+                                                try:
+                                                    os.remove(temp_trimmed_path)
+                                                except Exception:
+                                                    pass
+                                    except Exception as verify_error:
+                                        logger.error(f"[TRIM] Error verifying trimmed file: {verify_error}, keeping original")
+                                        # Clean up temp file
+                                        if os.path.exists(temp_trimmed_path):
+                                            try:
+                                                os.remove(temp_trimmed_path)
+                                            except Exception:
+                                                pass
+                                else:
+                                    logger.error(f"[TRIM] Trimmed file is missing or empty, keeping original")
+                                    # Clean up temp file if it exists
+                                    if os.path.exists(temp_trimmed_path):
+                                        try:
+                                            os.remove(temp_trimmed_path)
+                                        except Exception:
+                                            pass
                             else:
                                 logger.error(f"[TRIM] Failed to trim video")
                         except Exception as trim_exec_error:
@@ -3708,8 +3787,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             # Determine the correct log channel based on content type
                             from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                            # Use metadata from info_dict for proper NSFW detection (especially for VK playlists)
+                            video_title_for_check = info_dict.get("title", "") if info_dict else ""
+                            video_description_for_check = info_dict.get("description", "") if info_dict else ""
+                            video_caption_for_check = info_dict.get("caption", "") if info_dict else ""
+                            # Get tags from info_dict and tags_text_final
+                            video_tags_for_check = None
+                            if info_dict and info_dict.get("tags"):
+                                if isinstance(info_dict.get("tags"), list):
+                                    video_tags_for_check = ' '.join(str(t) for t in info_dict.get("tags"))
+                                else:
+                                    video_tags_for_check = str(info_dict.get("tags"))
+                            # Also check if #nsfw tag is already in tags_text_final (from generate_final_tags)
+                            has_nsfw_tag = "#nsfw" in tags_text_final.lower() if tags_text_final else False
+                            # Use metadata for NSFW check
+                            is_nsfw_from_metadata = is_porn(url, video_title_for_check, video_description_for_check, video_caption_for_check, tags=video_tags_for_check)
+                            is_nsfw = is_nsfw_from_metadata or has_nsfw_tag or user_forced_nsfw
+                            logger.info(f"[NSFW_CHECK] is_porn check for {url}: is_porn={is_nsfw_from_metadata}, has_nsfw_tag={has_nsfw_tag}, user_forced_nsfw={user_forced_nsfw}, final is_nsfw={is_nsfw}")
+                            logger.info(f"[NSFW_CHECK] title='{video_title_for_check[:100]}', description='{video_description_for_check[:100] if video_description_for_check else ''}', tags='{video_tags_for_check[:100] if video_tags_for_check else ''}'")
                             is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                             # Detect if actually sent as paid media
                             try:
@@ -3859,8 +3954,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     try:
                                         # Determine the correct log channel based on content type
                                         from HELPERS.porn import is_porn
-                                        is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                                        logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                                        # Use metadata from info_dict for proper NSFW detection (especially for VK playlists)
+                                        video_title_for_check = info_dict.get("title", "") if info_dict else ""
+                                        video_description_for_check = info_dict.get("description", "") if info_dict else ""
+                                        video_caption_for_check = info_dict.get("caption", "") if info_dict else ""
+                                        # Get tags from info_dict and tags_text_final
+                                        video_tags_for_check = None
+                                        if info_dict and info_dict.get("tags"):
+                                            if isinstance(info_dict.get("tags"), list):
+                                                video_tags_for_check = ' '.join(str(t) for t in info_dict.get("tags"))
+                                            else:
+                                                video_tags_for_check = str(info_dict.get("tags"))
+                                        # Also check if #nsfw tag is already in tags_text_final (from generate_final_tags)
+                                        has_nsfw_tag = "#nsfw" in tags_text_final.lower() if tags_text_final else False
+                                        # Use metadata for NSFW check
+                                        is_nsfw_from_metadata = is_porn(url, video_title_for_check, video_description_for_check, video_caption_for_check, tags=video_tags_for_check)
+                                        is_nsfw = is_nsfw_from_metadata or has_nsfw_tag or user_forced_nsfw
+                                        logger.info(f"[NSFW_CHECK] is_porn check for {url}: is_porn={is_nsfw_from_metadata}, has_nsfw_tag={has_nsfw_tag}, user_forced_nsfw={user_forced_nsfw}, final is_nsfw={is_nsfw}")
                                         is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                                         try:
                                             msg_is_paid = (
