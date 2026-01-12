@@ -683,9 +683,169 @@ def clear_trim_state(user_id, url):
     except Exception as e:
         logger.error(f"Failed to clear trim state: {e}")
 
+def clear_trim_sections_for_url(user_id, url):
+    """Clear trim sections for specific URL (normalizes URL to handle YouTube variants)"""
+    try:
+        # Normalize URL to ensure consistent lookup (handle YouTube URL variants)
+        from URL_PARSERS.normalizer import normalize_url_for_cache
+        from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+        
+        normalized_urls = [normalize_url_for_cache(url)]
+        if is_youtube_url(url):
+            normalized_urls.extend([
+                normalize_url_for_cache(youtube_to_short_url(url)),
+                normalize_url_for_cache(youtube_to_long_url(url))
+            ])
+        
+        user_dir = os.path.join("users", str(user_id))
+        trim_sections_file = os.path.join(user_dir, "trim_sections.json")
+        if os.path.exists(trim_sections_file):
+            with open(trim_sections_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            # Clear all normalized URL variants
+            cleared = False
+            for normalized_url in set(normalized_urls):
+                if normalized_url in data:
+                    del data[normalized_url]
+                    cleared = True
+            
+            if cleared:
+                with open(trim_sections_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                logger.info(f"Cleared trim sections for user {user_id}, URL: {url}, normalized URLs: {set(normalized_urls)}")
+    except Exception as e:
+        logger.error(f"Failed to clear trim sections: {e}")
+
+def clear_all_trim_data(user_id):
+    """Clear all trim data (state and sections) for user"""
+    try:
+        user_dir = os.path.join("users", str(user_id))
+        # Clear trim_state.json
+        trim_state_file = os.path.join(user_dir, "trim_state.json")
+        if os.path.exists(trim_state_file):
+            os.remove(trim_state_file)
+            logger.info(f"Cleared trim_state.json for user {user_id}")
+        # Clear trim_sections.json
+        trim_sections_file = os.path.join(user_dir, "trim_sections.json")
+        if os.path.exists(trim_sections_file):
+            os.remove(trim_sections_file)
+            logger.info(f"Cleared trim_sections.json for user {user_id}")
+        # Clear trim input state
+        clear_trim_input_state(user_id)
+    except Exception as e:
+        logger.error(f"Failed to clear all trim data: {e}")
+
+def clear_ask_menu_filters(user_id):
+    """Clear Always Ask menu filters (SUBS/DUBS selections) for user"""
+    try:
+        # Clear in-memory filters
+        if str(user_id) in _ASK_FILTERS:
+            fstate = _ASK_FILTERS[str(user_id)]
+            # Reset SUBS and DUBS selections
+            fstate["selected_subs_langs"] = []
+            fstate["subs_all_selected"] = False
+            fstate["selected_subs_lang"] = None
+            fstate["selected_audio_langs"] = []
+            fstate["audio_all_dubs"] = False
+            fstate["audio_lang"] = None
+            _ASK_FILTERS[str(user_id)] = fstate
+            logger.info(f"Cleared Always Ask menu filters (SUBS/DUBS) for user {user_id}")
+    except Exception as e:
+        logger.error(f"Failed to clear Always Ask menu filters: {e}")
+
+def clear_all_ask_menu_states(user_id):
+    """Clear all Always Ask menu states (TRIM, SUBS, DUBS) for user.
+    This should be called:
+    - After /clean command
+    - After successful download completion
+    - Before showing Always Ask Menu for the first time (to ensure clean state)
+    """
+    clear_all_trim_data(user_id)
+    clear_ask_menu_filters(user_id)
+    logger.info(f"Cleared all Always Ask menu states for user {user_id}")
+
 def is_trim_mode(user_id):
     """Check if user is in trim input mode"""
     return user_id in trim_input_states
+
+def get_active_functions(user_id, url):
+    """
+    Check which functions are active (TRIM, SUBS, DUBS) for a user and URL.
+    Returns dict with:
+    - has_trim: bool - TRIM is active
+    - has_subs: bool - SUBS are active (via /subs command or Always Ask menu)
+    - has_dubs: bool - DUBS are active (via Always Ask menu)
+    - should_disable_cache: bool - Cache should be disabled
+    """
+    has_trim = False
+    has_subs = False
+    has_dubs = False
+    
+    # Check TRIM - load_trim_sections now handles URL normalization internally
+    trim_sections = load_trim_sections(user_id, url, clear_after_use=False)
+    has_trim = trim_sections is not None and trim_sections != ""
+    
+    # Check SUBS - via /subs command or Always Ask menu
+    try:
+        # Check Always Ask menu filters
+        fstate = get_filters(user_id)
+        selected_subs_langs = fstate.get("selected_subs_langs", []) or []
+        subs_all_selected = fstate.get("subs_all_selected", False)
+        if subs_all_selected or selected_subs_langs:
+            has_subs = True
+        else:
+            # Check /subs command
+            subs_lang = get_user_subs_language(user_id)
+            if subs_lang and subs_lang != "OFF":
+                has_subs = True
+    except Exception:
+        pass
+    
+    # Check DUBS - via Always Ask menu filters
+    try:
+        fstate = get_filters(user_id)
+        selected_audio_langs = fstate.get("selected_audio_langs", []) or []
+        audio_all_dubs = fstate.get("audio_all_dubs", False)
+        if audio_all_dubs or selected_audio_langs:
+            has_dubs = True
+    except Exception:
+        pass
+    
+    should_disable_cache = has_trim or has_subs or has_dubs
+    
+    return {
+        "has_trim": has_trim,
+        "has_subs": has_subs,
+        "has_dubs": has_dubs,
+        "should_disable_cache": should_disable_cache
+    }
+
+def get_quality_button_suffix(user_id, url, existing_text=""):
+    """
+    Get suffix emoji for quality buttons based on active functions.
+    Returns emoji string to append to quality button text.
+    Prevents duplicate emojis - each emoji appears only once.
+    
+    Args:
+        user_id: User ID
+        url: Video URL
+        existing_text: Existing button text to check for duplicates (optional)
+    """
+    active_funcs = get_active_functions(user_id, url)
+    suffix = ""
+    
+    # Order matters: TRIM first, then DUBS, then SUBS
+    # Each emoji is added only once to prevent duplicates
+    # Check if emoji already exists in existing_text to prevent duplicates
+    if active_funcs["has_trim"] and "✂️" not in existing_text:
+        suffix += " ✂️"
+    if active_funcs["has_dubs"] and "🗣" not in existing_text:
+        suffix += " 🗣"
+    if active_funcs["has_subs"] and "💬" not in existing_text:
+        suffix += " 💬"
+    
+    return suffix
 
 def validate_timecode_range(timecode_str, video_duration):
     """
@@ -1063,6 +1223,17 @@ def handle_trim_timecode(app, message, text):
 def save_trim_sections(user_id, url, download_sections):
     """Save trim sections for download"""
     try:
+        # Normalize URL to ensure consistent lookup (handle YouTube URL variants)
+        from URL_PARSERS.normalizer import normalize_url_for_cache
+        from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+        
+        normalized_urls = [normalize_url_for_cache(url)]
+        if is_youtube_url(url):
+            normalized_urls.extend([
+                normalize_url_for_cache(youtube_to_short_url(url)),
+                normalize_url_for_cache(youtube_to_long_url(url))
+            ])
+        
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
         trim_sections_file = os.path.join(user_dir, "trim_sections.json")
@@ -1070,10 +1241,14 @@ def save_trim_sections(user_id, url, download_sections):
         if os.path.exists(trim_sections_file):
             with open(trim_sections_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        data[url] = download_sections
+        
+        # Save for all normalized URL variants to ensure lookup works
+        for normalized_url in set(normalized_urls):
+            data[normalized_url] = download_sections
+        
         with open(trim_sections_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        logger.info(f"Saved trim sections for user {user_id}, URL: {url}, sections: {download_sections}")
+        logger.info(f"Saved trim sections for user {user_id}, URL: {url}, normalized URLs: {set(normalized_urls)}, sections: {download_sections}")
     except Exception as e:
         logger.error(f"Failed to save trim sections: {e}")
 
@@ -1087,16 +1262,37 @@ def load_trim_sections(user_id, url, clear_after_use=False):
                         Set to True only when actually using for download
     """
     try:
+        # Normalize URL to ensure consistent lookup (handle YouTube URL variants)
+        from URL_PARSERS.normalizer import normalize_url_for_cache
+        from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+        
+        normalized_urls = [normalize_url_for_cache(url)]
+        if is_youtube_url(url):
+            normalized_urls.extend([
+                normalize_url_for_cache(youtube_to_short_url(url)),
+                normalize_url_for_cache(youtube_to_long_url(url))
+            ])
+        
         user_dir = os.path.join("users", str(user_id))
         trim_sections_file = os.path.join(user_dir, "trim_sections.json")
         if os.path.exists(trim_sections_file):
             with open(trim_sections_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            sections = data.get(url)
+            
+            # Try all normalized URL variants
+            sections = None
+            for normalized_url in set(normalized_urls):
+                if normalized_url in data:
+                    sections = data[normalized_url]
+                    break
+            
             if sections:
                 if clear_after_use:
                     # Clear after loading (only when actually using for download)
-                    del data[url]
+                    # Clear all variants
+                    for normalized_url in set(normalized_urls):
+                        if normalized_url in data:
+                            del data[normalized_url]
                     with open(trim_sections_file, "w", encoding="utf-8") as f:
                         json.dump(data, f, ensure_ascii=False, indent=2)
                 return sections
@@ -3261,8 +3457,14 @@ def askq_callback(app, callback_query):
     user_args = get_user_args(user_id)
     send_as_file = user_args.get("send_as_file", False)
     
-    if not need_subs and not is_subs_always_ask(user_id) and not send_as_file:
-
+    # Check active functions (TRIM, SUBS, DUBS) - skip cache repost if any are active
+    active_funcs = get_active_functions(user_id, url)
+    should_disable_cache = active_funcs["should_disable_cache"]
+    
+    if should_disable_cache:
+        logger.info(f"[CACHE] Active functions detected for user {user_id}, URL: {url}, skipping cache repost. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+        message_ids = None  # Force skip cache when any function is active
+    elif not need_subs and not is_subs_always_ask(user_id) and not send_as_file:
         message_ids = get_cached_message_ids(url, data)
         # Если кэш по основному URL не найден, проверяем кэш по уникальной ссылке видео (для одиночных видео из плейлиста)
         if not message_ids:
@@ -3539,7 +3741,15 @@ def show_manual_quality_menu(app, callback_query):
     original_text = original_message.text or original_message.caption or ""
     is_playlist = is_playlist_with_range(original_text)
     playlist_range = None
-    if is_playlist:
+    
+    # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+    active_funcs = get_active_functions(user_id, url)
+    should_disable_cache = active_funcs["should_disable_cache"]
+    
+    if should_disable_cache:
+        logger.info(f"[CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+        cached_qualities = set()  # Force empty cache when any function is active
+    elif is_playlist:
         _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
         playlist_range = (video_start_with, video_end_with)
         cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url)) if not send_as_file else set()
@@ -3570,14 +3780,30 @@ def show_manual_quality_menu(app, callback_query):
             total = len(indices)
             # Проверяем, должен ли админ видеть звездочки для NSFW
             should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
+            # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+            # Check if cache should be disabled
+            active_funcs = get_active_functions(user_id, url)
+            should_disable_cache = active_funcs["should_disable_cache"]
+            # Build button text first to check for duplicates
+            # Show rocket only if cache is available AND functions are NOT active
+            icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "📹")
             postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-            button_text = f"{icon}{quality}{postfix}"
+            base_text = f"{icon}{quality}{postfix}"
+            func_suffix = get_quality_button_suffix(user_id, url, base_text)
+            button_text = f"{base_text}{func_suffix}"
         else:
             # Проверяем, должен ли админ видеть звездочки для NSFW
             should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-            icon = "🚀" if (quality in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
-            button_text = f"{icon}{quality}"
+            # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+            # Check if cache should be disabled
+            active_funcs = get_active_functions(user_id, url)
+            should_disable_cache = active_funcs["should_disable_cache"]
+            # Build button text first to check for duplicates
+            # Show rocket only if cache is available AND functions are NOT active
+            icon = "🚀" if (quality in cached_qualities and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "📹")
+            base_text = f"{icon}{quality}"
+            func_suffix = get_quality_button_suffix(user_id, url, base_text)
+            button_text = f"{base_text}{func_suffix}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality}"))
 
     # {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality
@@ -3597,14 +3823,29 @@ def show_manual_quality_menu(app, callback_query):
         total = len(indices)
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
+        # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+        # Check if cache should be disabled
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        # Build button text first to check for duplicates
+        # Show rocket only if cache is available AND functions are NOT active
+        icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "📹")
         postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-        button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality{postfix}"
+        base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality{postfix}"
+        func_suffix = get_quality_button_suffix(user_id, url, base_text)
+        button_text = f"{base_text}{func_suffix}"
     else:
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if ("best" in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
-        button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality"
+        # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+        # Check if cache should be disabled
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        # Show rocket only if cache is available AND functions are NOT active
+        icon = "🚀" if ("best" in cached_qualities and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "📹")
+        base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality"
+        func_suffix = get_quality_button_suffix(user_id, url, base_text)
+        button_text = f"{base_text}{func_suffix}"
     buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|manual_best"))
     
     # Form rows of 3 buttons
@@ -3630,14 +3871,28 @@ def show_manual_quality_menu(app, callback_query):
         total = len(indices)
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "🎧")
+        # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+        # Check if cache should be disabled
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        # Show rocket only if cache is available AND functions are NOT active
+        icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "🎧")
         postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-        button_text = f"{icon} audio (mp3){postfix}"
+        base_text = f"{icon} audio (mp3){postfix}"
+        func_suffix = get_quality_button_suffix(user_id, url, base_text)
+        button_text = f"{base_text}{func_suffix}"
     else:
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
-        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "🎧")
-        button_text = f"{icon} audio (mp3)"
+        # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+        # Check if cache should be disabled
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        # Show rocket only if cache is available AND functions are NOT active
+        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw and not should_disable_cache) else ("1⭐️" if should_show_star else "🎧")
+        base_text = f"{icon} audio (mp3)"
+        func_suffix = get_quality_button_suffix(user_id, url, base_text)
+        button_text = f"{base_text}{func_suffix}"
     keyboard_rows.append([InlineKeyboardButton(button_text, callback_data=f"askq|manual_{quality_key}")])
     
     # Add subtitles only button if enabled
@@ -4049,9 +4304,13 @@ def show_other_qualities_menu(app, callback_query, page=0):
         user_args = get_user_args(user_id)
         send_as_file = user_args.get("send_as_file", False)
         
-        # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled)
+        # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled or TRIM is active)
         cached_qualities = set()
-        if not send_as_file:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        active_funcs = get_active_functions(callback_query.from_user.id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if not send_as_file and not should_disable_cache:
             try:
                 cached_qualities = get_cached_qualities(url)
             except Exception:
@@ -4192,9 +4451,13 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
     user_args = get_user_args(user_id)
     send_as_file = user_args.get("send_as_file", False)
     
-    # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled)
+    # Get cached qualities to show rocket emoji for cached formats (skip if send_as_file is enabled or TRIM is active)
     cached_qualities = set()
-    if not send_as_file:
+    # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+    active_funcs = get_active_functions(user_id, url)
+    should_disable_cache = active_funcs["should_disable_cache"]
+    
+    if not send_as_file and not should_disable_cache:
         try:
             cached_qualities = get_cached_qualities(url)
         except Exception:
@@ -4400,9 +4663,16 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                         indices = list(range(start, end + 1))
                     n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                     total = len(indices)
-                    icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+                    # Check if cache should be disabled
+                    active_funcs = get_active_functions(user_id, url)
+                    should_disable_cache = active_funcs["should_disable_cache"]
+                    # Show rocket only if cache is available AND functions are NOT active
+                    icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
                     postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-                    button_text = f"{icon}{quality_key}{postfix}"
+                    base_text = f"{icon}{quality_key}{postfix}"
+                    func_suffix = get_quality_button_suffix(user_id, url, base_text)
+                    button_text = f"{base_text}{func_suffix}"
                 else:
                     # Проверяем кэш для одиночного видео
                     is_cached = quality_key in cached_qualities
@@ -4426,8 +4696,15 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                         except Exception as e:
                             logger.warning(f"⚠️ [CACHE] Ошибка при проверке кэша для одиночного видео: {e}")
                     
-                    icon = "🚀" if (is_cached and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-                    button_text = f"{icon}{quality_key}"
+                    # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+                    # Check if cache should be disabled
+                    active_funcs = get_active_functions(user_id, url)
+                    should_disable_cache = active_funcs["should_disable_cache"]
+                    # Show rocket only if cache is available AND functions are NOT active
+                    icon = "🚀" if (is_cached and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    base_text = f"{icon}{quality_key}"
+                    func_suffix = get_quality_button_suffix(user_id, url, base_text)
+                    button_text = f"{base_text}{func_suffix}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
         # Всегда добавляем {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality
@@ -4446,12 +4723,26 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                 indices = list(range(start, end + 1))
             n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
             total = len(indices)
-            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+            # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+            # Check if cache should be disabled
+            active_funcs = get_active_functions(user_id, url)
+            should_disable_cache = active_funcs["should_disable_cache"]
+            # Show rocket only if cache is available AND functions are NOT active
+            icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
             postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-            button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
+            base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
+            func_suffix = get_quality_button_suffix(user_id, url, base_text)
+            button_text = f"{base_text}{func_suffix}"
         else:
-            icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-            button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
+            # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+            # Check if cache should be disabled
+            active_funcs = get_active_functions(user_id, url)
+            should_disable_cache = active_funcs["should_disable_cache"]
+            # Show rocket only if cache is available AND functions are NOT active
+        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+        base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
+        func_suffix = get_quality_button_suffix(user_id, url, base_text)
+        button_text = f"{base_text}{func_suffix}"
         buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
         # Всегда добавляем Other Qualities
@@ -4602,6 +4893,23 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         messages = safe_get_messages(message.chat.id)
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     user_id = message.chat.id
+    
+    # Clear Always Ask menu states before first showing (only if not from callback)
+    # This ensures clean state - emojis are only shown after user explicitly selects options
+    # BUT: Do NOT clear TRIM sections if they are already saved (user has provided timecode range)
+    if cb is None:
+        try:
+            # Check if TRIM sections are already saved - if so, don't clear them
+            trim_sections = load_trim_sections(user_id, url, clear_after_use=False)
+            if not trim_sections:
+                # Only clear TRIM state if no sections are saved
+                clear_trim_sections_for_url(user_id, url)
+                clear_trim_state(user_id, url)
+            # Note: We don't clear filters here because user might have set /subs command
+            # Filters are cleared only on /clean or after successful download
+        except Exception as e:
+            logger.error(f"Failed to clear states before showing menu: {e}")
+    
     proc_msg = None
     # Defensive init to avoid UnboundLocalError in rare branches
     action_buttons = []
@@ -4741,7 +5049,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         user_args = get_user_args(user_id)
         send_as_file = user_args.get("send_as_file", False)
         
-        if is_playlist:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if should_disable_cache:
+            logger.info(f"[CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_qualities = set()  # Force empty cache when any function is active
+        elif is_playlist:
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
             logger.info(f"🔍 [DEBUG] ask_quality_menu: после extract_url_range_tags: video_start_with={video_start_with}, video_end_with={video_end_with}")
             playlist_range = (video_start_with, video_end_with)
@@ -6071,9 +6386,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 
                 # Cache/icon (skip if send_as_file is enabled)
                 if send_as_file:
+                    # Get prefix emoji for active functions (TRIM, DUBS, SUBS)
+                    func_suffix = get_quality_button_suffix(user_id, url)
                     icon = "1⭐️" if (is_nsfw and is_private_chat) else "📹"
                     postfix = ""
-                    button_text = f"{icon}{quality_key}{subs_available}"
+                    button_text = f"{icon}{quality_key}{subs_available}{func_suffix}"
                 elif is_playlist and playlist_range:
                     # Правильное формирование indices для отрицательных индексов
                     start, end = playlist_range
@@ -6088,9 +6405,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         indices = list(range(start, end + 1))
                     n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
                     total = len(indices)
-                    icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+                    # Check if cache should be disabled
+                    active_funcs = get_active_functions(user_id, url)
+                    should_disable_cache = active_funcs["should_disable_cache"]
+                    # Show rocket only if cache is available AND functions are NOT active
+                    icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
                     postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-                    button_text = f"{icon}{quality_key}{subs_available}{postfix}"
+                    base_text = f"{icon}{quality_key}{subs_available}{postfix}"
+                    func_suffix = get_quality_button_suffix(user_id, url, base_text)
+                    button_text = f"{base_text}{func_suffix}"
                 else:
                     # Check if we're in Always Ask mode
                     is_always_ask_mode = is_subs_always_ask(user_id)
@@ -6124,8 +6448,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                             except Exception as e:
                                 logger.warning(f"⚠️ [CACHE] Ошибка при проверке кэша для одиночного видео: {e}")
                     
-                    icon = "🚀" if (is_cached and not need_subs and not is_nsfw) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-                    button_text = f"{icon}{quality_key}{subs_available}"
+                    # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+                    # Check if cache should be disabled
+                    active_funcs = get_active_functions(user_id, url)
+                    should_disable_cache = active_funcs["should_disable_cache"]
+                    # Show rocket only if cache is available AND functions are NOT active AND subs not needed
+                    icon = "🚀" if (is_cached and not need_subs and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                    base_text = f"{icon}{quality_key}{subs_available}"
+                    func_suffix = get_quality_button_suffix(user_id, url, base_text)
+                    button_text = f"{base_text}{func_suffix}"
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         else:
             # Show only detected qualities derived from formats (one per quality)

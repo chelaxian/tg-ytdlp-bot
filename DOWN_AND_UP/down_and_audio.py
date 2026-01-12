@@ -8,6 +8,7 @@ from HELPERS.logger import get_log_channel
 from CONFIG.logger_msg import LoggerMsg
 import threading
 import time
+import traceback
 import yt_dlp
 from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
@@ -45,6 +46,37 @@ from URL_PARSERS.tags import extract_url_range_tags
 
 # Get app instance for decorators
 app = get_app()
+
+# Dictionary to track active uploads for logging
+_active_audio_uploads = {}
+_active_audio_uploads_lock = threading.Lock()
+
+def _start_upload_logging(user_id, msg_id):
+    """Start logging upload activity to prevent watchdog false positives"""
+    stop_event = threading.Event()
+    key = (user_id, msg_id)
+    
+    with _active_audio_uploads_lock:
+        _active_audio_uploads[key] = stop_event
+    
+    def upload_logger():
+        while not stop_event.is_set():
+            logger.info("[Upload] Uploading audio to Telegram")
+            # Wait 10 seconds or until stop event
+            stop_event.wait(10.0)
+    
+    thread = threading.Thread(target=upload_logger, daemon=True)
+    thread.start()
+    return stop_event
+
+def _stop_upload_logging(user_id, msg_id):
+    """Stop logging upload activity"""
+    key = (user_id, msg_id)
+    with _active_audio_uploads_lock:
+        if key in _active_audio_uploads:
+            stop_event = _active_audio_uploads[key]
+            stop_event.set()
+            del _active_audio_uploads[key]
 
 
 def is_skippable_video_error(error_message: str) -> bool:
@@ -130,7 +162,6 @@ def create_telegram_thumbnail(cover_path, output_path, size=320):
             
     except Exception as e:
         logger.error(f"Error creating Telegram thumbnail: {e}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
@@ -206,7 +237,6 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
         return False
     except Exception as e:
         logger.error(f"Error embedding cover: {e}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
@@ -371,8 +401,17 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     cached_videos = {}
     uncached_indices = []
     if quality_key and is_playlist:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        from DOWN_AND_UP.always_ask_menu import get_active_functions
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if should_disable_cache:
+            logger.info(f"[AUDIO CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_videos = {}
+            uncached_indices = requested_indices
         # Check if Always Ask mode is enabled - if yes, skip cache completely
-        if not is_subs_always_ask(user_id):
+        elif not is_subs_always_ask(user_id):
             # Check if content is NSFW - if so, skip cache lookup
             from HELPERS.porn import is_porn
             is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
@@ -452,8 +491,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             logger.info("[AUDIO CACHE] Skipping partial cache replay for negative range to avoid duplicate downloads")
             uncached_indices = requested_indices
     elif quality_key and not is_playlist:
+        # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+        from DOWN_AND_UP.always_ask_menu import get_active_functions
+        active_funcs = get_active_functions(user_id, url)
+        should_disable_cache = active_funcs["should_disable_cache"]
+        
+        if should_disable_cache:
+            logger.info(f"[AUDIO CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_ids = None
         # Check if Always Ask mode is enabled - if yes, skip cache completely
-        if not is_subs_always_ask(user_id):
+        elif not is_subs_always_ask(user_id):
             # Check if content is NSFW - if so, skip cache lookup
             from HELPERS.porn import is_porn
             is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
@@ -1984,7 +2031,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 logger.error(f"[TRIM AUDIO] Failed to trim audio")
                         except Exception as trim_exec_error:
                             logger.error(f"[TRIM AUDIO] Error during trim execution: {trim_exec_error}")
-                            import traceback
                             logger.error(traceback.format_exc())
 
             # Embed cover into MP3 file if thumbnail is available (enabled by default)
@@ -2048,7 +2094,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             except Exception as e:
                 # Don't let thumbnail embedding errors stop the download
                 logger.warning(f"Error embedding cover in audio file {audio_file}: {e} (continuing without cover)")
-                import traceback
                 logger.debug(f"Traceback: {traceback.format_exc()}")
 
             audio_files.append(audio_file)
@@ -2144,17 +2189,64 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None
                         )
                         
-                        audio_msg = app.send_paid_media(
-                            chat_id=user_id,
-                            media=[paid_audio],
-                            star_count=LimitsConfig.NSFW_STAR_COST,
-                            payload=str(Config.STAR_RECEIVER),
-                            reply_parameters=ReplyParameters(message_id=message.id),
-                        )
-                        logger.info("Paid NSFW audio sent to user")
+                        # Start upload logging to prevent watchdog false positives
+                        if proc_msg_id:
+                            _start_upload_logging(user_id, proc_msg_id)
+                        try:
+                            audio_msg = app.send_paid_media(
+                                chat_id=user_id,
+                                media=[paid_audio],
+                                star_count=LimitsConfig.NSFW_STAR_COST,
+                                payload=str(Config.STAR_RECEIVER),
+                                reply_parameters=ReplyParameters(message_id=message.id),
+                            )
+                            logger.info("Paid NSFW audio sent to user")
+                        finally:
+                            # Stop upload logging after upload completes or fails
+                            if proc_msg_id:
+                                _stop_upload_logging(user_id, proc_msg_id)
                     except Exception as e:
                         logger.error(f"Failed to send paid audio, falling back to regular: {e}")
                         # Fallback to regular audio or document
+                        # Start upload logging to prevent watchdog false positives
+                        if proc_msg_id:
+                            _start_upload_logging(user_id, proc_msg_id)
+                        try:
+                            if file_ext == '.mp3' or file_ext == '.m4a':
+                                # Send as audio for supported formats
+                                if telegram_thumb and os.path.exists(telegram_thumb):
+                                    audio_msg = app.send_audio(
+                                        chat_id=user_id, 
+                                        audio=audio_file, 
+                                        caption=caption_with_link, 
+                                        reply_parameters=ReplyParameters(message_id=message.id),
+                                        thumb=telegram_thumb
+                                    )
+                                else:
+                                    audio_msg = app.send_audio(
+                                        chat_id=user_id, 
+                                        audio=audio_file, 
+                                        caption=caption_with_link, 
+                                        reply_parameters=ReplyParameters(message_id=message.id)
+                                    )
+                            else:
+                                # Send as document for unsupported audio formats
+                                audio_msg = app.send_document(
+                                    chat_id=user_id, 
+                                    document=audio_file, 
+                                    caption=caption_with_link, 
+                                    reply_parameters=ReplyParameters(message_id=message.id)
+                                )
+                        finally:
+                            # Stop upload logging after upload completes or fails
+                            if proc_msg_id:
+                                _stop_upload_logging(user_id, proc_msg_id)
+                else:
+                    # Send regular audio for non-NSFW content or group chats
+                    # Start upload logging to prevent watchdog false positives
+                    if proc_msg_id:
+                        _start_upload_logging(user_id, proc_msg_id)
+                    try:
                         if file_ext == '.mp3' or file_ext == '.m4a':
                             # Send as audio for supported formats
                             if telegram_thumb and os.path.exists(telegram_thumb):
@@ -2165,6 +2257,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     reply_parameters=ReplyParameters(message_id=message.id),
                                     thumb=telegram_thumb
                                 )
+                                logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
                             else:
                                 audio_msg = app.send_audio(
                                     chat_id=user_id, 
@@ -2172,6 +2265,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     caption=caption_with_link, 
                                     reply_parameters=ReplyParameters(message_id=message.id)
                                 )
+                                logger.info("Audio sent without thumbnail")
                         else:
                             # Send as document for unsupported audio formats
                             audio_msg = app.send_document(
@@ -2180,36 +2274,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 caption=caption_with_link, 
                                 reply_parameters=ReplyParameters(message_id=message.id)
                             )
-                else:
-                    # Send regular audio for non-NSFW content or group chats
-                    if file_ext == '.mp3' or file_ext == '.m4a':
-                        # Send as audio for supported formats
-                        if telegram_thumb and os.path.exists(telegram_thumb):
-                            audio_msg = app.send_audio(
-                                chat_id=user_id, 
-                                audio=audio_file, 
-                                caption=caption_with_link, 
-                                reply_parameters=ReplyParameters(message_id=message.id),
-                                thumb=telegram_thumb
-                            )
-                            logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
-                        else:
-                            audio_msg = app.send_audio(
-                                chat_id=user_id, 
-                                audio=audio_file, 
-                                caption=caption_with_link, 
-                                reply_parameters=ReplyParameters(message_id=message.id)
-                            )
-                            logger.info("Audio sent without thumbnail")
-                    else:
-                        # Send as document for unsupported audio formats
-                        audio_msg = app.send_document(
-                            chat_id=user_id, 
-                            document=audio_file, 
-                            caption=caption_with_link, 
-                            reply_parameters=ReplyParameters(message_id=message.id)
-                        )
-                        logger.info(f"Audio sent as document (format: {file_ext})")
+                            logger.info(f"Audio sent as document (format: {file_ext})")
+                    finally:
+                        # Stop upload logging after upload completes or fails
+                        if proc_msg_id:
+                            _stop_upload_logging(user_id, proc_msg_id)
                 
                 # Use already determined content type
                 
@@ -2259,14 +2328,22 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     log_channel = get_log_channel("video")
                     forwarded_msg = safe_forward_messages(log_channel, user_id, [audio_msg.id])
                 
-                # Save to cache after sending audio (only for non-NSFW content)
-                if quality_key and forwarded_msg and not is_nsfw:
+                # Save to cache after sending audio (only for non-NSFW content and if no active functions)
+                # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+                from DOWN_AND_UP.always_ask_menu import get_active_functions
+                active_funcs = get_active_functions(user_id, url)
+                should_disable_cache = active_funcs["should_disable_cache"]
+                
+                if quality_key and forwarded_msg and not is_nsfw and not should_disable_cache:
                     if isinstance(forwarded_msg, list):
                         msg_ids = [m.id for m in forwarded_msg]
                     else:
                         msg_ids = [forwarded_msg.id]
                     
-                    if is_playlist:
+                    # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                    if should_disable_cache:
+                        logger.info(f"[AUDIO CACHE] Skipping cache save because active functions detected. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+                    elif is_playlist:
                         # For playlists, save to playlist cache with index
                         current_video_index = original_playlist_index
                         logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
@@ -2419,3 +2496,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 error_key = f"{user_id}_{playlist_name}"
                 if error_key in playlist_errors:
                     del playlist_errors[error_key]
+        
+        # Clear Always Ask menu states (TRIM, SUBS, DUBS) at the end of function
+        # This ensures states are cleared after all operations are complete
+        try:
+            from DOWN_AND_UP.always_ask_menu import clear_all_ask_menu_states
+            clear_all_ask_menu_states(user_id)
+        except Exception as e:
+            logger.error(f"Failed to clear Always Ask menu states at end of down_and_audio: {e}")

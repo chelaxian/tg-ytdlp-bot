@@ -1031,6 +1031,14 @@ def url_distractor(app, message):
             
             from COMMANDS.subtitles_cmd import clear_subs_check_cache
             clear_subs_check_cache()
+            
+            # Clear Always Ask menu states (TRIM, SUBS, DUBS)
+            try:
+                from DOWN_AND_UP.always_ask_menu import clear_all_ask_menu_states
+                clear_all_ask_menu_states(user_id)
+            except Exception as e:
+                logger.error(f"Failed to clear Always Ask menu states: {e}")
+            
             return
 
     # /USAGE Command

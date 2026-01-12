@@ -17,9 +17,41 @@ from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.limits import LimitsConfig
 import time
+import threading
 
 # Get app instance for decorators
 app = get_app()
+
+# Dictionary to track active uploads for logging
+_active_uploads = {}
+_active_uploads_lock = threading.Lock()
+
+def _start_upload_logging(user_id, msg_id):
+    """Start logging upload activity to prevent watchdog false positives"""
+    stop_event = threading.Event()
+    key = (user_id, msg_id)
+    
+    with _active_uploads_lock:
+        _active_uploads[key] = stop_event
+    
+    def upload_logger():
+        while not stop_event.is_set():
+            logger.info("[Upload] Uploading video to Telegram")
+            # Wait 10 seconds or until stop event
+            stop_event.wait(10.0)
+    
+    thread = threading.Thread(target=upload_logger, daemon=True)
+    thread.start()
+    return stop_event
+
+def _stop_upload_logging(user_id, msg_id):
+    """Stop logging upload activity"""
+    key = (user_id, msg_id)
+    with _active_uploads_lock:
+        if key in _active_uploads:
+            stop_event = _active_uploads[key]
+            stop_event.set()
+            del _active_uploads[key]
 
 # Import function to get user args
 def get_user_args(user_id: int):
@@ -341,21 +373,27 @@ def send_videos(
                     )
                 was_paid = True
                 allow_broadcast = getattr(message.chat, "type", None) != enums.ChatType.PRIVATE
-                result = app.send_paid_media(
-                    chat_id=user_id,
-                    media=[paid_media],
-                    star_count=LimitsConfig.NSFW_STAR_COST,
-                    **({"allow_paid_broadcast": True} if allow_broadcast else {}),
-                    payload=str(Config.STAR_RECEIVER),
-                    reply_parameters=ReplyParameters(message_id=message.id),
-                )
+                # Start upload logging to prevent watchdog false positives
+                _start_upload_logging(user_id, msg_id)
                 try:
-                    # Some forks return list for albums; wrap to single message for uniformity
-                    video_msg = result[0] if isinstance(result, list) and result else result
-                    # Paid media will be forwarded to LOGS_PAID_ID in image_cmd.py for caching
-                    return video_msg
-                except Exception:
-                    return result
+                    result = app.send_paid_media(
+                        chat_id=user_id,
+                        media=[paid_media],
+                        star_count=LimitsConfig.NSFW_STAR_COST,
+                        **({"allow_paid_broadcast": True} if allow_broadcast else {}),
+                        payload=str(Config.STAR_RECEIVER),
+                        reply_parameters=ReplyParameters(message_id=message.id),
+                    )
+                    try:
+                        # Some forks return list for albums; wrap to single message for uniformity
+                        video_msg = result[0] if isinstance(result, list) and result else result
+                        # Paid media will be forwarded to LOGS_PAID_ID in image_cmd.py for caching
+                        return video_msg
+                    except Exception:
+                        return result
+                finally:
+                    # Stop upload logging after upload completes or fails
+                    _stop_upload_logging(user_id, msg_id)
             # Для бесплатных тоже удерживаем правильные метаданные и мини-обложку по правилу
             try:
                 v_w2, v_h2, v_dur2 = get_video_info_ffprobe(video_abs_path)
@@ -366,25 +404,31 @@ def send_videos(
                 logger.warning(f"Thumbnail file missing before send, removing from request: {local_thumb_free}")
                 local_thumb_free = None
             
-            result = app.send_video(
-                chat_id=user_id,
-                video=video_abs_path,
-                caption=caption_text,
-                duration=int(v_dur2) if v_dur2 else duration,
-                width=int(v_w2) if v_w2 else width,
-                height=int(v_h2) if v_h2 else height,
-                supports_streaming=True,
-                thumb=local_thumb_free,
-                has_spoiler=False,
-                progress=progress_bar,
-                progress_args=(
-                    user_id,
-                    msg_id,
-                    f"{info_text}\n<b>{safe_get_messages(user_id).SENDER_VIDEO_DURATION_MSG}</b> <i>{TimeFormatter(duration*1000)}</i>\n\n<i>{safe_get_messages(user_id).SENDER_UPLOADING_VIDEO_MSG}</i>"
-                ),
-                reply_parameters=ReplyParameters(message_id=message.id),
-                parse_mode=enums.ParseMode.HTML
-            )
+            # Start upload logging to prevent watchdog false positives
+            _start_upload_logging(user_id, msg_id)
+            try:
+                result = app.send_video(
+                    chat_id=user_id,
+                    video=video_abs_path,
+                    caption=caption_text,
+                    duration=int(v_dur2) if v_dur2 else duration,
+                    width=int(v_w2) if v_w2 else width,
+                    height=int(v_h2) if v_h2 else height,
+                    supports_streaming=True,
+                    thumb=local_thumb_free,
+                    has_spoiler=False,
+                    progress=progress_bar,
+                    progress_args=(
+                        user_id,
+                        msg_id,
+                        f"{info_text}\n<b>{safe_get_messages(user_id).SENDER_VIDEO_DURATION_MSG}</b> <i>{TimeFormatter(duration*1000)}</i>\n\n<i>{safe_get_messages(user_id).SENDER_UPLOADING_VIDEO_MSG}</i>"
+                    ),
+                    reply_parameters=ReplyParameters(message_id=message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            finally:
+                # Stop upload logging after upload completes or fails
+                _stop_upload_logging(user_id, msg_id)
             # Cleanup special thumb (free-only temp files)
             try:
                 if local_thumb_free and (
@@ -472,37 +516,49 @@ def send_videos(
                     )
                 was_paid = True
                 allow_broadcast = getattr(message.chat, "type", None) != enums.ChatType.PRIVATE
-                result = app.send_paid_media(
-                    chat_id=user_id,
-                    media=[paid_media],
-                    star_count=LimitsConfig.NSFW_STAR_COST,
-                    **({"allow_paid_broadcast": True} if allow_broadcast else {}),
-                    payload=str(Config.STAR_RECEIVER),
-                    reply_parameters=ReplyParameters(message_id=message.id),
-                )
+                # Start upload logging to prevent watchdog false positives
+                _start_upload_logging(user_id, msg_id)
                 try:
-                    video_msg = result[0] if isinstance(result, list) and result else result
-                    # Paid media will be forwarded to LOGS_PAID_ID in image_cmd.py for caching
-                    return video_msg
-                except Exception:
-                    return result
+                    result = app.send_paid_media(
+                        chat_id=user_id,
+                        media=[paid_media],
+                        star_count=LimitsConfig.NSFW_STAR_COST,
+                        **({"allow_paid_broadcast": True} if allow_broadcast else {}),
+                        payload=str(Config.STAR_RECEIVER),
+                        reply_parameters=ReplyParameters(message_id=message.id),
+                    )
+                    try:
+                        video_msg = result[0] if isinstance(result, list) and result else result
+                        # Paid media will be forwarded to LOGS_PAID_ID in image_cmd.py for caching
+                        return video_msg
+                    except Exception:
+                        return result
+                finally:
+                    # Stop upload logging after upload completes or fails
+                    _stop_upload_logging(user_id, msg_id)
             # Get original filename for document
             original_filename = os.path.basename(video_abs_path)
-            result = app.send_document(
-                chat_id=user_id,
-                document=video_abs_path,
-                file_name=original_filename,
-                caption=caption_text,
-                thumb=local_thumb,
-                progress=progress_bar,
-                progress_args=(
-                    user_id,
-                    msg_id,
-                    f"{info_text}\n<b>{safe_get_messages(user_id).SENDER_VIDEO_DURATION_MSG}</b> <i>{TimeFormatter(duration*1000)}</i>\n\n<i>{safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG}</i>"
-                ),
-                reply_parameters=ReplyParameters(message_id=message.id),
-                parse_mode=enums.ParseMode.HTML
-            )
+            # Start upload logging to prevent watchdog false positives
+            _start_upload_logging(user_id, msg_id)
+            try:
+                result = app.send_document(
+                    chat_id=user_id,
+                    document=video_abs_path,
+                    file_name=original_filename,
+                    caption=caption_text,
+                    thumb=local_thumb,
+                    progress=progress_bar,
+                    progress_args=(
+                        user_id,
+                        msg_id,
+                        f"{info_text}\n<b>{safe_get_messages(user_id).SENDER_VIDEO_DURATION_MSG}</b> <i>{TimeFormatter(duration*1000)}</i>\n\n<i>{safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG}</i>"
+                    ),
+                    reply_parameters=ReplyParameters(message_id=message.id),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            finally:
+                # Stop upload logging after upload completes or fails
+                _stop_upload_logging(user_id, msg_id)
             # Cleanup special thumb
             try:
                 if local_thumb and (local_thumb.endswith('.__tgthumb.jpg') or local_thumb.endswith('.__tgcover_paid.jpg')) and os.path.exists(local_thumb):

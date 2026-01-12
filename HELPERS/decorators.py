@@ -107,7 +107,8 @@ def reply_with_keyboard(func):
             user_id = message.chat.id
             
             # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
-            text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+            text_attr = getattr(message, 'text', None) if hasattr(message, 'text') else None
+            text = text_attr.strip() if text_attr else ''
             is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
             
             if not is_ignore_command:
