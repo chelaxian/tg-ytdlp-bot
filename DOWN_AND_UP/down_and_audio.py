@@ -2340,7 +2340,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     else:
                         msg_ids = [forwarded_msg.id]
                     
-                    if is_playlist:
+                    # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                    if should_disable_cache:
+                        logger.info(f"[AUDIO CACHE] Skipping cache save because active functions detected. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+                    elif is_playlist:
                         # For playlists, save to playlist cache with index
                         current_video_index = original_playlist_index
                         logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
@@ -2353,8 +2356,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         # For single audios, save to regular cache
                         logger.info(f"down_and_audio: saving to video cache: msg_ids={msg_ids}")
                         save_to_video_cache(url, quality_key, msg_ids, original_text=message.text or message.caption or "", user_id=user_id)
-                elif should_disable_cache:
-                    logger.info(f"[AUDIO CACHE] Skipping cache save because active functions detected. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
                 elif is_nsfw:
                     logger.info(f"down_and_audio: skipping cache for NSFW content (url={url})")
             except Exception as send_error:

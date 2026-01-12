@@ -480,9 +480,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     playlist_indices_all = requested_indices[:] if requested_indices else []
     cached_videos = {}
     uncached_indices = []
+    
+    # Check active functions (TRIM, SUBS, DUBS) - disable cache if any are active
+    from DOWN_AND_UP.always_ask_menu import get_active_functions
+    active_funcs = get_active_functions(user_id, url)
+    should_disable_cache = active_funcs["should_disable_cache"]
+    
     if safe_quality_key and is_playlist:
+        # Check if cache should be disabled due to active functions
+        if should_disable_cache:
+            logger.info(f"[VIDEO CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_videos = {}
+            uncached_indices = requested_indices
         # Check if Always Ask mode is enabled - if yes, skip cache completely
-        if not is_subs_always_ask(user_id):
+        elif not is_subs_always_ask(user_id):
             # Check if content is NSFW before looking in cache
             from HELPERS.porn import is_porn
             is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
@@ -493,6 +504,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.info(f"[VIDEO CACHE] Checking cache for regular playlist: url={url}, quality={safe_quality_key}")
             else:
                 logger.info(f"[VIDEO CACHE] Skipping cache check for NSFW playlist: url={url}, quality={safe_quality_key}")
+                cached_videos = {}
+        else:
+            logger.info(f"[VIDEO CACHE] Skipping cache check for playlist because Always Ask mode is enabled: url={url}, quality={safe_quality_key}")
+            cached_videos = {}
         
         uncached_indices = [i for i in requested_indices if i not in cached_videos]
         # First, repost the cached ones (skip if send_as_file is enabled)
@@ -543,10 +558,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Set all indices as uncached when Always Ask mode is enabled
             uncached_indices = requested_indices
     elif safe_quality_key and not is_playlist:
+        # Check if cache should be disabled due to active functions
+        if should_disable_cache:
+            logger.info(f"[VIDEO CACHE] Active functions detected for user {user_id}, URL: {url}, disabling cache. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
+            cached_ids = None
         #found_type = check_subs_availability(url, user_id, safe_quality_key, return_type=True)
-        subs_enabled = is_subs_enabled(user_id)
-        # Use the already determined subtitle availability
-        if not need_subs and not is_subs_always_ask(user_id):
+        elif not need_subs and not is_subs_always_ask(user_id):
             # Check if content is NSFW before looking in cache
             from HELPERS.porn import is_porn
             is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
@@ -558,6 +575,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.info(f"[VIDEO CACHE] Checking cache for regular content: url={url}, quality={safe_quality_key}")
             else:
                 logger.info(f"[VIDEO CACHE] Skipping cache check for NSFW content: url={url}, quality={safe_quality_key}")
+                cached_ids = None
             
             if cached_ids:
                 # Check if send_as_file is enabled - if so, skip cache repost
@@ -1715,6 +1733,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Final progress update error: {e}")
                 
                 logger.info("Download completed successfully")
+                
+                # Clear Always Ask menu states (TRIM, SUBS, DUBS) after successful download
+                try:
+                    from DOWN_AND_UP.always_ask_menu import clear_all_ask_menu_states
+                    clear_all_ask_menu_states(user_id)
+                except Exception as e:
+                    logger.error(f"Failed to clear Always Ask menu states after download: {e}")
                 
                 # Cache successful cookie result for future use
                 if not is_youtube_url(url):
@@ -3177,7 +3202,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 except Exception:
                                     pass
                                 # Use the already determined subtitle availability
-                                if not need_subs:
+                                # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                                if not should_disable_cache and not need_subs:
                                     # Only cache regular content (not NSFW)
                                     if not is_nsfw:
                                         # Передаем уникальную ссылку видео для дополнительного кэширования
@@ -3186,7 +3212,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     else:
                                         logger.info(f"NSFW content not cached (found_type={found_type}, auto_mode={auto_mode})")
                                 else:
-                                    logger.info(f"Video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode})")
+                                    if should_disable_cache:
+                                        logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                                    else:
+                                        logger.info(f"Video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode})")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), rounded_quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
@@ -3203,12 +3232,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 subs_enabled = is_subs_enabled(user_id)
                                 auto_mode = get_user_subs_auto_mode(user_id)
                                 need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-                                if not need_subs:
+                                # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                                if not should_disable_cache and not need_subs:
                                     # Передаем уникальную ссылку видео для дополнительного кэширования
                                     video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                     save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
                                 else:
-                                    logger.info("Video with subtitles (subs.txt found) is not cached!")
+                                    if should_disable_cache:
+                                        logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                                    else:
+                                        logger.info("Video with subtitles (subs.txt found) is not cached!")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
@@ -3242,12 +3275,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             subs_enabled = is_subs_enabled(user_id)
                             auto_mode = get_user_subs_auto_mode(user_id)
                             need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-                            if not need_subs:
+                            # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                            if not should_disable_cache and not need_subs:
                                 # Передаем уникальную ссылку видео для дополнительного кэширования
                                 video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                 save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
                             else:
-                                logger.info("Video with subtitles (subs.txt found) is not cached!")
+                                if should_disable_cache:
+                                    logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                                else:
+                                    logger.info("Video with subtitles (subs.txt found) is not cached!")
                             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
                             logger.info(f"Checking the cache immediately after writing: {cached_check}")
                             playlist_indices.append(current_video_index)
@@ -3284,11 +3321,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     auto_mode = get_user_subs_auto_mode(user_id)
                     need_subs = determine_need_subs(subs_enabled, found_type, user_id)
                     
-                    # Only save to cache if subtitles are not needed
-                    if not need_subs:
+                    # Only save to cache if subtitles are not needed and functions are not active
+                    if not should_disable_cache and not need_subs:
                         _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
                     else:
-                        logger.info(f"Split video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode}) - different users may need different languages")
+                        if should_disable_cache:
+                            logger.info(f"Split video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                        else:
+                            logger.info(f"Split video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode}) - different users may need different languages")
                 else:
                     logger.warning(f"down_and_up: NOT saving to cache - split_msg_ids={split_msg_ids}, is_playlist={is_playlist}")
                 if os.path.exists(thumb_dir):
@@ -3783,12 +3823,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     subs_enabled = is_subs_enabled(user_id)
                                     auto_mode = get_user_subs_auto_mode(user_id)
                                     need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-                                    if not need_subs:
+                                    # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                                    if not should_disable_cache and not need_subs:
                                         # Передаем уникальную ссылку видео для дополнительного кэширования
                                         video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                         save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
                                     else:
-                                        logger.info("Video with subtitles (subs.txt found) is not cached!")
+                                        if should_disable_cache:
+                                            logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                                        else:
+                                            logger.info("Video with subtitles (subs.txt found) is not cached!")
                                     cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
                                     logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
@@ -3877,12 +3921,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 subs_enabled = is_subs_enabled(user_id)
                                                 auto_mode = get_user_subs_auto_mode(user_id)
                                                 need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-                                                if not need_subs:
+                                                # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                                                if not should_disable_cache and not need_subs:
                                                     # Передаем уникальную ссылку видео для дополнительного кэширования
                                                     video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                                     save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
                                                 else:
-                                                    logger.info("Video with subtitles (subs.txt found) is not cached!")
+                                                    if should_disable_cache:
+                                                        logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                                                    else:
+                                                        logger.info("Video with subtitles (subs.txt found) is not cached!")
                                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
                                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                                 playlist_indices.append(current_video_index)
@@ -4004,12 +4052,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         subs_enabled = is_subs_enabled(user_id)
                                         auto_mode = get_user_subs_auto_mode(user_id)
                                         need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-                                        if not need_subs:
+                                        # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+                                        if not should_disable_cache and not need_subs:
                                             # Передаем уникальную ссылку видео для дополнительного кэширования
                                             video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                             save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
                                         else:
-                                            logger.info("Video with subtitles (subs.txt found) is not cached!")
+                                            if should_disable_cache:
+                                                logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                                            else:
+                                                logger.info("Video with subtitles (subs.txt found) is not cached!")
                                         cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
                                         logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                         playlist_indices.append(current_video_index)
@@ -4177,11 +4229,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             subs_enabled = is_subs_enabled(user_id)
             auto_mode = get_user_subs_auto_mode(user_id)
             need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-            if not need_subs:
+            # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
+            if not should_disable_cache and not need_subs:
                 # Передаем все уникальные ссылки видео для дополнительного кэширования
                 save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "", video_urls_dict=playlist_video_urls if playlist_video_urls else None)
             else:
-                logger.info("Video with subtitles (subs.txt found) is not cached!")
+                if should_disable_cache:
+                    logger.info(f"Playlist not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
+                else:
+                    logger.info("Video with subtitles (subs.txt found) is not cached!")
             cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, playlist_indices)
             summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
             logger.info(f"[SUMMARY] Playlist cache (quality {safe_quality_key}):\n{summary}")
