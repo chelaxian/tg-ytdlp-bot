@@ -23,7 +23,16 @@ class Messages(object):
         """
         self.user_id = user_id
         self.language_code = language_code
-        self._messages = get_messages(user_id, language_code)
+        try:
+            self._messages = get_messages(user_id, language_code)
+            # Debug: log if messages dict is empty
+            if not self._messages:
+                print(f"⚠️ Warning: Empty messages dict for user_id={user_id}, language_code={language_code}")
+        except Exception as e:
+            print(f"❌ Error getting messages for user_id={user_id}, language_code={language_code}: {e}")
+            import traceback
+            traceback.print_exc()
+            self._messages = {}
     
     def __getattr__(self, name):
         """
@@ -35,6 +44,10 @@ class Messages(object):
         # STRICT: Only use language-specific messages, NO fallback to English
         if hasattr(self, '_messages') and self._messages and name in self._messages:
             return self._messages[name]
+        
+        # Debug: log missing message
+        if hasattr(self, '_messages') and self._messages:
+            print(f"⚠️ Message '{name}' not found in language dict (user_id={self.user_id}, lang={self.language_code}, dict_size={len(self._messages)})")
         
         # If message not found in selected language, return placeholder
         return f"[{name}]"

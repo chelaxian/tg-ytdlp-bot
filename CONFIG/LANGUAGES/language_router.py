@@ -116,13 +116,25 @@ class LanguageRouter:
             # Load messages using import method (more reliable)
             messages_dict = self._load_messages_with_import(messages_path)
             
+            # Debug: log how many messages were loaded
+            if messages_dict:
+                print(f"✅ Loaded {len(messages_dict)} messages for language {language_code}")
+            else:
+                print(f"⚠️ No messages loaded for language {language_code}, path: {messages_path}")
+                # Fall back to default language if current language failed
+                if language_code != self.default_language:
+                    print(f"🔄 Falling back to default language: {self.default_language}")
+                    return self.load_messages(self.default_language)
+            
             # Cache the messages
             self._cached_messages[language_code] = messages_dict
             
             return messages_dict
             
         except Exception as e:
-            print(f"Error loading messages for language {language_code}: {e}")
+            print(f"❌ Error loading messages for language {language_code}: {e}")
+            import traceback
+            traceback.print_exc()
             # Fall back to default language
             if language_code != self.default_language:
                 return self.load_messages(self.default_language)
@@ -254,36 +266,65 @@ class LanguageRouter:
         Fallback method using import to load messages
         """
         try:
+            # Verify file exists
+            if not os.path.exists(messages_path):
+                print(f"❌ Messages file not found: {messages_path}")
+                return {}
+            
             # Get the module name from the file path
             messages_file = os.path.basename(messages_path)
             module_name = f"CONFIG.LANGUAGES.{messages_file[:-3]}"  # Remove .py extension
             
-            # Clear any existing module from cache
+            # Clear any existing module from cache to force reload
             if module_name in sys.modules:
                 del sys.modules[module_name]
             
-            # Add the languages directory to Python path temporarily
-            if self.languages_dir not in sys.path:
-                sys.path.insert(0, self.languages_dir)
+            # Import the module using absolute import
+            try:
+                # Try standard import first (works in both local and Docker)
+                messages_module = __import__(module_name, fromlist=['Messages'])
+            except (ImportError, ModuleNotFoundError):
+                # Try alternative import method using importlib (more reliable fallback)
+                try:
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location(module_name, messages_path)
+                    if spec and spec.loader:
+                        messages_module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(messages_module)
+                    else:
+                        raise ImportError(f"Could not load module from {messages_path}")
+                except Exception as e2:
+                    print(f"❌ Both import methods failed: {e2}")
+                    raise ImportError(f"Could not import {module_name} from {messages_path}")
             
-            # Import the module
-            messages_module = __import__(module_name, fromlist=['Messages'])
             messages_class = getattr(messages_module, 'Messages')
             
-            # Create instance and get all attributes
-            messages_instance = messages_class()
             messages_dict = {}
             
-            # Get all attributes from the instance
-            for attr_name in dir(messages_instance):
-                if not attr_name.startswith('_'):
-                    attr_value = getattr(messages_instance, attr_name)
-                    messages_dict[attr_name] = attr_value
+            # Get all attributes from the class itself (class variables)
+            # Use __dict__ first as it's more reliable for class variables
+            if hasattr(messages_class, '__dict__'):
+                for attr_name, attr_value in messages_class.__dict__.items():
+                    if not attr_name.startswith('_') and not callable(attr_value):
+                        messages_dict[attr_name] = attr_value
+            
+            # Also check dir() for any additional attributes
+            for attr_name in dir(messages_class):
+                if not attr_name.startswith('_') and attr_name not in messages_dict:
+                    try:
+                        attr_value = getattr(messages_class, attr_name)
+                        # Only include non-callable attributes (exclude methods)
+                        if not callable(attr_value):
+                            messages_dict[attr_name] = attr_value
+                    except:
+                        pass
             
             return messages_dict
             
         except Exception as e:
-            print(f"Error in import loading: {e}")
+            print(f"❌ Error in import loading: {e}")
+            import traceback
+            traceback.print_exc()
             return {}
     
     def _evaluate_joined_str(self, node: ast.JoinedStr) -> str:
