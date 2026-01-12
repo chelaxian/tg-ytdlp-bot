@@ -32,4 +32,6 @@ gallery-dl
 #python-telegram-bot[socks]>=20.0  # Включает поддержку SOCKS прокси
 #python-dateutil
 #paramiko
+#telethon
+
 #apt-get install sshpass

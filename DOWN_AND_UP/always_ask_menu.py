@@ -4708,42 +4708,46 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
         # Всегда добавляем {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality
+        # Но только если "best" еще не был добавлен в цикле
         quality_key = "best"
-        if is_playlist and playlist_range:
-            # Правильное формирование indices для отрицательных индексов
-            start, end = playlist_range
-            if start < 0 and end < 0:
-                if abs(start) < abs(end):
+        # Проверяем, была ли уже добавлена кнопка "best" в цикле
+        best_already_added = any(btn.callback_data == f"askq|{quality_key}" for btn in buttons)
+        if not best_already_added:
+            if is_playlist and playlist_range:
+                # Правильное формирование indices для отрицательных индексов
+                start, end = playlist_range
+                if start < 0 and end < 0:
+                    if abs(start) < abs(end):
+                        indices = list(range(start, end - 1, -1))
+                    else:
+                        indices = list(range(start, end + 1, 1))
+                elif start > end:
                     indices = list(range(start, end - 1, -1))
                 else:
-                    indices = list(range(start, end + 1, 1))
-            elif start > end:
-                indices = list(range(start, end - 1, -1))
+                    indices = list(range(start, end + 1))
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                total = len(indices)
+                # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+                # Check if cache should be disabled
+                active_funcs = get_active_functions(user_id, url)
+                should_disable_cache = active_funcs["should_disable_cache"]
+                # Show rocket only if cache is available AND functions are NOT active
+                icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
+                base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
+                func_suffix = get_quality_button_suffix(user_id, url, base_text)
+                button_text = f"{base_text}{func_suffix}"
             else:
-                indices = list(range(start, end + 1))
-            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-            total = len(indices)
-            # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
-            # Check if cache should be disabled
-            active_funcs = get_active_functions(user_id, url)
-            should_disable_cache = active_funcs["should_disable_cache"]
-            # Show rocket only if cache is available AND functions are NOT active
-            icon = "🚀" if (n_cached > 0 and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-            postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-            base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
-            func_suffix = get_quality_button_suffix(user_id, url, base_text)
-            button_text = f"{base_text}{func_suffix}"
-        else:
-            # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
-            # Check if cache should be disabled
-            active_funcs = get_active_functions(user_id, url)
-            should_disable_cache = active_funcs["should_disable_cache"]
-            # Show rocket only if cache is available AND functions are NOT active
-        icon = "🚀" if (quality_key in cached_qualities and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
-        base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
-        func_suffix = get_quality_button_suffix(user_id, url, base_text)
-        button_text = f"{base_text}{func_suffix}"
-        buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+                # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
+                # Check if cache should be disabled
+                active_funcs = get_active_functions(user_id, url)
+                should_disable_cache = active_funcs["should_disable_cache"]
+                # Show rocket only if cache is available AND functions are NOT active
+                icon = "🚀" if (quality_key in cached_qualities and not is_nsfw and not should_disable_cache) else ("1⭐️" if (is_nsfw and is_private_chat) else "📹")
+                base_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
+                func_suffix = get_quality_button_suffix(user_id, url, base_text)
+                button_text = f"{base_text}{func_suffix}"
+            buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
         # Всегда добавляем Other Qualities
         buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_OTHER_LABEL_MSG, callback_data=f"askq|other_qualities"))
@@ -6526,32 +6530,36 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
 
         # Always add {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} Quality button
+        # But only if "best" hasn't been added in the loop yet
         quality_key = "best"
-        if is_playlist and playlist_range:
-            # Правильное формирование indices для отрицательных индексов
-            start, end = playlist_range
-            if start < 0 and end < 0:
-                if abs(start) < abs(end):
+        # Проверяем, была ли уже добавлена кнопка "best" в цикле
+        best_already_added = any(btn.callback_data == f"askq|{quality_key}" for btn in buttons)
+        if not best_already_added:
+            if is_playlist and playlist_range:
+                # Правильное формирование indices для отрицательных индексов
+                start, end = playlist_range
+                if start < 0 and end < 0:
+                    if abs(start) < abs(end):
+                        indices = list(range(start, end - 1, -1))
+                    else:
+                        indices = list(range(start, end + 1, 1))
+                elif start > end:
                     indices = list(range(start, end - 1, -1))
                 else:
-                    indices = list(range(start, end + 1, 1))
-            elif start > end:
-                indices = list(range(start, end - 1, -1))
+                    indices = list(range(start, end + 1))
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                total = len(indices)
+                # Проверяем, должен ли админ видеть звездочки для NSFW
+                should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+                icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
+                postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
+                button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
             else:
-                indices = list(range(start, end + 1))
-            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
-            total = len(indices)
-            # Проверяем, должен ли админ видеть звездочки для NSFW
-            should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
-            icon = "🚀" if (n_cached > 0 and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
-            postfix = f" ({n_cached}/{total})" if total and total > 1 else ""
-            button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}{postfix}"
-        else:
-            # Проверяем, должен ли админ видеть звездочки для NSFW
-            should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
-            icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
-            button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
-        buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
+                # Проверяем, должен ли админ видеть звездочки для NSFW
+                should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+                icon = "🚀" if (quality_key in cached_qualities and not is_nsfw) else ("1⭐️" if should_show_star else "📹")
+                button_text = f"{icon}{safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG}"
+            buttons.append(InlineKeyboardButton(button_text, callback_data=f"askq|{quality_key}"))
         
         # Always add Other Qualities button
         other_label = f"{safe_get_messages(user_id).ALWAYS_ASK_OTHER_LABEL_MSG}" if not is_nsfw else f"{safe_get_messages(user_id).ALWAYS_ASK_OTHER_LABEL_MSG}"
