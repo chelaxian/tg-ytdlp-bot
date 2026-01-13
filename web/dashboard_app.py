@@ -175,6 +175,11 @@ async def api_age_stats(period: str = "today"):
     return stats_service.fetch_age_stats(period)
 
 
+@app.get("/api/channel-join-stats")
+async def api_channel_join_stats(period: str = "today"):
+    return stats_service.fetch_channel_join_stats(period)
+
+
 @app.get("/api/top-nsfw-users")
 async def api_nsfw_users(limit: int = 10):
     return stats_service.fetch_top_nsfw_users(limit)

@@ -42,6 +42,10 @@ def fetch_age_stats(period: str) -> List[Dict[str, Any]]:
     return get_stats_collector().get_age_stats(period)
 
 
+def fetch_channel_join_stats(period: str) -> List[Dict[str, Any]]:
+    return get_stats_collector().get_channel_join_stats(period)
+
+
 def fetch_top_nsfw_users(limit: int = 10) -> List[Dict[str, Any]]:
     return get_stats_collector().get_top_nsfw_users(limit)
 
