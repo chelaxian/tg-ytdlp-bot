@@ -136,6 +136,9 @@ Then edit `CONFIG/config.py` and fill in at least:
 - **BOT_NAME** – any internal name of your bot
 - **BOT_NAME_FOR_USERS** – name used in DB (usually real bot username without `@`)
 - **ADMIN** – list with at least your Telegram user ID
+- **ADMIN_USERNAME** – admin username (e.g., `"@"` or `"@your_username"`)
+- **ADMIN_GROUP** – list of admin group IDs (groups that bypass all limits, optional but recommended)
+- **ALLOWED_GROUP** – list of allowed group IDs (groups with increased limits, optional but recommended)
 - **API_ID**, **API_HASH** – from [my.telegram.org](https://my.telegram.org) (see section [Getting API Credentials](#getting-api-credentials))
 - **BOT_TOKEN** – from [@BotFather](https://t.me/BotFather) (see section [Getting API Credentials](#getting-api-credentials))
 - **LOGS\_*** (LOGS_ID, LOGS_VIDEO_ID, LOGS_NSFW_ID, LOGS_IMG_ID, LOGS_PAID_ID, LOG_EXCEPTION) – Fill in all the fields, if you want you can use the same channel for all
@@ -153,6 +156,9 @@ Then edit `CONFIG/config.py` and fill in at least:
 BOT_NAME = "your_bot_name"                   # Your bot's name
 BOT_NAME_FOR_USERS = "tg-ytdlp-bot"          # Name in database
 ADMIN = [123456789]                          # List of admin user IDs
+ADMIN_USERNAME = "@"                         # Admin username (e.g., "@" or "@your_username")
+ADMIN_GROUP = [-1001234567890]               # List of admin group IDs (groups that bypass all limits)
+ALLOWED_GROUP = [-1001234567890]             # List of allowed group IDs (groups with increased limits)
 API_ID = 12345678                            # Your Telegram API ID
 API_HASH = "your_api_hash_here"              # Your Telegram API Hash
 BOT_TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"  # Your bot token
@@ -209,25 +215,7 @@ After starting the containers, the web dashboard panel will automatically start 
 - **Username:** `admin` (defined in `CONFIG/config.py` as `DASHBOARD_USERNAME`)
 - **Password:** `admin123` (defined in `CONFIG/config.py` as `DASHBOARD_PASSWORD`)
 
-**⚠️ Important:** Change the default password immediately after first login!
-
-**How to change the password:**
-
-1. Log in to the dashboard at `http://<your-server-ip>:5555`
-2. Go to the **System** tab
-3. Find the **Configuration** section
-4. Locate the **Password** field (under "Dashboard authentication")
-5. Enter your new password and click **Save**
-
-The password will be automatically updated in `CONFIG/config.py` and will take effect immediately (no restart required).
-
-**Dashboard features:**
-- Real-time active users monitoring
-- Top downloaders, domains, countries statistics
-- NSFW content tracking
-- System metrics and configuration management
-- User blocking/unblocking functionality
-- And much more...
+**⚠️ Important:** Change the default password immediately after first login! See [Statistics dashboard](#-statistics-dashboard-port-5555) section below for detailed dashboard information and password change instructions.
 
 P.S. do not forget to add your bot to your channels with admin rights
 ---
@@ -310,6 +298,9 @@ Edit `CONFIG/config.py` with your settings:
 BOT_NAME = "your_bot_name"                    # Your bot's name
 BOT_NAME_FOR_USERS = "tg-ytdlp-bot"          # Name in database
 ADMIN = [123456789, 987654321]               # List of admin user IDs
+ADMIN_USERNAME = "@"                          # Admin username (e.g., "@" or "@your_username")
+ADMIN_GROUP = [-1001234567890, -1001234567891]  # List of admin group IDs (groups that bypass all limits)
+ALLOWED_GROUP = [-1001234567890, -1001234567891]  # List of allowed group IDs (groups with increased limits)
 API_ID = 12345678                            # Your Telegram API ID
 API_HASH = "your_api_hash_here"              # Your Telegram API Hash
 BOT_TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"  # Your bot token
@@ -418,8 +409,17 @@ CHANNEL_GUARD_SESSION_STRING = "your_session_string_here"
 2. Copy your user ID
 3. Add to `ADMIN` list in config.py
 
+#### 5. Group IDs (for ADMIN_GROUP and ALLOWED_GROUP)
+1. Add your bot to the group as admin
+2. Get group IDs using [@UserInfoToBot](https://t.me/UserInfoToBot) (forward a message from the group to the bot)
+3. Group IDs start with `-100` (supergroups) or negative numbers (regular groups)
+4. Add group IDs to `ADMIN_GROUP` (groups that bypass all limits) or `ALLOWED_GROUP` (groups with increased limits) in config.py
+
 ### Firebase Setup
 
+For detailed Firebase setup instructions, see the [Firebase Setup for Telegram Bot](#firebase-setup-for-telegram-bot) section below.
+
+**Quick Setup:**
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Create a new project
 3. Enable Realtime Database and Authentication
@@ -530,6 +530,7 @@ The bot supports disabling all limits and restrictions for administrators and ad
 ```python
 # List of admin user IDs
 ADMIN = [123456789, 987654321]  # Your admin user IDs
+ADMIN_USERNAME = "@"  # Admin username (e.g., "@" or "@your_username")
 
 # List of admin group IDs (groups that bypass all limits)
 ADMIN_GROUP = [-1001234567890, -1001234567891]  # Admin group IDs
@@ -598,6 +599,7 @@ class LimitsConfig(object):
 ```python
 # CONFIG/config.py
 ADMIN = [123456789]  # Your user ID
+ADMIN_USERNAME = "@"  # Admin username (e.g., "@" or "@your_username")
 ADMIN_GROUP = [-1001234567890]  # Your admin group ID
 ALLOWED_GROUP = [-1001234567891]  # Regular allowed group ID
 
@@ -1080,8 +1082,9 @@ Get direct stream URLs for media players with quality selection and smart fallba
 
 ### 🏷️ Tag System
 
-Add tags to any link for organization:
+Add tags to any link for organization. For detailed information, see the [Tags System (Navigation Tags)](#tags-system-navigation-tags) section below.
 
+**Quick Usage:**
 ```
 https://youtube.com/watch?v=... #music #favorite #2024
 ```
@@ -1250,31 +1253,6 @@ Advanced format selection with codec support, container preferences, and format 
 /format id 401 # Download specific format ID (with audio)
 ```
 
-### Advanced Command Arguments
-
-The bot supports command arguments for quick configuration without opening menus. See [Command Arguments](#command-arguments) section above for complete list of supported arguments.
-
-#### `/keyboard` with Layout Arguments
-```bash
-/keyboard off   # Hide reply keyboard
-/keyboard 1x3  # Set single row layout
-/keyboard 2x3  # Set double row layout (default)
-/keyboard full  # Set emoji keyboard
-```
-
-#### `/split` with Size Arguments
-```bash
-/split 100mb   # Set split size to 100MB (minimum)
-/split 250mb   # Set split size to 250MB
-/split 500mb   # Set split size to 500MB
-/split 750mb   # Set split size to 750MB
-/split 1gb     # Set split size to 1GB
-/split 1.5gb   # Set split size to 1.5GB
-/split 2gb     # Set split size to 2GB (maximum)
-/split 300mb   # Any custom size between 100MB-2GB
-/split 1.2gb   # Decimal values supported
-/split 1500mb  # Up to 2000MB (2GB)
-```
 
 
 
@@ -1283,17 +1261,20 @@ The bot supports command arguments for quick configuration without opening menus
 
 
 ### Reply Keyboard Management
-- **Customizable Layout**: Choose between 1x3 (single row), 2x3 (double row), and FULL (emoji) keyboard layouts
-- **Smart Display**: Keyboard automatically shows/hides based on user preferences
-- **Persistent Settings**: User keyboard preferences are saved in `keyboard.txt` file
-- **Easy Toggle**: Quickly switch between OFF, 1x3, 2x3, and FULL modes via `/keyboard` command
-- **Quick Arguments**: Set layout directly with arguments (e.g., `/keyboard off`, `/keyboard full`)
+
+The bot supports customizable keyboard layouts for quick access to commands. See [Command Arguments](#command-arguments) section above for `/keyboard` command usage.
 
 **Keyboard Modes:**
 - **OFF**: Completely hides the reply keyboard
 - **1x3**: Shows single row with `/clean`, `/cookie`, `/settings`
 - **2x3**: Shows two rows with full command set (default mode)
 - **FULL**: Shows emoji keyboard with visual command representation
+
+**Features:**
+- **Customizable Layout**: Choose between 1x3 (single row), 2x3 (double row), and FULL (emoji) keyboard layouts
+- **Smart Display**: Keyboard automatically shows/hides based on user preferences
+- **Persistent Settings**: User keyboard preferences are saved in `keyboard.txt` file
+- **Easy Toggle**: Quickly switch between OFF, 1x3, 2x3, and FULL modes via `/keyboard` command
 
 ### 🔞 NSFW Content Management
 
@@ -1401,9 +1382,16 @@ Smart rate limiting and flood wait handling:
   - For channels/groups, relay is supported (when the bot is added as an admin); paid media is cached properly.
 
 - **Adding the bot to a group**: Add the bot as an admin to your group/supergroup to use commands inside the chat.
-  - In group mode, extended limits apply: **limits are doubled** (sizes/queues), reducing fallbacks to document mode for large files.
+  - **Group Types:**
+    - **ADMIN_GROUP**: Groups listed in `ADMIN_GROUP` bypass all limits (when `TURN_OFF_LIMITS_FOR_ADMINS = True` in `CONFIG/limits.py`)
+    - **ALLOWED_GROUP**: Groups listed in `ALLOWED_GROUP` have increased limits via `GROUP_MULTIPLIER` (default: 2x)
+    - **Regular groups**: Limits are multiplied by `GROUP_MULTIPLIER` (default: 2x), reducing fallbacks to document mode for large files
   - All other features (formats, proxy, cookies, direct links) work the same as in private chats.
-  - NSFW content has no Telegram Stars cost in groups
+  - NSFW content has no Telegram Stars cost in groups (always free in groups)
+
+**Configuration:**
+- Add group IDs to `ADMIN_GROUP` or `ALLOWED_GROUP` in `CONFIG/config.py` (see [Getting API Credentials](#getting-api-credentials) section for how to get group IDs)
+- Configure `GROUP_MULTIPLIER` and `TURN_OFF_LIMITS_FOR_ADMINS` in `CONFIG/limits.py` (see [Admin Limits Configuration](#-admin-limits-configuration) section)
 
 Note: You can tune exact limit values and behavior in `CONFIG/limits.py` and `CONFIG/config.py` according to your hosting and needs.
 
