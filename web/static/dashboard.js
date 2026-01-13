@@ -83,6 +83,7 @@
             "demographics.countries": "Top Countries",
             "demographics.gender": "Gender",
             "demographics.age": "Registered",
+            "demographics.channel_join": "Channel Join",
             "buttons.logout": "Logout",
             "buttons.save": "Save",
             "buttons.add": "Add",
@@ -195,6 +196,7 @@
             "demographics.countries": "Топ стран",
             "demographics.gender": "Пол",
             "demographics.age": "Регистрация",
+            "demographics.channel_join": "Присоединение к каналу",
             "buttons.logout": "Выход",
             "buttons.save": "Сохранить",
             "buttons.add": "Добавить",
@@ -255,6 +257,7 @@
         "misc.empty": "चयनित अवधि के लिए डेटा नहीं",
         "labels.max_gap": "अंतर: {value}",
         "labels.downloads": "{value} डाउनलोड",
+        "demographics.channel_join": "चैनल में शामिल हुए",
     };
 
     translations.ar = {
@@ -285,6 +288,7 @@
         "misc.empty": "لا توجد بيانات للفترة المحددة",
         "labels.max_gap": "الفاصل: {value}",
         "labels.downloads": "{value} تنزيل",
+        "demographics.channel_join": "الانضمام إلى القناة",
     };
 
     const selectors = {};

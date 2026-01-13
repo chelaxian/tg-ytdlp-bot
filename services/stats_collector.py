@@ -78,6 +78,70 @@ def _is_playlist(url: str, title: str) -> bool:
     return any(token in src for token in PLAYLIST_KEYWORDS)
 
 
+def _estimate_registration_date_from_user_id(user_id: int) -> Optional[int]:
+    """
+    Оценивает дату регистрации пользователя на основе его user_id.
+    Использует приблизительную оценку на основе известных диапазонов ID.
+    
+    Примечание: Это приблизительная оценка, точность зависит от периода регистрации.
+    Для старых аккаунтов (до 2015) точность выше, для новых - ниже.
+    """
+    if not user_id or user_id <= 0:
+        return None
+    
+    # Известные опорные точки для оценки (ID -> примерная дата регистрации)
+    # Основано на анализе распределения ID в Telegram
+    reference_points = [
+        (100000000, datetime(2013, 8, 1, tzinfo=timezone.utc).timestamp()),  # ~2013
+        (500000000, datetime(2015, 1, 1, tzinfo=timezone.utc).timestamp()),  # ~2015
+        (1000000000, datetime(2017, 6, 1, tzinfo=timezone.utc).timestamp()),  # ~2017
+        (2000000000, datetime(2019, 12, 1, tzinfo=timezone.utc).timestamp()),  # ~2019
+        (3000000000, datetime(2021, 3, 1, tzinfo=timezone.utc).timestamp()),  # ~2021
+        (4000000000, datetime(2022, 6, 1, tzinfo=timezone.utc).timestamp()),  # ~2022
+        (5000000000, datetime(2023, 9, 1, tzinfo=timezone.utc).timestamp()),  # ~2023
+        (6000000000, datetime(2024, 12, 1, tzinfo=timezone.utc).timestamp()),  # ~2024
+        (7000000000, datetime(2025, 12, 1, tzinfo=timezone.utc).timestamp()),  # ~2025
+    ]
+    
+    # Если ID меньше минимального опорного значения
+    if user_id < reference_points[0][0]:
+        return int(reference_points[0][1])
+    
+    # Если ID больше максимального опорного значения - оцениваем как недавний
+    if user_id >= reference_points[-1][0]:
+        # Для очень новых ID используем линейную экстраполяцию
+        last_id, last_ts = reference_points[-1]
+        prev_id, prev_ts = reference_points[-2]
+        
+        id_diff = user_id - last_id
+        id_span = last_id - prev_id
+        ts_span = last_ts - prev_ts
+        
+        if id_span > 0 and ts_span > 0:
+            estimated_ts = last_ts + (id_diff / id_span) * ts_span
+            # Ограничиваем максимальной датой (не позже текущего момента)
+            max_ts = datetime.now(tz=timezone.utc).timestamp()
+            return int(min(estimated_ts, max_ts))
+        return int(last_ts)
+    
+    # Линейная интерполяция между опорными точками
+    for i in range(len(reference_points) - 1):
+        id_left, ts_left = reference_points[i]
+        id_right, ts_right = reference_points[i + 1]
+        
+        if id_left <= user_id < id_right:
+            id_span = id_right - id_left
+            ts_span = ts_right - ts_left
+            
+            if id_span > 0 and ts_span > 0:
+                frac = (user_id - id_left) / id_span
+                estimated_ts = ts_left + frac * ts_span
+                return int(estimated_ts)
+    
+    # Fallback - возвращаем дату последней опорной точки
+    return int(reference_points[-1][1])
+
+
 def _country_code_from_language(lang: Optional[str]) -> Optional[str]:
     if not lang:
         return None
@@ -1210,6 +1274,10 @@ class StatsCollector:
             if profile and profile.registration_date:
                 # Используем дату регистрации из Telegram API
                 registration_ts = profile.registration_date
+            
+            # Если дата регистрации недоступна через API, оцениваем по user_id
+            if not registration_ts:
+                registration_ts = _estimate_registration_date_from_user_id(user_id)
             
             if registration_ts:
                 dt = datetime.fromtimestamp(registration_ts, tz=timezone.utc)
