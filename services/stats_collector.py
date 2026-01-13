@@ -1254,19 +1254,32 @@ class StatsCollector:
     def get_age_stats(self, period: str) -> List[Dict[str, Any]]:
         """
         Статистика по «возрасту» аккаунта: дата регистрации пользователя в Telegram.
-        Показывает распределение по месяцам регистрации для пользователей,
-        которые были активны в выбранный период (независимо от даты их регистрации).
-        Использует дату регистрации из Telegram API, если доступна, иначе "unknown".
+        
+        Для периода "all": показывает всех пользователей, сортирует по дате (старые сначала).
+        Для периодов "month/week/today": показывает только пользователей, зарегистрировавшихся в этот период.
+        
+        Использует дату регистрации из Telegram API, если доступна, иначе оценивает по user_id.
         """
-        downloads = self._filter_downloads(period)
         with self._lock:
             blocked_user_ids = set(self._blocked_users.keys())
         
-        # Собираем уникальных пользователей, которые были активны в выбранный период
-        user_ids = {rec.user_id for rec in downloads if rec.user_id not in blocked_user_ids}
+        # Определяем временные границы периода для фильтрации по дате регистрации
+        window_start, window_end = _window_bounds(period)
+        
+        # Для периода "all" собираем всех пользователей из дампа
+        # Для других периодов собираем только активных в этот период
+        if period == "all":
+            # Для "all" используем всех пользователей из _first_seen
+            user_ids = set(self._first_seen.keys())
+        else:
+            downloads = self._filter_downloads(period)
+            user_ids = {rec.user_id for rec in downloads if rec.user_id not in blocked_user_ids}
         
         counter: Counter = Counter()
         for user_id in user_ids:
+            if user_id in blocked_user_ids:
+                continue
+            
             # Пытаемся получить дату регистрации из профиля (через Telegram API)
             profile = self._get_profile(user_id)
             registration_ts = None
@@ -1279,14 +1292,47 @@ class StatsCollector:
             if not registration_ts:
                 registration_ts = _estimate_registration_date_from_user_id(user_id)
             
+            # Фильтруем по периоду регистрации (если не "all")
+            if period != "all" and registration_ts:
+                if window_start and registration_ts < window_start:
+                    continue
+                if window_end and registration_ts > window_end:
+                    continue
+            
             if registration_ts:
                 dt = datetime.fromtimestamp(registration_ts, tz=timezone.utc)
                 bucket = dt.strftime("%Y-%m")
             else:
+                # Для "unknown" не фильтруем по периоду, но показываем только если период "all"
+                if period != "all":
+                    continue
                 bucket = "unknown"
             counter[bucket] += 1
         
-        return [{"age_group": group, "count": count} for group, count in counter.most_common()]
+        # Сортируем по дате (старые сначала), "unknown" в конце
+        result_items = []
+        date_items = []
+        unknown_count = counter.get("unknown", 0)
+        
+        for bucket, count in counter.items():
+            if bucket == "unknown":
+                continue
+            # Преобразуем bucket в timestamp для сортировки
+            try:
+                dt = datetime.strptime(bucket, "%Y-%m").replace(tzinfo=timezone.utc)
+                date_items.append((dt.timestamp(), bucket, count))
+            except Exception:
+                continue
+        
+        # Сортируем по дате (старые сначала)
+        date_items.sort(key=lambda x: x[0])
+        result_items = [{"age_group": bucket, "count": count} for _, bucket, count in date_items]
+        
+        # Добавляем "unknown" в конец, если есть
+        if unknown_count > 0:
+            result_items.append({"age_group": "unknown", "count": unknown_count})
+        
+        return result_items
     
     def get_channel_join_stats(self, period: str) -> List[Dict[str, Any]]:
         """
