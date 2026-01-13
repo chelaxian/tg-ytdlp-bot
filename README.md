@@ -2083,7 +2083,7 @@ Add a dedicated systemd unit (see `etc/systemd/system/tg-ytdlp-bot.service` as a
 If you find this project helpful, please consider:
 
 - ⭐ **Starring** the repository
-- 🍕 **Buying a coffee** for original author on [Tribute](https://t.me/tribute/app?startapp=dmPO)
+- 🍕 **Buying a coffee** for developer on [Tribute](https://t.me/tribute/app?startapp=dmPO)
 - 🐛 **Reporting bugs** and suggesting features
 - 📢 **Sharing** with others who might find it useful
 
