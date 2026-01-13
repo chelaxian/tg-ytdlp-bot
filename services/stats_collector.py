@@ -92,6 +92,7 @@ def _country_code_from_language(lang: Optional[str]) -> Optional[str]:
         "fa": "IR",
         "tr": "TR",
         "hi": "IN",
+        "in": "IN",  # Hindi alternative code
         "bn": "BD",
         "id": "ID",
         "de": "DE",
@@ -104,6 +105,12 @@ def _country_code_from_language(lang: Optional[str]) -> Optional[str]:
         "tg": "TJ",
         "th": "TH",
         "zh": "CN",
+        "ja": "JP",
+        "ko": "KR",
+        "vi": "VN",
+        "ur": "PK",
+        "tl": "PH",  # Tagalog -> Philippines
+        "ha": "NG",  # Hausa -> Nigeria
     }
     return mapping.get(lang)
 
@@ -1045,15 +1052,38 @@ class StatsCollector:
         return [{"domain": domain, "count": count} for domain, count in counter.most_common(limit)]
 
     def get_top_countries(self, period: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Получает статистику стран на основе файла lang.txt в папке пользователя.
+        Если файла нет - считается как английский (en -> US).
+        """
         downloads = self._filter_downloads(period)
         with self._lock:
             blocked_user_ids = set(self._blocked_users.keys())
+        
+        # Получаем путь к папке пользователей
+        users_dir = Path(getattr(Config, "USERS_DIR", "users"))
+        if not users_dir.is_absolute():
+            users_dir = BASE_DIR / users_dir
+        
         counter: Counter = Counter()
         for record in downloads:
             if record.user_id not in blocked_user_ids:
-                profile = self._get_profile(record.user_id)
-                country = profile.country_code or "UN"
+                # Читаем lang.txt из папки пользователя
+                lang_file = users_dir / str(record.user_id) / "lang.txt"
+                lang_code = "en"  # По умолчанию английский
+                
+                if lang_file.exists():
+                    try:
+                        lang_code = lang_file.read_text(encoding="utf-8").strip().lower()
+                        if not lang_code:
+                            lang_code = "en"
+                    except Exception:
+                        lang_code = "en"
+                
+                # Преобразуем код языка в код страны
+                country = _country_code_from_language(lang_code) or "UN"
                 counter[country] += 1
+        
         result = []
         for country, count in counter.most_common(limit):
             flag = _flag_from_country(country if country != "UN" else None)
