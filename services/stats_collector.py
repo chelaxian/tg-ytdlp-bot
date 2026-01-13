@@ -1301,7 +1301,8 @@ class StatsCollector:
             
             if registration_ts:
                 dt = datetime.fromtimestamp(registration_ts, tz=timezone.utc)
-                bucket = dt.strftime("%Y-%m")
+                # Группируем по годам, так как точность оценки только годовая
+                bucket = dt.strftime("%Y")
             else:
                 # Для "unknown" не фильтруем по периоду, но показываем только если период "all"
                 if period != "all":
@@ -1317,9 +1318,9 @@ class StatsCollector:
         for bucket, count in counter.items():
             if bucket == "unknown":
                 continue
-            # Преобразуем bucket в timestamp для сортировки
+            # Преобразуем bucket (год) в timestamp для сортировки
             try:
-                dt = datetime.strptime(bucket, "%Y-%m").replace(tzinfo=timezone.utc)
+                dt = datetime.strptime(bucket, "%Y").replace(tzinfo=timezone.utc)
                 date_items.append((dt.timestamp(), bucket, count))
             except Exception:
                 continue
