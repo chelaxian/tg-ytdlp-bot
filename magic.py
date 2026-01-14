@@ -603,9 +603,10 @@ def run_with_auto_reconnect():
                 logger.warning("Pyrogram client disconnected, will attempt to reconnect...")
                 with _reconnect_lock:
                     _should_reconnect = True
-                # Останавливаем клиент, чтобы прервать idle
+                # Останавливаем клиент синхронно через event loop
                 try:
-                    app.stop()
+                    # app.stop() - синхронный метод, но вызываем его через call_soon
+                    app.loop.call_soon(app.stop)
                 except Exception:
                     pass
             
@@ -618,7 +619,8 @@ def run_with_auto_reconnect():
                         if _should_reconnect:
                             logger.warning("Reconnection flag detected, stopping client...")
                             try:
-                                app.stop()
+                                # Вызываем stop через event loop
+                                app.loop.call_soon_threadsafe(app.stop)
                             except Exception:
                                 pass
                             break
@@ -671,9 +673,6 @@ def run_with_auto_reconnect():
                     
                     time.sleep(reconnect_delay)
                     continue
-            
-            # Если idle завершился нормально (не из-за переподключения)
-            break
             
             # Если idle завершился нормально (не из-за переподключения)
             break
