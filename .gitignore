@@ -62,6 +62,8 @@ CONFIG/.command_limits.json
 CONFIG/.*.json
 
 # yt-dlp binaries / temp downloads
+tests/*
+tests/test_stats_collector.py
 yt-dlp
 yt-dlp.1
 *.part
