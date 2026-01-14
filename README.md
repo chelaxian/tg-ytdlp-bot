@@ -7,6 +7,8 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://t.me/tgytdlp)
 
+[🇷🇺 README НА РУССКОМ](https://github.com/chelaxian/tg-ytdlp-bot/README_RU.md)
+
 > 🎥 **Advanced Telegram bot for downloading videos and media from 1500+ platforms**
 
 A powerful Telegram bot that downloads videos, audio, and images from YouTube, TikTok, Instagram, and 1500+ other platforms using yt-dlp and gallery-dl. Features advanced format selection, codec support, intelligent subtitle handling, proxy support, and direct stream links. \
