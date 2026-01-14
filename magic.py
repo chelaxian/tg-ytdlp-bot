@@ -516,28 +516,47 @@ def run_with_auto_reconnect():
     def check_connection_periodically():
         """Периодически проверяет соединение и устанавливает флаг переподключения при проблемах"""
         nonlocal _should_reconnect
+        consecutive_failures = 0
+        max_failures = 3  # После 3 неудачных проверок подряд - переподключение
+        
         while True:
             time.sleep(connection_check_interval)
             try:
                 # Проверяем, что клиент запущен и соединение активно
-                if app.is_connected:
-                    try:
-                        # Простая проверка - пытаемся получить информацию о себе
-                        app.get_me()
-                    except Exception as e:
-                        error_str = str(e).lower()
-                        if any(keyword in error_str for keyword in ['timeout', 'connection', 'network', 'disconnected', 'unable to connect']):
-                            logger.warning(f"Connection check failed: {e}")
+                if not app.is_connected:
+                    logger.warning("Client is not connected")
+                    consecutive_failures += 1
+                    if consecutive_failures >= max_failures:
+                        with _reconnect_lock:
+                            _should_reconnect = True
+                        consecutive_failures = 0
+                    continue
+                
+                # Проверяем соединение через простой API вызов
+                try:
+                    # Используем синхронный вызов для проверки
+                    app.get_me()
+                    consecutive_failures = 0  # Сброс счетчика при успехе
+                except Exception as e:
+                    error_str = str(e).lower()
+                    if any(keyword in error_str for keyword in ['timeout', 'connection', 'network', 'disconnected', 'unable to connect', 'timed out']):
+                        consecutive_failures += 1
+                        logger.warning(f"Connection check failed ({consecutive_failures}/{max_failures}): {e}")
+                        if consecutive_failures >= max_failures:
+                            logger.warning("Multiple connection failures detected, triggering reconnection...")
                             with _reconnect_lock:
                                 _should_reconnect = True
-                else:
-                    logger.warning("Client is not connected")
-                    with _reconnect_lock:
-                        _should_reconnect = True
+                            consecutive_failures = 0
+                    else:
+                        # Не сетевая ошибка - сбрасываем счетчик
+                        consecutive_failures = 0
             except Exception as e:
                 logger.warning(f"Error during connection check: {e}")
-                with _reconnect_lock:
-                    _should_reconnect = True
+                consecutive_failures += 1
+                if consecutive_failures >= max_failures:
+                    with _reconnect_lock:
+                        _should_reconnect = True
+                    consecutive_failures = 0
     
     while attempt < max_reconnect_attempts:
         try:
@@ -553,20 +572,33 @@ def run_with_auto_reconnect():
             check_thread = threading.Thread(target=check_connection_periodically, daemon=True)
             check_thread.start()
             
-            # Запускаем idle - он будет работать до KeyboardInterrupt
+            # Используем обработчик событий для отслеживания отключений
+            @app.on_disconnect()
+            async def on_disconnect_handler(client):
+                """Обработчик отключения - устанавливает флаг для переподключения"""
+                logger.warning("Pyrogram client disconnected, will attempt to reconnect...")
+                with _reconnect_lock:
+                    _should_reconnect = True
+                # Останавливаем idle для переподключения
+                try:
+                    app.stop()
+                except Exception:
+                    pass
+            
+            # Запускаем idle - он будет работать до KeyboardInterrupt или отключения
             try:
                 idle()
             except KeyboardInterrupt:
                 logger.info("Received KeyboardInterrupt, shutting down...")
                 break
             
-            # Проверяем, нужен ли переподключение
+            # Проверяем, нужен ли переподключение после завершения idle
             with _reconnect_lock:
                 if _should_reconnect:
                     logger.warning("Reconnection needed, stopping current session...")
                     attempt += 1
                     
-                    # Останавливаем клиент перед переподключением
+                    # Останавливаем channel guard
                     try:
                         app.loop.run_until_complete(stop_channel_guard())
                     except Exception:

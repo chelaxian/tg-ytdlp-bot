@@ -24,7 +24,7 @@ services:
       bgutil-provider:
         condition: service_started
       warp:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - .:/app
     working_dir: /app
@@ -62,6 +62,9 @@ services:
     network_mode: "container:tg-ytdlp-warp"
     ports: []
     expose: []
+    depends_on:
+      warp:
+        condition: service_healthy
 
   warp:
     build: ./warp
@@ -81,6 +84,13 @@ services:
       - warp-data:/data
     networks:
       - warp-net
+    healthcheck:
+      # Проверяем, что WireGuard работает и DNS разрешается
+      test: ["CMD-SHELL", "wg show wgcf >/dev/null 2>&1 && (getent hosts google.com >/dev/null 2>&1 || curl -s --max-time 5 https://www.google.com >/dev/null 2>&1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 networks:
   warp-net:
