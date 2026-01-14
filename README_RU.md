@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://t.me/tgytdlp)
 
-[🇺🇸 ENGLISH README](https://github.com/chelaxian/tg-ytdlp-bot/README.md)
+[🇺🇸 ENGLISH README](https://github.com/chelaxian/tg-ytdlp-bot/blob/main/README.md)
 
 > 🎥 **Продвинутый Telegram-бот для скачивания видео, аудио и фото с более чем 1500 сайтов.**
 

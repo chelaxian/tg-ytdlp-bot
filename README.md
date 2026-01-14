@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://t.me/tgytdlp)
 
-[🇷🇺 README НА РУССКОМ](https://github.com/chelaxian/tg-ytdlp-bot/README_RU.md)
+[🇷🇺 README НА РУССКОМ](https://github.com/chelaxian/tg-ytdlp-bot/blob/main/README_RU.md)
 
 > 🎥 **Advanced Telegram bot for downloading videos and media from 1500+ platforms**
 
