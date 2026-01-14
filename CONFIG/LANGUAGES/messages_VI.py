@@ -1482,25 +1482,21 @@ Use:
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Lỗi Xử Lý Tệp**\n\nVideo đã được tải xuống nhưng không thể xử lý do ký tự không hợp lệ trong tên tệp.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Lỗi Xử Lý Tệp**\n\nVideo đã được tải xuống nhưng không thể xử lý do lỗi đối số không hợp lệ.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**Lý do:**
-• Tệp đã tải xuống không phải là tệp video
-• Có thể là tài liệu (PDF, DOC, v.v.) hoặc kho lưu trữ
-
-**Giải pháp:**
-• Kiểm tra liên kết - nó có thể dẫn đến tài liệu, không phải video
-• Thử một liên kết hoặc nguồn khác
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**Lý do:**\n"
+        "• Tệp đã tải xuống không phải là tệp video\n"
+        "• Có thể là tài liệu (PDF, DOC, v.v.) hoặc kho lưu trữ\n\n"
+        "**Giải pháp:**\n"
+        "• Kiểm tra liên kết - nó có thể dẫn đến tài liệu, không phải video\n"
+        "• Thử một liên kết hoặc nguồn khác\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Lý do:**\n"
+        "• Tệp không thể được xử lý dưới dạng video\n"
+        "• Có thể không phải là tệp video hoặc tệp bị hỏng\n\n"
+        "**Giải pháp:**\n"
+        "• Kiểm tra liên kết - nó có thể dẫn đến tài liệu, không phải video\n"
+        "• Thử một liên kết hoặc nguồn khác\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Định Dạng Không Khả Dụng**\n\nĐịnh dạng video được yêu cầu không khả dụng cho video này.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Không tìm thấy ID định dạng {format_id} cho video này.\n\nID định dạng có sẵn: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Định dạng AV1 không khả dụng cho video này.**\n\n**Định dạng có sẵn:**\n{formats_text}\n\n"
@@ -1898,8 +1894,7 @@ Use:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Lỗi khi gửi video với chú thích tối thiểu: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Lỗi khi gửi tệp mô tả đầy đủ: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Lỗi khi xóa tệp mô tả tạm thời: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

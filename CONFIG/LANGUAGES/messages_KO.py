@@ -1482,25 +1482,21 @@ class Messages(object):
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **파일 처리 오류**\n\n비디오가 다운로드되었지만 파일 이름의 잘못된 문자로 인해 처리할 수 없습니다.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **파일 처리 오류**\n\n비디오가 다운로드되었지만 잘못된 인수 오류로 인해 처리할 수 없습니다.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**이유:**
-• 다운로드한 파일이 비디오 파일이 아닙니다
-• 문서(PDF, DOC 등) 또는 아카이브일 수 있습니다
-
-**해결 방법:**
-• 링크를 확인하세요 - 비디오가 아닌 문서로 연결될 수 있습니다
-• 다른 링크 또는 소스를 시도하세요
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**이유:**\n"
+        "• 다운로드한 파일이 비디오 파일이 아닙니다\n"
+        "• 문서(PDF, DOC 등) 또는 아카이브일 수 있습니다\n\n"
+        "**해결 방법:**\n"
+        "• 링크를 확인하세요 - 비디오가 아닌 문서로 연결될 수 있습니다\n"
+        "• 다른 링크 또는 소스를 시도하세요\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**이유:**\n"
+        "• 파일을 비디오로 처리할 수 없습니다\n"
+        "• 비디오 파일이 아니거나 파일이 손상되었을 수 있습니다\n\n"
+        "**해결 방법:**\n"
+        "• 링크를 확인하세요 - 비디오가 아닌 문서로 연결될 수 있습니다\n"
+        "• 다른 링크 또는 소스를 시도하세요\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **형식을 사용할 수 없음**\n\n요청한 비디오 형식을 이 비디오에 사용할 수 없습니다.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ 형식 ID {format_id}을(를) 이 비디오에서 찾을 수 없습니다.\n\n사용 가능한 형식 ID: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **AV1 형식을 이 비디오에 사용할 수 없습니다.**\n\n**사용 가능한 형식:**\n{formats_text}\n\n"
@@ -1898,8 +1894,7 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "최소 캡션으로 비디오 전송 오류: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "전체 설명 파일 전송 오류: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "임시 설명 파일 제거 오류: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

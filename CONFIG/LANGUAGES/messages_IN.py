@@ -1481,25 +1481,21 @@ class Messages(object):
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **फ़ाइल प्रोसेसिंग त्रुटि**\n\nवीडियो डाउनलोड हो गया लेकिन फ़ाइल नाम में अमान्य वर्णों के कारण प्रोसेस नहीं किया जा सका।\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **फ़ाइल प्रोसेसिंग त्रुटि**\n\nवीडियो डाउनलोड हो गया लेकिन अमान्य तर्क त्रुटि के कारण प्रोसेस नहीं किया जा सका।\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**कारण:**
-• डाउनलोड की गई फ़ाइल एक वीडियो फ़ाइल नहीं है
-• यह एक दस्तावेज़ (PDF, DOC, आदि) या संग्रह हो सकता है
-
-**समाधान:**
-• लिंक जांचें - यह एक दस्तावेज़ की ओर ले जा सकता है, वीडियो नहीं
-• एक अलग लिंक या स्रोत आज़माएं
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**कारण:**\n"
+        "• डाउनलोड की गई फ़ाइल एक वीडियो फ़ाइल नहीं है\n"
+        "• यह एक दस्तावेज़ (PDF, DOC, आदि) या संग्रह हो सकता है\n\n"
+        "**समाधान:**\n"
+        "• लिंक जांचें - यह एक दस्तावेज़ की ओर ले जा सकता है, वीडियो नहीं\n"
+        "• एक अलग लिंक या स्रोत आज़माएं\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**कारण:**\n"
+        "• फ़ाइल को वीडियो के रूप में प्रसंस्कृत नहीं किया जा सकता\n"
+        "• यह वीडियो फ़ाइल नहीं हो सकती या फ़ाइल क्षतिग्रस्त हो सकती है\n\n"
+        "**समाधान:**\n"
+        "• लिंक जांचें - यह एक दस्तावेज़ की ओर ले जा सकता है, वीडियो नहीं\n"
+        "• एक अलग लिंक या स्रोत आज़माएं\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **प्रारूप उपलब्ध नहीं**\n\nअनुरोधित वीडियो प्रारूप इस वीडियो के लिए उपलब्ध नहीं है।\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ प्रारूप ID {format_id} इस वीडियो के लिए नहीं मिला।\n\nउपलब्ध प्रारूप IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **AV1 प्रारूप इस वीडियो के लिए उपलब्ध नहीं है।**\n\n**उपलब्ध प्रारूप:**\n{formats_text}\n\n"
@@ -1897,8 +1893,7 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "न्यूनतम कैप्शन के साथ वीडियो भेजने में त्रुटि: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "पूर्ण विवरण फ़ाइल भेजने में त्रुटि: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "अस्थायी विवरण फ़ाइल हटाने में त्रुटि: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

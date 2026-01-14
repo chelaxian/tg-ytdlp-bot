@@ -1482,25 +1482,21 @@ Use:
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Erro de Processamento de Arquivo**\n\nO vídeo foi baixado mas não pôde ser processado devido a caracteres inválidos no nome do arquivo.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Erro de Processamento de Arquivo**\n\nO vídeo foi baixado mas não pôde ser processado devido a um erro de argumento inválido.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**Motivo:**
-• O arquivo baixado não é um arquivo de vídeo
-• Pode ser um documento (PDF, DOC, etc.) ou arquivo
-
-**Solução:**
-• Verifique o link - pode levar a um documento, não a um vídeo
-• Tente um link ou fonte diferente
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**Motivo:**\n"
+        "• O arquivo baixado não é um arquivo de vídeo\n"
+        "• Pode ser um documento (PDF, DOC, etc.) ou arquivo\n\n"
+        "**Solução:**\n"
+        "• Verifique o link - pode levar a um documento, não a um vídeo\n"
+        "• Tente um link ou fonte diferente\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Motivo:**\n"
+        "• O arquivo não pode ser processado como vídeo\n"
+        "• Pode não ser um arquivo de vídeo ou o arquivo está corrompido\n\n"
+        "**Solução:**\n"
+        "• Verifique o link - pode levar a um documento, não a um vídeo\n"
+        "• Tente um link ou fonte diferente\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Formato Não Disponível**\n\nO formato de vídeo solicitado não está disponível para este vídeo.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ID de formato {format_id} não encontrado para este vídeo.\n\nIDs de formato disponíveis: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Formato AV1 não está disponível para este vídeo.**\n\n**Formatos disponíveis:**\n{formats_text}\n\n"
@@ -1898,8 +1894,7 @@ Use:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Erro ao enviar vídeo com legenda mínima: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Erro ao enviar arquivo de descrição completo: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Erro ao remover arquivo de descrição temporário: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

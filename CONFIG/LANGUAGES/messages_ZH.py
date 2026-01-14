@@ -1482,7 +1482,21 @@ class Messages(object):
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **文件处理错误**\n\n视频已下载，但由于文件名中的无效字符而无法处理。\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **文件处理错误**\n\n视频已下载，但由于无效参数错误而无法处理。\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**原因:**\n"
+        "• 下载的文件不是视频文件\n"
+        "• 可能是文档（PDF、DOC等）或存档\n\n"
+        "**解决方案:**\n"
+        "• 检查链接 - 它可能指向文档而不是视频\n"
+        "• 尝试不同的链接或来源\n"
+    )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**原因:**\n"
+        "• 文件无法作为视频处理\n"
+        "• 可能不是视频文件或文件已损坏\n\n"
+        "**解决方案:**\n"
+        "• 检查链接 - 它可能指向文档而不是视频\n"
+        "• 尝试不同的链接或来源\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **格式不可用**\n\n请求的视频格式对此视频不可用。\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ 此视频未找到格式ID {format_id}。\n\n可用格式ID：{available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **此视频的AV1格式不可用。**\n\n**可用格式：**\n{formats_text}\n\n"
@@ -1880,8 +1894,7 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "发送带最小标题的视频时出错：{error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "发送完整描述文件时出错：{error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "删除临时描述文件时出错：{error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

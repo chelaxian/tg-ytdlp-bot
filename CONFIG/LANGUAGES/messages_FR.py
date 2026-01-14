@@ -1482,25 +1482,21 @@ Utilisez :
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Erreur de Traitement de Fichier**\n\nLa vidéo a été téléchargée mais n'a pas pu être traitée en raison de caractères invalides dans le nom de fichier.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Erreur de Traitement de Fichier**\n\nLa vidéo a été téléchargée mais n'a pas pu être traitée en raison d'une erreur d'argument invalide.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**Raison:**
-• Le fichier téléchargé n'est pas un fichier vidéo
-• Il pourrait s'agir d'un document (PDF, DOC, etc.) ou d'une archive
-
-**Solution:**
-• Vérifiez le lien - il pourrait mener à un document, pas à une vidéo
-• Essayez un lien ou une source différente
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**Raison:**\n"
+        "• Le fichier téléchargé n'est pas un fichier vidéo\n"
+        "• Il pourrait s'agir d'un document (PDF, DOC, etc.) ou d'une archive\n\n"
+        "**Solution:**\n"
+        "• Vérifiez le lien - il pourrait mener à un document, pas à une vidéo\n"
+        "• Essayez un lien ou une source différente\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Raison:**\n"
+        "• Le fichier ne peut pas être traité comme une vidéo\n"
+        "• Ce n'est peut-être pas un fichier vidéo ou le fichier est corrompu\n\n"
+        "**Solution:**\n"
+        "• Vérifiez le lien - il pourrait mener à un document, pas à une vidéo\n"
+        "• Essayez un lien ou une source différente\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Non Disponible**\n\nLe format vidéo demandé n'est pas disponible pour cette vidéo.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ID de format {format_id} introuvable pour cette vidéo.\n\nIDs de format disponibles : {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Le format AV1 n'est pas disponible pour cette vidéo.**\n\n**Formats disponibles :**\n{formats_text}\n\n"

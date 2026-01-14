@@ -1482,25 +1482,21 @@ class Messages(object):
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **File Processing Error**\n\nThe video was downloaded but couldn't be processed due to invalid characters in the filename.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **File Processing Error**\n\nThe video was downloaded but couldn't be processed due to an invalid argument error.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**Причина:**
-• Завантажений файл не є відео файлом
-• Це може бути документ (PDF, DOC тощо) або архів
-
-**Рішення:**
-• Перевірте посилання - воно може вести до документа, а не до відео
-• Спробуйте інше посилання або джерело
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**Причина:**\n"
+        "• Завантажений файл не є відео файлом\n"
+        "• Це може бути документ (PDF, DOC тощо) або архів\n\n"
+        "**Рішення:**\n"
+        "• Перевірте посилання - воно може вести до документа, а не до відео\n"
+        "• Спробуйте інше посилання або джерело\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Причина:**\n"
+        "• Файл не може бути оброблений як відео\n"
+        "• Це може не бути відео файл або файл пошкоджений\n\n"
+        "**Рішення:**\n"
+        "• Перевірте посилання - воно може вести до документа, а не до відео\n"
+        "• Спробуйте інше посилання або джерело\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Not Available**\n\nThe requested video format is not available for this video.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Format ID {format_id} not found for this video.\n\nAvailable format IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Формат AV1 недоступний для цього відео.**\n\n**Доступні формати:**\n{formats_text}\n\n"
@@ -1898,8 +1894,7 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Помилка надсилання відео з мінімальною кількістю субтитрів: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Помилка надсилання файлу повного опису: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Помилка видалення тимчасового файлу опису: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

@@ -1433,25 +1433,21 @@ class Messages(object):
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Файлды өңдеу қатесі**\n\nБейне жүктелді, бірақ файл атауындағы жарамсыз таңбаларға байланысты өңдеу мүмкін болмады.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Файлды өңдеу қатесі**\n\nБейне жүктелді, бірақ жарамсыз аргумент қатесіне байланысты өңдеу мүмкін болмады.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**Себеп:**
-• Жүктелген файл бейне файлы емес
-• Бұл құжат (PDF, DOC, т.б.) немесе архив болуы мүмкін
-
-**Шешу:**
-• Сілтемені тексеріңіз - ол бейнеге емес, құжатқа алып кетуі мүмкін
-• Басқа сілтеме немесе көзді көріңіз
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**Себеп:**\n"
+        "• Жүктелген файл бейне файлы емес\n"
+        "• Бұл құжат (PDF, DOC, т.б.) немесе архив болуы мүмкін\n\n"
+        "**Шешу:**\n"
+        "• Сілтемені тексеріңіз - ол бейнеге емес, құжатқа алып кетуі мүмкін\n"
+        "• Басқа сілтеме немесе көзді көріңіз\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Себеп:**\n"
+        "• Файлды бейне ретінде өңдеу мүмкін емес\n"
+        "• Бұл бейне файлы болмауы мүмкін немесе файл бүлінген болуы мүмкін\n\n"
+        "**Шешу:**\n"
+        "• Сілтемені тексеріңіз - ол бейнеге емес, құжатқа алып кетуі мүмкін\n"
+        "• Басқа сілтеме немесе көзді көріңіз\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Формат қолжетімсіз**\n\nСұралған бейне форматы осы бейне үшін қолжетімсіз.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Формат ID {format_id} осы бейне үшін табылмады.\n\nҚолжетімді формат ID-лері: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **AV1 форматы осы бейне үшін қолжетімсіз.**\n\n**Қолжетімді форматтар:**\n{formats_text}\n\n"
@@ -1898,8 +1894,7 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Минималды жазуы бар бейнені жіберу қатесі: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Толық сипаттама файлын жіберу қатесі: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Уақытша сипаттама файлын жою қатесі: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

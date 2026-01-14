@@ -1482,25 +1482,21 @@ Gamitin:
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Error sa Pagproseso ng File**\n\nNa-download ang video ngunit hindi ma-proseso dahil sa di-wastong character sa filename.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Error sa Pagproseso ng File**\n\nNa-download ang video ngunit hindi ma-proseso dahil sa error ng di-wastong argumento.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**Dahilan:**
-• Ang na-download na file ay hindi video file
-• Maaaring ito ay dokumento (PDF, DOC, atbp.) o archive
-
-**Solusyon:**
-• Suriin ang link - maaari itong humantong sa isang dokumento, hindi video
-• Subukan ang ibang link o source
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**Dahilan:**\n"
+        "• Ang na-download na file ay hindi video file\n"
+        "• Maaaring ito ay dokumento (PDF, DOC, atbp.) o archive\n\n"
+        "**Solusyon:**\n"
+        "• Suriin ang link - maaari itong humantong sa isang dokumento, hindi video\n"
+        "• Subukan ang ibang link o source\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Dahilan:**\n"
+        "• Ang file ay hindi maaaring iproseso bilang video\n"
+        "• Maaaring hindi ito video file o ang file ay nasira\n\n"
+        "**Solusyon:**\n"
+        "• Suriin ang link - maaari itong humantong sa isang dokumento, hindi video\n"
+        "• Subukan ang ibang link o source\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Hindi Available**\n\nAng hiniling na format ng video ay hindi available para sa video na ito.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Hindi natagpuan ang Format ID {format_id} para sa video na ito.\n\nAvailable na Format IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Ang AV1 format ay hindi available para sa video na ito.**\n\n**Available na format:**\n{formats_text}\n\n"
@@ -1898,8 +1894,7 @@ Gamitin:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Error sa pagpapadala ng video na may kaunting caption: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Error sa pagpapadala ng buong file ng paglalarawan: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Error sa pag-alis ng pansamantalang file ng paglalarawan: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

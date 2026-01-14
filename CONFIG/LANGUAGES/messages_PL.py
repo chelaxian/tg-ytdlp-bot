@@ -1421,25 +1421,21 @@ Użyj:
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Błąd przetwarzania pliku**\n\nWideo zostało pobrane, ale nie mogło zostać przetworzone z powodu nieprawidłowych znaków w nazwie pliku.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Błąd przetwarzania pliku**\n\nWideo zostało pobrane, ale nie mogło zostać przetworzone z powodu błędu nieprawidłowego argumentu.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
-        "**Powód:**
-• Pobrany plik nie jest plikiem wideo
-• Może to być dokument (PDF, DOC itp.) lub archiwum
-
-**Rozwiązanie:**
-• Sprawdź link - może prowadzić do dokumentu, a nie do wideo
-• Spróbuj innego linku lub źródła
-"
-    )
-
-"
-        "**Solution:**
-"
-        "• Check the link - it might lead to a document, not a video
-"
-        "• Try a different link or source
-"
+        "**Powód:**\n"
+        "• Pobrany plik nie jest plikiem wideo\n"
+        "• Może to być dokument (PDF, DOC itp.) lub archiwum\n\n"
+        "**Rozwiązanie:**\n"
+        "• Sprawdź link - może prowadzić do dokumentu, a nie do wideo\n"
+        "• Spróbuj innego linku lub źródła\n"
     )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Powód:**\n"
+        "• Plik nie może być przetworzony jako wideo\n"
+        "• Może nie być plikiem wideo lub plik jest uszkodzony\n\n"
+        "**Rozwiązanie:**\n"
+        "• Sprawdź link - może prowadzić do dokumentu, a nie do wideo\n"
+        "• Spróbuj innego linku lub źródła\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format niedostępny**\n\nŻądany format wideo nie jest dostępny dla tego wideo.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ID formatu {format_id} nie znaleziono dla tego wideo.\n\nDostępne ID formatów: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Format AV1 nie jest dostępny dla tego wideo.**\n\n**Dostępne formaty:**\n{formats_text}\n\n"
@@ -1837,8 +1833,7 @@ Użyj:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Błąd podczas wysyłania wideo z minimalnym podpisem: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Błąd podczas wysyłania pełnego pliku opisu: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Błąd podczas usuwania tymczasowego pliku opisu: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"

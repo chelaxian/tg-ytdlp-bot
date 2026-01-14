@@ -1482,7 +1482,21 @@ Usa:
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Error de Procesamiento de Archivo**\n\nEl video fue descargado pero no pudo ser procesado debido a caracteres inválidos en el nombre del archivo.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Error de Procesamiento de Archivo**\n\nEl video fue descargado pero no pudo ser procesado debido a un error de argumento inválido.\n\n"
     FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Razón:**\n"
+        "• El archivo descargado no es un archivo de video\n"
+        "• Podría ser un documento (PDF, DOC, etc.) o un archivo\n\n"
+        "**Solución:**\n"
+        "• Verifique el enlace - podría llevar a un documento, no a un video\n"
+        "• Pruebe con un enlace o fuente diferente\n"
+    )
     FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Razón:**\n"
+        "• El archivo no puede ser procesado como video\n"
+        "• Puede que no sea un archivo de video o el archivo está dañado\n\n"
+        "**Solución:**\n"
+        "• Verifique el enlace - podría llevar a un documento, no a un video\n"
+        "• Pruebe con un enlace o fuente diferente\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Formato No Disponible**\n\nEl formato de video solicitado no está disponible para este video.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ID de formato {format_id} no encontrado para este video.\n\nIDs de formato disponibles: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **El formato AV1 no está disponible para este video.**\n\n**Formatos disponibles:**\n{formats_text}\n\n"
@@ -1880,8 +1894,7 @@ Usa:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Error al enviar video con subtítulo mínimo: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Error al enviar archivo de descripción completo: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Error al eliminar archivo de descripción temporal: {error}"
-    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
-File size: {size_mib:.2f} MiB"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
     SENDER_VIDEO_PART_MSG = "Part {part_num}"
     SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
     SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
