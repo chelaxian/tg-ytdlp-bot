@@ -1480,6 +1480,26 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **फ़ाइल प्रोसेसिंग त्रुटि**\n\nवीडियो डाउनलोड हो गया लेकिन फ़ाइल नाम में अमान्य वर्णों के कारण प्रोसेस नहीं किया जा सका।\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **फ़ाइल प्रोसेसिंग त्रुटि**\n\nवीडियो डाउनलोड हो गया लेकिन अमान्य तर्क त्रुटि के कारण प्रोसेस नहीं किया जा सका।\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**कारण:**
+• डाउनलोड की गई फ़ाइल एक वीडियो फ़ाइल नहीं है
+• यह एक दस्तावेज़ (PDF, DOC, आदि) या संग्रह हो सकता है
+
+**समाधान:**
+• लिंक जांचें - यह एक दस्तावेज़ की ओर ले जा सकता है, वीडियो नहीं
+• एक अलग लिंक या स्रोत आज़माएं
+"
+    )
+
+"
+        "**Solution:**
+"
+        "• Check the link - it might lead to a document, not a video
+"
+        "• Try a different link or source
+"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
     FORMAT_NOT_AVAILABLE_MSG = "❌ **प्रारूप उपलब्ध नहीं**\n\nअनुरोधित वीडियो प्रारूप इस वीडियो के लिए उपलब्ध नहीं है।\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ प्रारूप ID {format_id} इस वीडियो के लिए नहीं मिला।\n\nउपलब्ध प्रारूप IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **AV1 प्रारूप इस वीडियो के लिए उपलब्ध नहीं है।**\n\n**उपलब्ध प्रारूप:**\n{formats_text}\n\n"
@@ -1877,8 +1897,12 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "न्यूनतम कैप्शन के साथ वीडियो भेजने में त्रुटि: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "पूर्ण विवरण फ़ाइल भेजने में त्रुटि: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "अस्थायी विवरण फ़ाइल हटाने में त्रुटि: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
+File size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "NO_FILTER_DOMAINS में डोमेन के लिए match_filter छोड़ रहे हैं: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "उपयोगकर्ता {user_id} के लिए प्रारूप पहचान के लिए उपयोगकर्ता के URL पर मौजूदा YouTube कुकीज़ की जांच कर रहे हैं"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "मौजूदा YouTube कुकीज़ उपयोगकर्ता {user_id} के लिए प्रारूप पहचान के लिए उपयोगकर्ता के URL पर काम करती हैं - उनका उपयोग कर रहे हैं"

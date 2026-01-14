@@ -403,11 +403,16 @@ def generate_download_dir_name(url):
             # Remove file extension if present
             path = re.sub(r'\.[a-zA-Z0-9]+$', '', path)
             if path:
+                # Limit path length to avoid very long directory names
+                if len(path) > 30:
+                    import hashlib
+                    path_hash = hashlib.md5(path.encode('utf-8')).hexdigest()[:8]
+                    path = path_hash
                 dir_name += f"_{path}"
         
         # Add query parameters if exist
         if parsed.query:
-            # Add first few query parameters for all sites
+            # Add first few query parameters for all sites, but limit their length
             query_parts = parsed.query.split('&')[:3]
             for part in query_parts:
                 if '=' in part:
@@ -415,6 +420,17 @@ def generate_download_dir_name(url):
                     # Only replace truly problematic characters, keep most symbols
                     key = re.sub(r'[^\w\-_.]', '_', key)
                     value = re.sub(r'[^\w\-_.]', '_', value)
+                    # Limit length of key and value to avoid very long filenames
+                    # Each query param should not exceed 50 chars total
+                    max_key_len = 20
+                    max_value_len = 30
+                    if len(key) > max_key_len:
+                        key = key[:max_key_len]
+                    if len(value) > max_value_len:
+                        # Use hash of value if too long
+                        import hashlib
+                        value_hash = hashlib.md5(value.encode('utf-8')).hexdigest()[:8]
+                        value = value_hash
                     dir_name += f"_{key}_{value}"
         
         # Only replace characters that are truly problematic for filesystem
@@ -425,18 +441,28 @@ def generate_download_dir_name(url):
         dir_name = re.sub(r'_+', '_', dir_name)
         dir_name = dir_name.strip('_')
         
-        # Limit length to reasonable size
-        if len(dir_name) > 150:
-            # Keep domain and first part, truncate rest
+        # Limit length to reasonable size (max 100 chars for directory name)
+        # This ensures the full path (users/{user_id}/downloads/{dir_name}/filename) stays within limits
+        # Linux filesystem limit is 255 bytes per component, but we use 100 to leave room for filename
+        if len(dir_name) > 100:
+            # Keep domain and truncate rest, or use hash if domain itself is too long
             parts = dir_name.split('_')
             if len(parts) > 1:
                 domain_part = parts[0]
+                # Limit domain part to 50 chars
+                if len(domain_part) > 50:
+                    domain_part = domain_part[:50]
                 remaining = '_'.join(parts[1:])
-                if len(remaining) > 100:
-                    remaining = remaining[:100]
+                # Limit remaining to 50 chars (total will be ~100 with domain)
+                if len(remaining) > 50:
+                    # Use hash for remaining part if too long
+                    import hashlib
+                    remaining_hash = hashlib.md5(remaining.encode('utf-8')).hexdigest()[:8]
+                    remaining = remaining_hash
                 dir_name = f"{domain_part}_{remaining}"
             else:
-                dir_name = dir_name[:150]
+                # If no parts, just truncate
+                dir_name = dir_name[:100]
         
         # Ensure we have something
         if not dir_name or dir_name == '_':

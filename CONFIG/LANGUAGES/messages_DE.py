@@ -1482,6 +1482,8 @@ Verwenden Sie:
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Dateiverarbeitungsfehler**\n\nDas Video wurde heruntergeladen, konnte aber aufgrund ungültiger Zeichen im Dateinamen nicht verarbeitet werden.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Dateiverarbeitungsfehler**\n\nDas Video wurde heruntergeladen, konnte aber aufgrund eines ungültigen Argumentfehlers nicht verarbeitet werden.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format nicht verfügbar**\n\nDas angeforderte Videoformat ist für dieses Video nicht verfügbar.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Format-ID {format_id} für dieses Video nicht gefunden.\n\nVerfügbare Format-IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **AV1-Format ist für dieses Video nicht verfügbar.**\n\n**Verfügbare Formate:**\n{formats_text}\n\n"
@@ -1879,8 +1881,12 @@ Verwenden Sie:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Fehler beim Senden des Videos mit minimaler Beschriftung: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Fehler beim Senden der vollständigen Beschreibungsdatei: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Fehler beim Entfernen der temporären Beschreibungsdatei: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
+File size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "Überspringe match_filter für Domain in NO_FILTER_DOMAINS: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Überprüfe vorhandene YouTube-Cookies auf Benutzer-URL für Format-Erkennung für Benutzer {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Vorhandene YouTube-Cookies funktionieren auf Benutzer-URL für Format-Erkennung für Benutzer {user_id} - verwende sie"

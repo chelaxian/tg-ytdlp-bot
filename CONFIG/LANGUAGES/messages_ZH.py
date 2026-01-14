@@ -1481,6 +1481,8 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **文件处理错误**\n\n视频已下载，但由于文件名中的无效字符而无法处理。\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **文件处理错误**\n\n视频已下载，但由于无效参数错误而无法处理。\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
     FORMAT_NOT_AVAILABLE_MSG = "❌ **格式不可用**\n\n请求的视频格式对此视频不可用。\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ 此视频未找到格式ID {format_id}。\n\n可用格式ID：{available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **此视频的AV1格式不可用。**\n\n**可用格式：**\n{formats_text}\n\n"
@@ -1878,8 +1880,12 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "发送带最小标题的视频时出错：{error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "发送完整描述文件时出错：{error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "删除临时描述文件时出错：{error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
+File size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "跳过NO_FILTER_DOMAINS中域名的match_filter：{url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "检查用户 {user_id} 的URL上现有YouTube cookies以进行格式检测"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "现有YouTube cookies在用户 {user_id} 的URL上工作正常，用于格式检测 - 使用它们"

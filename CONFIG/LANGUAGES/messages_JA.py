@@ -1481,6 +1481,8 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **File Processing Error**\n\nThe video was downloaded but couldn't be processed due to invalid characters in the filename.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **File Processing Error**\n\nThe video was downloaded but couldn't be processed due to an invalid argument error.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Not Available**\n\nThe requested video format is not available for this video.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Format ID {format_id} not found for this video.\n\nAvailable format IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **この動画ではAV1形式は利用できません。**\n\n**利用可能な形式:**\n{formats_text}\n\n"
@@ -1878,8 +1880,12 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "最小限のキャプションを含むビデオの送信エラー: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "完全な説明ファイルの送信中にエラーが発生しました: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "一時的な説明ファイルの削除中にエラーが発生しました: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
+File size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "NO_FILTER_DOMAINS内のドメイン{url}のmatch_filterをスキップしています"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "ユーザー{user_id}のフォーマット検出のためにユーザーのURLで既存のYouTube cookieを確認中"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "既存の YouTube Cookie は、ユーザー {user_id} の形式検出のためにユーザーの URL に作用します - それらを使用します"

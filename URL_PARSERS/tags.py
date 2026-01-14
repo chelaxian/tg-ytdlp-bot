@@ -288,10 +288,18 @@ def extract_url_range_tags(text: str):
             continue
         
         tag = raw.group(1)
+        
+        # If tag contains '/' character, it's part of URL, not a tag - skip it
+        if '/' in tag:
+            continue
+        
+        # If tag contains other forbidden characters, show error
         if not re.fullmatch(r'[\w\d_]+', tag, re.UNICODE):
             error_tag = tag
-            example = re.sub(r'[^\w\d_]', '_', tag, flags=re.UNICODE)
-            error_tag_example = f'#{example}'
+            sanitized_tag = re.sub(r'[^\w\d_]', '_', tag, flags=re.UNICODE)
+            sanitized_tag = re.sub(r'_+', '_', sanitized_tag)
+            sanitized_tag = sanitized_tag.strip('_')
+            error_tag_example = f'#{sanitized_tag}' if sanitized_tag else '#tag'
             break
         tags.append(f'#{tag}')
     tags_text = ' '.join(tags)

@@ -1432,6 +1432,26 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Файлды өңдеу қатесі**\n\nБейне жүктелді, бірақ файл атауындағы жарамсыз таңбаларға байланысты өңдеу мүмкін болмады.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Файлды өңдеу қатесі**\n\nБейне жүктелді, бірақ жарамсыз аргумент қатесіне байланысты өңдеу мүмкін болмады.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Себеп:**
+• Жүктелген файл бейне файлы емес
+• Бұл құжат (PDF, DOC, т.б.) немесе архив болуы мүмкін
+
+**Шешу:**
+• Сілтемені тексеріңіз - ол бейнеге емес, құжатқа алып кетуі мүмкін
+• Басқа сілтеме немесе көзді көріңіз
+"
+    )
+
+"
+        "**Solution:**
+"
+        "• Check the link - it might lead to a document, not a video
+"
+        "• Try a different link or source
+"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Формат қолжетімсіз**\n\nСұралған бейне форматы осы бейне үшін қолжетімсіз.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Формат ID {format_id} осы бейне үшін табылмады.\n\nҚолжетімді формат ID-лері: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **AV1 форматы осы бейне үшін қолжетімсіз.**\n\n**Қолжетімді форматтар:**\n{formats_text}\n\n"
@@ -1878,8 +1898,12 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Минималды жазуы бар бейнені жіберу қатесі: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Толық сипаттама файлын жіберу қатесі: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Уақытша сипаттама файлын жою қатесі: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
+File size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "NO_FILTER_DOMAINS доменіне арналған сәйкестік_сүзгісін өткізіп жіберу: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Пайдаланушы {user_id} пішімін анықтау үшін пайдаланушының URL мекенжайындағы бар YouTube cookie файлдарын тексеру"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Қолданыстағы YouTube cookie файлдары {user_id} пайдаланушы үшін пішімді анықтау үшін пайдаланушының URL мекенжайында жұмыс істейді - оларды пайдалану"

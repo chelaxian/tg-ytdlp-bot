@@ -1481,6 +1481,26 @@ Utilisez :
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Erreur de Traitement de Fichier**\n\nLa vidéo a été téléchargée mais n'a pas pu être traitée en raison de caractères invalides dans le nom de fichier.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Erreur de Traitement de Fichier**\n\nLa vidéo a été téléchargée mais n'a pas pu être traitée en raison d'une erreur d'argument invalide.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Raison:**
+• Le fichier téléchargé n'est pas un fichier vidéo
+• Il pourrait s'agir d'un document (PDF, DOC, etc.) ou d'une archive
+
+**Solution:**
+• Vérifiez le lien - il pourrait mener à un document, pas à une vidéo
+• Essayez un lien ou une source différente
+"
+    )
+
+"
+        "**Solution:**
+"
+        "• Check the link - it might lead to a document, not a video
+"
+        "• Try a different link or source
+"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Non Disponible**\n\nLe format vidéo demandé n'est pas disponible pour cette vidéo.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ID de format {format_id} introuvable pour cette vidéo.\n\nIDs de format disponibles : {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Le format AV1 n'est pas disponible pour cette vidéo.**\n\n**Formats disponibles :**\n{formats_text}\n\n"
@@ -1878,6 +1898,10 @@ Utilisez :
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Erreur lors de l'envoi de la vidéo avec légende minimale : {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Erreur lors de l'envoi du fichier de description complet : {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Erreur lors de la suppression du fichier de description temporaire : {error}"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
     
     # YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "Ignorant match_filter pour le domaine dans NO_FILTER_DOMAINS : {url}"

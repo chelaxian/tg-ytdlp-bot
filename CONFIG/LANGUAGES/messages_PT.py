@@ -1481,6 +1481,26 @@ Use:
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Erro de Processamento de Arquivo**\n\nO vídeo foi baixado mas não pôde ser processado devido a caracteres inválidos no nome do arquivo.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Erro de Processamento de Arquivo**\n\nO vídeo foi baixado mas não pôde ser processado devido a um erro de argumento inválido.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Motivo:**
+• O arquivo baixado não é um arquivo de vídeo
+• Pode ser um documento (PDF, DOC, etc.) ou arquivo
+
+**Solução:**
+• Verifique o link - pode levar a um documento, não a um vídeo
+• Tente um link ou fonte diferente
+"
+    )
+
+"
+        "**Solution:**
+"
+        "• Check the link - it might lead to a document, not a video
+"
+        "• Try a different link or source
+"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Formato Não Disponível**\n\nO formato de vídeo solicitado não está disponível para este vídeo.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ID de formato {format_id} não encontrado para este vídeo.\n\nIDs de formato disponíveis: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Formato AV1 não está disponível para este vídeo.**\n\n**Formatos disponíveis:**\n{formats_text}\n\n"
@@ -1878,8 +1898,12 @@ Use:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Erro ao enviar vídeo com legenda mínima: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Erro ao enviar arquivo de descrição completo: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Erro ao remover arquivo de descrição temporário: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts
+File size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "Ignorando match_filter para domínio em NO_FILTER_DOMAINS: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Verificando cookies do YouTube existentes na URL do usuário para detecção de formato para usuário {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Cookies do YouTube existentes funcionam na URL do usuário para detecção de formato para usuário {user_id} - usando-os"
