@@ -4,7 +4,7 @@
       "blocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768380939
+          "timestamp": 1768390131
         }
       },
       "logs": {
@@ -21,13 +21,13 @@
       "unblocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768380939
+          "timestamp": 1768390131
         }
       },
       "users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768380939
+          "timestamp": 1768390131
         }
       },
       "channel_guard": {
@@ -255,10 +255,18 @@
             "name": "......... .........",
             "last_left_ts": 1768372531.0,
             "blocked": false
+          },
+          "6084185553": {
+            "ID": "6084185553",
+            "first_left_ts": 1768381617.0,
+            "username": null,
+            "name": "Deleted Account",
+            "last_left_ts": 1768381617.0,
+            "blocked": false
           }
         },
         "state": {
-          "last_event_id": 950713552224
+          "last_event_id": 950822072360
         }
       }
     },
