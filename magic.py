@@ -603,32 +603,34 @@ def run_with_auto_reconnect():
                 logger.warning("Pyrogram client disconnected, will attempt to reconnect...")
                 with _reconnect_lock:
                     _should_reconnect = True
-                # Останавливаем клиент синхронно через event loop
-                try:
-                    # app.stop() - синхронный метод, но вызываем его через call_soon
-                    app.loop.call_soon(app.stop)
-                except Exception:
-                    pass
             
             # Запускаем мониторинг переподключения в отдельном потоке
+            idle_interrupted = threading.Event()
+            
             def monitor_reconnection():
-                """Мониторит флаг переподключения и останавливает клиент при необходимости"""
+                """Мониторит флаг переподключения и прерывает idle при необходимости"""
                 while True:
                     time.sleep(2)  # Проверяем каждые 2 секунды
                     with _reconnect_lock:
                         if _should_reconnect:
-                            logger.warning("Reconnection flag detected, stopping client...")
+                            logger.warning("Reconnection flag detected, interrupting idle...")
+                            idle_interrupted.set()
+                            # Останавливаем клиент - это должно прервать idle()
                             try:
-                                # Вызываем stop через event loop
-                                app.loop.call_soon_threadsafe(app.stop)
-                            except Exception:
-                                pass
+                                # Используем синхронный вызов stop из другого потока
+                                # Pyrogram должен обработать это и прервать idle()
+                                app.stop()
+                            except Exception as e:
+                                logger.warning(f"Error stopping client: {e}")
                             break
             
             monitor_thread = threading.Thread(target=monitor_reconnection, daemon=True)
             monitor_thread.start()
             
             # Запускаем idle в главном потоке (требуется для обработчиков сигналов)
+            # idle() блокирует выполнение до остановки клиента или KeyboardInterrupt
+            # Когда мониторинг обнаружит необходимость переподключения, он остановит клиент,
+            # что должно прервать idle() и вернуть управление
             try:
                 idle()
             except KeyboardInterrupt:
@@ -638,41 +640,46 @@ def run_with_auto_reconnect():
                 logger.error(f"Error in idle: {e}")
             
             # Проверяем, нужен ли переподключение после завершения idle
+            need_reconnect = False
             with _reconnect_lock:
-                if _should_reconnect:
-                    logger.warning("Reconnection needed, stopping current session...")
-                    attempt += 1
-                    
-                    # Останавливаем channel guard
-                    try:
-                        app.loop.run_until_complete(stop_channel_guard())
-                    except Exception:
-                        pass
-                    try:
+                if _should_reconnect or idle_interrupted.is_set():
+                    need_reconnect = True
+            
+            if need_reconnect:
+                logger.warning("Reconnection needed, stopping current session...")
+                attempt += 1
+                
+                # Останавливаем channel guard
+                try:
+                    app.loop.run_until_complete(stop_channel_guard())
+                except Exception:
+                    pass
+                try:
+                    if app.is_connected:
                         app.stop()
-                    except Exception:
-                        pass
-                    
-                    # Ждем, пока сеть восстановится перед переподключением
-                    logger.info("Waiting for network to be available before reconnecting...")
-                    network_available = False
-                    wait_attempts = 0
-                    max_wait_attempts = 30  # Максимум 30 попыток по 2 секунды = 60 секунд
-                    
-                    while not network_available and wait_attempts < max_wait_attempts:
-                        time.sleep(2)
-                        network_available = check_network_availability()
-                        wait_attempts += 1
-                        if not network_available:
-                            logger.info(f"Network still unavailable, waiting... ({wait_attempts}/{max_wait_attempts})")
-                    
-                    if network_available:
-                        logger.info("Network is available, reconnecting...")
-                    else:
-                        logger.warning("Network still unavailable after waiting, attempting reconnect anyway...")
-                    
-                    time.sleep(reconnect_delay)
-                    continue
+                except Exception:
+                    pass
+                
+                # Ждем, пока сеть восстановится перед переподключением
+                logger.info("Waiting for network to be available before reconnecting...")
+                network_available = False
+                wait_attempts = 0
+                max_wait_attempts = 30  # Максимум 30 попыток по 2 секунды = 60 секунд
+                
+                while not network_available and wait_attempts < max_wait_attempts:
+                    time.sleep(2)
+                    network_available = check_network_availability()
+                    wait_attempts += 1
+                    if not network_available:
+                        logger.info(f"Network still unavailable, waiting... ({wait_attempts}/{max_wait_attempts})")
+                
+                if network_available:
+                    logger.info("Network is available, reconnecting...")
+                else:
+                    logger.warning("Network still unavailable after waiting, attempting reconnect anyway...")
+                
+                time.sleep(reconnect_delay)
+                continue
             
             # Если idle завершился нормально (не из-за переподключения)
             break
