@@ -83,6 +83,7 @@
             "demographics.countries": "Top Countries",
             "demographics.gender": "Gender",
             "demographics.age": "Registered",
+            "demographics.channel_join": "Channel Join",
             "buttons.logout": "Logout",
             "buttons.save": "Save",
             "buttons.add": "Add",
@@ -195,6 +196,7 @@
             "demographics.countries": "Топ стран",
             "demographics.gender": "Пол",
             "demographics.age": "Регистрация",
+            "demographics.channel_join": "Присоединение к каналу",
             "buttons.logout": "Выход",
             "buttons.save": "Сохранить",
             "buttons.add": "Добавить",
@@ -255,6 +257,7 @@
         "misc.empty": "चयनित अवधि के लिए डेटा नहीं",
         "labels.max_gap": "अंतर: {value}",
         "labels.downloads": "{value} डाउनलोड",
+        "demographics.channel_join": "चैनल में शामिल हुए",
     };
 
     translations.ar = {
@@ -285,6 +288,7 @@
         "misc.empty": "لا توجد بيانات للفترة المحددة",
         "labels.max_gap": "الفاصل: {value}",
         "labels.downloads": "{value} تنزيل",
+        "demographics.channel_join": "الانضمام إلى القناة",
     };
 
     const selectors = {};
@@ -304,6 +308,7 @@
         countries: (period = "today", limit = 50) => `/api/top-countries?period=${period}&limit=${limit}`,
         gender: (period = "today") => `/api/gender-stats?period=${period}`,
         age: (period = "today") => `/api/age-stats?period=${period}`,
+        channelJoin: (period = "today") => `/api/channel-join-stats?period=${period}`,
         domains: (period = "today", limit = 50) => `/api/top-domains?period=${period}&limit=${limit}`,
         nsfwUsers: (limit = 100) => `/api/top-nsfw-users?limit=${limit}`,
         nsfwDomains: (limit = 50) => `/api/top-nsfw-domains?limit=${limit}`,
@@ -1055,9 +1060,10 @@
     }
 
     async function loadGenderAge(period) {
-        const [gender, age] = await Promise.all([
+        const [gender, age, channelJoin] = await Promise.all([
             fetchJSON(endpoints.gender(period)),
             fetchJSON(endpoints.age(period)),
+            fetchJSON(endpoints.channelJoin(period)),
         ]);
         renderSimpleList(
             document.getElementById("gender-stats"),
@@ -1074,6 +1080,18 @@
             ageContainer,
             age || [],
             (item) => `${item.age_group}: ${item.count}`,
+            "",
+            false  // Don't show count badge (already in formatter)
+        );
+        const channelJoinContainer = document.getElementById("channel-join-stats");
+        if (channelJoinContainer) {
+            channelJoinContainer.style.maxHeight = "400px";
+            channelJoinContainer.style.overflowY = "auto";
+        }
+        renderSimpleList(
+            channelJoinContainer,
+            channelJoin || [],
+            (item) => `${item.join_date}: ${item.count}`,
             "",
             false  // Don't show count badge (already in formatter)
         );

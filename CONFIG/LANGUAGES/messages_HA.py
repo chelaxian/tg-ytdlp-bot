@@ -1481,6 +1481,22 @@ Yi amfani da:
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Kuskuren Sarrafa Fayil**\n\nAn sauke bidiyon amma ba za a iya sarrafa shi ba saboda haruffa marasa inganci a cikin sunan fayil.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Kuskuren Sarrafa Fayil**\n\nAn sauke bidiyon amma ba za a iya sarrafa shi ba saboda kuskuren hujja mara inganci.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Dalili:**\n"
+        "• Fayil ɗin da aka saukar ba fayil bidiyo ba ne\n"
+        "• Yana iya zama takarda (PDF, DOC, da sauransu) ko kuma archive\n\n"
+        "**Magani:**\n"
+        "• Bincika hanyar haɗi - yana iya kaiwa ga takarda, ba bidiyo ba\n"
+        "• Gwada hanyar haɗi ko tushe daban\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Dalili:**\n"
+        "• Ba za a iya sarrafa fayil ɗin a matsayin bidiyo ba\n"
+        "• Yana iya zama ba fayil bidiyo ba ne ko kuma fayil ɗin ya lalace\n\n"
+        "**Magani:**\n"
+        "• Bincika hanyar haɗi - yana iya kaiwa ga takarda, ba bidiyo ba\n"
+        "• Gwada hanyar haɗi ko tushe daban\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Tsari Ba Ya Samuwa**\n\nTsarin bidiyon da aka nema baya samuwa don wannan bidiyon.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Ba a sami ID na Tsari {format_id} don wannan bidiyon.\n\nID na Tsari da Ake Samu: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Tsarin AV1 baya samuwa don wannan bidiyon.**\n\n**Tsare-tsare da Ake Samu:**\n{formats_text}\n\n"
@@ -1878,8 +1894,11 @@ Yi amfani da:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Kuskuren aika bidiyo tare da ƙaramin taken: {error}__"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Kuskuren aika cikakken bayanin fayil: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Kuskuren cire fayil ɗin bayanin ɗan lokaci: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "Tsallake match_filter don yanki a cikin NO_FILTER_DOMAINS: {url}__"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Duba kukis na YouTube na yanzu akan URL na mai amfani don gano tsarin ga mai amfani {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Kukis na YouTube da suka wanzu suna aiki akan URL na mai amfani don gano tsari ga mai amfani {user_id} - ta amfani da su"

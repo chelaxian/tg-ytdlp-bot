@@ -1480,6 +1480,22 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Ошибка обработки файла**\n\nВидео было скачано, но не может быть обработано из-за недопустимых символов в имени файла.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Ошибка обработки файла**\n\nВидео было скачано, но не может быть обработано из-за ошибки недопустимого аргумента.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Причина:**\n"
+        "• Загруженный файл не является видео файлом\n"
+        "• Возможно, это документ (PDF, DOC и т.д.) или архив\n\n"
+        "**Решение:**\n"
+        "• Проверьте ссылку - возможно, она ведет на документ, а не на видео\n"
+        "• Попробуйте другую ссылку или источник\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Причина:**\n"
+        "• Файл не может быть обработан как видео\n"
+        "• Возможно, это не видео файл или файл поврежден\n\n"
+        "**Решение:**\n"
+        "• Проверьте ссылку - возможно, она ведет на документ, а не на видео\n"
+        "• Попробуйте другую ссылку или источник\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Формат недоступен**\n\nЗапрошенный формат видео недоступен для этого видео.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ID формата {format_id} не найден для этого видео.\n\nДоступные ID форматов: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Формат AV1 недоступен для этого видео.**\n\n**Доступные форматы:**\n{formats_text}\n\n"
@@ -1877,6 +1893,10 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Ошибка отправки видео с минимальной подписью: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Ошибка отправки полного файла описания: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Ошибка удаления временного файла описания: {error}"
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Ошибка: Не удалось разрезать файл на части\nРазмер файла: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Часть {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Часть {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Часть {part_num}.{subpart_num}"
     
     # YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "Пропуск match_filter для домена в NO_FILTER_DOMAINS: {url}"

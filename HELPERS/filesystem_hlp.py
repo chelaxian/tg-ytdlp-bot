@@ -57,8 +57,13 @@ def signal_handler(sig, frame):
     # Finish the application
     logger.info(LoggerMsg.FILESYSTEM_SHUTTING_DOWN_PYROGRAM_LOG_MSG)
     try:
-        app.stop()
-        logger.info(LoggerMsg.FILESYSTEM_PYROGRAM_STOPPED_LOG_MSG)
+        # Get app instance dynamically (may be None if not initialized)
+        app_instance = get_app()
+        if app_instance is not None:
+            app_instance.stop()
+            logger.info(LoggerMsg.FILESYSTEM_PYROGRAM_STOPPED_LOG_MSG)
+        else:
+            logger.info("Pyrogram client not initialized, skipping stop")
     except Exception as e:
         logger.error(LoggerMsg.FILESYSTEM_PYROGRAM_STOP_ERROR_LOG_MSG.format(error=e))
 

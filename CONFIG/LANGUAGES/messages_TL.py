@@ -1481,6 +1481,22 @@ Gamitin:
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Error sa Pagproseso ng File**\n\nNa-download ang video ngunit hindi ma-proseso dahil sa di-wastong character sa filename.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Error sa Pagproseso ng File**\n\nNa-download ang video ngunit hindi ma-proseso dahil sa error ng di-wastong argumento.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Dahilan:**\n"
+        "• Ang na-download na file ay hindi video file\n"
+        "• Maaaring ito ay dokumento (PDF, DOC, atbp.) o archive\n\n"
+        "**Solusyon:**\n"
+        "• Suriin ang link - maaari itong humantong sa isang dokumento, hindi video\n"
+        "• Subukan ang ibang link o source\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Dahilan:**\n"
+        "• Ang file ay hindi maaaring iproseso bilang video\n"
+        "• Maaaring hindi ito video file o ang file ay nasira\n\n"
+        "**Solusyon:**\n"
+        "• Suriin ang link - maaari itong humantong sa isang dokumento, hindi video\n"
+        "• Subukan ang ibang link o source\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Hindi Available**\n\nAng hiniling na format ng video ay hindi available para sa video na ito.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Hindi natagpuan ang Format ID {format_id} para sa video na ito.\n\nAvailable na Format IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Ang AV1 format ay hindi available para sa video na ito.**\n\n**Available na format:**\n{formats_text}\n\n"
@@ -1878,8 +1894,11 @@ Gamitin:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Error sa pagpapadala ng video na may kaunting caption: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Error sa pagpapadala ng buong file ng paglalarawan: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Error sa pag-alis ng pansamantalang file ng paglalarawan: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "Nilaktawan ang match_filter para sa domain sa NO_FILTER_DOMAINS: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Sinusuri ang umiiral nang cookies sa YouTube sa URL ng user para sa pagtukoy ng format para sa user na {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Gumagana ang kasalukuyang cookies ng YouTube sa URL ng user para sa pagtukoy ng format para sa user {user_id} - gamit ang mga ito"

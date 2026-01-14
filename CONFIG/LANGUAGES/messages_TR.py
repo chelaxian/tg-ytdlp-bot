@@ -1481,6 +1481,22 @@ Kullanın:
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **File Processing Error**\n\nThe video was downloaded but couldn't be processed due to invalid characters in the filename.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **File Processing Error**\n\nThe video was downloaded but couldn't be processed due to an invalid argument error.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Neden:**\n"
+        "• İndirilen dosya bir video dosyası değil\n"
+        "• Bir belge (PDF, DOC, vb.) veya arşiv olabilir\n\n"
+        "**Çözüm:**\n"
+        "• Bağlantıyı kontrol edin - bir belgeye, videoya değil, götürebilir\n"
+        "• Farklı bir bağlantı veya kaynak deneyin\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Neden:**\n"
+        "• Dosya video olarak işlenemez\n"
+        "• Video dosyası olmayabilir veya dosya bozuk olabilir\n\n"
+        "**Çözüm:**\n"
+        "• Bağlantıyı kontrol edin - bir belgeye, videoya değil, götürebilir\n"
+        "• Farklı bir bağlantı veya kaynak deneyin\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Not Available**\n\nThe requested video format is not available for this video.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Format ID {format_id} not found for this video.\n\nAvailable format IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Bu video için AV1 formatı mevcut değil.**\n\n**Mevcut formatlar:**\n{formats_text}\n\n"
@@ -1878,8 +1894,11 @@ Kullanın:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Minimal başlıklı video gönderilirken hata: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Tam açıklama dosyası gönderilirken hata: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Geçici açıklama dosyası kaldırılırken hata: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "NO_FILTER_DOMAINS içindeki domain için match_filter atlanıyor: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Kullanıcı {user_id} için format tespiti için kullanıcının URL'sinde mevcut YouTube cookie'leri kontrol ediliyor"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Mevcut YouTube cookie'leri kullanıcı {user_id} için format tespiti için kullanıcının URL'sinde çalışıyor - kullanılıyor"

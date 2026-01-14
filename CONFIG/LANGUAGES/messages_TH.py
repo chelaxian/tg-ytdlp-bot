@@ -1481,6 +1481,22 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **ข้อผิดพลาดในการประมวลผลไฟล์**\n\nวิดีโอถูกดาวน์โหลดแล้ว แต่ไม่สามารถประมวลผลได้เนื่องจากอักขระไม่ถูกต้องในชื่อไฟล์\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **ข้อผิดพลาดในการประมวลผลไฟล์**\n\nวิดีโอถูกดาวน์โหลดแล้ว แต่ไม่สามารถประมวลผลได้เนื่องจากข้อผิดพลาดของอาร์กิวเมนต์ที่ไม่ถูกต้อง\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**สาเหตุ:**\n"
+        "• ไฟล์ที่ดาวน์โหลดไม่ใช่ไฟล์วิดีโอ\n"
+        "• อาจเป็นเอกสาร (PDF, DOC ฯลฯ) หรือไฟล์เก็บถาวร\n\n"
+        "**วิธีแก้ไข:**\n"
+        "• ตรวจสอบลิงก์ - อาจนำไปสู่เอกสาร ไม่ใช่วิดีโอ\n"
+        "• ลองใช้ลิงก์หรือแหล่งที่มาอื่น\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**สาเหตุ:**\n"
+        "• ไม่สามารถประมวลผลไฟล์เป็นวิดีโอได้\n"
+        "• อาจไม่ใช่ไฟล์วิดีโอหรือไฟล์เสียหาย\n\n"
+        "**วิธีแก้ไข:**\n"
+        "• ตรวจสอบลิงก์ - อาจนำไปสู่เอกสาร ไม่ใช่วิดีโอ\n"
+        "• ลองใช้ลิงก์หรือแหล่งที่มาอื่น\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **รูปแบบไม่พร้อมใช้งาน**\n\nรูปแบบวิดีโอที่ร้องขอไม่พร้อมใช้งานสำหรับวิดีโอนี้\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ ไม่พบ Format ID {format_id} สำหรับวิดีโอนี้\n\nFormat ID ที่พร้อมใช้งาน: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **รูปแบบ AV1 ไม่พร้อมใช้งานสำหรับวิดีโอนี้**\n\n**รูปแบบที่พร้อมใช้งาน:**\n{formats_text}\n\n"
@@ -1878,8 +1894,11 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "เกิดข้อผิดพลาดในการส่งวิดีโอที่มีคำบรรยายน้อยที่สุด: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "เกิดข้อผิดพลาดในการส่งไฟล์คำอธิบายแบบเต็ม: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "เกิดข้อผิดพลาดในการลบไฟล์คำอธิบายชั่วคราว: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "ข้าม match_filter สำหรับโดเมนใน NO_FILTER_DOMAINS: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "ตรวจสอบคุกกี้ YouTube ที่มีอยู่ใน URL ของผู้ใช้เพื่อตรวจหารูปแบบสำหรับผู้ใช้ {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "YouTube cookies ที่มีอยู่ทำงานบน URL ของผู้ใช้สำหรับการตรวจจับรูปแบบสำหรับผู้ใช้ {user_id} - กำลังใช้"

@@ -1481,6 +1481,22 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **خطا در پردازش فایل**\n\nویدیو دانلود شد اما به دلیل کاراکترهای نامعتبر در نام فایل نمی‌تواند پردازش شود.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **خطا در پردازش فایل**\n\nویدیو دانلود شد اما به دلیل خطای آرگومان نامعتبر نمی‌تواند پردازش شود.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**دلیل:**\n"
+        "• فایل دانلود شده یک فایل ویدیو نیست\n"
+        "• ممکن است یک سند (PDF، DOC و غیره) یا بایگانی باشد\n\n"
+        "**راه حل:**\n"
+        "• لینک را بررسی کنید - ممکن است به یک سند منجر شود، نه ویدیو\n"
+        "• لینک یا منبع دیگری را امتحان کنید\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**دلیل:**\n"
+        "• فایل نمی‌تواند به عنوان ویدیو پردازش شود\n"
+        "• ممکن است فایل ویدیو نباشد یا فایل خراب باشد\n\n"
+        "**راه حل:**\n"
+        "• لینک را بررسی کنید - ممکن است به یک سند منجر شود، نه ویدیو\n"
+        "• لینک یا منبع دیگری را امتحان کنید\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **فرمت در دسترس نیست**\n\nفرمت ویدیوی درخواستی برای این ویدیو در دسترس نیست.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ شناسه فرمت {format_id} برای این ویدیو یافت نشد.\n\nشناسه‌های فرمت موجود: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **فرمت AV1 برای این ویدیو در دسترس نیست.**\n\n**فرمت‌های موجود:**\n{formats_text}\n\n"
@@ -1878,8 +1894,11 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "خطا در ارسال ویدیو با عنوان حداقلی: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "خطا در ارسال فایل توضیحات کامل: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "خطا در حذف فایل توضیحات موقت: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "رد کردن match_filter برای دامنه در NO_FILTER_DOMAINS: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "بررسی کوکی‌های YouTube موجود در URL کاربر برای شناسایی فرمت برای کاربر {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "کوکی‌های YouTube موجود در URL کاربر برای شناسایی فرمت برای کاربر {user_id} کار می‌کنند - استفاده از آنها"

@@ -1481,6 +1481,22 @@ Use:
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **فائل پراسیسنگ خرابی**\n\nویڈیو ڈاؤن لوڈ ہو گئی لیکن فائل نام میں غلط حروف کی وجہ سے پراسیس نہیں کی جا سکی۔\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **فائل پراسیسنگ خرابی**\n\nویڈیو ڈاؤن لوڈ ہو گئی لیکن غلط دلیل کی خرابی کی وجہ سے پراسیس نہیں کی جا سکی۔\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**وجہ:**\n"
+        "• ڈاؤن لوڈ کی گئی فائل ایک ویڈیو فائل نہیں ہے\n"
+        "• یہ ایک دستاویز (PDF، DOC، وغیرہ) یا آرکائیو ہو سکتا ہے\n\n"
+        "**حل:**\n"
+        "• لنک چیک کریں - یہ ایک دستاویز کی طرف لے جا سکتا ہے، ویڈیو نہیں\n"
+        "• ایک مختلف لنک یا ذریعہ آزمائیں\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**وجہ:**\n"
+        "• فائل کو ویڈیو کے طور پر پروسیس نہیں کیا جا سکتا\n"
+        "• یہ ویڈیو فائل نہیں ہو سکتی یا فائل خراب ہو سکتی ہے\n\n"
+        "**حل:**\n"
+        "• لنک چیک کریں - یہ ایک دستاویز کی طرف لے جا سکتا ہے، ویڈیو نہیں\n"
+        "• ایک مختلف لنک یا ذریعہ آزمائیں\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **فارمیٹ دستیاب نہیں**\n\nدرخواست کردہ ویڈیو فارمیٹ اس ویڈیو کے لیے دستیاب نہیں ہے۔\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ فارمیٹ ID {format_id} اس ویڈیو کے لیے نہیں ملا۔\n\nدستیاب فارمیٹ IDs: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **AV1 فارمیٹ اس ویڈیو کے لیے دستیاب نہیں ہے۔**\n\n**دستیاب فارمیٹس:**\n{formats_text}\n\n"
@@ -1878,8 +1894,11 @@ Use:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "کم سے کم کیپشن کے ساتھ ویڈیو بھیجنے میں خرابی: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "مکمل تفصیل فائل بھیجنے میں خرابی: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "عارضی تفصیل فائل ہٹانے میں خرابی: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "NO_FILTER_DOMAINS میں ڈومین کے لیے match_filter چھوڑ رہے ہیں: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "صارف {user_id} کے لیے فارمیٹ ڈیٹیکشن کے لیے صارف کے URL پر موجودہ YouTube کوکیز چیک کر رہے ہیں"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "صارف {user_id} کے لیے فارمیٹ ڈیٹیکشن کے لیے صارف کے URL پر موجودہ YouTube کوکیز کام کر رہی ہیں - انہیں استعمال کر رہے ہیں"

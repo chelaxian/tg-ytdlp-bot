@@ -78,6 +78,70 @@ def _is_playlist(url: str, title: str) -> bool:
     return any(token in src for token in PLAYLIST_KEYWORDS)
 
 
+def _estimate_registration_date_from_user_id(user_id: int) -> Optional[int]:
+    """
+    Оценивает дату регистрации пользователя на основе его user_id.
+    Использует приблизительную оценку на основе известных диапазонов ID.
+    
+    Примечание: Это приблизительная оценка, точность зависит от периода регистрации.
+    Для старых аккаунтов (до 2015) точность выше, для новых - ниже.
+    """
+    if not user_id or user_id <= 0:
+        return None
+    
+    # Известные опорные точки для оценки (ID -> примерная дата регистрации)
+    # Основано на анализе распределения ID в Telegram
+    reference_points = [
+        (100000000, datetime(2013, 8, 1, tzinfo=timezone.utc).timestamp()),  # ~2013
+        (500000000, datetime(2015, 1, 1, tzinfo=timezone.utc).timestamp()),  # ~2015
+        (1000000000, datetime(2017, 6, 1, tzinfo=timezone.utc).timestamp()),  # ~2017
+        (2000000000, datetime(2019, 12, 1, tzinfo=timezone.utc).timestamp()),  # ~2019
+        (3000000000, datetime(2021, 3, 1, tzinfo=timezone.utc).timestamp()),  # ~2021
+        (4000000000, datetime(2022, 6, 1, tzinfo=timezone.utc).timestamp()),  # ~2022
+        (5000000000, datetime(2023, 9, 1, tzinfo=timezone.utc).timestamp()),  # ~2023
+        (6000000000, datetime(2024, 12, 1, tzinfo=timezone.utc).timestamp()),  # ~2024
+        (7000000000, datetime(2025, 12, 1, tzinfo=timezone.utc).timestamp()),  # ~2025
+    ]
+    
+    # Если ID меньше минимального опорного значения
+    if user_id < reference_points[0][0]:
+        return int(reference_points[0][1])
+    
+    # Если ID больше максимального опорного значения - оцениваем как недавний
+    if user_id >= reference_points[-1][0]:
+        # Для очень новых ID используем линейную экстраполяцию
+        last_id, last_ts = reference_points[-1]
+        prev_id, prev_ts = reference_points[-2]
+        
+        id_diff = user_id - last_id
+        id_span = last_id - prev_id
+        ts_span = last_ts - prev_ts
+        
+        if id_span > 0 and ts_span > 0:
+            estimated_ts = last_ts + (id_diff / id_span) * ts_span
+            # Ограничиваем максимальной датой (не позже текущего момента)
+            max_ts = datetime.now(tz=timezone.utc).timestamp()
+            return int(min(estimated_ts, max_ts))
+        return int(last_ts)
+    
+    # Линейная интерполяция между опорными точками
+    for i in range(len(reference_points) - 1):
+        id_left, ts_left = reference_points[i]
+        id_right, ts_right = reference_points[i + 1]
+        
+        if id_left <= user_id < id_right:
+            id_span = id_right - id_left
+            ts_span = ts_right - ts_left
+            
+            if id_span > 0 and ts_span > 0:
+                frac = (user_id - id_left) / id_span
+                estimated_ts = ts_left + frac * ts_span
+                return int(estimated_ts)
+    
+    # Fallback - возвращаем дату последней опорной точки
+    return int(reference_points[-1][1])
+
+
 def _country_code_from_language(lang: Optional[str]) -> Optional[str]:
     if not lang:
         return None
@@ -92,6 +156,7 @@ def _country_code_from_language(lang: Optional[str]) -> Optional[str]:
         "fa": "IR",
         "tr": "TR",
         "hi": "IN",
+        "in": "IN",  # Hindi alternative code
         "bn": "BD",
         "id": "ID",
         "de": "DE",
@@ -104,6 +169,12 @@ def _country_code_from_language(lang: Optional[str]) -> Optional[str]:
         "tg": "TJ",
         "th": "TH",
         "zh": "CN",
+        "ja": "JP",
+        "ko": "KR",
+        "vi": "VN",
+        "ur": "PK",
+        "tl": "PH",  # Tagalog -> Philippines
+        "ha": "NG",  # Hausa -> Nigeria
     }
     return mapping.get(lang)
 
@@ -181,6 +252,7 @@ class ProfileInfo:
     flag: str = "🏳"
     gender: str = "unknown"
     age: Optional[int] = None
+    registration_date: Optional[int] = None  # Unix timestamp даты регистрации
     last_refresh_ts: float = field(default_factory=lambda: time.time())
 
     def update_from_payload(self, payload: Dict[str, Any]) -> None:
@@ -201,6 +273,12 @@ class ProfileInfo:
         if age:
             try:
                 self.age = int(age)
+            except Exception:
+                pass
+        registration_date = payload.get("registration_date")
+        if registration_date:
+            try:
+                self.registration_date = int(registration_date)
             except Exception:
                 pass
         self.last_refresh_ts = time.time()
@@ -262,7 +340,7 @@ class ChannelActivity:
 
 
 class TelegramProfileFetcher:
-    """Локальный кеш для запросов к Telegram Bot API (getChat)."""
+    """Локальный кеш для запросов к Telegram Bot API (getChat) и Pyrogram API."""
 
     def __init__(self, ttl_seconds: int = 6 * 3600):
         self._token = getattr(Config, "BOT_TOKEN", None)
@@ -272,10 +350,71 @@ class TelegramProfileFetcher:
         self._lock = threading.Lock()
         self._pending_fetches: Set[int] = set()
         self._fetch_lock = threading.Lock()
+        self._pyro_app = None  # Будет установлен позже через set_pyro_app
+
+    def set_pyro_app(self, app):
+        """Устанавливает Pyrogram Client для получения расширенной информации о пользователях."""
+        self._pyro_app = app
 
     @property
     def ttl(self) -> int:
         return self._ttl
+
+    def _get_registration_date_from_pyrogram(self, user_id: int) -> Optional[int]:
+        """Получает дату регистрации через Pyrogram MTProto API."""
+        if not self._pyro_app:
+            return None
+        try:
+            # Используем Pyrogram MTProto API для получения полной информации о пользователе
+            try:
+                from pyrogram.raw.functions.users import GetFullUser
+                
+                # Получаем InputUser для пользователя
+                peer = self._pyro_app.resolve_peer(user_id)
+                # Вызываем GetFullUser для получения полной информации
+                full_user = self._pyro_app.invoke(GetFullUser(id=peer))
+                
+                # В некоторых версиях Telegram API дата регистрации может быть доступна
+                # через различные поля. Проверяем доступные атрибуты
+                # Примечание: стандартный Bot API не предоставляет дату регистрации,
+                # но через MTProto API может быть доступна дополнительная информация
+                
+                # Для большинства случаев дата регистрации недоступна напрямую,
+                # но можно использовать приблизительный метод через user_id
+                # Пока возвращаем None, так как точная дата регистрации недоступна через Bot API
+                _ = full_user  # Используем переменную чтобы избежать предупреждения
+                return None
+            except ImportError:
+                # Если импорт не удался, пробуем без него
+                return None
+            except Exception as e:
+                logger.debug(f"[stats] Pyrogram resolve_peer/getFullUser failed for {user_id}: {e}")
+                return None
+        except Exception as exc:
+            logger.debug(f"[stats] Pyrogram getFullUser failed for {user_id}: {exc}")
+        return None
+    
+    def _estimate_registration_date_from_user_id(self, user_id: int) -> Optional[int]:
+        """
+        Приблизительно вычисляет дату регистрации из user_id.
+        Работает только для старых аккаунтов (до ~2015 года).
+        Для новых аккаунтов возвращает None.
+        """
+        try:
+            # Для старых аккаунтов первые 32 бита user_id содержат timestamp создания
+            # Это работает только для аккаунтов, созданных до определенного времени
+            # Проверяем, является ли это старым аккаунтом (user_id < определенного порога)
+            # Примерно до 2015 года user_id содержал timestamp в первых битах
+            
+            # Если user_id очень большой (новые аккаунты), этот метод не работает
+            if user_id > 2**31:  # Примерный порог для новых аккаунтов
+                return None
+            
+            # Для очень старых аккаунтов можно попробовать извлечь timestamp
+            # Но это неточный метод и работает не всегда
+            return None  # Пока отключаем, так как неточный
+        except Exception:
+            return None
 
     def get_profile(self, user_id: int, force_refresh: bool = False) -> Optional[ProfileInfo]:
         if not self._token:
@@ -304,6 +443,15 @@ class TelegramProfileFetcher:
         age_guess = _guess_age_from_text(data.get("bio"))
         if age_guess:
             profile.age = age_guess
+        
+        # Пытаемся получить дату регистрации через Pyrogram
+        try:
+            registration_date = self._get_registration_date_from_pyrogram(user_id)
+            if registration_date:
+                profile.registration_date = registration_date  # type: ignore
+        except Exception:
+            pass  # Если не удалось получить дату регистрации, продолжаем без неё
+        
         with self._lock:
             self._cache[user_id] = profile
         return profile
@@ -616,6 +764,7 @@ class StatsCollector:
                     "flag": fetched.flag,
                     "gender": fetched.gender,
                     "age": fetched.age,
+                    "registration_date": fetched.registration_date,
                 }
                 profile.update_from_payload(payload)
         if not profile.country_code and profile.language_code:
@@ -1045,15 +1194,41 @@ class StatsCollector:
         return [{"domain": domain, "count": count} for domain, count in counter.most_common(limit)]
 
     def get_top_countries(self, period: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Получает статистику стран на основе файла lang.txt в папке пользователя.
+        Если файла нет - считается как английский (en -> US).
+        Считает уникальных пользователей, а не количество скачиваний.
+        """
         downloads = self._filter_downloads(period)
         with self._lock:
             blocked_user_ids = set(self._blocked_users.keys())
+        
+        # Собираем уникальных пользователей
+        user_ids = {rec.user_id for rec in downloads if rec.user_id not in blocked_user_ids}
+        
+        # Получаем путь к папке пользователей
+        users_dir = Path(getattr(Config, "USERS_DIR", "users"))
+        if not users_dir.is_absolute():
+            users_dir = BASE_DIR / users_dir
+        
         counter: Counter = Counter()
-        for record in downloads:
-            if record.user_id not in blocked_user_ids:
-                profile = self._get_profile(record.user_id)
-                country = profile.country_code or "UN"
-                counter[country] += 1
+        for user_id in user_ids:
+            # Читаем lang.txt из папки пользователя
+            lang_file = users_dir / str(user_id) / "lang.txt"
+            lang_code = "en"  # По умолчанию английский
+            
+            if lang_file.exists():
+                try:
+                    lang_code = lang_file.read_text(encoding="utf-8").strip().lower()
+                    if not lang_code:
+                        lang_code = "en"
+                except Exception:
+                    lang_code = "en"
+            
+            # Преобразуем код языка в код страны
+            country = _country_code_from_language(lang_code) or "UN"
+            counter[country] += 1
+        
         result = []
         for country, count in counter.most_common(limit):
             flag = _flag_from_country(country if country != "UN" else None)
@@ -1061,32 +1236,171 @@ class StatsCollector:
         return result
 
     def get_gender_stats(self, period: str) -> List[Dict[str, Any]]:
+        """
+        Статистика по полу пользователей.
+        Считает уникальных пользователей, а не количество скачиваний.
+        """
         downloads = self._filter_downloads(period)
         with self._lock:
             blocked_user_ids = set(self._blocked_users.keys())
-        counter: Counter = Counter()
-        for record in downloads:
-            if record.user_id not in blocked_user_ids:
-                profile = self._get_profile(record.user_id)
-                counter[profile.gender or "unknown"] += 1
-        return [{"gender": gender, "count": count} for gender, count in counter.most_common()]
-
-    def get_age_stats(self, period: str) -> List[Dict[str, Any]]:
-        """Статистика по «возрасту» аккаунта: дата первой зафиксированной активности."""
-        downloads = self._filter_downloads(period)
-        with self._lock:
-            blocked_user_ids = set(self._blocked_users.keys())
+        # Собираем уникальных пользователей
         user_ids = {rec.user_id for rec in downloads if rec.user_id not in blocked_user_ids}
         counter: Counter = Counter()
         for user_id in user_ids:
-            first_ts = self._first_seen.get(user_id)
-            if first_ts:
-                dt = datetime.fromtimestamp(first_ts, tz=timezone.utc)
-                bucket = dt.strftime("%Y-%m")
+            profile = self._get_profile(user_id)
+            counter[profile.gender or "unknown"] += 1
+        return [{"gender": gender, "count": count} for gender, count in counter.most_common()]
+
+    def get_age_stats(self, period: str) -> List[Dict[str, Any]]:
+        """
+        Статистика по «возрасту» аккаунта: дата регистрации пользователя в Telegram.
+        
+        Для периода "all": показывает всех пользователей, сортирует по дате (старые сначала).
+        Для периодов "month/week/today": показывает только пользователей, зарегистрировавшихся в этот период.
+        
+        Использует дату регистрации из Telegram API, если доступна, иначе оценивает по user_id.
+        """
+        with self._lock:
+            blocked_user_ids = set(self._blocked_users.keys())
+        
+        # Определяем временные границы периода для фильтрации по дате регистрации
+        window_start, window_end = _window_bounds(period)
+        
+        # Для периода "all" собираем всех пользователей из дампа
+        # Для других периодов собираем только активных в этот период
+        if period == "all":
+            # Для "all" используем всех пользователей из _first_seen
+            user_ids = set(self._first_seen.keys())
+        else:
+            downloads = self._filter_downloads(period)
+            user_ids = {rec.user_id for rec in downloads if rec.user_id not in blocked_user_ids}
+        
+        counter: Counter = Counter()
+        for user_id in user_ids:
+            if user_id in blocked_user_ids:
+                continue
+            
+            # Пытаемся получить дату регистрации из профиля (через Telegram API)
+            profile = self._get_profile(user_id)
+            registration_ts = None
+            
+            if profile and profile.registration_date:
+                # Используем дату регистрации из Telegram API
+                registration_ts = profile.registration_date
+            
+            # Если дата регистрации недоступна через API, оцениваем по user_id
+            if not registration_ts:
+                registration_ts = _estimate_registration_date_from_user_id(user_id)
+            
+            # Фильтруем по периоду регистрации (если не "all")
+            if period != "all" and registration_ts:
+                if window_start and registration_ts < window_start:
+                    continue
+                if window_end and registration_ts > window_end:
+                    continue
+            
+            if registration_ts:
+                dt = datetime.fromtimestamp(registration_ts, tz=timezone.utc)
+                # Группируем по годам, так как точность оценки только годовая
+                bucket = dt.strftime("%Y")
             else:
+                # Для "unknown" не фильтруем по периоду, но показываем только если период "all"
+                if period != "all":
+                    continue
                 bucket = "unknown"
             counter[bucket] += 1
-        return [{"age_group": group, "count": count} for group, count in counter.most_common()]
+        
+        # Сортируем по дате (старые сначала), "unknown" в конце
+        result_items = []
+        date_items = []
+        unknown_count = counter.get("unknown", 0)
+        
+        for bucket, count in counter.items():
+            if bucket == "unknown":
+                continue
+            # Преобразуем bucket (год) в timestamp для сортировки
+            try:
+                dt = datetime.strptime(bucket, "%Y").replace(tzinfo=timezone.utc)
+                date_items.append((dt.timestamp(), bucket, count))
+            except Exception:
+                continue
+        
+        # Сортируем по дате (старые сначала)
+        date_items.sort(key=lambda x: x[0])
+        result_items = [{"age_group": bucket, "count": count} for _, bucket, count in date_items]
+        
+        # Добавляем "unknown" в конец, если есть
+        if unknown_count > 0:
+            result_items.append({"age_group": "unknown", "count": unknown_count})
+        
+        return result_items
+    
+    def get_channel_join_stats(self, period: str) -> List[Dict[str, Any]]:
+        """
+        Статистика по дате присоединения к каналу (первая активность в боте).
+        Использует _first_seen из дампа.
+        
+        Группировка:
+        - All time: по месяцам (YYYY-MM) - показывает всех пользователей
+        - Month: по неделям (YYYY-MM-WW) - только пользователи, присоединившиеся в этот месяц
+        - Week: по дням (YYYY-MM-DD) - только пользователи, присоединившиеся в эту неделю
+        - Today: одна строка "today" - только пользователи, присоединившиеся сегодня
+        """
+        with self._lock:
+            blocked_user_ids = set(self._blocked_users.keys())
+            first_seen_copy = dict(self._first_seen)
+        
+        # Определяем временные границы периода
+        window_start, window_end = _window_bounds(period)
+        
+        counter: Counter = Counter()
+        for user_id, first_ts in first_seen_copy.items():
+            if user_id in blocked_user_ids:
+                continue
+            
+            # Фильтруем по периоду присоединения
+            if window_start and first_ts < window_start:
+                continue
+            if window_end and first_ts > window_end:
+                continue
+            
+            dt = datetime.fromtimestamp(first_ts, tz=timezone.utc)
+            
+            if period == "all":
+                # Группировка по месяцам
+                bucket = dt.strftime("%Y-%m")
+            elif period == "month":
+                # Группировка по неделям (неделя в месяце)
+                # Вычисляем номер недели в месяце (1-5)
+                first_day = dt.replace(day=1)
+                week_in_month = ((dt - first_day).days // 7) + 1
+                bucket = f"{dt.strftime('%Y-%m')}-W{week_in_month}"
+            elif period == "week":
+                # Группировка по дням
+                bucket = dt.strftime("%Y-%m-%d")
+            elif period == "today":
+                # Одна строка для сегодня
+                bucket = "today"
+            else:
+                bucket = dt.strftime("%Y-%m")
+            
+            counter[bucket] += 1
+        
+        # Сортируем результаты
+        if period == "all":
+            # Для "all" сортируем по дате (старые сначала)
+            result = sorted(counter.items(), key=lambda x: x[0])
+        elif period == "month":
+            # Для "month" сортируем по дате
+            result = sorted(counter.items(), key=lambda x: x[0])
+        elif period == "week":
+            # Для "week" сортируем по дате
+            result = sorted(counter.items(), key=lambda x: x[0])
+        else:
+            # Для "today" и других - просто по количеству
+            result = counter.most_common()
+        
+        return [{"join_date": group, "count": count} for group, count in result]
 
     def _filter_downloads_by_flag(
         self,

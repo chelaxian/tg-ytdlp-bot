@@ -1859,6 +1859,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Postprocessing error: {error_message}")
                         return "POSTPROCESSING_ERROR"
                 
+                # Check for postprocessing errors with Invalid data (non-video files like PDF)
+                if "Postprocessing" in error_message and "Invalid data found when processing input" in error_message:
+                    logger.error(f"Postprocessing error (Invalid data - non-video file): {error_message}")
+                    # Check if downloaded file is actually a video file
+                    try:
+                        if os.path.exists(user_dir_name):
+                            files = os.listdir(user_dir_name)
+                            # Check for non-video files
+                            non_video_extensions = ('.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.7z', '.unknown')
+                            non_video_files = [f for f in files if any(f.lower().endswith(ext) for ext in non_video_extensions)]
+                            if non_video_files:
+                                messages = safe_get_messages(user_id)
+                                postprocessing_message = (
+                                    messages.FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
+                                    messages.FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG
+                                )
+                                send_error_to_user(message, postprocessing_message)
+                                logger.error(f"Non-video file detected: {non_video_files}")
+                                return "POSTPROCESSING_ERROR"
+                    except Exception as check_e:
+                        logger.debug(f"Error checking file type: {check_e}")
+                    # If we can't determine file type, still return error
+                    messages = safe_get_messages(user_id)
+                    postprocessing_message = (
+                        messages.FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
+                        messages.FILE_PROCESSING_ERROR_INVALID_DATA_MSG
+                    )
+                    send_error_to_user(message, postprocessing_message)
+                    return "POSTPROCESSING_ERROR"
+                
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_message and "Invalid argument" in error_message:
                     logger.error(f"Postprocessing error (Invalid argument): {error_message}")
@@ -2824,10 +2854,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if not os.path.exists(old_path) and os.path.exists(part_path):
                                     try:
                                         logger.info(f"Attempting to rename .part file directly: {part_path} -> {old_path}")
-                                        os.rename(part_path, old_path)
-                                        logger.info(f"Successfully renamed .part file to {old_path}")
-                                    except Exception as rename_e:
+                                        # Check if target directory exists
+                                        target_dir = os.path.dirname(old_path)
+                                        if not os.path.exists(target_dir):
+                                            os.makedirs(target_dir, exist_ok=True)
+                                        # Check if old_path starts with '-' which can cause issues
+                                        if os.path.basename(old_path).startswith('-'):
+                                            logger.warning(f"Target filename starts with '-', using original filename instead")
+                                            final_name = downloaded_file
+                                            caption_name = original_video_title
+                                        else:
+                                            os.rename(part_path, old_path)
+                                            logger.info(f"Successfully renamed .part file to {old_path}")
+                                    except (OSError, FileNotFoundError) as rename_e:
                                         logger.error(f"Failed to rename .part file: {rename_e}")
+                                        # Try to find the actual downloaded file
+                                        try:
+                                            if os.path.exists(dir_path):
+                                                files = [f for f in os.listdir(dir_path) if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts')) and not f.endswith('.part')]
+                                                if files:
+                                                    final_name = files[0]
+                                                    logger.info(f"Found alternative file: {final_name}")
+                                                else:
+                                                    final_name = downloaded_file
+                                            else:
+                                                final_name = downloaded_file
+                                        except Exception:
+                                            final_name = downloaded_file
+                                        caption_name = original_video_title
+                                    except Exception as rename_e:
+                                        logger.error(f"Unexpected error renaming .part file: {rename_e}")
                                         final_name = downloaded_file
                                         caption_name = original_video_title
                                 else:
@@ -2881,10 +2937,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if not os.path.exists(old_path) and os.path.exists(part_path):
                                 try:
                                     logger.info(f"Attempting to rename .part file directly: {part_path} -> {old_path}")
-                                    os.rename(part_path, old_path)
-                                    logger.info(f"Successfully renamed .part file to {old_path}")
-                                except Exception as rename_e:
+                                    # Check if target directory exists
+                                    target_dir = os.path.dirname(old_path)
+                                    if not os.path.exists(target_dir):
+                                        os.makedirs(target_dir, exist_ok=True)
+                                    # Check if old_path starts with '-' which can cause issues
+                                    if os.path.basename(old_path).startswith('-'):
+                                        logger.warning(f"Target filename starts with '-', using original filename instead")
+                                        final_name = downloaded_file
+                                        caption_name = original_video_title
+                                    else:
+                                        os.rename(part_path, old_path)
+                                        logger.info(f"Successfully renamed .part file to {old_path}")
+                                except (OSError, FileNotFoundError) as rename_e:
                                     logger.error(f"Failed to rename .part file: {rename_e}")
+                                    # Try to find the actual downloaded file
+                                    try:
+                                        if os.path.exists(dir_path):
+                                            files = [f for f in os.listdir(dir_path) if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts')) and not f.endswith('.part')]
+                                            if files:
+                                                final_name = files[0]
+                                                logger.info(f"Found alternative file: {final_name}")
+                                            else:
+                                                final_name = downloaded_file
+                                        else:
+                                            final_name = downloaded_file
+                                    except Exception:
+                                        final_name = downloaded_file
+                                    caption_name = original_video_title
+                                except Exception as rename_e:
+                                    logger.error(f"Unexpected error renaming .part file: {rename_e}")
                                     final_name = downloaded_file
                                     caption_name = original_video_title
                             else:

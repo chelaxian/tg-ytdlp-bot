@@ -1487,6 +1487,22 @@ class Messages(object):
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **خطأ في معالجة الملف**\n\nتم تحميل الفيديو ولكن لا يمكن معالجته بسبب أحرف غير صحيحة في اسم الملف.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **خطأ في معالجة الملف**\n\nتم تحميل الفيديو ولكن لا يمكن معالجته بسبب خطأ في الوسيطة.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**السبب:**\n"
+        "• الملف الذي تم تنزيله ليس ملف فيديو\n"
+        "• قد يكون مستندًا (PDF، DOC، إلخ) أو أرشيفًا\n\n"
+        "**الحل:**\n"
+        "• تحقق من الرابط - قد يؤدي إلى مستند وليس فيديو\n"
+        "• جرب رابطًا أو مصدرًا مختلفًا\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**السبب:**\n"
+        "• لا يمكن معالجة الملف كفيديو\n"
+        "• قد لا يكون ملف فيديو أو أن الملف تالف\n\n"
+        "**الحل:**\n"
+        "• تحقق من الرابط - قد يؤدي إلى مستند وليس فيديو\n"
+        "• جرب رابطًا أو مصدرًا مختلفًا\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **التنسيق غير متاح**\n\nتنسيق الفيديو المطلوب غير متاح لهذا الفيديو.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ لم يتم العثور على معرف التنسيق {format_id} لهذا الفيديو.\n\nمعرفات التنسيق المتاحة: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **تنسيق AV1 غير متاح لهذا الفيديو.**\n\n**التنسيقات المتاحة:**\n{formats_text}\n\n"
@@ -1884,8 +1900,11 @@ class Messages(object):
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "خطأ في إرسال الفيديو مع تسمية مختصرة: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "خطأ في إرسال ملف الوصف الكامل: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "خطأ في إزالة ملف الوصف المؤقت: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "تخطي match_filter للنطاق في NO_FILTER_DOMAINS: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "فحص ملفات تعريف الارتباط الموجودة لـ YouTube على رابط المستخدم لكشف التنسيق للمستخدم {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "ملفات تعريف الارتباط الموجودة لـ YouTube تعمل على رابط المستخدم لكشف التنسيق للمستخدم {user_id} - استخدامها"

@@ -11,7 +11,7 @@ from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
 import os
 import subprocess
 import json
-from HELPERS.safe_messeger import safe_forward_messages
+from HELPERS.safe_messeger import safe_forward_messages, safe_send_message
 from URL_PARSERS.thumbnail_downloader import download_thumbnail
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
@@ -82,6 +82,7 @@ def send_videos(
     msg_id: int,
     full_video_title: str,
     tags_text: str = '',
+    skip_size_check: bool = False,
 ):
     import re
     import os
@@ -96,6 +97,173 @@ def send_videos(
     # Check if user has send_as_file enabled
     user_args = get_user_args(user_id)
     send_as_file = user_args.get("send_as_file", False)
+    
+    # Check file size before sending (Telegram limit: 2000 MiB)
+    # If file is too large, split it into parts
+    # Skip check if this is already a split part (to avoid infinite recursion)
+    if not skip_size_check:
+        TELEGRAM_MAX_SIZE_MIB = 2000
+        TELEGRAM_MAX_SIZE_BYTES = TELEGRAM_MAX_SIZE_MIB * 1024 * 1024
+        video_to_send = video_abs_path
+        original_video_path = video_abs_path
+        
+        try:
+            if os.path.exists(video_abs_path):
+                file_size = os.path.getsize(video_abs_path)
+                if file_size > TELEGRAM_MAX_SIZE_BYTES:
+                    logger.info(f"File too large ({file_size / (1024 * 1024):.2f} MiB), splitting into parts...")
+                    # Get video duration for splitting
+                    try:
+                        _, _, video_duration = get_video_info_ffprobe(video_abs_path)
+                        video_duration = int(video_duration) if video_duration else duration
+                    except Exception:
+                        video_duration = duration if duration else 0
+                    
+                    # Split video into parts
+                    from DOWN_AND_UP.ffmpeg import split_video_2
+                    video_dir = os.path.dirname(video_abs_path)
+                    video_name = os.path.splitext(os.path.basename(video_abs_path))[0]
+                    
+                    split_result = split_video_2(
+                        video_dir,
+                        video_name,
+                        video_abs_path,
+                        file_size,
+                        TELEGRAM_MAX_SIZE_BYTES,
+                        video_duration,
+                        user_id
+                    )
+                    
+                    part_paths = split_result.get("path", [])
+                    part_captions = split_result.get("video", [])
+                    
+                    if not part_paths:
+                        logger.error("Failed to split video into parts")
+                        messages = safe_get_messages(user_id)
+                        safe_send_message(
+                            user_id,
+                            messages.SENDER_FILE_SPLIT_FAILED_MSG.format(size_mib=file_size / (1024 * 1024)),
+                            reply_parameters=ReplyParameters(message_id=message.id),
+                            message=message
+                        )
+                        return None
+                    
+                    # Send each part separately
+                    logger.info(f"Sending {len(part_paths)} parts of split video")
+                    sent_parts = []
+                    for i, part_path in enumerate(part_paths):
+                        if not os.path.exists(part_path):
+                            logger.warning(f"Part {i+1} does not exist: {part_path}")
+                            continue
+                        
+                        part_size = os.path.getsize(part_path)
+                        # If part is still too large, split it again recursively
+                        if part_size > TELEGRAM_MAX_SIZE_BYTES:
+                            logger.warning(f"Part {i+1} is still too large ({part_size / (1024 * 1024):.2f} MiB), splitting again...")
+                            try:
+                                _, _, part_duration = get_video_info_ffprobe(part_path)
+                                part_duration = int(part_duration) if part_duration else 0
+                                
+                                part_name = os.path.splitext(os.path.basename(part_path))[0]
+                                part_split_result = split_video_2(
+                                    video_dir,
+                                    part_name,
+                                    part_path,
+                                    part_size,
+                                    TELEGRAM_MAX_SIZE_BYTES,
+                                    part_duration,
+                                    user_id
+                                )
+                                
+                                # Send recursively split parts
+                                messages = safe_get_messages(user_id)
+                                for sub_part_idx, sub_part_path in enumerate(part_split_result.get("path", [])):
+                                    if os.path.exists(sub_part_path):
+                                        subpart_num = sub_part_idx + 1
+                                        part_text = messages.SENDER_VIDEO_SUBPART_MSG.format(part_num=i+1, subpart_num=subpart_num)
+                                        sub_part_caption = f"{caption} ({part_text})"
+                                        try:
+                                            send_videos(
+                                                message,
+                                                sub_part_path,
+                                                sub_part_caption,
+                                                duration,
+                                                thumb_file_path,
+                                                info_text,
+                                                msg_id,
+                                                full_video_title,
+                                                tags_text,
+                                                skip_size_check=True  # Skip size check for sub-parts
+                                            )
+                                            sent_parts.append(sub_part_path)
+                                        except Exception as send_error:
+                                            logger.error(f"Error sending sub-part {sub_part_path}: {send_error}")
+                                
+                                # Clean up intermediate part file
+                                try:
+                                    if os.path.exists(part_path):
+                                        os.remove(part_path)
+                                except Exception:
+                                    pass
+                            except Exception as split_error:
+                                logger.error(f"Error splitting part {i+1} again: {split_error}")
+                                # Try to send as document if splitting fails
+                                try:
+                                    messages = safe_get_messages(user_id)
+                                    part_text = messages.SENDER_VIDEO_PART_MSG.format(part_num=i+1)
+                                    part_caption = f"{caption} ({part_text})"
+                                    send_videos(
+                                        message,
+                                        part_path,
+                                        part_caption,
+                                        duration,
+                                        thumb_file_path,
+                                        info_text,
+                                        msg_id,
+                                        full_video_title,
+                                        tags_text,
+                                        skip_size_check=True  # Skip size check for parts
+                                    )
+                                    sent_parts.append(part_path)
+                                except Exception:
+                                    pass
+                        else:
+                            # Send part normally
+                            messages = safe_get_messages(user_id)
+                            part_text = messages.SENDER_VIDEO_PART_OF_MSG.format(part_num=i+1, total_parts=len(part_paths))
+                            part_caption = f"{caption} ({part_text})"
+                            try:
+                                send_videos(
+                                    message,
+                                    part_path,
+                                    part_caption,
+                                    duration,
+                                    thumb_file_path,
+                                    info_text,
+                                    msg_id,
+                                    full_video_title,
+                                    tags_text,
+                                    skip_size_check=True  # Skip size check for parts
+                                )
+                                sent_parts.append(part_path)
+                            except Exception as send_error:
+                                logger.error(f"Error sending part {i+1}: {send_error}")
+                    
+                    if sent_parts:
+                        logger.info(f"Successfully sent {len(sent_parts)} parts of split video")
+                        # Clean up original file if all parts were sent
+                        try:
+                            if os.path.exists(original_video_path) and len(sent_parts) == len(part_paths):
+                                os.remove(original_video_path)
+                        except Exception:
+                            pass
+                        return None  # Parts were sent separately
+                    else:
+                        logger.error("Failed to send any parts of split video")
+                        return None
+        except Exception as size_check_error:
+                logger.warning(f"Error checking/splitting file size: {size_check_error}")
+                # Continue with normal send if splitting fails
 
     # --- Define the size of the preview/video ---
     width = None

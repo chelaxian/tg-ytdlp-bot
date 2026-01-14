@@ -1481,6 +1481,22 @@ Use:
     # Processing Error Messages
     FILE_PROCESSING_ERROR_INVALID_CHARS_MSG = "❌ **Kesalahan Pemrosesan File**\n\nVideo diunduh tetapi tidak dapat diproses karena karakter tidak valid dalam nama file.\n\n"
     FILE_PROCESSING_ERROR_INVALID_ARG_MSG = "❌ **Kesalahan Pemrosesan File**\n\nVideo diunduh tetapi tidak dapat diproses karena kesalahan argumen tidak valid.\n\n"
+    FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG = (
+        "**Alasan:**\n"
+        "• File yang diunduh bukan file video\n"
+        "• Mungkin berupa dokumen (PDF, DOC, dll.) atau arsip\n\n"
+        "**Solusi:**\n"
+        "• Periksa tautan - mungkin mengarah ke dokumen, bukan video\n"
+        "• Coba tautan atau sumber lain\n"
+    )
+    FILE_PROCESSING_ERROR_INVALID_DATA_MSG = (
+        "**Alasan:**\n"
+        "• File tidak dapat diproses sebagai video\n"
+        "• Mungkin bukan file video atau file rusak\n\n"
+        "**Solusi:**\n"
+        "• Periksa tautan - mungkin mengarah ke dokumen, bukan video\n"
+        "• Coba tautan atau sumber lain\n"
+    )
     FORMAT_NOT_AVAILABLE_MSG = "❌ **Format Tidak Tersedia**\n\nFormat video yang diminta tidak tersedia untuk video ini.\n\n"
     FORMAT_ID_NOT_FOUND_MSG = "❌ Format ID {format_id} tidak ditemukan untuk video ini.\n\nFormat ID yang tersedia: {available_ids}\n"
     AV1_FORMAT_NOT_AVAILABLE_MSG = "❌ **Format AV1 tidak tersedia untuk video ini.**\n\n**Format yang tersedia:**\n{formats_text}\n\n"
@@ -1878,8 +1894,11 @@ Use:
     SENDER_ERROR_SENDING_VIDEO_MINIMAL_CAPTION_MSG = "Error mengirim video dengan keterangan minimal: {error}"
     SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG = "Error mengirim file deskripsi lengkap: {error}"
     SENDER_ERROR_REMOVING_TEMP_DESCRIPTION_FILE_MSG = "Error menghapus file deskripsi sementara: {error}"
-    
-    # YT-DLP hook messages
+    SENDER_FILE_SPLIT_FAILED_MSG = "❌ Error: Failed to split file into parts\nFile size: {size_mib:.2f} MiB"
+    SENDER_VIDEO_PART_MSG = "Part {part_num}"
+    SENDER_VIDEO_PART_OF_MSG = "Part {part_num}/{total_parts}"
+    SENDER_VIDEO_SUBPART_MSG = "Part {part_num}.{subpart_num}"
+# YT-DLP hook messages
     YTDLP_SKIPPING_MATCH_FILTER_MSG = "Melewatkan match_filter untuk domain di NO_FILTER_DOMAINS: {url}"
     YTDLP_CHECKING_EXISTING_YOUTUBE_COOKIES_MSG = "Memeriksa cookie YouTube yang ada pada URL pengguna untuk deteksi format untuk pengguna {user_id}"
     YTDLP_EXISTING_YOUTUBE_COOKIES_WORK_MSG = "Cookie YouTube yang ada bekerja pada URL pengguna untuk deteksi format untuk pengguna {user_id} - menggunakan mereka"
