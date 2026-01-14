@@ -513,15 +513,39 @@ def run_with_auto_reconnect():
     _should_reconnect = False
     _reconnect_lock = threading.Lock()
     
+    def check_network_availability():
+        """Проверяет доступность сети (DNS и интернет)"""
+        try:
+            import socket
+            # Проверяем DNS
+            socket.gethostbyname('google.com')
+            # Проверяем интернет через простой HTTP запрос
+            import urllib.request
+            urllib.request.urlopen('https://www.google.com', timeout=5).close()
+            return True
+        except Exception:
+            return False
+    
     def check_connection_periodically():
         """Периодически проверяет соединение и устанавливает флаг переподключения при проблемах"""
         nonlocal _should_reconnect
         consecutive_failures = 0
-        max_failures = 3  # После 3 неудачных проверок подряд - переподключение
+        max_failures = 2  # После 2 неудачных проверок подряд - переподключение
         
         while True:
             time.sleep(connection_check_interval)
             try:
+                # Сначала проверяем общую сетевую доступность
+                if not check_network_availability():
+                    logger.warning("Network is not available (DNS/internet check failed)")
+                    consecutive_failures += 1
+                    if consecutive_failures >= max_failures:
+                        logger.warning("Network unavailable, triggering reconnection...")
+                        with _reconnect_lock:
+                            _should_reconnect = True
+                        consecutive_failures = 0
+                    continue
+                
                 # Проверяем, что клиент запущен и соединение активно
                 if not app.is_connected:
                     logger.warning("Client is not connected")
@@ -579,38 +603,75 @@ def run_with_auto_reconnect():
                 logger.warning("Pyrogram client disconnected, will attempt to reconnect...")
                 with _reconnect_lock:
                     _should_reconnect = True
-                # Останавливаем idle для переподключения
+            
+            # Запускаем idle в отдельном потоке, чтобы можно было прервать его
+            idle_thread = None
+            idle_stopped = threading.Event()
+            
+            def run_idle():
+                """Запускает idle в отдельном потоке"""
                 try:
-                    app.stop()
-                except Exception:
-                    pass
+                    idle()
+                except KeyboardInterrupt:
+                    logger.info("Received KeyboardInterrupt in idle thread...")
+                    idle_stopped.set()
+                except Exception as e:
+                    logger.error(f"Error in idle thread: {e}")
+                    idle_stopped.set()
             
-            # Запускаем idle - он будет работать до KeyboardInterrupt или отключения
-            try:
-                idle()
-            except KeyboardInterrupt:
-                logger.info("Received KeyboardInterrupt, shutting down...")
+            idle_thread = threading.Thread(target=run_idle, daemon=False)
+            idle_thread.start()
+            
+            # Мониторим состояние соединения и флаг переподключения
+            while idle_thread.is_alive():
+                time.sleep(2)  # Проверяем каждые 2 секунды
+                
+                # Проверяем, нужен ли переподключение
+                with _reconnect_lock:
+                    if _should_reconnect:
+                        logger.warning("Reconnection needed, stopping current session...")
+                        attempt += 1
+                        
+                        # Прерываем idle через остановку клиента
+                        try:
+                            app.stop()
+                        except Exception:
+                            pass
+                        
+                        # Ждем завершения idle потока
+                        idle_thread.join(timeout=5)
+                        idle_stopped.set()
+                        
+                        # Останавливаем channel guard
+                        try:
+                            app.loop.run_until_complete(stop_channel_guard())
+                        except Exception:
+                            pass
+                        
+                        # Ждем, пока сеть восстановится перед переподключением
+                        logger.info("Waiting for network to be available before reconnecting...")
+                        network_available = False
+                        wait_attempts = 0
+                        max_wait_attempts = 30  # Максимум 30 попыток по 2 секунды = 60 секунд
+                        
+                        while not network_available and wait_attempts < max_wait_attempts:
+                            time.sleep(2)
+                            network_available = check_network_availability()
+                            wait_attempts += 1
+                            if not network_available:
+                                logger.info(f"Network still unavailable, waiting... ({wait_attempts}/{max_wait_attempts})")
+                        
+                        if network_available:
+                            logger.info("Network is available, reconnecting...")
+                        else:
+                            logger.warning("Network still unavailable after waiting, attempting reconnect anyway...")
+                        
+                        time.sleep(reconnect_delay)
+                        break
+            
+            # Если idle завершился нормально (не из-за переподключения)
+            if not _should_reconnect:
                 break
-            
-            # Проверяем, нужен ли переподключение после завершения idle
-            with _reconnect_lock:
-                if _should_reconnect:
-                    logger.warning("Reconnection needed, stopping current session...")
-                    attempt += 1
-                    
-                    # Останавливаем channel guard
-                    try:
-                        app.loop.run_until_complete(stop_channel_guard())
-                    except Exception:
-                        pass
-                    try:
-                        app.stop()
-                    except Exception:
-                        pass
-                    
-                    logger.info(f"Waiting {reconnect_delay} seconds before reconnecting...")
-                    time.sleep(reconnect_delay)
-                    continue
             
             # Если idle завершился нормально (не из-за переподключения)
             break
