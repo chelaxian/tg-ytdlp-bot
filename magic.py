@@ -479,12 +479,157 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-if __name__ == "__main__":
-    app.start()
-    start_channel_guard(app)
-    idle()
+def _is_running_in_docker():
+    """Проверяет, запущен ли текущий процесс внутри Docker контейнера."""
+    from pathlib import Path
+    # Проверяем наличие .dockerenv файла
+    if Path("/.dockerenv").exists():
+        return True
+    # Проверяем cgroup (более надежный способ)
     try:
-        app.loop.run_until_complete(stop_channel_guard())
+        with open("/proc/self/cgroup", "r") as f:
+            content = f.read()
+            # Если находимся в Docker, в cgroup будет упоминание docker
+            if "docker" in content or "/docker/" in content:
+                return True
     except Exception:
         pass
-    app.stop()
+    return False
+
+def run_with_auto_reconnect():
+    """
+    Запускает бота с автоматическим переподключением при сетевых ошибках.
+    Используется только в Docker для обработки перезапуска сетевого стека (warp).
+    """
+    from HELPERS.logger import logger
+    import time
+    import threading
+    
+    max_reconnect_attempts = 50  # Больше попыток для Docker
+    reconnect_delay = 3  # секунд между попытками
+    connection_check_interval = 30  # Проверяем соединение каждые 30 секунд
+    
+    attempt = 0
+    _should_reconnect = False
+    _reconnect_lock = threading.Lock()
+    
+    def check_connection_periodically():
+        """Периодически проверяет соединение и устанавливает флаг переподключения при проблемах"""
+        nonlocal _should_reconnect
+        while True:
+            time.sleep(connection_check_interval)
+            try:
+                # Проверяем, что клиент запущен и соединение активно
+                if app.is_connected:
+                    try:
+                        # Простая проверка - пытаемся получить информацию о себе
+                        app.get_me()
+                    except Exception as e:
+                        error_str = str(e).lower()
+                        if any(keyword in error_str for keyword in ['timeout', 'connection', 'network', 'disconnected', 'unable to connect']):
+                            logger.warning(f"Connection check failed: {e}")
+                            with _reconnect_lock:
+                                _should_reconnect = True
+                else:
+                    logger.warning("Client is not connected")
+                    with _reconnect_lock:
+                        _should_reconnect = True
+            except Exception as e:
+                logger.warning(f"Error during connection check: {e}")
+                with _reconnect_lock:
+                    _should_reconnect = True
+    
+    while attempt < max_reconnect_attempts:
+        try:
+            with _reconnect_lock:
+                _should_reconnect = False
+            
+            logger.info(f"Starting bot (attempt {attempt + 1}/{max_reconnect_attempts})...")
+            app.start()
+            start_channel_guard(app)
+            logger.info("Bot started successfully, entering idle mode...")
+            
+            # Запускаем поток для периодической проверки соединения
+            check_thread = threading.Thread(target=check_connection_periodically, daemon=True)
+            check_thread.start()
+            
+            # Запускаем idle - он будет работать до KeyboardInterrupt
+            try:
+                idle()
+            except KeyboardInterrupt:
+                logger.info("Received KeyboardInterrupt, shutting down...")
+                break
+            
+            # Проверяем, нужен ли переподключение
+            with _reconnect_lock:
+                if _should_reconnect:
+                    logger.warning("Reconnection needed, stopping current session...")
+                    attempt += 1
+                    
+                    # Останавливаем клиент перед переподключением
+                    try:
+                        app.loop.run_until_complete(stop_channel_guard())
+                    except Exception:
+                        pass
+                    try:
+                        app.stop()
+                    except Exception:
+                        pass
+                    
+                    logger.info(f"Waiting {reconnect_delay} seconds before reconnecting...")
+                    time.sleep(reconnect_delay)
+                    continue
+            
+            # Если idle завершился нормально (не из-за переподключения)
+            break
+            
+        except KeyboardInterrupt:
+            logger.info("Received KeyboardInterrupt, shutting down...")
+            break
+        except Exception as e:
+            error_str = str(e).lower()
+            if any(keyword in error_str for keyword in ['timeout', 'connection', 'network', 'disconnected', 'unable to connect']):
+                logger.warning(f"Network error detected: {e}")
+                attempt += 1
+                if attempt < max_reconnect_attempts:
+                    logger.info(f"Attempting to reconnect in {reconnect_delay} seconds...")
+                    try:
+                        app.loop.run_until_complete(stop_channel_guard())
+                    except Exception:
+                        pass
+                    try:
+                        app.stop()
+                    except Exception:
+                        pass
+                    time.sleep(reconnect_delay)
+                    continue
+                else:
+                    logger.error("Max reconnect attempts reached, exiting...")
+                    raise
+            else:
+                # Не сетевая ошибка - пробрасываем дальше
+                logger.error(f"Unexpected error: {e}")
+                raise
+        finally:
+            try:
+                app.loop.run_until_complete(stop_channel_guard())
+            except Exception:
+                pass
+            try:
+                app.stop()
+            except Exception:
+                pass
+
+if __name__ == "__main__":
+    # В Docker используем автоматическое переподключение, локально - обычный запуск
+    if _is_running_in_docker():
+        run_with_auto_reconnect()
+    else:
+        app.start()
+        start_channel_guard(app)
+        idle()
+        try:
+            app.loop.run_until_complete(stop_channel_guard())
+        except Exception:
+            pass
+        app.stop()
