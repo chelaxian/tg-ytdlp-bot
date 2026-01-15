@@ -1060,19 +1060,20 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Reduce parallelism for fragile HLS endpoints
                 ytdl_opts["concurrent_fragment_downloads"] = 1
                 # Limit fragment retries to avoid long waits when segments fail with 403 errors
-                # Only 2 retries per fragment (original + 2 retries = 3 total attempts)
-                ytdl_opts["fragment_retries"] = 2
-                ytdl_opts["hls_fragment_retries"] = 2
-                # Abort on unavailable fragments (like 403 errors) instead of skipping
-                ytdl_opts["abort_on_unavailable_fragment"] = True
-                # Add timeout for HLS segment downloads to fail faster (30 seconds per segment)
+                # Only 1 retry per fragment (original + 1 retry = 2 total attempts) for faster failure detection
+                ytdl_opts["fragment_retries"] = 1
+                ytdl_opts["hls_fragment_retries"] = 1
+                # Skip unavailable fragments instead of aborting (allows faster progression)
+                # But we'll detect 403 errors early via logger hook
+                ytdl_opts["skip_unavailable_fragments"] = True
+                # Add timeout for HLS segment downloads to fail faster (15 seconds per segment)
                 if "downloader_args" not in ytdl_opts:
                     ytdl_opts["downloader_args"] = {}
                 if "ffmpeg" not in ytdl_opts["downloader_args"]:
                     ytdl_opts["downloader_args"]["ffmpeg"] = []
-                # Add timeout for HTTP requests (30 seconds per segment)
+                # Add timeout for HTTP requests (15 seconds per segment for faster failure)
                 if "-timeout" not in str(ytdl_opts["downloader_args"]["ffmpeg"]):
-                    ytdl_opts["downloader_args"]["ffmpeg"].extend(["-timeout", "30000000"])  # 30 seconds in microseconds
+                    ytdl_opts["downloader_args"]["ffmpeg"].extend(["-timeout", "15000000"])  # 15 seconds in microseconds
             
             # Define sanitize_title_for_filename function
             def sanitize_title_for_filename(title):
@@ -1228,6 +1229,58 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Try with proxy fallback if user proxy is enabled
                 def download_operation(opts):
                     messages = safe_get_messages(user_id)
+                    # Track 403 errors for HLS streams to abort early
+                    hls_403_errors = {'count': 0, 'max_errors': 3, 'last_error_time': 0}
+                    
+                    # Custom logger hook to intercept ffmpeg stderr and detect 403 errors
+                    class HLS403Logger:
+                        def __init__(self, error_tracker):
+                            self.error_tracker = error_tracker
+                            self.original_logger = None
+                        
+                        def debug(self, msg):
+                            if self.original_logger:
+                                self.original_logger.debug(msg)
+                            # Check for 403 errors in stderr messages
+                            if isinstance(msg, str) and ('403' in msg.lower() or 'forbidden' in msg.lower()):
+                                if 'http error 403' in msg.lower() or 'failed to open segment' in msg.lower():
+                                    self.error_tracker['count'] += 1
+                                    self.error_tracker['last_error_time'] = time.time()
+                                    logger.warning(f"HLS 403 error detected in audio #{self.error_tracker['count']} in stderr: {msg[:200]}")
+                                    
+                                    # If we have multiple consecutive 403 errors, abort early
+                                    if self.error_tracker['count'] >= self.error_tracker['max_errors']:
+                                        logger.error(f"Too many HLS 403 errors in audio ({self.error_tracker['count']}), aborting download early")
+                                        raise yt_dlp.utils.DownloadError(f"HLS audio segment download failed: {self.error_tracker['count']} consecutive 403 Forbidden errors")
+                        
+                        def warning(self, msg):
+                            if self.original_logger:
+                                self.original_logger.warning(msg)
+                            self.debug(msg)  # Also check warnings for 403 errors
+                        
+                        def error(self, msg):
+                            if self.original_logger:
+                                self.original_logger.error(msg)
+                            self.debug(msg)  # Also check errors for 403 errors
+                        
+                        def info(self, msg):
+                            if self.original_logger:
+                                self.original_logger.info(msg)
+                        
+                        def __getattr__(self, name):
+                            # Forward any other method calls to original logger if it exists
+                            if self.original_logger:
+                                return getattr(self.original_logger, name)
+                            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+                    
+                    # Create custom logger hook for HLS streams
+                    if is_hls:
+                        hls_logger = HLS403Logger(hls_403_errors)
+                        # Store original logger if it exists
+                        if 'logger' in opts:
+                            hls_logger.original_logger = opts['logger']
+                        opts['logger'] = hls_logger
+                    
                     with yt_dlp.YoutubeDL(opts) as ydl:
                         if is_hls:
                             # For HLS audio, start cycle progress as fallback, but progress_hook will override it if percentages are available
@@ -1239,6 +1292,17 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             progress_hook.progress_data = progress_data
                             try:
                                 ydl.download([url])
+                            except yt_dlp.utils.DownloadError as e:
+                                error_msg = str(e).lower()
+                                # Check if error contains 403 errors - if multiple, abort early
+                                if '403' in error_msg or 'forbidden' in error_msg:
+                                    # Count 403 errors in the error message
+                                    error_count = error_msg.count('403') + error_msg.count('forbidden')
+                                    if error_count >= hls_403_errors['max_errors'] or hls_403_errors['count'] >= hls_403_errors['max_errors']:
+                                        logger.error(f"Multiple 403 errors detected in audio (stderr count: {hls_403_errors['count']}, error msg count: {error_count}), aborting early")
+                                        raise yt_dlp.utils.DownloadError(f"HLS audio segment download failed: {max(hls_403_errors['count'], error_count)} 403 Forbidden errors detected")
+                                # Re-raise other errors
+                                raise
                             finally:
                                 cycle_stop.set()
                                 cycle_thread.join(timeout=1)
