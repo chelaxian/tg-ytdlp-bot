@@ -611,9 +611,20 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                 
         except Exception as e:
             error_text = str(e)
+            is_basic = impersonate_version in basic_versions
+            
             # Check if error indicates impersonate version is not available
-            if "none of these impersonate targets are available" in error_text.lower():
-                is_basic = impersonate_version in basic_versions
+            # Note: yt-dlp outputs "none of these impersonate targets are available" to stderr,
+            # which may not be in the exception text. For specific versions (chrome122, etc.),
+            # if we get Cloudflare error, it's likely the version is unavailable.
+            explicit_unavailable = "none of these impersonate targets are available" in error_text.lower()
+            
+            # For specific versions: if Cloudflare error and version contains digits (chrome122, etc.),
+            # treat as unavailable (since yt-dlp warning goes to stderr, not exception text)
+            is_specific_version = not is_basic and any(char.isdigit() for char in impersonate_version)
+            likely_unavailable = is_specific_version and is_cloudflare_error(error_text)
+            
+            if explicit_unavailable or likely_unavailable:
                 logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
                 
                 # Only track unavailable count for specific versions
