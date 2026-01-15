@@ -543,6 +543,15 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             test_curl = Curl()
             curl_cffi_working = True
             test_curl.close()
+            
+            # Try to check available browser versions (if supported)
+            try:
+                from curl_cffi import const
+                # Check if we can access browser versions
+                if hasattr(const, 'BROWSERS') or hasattr(const, 'BrowserType'):
+                    logger.debug("curl_cffi browser versions check available")
+            except:
+                pass
         except Exception as e:
             logger.warning(f"curl_cffi is installed but may not be working properly: {str(e)[:200]}")
             curl_cffi_working = False
@@ -560,7 +569,29 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     except ImportError:
         logger.info("curl_cffi is not available, will only try basic impersonate versions. Install with: pip install curl-cffi")
     
+    # Check yt-dlp version for compatibility
+    ytdlp_version = None
+    try:
+        import yt_dlp
+        ytdlp_version = getattr(yt_dlp, '__version__', 'unknown')
+        if ytdlp_version and ytdlp_version != 'unknown':
+            logger.debug(f"yt-dlp version: {ytdlp_version}")
+            # Check if version is recent enough (should support curl_cffi)
+            try:
+                version_parts = ytdlp_version.split('.')
+                major = int(version_parts[0]) if version_parts else 0
+                minor = int(version_parts[1]) if len(version_parts) > 1 else 0
+                if major < 2024 or (major == 2024 and minor < 1):
+                    logger.warning(f"yt-dlp version {ytdlp_version} may be too old for proper curl_cffi support. Consider updating: pip install --upgrade --pre yt-dlp")
+            except:
+                pass
+    except:
+        pass
+    
     # Build list: basic versions first, then specific if curl_cffi is available
+    # Note: When curl_cffi is installed, yt-dlp may try to use it for basic versions,
+    # but curl_cffi only supports specific versions. We'll try basic versions first,
+    # and if they're unavailable, skip to specific versions.
     impersonate_versions = basic_versions.copy()
     if curl_cffi_available:
         impersonate_versions.extend(specific_versions)
@@ -660,9 +691,12 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                 logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
                 
                 # If basic version is unavailable and curl_cffi is installed, mark all basic versions as unavailable
+                # This is normal: curl_cffi only supports specific versions (chrome122, chrome121, etc.), not basic ones (chrome, edge, etc.)
                 if is_basic and curl_cffi_available and explicit_unavailable:
                     basic_versions_unavailable = True
-                    logger.warning(f"⚠️ Basic version {impersonate_version} unavailable (curl_cffi installed but doesn't support basic versions). Skipping remaining basic versions.")
+                    logger.info(f"ℹ️ Basic version {impersonate_version} unavailable (this is normal when curl_cffi is installed).")
+                    logger.info(f"   curl_cffi only supports specific versions (chrome122, chrome121, etc.), not basic ones (chrome, edge, etc.).")
+                    logger.info(f"   Skipping remaining basic versions and trying specific versions instead...")
                     # Skip remaining basic versions and continue to specific versions
                     continue
                 
