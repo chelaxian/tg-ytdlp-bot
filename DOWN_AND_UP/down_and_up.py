@@ -1782,7 +1782,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     ytdl_opts.pop("http_chunk_size", None)
                     # Reduce parallelism for fragile HLS endpoints
                     ytdl_opts["concurrent_fragment_downloads"] = 1
-                    # Keep default retries (10) for network issues, but we'll detect 403 errors early
+                    # Limit fragment retries to avoid long waits when segments fail with 403 errors
+                    # Only 2 retries per fragment (original + 2 retries = 3 total attempts)
+                    ytdl_opts["fragment_retries"] = 2
+                    ytdl_opts["hls_fragment_retries"] = 2
+                    # Abort on unavailable fragments (like 403 errors) instead of skipping
+                    ytdl_opts["abort_on_unavailable_fragment"] = True
                     # Add timeout for HLS segment downloads to fail faster (30 seconds per segment)
                     if "downloader_args" not in ytdl_opts:
                         ytdl_opts["downloader_args"] = {}
@@ -1808,30 +1813,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Try with proxy fallback if user proxy is enabled
                 def download_operation(opts):
                     messages = safe_get_messages(user_id)
-                    # Track 403 errors for HLS streams to abort early
-                    hls_403_errors = {'count': 0, 'max_errors': 3}  # Abort after 3 consecutive 403 errors
-                    
-                    # Custom hook to detect 403 errors in HLS streams
-                    def error_hook(d):
-                        """Hook to detect 403 errors in HLS streams and abort early"""
-                        if is_hls and d.get('status') == 'error':
-                            error_msg = str(d.get('error', '')).lower()
-                            # Check for 403 Forbidden errors
-                            if '403' in error_msg or 'forbidden' in error_msg:
-                                hls_403_errors['count'] += 1
-                                logger.warning(f"HLS 403 error detected #{hls_403_errors['count']}: {error_msg[:200]}")
-                                
-                                # If we have multiple consecutive 403 errors, abort early
-                                if hls_403_errors['count'] >= hls_403_errors['max_errors']:
-                                    logger.error(f"Too many HLS 403 errors ({hls_403_errors['count']}), aborting download early")
-                                    raise yt_dlp.utils.DownloadError(f"HLS segment download failed: {hls_403_errors['count']} consecutive 403 Forbidden errors")
-                    
-                    # Add error hook for HLS streams
-                    if is_hls:
-                        if 'progress_hooks' not in opts:
-                            opts['progress_hooks'] = []
-                        opts['progress_hooks'].append(error_hook)
-                    
                     with yt_dlp.YoutubeDL(opts) as ydl:
                         if is_hls:
                             # For HLS, start cycle progress as fallback, but progress_func will override it if percentages are available
@@ -1841,19 +1822,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Pass cycle_stop and progress_data to progress_func so it can update the cycle animation
                             progress_func.cycle_stop = cycle_stop
                             progress_func.progress_data = progress_data
-                            try:
                                 ydl.download([url])
-                            except yt_dlp.utils.DownloadError as e:
-                                error_msg = str(e).lower()
-                                # Check if error contains 403 errors - if multiple, abort early
-                                if '403' in error_msg or 'forbidden' in error_msg:
-                                    # Count 403 errors in the error message
-                                    error_count = error_msg.count('403') + error_msg.count('forbidden')
-                                    if error_count >= hls_403_errors['max_errors']:
-                                        logger.error(f"Multiple 403 errors detected in DownloadError ({error_count}), aborting early")
-                                        raise yt_dlp.utils.DownloadError(f"HLS segment download failed: {error_count} 403 Forbidden errors detected")
-                                # Re-raise other errors
-                                raise
                             finally:
                                 cycle_stop.set()
                                 cycle_thread.join(timeout=1)
