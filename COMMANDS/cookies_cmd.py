@@ -2266,6 +2266,10 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
     if not is_youtube_url(url):
         return None
     
+    # Проверяем, используется ли прокси - если да, ограничиваем перебор куков
+    from COMMANDS.proxy_cmd import is_proxy_enabled
+    proxy_enabled = is_proxy_enabled(user_id)
+    
     # Защита от рекурсивных вызовов - проверяем, не вызывается ли уже retry
     retry_key = f"{user_id}_{url}_retry"
     if retry_key in globals().get('_active_retries', set()):
@@ -2285,6 +2289,58 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
             logger.warning(f"YouTube cookie retry limit exceeded for user {user_id}")
             return None
         
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+        cookie_file_path = os.path.join(user_dir, cookie_filename)
+        
+        # Если прокси включен, ограничиваем перебор куков
+        if proxy_enabled:
+            logger.info(f"Proxy is enabled for user {user_id}, limiting cookie retry to user's cookies only")
+            
+            # Сначала пробуем куки пользователя, если они есть
+            if os.path.exists(cookie_file_path):
+                logger.info(f"Trying user's existing cookies for user {user_id}")
+                try:
+                    result = download_func(*args, **kwargs)
+                    if result is not None:
+                        logger.info(f"Download successful with user's cookies for user {user_id}")
+                        return result
+                except Exception as e:
+                    logger.warning(f"User's cookies failed for user {user_id}: {e}")
+            
+            # Если куки пользователя не работают, пробуем только первый источник из списка
+            cookie_urls = get_youtube_cookie_urls()
+            if not cookie_urls:
+                logger.warning(LoggerMsg.COOKIES_YOUTUBE_RETRY_NO_SOURCES_LOG_MSG.format(user_id=user_id))
+                return None
+            
+            # Пробуем только первый источник
+            logger.info(f"Trying first cookie source for user {user_id} (proxy mode)")
+            try:
+                ok, status, content, err = _download_content(cookie_urls[0], timeout=30, user_id=user_id)
+                if ok and content and len(content) <= 100 * 1024 and cookie_urls[0].lower().endswith('.txt'):
+                    with open(cookie_file_path, "wb") as cf:
+                        cf.write(content)
+                    if test_youtube_cookies(cookie_file_path, user_id=user_id):
+                        logger.info(f"First cookie source works for user {user_id}")
+                        try:
+                            result = download_func(*args, **kwargs)
+                            if result is not None:
+                                logger.info(f"Download successful with first cookie source for user {user_id}")
+                                return result
+                        except Exception as e:
+                            logger.warning(f"Download failed with first cookie source for user {user_id}: {e}")
+                    if os.path.exists(cookie_file_path):
+                        os.remove(cookie_file_path)
+            except Exception as e:
+                logger.error(f"Error processing first cookie source for user {user_id}: {e}")
+            
+            # Если первый источник не помог, возвращаем None (не перебираем все)
+            logger.warning(f"All limited cookie attempts failed for user {user_id} (proxy mode)")
+            return None
+        
+        # Если прокси не включен, используем обычный перебор всех куков
         # Получаем список источников куков
         cookie_urls = get_youtube_cookie_urls()
         if not cookie_urls:
@@ -2299,11 +2355,6 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
             reset_checked_cookie_sources(user_id)
             logger.info(f"Reset checked cookie sources for user {user_id} to allow retry in future")
             return None
-        
-        user_dir = os.path.join("users", str(user_id))
-        create_directory(user_dir)
-        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
-        cookie_file_path = os.path.join(user_dir, cookie_filename)
         
         # Определяем порядок попыток только для непроверенных источников
         indices = unchecked_indices.copy()

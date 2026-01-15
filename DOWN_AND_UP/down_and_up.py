@@ -1786,9 +1786,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # Only 1 retry per fragment (original + 1 retry = 2 total attempts) for faster failure detection
                     ytdl_opts["fragment_retries"] = 1
                     ytdl_opts["hls_fragment_retries"] = 1
-                    # Skip unavailable fragments instead of aborting (allows faster progression)
-                    # But we'll detect 403 errors early via logger hook
-                    ytdl_opts["skip_unavailable_fragments"] = True
+                    # Don't skip unavailable fragments - abort early instead
+                    # This prevents infinite loops when many segments fail with 403 errors
+                    ytdl_opts["abort_on_unavailable_fragment"] = True
+                    # Limit fragment retries to 0 (no retries) for faster failure detection
+                    # This will abort immediately when a segment fails with 403
+                    ytdl_opts["fragment_retries"] = 0
+                    ytdl_opts["hls_fragment_retries"] = 0
                     # Add timeout for HLS segment downloads to fail faster (15 seconds per segment)
                     if "downloader_args" not in ytdl_opts:
                         ytdl_opts["downloader_args"] = {}
