@@ -1822,6 +1822,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Pass cycle_stop and progress_data to progress_func so it can update the cycle animation
                             progress_func.cycle_stop = cycle_stop
                             progress_func.progress_data = progress_data
+                            try:
                                 ydl.download([url])
                             finally:
                                 cycle_stop.set()
