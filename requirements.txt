@@ -23,6 +23,8 @@ brotlicffi>=1.2.0.0
 # Только для yt-dlp — разрешить пре-релизы и переустановить «с нуля»
 --pre
 yt-dlp[default,curl-cffi]
+# curl_cffi для поддержки специфических версий impersonate (chrome122, chrome121 и т.д.)
+curl_cffi>=0.6.0
 # Gallery-dl для скачивания картинок
 gallery-dl
 
