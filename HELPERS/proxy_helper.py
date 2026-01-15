@@ -277,8 +277,26 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                         logger.warning(f"Failed with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {e}")
                         continue
                 
-                # All proxies from file failed, fall through to config proxies
-                logger.warning(f"All proxies from file for country {selected_country} failed, trying config proxies")
+                # All proxies from file failed for selected country - do NOT fall back to config proxies
+                # User explicitly selected a country, so we should only use proxies from that country
+                logger.warning(f"All proxies from file for country {selected_country} failed, not trying config proxies (user selected specific country)")
+                # Try without proxy as last resort
+                try:
+                    logger.info(f"Trying {url} without proxy as last resort (selected country proxies failed)")
+                    current_opts = ytdl_opts.copy()
+                    if 'proxy' in current_opts:
+                        del current_opts['proxy']
+                    return operation_func(current_opts, *args, **kwargs)
+                except Exception as e:
+                    logger.error(f"Failed without proxy for {url}: {e}")
+                    return None
+            else:
+                # Selected country but no proxies found - return None
+                logger.warning(f"User selected country {selected_country} but no proxies found for this country")
+                return None
+        else:
+            # No country selected - continue to ALL AUTO mode below
+            pass
     except Exception as e:
         logger.warning(f"Error checking user selected country: {e}")
     
