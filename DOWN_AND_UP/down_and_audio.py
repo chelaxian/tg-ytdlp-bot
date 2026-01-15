@@ -1233,9 +1233,42 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     return True
                 
                 from HELPERS.proxy_helper import try_with_proxy_fallback
-                result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
+                last_download_error = None
+                try:
+                    result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
+                except Exception as proxy_error:
+                    last_download_error = str(proxy_error)
+                    result = None
+                
                 if result is None:
-                    raise Exception("Failed to download audio with all available proxies")
+                    # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
+                    if is_youtube_url(url) and user_id is not None:
+                        from COMMANDS.cookies_cmd import is_youtube_geo_error, retry_download_with_proxy
+                        # Используем последнюю ошибку, если она есть
+                        error_to_check = last_download_error if last_download_error else "Failed to download audio with all available proxies"
+                        if is_youtube_geo_error(error_to_check):
+                            logger.info(f"YouTube geo-blocked error detected in audio download for user {user_id}, attempting retry with proxy from file")
+                            
+                            def try_download_audio_wrapper(url_arg, attempt_opts_dict):
+                                proxy_url = attempt_opts_dict.get('proxy')
+                                import threading
+                                if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
+                                    threading.current_thread().proxy_for_audio_download = None
+                                threading.current_thread().proxy_for_audio_download = proxy_url
+                                return try_download_audio(url_arg, current_index)
+                            
+                            retry_result = retry_download_with_proxy(
+                                user_id, url, try_download_audio_wrapper, url, {}, error_message=error_to_check
+                            )
+                            
+                            if retry_result is not None:
+                                logger.info(f"Audio download retry with proxy from file successful for user {user_id}")
+                                result = retry_result
+                            else:
+                                logger.warning(f"Audio download retry with proxy from file failed for user {user_id}")
+                    
+                    if result is None:
+                        raise Exception("Failed to download audio with all available proxies")
                 
                 try:
                     full_bar = "🟩" * 10

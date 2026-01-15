@@ -13,6 +13,7 @@ from HELPERS.logger import send_to_logger, logger, send_to_all
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
 from HELPERS.decorators import background_handler
 from HELPERS.limitter import is_user_in_channel
+from HELPERS.proxy_file_helper import parse_proxy_file
 
 # Get app instance for decorators
 app = get_app()
@@ -83,8 +84,30 @@ def proxy_command(app, message):
             arg = parts[1].lower()
             proxy_file = os.path.join(user_dir, "proxy.txt")
             if arg in ("on", "off"):
-                if safe_write_file(proxy_file, "ON" if arg == "on" else "OFF"):
-                    safe_send_message(user_id, safe_get_messages(user_id).PROXY_ENABLED_MSG.format(status='enabled' if arg=='on' else 'disabled'), message=message)
+                if arg == "on":
+                    # Check if user has selected a country
+                    selected_country = get_user_selected_country(user_id)
+                    if selected_country:
+                        # Write country code to proxy.txt
+                        country_code = get_country_code(selected_country)
+                        content_to_write = country_code
+                    else:
+                        # Write "ON" to proxy.txt
+                        content_to_write = "ON"
+                else:
+                    # Write "OFF" to proxy.txt
+                    content_to_write = "OFF"
+                
+                if safe_write_file(proxy_file, content_to_write):
+                    if arg == "on":
+                        selected_country_after = get_user_selected_country(user_id)
+                        if selected_country_after:
+                            msg = f"✅ Прокси включен\n🌍 Используется страна: {selected_country_after}"
+                        else:
+                            msg = safe_get_messages(user_id).PROXY_ENABLED_MSG.format(status='enabled')
+                    else:
+                        msg = safe_get_messages(user_id).PROXY_ENABLED_MSG.format(status='disabled')
+                    safe_send_message(user_id, msg, message=message)
                     send_to_logger(message, safe_get_messages(user_id).PROXY_SET_COMMAND_LOG_MSG.format(arg=arg))
                     return
                 else:
@@ -98,17 +121,89 @@ def proxy_command(app, message):
     
     buttons = [
         [InlineKeyboardButton(safe_get_messages(user_id).PROXY_ON_BUTTON_MSG, callback_data="proxy_option|on"), InlineKeyboardButton(safe_get_messages(user_id).PROXY_OFF_BUTTON_MSG, callback_data="proxy_option|off")],
-        [InlineKeyboardButton(safe_get_messages(user_id).PROXY_CLOSE_BUTTON_MSG, callback_data="proxy_option|close")],
     ]
+    
+    # Add country buttons from proxy file
+    countries = get_countries_from_proxy_file()
+    selected_country = get_user_selected_country(user_id)
+    
+    if countries:
+        # Add header for country selection
+        buttons.append([InlineKeyboardButton("🌍 Выбор страны:", callback_data="proxy_option|country_header")])
+        
+        # Add country buttons in rows of 2
+        country_buttons = []
+        for country in countries:
+            # Add flag emoji if available, or use country name
+            flag_emoji = ""
+            country_display = country
+            # Try to match country with flag (simplified)
+            country_flags = {
+                'Germany': '🇩🇪',
+                'Russia': '🇷🇺',
+                'United States': '🇺🇸',
+                'Turkey': '🇹🇷',
+                'Italy': '🇮🇹',
+                'India': '🇮🇳',
+                'Georgia': '🇬🇪',
+                'Belarus': '🇧🇾',
+                'Thailand': '🇹🇭',
+                'Netherlands': '🇳🇱',
+                'United Kingdom': '🇬🇧',
+            }
+            flag_emoji = country_flags.get(country, '🌍')
+            
+            # Mark selected country
+            if selected_country and selected_country.lower() == country.lower():
+                country_display = f"✓ {flag_emoji} {country}"
+            else:
+                country_display = f"{flag_emoji} {country}"
+            
+            country_buttons.append(InlineKeyboardButton(
+                country_display,
+                callback_data=f"proxy_option|country|{country}"
+            ))
+        
+        # Add country buttons in rows of 2
+        for i in range(0, len(country_buttons), 2):
+            row = country_buttons[i:i+2]
+            buttons.append(row)
+        
+        # Add button to clear country selection
+        if selected_country:
+            buttons.append([InlineKeyboardButton("❌ Сбросить выбор страны", callback_data="proxy_option|country|clear")])
+    
+    buttons.append([InlineKeyboardButton(safe_get_messages(user_id).PROXY_CLOSE_BUTTON_MSG, callback_data="proxy_option|close")])
+    
     keyboard = InlineKeyboardMarkup(buttons)
     # Get available proxy count
     configs = get_all_proxy_configs()
     proxy_count = len(configs)
     
+    # Build message text
     if proxy_count and proxy_count > 1:
         proxy_text = safe_get_messages(user_id).PROXY_MENU_TEXT_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
     else:
         proxy_text = safe_get_messages(user_id).PROXY_MENU_TEXT_MSG
+    
+    # Add info about selected country if any (reads from proxy.txt)
+    if selected_country:
+        country_code = get_country_code(selected_country)
+        proxy_text += f"\n\n🌍 Выбрана страна: {selected_country} (код: {country_code})"
+        proxies = get_proxies_for_country(selected_country)
+        if proxies:
+            http_count = len([p for p in proxies if p['type'] == 'http'])
+            socks5_count = len([p for p in proxies if p['type'] == 'socks5'])
+            proxy_text += f"\n📊 Доступно прокси: {len(proxies)} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+            # Check if proxy is enabled
+            if is_proxy_enabled(user_id):
+                proxy_text += f"\n✅ Прокси включен для этой страны"
+            else:
+                proxy_text += f"\n⚠️ Прокси выключен (нажмите ON для включения)"
+    
+    # Add info about available countries
+    if countries:
+        proxy_text += f"\n\n🌍 Доступно стран из файла: {len(countries)}"
     
     safe_send_message(
         user_id,
@@ -124,7 +219,8 @@ def proxy_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
     messages = safe_get_messages(user_id)
     logger.info(LoggerMsg.PROXY_CMD_CALLBACK_LOG_MSG.format(callback_data=callback_query.data))
-    data = callback_query.data.split("|")[1]
+    parts = callback_query.data.split("|")
+    data = parts[1] if len(parts) > 1 else ""
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     proxy_file = os.path.join(user_dir, "proxy.txt")
@@ -141,24 +237,119 @@ def proxy_option_callback(app, callback_query):
         send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_MENU_CLOSED_LOG_MSG)
         return
     
-    if data == "on":
-        if not safe_write_file(proxy_file, "ON"):
+    # Handle country selection
+    if data == "country" and len(parts) > 2:
+        country = parts[2]
+        
+        if country == "clear":
+            # Clear country selection
+            if set_user_selected_country(user_id, None):
+                try:
+                    callback_query.answer("✅ Выбор страны сброшен")
+                except Exception:
+                    pass
+                # Close menu
+                try:
+                    callback_query.message.delete()
+                except Exception:
+                    try:
+                        safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, "✅ Выбор страны сброшен", reply_markup=None)
+                    except Exception:
+                        pass
+            return
+        
+        if country == "header":
+            # Just a header button, do nothing
             try:
-                callback_query.answer(safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
+                callback_query.answer()
             except Exception:
                 pass
             return
+        
+        # Set selected country - writes country code to proxy.txt
+        if set_user_selected_country(user_id, country):
+            proxies = get_proxies_for_country(country)
+            proxy_count = len(proxies)
+            http_count = len([p for p in proxies if p['type'] == 'http'])
+            socks5_count = len([p for p in proxies if p['type'] == 'socks5'])
+            country_code = get_country_code(country)
+            
+            # Build confirmation message
+            message_text = f"✅ Выбрана страна: {country} (код: {country_code})\n"
+            message_text += f"📊 Доступно прокси: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})\n"
+            message_text += f"🔄 Бот будет пробовать сначала HTTP, затем SOCKS5\n"
+            message_text += f"💡 Прокси автоматически включен для выбранной страны"
+            
+            # Close menu and show confirmation
+            try:
+                callback_query.message.delete()
+            except Exception:
+                try:
+                    safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, message_text, reply_markup=None)
+                except Exception:
+                    pass
+            
+            send_to_logger(callback_query.message, f"User {user_id} selected proxy country: {country} (code: {country_code})")
+            try:
+                callback_query.answer(f"✅ Выбрана страна: {country}")
+            except Exception:
+                pass
+            return
+    
+    if data == "on":
+        # Check if user has selected a country
+        selected_country = get_user_selected_country(user_id)
+        
+        if selected_country:
+            # User has selected a country - write country code to proxy.txt
+            country_code = get_country_code(selected_country)
+            if not safe_write_file(proxy_file, country_code):
+                try:
+                    callback_query.answer(safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
+                except Exception:
+                    pass
+                return
+        else:
+            # No country selected - write "ON" to proxy.txt
+            if not safe_write_file(proxy_file, "ON"):
+                try:
+                    callback_query.answer(safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
+                except Exception:
+                    pass
+                return
         
         # Get available proxy count and selection method
         configs = get_all_proxy_configs()
         proxy_count = len(configs)
         
-        if proxy_count and proxy_count > 1:
-            message_text = safe_get_messages(user_id).PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
+        # Check if user has selected a country (re-read after writing)
+        selected_country_after = get_user_selected_country(user_id)
+        if selected_country_after:
+            proxies = get_proxies_for_country(selected_country_after)
+            if proxies:
+                message_text = f"✅ Прокси включен\n"
+                message_text += f"🌍 Используется страна из файла: {selected_country_after}\n"
+                message_text += f"📊 Доступно прокси: {len(proxies)} (HTTP: {len([p for p in proxies if p['type'] == 'http'])}, SOCKS5: {len([p for p in proxies if p['type'] == 'socks5'])})"
+            else:
+                if proxy_count and proxy_count > 1:
+                    message_text = safe_get_messages(user_id).PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
+                else:
+                    message_text = safe_get_messages(user_id).PROXY_ENABLED_CONFIRM_MSG
         else:
-            message_text = safe_get_messages(user_id).PROXY_ENABLED_CONFIRM_MSG
+            if proxy_count and proxy_count > 1:
+                message_text = safe_get_messages(user_id).PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
+            else:
+                message_text = safe_get_messages(user_id).PROXY_ENABLED_CONFIRM_MSG
         
-        safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, message_text)
+        # Close menu and show confirmation
+        try:
+            callback_query.message.delete()
+        except Exception:
+            try:
+                safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, message_text, reply_markup=None)
+            except Exception:
+                pass
+        
         send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_ENABLED_LOG_MSG)
         try:
             callback_query.answer(safe_get_messages(user_id).PROXY_ENABLED_CALLBACK_MSG)
@@ -174,7 +365,15 @@ def proxy_option_callback(app, callback_query):
                 pass
             return
         
-        safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).PROXY_DISABLED_MSG)
+        # Close menu and show confirmation
+        try:
+            callback_query.message.delete()
+        except Exception:
+            try:
+                safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).PROXY_DISABLED_MSG, reply_markup=None)
+            except Exception:
+                pass
+        
         send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_DISABLED_LOG_MSG)
         try:
             callback_query.answer(safe_get_messages(user_id).PROXY_DISABLED_CALLBACK_MSG)
@@ -184,8 +383,7 @@ def proxy_option_callback(app, callback_query):
 
 
 def is_proxy_enabled(user_id):
-    messages = safe_get_messages(user_id)
-    """Check if proxy is enabled for user"""
+    """Check if proxy is enabled for user (returns True if ON or country code)"""
     user_dir = os.path.join("users", str(user_id))
     proxy_file = os.path.join(user_dir, "proxy.txt")
     if not os.path.exists(proxy_file):
@@ -193,7 +391,16 @@ def is_proxy_enabled(user_id):
     try:
         with open(proxy_file, "r", encoding="utf-8") as f:
             content = f.read().strip().upper()
-            return content == "ON"
+            # Check if it's "ON" or a country code (2 letters)
+            if content == "ON":
+                return True
+            # Check if it's a valid country code (2-3 letters)
+            if len(content) >= 2 and len(content) <= 3 and content.isalpha():
+                # Verify it's a known country code
+                country = get_country_by_code(content)
+                if country:
+                    return True
+            return False
     except OSError as e:
         logger.error(LoggerMsg.PROXY_CMD_ERROR_READING_FILE_LOG_MSG.format(proxy_file=proxy_file, error=e))
         return False
@@ -350,8 +557,9 @@ def resolve_proxy_config(user_id=None, url=None, allow_domain_fallback=True):
     """
     Determine which proxy configuration should be used for the current context.
     Priority:
-    1. User-specific proxy toggle (/proxy on)
-    2. Domain-specific proxy lists (if enabled and allowed)
+    1. User-selected country from proxy file (if proxy is enabled)
+    2. User-specific proxy toggle (/proxy on) - uses config proxies
+    3. Domain-specific proxy lists (if enabled and allowed)
     """
     reason = None
     proxy_config = None
@@ -361,6 +569,14 @@ def resolve_proxy_config(user_id=None, url=None, allow_domain_fallback=True):
             proxy_enabled = is_proxy_enabled(user_id)
             logger.info(LoggerMsg.PROXY_CMD_PROXY_CHECK_FOR_USER_LOG_MSG.format(user_id=user_id, proxy_enabled=proxy_enabled))
             if proxy_enabled:
+                # Check if user has selected a country from proxy file (reads from proxy.txt)
+                selected_country = get_user_selected_country(user_id)
+                if selected_country:
+                    # User selected country - return None here, will be handled by get_proxy_url_for_user_country
+                    logger.info(f"User {user_id} has selected country {selected_country} from proxy.txt")
+                    return None, "country_file"
+                
+                # Fallback to config-based proxy
                 proxy_config = select_proxy_for_user()
                 reason = "user"
         except Exception as e:
@@ -377,6 +593,13 @@ def resolve_proxy_config(user_id=None, url=None, allow_domain_fallback=True):
 def get_proxy_url(user_id=None, url=None, allow_domain_fallback=True):
     """Return proxy URL string for current context or None."""
     proxy_config, reason = resolve_proxy_config(user_id, url, allow_domain_fallback)
+    
+    # If user selected a country from proxy file, use that
+    if reason == "country_file" and user_id:
+        country_proxy_url, _ = get_proxy_url_for_user_country(user_id)
+        if country_proxy_url:
+            return country_proxy_url, "country_file"
+    
     if not proxy_config:
         return None, None
     proxy_url = build_proxy_url(proxy_config)
@@ -402,10 +625,125 @@ def get_requests_proxies(user_id=None, url=None, allow_domain_fallback=True):
     return proxies, reason
 
 
+def get_country_code(country: str) -> str:
+    """Get ISO country code for country name"""
+    country_codes = {
+        'Germany': 'DE',
+        'Russia': 'RU',
+        'United States': 'US',
+        'Turkey': 'TR',
+        'Italy': 'IT',
+        'India': 'IN',
+        'Georgia': 'GE',
+        'Belarus': 'BY',
+        'Thailand': 'TH',
+        'Netherlands': 'NL',
+        'United Kingdom': 'GB',
+    }
+    return country_codes.get(country, country.upper()[:2] if len(country) >= 2 else country.upper())
+
+def get_country_by_code(code: str) -> str:
+    """Get country name by ISO country code"""
+    code_to_country = {
+        'DE': 'Germany',
+        'RU': 'Russia',
+        'US': 'United States',
+        'TR': 'Turkey',
+        'IT': 'Italy',
+        'IN': 'India',
+        'GE': 'Georgia',
+        'BY': 'Belarus',
+        'TH': 'Thailand',
+        'NL': 'Netherlands',
+        'GB': 'United Kingdom',
+    }
+    return code_to_country.get(code.upper())
+
+def get_countries_from_proxy_file():
+    """Get unique list of countries from TXT/proxy.txt file"""
+    proxies = parse_proxy_file("TXT/proxy.txt")
+    countries = sorted(set(proxy['country'] for proxy in proxies))
+    return countries
+
+def get_proxies_for_country(country: str):
+    """Get all proxies (HTTP and SOCKS5) for a specific country from TXT/proxy.txt"""
+    proxies = parse_proxy_file("TXT/proxy.txt")
+    country_proxies = [p for p in proxies if p['country'].lower() == country.lower()]
+    # Sort: HTTP first, then SOCKS5
+    country_proxies.sort(key=lambda x: (x['type'] != 'http', x['country']))
+    return country_proxies
+
+def get_user_selected_country(user_id):
+    """Get user's selected country from proxy.txt file (checks for country code)"""
+    user_dir = os.path.join("users", str(user_id))
+    proxy_file = os.path.join(user_dir, "proxy.txt")
+    if not os.path.exists(proxy_file):
+        return None
+    try:
+        with open(proxy_file, "r", encoding="utf-8") as f:
+            content = f.read().strip().upper()
+            # If it's "ON" or "OFF", no country selected
+            if content in ("ON", "OFF"):
+                return None
+            # Check if it's a country code
+            if len(content) >= 2 and len(content) <= 3 and content.isalpha():
+                country = get_country_by_code(content)
+                if country:
+                    return country
+            return None
+    except Exception as e:
+        logger.error(f"Error reading proxy file for user {user_id}: {e}")
+        return None
+
+def set_user_selected_country(user_id, country):
+    """Set user's selected country - writes country code to proxy.txt"""
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    proxy_file = os.path.join(user_dir, "proxy.txt")
+    try:
+        if country:
+            # Get country code and write to proxy.txt
+            country_code = get_country_code(country)
+            with open(proxy_file, "w", encoding="utf-8") as f:
+                f.write(country_code)
+            logger.info(f"Set proxy country code {country_code} for user {user_id} (country: {country})")
+        else:
+            # Clear country selection - write "OFF" to proxy.txt
+            with open(proxy_file, "w", encoding="utf-8") as f:
+                f.write("OFF")
+            logger.info(f"Cleared proxy country for user {user_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error writing proxy file for user {user_id}: {e}")
+        return False
+
+def get_proxy_url_for_user_country(user_id):
+    """Get proxy URL for user's selected country (tries HTTP first, then SOCKS5)"""
+    user_selected_country = get_user_selected_country(user_id)
+    if not user_selected_country:
+        return None, None
+    
+    proxies = get_proxies_for_country(user_selected_country)
+    if not proxies:
+        logger.warning(f"No proxies found for country {user_selected_country}")
+        return None, None
+    
+    # Return first proxy (HTTP if available, otherwise SOCKS5)
+    return proxies[0]['proxy_url'], user_selected_country
+
 def add_proxy_to_ytdl_opts(ytdl_opts, url, user_id=None, allow_domain_fallback=True):
     """Add proxy to yt-dlp options if proxy is enabled for user or domain requires it"""
     logger.info(LoggerMsg.PROXY_CMD_ADD_PROXY_CALLED_LOG_MSG.format(user_id=user_id, url=url))
     
+    # First check if user has selected a country from proxy file
+    if user_id:
+        country_proxy_url, selected_country = get_proxy_url_for_user_country(user_id)
+        if country_proxy_url:
+            ytdl_opts['proxy'] = country_proxy_url
+            logger.info(f"Using proxy from file for country {selected_country}: {country_proxy_url}")
+            return ytdl_opts
+    
+    # Fallback to config-based proxy
     proxy_url, reason = get_proxy_url(user_id=user_id, url=url, allow_domain_fallback=allow_domain_fallback)
     if proxy_url:
         ytdl_opts['proxy'] = proxy_url

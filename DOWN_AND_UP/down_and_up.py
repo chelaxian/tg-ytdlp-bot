@@ -1691,8 +1691,32 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.error(f"Proxy fallback failed: {e3}")
                             info_dict = None
                         if info_dict is None:
-                            # Сохраняем оригинальный текст ошибки для последующей обработки
-                            raise Exception(f"Failed to extract video information: {original_error_text if original_error_text else error_text}")
+                            # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
+                            if is_youtube_url(url) and user_id is not None:
+                                from COMMANDS.cookies_cmd import is_youtube_geo_error, retry_download_with_proxy
+                                if is_youtube_geo_error(original_error_text if original_error_text else error_text):
+                                    logger.info(f"YouTube geo-blocked error detected in extract_info for user {user_id}, attempting retry with proxy from file")
+                                    
+                                    def extract_with_attempt_opts(url_arg, attempt_opts_dict):
+                                        # Используем attempt_opts_dict (который включает proxy) вместо оригинальных opts
+                                        if 'geo_bypass' not in attempt_opts_dict:
+                                            attempt_opts_dict['geo_bypass'] = True
+                                        logger.info(f"extract_with_attempt_opts: proxy={attempt_opts_dict.get('proxy', 'None')}, geo_bypass={attempt_opts_dict.get('geo_bypass', 'None')}, cookiefile={'set' if attempt_opts_dict.get('cookiefile') else 'None'}")
+                                        return extract_info_operation(attempt_opts_dict)
+                                    
+                                    retry_result = retry_download_with_proxy(
+                                        user_id, url, extract_with_attempt_opts, url, ytdl_opts, error_message=original_error_text if original_error_text else error_text
+                                    )
+                                    
+                                    if retry_result is not None:
+                                        logger.info(f"extract_info retry with proxy from file successful for user {user_id}")
+                                        info_dict = retry_result
+                                    else:
+                                        logger.warning(f"extract_info retry with proxy from file failed for user {user_id}")
+                            
+                            if info_dict is None:
+                                # Сохраняем оригинальный текст ошибки для последующей обработки
+                                raise Exception(f"Failed to extract video information: {original_error_text if original_error_text else error_text}")
                 
                 if info_dict is None:
                     raise Exception("Failed to extract video information with all available proxies")
@@ -2105,7 +2129,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси из файла
                     # Не прерываем скачивание сразу, а пробуем все подходящие прокси
-                    logger.debug(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
+                    logger.info(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
                     if is_youtube_geo_error(error_message) and not did_proxy_retry:
                         logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
                         logger.info(f"Full error message: {error_message}")

@@ -225,13 +225,44 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
         logger.warning(f"Error checking proxy for user {user_id}: {e}")
         return operation_func(ytdl_opts, *args, **kwargs)
     
-    # User proxy is enabled, get all available proxies
+    # Check if user has selected a country from proxy file
+    try:
+        from COMMANDS.proxy_cmd import get_user_selected_country, get_proxies_for_country
+        selected_country = get_user_selected_country(user_id)
+        if selected_country:
+            # User selected country - try proxies from file (HTTP first, then SOCKS5)
+            proxies = get_proxies_for_country(selected_country)
+            if proxies:
+                logger.info(f"User {user_id} selected country {selected_country}, trying {len(proxies)} proxies from file")
+                for i, proxy_info in enumerate(proxies):
+                    try:
+                        current_opts = ytdl_opts.copy()
+                        proxy_url = proxy_info['proxy_url']
+                        current_opts['proxy'] = proxy_url
+                        logger.info(f"Trying {url} with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
+                        result = operation_func(current_opts, *args, **kwargs)
+                        
+                        if result is not None:
+                            logger.info(f"Success with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
+                            return result
+                        else:
+                            logger.warning(f"Operation returned None with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
+                    except Exception as e:
+                        logger.warning(f"Failed with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {e}")
+                        continue
+                
+                # All proxies from file failed, fall through to config proxies
+                logger.warning(f"All proxies from file for country {selected_country} failed, trying config proxies")
+    except Exception as e:
+        logger.warning(f"Error checking user selected country: {e}")
+    
+    # User proxy is enabled, get all available proxies from config
     all_configs = get_all_proxy_configs()
     if not all_configs:
         logger.info(f"No proxies available for {url}, trying without proxy")
         return operation_func(ytdl_opts, *args, **kwargs)
     
-    # Try with each proxy
+    # Try with each proxy from config
     for i, proxy_config in enumerate(all_configs):
         try:
             # Update proxy in options
