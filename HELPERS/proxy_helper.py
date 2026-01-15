@@ -564,14 +564,15 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     basic_versions_all_failed = True
     
     # Try with different impersonate versions
-    unavailable_count = 0
-    max_unavailable_before_skip = 3  # Skip remaining if 3+ consecutive versions unavailable
+    unavailable_specific_count = 0  # Track only specific versions
+    max_unavailable_before_skip = 3  # Skip remaining if 3+ consecutive specific versions unavailable
     
     for impersonate_version in impersonate_versions:
         # Check if we're moving from basic to specific versions
-        if impersonate_version in basic_versions:
+        is_basic_version = impersonate_version in basic_versions
+        if is_basic_version:
             basic_versions_tried = True
-            unavailable_count = 0  # Reset counter for basic versions
+            unavailable_specific_count = 0  # Reset counter when trying basic versions
         elif basic_versions_tried and not curl_cffi_available:
             # If basic versions failed and curl_cffi is not available, skip specific versions
             logger.info("Basic impersonate versions failed and curl_cffi is not installed. Skipping specific versions.")
@@ -610,20 +611,24 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             error_text = str(e)
             # Check if error indicates impersonate version is not available
             if "none of these impersonate targets are available" in error_text.lower():
-                # Skip this version and continue to next
-                unavailable_count += 1
-                logger.debug(f"Impersonate version {impersonate_version} is not available (unavailable count: {unavailable_count}), skipping")
-                # If this is a specific version and curl_cffi is not available, skip all remaining specific versions
-                if impersonate_version not in basic_versions and not curl_cffi_available:
-                    logger.info(f"Specific version {impersonate_version} not available and curl_cffi not installed. Skipping remaining specific versions.")
-                    break
-                # If too many consecutive versions are unavailable, skip remaining
-                if unavailable_count >= max_unavailable_before_skip and impersonate_version not in basic_versions:
-                    logger.info(f"{unavailable_count} consecutive specific versions unavailable. Skipping remaining specific versions.")
-                    break
+                is_basic = impersonate_version in basic_versions
+                logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
+                
+                # Only track unavailable count for specific versions
+                if not is_basic:
+                    unavailable_specific_count += 1
+                    logger.debug(f"Specific version unavailable count: {unavailable_specific_count}")
+                    
+                    # If too many consecutive specific versions are unavailable, skip remaining
+                    if unavailable_specific_count >= max_unavailable_before_skip:
+                        remaining_count = len([v for v in impersonate_versions if v not in basic_versions and impersonate_versions.index(v) > impersonate_versions.index(impersonate_version)])
+                        logger.info(f"{unavailable_specific_count} consecutive specific impersonate versions unavailable. Skipping remaining {remaining_count} specific versions.")
+                        break
                 continue
             else:
-                unavailable_count = 0  # Reset counter if version is available but failed for other reasons
+                # Reset counter if version is available but failed for other reasons
+                if impersonate_version not in basic_versions:
+                    unavailable_specific_count = 0
             
             if not is_cloudflare_error(error_text):
                 # Not a Cloudflare error, might be a different issue - log but continue
