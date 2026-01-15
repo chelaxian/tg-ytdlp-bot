@@ -1782,6 +1782,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     ytdl_opts.pop("http_chunk_size", None)
                     # Reduce parallelism for fragile HLS endpoints
                     ytdl_opts["concurrent_fragment_downloads"] = 1
+                    # Limit fragment retries to avoid long waits when segments fail (e.g., 403 errors)
+                    # If first few segments fail, stop trying immediately
+                    ytdl_opts["fragment_retries"] = 2  # Only 2 retries per fragment (original + 2 retries = 3 total attempts)
+                    ytdl_opts["hls_fragment_retries"] = 2  # Same for HLS fragments
+                    # Add timeout for HLS segment downloads to fail faster
+                    if "downloader_args" not in ytdl_opts:
+                        ytdl_opts["downloader_args"] = {}
+                    if "ffmpeg" not in ytdl_opts["downloader_args"]:
+                        ytdl_opts["downloader_args"]["ffmpeg"] = []
+                    # Add timeout for HTTP requests (30 seconds per segment)
+                    if "-timeout" not in str(ytdl_opts["downloader_args"]["ffmpeg"]):
+                        ytdl_opts["downloader_args"]["ffmpeg"].extend(["-timeout", "30000000"])  # 30 seconds in microseconds
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
