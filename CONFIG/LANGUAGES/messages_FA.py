@@ -593,7 +593,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ پروکسی {status}."
     PROXY_ERROR_SAVING_MSG = "❌ خطا در ذخیره تنظیمات پروکسی."
     PROXY_MENU_TEXT_MSG = "فعال یا غیرفعال کردن استفاده از سرور پروکسی برای تمام عملیات yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "فعال یا غیرفعال کردن استفاده از سرورهای پروکسی ({count} موجود) برای تمام عملیات yt-dlp?\n\nوقتی فعال باشد، پروکسی‌ها با استفاده از روش {method} انتخاب می‌شوند."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "با استفاده از سرورهای پراکسی ({config_count} + {file_count} موجود) برای همه عملیات yt-dlp فعال یا غیرفعال شود؟\n\nوقتی ALL (AUTO) فعال باشد، پراکسی ها با استفاده از روش تصادفی انتخاب می شوند."
     PROXY_MENU_CLOSED_MSG = "منو بسته شد."
     PROXY_ENABLED_CONFIRM_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از پروکسی استفاده خواهند کرد."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از {count} سرور پروکسی با روش انتخاب {method} استفاده خواهند کرد."
@@ -1648,6 +1648,10 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 استفاده از کشور از فایل: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 کشورهای موجود از فایل: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 کشور انتخابی: {country} (کد: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ پروکسی برای این کشور فعال است"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ پروکسی غیرفعال است (برای فعال کردن ALL (AUTO) را فشار دهید)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ روشن"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ خاموش"

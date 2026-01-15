@@ -593,7 +593,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ プロキシ{status}。"
     PROXY_ERROR_SAVING_MSG = "❌ プロキシ設定の保存エラー。"
     PROXY_MENU_TEXT_MSG = "すべてのyt-dlp操作にプロキシサーバーを使用することを有効または無効にしますか？"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "すべてのyt-dlp操作にプロキシサーバー（{count}個利用可能）を使用することを有効または無効にしますか？\n\n有効にすると、プロキシは{method}メソッドを使用して選択されます。"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "すべての yt-dlp 操作でプロキシ サーバー ({config_count} + {file_count} が利用可能) の使用を有効または無効にしますか?\n\nALL (AUTO) を有効にすると、プロキシはランダムな方法で選択されます。"
     PROXY_MENU_CLOSED_MSG = "メニューを閉じました。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作でプロキシが使用されます。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作で{count}個のプロキシサーバーが{method}選択メソッドで使用されます。"
@@ -1648,6 +1648,10 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 ファイルからの国を使用: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 ファイルから利用可能な国: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 選択した国: {country} (コード: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ この国ではプロキシが有効になっています"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ プロキシが無効になっています (有効にするには [ALL (AUTO)] を押します)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ オン"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ オフ"

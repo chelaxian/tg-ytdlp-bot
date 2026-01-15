@@ -593,7 +593,7 @@ Yi amfani da:
     PROXY_ENABLED_MSG = "✅ Wakili {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_MENU_TEXT_MSG = "Kunna ko kashe amfani da uwar garken proxy don duk ayyukan yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe amfani da uwar garken proxy ({count} suna samuwa) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna, za a zaɓi proxies ta amfani da hanyar {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe ta amfani da sabar wakili ({config_count} + {file_count} akwai) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna DUKA (AUTO), za a zaɓi proxies ta hanyar bazuwar hanya."
     PROXY_MENU_CLOSED_MSG = "An rufe menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da uwar garken proxy {count} tare da hanyar zaɓi {method}."
@@ -1648,6 +1648,10 @@ Yi amfani da:
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Amfani da ƙasa daga fayil: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Akwai ƙasashe daga fayil: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Ƙasar da aka zaɓa: {ƙasa} (lambar: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ An ba da izinin wakili ga wannan ƙasa"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ An kashe wakili (latsa ALL (AUTO) don kunnawa)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ KASHE"

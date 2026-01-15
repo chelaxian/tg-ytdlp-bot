@@ -593,7 +593,7 @@ Use:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Lỗi khi lưu cài đặt proxy."
     PROXY_MENU_TEXT_MSG = "Bật hoặc tắt sử dụng máy chủ proxy cho tất cả các thao tác yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Bật hoặc tắt sử dụng máy chủ proxy ({count} có sẵn) cho tất cả các thao tác yt-dlp?\n\nKhi bật, proxy sẽ được chọn bằng phương pháp {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Bật hoặc tắt việc sử dụng máy chủ proxy (có sẵn {config_count} + {file_count}) cho tất cả hoạt động yt-dlp?\n\nKhi được bật TẤT CẢ (TỰ ĐỘNG), proxy sẽ được chọn bằng phương pháp ngẫu nhiên."
     PROXY_MENU_CLOSED_MSG = "Menu đã đóng."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng {count} máy chủ proxy với phương pháp chọn {method}."
@@ -1648,6 +1648,10 @@ Use:
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Sử dụng quốc gia từ tệp: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Các quốc gia có sẵn trong tệp: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Quốc gia được chọn: {country} (code: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Đã bật proxy cho quốc gia này"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy bị vô hiệu hóa (nhấn TẤT CẢ (AUTO) để bật)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ BẬT"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ TẮT"

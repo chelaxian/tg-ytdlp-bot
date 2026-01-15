@@ -593,7 +593,7 @@ Kullanın:
     PROXY_ENABLED_MSG = "✅ Vekil {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Proxy ayarları kaydedilirken hata oluştu."
     PROXY_MENU_TEXT_MSG = "Tüm yt-dlp işlemleri için proxy sunucusu kullanmayı etkinleştir veya devre dışı bırak?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Tüm yt-dlp işlemleri için proxy sunucularını ({count} mevcut) kullanmayı etkinleştir veya devre dışı bırak?\n\nEtkinleştirildiğinde, proxy'ler {method} yöntemi kullanılarak seçilecektir."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Tüm yt-dlp işlemleri için proxy sunucuların ({config_count} + {file_count} mevcut) kullanılması etkinleştirilsin mi devre dışı mı bırakılsın?\n\nALL (AUTO) etkinleştirildiğinde, proxy'ler rastgele yöntem kullanılarak seçilecektir."
     PROXY_MENU_CLOSED_MSG = "Menü kapatıldı."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemlerinde proxy kullanılacaktır."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemleri {count} proxy sunucularını {method} seçim yöntemiyle kullanacaktır."
@@ -1648,6 +1648,10 @@ Kullanın:
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Ülkeyi dosyadan kullanma: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Dosyadaki mevcut ülkeler: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Seçilen ülke: {country} (kod: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Bu ülke için proxy etkin"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy devre dışı (etkinleştirmek için ALL (AUTO) tuşuna basın)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ AÇIK"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ KAPALI"

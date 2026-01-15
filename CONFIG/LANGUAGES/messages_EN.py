@@ -593,7 +593,7 @@ Use:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error saving proxy settings."
     PROXY_MENU_TEXT_MSG = "Enable or disable using proxy server for all yt-dlp operations?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({count} available) for all yt-dlp operations?\n\nWhen enabled, proxies will be selected using {method} method."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({config_count} + {file_count} available) for all yt-dlp operations?\n\nWhen enabled ALL (AUTO), proxies will be selected using random method."
     PROXY_MENU_CLOSED_MSG = "Menu closed."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy enabled. All yt-dlp operations will use proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy enabled. All yt-dlp operations will use {count} proxy servers with {method} selection method."
@@ -1644,6 +1644,9 @@ Use:
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Country selected: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Using country from file: {country}"
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Available countries from file: {count}"
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Selected country: {country} (code: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Proxy enabled for this country"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy disabled (press ALL (AUTO) to enable)"
     
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"

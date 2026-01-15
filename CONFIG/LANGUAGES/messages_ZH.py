@@ -593,7 +593,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ 代理 {status}。"
     PROXY_ERROR_SAVING_MSG = "❌ 保存代理设置时出错。"
     PROXY_MENU_TEXT_MSG = "启用或禁用代理服务器用于所有yt-dlp操作？"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "启用或禁用代理服务器（{count} 个可用）用于所有yt-dlp操作？\n\n启用后，将使用 {method} 方法选择代理。"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "为所有 yt-dlp 操作启用或禁用使用代理服务器（{config_count} + {file_count} 可用）？\n\n当启用全部（自动）时，将使用随机方法选择代理。"
     PROXY_MENU_CLOSED_MSG = "菜单已关闭。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ 代理已启用。所有yt-dlp操作将使用代理。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 代理已启用。所有yt-dlp操作将使用 {count} 个代理服务器，采用 {method} 选择方法。"
@@ -1648,6 +1648,10 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 使用文件中的国家/地区：{country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 文件中的可用国家/地区：{count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 所选国家/地区：{country}（代码：{country_code}）"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ 已为该国家/地区启用代理"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ 代理已禁用（按全部（自动）启用）"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ 开启"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ 关闭"

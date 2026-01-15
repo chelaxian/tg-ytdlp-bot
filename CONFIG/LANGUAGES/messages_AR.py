@@ -593,7 +593,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ البروكسي {status}."
     PROXY_ERROR_SAVING_MSG = "❌ خطأ في حفظ إعدادات البروكسي."
     PROXY_MENU_TEXT_MSG = "تفعيل أو إلغاء استخدام خادم البروكسي لجميع عمليات yt-dlp؟"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "تفعيل أو إلغاء استخدام خوادم البروكسي ({count} متاح) لجميع عمليات yt-dlp؟\n\nعند التفعيل، سيتم اختيار البروكسي باستخدام طريقة {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "هل تريد تمكين أو تعطيل استخدام الخوادم الوكيلة (يتوفر {config_count} + {file_count}) لجميع عمليات yt-dlp؟\n\nعند تمكين الكل (AUTO)، سيتم اختيار الوكلاء باستخدام طريقة عشوائية."
     PROXY_MENU_CLOSED_MSG = "تم إغلاق القائمة."
     PROXY_ENABLED_CONFIRM_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم البروكسي."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم {count} خادم بروكسي مع طريقة اختيار {method}."
@@ -1654,6 +1654,10 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 استخدام البلد من الملف: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 الدول المتاحة من الملف: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 الدولة المختارة: {country} (الرمز: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ تمكين الوكيل لهذا البلد"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ تم تعطيل الوكيل (اضغط الكل (AUTO) للتمكين)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ تشغيل"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ إيقاف"

@@ -593,7 +593,7 @@ Ishlating:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Proxy sozlamalarini saqlashda xatolik."
     PROXY_MENU_TEXT_MSG = "Barcha yt-dlp operatsiyalari uchun proxy serverni yoqish yoki o'chirish?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Barcha yt-dlp operatsiyalari uchun proxy serverlarni ({count} mavjud) yoqish yoki o'chirish?\n\nYoqilganda, proxy'lar {method} usuli bilan tanlanadi."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Barcha yt-dlp operatsiyalari uchun proksi-serverlar ({config_count} + {file_count} mavjud) yordamida yoqilsin yoki oʻchirilsinmi?\n\nALL (AVTO) yoqilganda proksi-serverlar tasodifiy usul yordamida tanlanadi."
     PROXY_MENU_CLOSED_MSG = "Menyu yopildi."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari proxy'dan foydalanadi."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari {count} proxy server va {method} tanlash usuli bilan ishlaydi."
@@ -1648,6 +1648,10 @@ Ishlating:
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Fayldagi mamlakatdan foydalanish: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Fayldagi mavjud mamlakatlar: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Tanlangan mamlakat: {mamlakat} (kod: {mamlakat_kodi})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Bu mamlakat uchun proksi yoqilgan"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proksi oʻchirilgan (yoqish uchun ALL (AVTO) tugmasini bosing)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ YOQILGAN"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"

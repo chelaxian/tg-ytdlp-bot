@@ -593,7 +593,7 @@ Utilisez :
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Erreur lors de l'enregistrement des paramètres de proxy."
     PROXY_MENU_TEXT_MSG = "Activer ou désactiver l'utilisation du serveur proxy pour toutes les opérations yt-dlp ?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Activer ou désactiver l'utilisation des serveurs proxy ({count} disponibles) pour toutes les opérations yt-dlp ?\n\nLorsqu'il est activé, les proxies seront sélectionnés en utilisant la méthode {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Activer ou désactiver l'utilisation de serveurs proxy ({config_count} + {file_count} disponibles) pour toutes les opérations yt-dlp ?\n\nLorsqu'il est activé TOUT (AUTO), les proxys seront sélectionnés en utilisant une méthode aléatoire."
     PROXY_MENU_CLOSED_MSG = "Menu fermé."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy activé. Toutes les opérations yt-dlp utiliseront le proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy activé. Toutes les opérations yt-dlp utiliseront {count} serveurs proxy avec la méthode de sélection {method}."
@@ -1648,6 +1648,10 @@ Utilisez :
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Utilisation du pays à partir du fichier : {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Pays disponibles à partir du fichier : {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Pays sélectionné : {country} (code : {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Proxy activé pour ce pays"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy désactivé (appuyez sur ALL (AUTO) pour activer)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ACTIVÉ"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ DÉSACTIVÉ"

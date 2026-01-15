@@ -593,7 +593,7 @@ Gamitin:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error sa pag-save ng mga setting ng proxy."
     PROXY_MENU_TEXT_MSG = "Paganahin o huwag paganahin ang paggamit ng proxy server para sa lahat ng pagpapatakbo ng yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Paganahin o huwag paganahin ang paggamit ng proxy servers ({count} available) para sa lahat ng yt-dlp operations?\n\nKapag pinagana, pipiliin ang mga proxy gamit ang {method} method."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Paganahin o huwag paganahin ang paggamit ng mga proxy server ({config_count} + {file_count} available) para sa lahat ng yt-dlp operation?\n\nKapag pinagana ang LAHAT (AUTO), pipiliin ang mga proxy gamit ang random na paraan."
     PROXY_MENU_CLOSED_MSG = "Sarado ang menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng {count} proxy server na may {method} paraan ng pagpili."
@@ -1648,6 +1648,10 @@ Gamitin:
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Paggamit ng bansa mula sa file: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Mga available na bansa mula sa file: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Napiling bansa: {country} (code: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Naka-enable ang proxy para sa bansang ito"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Hindi pinagana ang proxy (pindutin ang LAHAT (AUTO) para paganahin)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ NAKA-ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ NAKA-OFF"

@@ -593,7 +593,7 @@ Use:
     PROXY_ENABLED_MSG = "✅ Proksi {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kesalahan menyimpan pengaturan proxy."
     PROXY_MENU_TEXT_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy untuk semua operasi yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy ({count} tersedia) untuk semua operasi yt-dlp?\n\nKetika diaktifkan, proxy akan dipilih menggunakan metode {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy ({config_count} + {file_count} tersedia) untuk semua operasi yt-dlp?\n\nSaat diaktifkan SEMUA (AUTO), proxy akan dipilih menggunakan metode acak."
     PROXY_MENU_CLOSED_MSG = "Menu ditutup."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy diaktifkan. Semua operasi yt-dlp akan menggunakan proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy diaktifkan. Semua operasi yt-dlp akan menggunakan {count} server proxy dengan metode pemilihan {method}."
@@ -1648,6 +1648,10 @@ Use:
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Menggunakan negara dari file: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Negara yang tersedia dari file: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Negara yang dipilih: {country} (kode: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Proksi diaktifkan untuk negara ini"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy dinonaktifkan (tekan SEMUA (AUTO) untuk mengaktifkan)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ AKTIF"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ MATI"

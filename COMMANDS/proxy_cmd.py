@@ -181,26 +181,45 @@ def proxy_command(app, message):
     configs = get_all_proxy_configs()
     proxy_count = len(configs)
     
+    # Get proxy count from file
+    try:
+        from HELPERS.proxy_file_helper import get_all_proxies_from_file
+        file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
+        file_count = len(file_proxies)
+    except Exception:
+        file_count = 0
+    
     # Build message text
-    if proxy_count and proxy_count > 1:
-        proxy_text = safe_get_messages(user_id).PROXY_MENU_TEXT_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
+    if proxy_count > 0 or file_count > 0:
+        proxy_text = safe_get_messages(user_id).PROXY_MENU_TEXT_MULTIPLE_MSG.format(
+            config_count=proxy_count,
+            file_count=file_count
+        )
     else:
         proxy_text = safe_get_messages(user_id).PROXY_MENU_TEXT_MSG
     
     # Add info about selected country if any (reads from proxy.txt)
+    messages = safe_get_messages(user_id)
     if selected_country:
         country_code = get_country_code(selected_country)
-        proxy_text += f"\n\n🌍 Выбрана страна: {selected_country} (код: {country_code})"
+        proxy_text += "\n\n" + messages.PROXY_COUNTRY_SELECTED_IN_MENU_MSG.format(
+            country=selected_country,
+            country_code=country_code
+        )
         proxies = get_proxies_for_country(selected_country)
         if proxies:
             http_count = len([p for p in proxies if p['type'] == 'http'])
             socks5_count = len([p for p in proxies if p['type'] == 'socks5'])
-            proxy_text += f"\n📊 Доступно прокси: {len(proxies)} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+            proxy_text += "\n" + messages.PROXY_COUNTRY_PROXIES_AVAILABLE_MSG.format(
+                proxy_count=len(proxies),
+                http_count=http_count,
+                socks5_count=socks5_count
+            )
             # Check if proxy is enabled
             if is_proxy_enabled(user_id):
-                proxy_text += f"\n✅ Прокси включен для этой страны"
+                proxy_text += "\n" + messages.PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG
             else:
-                proxy_text += f"\n⚠️ Прокси выключен (нажмите ON для включения)"
+                proxy_text += "\n" + messages.PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG
     
     # Add info about available countries
     if countries:
