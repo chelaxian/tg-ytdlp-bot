@@ -529,16 +529,20 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     try:
         import curl_cffi
         curl_cffi_available = True
-        logger.debug("curl_cffi is available, will try specific impersonate versions")
+        logger.info("curl_cffi is available, will try specific impersonate versions")
     except ImportError:
-        logger.debug("curl_cffi is not available, will only try basic impersonate versions")
+        logger.info("curl_cffi is not available, will only try basic impersonate versions")
     
     # Build list: basic versions first, then specific if curl_cffi is available
     impersonate_versions = basic_versions.copy()
     if curl_cffi_available:
         impersonate_versions.extend(specific_versions)
+        logger.info(f"Will try {len(impersonate_versions)} impersonate versions (including {len(specific_versions)} specific)")
     else:
-        logger.info("curl_cffi not installed - skipping specific impersonate versions. Install with: pip install curl-cffi")
+        logger.info(f"Will try only {len(basic_versions)} basic impersonate versions. Install curl-cffi to enable specific versions: pip install curl-cffi")
+    
+    # Log first few versions for debugging
+    logger.debug(f"First 5 impersonate versions to try: {impersonate_versions[:5]}")
     
     # Try with original options first (skip if we already know it's a Cloudflare error)
     original_error = None
@@ -560,10 +564,14 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     basic_versions_all_failed = True
     
     # Try with different impersonate versions
+    unavailable_count = 0
+    max_unavailable_before_skip = 3  # Skip remaining if 3+ consecutive versions unavailable
+    
     for impersonate_version in impersonate_versions:
         # Check if we're moving from basic to specific versions
         if impersonate_version in basic_versions:
             basic_versions_tried = True
+            unavailable_count = 0  # Reset counter for basic versions
         elif basic_versions_tried and not curl_cffi_available:
             # If basic versions failed and curl_cffi is not available, skip specific versions
             logger.info("Basic impersonate versions failed and curl_cffi is not installed. Skipping specific versions.")
@@ -603,8 +611,19 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             # Check if error indicates impersonate version is not available
             if "none of these impersonate targets are available" in error_text.lower():
                 # Skip this version and continue to next
-                logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
+                unavailable_count += 1
+                logger.debug(f"Impersonate version {impersonate_version} is not available (unavailable count: {unavailable_count}), skipping")
+                # If this is a specific version and curl_cffi is not available, skip all remaining specific versions
+                if impersonate_version not in basic_versions and not curl_cffi_available:
+                    logger.info(f"Specific version {impersonate_version} not available and curl_cffi not installed. Skipping remaining specific versions.")
+                    break
+                # If too many consecutive versions are unavailable, skip remaining
+                if unavailable_count >= max_unavailable_before_skip and impersonate_version not in basic_versions:
+                    logger.info(f"{unavailable_count} consecutive specific versions unavailable. Skipping remaining specific versions.")
+                    break
                 continue
+            else:
+                unavailable_count = 0  # Reset counter if version is available but failed for other reasons
             
             if not is_cloudflare_error(error_text):
                 # Not a Cloudflare error, might be a different issue - log but continue
