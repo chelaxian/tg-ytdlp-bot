@@ -526,12 +526,20 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     
     # Check if curl_cffi is available (for specific versions)
     curl_cffi_available = False
+    curl_cffi_version = None
     try:
         import curl_cffi
         curl_cffi_available = True
-        logger.info("curl_cffi is available, will try specific impersonate versions")
+        try:
+            curl_cffi_version = getattr(curl_cffi, '__version__', 'unknown')
+        except:
+            pass
+        if curl_cffi_version:
+            logger.info(f"curl_cffi is available (version {curl_cffi_version}), will try specific impersonate versions")
+        else:
+            logger.info("curl_cffi is available, will try specific impersonate versions")
     except ImportError:
-        logger.info("curl_cffi is not available, will only try basic impersonate versions")
+        logger.info("curl_cffi is not available, will only try basic impersonate versions. Install with: pip install curl-cffi")
     
     # Build list: basic versions first, then specific if curl_cffi is available
     impersonate_versions = basic_versions.copy()
@@ -658,4 +666,12 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     logger.error(f"All impersonate versions failed for {url}")
     if not curl_cffi_available:
         logger.info("Note: curl_cffi is not installed. Install it with 'pip install curl-cffi' to enable specific browser version impersonation.")
+    elif curl_cffi_available:
+        version_info = f" (version {curl_cffi_version})" if curl_cffi_version else ""
+        if unavailable_specific_count >= max_unavailable_before_skip:
+            logger.warning(f"Note: curl_cffi{version_info} is installed, but specific browser versions are unavailable. "
+                          f"Try updating curl_cffi: pip install --upgrade --pre curl-cffi")
+        else:
+            logger.info(f"Note: curl_cffi{version_info} is installed, but all impersonate versions failed. "
+                       f"This may indicate that Cloudflare protection is too strong for this site.")
     return None
