@@ -1447,7 +1447,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             # Вызываем оригинальную функцию
                             return try_download_audio(url_arg, current_index)
                         
-                        # Пробуем скачать через прокси
+                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
                         retry_result = retry_download_with_proxy(
                             user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
                         )
@@ -1457,8 +1457,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             did_proxy_retry = True
                             return retry_result
                         else:
-                            logger.warning(f"Audio download retry with proxy failed for user {user_id}")
+                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
+                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
                             did_proxy_retry = True
+                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube audio download error detected for user {user_id}, attempting cookie fallback")

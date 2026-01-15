@@ -2100,11 +2100,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         else:
                             logger.warning(f"All YouTube cookie retry attempts failed for user {user_id}")
                     
-                    # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси один раз
+                    # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси из файла
+                    # Не прерываем скачивание сразу, а пробуем все подходящие прокси
                     if is_youtube_geo_error(error_message) and not did_proxy_retry:
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy")
+                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
                         
-                        # Пробуем скачать через прокси
+                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
                         retry_result = retry_download_with_proxy(
                             user_id, url, try_download, url, attempt_opts, error_message=error_message
                         )
@@ -2114,8 +2115,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             did_proxy_retry = True
                             return retry_result
                         else:
-                            logger.warning(f"Download retry with proxy failed for user {user_id}")
+                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
+                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
                             did_proxy_retry = True
+                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube download error detected for user {user_id}, attempting cookie fallback")
