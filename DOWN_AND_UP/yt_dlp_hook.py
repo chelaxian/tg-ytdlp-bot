@@ -487,6 +487,10 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                 # retry_download_with_proxy expects (url, attempt_opts) format, so we create a wrapper
                 def extract_with_attempt_opts(url_arg, attempt_opts_dict):
                     # Use attempt_opts_dict (which includes proxy) instead of original opts
+                    # Убеждаемся, что geo_bypass включен для обхода геоблокировки
+                    if 'geo_bypass' not in attempt_opts_dict:
+                        attempt_opts_dict['geo_bypass'] = True
+                    logger.info(f"extract_with_attempt_opts: proxy={attempt_opts_dict.get('proxy', 'None')}, geo_bypass={attempt_opts_dict.get('geo_bypass', 'None')}, cookiefile={'set' if attempt_opts_dict.get('cookiefile') else 'None'}")
                     return extract_info_operation(attempt_opts_dict)
                 
                 retry_result = retry_download_with_proxy(

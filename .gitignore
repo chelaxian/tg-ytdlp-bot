@@ -74,6 +74,8 @@ dump.json
 get_string.py
 proxy.txt
 TXT/proxy.txt
+proxy_test.py
+TXT/proxy_test.py
 
 # Sample / experimental scripts
 gallery-dl/

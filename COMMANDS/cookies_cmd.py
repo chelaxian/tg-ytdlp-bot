@@ -2003,6 +2003,7 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                 proxy_type = proxy_info['type']
                 
                 logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url}")
+                logger.info(f"Proxy details: IP={proxy_info.get('ip', 'unknown')}, Port={proxy_info.get('port', 'unknown')}")
                 
                 try:
                     # download_func принимает (url, attempt_opts), где attempt_opts - это словарь опций yt-dlp
@@ -2011,6 +2012,14 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         # Если args содержит (url, attempt_opts)
                         attempt_opts = args[1].copy()
                         attempt_opts['proxy'] = proxy_url
+                        # ВАЖНО: Оставляем cookies, но YouTube должен определять геолокацию по IP прокси
+                        # Убеждаемся, что geo_bypass включен
+                        if 'geo_bypass' not in attempt_opts:
+                            attempt_opts['geo_bypass'] = True
+                        # Проверяем, что прокси действительно применяется
+                        logger.info(f"Applying proxy {proxy_country} ({proxy_type}) with URL: {proxy_url}")
+                        logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
+                        logger.info(f"yt-dlp opts: proxy={attempt_opts.get('proxy', 'None')}, geo_bypass={attempt_opts.get('geo_bypass', 'None')}, cookiefile={'set' if attempt_opts.get('cookiefile') else 'None'}")
                         new_args = (args[0], attempt_opts) + args[2:]
                         result = download_func(*new_args, **kwargs)
                     else:
@@ -2019,6 +2028,12 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         if 'attempt_opts' in kwargs_copy and isinstance(kwargs_copy['attempt_opts'], dict):
                             kwargs_copy['attempt_opts'] = kwargs_copy['attempt_opts'].copy()
                             kwargs_copy['attempt_opts']['proxy'] = proxy_url
+                            # Убеждаемся, что geo_bypass включен
+                            if 'geo_bypass' not in kwargs_copy['attempt_opts']:
+                                kwargs_copy['attempt_opts']['geo_bypass'] = True
+                            logger.info(f"Applying proxy {proxy_country} ({proxy_type}) with URL: {proxy_url}")
+                            logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
+                            logger.info(f"yt-dlp opts: proxy={kwargs_copy['attempt_opts'].get('proxy', 'None')}, geo_bypass={kwargs_copy['attempt_opts'].get('geo_bypass', 'None')}, cookiefile={'set' if kwargs_copy['attempt_opts'].get('cookiefile') else 'None'}")
                         else:
                             # Создаем новый attempt_opts
                             kwargs_copy['attempt_opts'] = {'proxy': proxy_url}
