@@ -47,11 +47,11 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
         List of dictionaries with proxy info: [{
             'type': 'http' or 'socks5',
             'country': 'Germany',
-            'ip': '194.87.12.71',
-            'port': '5319',
-            'user': 'user298608',
-            'password': 'td5hax',
-            'proxy_url': 'http://user298608:td5hax@194.87.12.71:5319'
+            'ip': '1.2.3.4',
+            'port': '8080',
+            'user': 'username',
+            'password': 'password',
+            'proxy_url': 'http://username:password@1.2.3.4:8080'
         }, ...]
     """
     proxies = []
@@ -84,7 +84,7 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
                 current_type = 'socks5'
                 continue
             
-            # Parse proxy line: 🇩🇪 Germany – 194.87.12.71:5319:user298608:td5hax
+            # Parse proxy line: 🇩🇪 Germany – 1.2.3.4:8080:username:password
             # Format: [flag] Country – IP:PORT:USER:PASSWORD
             match = re.match(r'[^\w]*([A-Za-z\s]+?)\s*[–-]\s*(\d+\.\d+\.\d+\.\d+):(\d+):([^:]+):(.+)', line)
             if match:
