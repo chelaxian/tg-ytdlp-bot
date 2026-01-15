@@ -1235,7 +1235,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 def download_operation(opts):
                     messages = safe_get_messages(user_id)
                     # Track 403 errors for HLS streams to abort early
-                    hls_403_errors = {'count': 0, 'max_errors': 3, 'last_error_time': 0}
+                    # Уменьшено до 2 для более быстрого прерывания
+                    hls_403_errors = {'count': 0, 'max_errors': 2, 'last_error_time': 0}
                     
                     def kill_ffmpeg_processes():
                         """Принудительно завершает только процессы ffmpeg конкретного пользователя"""
@@ -1379,12 +1380,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     self.error_tracker['last_error_time'] = time.time()
                                     logger.warning(f"HLS 403 error detected in audio #{self.error_tracker['count']} in stderr: {msg[:200]}")
                                     
-                                    # If we have multiple consecutive 403 errors, abort early
-                                    if self.error_tracker['count'] >= self.error_tracker['max_errors']:
-                                        logger.error(f"Too many HLS 403 errors in audio ({self.error_tracker['count']}), killing ffmpeg and aborting download early")
+                                    # Убиваем процесс ffmpeg сразу после первой ошибки 403
+                                    if self.error_tracker['count'] >= 1:
+                                        logger.error(f"HLS 403 error detected in audio (#{self.error_tracker['count']}), killing ffmpeg immediately to prevent segment enumeration")
                                         # Принудительно завершаем процесс ffmpeg
                                         kill_ffmpeg_processes()
-                                        raise yt_dlp.utils.DownloadError(f"HLS audio segment download failed: {self.error_tracker['count']} consecutive 403 Forbidden errors")
+                                        # Даем немного времени процессу завершиться
+                                        time.sleep(0.5)
+                                        raise yt_dlp.utils.DownloadError(f"HLS audio segment download failed: {self.error_tracker['count']} 403 Forbidden error(s) detected - ffmpeg process terminated")
                         
                         def warning(self, msg):
                             if self.original_logger:
@@ -1407,12 +1410,61 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
                     
                     # Create custom logger hook for HLS streams
+                    monitor_stop = None
+                    monitor_thread = None
                     if is_hls:
                         hls_logger = HLS403Logger(hls_403_errors)
                         # Store original logger if it exists
                         if 'logger' in opts:
                             hls_logger.original_logger = opts['logger']
                         opts['logger'] = hls_logger
+                        
+                        # Запускаем отдельный поток для агрессивного мониторинга процессов ffmpeg
+                        monitor_stop = threading.Event()
+                        ffmpeg_pid = [None]  # Используем список для передачи по ссылке
+                        
+                        def monitor_ffmpeg_processes():
+                            """Агрессивно мониторит процессы ffmpeg и убивает их при обнаружении ошибок 403"""
+                            import psutil
+                            user_dir_normalized = os.path.abspath(user_folder).lower()
+                            last_check_time = time.time()
+                            consecutive_403_detected = False
+                            
+                            while not monitor_stop.is_set():
+                                try:
+                                    current_pid = os.getpid()
+                                    current_process = psutil.Process(current_pid)
+                                    children = current_process.children(recursive=True)
+                                    
+                                    for child in children:
+                                        try:
+                                            cmdline = child.cmdline()
+                                            if any('ffmpeg' in part.lower() for part in cmdline):
+                                                cmdline_str = ' '.join(cmdline).lower()
+                                                if user_dir_normalized in cmdline_str:
+                                                    ffmpeg_pid[0] = child.pid
+                                                    
+                                                    # Если процесс работает слишком долго после первой ошибки 403, убиваем его
+                                                    if hls_403_errors['count'] > 0:
+                                                        time_since_error = time.time() - hls_403_errors['last_error_time']
+                                                        if time_since_error > 2.0:  # Если прошло больше 2 секунд после ошибки
+                                                            logger.warning(f"Убиваем процесс ffmpeg пользователя {user_id} (PID: {child.pid}) - слишком долго работает после ошибки 403")
+                                                            child.kill()
+                                                            monitor_stop.set()
+                                                            return
+                                                        consecutive_403_detected = True
+                                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                            pass
+                                    
+                                    # Если обнаружены ошибки 403, проверяем чаще
+                                    check_interval = 0.3 if hls_403_errors['count'] > 0 else 1.0
+                                    time.sleep(check_interval)
+                                except Exception as e:
+                                    logger.error(f"Ошибка в мониторе процессов ffmpeg: {e}")
+                                    time.sleep(1)
+                        
+                        monitor_thread = threading.Thread(target=monitor_ffmpeg_processes, daemon=True)
+                        monitor_thread.start()
                     
                     with yt_dlp.YoutubeDL(opts) as ydl:
                         if is_hls:
@@ -1439,6 +1491,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             finally:
                                 cycle_stop.set()
                                 cycle_thread.join(timeout=1)
+                                if monitor_stop:
+                                    monitor_stop.set()
+                                if monitor_thread:
+                                    monitor_thread.join(timeout=1)
                         else:
                             ydl.download([url])
                     return True
