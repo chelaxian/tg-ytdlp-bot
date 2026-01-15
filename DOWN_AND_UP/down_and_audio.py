@@ -1429,8 +1429,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Проверяем, связана ли ошибка с региональными ограничениями YouTube
                 if is_youtube_url(url):
+                    logger.debug(f"Checking geo-error in audio: is_youtube_geo_error={is_youtube_geo_error(error_text)}, did_proxy_retry={did_proxy_retry}, error_text[:200]={error_text[:200]}")
                     if is_youtube_geo_error(error_text) and not did_proxy_retry:
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy")
+                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
+                        logger.info(f"Full error message: {error_text}")
                         
                         # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
                         # attempt_opts будет содержать прокси, который нужно использовать
@@ -1592,6 +1594,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             except Exception as e:
                 error_text = str(e)
                 logger.error(f"Audio download attempt failed: {e}")
+                logger.debug(f"Error message for geo-check in audio: {error_text[:500]}")
                 
                 # Check if this is a "No videos found in playlist" error
                 if "No videos found in playlist" in error_text or "Story might have expired" in error_text:

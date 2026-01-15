@@ -1645,10 +1645,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # First, try with original options to detect Cloudflare errors early
                 info_dict = None
+                original_error_text = None  # Сохраняем оригинальный текст ошибки
                 try:
                     info_dict = extract_info_operation(ytdl_opts)
                 except Exception as e:
                     error_text = str(e)
+                    original_error_text = error_text  # Сохраняем оригинальный текст
                     logger.info(f"Initial extract_info failed: {error_text[:200]}")
                     last_error_info['error'] = e
                     last_error_info['error_text'] = error_text
@@ -1689,7 +1691,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.error(f"Proxy fallback failed: {e3}")
                             info_dict = None
                         if info_dict is None:
-                            raise Exception(f"Failed to extract video information: {error_text}")
+                            # Сохраняем оригинальный текст ошибки для последующей обработки
+                            raise Exception(f"Failed to extract video information: {original_error_text if original_error_text else error_text}")
                 
                 if info_dict is None:
                     raise Exception("Failed to extract video information with all available proxies")
@@ -2102,8 +2105,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси из файла
                     # Не прерываем скачивание сразу, а пробуем все подходящие прокси
+                    logger.debug(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
                     if is_youtube_geo_error(error_message) and not did_proxy_retry:
                         logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
+                        logger.info(f"Full error message: {error_message}")
                         
                         # Пробуем скачать через прокси (только подходящие по описанию ошибки)
                         retry_result = retry_download_with_proxy(
@@ -2235,6 +2240,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             except Exception as e:
                 error_message = str(e)
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}")
+                logger.debug(f"Error message for geo-check: {error_message[:500]}")
                 # Auto-fallback to gallery-dl for obvious non-video cases
                 emsg = str(e)
                 if (
