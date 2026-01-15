@@ -572,6 +572,8 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
         is_basic_version = impersonate_version in basic_versions
         if is_basic_version:
             basic_versions_tried = True
+            if unavailable_specific_count > 0:
+                logger.debug(f"Resetting unavailable_specific_count when trying basic version {impersonate_version}")
             unavailable_specific_count = 0  # Reset counter when trying basic versions
         elif basic_versions_tried and not curl_cffi_available:
             # If basic versions failed and curl_cffi is not available, skip specific versions
@@ -617,17 +619,22 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                 # Only track unavailable count for specific versions
                 if not is_basic:
                     unavailable_specific_count += 1
-                    logger.debug(f"Specific version unavailable count: {unavailable_specific_count}")
+                    logger.warning(f"⚠️ Specific version {impersonate_version} unavailable (consecutive failures: {unavailable_specific_count}/{max_unavailable_before_skip})")
                     
                     # If too many consecutive specific versions are unavailable, skip remaining
                     if unavailable_specific_count >= max_unavailable_before_skip:
-                        remaining_count = len([v for v in impersonate_versions if v not in basic_versions and impersonate_versions.index(v) > impersonate_versions.index(impersonate_version)])
-                        logger.info(f"{unavailable_specific_count} consecutive specific impersonate versions unavailable. Skipping remaining {remaining_count} specific versions.")
+                        # Calculate remaining specific versions
+                        current_idx = impersonate_versions.index(impersonate_version)
+                        remaining_specific = [v for v in impersonate_versions[current_idx+1:] if v not in basic_versions]
+                        remaining_count = len(remaining_specific)
+                        logger.error(f"❌ {unavailable_specific_count} consecutive specific impersonate versions unavailable. STOPPING and skipping remaining {remaining_count} specific versions.")
                         break
                 continue
             else:
                 # Reset counter if version is available but failed for other reasons
                 if impersonate_version not in basic_versions:
+                    if unavailable_specific_count > 0:
+                        logger.debug(f"Resetting unavailable_specific_count (version {impersonate_version} is available)")
                     unavailable_specific_count = 0
             
             if not is_cloudflare_error(error_text):
