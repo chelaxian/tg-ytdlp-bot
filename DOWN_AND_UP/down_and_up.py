@@ -1624,36 +1624,50 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
                 
-                # Wrapper to catch Cloudflare errors
-                def extract_info_with_cloudflare_handling(opts):
+                # Track last error for Cloudflare detection
+                last_error_info = {'error': None, 'error_text': None}
+                
+                # Wrapper that catches exceptions and stores error info
+                def extract_info_with_error_tracking(opts):
                     try:
                         return extract_info_operation(opts)
                     except Exception as e:
                         error_text = str(e)
-                        if is_cloudflare_error(error_text):
-                            # Re-raise to trigger impersonate fallback
-                            raise e
-                        raise e
+                        logger.warning(f"Error in extract_info_operation: {error_text[:200]}")
+                        last_error_info['error'] = e
+                        last_error_info['error_text'] = error_text
+                        raise  # Re-raise to let caller handle it
                 
-                # First try with proxy fallback
-                info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_cloudflare_handling)
-                
-                # If proxy fallback failed, try impersonate fallback for Cloudflare errors
-                if info_dict is None:
-                    try:
-                        # Try once to capture the error type
-                        extract_info_operation(ytdl_opts)
-                    except Exception as e:
-                        error_text = str(e)
-                        if is_cloudflare_error(error_text):
-                            logger.info(f"Cloudflare error detected after proxy fallback for {url}, trying impersonate fallback")
+                # First, try with original options to detect Cloudflare errors early
+                try:
+                    info_dict = extract_info_operation(ytdl_opts)
+                except Exception as e:
+                    error_text = str(e)
+                    last_error_info['error'] = e
+                    last_error_info['error_text'] = error_text
+                    
+                    # If it's a Cloudflare error, try impersonate fallback first
+                    if is_cloudflare_error(error_text):
+                        logger.info(f"Cloudflare error detected for {url}, trying impersonate fallback first")
+                        try:
                             impersonate_result = try_with_impersonate_fallback(ytdl_opts, url, user_id, extract_info_operation)
                             if impersonate_result is not None:
                                 info_dict = impersonate_result
                             else:
-                                raise Exception("Failed to extract video information with all available proxies and impersonate versions")
-                        else:
-                            raise Exception("Failed to extract video information with all available proxies")
+                                # If impersonate fallback failed, try proxy fallback
+                                logger.info(f"Impersonate fallback failed for {url}, trying proxy fallback")
+                                info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_error_tracking)
+                                if info_dict is None:
+                                    raise Exception("Failed to extract video information with all available proxies and impersonate versions")
+                        except Exception as e2:
+                            logger.error(f"Both impersonate and proxy fallback failed: {e2}")
+                            raise Exception("Failed to extract video information with all available proxies and impersonate versions")
+                    else:
+                        # Not a Cloudflare error, try proxy fallback
+                        logger.info(f"Non-Cloudflare error detected for {url}, trying proxy fallback")
+                        info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_error_tracking)
+                        if info_dict is None:
+                            raise Exception(f"Failed to extract video information: {error_text}")
                 
                 if info_dict is None:
                     raise Exception("Failed to extract video information with all available proxies")
