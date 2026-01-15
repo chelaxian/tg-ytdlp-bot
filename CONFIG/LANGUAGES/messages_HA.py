@@ -597,6 +597,8 @@ Yi amfani da:
     PROXY_MENU_CLOSED_MSG = "An rufe menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da uwar garken proxy {count} tare da hanyar zaɓi {method}."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ An kunna wakili (duk yanayin AUTO).\n\n📊 Bot zai gwada proxies ta wannan tsari:\n1️⃣ {config_count} proxies daga Config.py\n2️⃣ {file_count} proxies daga TXT/proxy.txt fayil\n\n🔄 Duk proxies za a gwada su bi da bi har sai an yi nasarar haɗin gwiwa."
     PROXY_DISABLED_MSG = "❌ An kashe proxy."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_ENABLED_CALLBACK_MSG = "An kunna proxy."

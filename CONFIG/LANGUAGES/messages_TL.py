@@ -597,6 +597,8 @@ Gamitin:
     PROXY_MENU_CLOSED_MSG = "Sarado ang menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng {count} proxy server na may {method} paraan ng pagpili."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Naka-enable ang proxy (ALL AUTO mode).\n\n📊 Susubukan ni Bot ang mga proxy sa ganitong pagkakasunud-sunod:\n1️⃣ {config_count} (na) proxy mula sa Config.py\n2️⃣ {file_count} (na) proxy mula sa TXT/proxy.txt file\n\n🔄 Lahat ng proxy ay susubukan nang sunud-sunod hanggang sa matagumpay na koneksyon."
     PROXY_DISABLED_MSG = "❌ Naka-disable ang proxy."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error sa pag-save ng mga setting ng proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Pinagana ang proxy."

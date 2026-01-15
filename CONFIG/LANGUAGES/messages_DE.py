@@ -597,6 +597,8 @@ Verwenden Sie:
     PROXY_MENU_CLOSED_MSG = "Menü geschlossen."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy aktiviert. Alle yt-dlp-Operationen verwenden den Proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy aktiviert. Alle yt-dlp-Operationen verwenden {count} Proxy-Server mit {method} Auswahlmethode."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy aktiviert (ALL AUTO-Modus).\n\n📊 Bot probiert Proxys in dieser Reihenfolge aus:\n1️⃣ {config_count} Proxys von Config.py\n2️⃣ {file_count} Proxys aus der TXT/proxy.txt-Datei\n\n🔄 Alle Proxys werden nacheinander ausprobiert, bis die Verbindung erfolgreich ist."
     PROXY_DISABLED_MSG = "❌ Proxy deaktiviert."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Fehler beim Speichern der Proxy-Einstellungen."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy aktiviert."

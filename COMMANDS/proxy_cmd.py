@@ -360,7 +360,20 @@ def proxy_option_callback(app, callback_query):
                 else:
                     message_text = messages.PROXY_ENABLED_CONFIRM_MSG
         else:
-            if proxy_count and proxy_count > 1:
+            # ALL AUTO mode - show info about Config + file proxies
+            try:
+                from HELPERS.proxy_file_helper import get_all_proxies_from_file
+                file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
+                file_count = len(file_proxies)
+            except Exception:
+                file_count = 0
+            
+            if proxy_count > 0 or file_count > 0:
+                message_text = messages.PROXY_ENABLED_ALL_AUTO_MSG.format(
+                    config_count=proxy_count,
+                    file_count=file_count
+                )
+            elif proxy_count and proxy_count > 1:
                 message_text = messages.PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
             else:
                 message_text = messages.PROXY_ENABLED_CONFIRM_MSG

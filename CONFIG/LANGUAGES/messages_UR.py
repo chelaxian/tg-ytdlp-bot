@@ -597,6 +597,8 @@ Use:
     PROXY_MENU_CLOSED_MSG = "مینو بند۔"
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز proxy استعمال کریں گے۔"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز {count} proxy سرورز {method} انتخاب کے طریقہ کے ساتھ استعمال کریں گے۔"
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پراکسی فعال (تمام آٹو موڈ)۔\n\n📊 BOT اس ترتیب میں پراکسیوں کی کوشش کرے گا:\n1⃣ {config_count} config.py سے پراکسی\n2⃣ {file_Count t txt/proxy.txt فائل سے پراکسی\n\nconnection کامیاب کنکشن تک تمام پراکسیوں کی ترتیب سے ترتیب دی جائے گی۔"
     PROXY_DISABLED_MSG = "❌ Proxy غیر فعال ہے۔"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ پروکسی ترتیبات محفوظ کرنے میں خرابی۔"
     PROXY_ENABLED_CALLBACK_MSG = "Proxy فعال ہے۔"

@@ -597,6 +597,8 @@ class Messages(object):
     PROXY_MENU_CLOSED_MSG = "メニューを閉じました。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作でプロキシが使用されます。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作で{count}個のプロキシサーバーが{method}選択メソッドで使用されます。"
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ プロキシが有効になっています (ALL AUTO モード)。\n\n📊 ボットは次の順序でプロキシを試行します。\n1️⃣ Config.py からの {config_count} プロキシ\n2️⃣ TXT/proxy.txt ファイルからの {file_count} プロキシ\n\n🔄 接続が成功するまで、すべてのプロキシが順番に試行されます。"
     PROXY_DISABLED_MSG = "❌ プロキシが無効になりました。"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ プロキシ設定の保存エラー。"
     PROXY_ENABLED_CALLBACK_MSG = "プロキシが有効になりました。"

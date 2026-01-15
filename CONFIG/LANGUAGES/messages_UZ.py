@@ -597,6 +597,8 @@ Ishlating:
     PROXY_MENU_CLOSED_MSG = "Menyu yopildi."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari proxy'dan foydalanadi."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari {count} proxy server va {method} tanlash usuli bilan ishlaydi."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi yoqilgan (BARCHA AUTO rejimi).\n\n📊 Bot proksi-serverlarni quyidagi tartibda sinab ko'radi:\nConfig.py dan 1️⃣ {config_count} ta proksi\nTXT/proxy.txt faylidan 2️⃣ {file_count} proksi\n\n🔄 Barcha proksi-serverlar muvaffaqiyatli ulanishga qadar ketma-ket tekshiriladi."
     PROXY_DISABLED_MSG = "❌ Proxy o'chirildi."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy sozlamalarini saqlashda xatolik."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy yoqildi."

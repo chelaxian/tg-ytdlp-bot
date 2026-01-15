@@ -597,6 +597,8 @@ class Messages(object):
     PROXY_MENU_CLOSED_MSG = "菜单已关闭。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ 代理已启用。所有yt-dlp操作将使用代理。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 代理已启用。所有yt-dlp操作将使用 {count} 个代理服务器，采用 {method} 选择方法。"
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 启用代理（全部自动模式）。\n\n📊 Bot 将按以下顺序尝试代理：\n1️⃣ 来自 Config.py 的 {config_count} 个代理\n2️⃣ 来自 TXT/proxy.txt 文件的 {file_count} 个代理\n\n🔄 所有代理将依次尝试，直到连接成功。"
     PROXY_DISABLED_MSG = "❌ 代理已禁用。"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ 保存代理设置时出错。"
     PROXY_ENABLED_CALLBACK_MSG = "代理已启用。"

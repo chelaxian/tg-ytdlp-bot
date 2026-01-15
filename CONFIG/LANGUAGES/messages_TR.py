@@ -597,6 +597,8 @@ Kullanın:
     PROXY_MENU_CLOSED_MSG = "Menü kapatıldı."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemlerinde proxy kullanılacaktır."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemleri {count} proxy sunucularını {method} seçim yöntemiyle kullanacaktır."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy etkin (TÜM OTOMATİK mod).\n\n📊 Bot proxy'leri şu sırayla deneyecek:\nConfig.py'den 1️⃣ {config_count} proxy\nTXT/proxy.txt dosyasından 2️⃣ {file_count} proxy\n\n🔄 Başarılı bağlantı sağlanana kadar tüm proxy'ler sırayla denenecektir."
     PROXY_DISABLED_MSG = "❌ Proxy devre dışı bırakıldı."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy ayarları kaydedilirken hata oluştu."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy etkinleştirildi."
