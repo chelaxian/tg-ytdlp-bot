@@ -1237,6 +1237,132 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     # Track 403 errors for HLS streams to abort early
                     hls_403_errors = {'count': 0, 'max_errors': 3, 'last_error_time': 0}
                     
+                    def kill_ffmpeg_processes():
+                        """Принудительно завершает только процессы ffmpeg конкретного пользователя"""
+                        try:
+                            import platform
+                            import psutil
+                            
+                            # Нормализуем путь к директории пользователя для сравнения
+                            user_dir_normalized = os.path.abspath(user_folder).lower()
+                            
+                            current_pid = os.getpid()
+                            current_process = psutil.Process(current_pid)
+                            
+                            # Находим все дочерние процессы
+                            children = current_process.children(recursive=True)
+                            killed_count = 0
+                            
+                            for child in children:
+                                try:
+                                    # Проверяем, является ли процесс ffmpeg
+                                    cmdline = child.cmdline()
+                                    if any('ffmpeg' in part.lower() for part in cmdline):
+                                        # Проверяем, работает ли процесс с файлами в директории пользователя
+                                        # Проверяем командную строку на наличие пути к директории пользователя
+                                        cmdline_str = ' '.join(cmdline).lower()
+                                        if user_dir_normalized in cmdline_str:
+                                            logger.warning(f"Завершаем процесс ffmpeg пользователя {user_id} (PID: {child.pid}) из-за ошибок 403")
+                                            child.kill()  # SIGKILL
+                                            killed_count += 1
+                                        else:
+                                            # Также проверяем открытые файлы процесса
+                                            try:
+                                                open_files = child.open_files()
+                                                for file_info in open_files:
+                                                    file_path = os.path.abspath(file_info.path).lower()
+                                                    if user_dir_normalized in file_path:
+                                                        logger.warning(f"Завершаем процесс ffmpeg пользователя {user_id} (PID: {child.pid}) из-за ошибок 403 (найден открытый файл)")
+                                                        child.kill()  # SIGKILL
+                                                        killed_count += 1
+                                                        break
+                                            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                                                # Нет доступа к открытым файлам или процесс уже завершен
+                                                pass
+                                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                    # Процесс уже завершен или нет доступа
+                                    pass
+                            
+                            if killed_count > 0:
+                                logger.warning(f"Принудительно завершено {killed_count} процессов ffmpeg пользователя {user_id} из-за множественных ошибок 403")
+                            else:
+                                logger.warning(f"Не найдено процессов ffmpeg пользователя {user_id} для завершения")
+                        except ImportError:
+                            # Если psutil недоступен, используем fallback метод
+                            try:
+                                import platform
+                                system = platform.system()
+                                current_pid = os.getpid()
+                                user_dir_normalized = os.path.abspath(user_folder).lower()
+                                
+                                if system == "Windows":
+                                    # Windows: ищем дочерние процессы через wmic
+                                    try:
+                                        result = subprocess.run(
+                                            ['wmic', 'process', 'where', f'ParentProcessId={current_pid}', 'get', 'ProcessId,CommandLine'],
+                                            capture_output=True, text=True, timeout=5
+                                        )
+                                        for line in result.stdout.split('\n'):
+                                            if 'ffmpeg' in line.lower() and user_dir_normalized in line.lower():
+                                                parts = line.split()
+                                                if len(parts) >= 2:
+                                                    try:
+                                                        pid = int(parts[-1])
+                                                        subprocess.run(['taskkill', '/F', '/PID', str(pid)], 
+                                                                     capture_output=True, timeout=5)
+                                                        logger.warning(f"Завершен процесс ffmpeg пользователя {user_id} (PID: {pid})")
+                                                    except (ValueError, subprocess.TimeoutExpired):
+                                                        pass
+                                    except Exception:
+                                        pass
+                                else:
+                                    # Linux/Unix: используем pgrep для поиска дочерних процессов
+                                    try:
+                                        result = subprocess.run(
+                                            ['pgrep', '-P', str(current_pid)],
+                                            capture_output=True, text=True, timeout=5
+                                        )
+                                        for pid_str in result.stdout.strip().split('\n'):
+                                            if pid_str:
+                                                try:
+                                                    pid = int(pid_str)
+                                                    # Проверяем, является ли это процессом ffmpeg и работает ли с файлами пользователя
+                                                    try:
+                                                        with open(f'/proc/{pid}/cmdline', 'r') as f:
+                                                            cmdline = f.read().replace('\0', ' ')
+                                                            if 'ffmpeg' in cmdline.lower() and user_dir_normalized in cmdline.lower():
+                                                                os.kill(pid, 9)  # SIGKILL
+                                                                logger.warning(f"Завершен процесс ffmpeg пользователя {user_id} (PID: {pid})")
+                                                    except (FileNotFoundError, PermissionError):
+                                                        pass
+                                                except ValueError:
+                                                    pass
+                                    except FileNotFoundError:
+                                        # Если pgrep недоступен, используем ps
+                                        try:
+                                            result = subprocess.run(
+                                                ['ps', '-o', 'pid,ppid,args', '-A'],
+                                                capture_output=True, text=True, timeout=5
+                                            )
+                                            for line in result.stdout.split('\n'):
+                                                if 'ffmpeg' in line.lower() and user_dir_normalized in line.lower():
+                                                    parts = line.split()
+                                                    if len(parts) >= 3:
+                                                        try:
+                                                            child_pid = int(parts[0])
+                                                            parent_pid = int(parts[1])
+                                                            if parent_pid == current_pid:
+                                                                os.kill(child_pid, 9)
+                                                                logger.warning(f"Завершен процесс ffmpeg пользователя {user_id} (PID: {child_pid})")
+                                                        except (ValueError, OSError):
+                                                            pass
+                                        except Exception:
+                                            pass
+                            except Exception as e:
+                                logger.error(f"Ошибка при завершении процессов ffmpeg (fallback): {e}")
+                        except Exception as e:
+                            logger.error(f"Ошибка при завершении процессов ffmpeg: {e}")
+                    
                     # Custom logger hook to intercept ffmpeg stderr and detect 403 errors
                     class HLS403Logger:
                         def __init__(self, error_tracker):
@@ -1255,7 +1381,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     
                                     # If we have multiple consecutive 403 errors, abort early
                                     if self.error_tracker['count'] >= self.error_tracker['max_errors']:
-                                        logger.error(f"Too many HLS 403 errors in audio ({self.error_tracker['count']}), aborting download early")
+                                        logger.error(f"Too many HLS 403 errors in audio ({self.error_tracker['count']}), killing ffmpeg and aborting download early")
+                                        # Принудительно завершаем процесс ffmpeg
+                                        kill_ffmpeg_processes()
                                         raise yt_dlp.utils.DownloadError(f"HLS audio segment download failed: {self.error_tracker['count']} consecutive 403 Forbidden errors")
                         
                         def warning(self, msg):
