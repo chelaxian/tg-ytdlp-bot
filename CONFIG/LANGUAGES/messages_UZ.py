@@ -1633,6 +1633,17 @@ Ishlating:
     PROXY_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"
     PROXY_CLOSE_BUTTON_MSG = "🔚Yopish"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Davlatni tanlang:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Mamlakat tanlashni tozalash"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Tanlangan mamlakat: {country} (kod: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Mavjud proksi-serverlar: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot avval HTTP, keyin SOCKS5 ni sinab ko'radi"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Tanlangan mamlakat uchun proksi avtomatik ravishda yoqiladi"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Mamlakat tanlovi tozalandi"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Mamlakat tanlovi tozalandi"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Tanlangan davlat: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Fayldagi mamlakatdan foydalanish: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ YOQILGAN"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"

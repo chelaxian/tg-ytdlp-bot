@@ -1633,6 +1633,17 @@ Utilisez :
     PROXY_OFF_BUTTON_MSG = "❌ DÉSACTIVÉ"
     PROXY_CLOSE_BUTTON_MSG = "🔚Fermer"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Sélectionnez le pays :"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Effacer la sélection du pays"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Pays sélectionné : {country} (code : {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Proxy disponibles : {proxy_count} (HTTP : {http_count}, SOCKS5 : {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Le robot essaiera d'abord HTTP, puis SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Proxy automatiquement activé pour le pays sélectionné"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Sélection du pays effacée"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Sélection du pays effacée"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Pays sélectionné : {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Utilisation du pays à partir du fichier : {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ACTIVÉ"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ DÉSACTIVÉ"

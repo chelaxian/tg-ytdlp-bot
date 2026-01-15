@@ -1633,6 +1633,17 @@ Use:
     PROXY_OFF_BUTTON_MSG = "❌ آف"
     PROXY_CLOSE_BUTTON_MSG = "🔚بند"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 ملک منتخب کریں:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ ملک کا واضح انتخاب"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ ملک منتخب: {ملک} (کوڈ: {ملک_کوڈ})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 دستیاب پراکسی: {پراکسی_کاؤنٹ} (HTTP: {HTTP_Count} ، SOCKKS5: {SOCKS5_COUNT})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 BOT پہلے HTTP آزمائے گا ، پھر SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 منتخب کردہ ملک کے لئے خود بخود پراکسی فعال"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ ملک کا انتخاب صاف ہوگیا"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ ملک کا انتخاب صاف ہوگیا"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ ملک منتخب: {ملک}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "file فائل سے ملک کا استعمال: {ملک}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ on"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ آف"

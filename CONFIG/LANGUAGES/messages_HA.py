@@ -1633,6 +1633,17 @@ Yi amfani da:
     PROXY_OFF_BUTTON_MSG = "❌ KASHE"
     PROXY_CLOSE_BUTTON_MSG = "🔚Rufe"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Zaɓi Ƙasa:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Share Zaɓin Ƙasa"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Ƙasar da aka zaɓa: {ƙasar} (lambar: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Akwai proxies: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot zai fara gwada HTTP, sannan SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Ana kunna wakili ta atomatik don zaɓin ƙasa"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ An share zaɓin ƙasa"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ An share zaɓin ƙasa"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Kasar da aka zaba: {kasa}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Amfani da ƙasa daga fayil: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ KASHE"

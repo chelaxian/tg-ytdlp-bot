@@ -1633,6 +1633,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ ӨШІРІЛГЕН"
     PROXY_CLOSE_BUTTON_MSG = "🔚Жабу"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Елді таңдаңыз:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Елді таңдауды өшіру"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Таңдалған ел: {country} (код: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Қолжетімді проксилер: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Бот алдымен HTTP, содан кейін SOCKS5 әрекетін жасайды"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Таңдалған ел үшін прокси автоматты түрде қосылады"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Ел таңдау жойылды"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Ел таңдау жойылды"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Таңдалған ел: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Файлдағы елді пайдалану: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ҚОСУЛЫ"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ ӨШІРІЛГЕН"

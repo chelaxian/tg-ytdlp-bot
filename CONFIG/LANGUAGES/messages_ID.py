@@ -1633,6 +1633,17 @@ Use:
     PROXY_OFF_BUTTON_MSG = "❌ MATI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Tutup"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Pilih Negara:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Hapus Pilihan Negara"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Negara yang dipilih: {country} (kode: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Proksi yang tersedia: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot akan mencoba HTTP terlebih dahulu, lalu SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Proksi diaktifkan secara otomatis untuk negara yang dipilih"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Pilihan negara dihapus"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Pilihan negara dihapus"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Negara yang dipilih: {negara}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Menggunakan negara dari file: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ AKTIF"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ MATI"

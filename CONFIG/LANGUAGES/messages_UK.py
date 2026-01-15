@@ -1633,6 +1633,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ ВИМКНЕНО"
     PROXY_CLOSE_BUTTON_MSG = "🔚Закрити"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Виберіть країну:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Очистити вибір країни"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Вибрано країну: {country} (код: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Доступні проксі: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Бот спочатку спробує HTTP, а потім SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Проксі автоматично вмикається для вибраної країни"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Вибір країни знято"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Вибір країни знято"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Вибрана країна: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Використовується країна з файлу: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ УВІМКНЕНО"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ ВИМКНЕНО"

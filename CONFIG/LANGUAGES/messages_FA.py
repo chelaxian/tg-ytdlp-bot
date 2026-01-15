@@ -1633,6 +1633,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ خاموش"
     PROXY_CLOSE_BUTTON_MSG = "🔚بستن"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 کشور را انتخاب کنید:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ پاک کردن انتخاب کشور"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ کشور انتخاب شده: {country} (کد: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 پراکسی های موجود: {proxy_count} (HTTP: {http_count}، SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 ربات ابتدا HTTP و سپس SOCKS5 را امتحان می کند"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 پروکسی به طور خودکار برای کشور انتخاب شده فعال می شود"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ انتخاب کشور پاک شد"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ انتخاب کشور پاک شد"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ کشور انتخاب شده: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 استفاده از کشور از فایل: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ روشن"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ خاموش"

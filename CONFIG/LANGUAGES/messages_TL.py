@@ -1633,6 +1633,17 @@ Gamitin:
     PROXY_OFF_BUTTON_MSG = "❌ NAKA-OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Isara"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Piliin ang Bansa:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ I-clear ang Pinili ng Bansa"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Bansang napili: {country} (code: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Mga available na proxy: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Susubukan muna ni Bot ang HTTP, pagkatapos ay SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Awtomatikong pinagana ang proxy para sa napiling bansa"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Na-clear ang pagpili ng bansa"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Na-clear ang pagpili ng bansa"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Bansang napili: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Paggamit ng bansa mula sa file: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ NAKA-ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ NAKA-OFF"

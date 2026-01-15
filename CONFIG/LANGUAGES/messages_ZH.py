@@ -1633,6 +1633,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ 关闭"
     PROXY_CLOSE_BUTTON_MSG = "🔚关闭"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 选择国家："
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ 清除国家/地区选择"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ 选择的国家/地区：{country}（代码：{country_code}）"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 可用代理：{proxy_count}（HTTP：{http_count}，SOCKS5：{socks5_count}）"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot 将首先尝试 HTTP，然后尝试 SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 为选定的国家/地区自动启用代理"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ 清除国家/地区选择"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 清除国家/地区选择"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 选择的国家/地区：{country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 使用文件中的国家/地区：{country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ 开启"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ 关闭"

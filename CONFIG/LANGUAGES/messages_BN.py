@@ -1633,6 +1633,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚বন্ধ করুন"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 দেশ নির্বাচন করুন:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ দেশ নির্বাচন পরিষ্কার করুন"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ দেশ বেছে নেওয়া হয়েছে: {country} (কোড: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 উপলব্ধ প্রক্সি: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 বট প্রথমে HTTP চেষ্টা করবে, তারপর SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 নির্বাচিত দেশের জন্য প্রক্সি স্বয়ংক্রিয়ভাবে সক্ষম"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ দেশ নির্বাচন সাফ করা হয়েছে"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ দেশ নির্বাচন সাফ করা হয়েছে"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ দেশ বেছে নেওয়া হয়েছে: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 ফাইল থেকে দেশ ব্যবহার করা হচ্ছে: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"

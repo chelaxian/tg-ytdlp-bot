@@ -1639,6 +1639,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ إيقاف"
     PROXY_CLOSE_BUTTON_MSG = "🔚إغلاق"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 اختر الدولة:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ مسح اختيار البلد"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ الدولة المحددة: {country} (الرمز: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 الوكلاء المتاحون: {proxy_count} (HTTP: {http_count}، SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 سيحاول البوت استخدام HTTP أولاً، ثم SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 تم تمكين الوكيل تلقائيًا للبلد المحدد"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ تم مسح اختيار البلد"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ تم مسح اختيار البلد"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ البلد المحدد: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 استخدام البلد من الملف: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ تشغيل"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ إيقاف"

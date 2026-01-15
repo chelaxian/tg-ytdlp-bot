@@ -1632,6 +1632,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚बंद करें"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 देश चुनें:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ देश चयन साफ़ करें"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ देश चयनित: {देश} (कोड: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 उपलब्ध प्रॉक्सी: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 बॉट पहले HTTP का प्रयास करेगा, फिर SOCKS5 का"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 चयनित देश के लिए प्रॉक्सी स्वचालित रूप से सक्षम हो गई"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ देश का चयन साफ़ हो गया"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ देश का चयन साफ़ हो गया"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ देश चयनित: {देश}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 फ़ाइल से देश का उपयोग करना: {देश}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"

@@ -1633,6 +1633,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Close"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 국가 선택:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ 국가 선택 지우기"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ 선택한 국가: {country}(코드: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 사용 가능한 프록시: {proxy_count}(HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 봇은 HTTP를 먼저 시도한 다음 SOCKS5를 시도합니다."
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 선택한 국가에 대해 프록시가 자동으로 활성화됩니다."
+    PROXY_COUNTRY_CLEARED_MSG = "✅ 국가 선택이 삭제되었습니다."
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 국가 선택이 삭제되었습니다."
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 선택한 국가: {국가}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 파일의 국가 사용: {국가}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"

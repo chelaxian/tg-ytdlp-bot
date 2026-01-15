@@ -1633,6 +1633,17 @@ class Messages(object):
     PROXY_OFF_BUTTON_MSG = "❌ オフ"
     PROXY_CLOSE_BUTTON_MSG = "🔚閉じる"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 国を選択:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ 国の選択をクリア"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ 選択した国: {country} (コード: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 利用可能なプロキシ: {proxy_count} (HTTP: {http_count}、SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 ボットは最初に HTTP を試行し、次に SOCKS5 を試行します"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 選択した国に対してプロキシが自動的に有効になります"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ 国の選択がクリアされました"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 国の選択がクリアされました"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 選択した国: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 ファイルからの国を使用: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ オン"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ オフ"

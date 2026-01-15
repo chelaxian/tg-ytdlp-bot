@@ -1633,6 +1633,17 @@ Use:
     PROXY_OFF_BUTTON_MSG = "❌ TẮT"
     PROXY_CLOSE_BUTTON_MSG = "🔚Đóng"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Chọn quốc gia:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Lựa chọn quốc gia rõ ràng"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Quốc gia được chọn: {country} (code: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Proxy hiện có: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot sẽ thử HTTP trước, sau đó là SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Proxy được bật tự động cho quốc gia đã chọn"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Đã xóa lựa chọn quốc gia"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Đã xóa lựa chọn quốc gia"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Quốc gia được chọn: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Sử dụng quốc gia từ tệp: {country}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ BẬT"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ TẮT"

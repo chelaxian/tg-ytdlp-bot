@@ -129,7 +129,8 @@ def proxy_command(app, message):
     
     if countries:
         # Add header for country selection
-        buttons.append([InlineKeyboardButton("🌍 Выбор страны:", callback_data="proxy_option|country_header")])
+        messages = safe_get_messages(user_id)
+        buttons.append([InlineKeyboardButton(messages.PROXY_COUNTRY_SELECT_HEADER_MSG, callback_data="proxy_option|country_header")])
         
         # Add country buttons in rows of 2
         country_buttons = []
@@ -171,7 +172,7 @@ def proxy_command(app, message):
         
         # Add button to clear country selection
         if selected_country:
-            buttons.append([InlineKeyboardButton("❌ Сбросить выбор страны", callback_data="proxy_option|country|clear")])
+            buttons.append([InlineKeyboardButton(messages.PROXY_COUNTRY_CLEAR_BUTTON_MSG, callback_data="proxy_option|country|clear")])
     
     buttons.append([InlineKeyboardButton(safe_get_messages(user_id).PROXY_CLOSE_BUTTON_MSG, callback_data="proxy_option|close")])
     
@@ -244,18 +245,22 @@ def proxy_option_callback(app, callback_query):
         if country == "clear":
             # Clear country selection
             if set_user_selected_country(user_id, None):
+                messages = safe_get_messages(user_id)
                 try:
-                    callback_query.answer("✅ Выбор страны сброшен")
+                    callback_query.answer(messages.PROXY_COUNTRY_CLEARED_CALLBACK_MSG)
                 except Exception:
                     pass
                 # Close menu
                 try:
                     callback_query.message.delete()
                 except Exception:
-                    try:
-                        safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, "✅ Выбор страны сброшен", reply_markup=None)
-                    except Exception:
-                        pass
+                    pass
+                # Send confirmation message
+                safe_send_message(
+                    callback_query.message.chat.id,
+                    messages.PROXY_COUNTRY_CLEARED_MSG,
+                    message=callback_query.message
+                )
             return
         
         if country == "header":
@@ -274,24 +279,36 @@ def proxy_option_callback(app, callback_query):
             socks5_count = len([p for p in proxies if p['type'] == 'socks5'])
             country_code = get_country_code(country)
             
-            # Build confirmation message
-            message_text = f"✅ Выбрана страна: {country} (код: {country_code})\n"
-            message_text += f"📊 Доступно прокси: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})\n"
-            message_text += f"🔄 Бот будет пробовать сначала HTTP, затем SOCKS5\n"
-            message_text += f"💡 Прокси автоматически включен для выбранной страны"
+            # Build confirmation message using translations
+            messages = safe_get_messages(user_id)
+            message_text = messages.PROXY_COUNTRY_SELECTED_MSG.format(
+                country=country,
+                country_code=country_code
+            )
+            message_text += "\n" + messages.PROXY_COUNTRY_PROXIES_AVAILABLE_MSG.format(
+                proxy_count=proxy_count,
+                http_count=http_count,
+                socks5_count=socks5_count
+            )
+            message_text += "\n" + messages.PROXY_COUNTRY_TRY_ORDER_MSG
+            message_text += "\n" + messages.PROXY_COUNTRY_AUTO_ENABLED_MSG
             
-            # Close menu and show confirmation
+            # Close menu
             try:
                 callback_query.message.delete()
             except Exception:
-                try:
-                    safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, message_text, reply_markup=None)
-                except Exception:
-                    pass
+                pass
+            
+            # Send confirmation message
+            safe_send_message(
+                callback_query.message.chat.id,
+                message_text,
+                message=callback_query.message
+            )
             
             send_to_logger(callback_query.message, f"User {user_id} selected proxy country: {country} (code: {country_code})")
             try:
-                callback_query.answer(f"✅ Выбрана страна: {country}")
+                callback_query.answer(messages.PROXY_COUNTRY_SELECTED_CALLBACK_MSG.format(country=country))
             except Exception:
                 pass
             return
@@ -323,36 +340,47 @@ def proxy_option_callback(app, callback_query):
         proxy_count = len(configs)
         
         # Check if user has selected a country (re-read after writing)
+        messages = safe_get_messages(user_id)
         selected_country_after = get_user_selected_country(user_id)
         if selected_country_after:
             proxies = get_proxies_for_country(selected_country_after)
             if proxies:
-                message_text = f"✅ Прокси включен\n"
-                message_text += f"🌍 Используется страна из файла: {selected_country_after}\n"
-                message_text += f"📊 Доступно прокси: {len(proxies)} (HTTP: {len([p for p in proxies if p['type'] == 'http'])}, SOCKS5: {len([p for p in proxies if p['type'] == 'socks5'])})"
+                http_count = len([p for p in proxies if p['type'] == 'http'])
+                socks5_count = len([p for p in proxies if p['type'] == 'socks5'])
+                message_text = messages.PROXY_ENABLED_CONFIRM_MSG + "\n"
+                message_text += messages.PROXY_COUNTRY_FROM_FILE_MSG.format(country=selected_country_after) + "\n"
+                message_text += messages.PROXY_COUNTRY_PROXIES_AVAILABLE_MSG.format(
+                    proxy_count=len(proxies),
+                    http_count=http_count,
+                    socks5_count=socks5_count
+                )
             else:
                 if proxy_count and proxy_count > 1:
-                    message_text = safe_get_messages(user_id).PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
+                    message_text = messages.PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
                 else:
-                    message_text = safe_get_messages(user_id).PROXY_ENABLED_CONFIRM_MSG
+                    message_text = messages.PROXY_ENABLED_CONFIRM_MSG
         else:
             if proxy_count and proxy_count > 1:
-                message_text = safe_get_messages(user_id).PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
+                message_text = messages.PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
             else:
-                message_text = safe_get_messages(user_id).PROXY_ENABLED_CONFIRM_MSG
+                message_text = messages.PROXY_ENABLED_CONFIRM_MSG
         
-        # Close menu and show confirmation
+        # Close menu
         try:
             callback_query.message.delete()
         except Exception:
-            try:
-                safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, message_text, reply_markup=None)
-            except Exception:
-                pass
+            pass
         
-        send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_ENABLED_LOG_MSG)
+        # Send confirmation message
+        safe_send_message(
+            callback_query.message.chat.id,
+            message_text,
+            message=callback_query.message
+        )
+        
+        send_to_logger(callback_query.message, messages.PROXY_ENABLED_LOG_MSG)
         try:
-            callback_query.answer(safe_get_messages(user_id).PROXY_ENABLED_CALLBACK_MSG)
+            callback_query.answer(messages.PROXY_ENABLED_CALLBACK_MSG)
         except Exception:
             pass
         return
@@ -365,18 +393,24 @@ def proxy_option_callback(app, callback_query):
                 pass
             return
         
-        # Close menu and show confirmation
+        messages = safe_get_messages(user_id)
+        
+        # Close menu
         try:
             callback_query.message.delete()
         except Exception:
-            try:
-                safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).PROXY_DISABLED_MSG, reply_markup=None)
-            except Exception:
-                pass
+            pass
         
-        send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_DISABLED_LOG_MSG)
+        # Send confirmation message
+        safe_send_message(
+            callback_query.message.chat.id,
+            messages.PROXY_DISABLED_MSG,
+            message=callback_query.message
+        )
+        
+        send_to_logger(callback_query.message, messages.PROXY_DISABLED_LOG_MSG)
         try:
-            callback_query.answer(safe_get_messages(user_id).PROXY_DISABLED_CALLBACK_MSG)
+            callback_query.answer(messages.PROXY_DISABLED_CALLBACK_MSG)
         except Exception:
             pass
         return
