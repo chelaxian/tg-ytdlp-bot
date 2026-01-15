@@ -1928,7 +1928,9 @@ def is_youtube_geo_error(error_message: str) -> bool:
         'this video is not available in your country', 'video unavailable in your region',
         'blocked in your region', 'geographic restriction', 'location restricted',
         'not available in this region', 'country not supported', 'regional restriction',
-        'blocked it in your country', 'blocked in your country on copyright grounds'
+        'blocked it in your country', 'blocked in your country on copyright grounds',
+        'has not made this video available', 'not made this video available',
+        'this video is available in', 'available in'
     ]
     
     return any(keyword in error_lower for keyword in geo_related_keywords)
