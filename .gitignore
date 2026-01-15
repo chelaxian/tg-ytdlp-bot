@@ -72,6 +72,8 @@ yt-dlp.1
 *.tmp
 dump.json
 get_string.py
+proxy.txt
+TXT/proxy.txt
 
 # Sample / experimental scripts
 gallery-dl/

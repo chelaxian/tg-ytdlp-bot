@@ -1106,7 +1106,17 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 ytdl_opts['cookiefile'] = cookie_file
             
             # Add proxy configuration if needed
-            if use_proxy:
+            # Проверяем, есть ли прокси в thread-local storage (для retry с прокси из файла)
+            import threading
+            thread_proxy = getattr(threading.current_thread(), 'proxy_for_audio_download', None)
+            
+            if thread_proxy:
+                # Используем прокси из thread-local storage (приоритет)
+                ytdl_opts['proxy'] = thread_proxy
+                logger.info(f"Using proxy from thread-local storage for audio download: {thread_proxy}")
+                # Очищаем после использования
+                threading.current_thread().proxy_for_audio_download = None
+            elif use_proxy:
                 # Force proxy for this download
                 from COMMANDS.proxy_cmd import get_proxy_config
                 proxy_config = get_proxy_config()
@@ -1422,9 +1432,24 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     if is_youtube_geo_error(error_text) and not did_proxy_retry:
                         logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy")
                         
+                        # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
+                        # attempt_opts будет содержать прокси, который нужно использовать
+                        def try_download_audio_wrapper(url_arg, attempt_opts_dict):
+                            # Сохраняем прокси из attempt_opts для использования в try_download_audio
+                            proxy_url = attempt_opts_dict.get('proxy')
+                            
+                            # Используем thread-local storage для передачи прокси в try_download_audio
+                            import threading
+                            if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
+                                threading.current_thread().proxy_for_audio_download = None
+                            threading.current_thread().proxy_for_audio_download = proxy_url
+                            
+                            # Вызываем оригинальную функцию
+                            return try_download_audio(url_arg, current_index)
+                        
                         # Пробуем скачать через прокси
                         retry_result = retry_download_with_proxy(
-                            user_id, url, try_download_audio, url, current_index
+                            user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
                         )
                         
                         if retry_result is not None:

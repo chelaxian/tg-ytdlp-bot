@@ -2106,7 +2106,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         
                         # Пробуем скачать через прокси
                         retry_result = retry_download_with_proxy(
-                            user_id, url, try_download, url, attempt_opts
+                            user_id, url, try_download, url, attempt_opts, error_message=error_message
                         )
                         
                         if retry_result is not None:

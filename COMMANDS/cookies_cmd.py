@@ -1927,19 +1927,22 @@ def is_youtube_geo_error(error_message: str) -> bool:
         'region blocked', 'geo-blocked', 'country restricted', 'not available in your country',
         'this video is not available in your country', 'video unavailable in your region',
         'blocked in your region', 'geographic restriction', 'location restricted',
-        'not available in this region', 'country not supported', 'regional restriction'
+        'not available in this region', 'country not supported', 'regional restriction',
+        'blocked it in your country', 'blocked in your country on copyright grounds'
     ]
     
     return any(keyword in error_lower for keyword in geo_related_keywords)
 
-def retry_download_with_proxy(user_id: int, url: str, download_func, *args, **kwargs):
+def retry_download_with_proxy(user_id: int, url: str, download_func, *args, error_message: str = None, **kwargs):
     """
     Повторяет скачивание через прокси при региональных ошибках.
+    Использует прокси из TXT/proxy.txt файла, если он существует и не пустой.
     
     Args:
         user_id (int): ID пользователя
         url (str): URL для скачивания
         download_func: Функция скачивания для повторного вызова
+        error_message (str): Сообщение об ошибке от yt-dlp
         *args, **kwargs: Аргументы для функции скачивания
         
     Returns:
@@ -1953,7 +1956,90 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, **kw
     
     logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_LOG_MSG.format(user_id=user_id))
     
-    # Получаем конфигурацию прокси
+    # Пробуем использовать прокси из файла TXT/proxy.txt
+    try:
+        from HELPERS.proxy_file_helper import (
+            parse_proxy_file, 
+            extract_available_countries, 
+            find_matching_proxies,
+            get_all_proxies_from_file
+        )
+        
+        proxy_file_path = "TXT/proxy.txt"
+        proxies_from_file = parse_proxy_file(proxy_file_path)
+        
+        if proxies_from_file:
+            logger.info(f"Found {len(proxies_from_file)} proxies in {proxy_file_path}")
+            
+            # Пытаемся извлечь список доступных стран из ошибки
+            available_countries = None
+            if error_message:
+                available_countries = extract_available_countries(error_message)
+            
+            proxies_to_try = []
+            
+            if available_countries:
+                # Если есть список доступных стран, ищем совпадения
+                logger.info(f"Extracted available countries from error: {available_countries[:10]}...")  # Log first 10
+                matching_proxies = find_matching_proxies(available_countries, proxies_from_file)
+                
+                if matching_proxies:
+                    logger.info(f"Found {len(matching_proxies)} matching proxies for available countries")
+                    proxies_to_try = matching_proxies
+                else:
+                    logger.warning("No matching proxies found for available countries, will try all proxies")
+                    proxies_to_try = get_all_proxies_from_file(proxy_file_path)
+            else:
+                # Если нет списка стран (например, блокировка по копирайту), пробуем все прокси подряд
+                logger.info("No available countries list found in error, will try all proxies sequentially")
+                proxies_to_try = get_all_proxies_from_file(proxy_file_path)
+            
+            # Пробуем каждый прокси по очереди
+            for i, proxy_info in enumerate(proxies_to_try):
+                proxy_url = proxy_info['proxy_url']
+                proxy_country = proxy_info['country']
+                proxy_type = proxy_info['type']
+                
+                logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url}")
+                
+                try:
+                    # download_func принимает (url, attempt_opts), где attempt_opts - это словарь опций yt-dlp
+                    # Создаем копию attempt_opts с добавленным прокси
+                    if len(args) >= 2 and isinstance(args[1], dict):
+                        # Если args содержит (url, attempt_opts)
+                        attempt_opts = args[1].copy()
+                        attempt_opts['proxy'] = proxy_url
+                        new_args = (args[0], attempt_opts) + args[2:]
+                        result = download_func(*new_args, **kwargs)
+                    else:
+                        # Если структура другая, пробуем через kwargs
+                        kwargs_copy = kwargs.copy()
+                        if 'attempt_opts' in kwargs_copy and isinstance(kwargs_copy['attempt_opts'], dict):
+                            kwargs_copy['attempt_opts'] = kwargs_copy['attempt_opts'].copy()
+                            kwargs_copy['attempt_opts']['proxy'] = proxy_url
+                        else:
+                            # Создаем новый attempt_opts
+                            kwargs_copy['attempt_opts'] = {'proxy': proxy_url}
+                        result = download_func(*args, **kwargs_copy)
+                    
+                    if result is not None:
+                        logger.info(f"Successfully downloaded with proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type})")
+                        return result
+                    else:
+                        logger.warning(f"Download returned None with proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type})")
+                        
+                except Exception as e:
+                    error_text = str(e)
+                    logger.warning(f"Failed with proxy {i+1}/{len(proxies_to_try)} ({proxy_country}, {proxy_type}): {error_text[:200]}")
+                    continue
+            
+            logger.warning(f"All {len(proxies_to_try)} proxies from file failed")
+        else:
+            logger.info(f"Proxy file {proxy_file_path} is empty or does not exist, falling back to default proxy")
+    except Exception as e:
+        logger.warning(f"Error using proxies from file: {e}, falling back to default proxy")
+    
+    # Fallback: используем стандартную конфигурацию прокси из Config
     try:
         from COMMANDS.proxy_cmd import get_proxy_config
         proxy_config = get_proxy_config()
@@ -1988,9 +2074,25 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, **kw
         
         # Повторяем скачивание с прокси
         try:
-            # Добавляем параметр use_proxy=True для функции скачивания
-            kwargs['use_proxy'] = True
-            result = download_func(*args, **kwargs)
+            # download_func принимает (url, attempt_opts), где attempt_opts - это словарь опций yt-dlp
+            # Создаем копию attempt_opts с добавленным прокси
+            if len(args) >= 2 and isinstance(args[1], dict):
+                # Если args содержит (url, attempt_opts)
+                attempt_opts = args[1].copy()
+                attempt_opts['proxy'] = proxy_url
+                new_args = (args[0], attempt_opts) + args[2:]
+                result = download_func(*new_args, **kwargs)
+            else:
+                # Если структура другая, пробуем через kwargs
+                kwargs_copy = kwargs.copy()
+                if 'attempt_opts' in kwargs_copy and isinstance(kwargs_copy['attempt_opts'], dict):
+                    kwargs_copy['attempt_opts'] = kwargs_copy['attempt_opts'].copy()
+                    kwargs_copy['attempt_opts']['proxy'] = proxy_url
+                else:
+                    # Создаем новый attempt_opts
+                    kwargs_copy['attempt_opts'] = {'proxy': proxy_url}
+                result = download_func(*args, **kwargs_copy)
+            
             if result is not None:
                 logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_SUCCESS_LOG_MSG.format(user_id=user_id))
                 return result
