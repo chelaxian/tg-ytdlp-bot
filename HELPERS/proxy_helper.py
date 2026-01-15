@@ -451,3 +451,225 @@ def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) 
         logger.info(f"No domain-specific proxy found for {url}")
     
     return config
+
+def is_cloudflare_error(error_text: str) -> bool:
+    """Check if error is related to Cloudflare protection"""
+    error_lower = str(error_text).lower()
+    cloudflare_indicators = [
+        'cloudflare',
+        '403',
+        'forbidden',
+        'anti-bot',
+        'challenge',
+        'cf-ray',
+        'cf-request-id',
+        'just a moment',
+        'checking your browser'
+    ]
+    return any(indicator in error_lower for indicator in cloudflare_indicators)
+
+def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None, operation_func=None, *args, **kwargs):
+    """
+    Try operation with different impersonate versions in case of Cloudflare 403 error
+    
+    Args:
+        ytdl_opts: yt-dlp options
+        url: URL to process
+        user_id: User ID
+        operation_func: Function to call with ytdl_opts
+        *args, **kwargs: Additional arguments for operation_func
+    
+    Returns:
+        Result of operation_func or None if all impersonate versions failed
+    """
+    if not operation_func:
+        return None
+    
+    # List of impersonate versions to try (newer versions first)
+    impersonate_versions = [
+        'chrome122',
+        'chrome121', 
+        'chrome120',
+        'chrome119',
+        'chrome118',
+        'chrome117',
+        'chrome116',
+        'chrome115',
+        'chrome114',
+        'chrome113',
+        'chrome112',
+        'chrome111',
+        'chrome110',
+        'chrome109',
+        'chrome108',
+        'chrome107',
+        'chrome106',
+        'chrome105',
+        'chrome104',
+        'chrome103',
+        'chrome102',
+        'chrome101',
+        'chrome100',
+        'chrome99',
+        'chrome98',
+        'chrome97',
+        'chrome96',
+        'chrome95',
+        'chrome94',
+        'chrome93',
+        'chrome92',
+        'chrome91',
+        'chrome90',
+        'chrome89',
+        'chrome88',
+        'chrome87',
+        'chrome86',
+        'chrome85',
+        'chrome84',
+        'chrome83',
+        'chrome82',
+        'chrome81',
+        'chrome80',
+        'chrome',
+        'edge110',
+        'edge109',
+        'edge108',
+        'edge107',
+        'edge106',
+        'edge105',
+        'edge104',
+        'edge103',
+        'edge102',
+        'edge101',
+        'edge100',
+        'edge99',
+        'edge98',
+        'edge97',
+        'edge96',
+        'edge95',
+        'edge94',
+        'edge93',
+        'edge92',
+        'edge91',
+        'edge90',
+        'edge89',
+        'edge88',
+        'edge87',
+        'edge86',
+        'edge85',
+        'edge84',
+        'edge83',
+        'edge82',
+        'edge81',
+        'edge80',
+        'edge',
+        'firefox120',
+        'firefox119',
+        'firefox118',
+        'firefox117',
+        'firefox116',
+        'firefox115',
+        'firefox114',
+        'firefox113',
+        'firefox112',
+        'firefox111',
+        'firefox110',
+        'firefox109',
+        'firefox108',
+        'firefox107',
+        'firefox106',
+        'firefox105',
+        'firefox104',
+        'firefox103',
+        'firefox102',
+        'firefox101',
+        'firefox100',
+        'firefox99',
+        'firefox98',
+        'firefox97',
+        'firefox96',
+        'firefox95',
+        'firefox94',
+        'firefox93',
+        'firefox92',
+        'firefox91',
+        'firefox90',
+        'firefox89',
+        'firefox88',
+        'firefox87',
+        'firefox86',
+        'firefox85',
+        'firefox84',
+        'firefox83',
+        'firefox82',
+        'firefox81',
+        'firefox80',
+        'firefox',
+        'safari17',
+        'safari16',
+        'safari15',
+        'safari14',
+        'safari13',
+        'safari12',
+        'safari11',
+        'safari10',
+        'safari',
+    ]
+    
+    # Try with original options first (skip if we already know it's a Cloudflare error)
+    original_error = None
+    try:
+        logger.info(f"Trying {url} with original impersonate settings")
+        result = operation_func(ytdl_opts, *args, **kwargs)
+        if result is not None:
+            return result
+    except Exception as e:
+        error_text = str(e)
+        original_error = error_text
+        if not is_cloudflare_error(error_text):
+            # Not a Cloudflare error, re-raise
+            raise e
+        logger.warning(f"Cloudflare error detected with original settings: {error_text[:200]}")
+    
+    # Try with different impersonate versions
+    for impersonate_version in impersonate_versions:
+        try:
+            # Create a deep copy of options to avoid modifying original
+            import copy
+            current_opts = copy.deepcopy(ytdl_opts)
+            
+            # Ensure extractor_args structure exists
+            if 'extractor_args' not in current_opts:
+                current_opts['extractor_args'] = {}
+            if 'generic' not in current_opts['extractor_args']:
+                current_opts['extractor_args']['generic'] = {}
+            
+            # Update impersonate version
+            current_opts['extractor_args']['generic']['impersonate'] = [impersonate_version]
+            
+            # Preserve all other extractor_args (youtubetab, etc.)
+            original_extractor_args = ytdl_opts.get('extractor_args', {})
+            for key, value in original_extractor_args.items():
+                if key != 'generic':
+                    current_opts['extractor_args'][key] = copy.deepcopy(value)
+            
+            logger.info(f"Trying {url} with impersonate={impersonate_version}")
+            result = operation_func(current_opts, *args, **kwargs)
+            
+            if result is not None:
+                logger.info(f"Success with impersonate={impersonate_version}")
+                return result
+            else:
+                logger.warning(f"Operation returned None with impersonate={impersonate_version}")
+                
+        except Exception as e:
+            error_text = str(e)
+            if not is_cloudflare_error(error_text):
+                # Not a Cloudflare error, might be a different issue - log but continue
+                logger.debug(f"Non-Cloudflare error with impersonate={impersonate_version}: {error_text[:200]}")
+            else:
+                logger.warning(f"Cloudflare error with impersonate={impersonate_version}: {error_text[:200]}")
+            continue
+    
+    logger.error(f"All impersonate versions failed for {url}")
+    return None

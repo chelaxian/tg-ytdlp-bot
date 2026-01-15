@@ -438,15 +438,46 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                 logger.info(f"Fallback to gallery-dl recommended for {url} due to error: {error_text[:200]}...")
                 return {'error': 'FALLBACK_TO_GALLERY_DL', 'original_error': error_text}
             
+            # Check for Cloudflare errors and try impersonate fallback
+            from HELPERS.proxy_helper import is_cloudflare_error
+            if is_cloudflare_error(error_text):
+                logger.info(f"Cloudflare error detected for {url}, will try impersonate fallback")
+                # Store the error to handle it in the outer scope
+                raise e
+            
             # Re-raise other DownloadErrors
             raise e
         except Exception as e:
+            error_text = str(e)
+            # Check if it's a Cloudflare error
+            from HELPERS.proxy_helper import is_cloudflare_error, try_with_impersonate_fallback
+            if is_cloudflare_error(error_text):
+                logger.info(f"Cloudflare error detected for {url}, trying impersonate fallback")
+                # Try with different impersonate versions
+                impersonate_result = try_with_impersonate_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                if impersonate_result is not None:
+                    return impersonate_result
+                logger.warning(f"All impersonate versions failed for {url}, trying proxy fallback")
+            
             logger.error(f"Error extracting info for {url}: {e}")
             raise e
     
-    from HELPERS.proxy_helper import try_with_proxy_fallback
+    from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
+    # First try with proxy fallback
     result = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
     if result is None:
+        # If proxy fallback failed, check if it was a Cloudflare error and try impersonate fallback
+        try:
+            # Try once more to capture the error
+            extract_info_operation(ytdl_opts)
+        except Exception as e:
+            error_text = str(e)
+            if is_cloudflare_error(error_text):
+                logger.info(f"Cloudflare error detected after proxy fallback for {url}, trying impersonate fallback")
+                impersonate_result = try_with_impersonate_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                if impersonate_result is not None:
+                    return impersonate_result
+        
         return {'error': 'Failed to extract video information with all available proxies'}
     return result
 

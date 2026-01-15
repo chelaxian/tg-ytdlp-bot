@@ -1622,8 +1622,39 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info("extract_info completed successfully")
                         return info_dict
                 
-                from HELPERS.proxy_helper import try_with_proxy_fallback
-                info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
+                
+                # Wrapper to catch Cloudflare errors
+                def extract_info_with_cloudflare_handling(opts):
+                    try:
+                        return extract_info_operation(opts)
+                    except Exception as e:
+                        error_text = str(e)
+                        if is_cloudflare_error(error_text):
+                            # Re-raise to trigger impersonate fallback
+                            raise e
+                        raise e
+                
+                # First try with proxy fallback
+                info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_cloudflare_handling)
+                
+                # If proxy fallback failed, try impersonate fallback for Cloudflare errors
+                if info_dict is None:
+                    try:
+                        # Try once to capture the error type
+                        extract_info_operation(ytdl_opts)
+                    except Exception as e:
+                        error_text = str(e)
+                        if is_cloudflare_error(error_text):
+                            logger.info(f"Cloudflare error detected after proxy fallback for {url}, trying impersonate fallback")
+                            impersonate_result = try_with_impersonate_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                            if impersonate_result is not None:
+                                info_dict = impersonate_result
+                            else:
+                                raise Exception("Failed to extract video information with all available proxies and impersonate versions")
+                        else:
+                            raise Exception("Failed to extract video information with all available proxies")
+                
                 if info_dict is None:
                     raise Exception("Failed to extract video information with all available proxies")
                 # Normalize info_dict to a dict
