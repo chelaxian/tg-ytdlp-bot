@@ -527,6 +527,7 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     # Check if curl_cffi is available (for specific versions)
     curl_cffi_available = False
     curl_cffi_version = None
+    curl_cffi_working = False  # Track if curl_cffi actually works (not just installed)
     try:
         import curl_cffi
         curl_cffi_available = True
@@ -534,10 +535,28 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             curl_cffi_version = getattr(curl_cffi, '__version__', 'unknown')
         except:
             pass
+        
+        # Try to check if curl_cffi actually works by checking available browser versions
+        try:
+            from curl_cffi import Curl
+            # Try to create a curl instance to verify it works
+            test_curl = Curl()
+            curl_cffi_working = True
+            test_curl.close()
+        except Exception as e:
+            logger.warning(f"curl_cffi is installed but may not be working properly: {str(e)[:200]}")
+            curl_cffi_working = False
+        
         if curl_cffi_version:
-            logger.info(f"curl_cffi is available (version {curl_cffi_version}), will try specific impersonate versions")
+            if curl_cffi_working:
+                logger.info(f"curl_cffi is available (version {curl_cffi_version}), will try specific impersonate versions")
+            else:
+                logger.warning(f"curl_cffi is installed (version {curl_cffi_version}) but may not be working. Try reinstalling: pip install --upgrade --force-reinstall curl-cffi")
         else:
-            logger.info("curl_cffi is available, will try specific impersonate versions")
+            if curl_cffi_working:
+                logger.info("curl_cffi is available, will try specific impersonate versions")
+            else:
+                logger.warning("curl_cffi is installed but may not be working. Try reinstalling: pip install --upgrade --force-reinstall curl-cffi")
     except ImportError:
         logger.info("curl_cffi is not available, will only try basic impersonate versions. Install with: pip install curl-cffi")
     
@@ -570,6 +589,7 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     # Track if we've tried basic versions
     basic_versions_tried = False
     basic_versions_all_failed = True
+    basic_versions_unavailable = False  # Track if basic versions are unavailable (when curl_cffi is installed)
     
     # Try with different impersonate versions
     unavailable_specific_count = 0  # Track only specific versions
@@ -588,6 +608,10 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             logger.info("Basic impersonate versions failed and curl_cffi is not installed. Skipping specific versions.")
             logger.info("To enable specific impersonate versions, install: pip install curl-cffi")
             break
+        elif basic_versions_unavailable and is_basic_version:
+            # Skip basic versions if they're unavailable (when curl_cffi is installed)
+            logger.debug(f"Skipping basic version {impersonate_version} (unavailable when curl_cffi is installed)")
+            continue
         try:
             # Create a deep copy of options to avoid modifying original
             import copy
@@ -635,6 +659,13 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             if explicit_unavailable or likely_unavailable:
                 logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
                 
+                # If basic version is unavailable and curl_cffi is installed, mark all basic versions as unavailable
+                if is_basic and curl_cffi_available and explicit_unavailable:
+                    basic_versions_unavailable = True
+                    logger.warning(f"⚠️ Basic version {impersonate_version} unavailable (curl_cffi installed but doesn't support basic versions). Skipping remaining basic versions.")
+                    # Skip remaining basic versions and continue to specific versions
+                    continue
+                
                 # Only track unavailable count for specific versions
                 if not is_basic:
                     unavailable_specific_count += 1
@@ -665,13 +696,30 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     
     logger.error(f"All impersonate versions failed for {url}")
     if not curl_cffi_available:
-        logger.info("Note: curl_cffi is not installed. Install it with 'pip install curl-cffi' to enable specific browser version impersonation.")
+        logger.error("❌ curl_cffi is not installed. This is required for impersonate functionality.")
+        logger.error("📦 Install with: pip install curl-cffi")
+        logger.error("   Or update yt-dlp: pip install --upgrade --pre 'yt-dlp[default,curl-cffi]'")
     elif curl_cffi_available:
         version_info = f" (version {curl_cffi_version})" if curl_cffi_version else ""
+        
+        # Check if basic versions were unavailable
+        if basic_versions_unavailable:
+            logger.error(f"❌ curl_cffi{version_info} is installed, but basic browser versions (chrome, edge, firefox, safari) are unavailable.")
+            logger.error("   This usually means curl_cffi was installed incorrectly or is incompatible.")
+            logger.error("📦 Try reinstalling:")
+            logger.error("   1. pip uninstall curl-cffi")
+            logger.error("   2. pip install --upgrade --force-reinstall --no-cache-dir curl-cffi")
+            logger.error("   3. Or: pip install --upgrade --pre --force-reinstall curl-cffi")
+        
         if unavailable_specific_count >= max_unavailable_before_skip:
-            logger.warning(f"Note: curl_cffi{version_info} is installed, but specific browser versions are unavailable. "
-                          f"Try updating curl_cffi: pip install --upgrade --pre curl-cffi")
+            logger.error(f"❌ curl_cffi{version_info} is installed, but specific browser versions are unavailable.")
+            logger.error("   This usually means curl_cffi needs to be updated or reinstalled.")
+            logger.error("📦 Try updating:")
+            logger.error("   pip install --upgrade --pre --force-reinstall curl-cffi")
+            logger.error("   Or: pip install --upgrade --pre 'yt-dlp[default,curl-cffi]'")
         else:
-            logger.info(f"Note: curl_cffi{version_info} is installed, but all impersonate versions failed. "
-                       f"This may indicate that Cloudflare protection is too strong for this site.")
+            logger.warning(f"⚠️ curl_cffi{version_info} is installed, but all impersonate versions failed.")
+            logger.warning("   This may indicate that Cloudflare protection is too strong for this site.")
+            logger.warning("   Or curl_cffi may need to be reinstalled:")
+            logger.warning("   pip install --upgrade --force-reinstall curl-cffi")
     return None
