@@ -1059,10 +1059,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 ytdl_opts.pop("http_chunk_size", None)
                 # Reduce parallelism for fragile HLS endpoints
                 ytdl_opts["concurrent_fragment_downloads"] = 1
-                # Limit fragment retries to avoid long waits when segments fail with 403 errors
-                # Only 1 retry per fragment (original + 1 retry = 2 total attempts) for faster failure detection
-                ytdl_opts["fragment_retries"] = 1
-                ytdl_opts["hls_fragment_retries"] = 1
+                # Limit maximum fragments to prevent infinite loops when many segments fail with 403
+                # If first few segments fail, abort early instead of trying all segments
+                # This will abort after trying to download max_fragments segments
+                # Set to a small number (5) to abort quickly when 403 errors occur
+                ytdl_opts["max_fragments"] = 5
                 # Don't skip unavailable fragments - abort early instead
                 # This prevents infinite loops when many segments fail with 403 errors
                 ytdl_opts["abort_on_unavailable_fragment"] = True
