@@ -1237,6 +1237,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             # Pass cycle_stop and progress_data to progress_hook so it can update the cycle animation
                             progress_hook.cycle_stop = cycle_stop
                             progress_hook.progress_data = progress_data
+                            try:
                                 ydl.download([url])
                             finally:
                                 cycle_stop.set()
