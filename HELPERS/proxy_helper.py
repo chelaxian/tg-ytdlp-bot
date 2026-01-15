@@ -485,136 +485,60 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     if not operation_func:
         return None
     
-    # List of impersonate versions to try (newer versions first)
-    impersonate_versions = [
-        'chrome122',
-        'chrome121', 
-        'chrome120',
-        'chrome119',
-        'chrome118',
-        'chrome117',
-        'chrome116',
-        'chrome115',
-        'chrome114',
-        'chrome113',
-        'chrome112',
-        'chrome111',
-        'chrome110',
-        'chrome109',
-        'chrome108',
-        'chrome107',
-        'chrome106',
-        'chrome105',
-        'chrome104',
-        'chrome103',
-        'chrome102',
-        'chrome101',
-        'chrome100',
-        'chrome99',
-        'chrome98',
-        'chrome97',
-        'chrome96',
-        'chrome95',
-        'chrome94',
-        'chrome93',
-        'chrome92',
-        'chrome91',
-        'chrome90',
-        'chrome89',
-        'chrome88',
-        'chrome87',
-        'chrome86',
-        'chrome85',
-        'chrome84',
-        'chrome83',
-        'chrome82',
-        'chrome81',
-        'chrome80',
+    # List of impersonate versions to try
+    # Start with basic versions that work without curl_cffi (available by default)
+    # Then try specific versions if curl_cffi is installed
+    basic_versions = [
         'chrome',
-        'edge110',
-        'edge109',
-        'edge108',
-        'edge107',
-        'edge106',
-        'edge105',
-        'edge104',
-        'edge103',
-        'edge102',
-        'edge101',
-        'edge100',
-        'edge99',
-        'edge98',
-        'edge97',
-        'edge96',
-        'edge95',
-        'edge94',
-        'edge93',
-        'edge92',
-        'edge91',
-        'edge90',
-        'edge89',
-        'edge88',
-        'edge87',
-        'edge86',
-        'edge85',
-        'edge84',
-        'edge83',
-        'edge82',
-        'edge81',
-        'edge80',
         'edge',
-        'firefox120',
-        'firefox119',
-        'firefox118',
-        'firefox117',
-        'firefox116',
-        'firefox115',
-        'firefox114',
-        'firefox113',
-        'firefox112',
-        'firefox111',
-        'firefox110',
-        'firefox109',
-        'firefox108',
-        'firefox107',
-        'firefox106',
-        'firefox105',
-        'firefox104',
-        'firefox103',
-        'firefox102',
-        'firefox101',
-        'firefox100',
-        'firefox99',
-        'firefox98',
-        'firefox97',
-        'firefox96',
-        'firefox95',
-        'firefox94',
-        'firefox93',
-        'firefox92',
-        'firefox91',
-        'firefox90',
-        'firefox89',
-        'firefox88',
-        'firefox87',
-        'firefox86',
-        'firefox85',
-        'firefox84',
-        'firefox83',
-        'firefox82',
-        'firefox81',
-        'firefox80',
         'firefox',
-        'safari17',
-        'safari16',
-        'safari15',
-        'safari14',
-        'safari13',
-        'safari12',
-        'safari11',
-        'safari10',
         'safari',
     ]
+    
+    # Specific versions (require curl_cffi to be installed)
+    # Only try these if basic versions fail and we detect curl_cffi availability
+    specific_versions = [
+        'chrome122', 'chrome121', 'chrome120', 'chrome119', 'chrome118', 'chrome117',
+        'chrome116', 'chrome115', 'chrome114', 'chrome113', 'chrome112', 'chrome111',
+        'chrome110', 'chrome109', 'chrome108', 'chrome107', 'chrome106', 'chrome105',
+        'chrome104', 'chrome103', 'chrome102', 'chrome101', 'chrome100',
+        'chrome99', 'chrome98', 'chrome97', 'chrome96', 'chrome95', 'chrome94',
+        'chrome93', 'chrome92', 'chrome91', 'chrome90', 'chrome89', 'chrome88',
+        'chrome87', 'chrome86', 'chrome85', 'chrome84', 'chrome83', 'chrome82',
+        'chrome81', 'chrome80',
+        'edge110', 'edge109', 'edge108', 'edge107', 'edge106', 'edge105',
+        'edge104', 'edge103', 'edge102', 'edge101', 'edge100', 'edge99', 'edge98',
+        'edge97', 'edge96', 'edge95', 'edge94', 'edge93', 'edge92', 'edge91',
+        'edge90', 'edge89', 'edge88', 'edge87', 'edge86', 'edge85', 'edge84',
+        'edge83', 'edge82', 'edge81', 'edge80',
+        'firefox120', 'firefox119', 'firefox118', 'firefox117', 'firefox116',
+        'firefox115', 'firefox114', 'firefox113', 'firefox112', 'firefox111',
+        'firefox110', 'firefox109', 'firefox108', 'firefox107', 'firefox106',
+        'firefox105', 'firefox104', 'firefox103', 'firefox102', 'firefox101',
+        'firefox100', 'firefox99', 'firefox98', 'firefox97', 'firefox96',
+        'firefox95', 'firefox94', 'firefox93', 'firefox92', 'firefox91',
+        'firefox90', 'firefox89', 'firefox88', 'firefox87', 'firefox86',
+        'firefox85', 'firefox84', 'firefox83', 'firefox82', 'firefox81',
+        'firefox80',
+        'safari17', 'safari16', 'safari15', 'safari14', 'safari13', 'safari12',
+        'safari11', 'safari10',
+    ]
+    
+    # Check if curl_cffi is available (for specific versions)
+    curl_cffi_available = False
+    try:
+        import curl_cffi
+        curl_cffi_available = True
+        logger.debug("curl_cffi is available, will try specific impersonate versions")
+    except ImportError:
+        logger.debug("curl_cffi is not available, will only try basic impersonate versions")
+    
+    # Build list: basic versions first, then specific if curl_cffi is available
+    impersonate_versions = basic_versions.copy()
+    if curl_cffi_available:
+        impersonate_versions.extend(specific_versions)
+    else:
+        logger.info("curl_cffi not installed - skipping specific impersonate versions. Install with: pip install curl-cffi")
     
     # Try with original options first (skip if we already know it's a Cloudflare error)
     original_error = None
@@ -631,8 +555,20 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             raise e
         logger.warning(f"Cloudflare error detected with original settings: {error_text[:200]}")
     
+    # Track if we've tried basic versions
+    basic_versions_tried = False
+    basic_versions_all_failed = True
+    
     # Try with different impersonate versions
     for impersonate_version in impersonate_versions:
+        # Check if we're moving from basic to specific versions
+        if impersonate_version in basic_versions:
+            basic_versions_tried = True
+        elif basic_versions_tried and not curl_cffi_available:
+            # If basic versions failed and curl_cffi is not available, skip specific versions
+            logger.info("Basic impersonate versions failed and curl_cffi is not installed. Skipping specific versions.")
+            logger.info("To enable specific impersonate versions, install: pip install curl-cffi")
+            break
         try:
             # Create a deep copy of options to avoid modifying original
             import copy
@@ -664,6 +600,12 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                 
         except Exception as e:
             error_text = str(e)
+            # Check if error indicates impersonate version is not available
+            if "none of these impersonate targets are available" in error_text.lower():
+                # Skip this version and continue to next
+                logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
+                continue
+            
             if not is_cloudflare_error(error_text):
                 # Not a Cloudflare error, might be a different issue - log but continue
                 logger.debug(f"Non-Cloudflare error with impersonate={impersonate_version}: {error_text[:200]}")
@@ -672,4 +614,6 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             continue
     
     logger.error(f"All impersonate versions failed for {url}")
+    if not curl_cffi_available:
+        logger.info("Note: curl_cffi is not installed. Install it with 'pip install curl-cffi' to enable specific browser version impersonation.")
     return None
