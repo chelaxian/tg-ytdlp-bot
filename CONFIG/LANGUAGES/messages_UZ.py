@@ -1629,7 +1629,7 @@ Ishlating:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie'ni tekshirish"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ YOQILGAN"
+    PROXY_ON_BUTTON_MSG = "✅ HAMMA (AVTO)"
     PROXY_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"
     PROXY_CLOSE_BUTTON_MSG = "🔚Yopish"
     

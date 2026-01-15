@@ -1628,7 +1628,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ कुकी जांचें"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ON"
+    PROXY_ON_BUTTON_MSG = "✅ सभी (ऑटो)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚बंद करें"
     

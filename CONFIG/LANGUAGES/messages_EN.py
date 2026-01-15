@@ -1629,7 +1629,7 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Check Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ON"
+    PROXY_ON_BUTTON_MSG = "✅ ALL (AUTO)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Close"
     PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Select Country:"

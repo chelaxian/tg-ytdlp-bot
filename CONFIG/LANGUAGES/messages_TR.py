@@ -1629,7 +1629,7 @@ Kullanın:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Çerezleri Kontrol Et"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ AÇIK"
+    PROXY_ON_BUTTON_MSG = "✅ HEPSİ (OTOMATİK)"
     PROXY_OFF_BUTTON_MSG = "❌ KAPALI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Kapat"
     

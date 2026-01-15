@@ -1629,7 +1629,7 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Kiểm Tra Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ BẬT"
+    PROXY_ON_BUTTON_MSG = "✅ TẤT CẢ (TỰ ĐỘNG)"
     PROXY_OFF_BUTTON_MSG = "❌ TẮT"
     PROXY_CLOSE_BUTTON_MSG = "🔚Đóng"
     

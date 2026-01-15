@@ -1630,7 +1630,7 @@ Verwenden Sie:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie prüfen"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ EIN"
+    PROXY_ON_BUTTON_MSG = "✅ ALLE (AUTO)"
     PROXY_OFF_BUTTON_MSG = "❌ AUS"
     PROXY_CLOSE_BUTTON_MSG = "🔚Schließen"
     

@@ -158,26 +158,52 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
     # ГЛОБАЛЬНАЯ ЗАЩИТА: Инициализируем messages
     messages = safe_get_messages(user_id)
     
-    # Priority 1: Check if user has proxy enabled (/proxy on)
+    # Priority 1: Check if user has selected a country from proxy file
+    if user_id:
+        try:
+            from COMMANDS.proxy_cmd import get_proxy_url_for_user_country
+            country_proxy_url, selected_country = get_proxy_url_for_user_country(user_id)
+            if country_proxy_url:
+                ytdl_opts['proxy'] = country_proxy_url
+                logger.info(f"Using proxy from file for country {selected_country}: {country_proxy_url}")
+                return ytdl_opts
+        except Exception as e:
+            logger.warning(f"Error checking country proxy for user {user_id}: {e}")
+            pass
+    
+    # Priority 2: Check if user has proxy enabled (ALL AUTO mode) - uses first available proxy
+    # (Config first, then file) - full rotation happens in try_with_proxy_fallback
     if user_id:
         try:
             from COMMANDS.proxy_cmd import is_proxy_enabled
             proxy_enabled = is_proxy_enabled(user_id)
             logger.info(f"User {user_id} proxy enabled: {proxy_enabled}")
             if proxy_enabled:
-                # Use round-robin/random selection for user proxy
+                # Try Config proxies first
                 proxy_config = select_proxy_for_user()
                 if proxy_config:
                     proxy_url = build_proxy_url(proxy_config)
                     if proxy_url:
                         ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"Added user proxy for {user_id}: {proxy_url}")
+                        logger.info(f"Added user proxy from Config for {user_id} (ALL AUTO mode): {proxy_url}")
                         return ytdl_opts
+                
+                # If no Config proxies, try first proxy from file
+                try:
+                    from HELPERS.proxy_file_helper import get_all_proxies_from_file
+                    file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
+                    if file_proxies:
+                        proxy_url = file_proxies[0]['proxy_url']
+                        ytdl_opts['proxy'] = proxy_url
+                        logger.info(f"Added user proxy from file for {user_id} (ALL AUTO mode): {proxy_url}")
+                        return ytdl_opts
+                except Exception as e:
+                    logger.warning(f"Error loading proxies from file: {e}")
         except Exception as e:
             logger.warning(f"Error checking proxy for user {user_id}: {e}")
             pass
     
-    # Priority 2: Check if domain requires specific proxy (only if user proxy is OFF)
+    # Priority 3: Check if domain requires specific proxy (only if user proxy is OFF)
     logger.info(f"Checking domain-specific proxy for {url}")
     proxy_config = select_proxy_for_domain(url)
     if proxy_config:
@@ -256,38 +282,67 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
     except Exception as e:
         logger.warning(f"Error checking user selected country: {e}")
     
-    # User proxy is enabled, get all available proxies from config
+    # User proxy is enabled (ALL AUTO mode) - try all proxies: first from Config, then from file
+    all_proxies_to_try = []
+    
+    # Step 1: Add all proxies from Config
     all_configs = get_all_proxy_configs()
-    if not all_configs:
+    for proxy_config in all_configs:
+        proxy_url = build_proxy_url(proxy_config)
+        if proxy_url:
+            all_proxies_to_try.append({
+                'proxy_url': proxy_url,
+                'source': 'config',
+                'index': len(all_proxies_to_try) + 1
+            })
+    
+    # Step 2: Add all proxies from file (if file exists)
+    try:
+        from HELPERS.proxy_file_helper import get_all_proxies_from_file
+        file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
+        for proxy_info in file_proxies:
+            all_proxies_to_try.append({
+                'proxy_url': proxy_info['proxy_url'],
+                'source': 'file',
+                'country': proxy_info['country'],
+                'type': proxy_info['type'],
+                'index': len(all_proxies_to_try) + 1
+            })
+    except Exception as e:
+        logger.warning(f"Error loading proxies from file: {e}")
+    
+    if not all_proxies_to_try:
         logger.info(f"No proxies available for {url}, trying without proxy")
         return operation_func(ytdl_opts, *args, **kwargs)
     
-    # Try with each proxy from config
-    for i, proxy_config in enumerate(all_configs):
+    logger.info(f"Trying {len(all_proxies_to_try)} proxies in ALL AUTO mode: {len(all_configs)} from Config, {len(all_proxies_to_try) - len(all_configs)} from file")
+    
+    # Try with each proxy
+    for proxy_item in all_proxies_to_try:
         try:
-            # Update proxy in options
             current_opts = ytdl_opts.copy()
-            proxy_url = build_proxy_url(proxy_config)
-            if proxy_url:
-                current_opts['proxy'] = proxy_url
-                logger.info(f"Trying {url} with proxy {i+1}/{len(all_configs)}: {proxy_url}")
-                result = operation_func(current_opts, *args, **kwargs)
-                
-                if result is not None:
-                    logger.info(f"Success with proxy {i+1}/{len(all_configs)}: {proxy_url}")
-                    return result
-                else:
-                    logger.warning(f"Operation returned None with proxy {i+1}/{len(all_configs)}: {proxy_url}")
+            proxy_url = proxy_item['proxy_url']
+            current_opts['proxy'] = proxy_url
+            
+            source_info = f"{proxy_item['source']}"
+            if proxy_item['source'] == 'file':
+                source_info += f" ({proxy_item.get('country', 'unknown')}, {proxy_item.get('type', 'unknown')})"
+            
+            logger.info(f"Trying {url} with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {proxy_url}")
+            result = operation_func(current_opts, *args, **kwargs)
+            
+            if result is not None:
+                logger.info(f"Success with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {proxy_url}")
+                return result
             else:
-                logger.warning(f"Failed to build proxy URL for config {i+1}/{len(all_configs)}: {proxy_config}")
-                
+                logger.warning(f"Operation returned None with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {proxy_url}")
         except Exception as e:
-            logger.warning(f"Failed with proxy {i+1}/{len(all_configs)} ({proxy_url}): {e}")
+            logger.warning(f"Failed with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {e}")
             continue
     
-    # Try without proxy as last resort
+    # If all proxies failed, try without proxy as last resort
     try:
-        logger.info(f"All proxies failed for {url}, trying without proxy")
+        logger.warning(f"All {len(all_proxies_to_try)} proxies failed for {url}, trying without proxy")
         current_opts = ytdl_opts.copy()
         if 'proxy' in current_opts:
             del current_opts['proxy']

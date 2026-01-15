@@ -1629,7 +1629,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Перевірте файли cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ УВІМКНЕНО"
+    PROXY_ON_BUTTON_MSG = "✅ ВСІ (АВТО)"
     PROXY_OFF_BUTTON_MSG = "❌ ВИМКНЕНО"
     PROXY_CLOSE_BUTTON_MSG = "🔚Закрити"
     

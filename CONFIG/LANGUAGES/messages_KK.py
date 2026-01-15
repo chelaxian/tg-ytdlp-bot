@@ -1629,7 +1629,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie тексеру"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ҚОСУЛЫ"
+    PROXY_ON_BUTTON_MSG = "✅ БАРЛЫҒЫ (АВТО)"
     PROXY_OFF_BUTTON_MSG = "❌ ӨШІРІЛГЕН"
     PROXY_CLOSE_BUTTON_MSG = "🔚Жабу"
     

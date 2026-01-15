@@ -1629,7 +1629,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ ตรวจสอบคุกกี้"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅เปิด"
+    PROXY_ON_BUTTON_MSG = "✅ ทั้งหมด (อัตโนมัติ)"
     PROXY_OFF_BUTTON_MSG = "❌ ปิด"
     PROXY_CLOSE_BUTTON_MSG = "🔚ปิด"
     

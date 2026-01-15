@@ -1629,7 +1629,7 @@ Usa:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Controlla Biscotto"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ON"
+    PROXY_ON_BUTTON_MSG = "✅ TUTTO (AUTOMATICO)"
     PROXY_OFF_BUTTON_MSG = "❌ SPENTO"
     PROXY_CLOSE_BUTTON_MSG = "🔚Chiudi"
     

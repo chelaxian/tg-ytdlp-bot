@@ -1629,7 +1629,7 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Periksa Kue"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ AKTIF"
+    PROXY_ON_BUTTON_MSG = "✅ SEMUA (OTOMATIS)"
     PROXY_OFF_BUTTON_MSG = "❌ MATI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Tutup"
     

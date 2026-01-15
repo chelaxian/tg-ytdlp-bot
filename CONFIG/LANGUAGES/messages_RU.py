@@ -1628,7 +1628,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Проверить Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ВКЛ"
+    PROXY_ON_BUTTON_MSG = "✅ ВСЕ (АВТО)"
     PROXY_OFF_BUTTON_MSG = "❌ ВЫКЛ"
     PROXY_CLOSE_BUTTON_MSG = "🔚Закрыть"
 

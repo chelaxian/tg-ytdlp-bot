@@ -1629,7 +1629,7 @@ Gamitin:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Suriin ang Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ NAKA-ON"
+    PROXY_ON_BUTTON_MSG = "✅ LAHAT (AUTO)"
     PROXY_OFF_BUTTON_MSG = "❌ NAKA-OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Isara"
     

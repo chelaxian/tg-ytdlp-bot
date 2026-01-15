@@ -1629,7 +1629,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ クッキーを確認する"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ オン"
+    PROXY_ON_BUTTON_MSG = "✅ オール（オート）"
     PROXY_OFF_BUTTON_MSG = "❌ オフ"
     PROXY_CLOSE_BUTTON_MSG = "🔚閉じる"
     
