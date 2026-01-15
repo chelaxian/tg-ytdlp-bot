@@ -1644,6 +1644,8 @@ class Messages(object):
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Ел таңдау жойылды"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Таңдалған ел: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Файлдағы елді пайдалану: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Файлдағы қолжетімді елдер: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ҚОСУЛЫ"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ ӨШІРІЛГЕН"

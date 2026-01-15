@@ -1644,6 +1644,8 @@ Yi amfani da:
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ An share zaɓin ƙasa"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Kasar da aka zaba: {kasa}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Amfani da ƙasa daga fayil: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Akwai ƙasashe daga fayil: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ KASHE"

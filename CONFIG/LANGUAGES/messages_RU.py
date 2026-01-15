@@ -1642,16 +1642,7 @@ class Messages(object):
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Выбор страны сброшен"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Выбрана страна: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Используется страна из файла: {country}"
-    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Выбор страны:"
-    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Сбросить выбор страны"
-    PROXY_COUNTRY_SELECTED_MSG = "✅ Выбрана страна: {country} (код: {country_code})"
-    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Доступно прокси: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
-    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Бот будет пробовать сначала HTTP, затем SOCKS5"
-    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Прокси автоматически включен для выбранной страны"
-    PROXY_COUNTRY_CLEARED_MSG = "✅ Выбор страны сброшен"
-    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Выбор страны сброшен"
-    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Выбрана страна: {country}"
-    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Используется страна из файла: {country}"
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Доступно стран из файла: {count}"
     
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ВКЛ"

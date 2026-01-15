@@ -1644,6 +1644,8 @@ Usa:
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Selezione del paese cancellata"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Paese selezionato: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Utilizzo del paese dal file: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Paesi disponibili dal file: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ SPENTO"

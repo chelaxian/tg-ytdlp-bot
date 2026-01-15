@@ -1644,6 +1644,8 @@ Use:
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Đã xóa lựa chọn quốc gia"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Quốc gia được chọn: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Sử dụng quốc gia từ tệp: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Các quốc gia có sẵn trong tệp: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ BẬT"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ TẮT"

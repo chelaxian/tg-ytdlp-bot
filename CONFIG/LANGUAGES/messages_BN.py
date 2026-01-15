@@ -1644,6 +1644,8 @@ class Messages(object):
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ দেশ নির্বাচন সাফ করা হয়েছে"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ দেশ বেছে নেওয়া হয়েছে: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 ফাইল থেকে দেশ ব্যবহার করা হচ্ছে: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 ফাইল থেকে পাওয়া দেশগুলি: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"

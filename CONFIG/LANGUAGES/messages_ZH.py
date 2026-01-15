@@ -1644,6 +1644,8 @@ class Messages(object):
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 清除国家/地区选择"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 选择的国家/地区：{country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 使用文件中的国家/地区：{country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 文件中的可用国家/地区：{count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ 开启"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ 关闭"

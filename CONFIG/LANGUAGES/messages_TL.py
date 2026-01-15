@@ -1644,6 +1644,8 @@ Gamitin:
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Na-clear ang pagpili ng bansa"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Bansang napili: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Paggamit ng bansa mula sa file: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Mga available na bansa mula sa file: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ NAKA-ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ NAKA-OFF"

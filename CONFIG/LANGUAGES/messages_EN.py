@@ -1642,6 +1642,7 @@ Use:
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Country selection cleared"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Country selected: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Using country from file: {country}"
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Available countries from file: {count}"
     
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"

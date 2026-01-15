@@ -1644,6 +1644,8 @@ class Messages(object):
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 国の選択がクリアされました"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 選択した国: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 ファイルからの国を使用: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 ファイルから利用可能な国: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ オン"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ オフ"

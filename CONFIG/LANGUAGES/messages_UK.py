@@ -1644,6 +1644,8 @@ class Messages(object):
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Вибір країни знято"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Вибрана країна: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Використовується країна з файлу: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Доступні країни з файлу: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ УВІМКНЕНО"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ ВИМКНЕНО"

@@ -1644,6 +1644,8 @@ class Messages(object):
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 국가 선택이 삭제되었습니다."
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 선택한 국가: {국가}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 파일의 국가 사용: {국가}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 파일에서 사용 가능한 국가: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"

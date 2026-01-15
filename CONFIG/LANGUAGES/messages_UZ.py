@@ -1644,6 +1644,8 @@ Ishlating:
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Mamlakat tanlovi tozalandi"
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Tanlangan davlat: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Fayldagi mamlakatdan foydalanish: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Fayldagi mavjud mamlakatlar: {count}"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ YOQILGAN"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"

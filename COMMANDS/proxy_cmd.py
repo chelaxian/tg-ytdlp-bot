@@ -204,7 +204,7 @@ def proxy_command(app, message):
     
     # Add info about available countries
     if countries:
-        proxy_text += f"\n\n🌍 Доступно стран из файла: {len(countries)}"
+        proxy_text += "\n\n" + safe_get_messages(user_id).PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG.format(count=len(countries))
     
     safe_send_message(
         user_id,
