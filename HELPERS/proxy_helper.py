@@ -4,6 +4,8 @@ import os
 from urllib.parse import quote
 from COMMANDS.proxy_cmd import get_proxy_config
 from CONFIG.messages import Messages, safe_get_messages
+from HELPERS.pot_helper import add_pot_to_ytdl_opts
+from URL_PARSERS.youtube import is_youtube_url
 
 logger = logging.getLogger(__name__)
 
@@ -265,6 +267,9 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                         current_opts = ytdl_opts.copy()
                         proxy_url = proxy_info['proxy_url']
                         current_opts['proxy'] = proxy_url
+                        # Добавляем PO token provider для YouTube (если еще не добавлен)
+                        if is_youtube_url(url):
+                            current_opts = add_pot_to_ytdl_opts(current_opts, url)
                         logger.info(f"Trying {url} with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
                         result = operation_func(current_opts, *args, **kwargs)
                         
@@ -286,6 +291,9 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                     current_opts = ytdl_opts.copy()
                     if 'proxy' in current_opts:
                         del current_opts['proxy']
+                    # Добавляем PO token provider для YouTube (если еще не добавлен)
+                    if is_youtube_url(url):
+                        current_opts = add_pot_to_ytdl_opts(current_opts, url)
                     return operation_func(current_opts, *args, **kwargs)
                 except Exception as e:
                     logger.error(f"Failed without proxy for {url}: {e}")
@@ -331,6 +339,9 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
     
     if not all_proxies_to_try:
         logger.info(f"No proxies available for {url}, trying without proxy")
+        # Добавляем PO token provider для YouTube (если еще не добавлен)
+        if is_youtube_url(url):
+            ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts.copy(), url)
         return operation_func(ytdl_opts, *args, **kwargs)
     
     logger.info(f"Trying {len(all_proxies_to_try)} proxies in ALL AUTO mode: {len(all_configs)} from Config, {len(all_proxies_to_try) - len(all_configs)} from file")
@@ -341,6 +352,9 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
             current_opts = ytdl_opts.copy()
             proxy_url = proxy_item['proxy_url']
             current_opts['proxy'] = proxy_url
+            # Добавляем PO token provider для YouTube (если еще не добавлен)
+            if is_youtube_url(url):
+                current_opts = add_pot_to_ytdl_opts(current_opts, url)
             
             source_info = f"{proxy_item['source']}"
             if proxy_item['source'] == 'file':

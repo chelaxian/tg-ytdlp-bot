@@ -2018,6 +2018,10 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         if 'geo_bypass' not in attempt_opts:
                             attempt_opts['geo_bypass'] = True
                         
+                        # Добавляем PO token provider для YouTube (если еще не добавлен)
+                        if is_youtube_url(url):
+                            attempt_opts = add_pot_to_ytdl_opts(attempt_opts, url)
+                        
                         # Сначала пробуем с cookies
                         logger.info(f"Trying proxy {proxy_country} ({proxy_type}) with cookies first")
                         logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
@@ -2039,6 +2043,10 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                                 attempt_opts_no_cookies = attempt_opts.copy()
                                 # Временно отключаем cookies
                                 original_cookiefile = attempt_opts_no_cookies.pop('cookiefile', None)
+                                
+                                # Добавляем PO token provider для YouTube (если еще не добавлен)
+                                if is_youtube_url(url):
+                                    attempt_opts_no_cookies = add_pot_to_ytdl_opts(attempt_opts_no_cookies, url)
                                 
                                 # Используем альтернативные клиенты YouTube, которые менее требовательны к cookies
                                 if 'extractor_args' not in attempt_opts_no_cookies:
@@ -2064,6 +2072,9 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                                 # Если все клиенты не сработали, пробуем без cookies и без специальных клиентов
                                 logger.info(f"All YouTube clients failed, trying proxy {proxy_country} ({proxy_type}) without cookies and without special clients")
                                 attempt_opts_no_cookies['extractor_args']['youtube'].pop('player_client', None)
+                                # Убеждаемся, что PO token provider все еще добавлен
+                                if is_youtube_url(url):
+                                    attempt_opts_no_cookies = add_pot_to_ytdl_opts(attempt_opts_no_cookies, url)
                                 new_args_no_cookies = (args[0], attempt_opts_no_cookies) + args[2:]
                                 try:
                                     result = download_func(*new_args_no_cookies, **kwargs)
