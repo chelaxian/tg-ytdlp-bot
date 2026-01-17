@@ -1927,19 +1927,24 @@ def is_youtube_geo_error(error_message: str) -> bool:
         'region blocked', 'geo-blocked', 'country restricted', 'not available in your country',
         'this video is not available in your country', 'video unavailable in your region',
         'blocked in your region', 'geographic restriction', 'location restricted',
-        'not available in this region', 'country not supported', 'regional restriction'
+        'not available in this region', 'country not supported', 'regional restriction',
+        'blocked it in your country', 'blocked in your country on copyright grounds',
+        'has not made this video available', 'not made this video available',
+        'this video is available in', 'available in'
     ]
     
     return any(keyword in error_lower for keyword in geo_related_keywords)
 
-def retry_download_with_proxy(user_id: int, url: str, download_func, *args, **kwargs):
+def retry_download_with_proxy(user_id: int, url: str, download_func, *args, error_message: str = None, **kwargs):
     """
     Повторяет скачивание через прокси при региональных ошибках.
+    Использует прокси из TXT/proxy.txt файла, если он существует и не пустой.
     
     Args:
         user_id (int): ID пользователя
         url (str): URL для скачивания
         download_func: Функция скачивания для повторного вызова
+        error_message (str): Сообщение об ошибке от yt-dlp
         *args, **kwargs: Аргументы для функции скачивания
         
     Returns:
@@ -1953,7 +1958,239 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, **kw
     
     logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_LOG_MSG.format(user_id=user_id))
     
-    # Получаем конфигурацию прокси
+    # Пробуем использовать прокси из файла TXT/proxy.txt
+    try:
+        from HELPERS.proxy_file_helper import (
+            parse_proxy_file, 
+            extract_available_countries, 
+            find_matching_proxies,
+            get_all_proxies_from_file
+        )
+        
+        proxy_file_path = "TXT/proxy.txt"
+        proxies_from_file = parse_proxy_file(proxy_file_path)
+        
+        if proxies_from_file:
+            logger.info(f"Found {len(proxies_from_file)} proxies in {proxy_file_path}")
+            
+            # Пытаемся извлечь список доступных стран из ошибки
+            available_countries = None
+            if error_message:
+                available_countries = extract_available_countries(error_message)
+            
+            proxies_to_try = []
+            
+            if available_countries:
+                # Если есть список доступных стран, ищем совпадения
+                logger.info(f"Extracted available countries from error: {available_countries[:10]}...")  # Log first 10
+                matching_proxies = find_matching_proxies(available_countries, proxies_from_file)
+                
+                if matching_proxies:
+                    logger.info(f"Found {len(matching_proxies)} matching proxies for available countries")
+                    proxies_to_try = matching_proxies
+                else:
+                    # Если нет подходящих прокси для указанных стран, не пробуем все прокси
+                    logger.warning(f"No matching proxies found for available countries: {available_countries[:5]}...")
+                    logger.warning("Will not try other proxies - only matching proxies are used")
+                    proxies_to_try = []  # Не пробуем прокси, если нет подходящих
+            else:
+                # Если нет списка стран (например, блокировка по копирайту), пробуем все прокси подряд
+                logger.info("No available countries list found in error, will try all proxies sequentially")
+                proxies_to_try = get_all_proxies_from_file(proxy_file_path)
+            
+            # Пробуем каждый прокси по очереди
+            for i, proxy_info in enumerate(proxies_to_try):
+                proxy_url = proxy_info['proxy_url']
+                proxy_country = proxy_info['country']
+                proxy_type = proxy_info['type']
+                
+                logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url}")
+                logger.info(f"Proxy details: IP={proxy_info.get('ip', 'unknown')}, Port={proxy_info.get('port', 'unknown')}")
+                
+                try:
+                    # download_func принимает (url, attempt_opts), где attempt_opts - это словарь опций yt-dlp
+                    # Создаем копию attempt_opts с добавленным прокси
+                    if len(args) >= 2 and isinstance(args[1], dict):
+                        # Если args содержит (url, attempt_opts)
+                        attempt_opts = args[1].copy()
+                        attempt_opts['proxy'] = proxy_url
+                        # Убеждаемся, что geo_bypass включен
+                        if 'geo_bypass' not in attempt_opts:
+                            attempt_opts['geo_bypass'] = True
+                        
+                        # Добавляем PO token provider для YouTube (если еще не добавлен)
+                        if is_youtube_url(url):
+                            attempt_opts = add_pot_to_ytdl_opts(attempt_opts, url)
+                        
+                        # Сначала пробуем с cookies
+                        logger.info(f"Trying proxy {proxy_country} ({proxy_type}) with cookies first")
+                        logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
+                        logger.info(f"yt-dlp opts: proxy={attempt_opts.get('proxy', 'None')}, geo_bypass={attempt_opts.get('geo_bypass', 'None')}, cookiefile={'set' if attempt_opts.get('cookiefile') else 'None'}")
+                        new_args = (args[0], attempt_opts) + args[2:]
+                        
+                        try:
+                            result = download_func(*new_args, **kwargs)
+                            if result is not None:
+                                logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) using cookies")
+                                return result
+                        except Exception as e:
+                            error_text = str(e).lower()
+                            # Если получили LOGIN_REQUIRED или "sign in", пробуем без cookies с альтернативными клиентами
+                            if 'login_required' in error_text or 'sign in' in error_text or 'bot' in error_text:
+                                logger.info(f"Cookies failed with proxy {proxy_country} ({proxy_type}), trying without cookies using alternative YouTube clients")
+                                
+                                # Пробуем без cookies, но с альтернативными клиентами YouTube
+                                attempt_opts_no_cookies = attempt_opts.copy()
+                                # Временно отключаем cookies
+                                original_cookiefile = attempt_opts_no_cookies.pop('cookiefile', None)
+                                
+                                # Добавляем PO token provider для YouTube (если еще не добавлен)
+                                if is_youtube_url(url):
+                                    attempt_opts_no_cookies = add_pot_to_ytdl_opts(attempt_opts_no_cookies, url)
+                                
+                                # Используем альтернативные клиенты YouTube, которые менее требовательны к cookies
+                                if 'extractor_args' not in attempt_opts_no_cookies:
+                                    attempt_opts_no_cookies['extractor_args'] = {}
+                                if 'youtube' not in attempt_opts_no_cookies['extractor_args']:
+                                    attempt_opts_no_cookies['extractor_args']['youtube'] = {}
+                                
+                                # Пробуем разные клиенты по очереди
+                                youtube_clients = ['tv', 'android', 'web']
+                                for client in youtube_clients:
+                                    try:
+                                        attempt_opts_no_cookies['extractor_args']['youtube']['player_client'] = [client]
+                                        logger.info(f"Trying proxy {proxy_country} ({proxy_type}) without cookies using YouTube client: {client}")
+                                        new_args_no_cookies = (args[0], attempt_opts_no_cookies) + args[2:]
+                                        result = download_func(*new_args_no_cookies, **kwargs)
+                                        if result is not None:
+                                            logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) without cookies using client: {client}")
+                                            return result
+                                    except Exception as client_error:
+                                        logger.debug(f"Client {client} failed: {str(client_error)[:100]}")
+                                        continue
+                                
+                                # Если все клиенты не сработали, пробуем без cookies и без специальных клиентов
+                                logger.info(f"All YouTube clients failed, trying proxy {proxy_country} ({proxy_type}) without cookies and without special clients")
+                                attempt_opts_no_cookies['extractor_args']['youtube'].pop('player_client', None)
+                                # Убеждаемся, что PO token provider все еще добавлен
+                                if is_youtube_url(url):
+                                    attempt_opts_no_cookies = add_pot_to_ytdl_opts(attempt_opts_no_cookies, url)
+                                new_args_no_cookies = (args[0], attempt_opts_no_cookies) + args[2:]
+                                try:
+                                    result = download_func(*new_args_no_cookies, **kwargs)
+                                    if result is not None:
+                                        logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) without cookies")
+                                        return result
+                                except Exception:
+                                    pass  # Продолжаем пробовать следующий прокси
+                                
+                                # Если ничего не помогло, продолжаем пробовать следующий прокси
+                                logger.debug(f"Proxy {proxy_country} ({proxy_type}) failed, trying next proxy")
+                                continue
+                            else:
+                                # Если ошибка не связана с авторизацией, продолжаем пробовать следующий прокси
+                                logger.debug(f"Proxy {proxy_country} ({proxy_type}) failed with non-auth error, trying next proxy")
+                                continue
+                        
+                        # Если дошли сюда без исключения, но result is None, продолжаем пробовать следующий прокси
+                        logger.debug(f"Proxy {proxy_country} ({proxy_type}) returned None, trying next proxy")
+                        continue
+                    else:
+                        # Если структура другая, пробуем через kwargs
+                        kwargs_copy = kwargs.copy()
+                        if 'attempt_opts' in kwargs_copy and isinstance(kwargs_copy['attempt_opts'], dict):
+                            kwargs_copy['attempt_opts'] = kwargs_copy['attempt_opts'].copy()
+                            kwargs_copy['attempt_opts']['proxy'] = proxy_url
+                            # Убеждаемся, что geo_bypass включен
+                            if 'geo_bypass' not in kwargs_copy['attempt_opts']:
+                                kwargs_copy['attempt_opts']['geo_bypass'] = True
+                            
+                            # Сначала пробуем с cookies
+                            logger.info(f"Trying proxy {proxy_country} ({proxy_type}) with cookies first (kwargs)")
+                            logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
+                            logger.info(f"yt-dlp opts: proxy={kwargs_copy['attempt_opts'].get('proxy', 'None')}, geo_bypass={kwargs_copy['attempt_opts'].get('geo_bypass', 'None')}, cookiefile={'set' if kwargs_copy['attempt_opts'].get('cookiefile') else 'None'}")
+                            
+                            try:
+                                result = download_func(*args, **kwargs_copy)
+                                if result is not None:
+                                    logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) using cookies (kwargs)")
+                                    return result
+                            except Exception as e:
+                                error_text = str(e).lower()
+                                # Если получили LOGIN_REQUIRED или "sign in", пробуем без cookies с альтернативными клиентами
+                                if 'login_required' in error_text or 'sign in' in error_text or 'bot' in error_text:
+                                    logger.info(f"Cookies failed with proxy {proxy_country} ({proxy_type}), trying without cookies using alternative YouTube clients (kwargs)")
+                                    
+                                    # Пробуем без cookies, но с альтернативными клиентами YouTube
+                                    kwargs_no_cookies = kwargs_copy.copy()
+                                    kwargs_no_cookies['attempt_opts'] = kwargs_copy['attempt_opts'].copy()
+                                    # Временно отключаем cookies
+                                    original_cookiefile = kwargs_no_cookies['attempt_opts'].pop('cookiefile', None)
+                                    
+                                    # Используем альтернативные клиенты YouTube
+                                    if 'extractor_args' not in kwargs_no_cookies['attempt_opts']:
+                                        kwargs_no_cookies['attempt_opts']['extractor_args'] = {}
+                                    if 'youtube' not in kwargs_no_cookies['attempt_opts']['extractor_args']:
+                                        kwargs_no_cookies['attempt_opts']['extractor_args']['youtube'] = {}
+                                    
+                                    # Пробуем разные клиенты по очереди
+                                    youtube_clients = ['tv', 'android', 'web']
+                                    for client in youtube_clients:
+                                        try:
+                                            kwargs_no_cookies['attempt_opts']['extractor_args']['youtube']['player_client'] = [client]
+                                            logger.info(f"Trying proxy {proxy_country} ({proxy_type}) without cookies using YouTube client: {client} (kwargs)")
+                                            result = download_func(*args, **kwargs_no_cookies)
+                                            if result is not None:
+                                                logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) without cookies using client: {client} (kwargs)")
+                                                return result
+                                        except Exception as client_error:
+                                            logger.debug(f"Client {client} failed (kwargs): {str(client_error)[:100]}")
+                                            continue
+                                    
+                                    # Если все клиенты не сработали, пробуем без cookies и без специальных клиентов
+                                    logger.info(f"All YouTube clients failed, trying proxy {proxy_country} ({proxy_type}) without cookies and without special clients (kwargs)")
+                                    kwargs_no_cookies['attempt_opts']['extractor_args']['youtube'].pop('player_client', None)
+                                    result = download_func(*args, **kwargs_no_cookies)
+                                    if result is not None:
+                                        logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) without cookies (kwargs)")
+                                        return result
+                                    
+                                    # Если ничего не помогло, пробрасываем оригинальную ошибку
+                                    raise e
+                                else:
+                                    # Если ошибка не связана с авторизацией, пробрасываем её дальше
+                                    raise e
+                            
+                            result = None  # Если дошли сюда, значит не удалось
+                        else:
+                            # Создаем новый attempt_opts
+                            kwargs_copy['attempt_opts'] = {'proxy': proxy_url, 'geo_bypass': True}
+                            result = download_func(*args, **kwargs_copy)
+                    
+                    if result is not None:
+                        logger.info(f"Successfully downloaded with proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type})")
+                        return result
+                    else:
+                        logger.warning(f"Download returned None with proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type})")
+                        
+                except Exception as e:
+                    error_text = str(e)
+                    logger.warning(f"Failed with proxy {i+1}/{len(proxies_to_try)} ({proxy_country}, {proxy_type}): {error_text[:200]}")
+                    continue
+            
+            if proxies_to_try:
+                logger.warning(f"All {len(proxies_to_try)} proxies from file failed")
+                # Если все прокси из файла не помогли, возвращаем None (не пробуем fallback из Config)
+                return None
+            else:
+                logger.warning(f"No matching proxies found for available countries, cannot retry with proxy")
+                return None
+        else:
+            logger.info(f"Proxy file {proxy_file_path} is empty or does not exist, falling back to default proxy")
+    except Exception as e:
+        logger.warning(f"Error using proxies from file: {e}, falling back to default proxy")
+    
+    # Fallback: используем стандартную конфигурацию прокси из Config
     try:
         from COMMANDS.proxy_cmd import get_proxy_config
         proxy_config = get_proxy_config()
@@ -1988,9 +2225,25 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, **kw
         
         # Повторяем скачивание с прокси
         try:
-            # Добавляем параметр use_proxy=True для функции скачивания
-            kwargs['use_proxy'] = True
-            result = download_func(*args, **kwargs)
+            # download_func принимает (url, attempt_opts), где attempt_opts - это словарь опций yt-dlp
+            # Создаем копию attempt_opts с добавленным прокси
+            if len(args) >= 2 and isinstance(args[1], dict):
+                # Если args содержит (url, attempt_opts)
+                attempt_opts = args[1].copy()
+                attempt_opts['proxy'] = proxy_url
+                new_args = (args[0], attempt_opts) + args[2:]
+                result = download_func(*new_args, **kwargs)
+            else:
+                # Если структура другая, пробуем через kwargs
+                kwargs_copy = kwargs.copy()
+                if 'attempt_opts' in kwargs_copy and isinstance(kwargs_copy['attempt_opts'], dict):
+                    kwargs_copy['attempt_opts'] = kwargs_copy['attempt_opts'].copy()
+                    kwargs_copy['attempt_opts']['proxy'] = proxy_url
+                else:
+                    # Создаем новый attempt_opts
+                    kwargs_copy['attempt_opts'] = {'proxy': proxy_url}
+                result = download_func(*args, **kwargs_copy)
+            
             if result is not None:
                 logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_SUCCESS_LOG_MSG.format(user_id=user_id))
                 return result
@@ -2024,6 +2277,10 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
     if not is_youtube_url(url):
         return None
     
+    # Проверяем, используется ли прокси - если да, ограничиваем перебор куков
+    from COMMANDS.proxy_cmd import is_proxy_enabled
+    proxy_enabled = is_proxy_enabled(user_id)
+    
     # Защита от рекурсивных вызовов - проверяем, не вызывается ли уже retry
     retry_key = f"{user_id}_{url}_retry"
     if retry_key in globals().get('_active_retries', set()):
@@ -2043,6 +2300,58 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
             logger.warning(f"YouTube cookie retry limit exceeded for user {user_id}")
             return None
         
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
+        cookie_file_path = os.path.join(user_dir, cookie_filename)
+        
+        # Если прокси включен, ограничиваем перебор куков
+        if proxy_enabled:
+            logger.info(f"Proxy is enabled for user {user_id}, limiting cookie retry to user's cookies only")
+            
+            # Сначала пробуем куки пользователя, если они есть
+            if os.path.exists(cookie_file_path):
+                logger.info(f"Trying user's existing cookies for user {user_id}")
+                try:
+                    result = download_func(*args, **kwargs)
+                    if result is not None:
+                        logger.info(f"Download successful with user's cookies for user {user_id}")
+                        return result
+                except Exception as e:
+                    logger.warning(f"User's cookies failed for user {user_id}: {e}")
+            
+            # Если куки пользователя не работают, пробуем только первый источник из списка
+            cookie_urls = get_youtube_cookie_urls()
+            if not cookie_urls:
+                logger.warning(LoggerMsg.COOKIES_YOUTUBE_RETRY_NO_SOURCES_LOG_MSG.format(user_id=user_id))
+                return None
+            
+            # Пробуем только первый источник
+            logger.info(f"Trying first cookie source for user {user_id} (proxy mode)")
+            try:
+                ok, status, content, err = _download_content(cookie_urls[0], timeout=30, user_id=user_id)
+                if ok and content and len(content) <= 100 * 1024 and cookie_urls[0].lower().endswith('.txt'):
+                    with open(cookie_file_path, "wb") as cf:
+                        cf.write(content)
+                    if test_youtube_cookies(cookie_file_path, user_id=user_id):
+                        logger.info(f"First cookie source works for user {user_id}")
+                        try:
+                            result = download_func(*args, **kwargs)
+                            if result is not None:
+                                logger.info(f"Download successful with first cookie source for user {user_id}")
+                                return result
+                        except Exception as e:
+                            logger.warning(f"Download failed with first cookie source for user {user_id}: {e}")
+                    if os.path.exists(cookie_file_path):
+                        os.remove(cookie_file_path)
+            except Exception as e:
+                logger.error(f"Error processing first cookie source for user {user_id}: {e}")
+            
+            # Если первый источник не помог, возвращаем None (не перебираем все)
+            logger.warning(f"All limited cookie attempts failed for user {user_id} (proxy mode)")
+            return None
+        
+        # Если прокси не включен, используем обычный перебор всех куков
         # Получаем список источников куков
         cookie_urls = get_youtube_cookie_urls()
         if not cookie_urls:
@@ -2057,11 +2366,6 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
             reset_checked_cookie_sources(user_id)
             logger.info(f"Reset checked cookie sources for user {user_id} to allow retry in future")
             return None
-        
-        user_dir = os.path.join("users", str(user_id))
-        create_directory(user_dir)
-        cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
-        cookie_file_path = os.path.join(user_dir, cookie_filename)
         
         # Определяем порядок попыток только для непроверенных источников
         indices = unchecked_indices.copy()

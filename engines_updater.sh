@@ -23,6 +23,9 @@ echo "Using Python interpreter: ${PY}"
 # yt-dlp
 "${PY}" -m pip install --upgrade --pre "yt-dlp[default,curl-cffi]"
 
+# curl_cffi - обновляем отдельно для поддержки новых версий impersonate
+"${PY}" -m pip install --upgrade curl_cffi
+
 # gallery-dl
 "${PY}" -m pip install -U --no-cache-dir --force-reinstall \
   "git+https://github.com/mikf/gallery-dl.git@master"

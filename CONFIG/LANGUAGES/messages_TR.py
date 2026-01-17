@@ -343,6 +343,7 @@ Kullanın:
     ERROR_UNKNOWN_MSG = "❌ Bilinmeyen hata: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Video indirmek için yeterli disk alanı yok."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Dosya boyutu {limit} GB limitini aşıyor. Lütfen izin verilen boyut içinde daha küçük bir dosya seçin."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Tüm mevcut proxy'lerle video indirilemedi</b>\n\nProxy üzerinden yapılan tüm indirme denemeleri başarısız oldu.\nDeneyin:\n• Proxy işlevselliğini kontrol edin\n• Listeden başka bir proxy deneyin\n• Proxy olmadan indirin (mümkünse)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Bağlantı alma hatası:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Kullanın:
     PROXY_ENABLED_MSG = "✅ Vekil {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Proxy ayarları kaydedilirken hata oluştu."
     PROXY_MENU_TEXT_MSG = "Tüm yt-dlp işlemleri için proxy sunucusu kullanmayı etkinleştir veya devre dışı bırak?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Tüm yt-dlp işlemleri için proxy sunucularını ({count} mevcut) kullanmayı etkinleştir veya devre dışı bırak?\n\nEtkinleştirildiğinde, proxy'ler {method} yöntemi kullanılarak seçilecektir."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Tüm yt-dlp işlemleri için proxy sunucuların ({config_count} + {file_count} mevcut) kullanılması etkinleştirilsin mi devre dışı mı bırakılsın?\n\nALL (AUTO) etkinleştirildiğinde, proxy'ler rastgele yöntem kullanılarak seçilecektir."
     PROXY_MENU_CLOSED_MSG = "Menü kapatıldı."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemlerinde proxy kullanılacaktır."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemleri {count} proxy sunucularını {method} seçim yöntemiyle kullanacaktır."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy etkin (TÜM OTOMATİK mod).\n\n📊 Bot proxy'leri şu sırayla deneyecek:\nConfig.py'den 1️⃣ {config_count} proxy\nTXT/proxy.txt dosyasından 2️⃣ {file_count} proxy\n\n🔄 Başarılı bağlantı sağlanana kadar tüm proxy'ler sırayla denenecektir."
     PROXY_DISABLED_MSG = "❌ Proxy devre dışı bırakıldı."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy ayarları kaydedilirken hata oluştu."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy etkinleştirildi."
@@ -1629,10 +1632,27 @@ Kullanın:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Çerezleri Kontrol Et"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ AÇIK"
+    PROXY_ON_BUTTON_MSG = "✅ HEPSİ (OTOMATİK)"
     PROXY_OFF_BUTTON_MSG = "❌ KAPALI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Kapat"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Ülke Seçin:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Ülke Seçimini Temizle"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Seçilen ülke: {country} (kod: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Kullanılabilir proxy'ler: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot önce HTTP'yi deneyecek, sonra SOCKS5'i deneyecek"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Seçilen ülke için proxy otomatik olarak etkinleştirilir"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Ülke seçimi temizlendi"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Ülke seçimi temizlendi"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Seçilen ülke: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Ülkeyi dosyadan kullanma: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Dosyadaki mevcut ülkeler: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Seçilen ülke: {country} (kod: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Bu ülke için proxy etkin"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy devre dışı (etkinleştirmek için ALL (AUTO) tuşuna basın)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ AÇIK"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ KAPALI"

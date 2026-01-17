@@ -343,6 +343,7 @@ Ishlating:
     ERROR_UNKNOWN_MSG = "❌ Noma'lum xatolik: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Videolarni yuklab olish uchun disk maydoni yetarli emas."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Fayl hajmi {limit} GB chegarasidan oshib ketdi. Iltimos, ruxsat etilgan hajm ichida kichikroq faylni tanlang."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Barcha mavjud proksi-lar bilan video yuklab olish muvaffaqiyatsiz tugadi</b>\n\nProksi-lar orqali barcha yuklab olish urinishlari muvaffaqiyatsiz tugadi.\nUrinib ko'ring:\n• Proksi-lar ishlashini tekshiring\n• Ro'yxatdan boshqa proksi-larni sinab ko'ring\n• Proksi-larsiz yuklab oling (agar mumkin bo'lsa)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Havolani olishda xatolik:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Ishlating:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Proxy sozlamalarini saqlashda xatolik."
     PROXY_MENU_TEXT_MSG = "Barcha yt-dlp operatsiyalari uchun proxy serverni yoqish yoki o'chirish?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Barcha yt-dlp operatsiyalari uchun proxy serverlarni ({count} mavjud) yoqish yoki o'chirish?\n\nYoqilganda, proxy'lar {method} usuli bilan tanlanadi."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Barcha yt-dlp operatsiyalari uchun proksi-serverlar ({config_count} + {file_count} mavjud) yordamida yoqilsin yoki oʻchirilsinmi?\n\nALL (AVTO) yoqilganda proksi-serverlar tasodifiy usul yordamida tanlanadi."
     PROXY_MENU_CLOSED_MSG = "Menyu yopildi."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari proxy'dan foydalanadi."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari {count} proxy server va {method} tanlash usuli bilan ishlaydi."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi yoqilgan (BARCHA AUTO rejimi).\n\n📊 Bot proksi-serverlarni quyidagi tartibda sinab ko'radi:\nConfig.py dan 1️⃣ {config_count} ta proksi\nTXT/proxy.txt faylidan 2️⃣ {file_count} proksi\n\n🔄 Barcha proksi-serverlar muvaffaqiyatli ulanishga qadar ketma-ket tekshiriladi."
     PROXY_DISABLED_MSG = "❌ Proxy o'chirildi."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy sozlamalarini saqlashda xatolik."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy yoqildi."
@@ -1629,10 +1632,27 @@ Ishlating:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie'ni tekshirish"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ YOQILGAN"
+    PROXY_ON_BUTTON_MSG = "✅ HAMMA (AVTO)"
     PROXY_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"
     PROXY_CLOSE_BUTTON_MSG = "🔚Yopish"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Davlatni tanlang:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Mamlakat tanlashni tozalash"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Tanlangan mamlakat: {country} (kod: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Mavjud proksi-serverlar: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot avval HTTP, keyin SOCKS5 ni sinab ko'radi"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Tanlangan mamlakat uchun proksi avtomatik ravishda yoqiladi"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Mamlakat tanlovi tozalandi"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Mamlakat tanlovi tozalandi"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Tanlangan davlat: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Fayldagi mamlakatdan foydalanish: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Fayldagi mavjud mamlakatlar: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Tanlangan mamlakat: {mamlakat} (kod: {mamlakat_kodi})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Bu mamlakat uchun proksi yoqilgan"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proksi oʻchirilgan (yoqish uchun ALL (AVTO) tugmasini bosing)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ YOQILGAN"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"

@@ -343,6 +343,7 @@ Verwenden Sie:
     ERROR_UNKNOWN_MSG = "❌ Unbekannter Fehler: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Nicht genug Speicherplatz zum Herunterladen von Videos."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Die Dateigröße überschreitet das Limit von {limit} GB. Bitte wählen Sie eine kleinere Datei innerhalb der erlaubten Größe."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Video konnte mit allen verfügbaren Proxies nicht heruntergeladen werden</b>\n\nAlle Download-Versuche über Proxies sind fehlgeschlagen.\nVersuchen Sie:\n• Proxy-Funktionalität überprüfen\n• Einen anderen Proxy aus der Liste versuchen\n• Ohne Proxy herunterladen (falls möglich)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Fehler beim Abrufen des Links:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Verwenden Sie:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Fehler beim Speichern der Proxy-Einstellungen."
     PROXY_MENU_TEXT_MSG = "Proxy-Server für alle yt-dlp-Operationen aktivieren oder deaktivieren?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Proxy-Server ({count} verfügbar) für alle yt-dlp-Operationen aktivieren oder deaktivieren?\n\nWenn aktiviert, werden Proxies mit der Methode {method} ausgewählt."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Verwendung von Proxyservern ({config_count} + {file_count} verfügbar) für alle YT-DLP-Vorgänge aktivieren oder deaktivieren?\n\nWenn ALL (AUTO) aktiviert ist, werden Proxys nach dem Zufallsprinzip ausgewählt."
     PROXY_MENU_CLOSED_MSG = "Menü geschlossen."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy aktiviert. Alle yt-dlp-Operationen verwenden den Proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy aktiviert. Alle yt-dlp-Operationen verwenden {count} Proxy-Server mit {method} Auswahlmethode."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy aktiviert (ALL AUTO-Modus).\n\n📊 Bot probiert Proxys in dieser Reihenfolge aus:\n1️⃣ {config_count} Proxys von Config.py\n2️⃣ {file_count} Proxys aus der TXT/proxy.txt-Datei\n\n🔄 Alle Proxys werden nacheinander ausprobiert, bis die Verbindung erfolgreich ist."
     PROXY_DISABLED_MSG = "❌ Proxy deaktiviert."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Fehler beim Speichern der Proxy-Einstellungen."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy aktiviert."
@@ -1630,10 +1633,27 @@ Verwenden Sie:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie prüfen"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ EIN"
+    PROXY_ON_BUTTON_MSG = "✅ ALLE (AUTO)"
     PROXY_OFF_BUTTON_MSG = "❌ AUS"
     PROXY_CLOSE_BUTTON_MSG = "🔚Schließen"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Land auswählen:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Länderauswahl löschen"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Ausgewähltes Land: {country} (Code: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Verfügbare Proxys: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot wird es zuerst mit HTTP versuchen, dann mit SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Proxy wird für das ausgewählte Land automatisch aktiviert"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Länderauswahl gelöscht"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Länderauswahl gelöscht"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Ausgewähltes Land: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Land aus Datei verwenden: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Verfügbare Länder aus der Datei: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Ausgewähltes Land: {country} (Code: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Proxy für dieses Land aktiviert"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy deaktiviert (zum Aktivieren ALLE (AUTO) drücken)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ EIN"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ AUS"

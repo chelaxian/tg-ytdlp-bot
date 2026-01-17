@@ -343,6 +343,7 @@ Use:
     ERROR_UNKNOWN_MSG = "❌ Kesalahan tidak diketahui: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Ruang disk tidak cukup untuk mengunduh video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Ukuran file melebihi batas {limit} GB. Silakan pilih file yang lebih kecil dalam ukuran yang diizinkan."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Gagal mengunduh video dengan semua proxy yang tersedia</b>\n\nSemua upaya pengunduhan melalui proxy gagal.\nCoba:\n• Periksa fungsionalitas proxy\n• Coba proxy lain dari daftar\n• Unduh tanpa proxy (jika memungkinkan)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Use:
     PROXY_ENABLED_MSG = "✅ Proksi {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kesalahan menyimpan pengaturan proxy."
     PROXY_MENU_TEXT_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy untuk semua operasi yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy ({count} tersedia) untuk semua operasi yt-dlp?\n\nKetika diaktifkan, proxy akan dipilih menggunakan metode {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy ({config_count} + {file_count} tersedia) untuk semua operasi yt-dlp?\n\nSaat diaktifkan SEMUA (AUTO), proxy akan dipilih menggunakan metode acak."
     PROXY_MENU_CLOSED_MSG = "Menu ditutup."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy diaktifkan. Semua operasi yt-dlp akan menggunakan proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy diaktifkan. Semua operasi yt-dlp akan menggunakan {count} server proxy dengan metode pemilihan {method}."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi diaktifkan (SEMUA mode OTOMATIS).\n\n📊 Bot akan mencoba proxy dengan urutan sebagai berikut:\n1️⃣ {config_count} proksi dari Config.py\n2️⃣ {file_count} proxy dari file TXT/proxy.txt\n\n🔄 Semua proxy akan dicoba secara berurutan hingga koneksi berhasil."
     PROXY_DISABLED_MSG = "❌ Proxy dinonaktifkan."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Kesalahan menyimpan pengaturan proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy diaktifkan."
@@ -1629,10 +1632,27 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Periksa Kue"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ AKTIF"
+    PROXY_ON_BUTTON_MSG = "✅ SEMUA (OTOMATIS)"
     PROXY_OFF_BUTTON_MSG = "❌ MATI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Tutup"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Pilih Negara:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Hapus Pilihan Negara"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Negara yang dipilih: {country} (kode: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Proksi yang tersedia: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot akan mencoba HTTP terlebih dahulu, lalu SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Proksi diaktifkan secara otomatis untuk negara yang dipilih"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Pilihan negara dihapus"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Pilihan negara dihapus"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Negara yang dipilih: {negara}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Menggunakan negara dari file: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Negara yang tersedia dari file: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Negara yang dipilih: {country} (kode: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Proksi diaktifkan untuk negara ini"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy dinonaktifkan (tekan SEMUA (AUTO) untuk mengaktifkan)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ AKTIF"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ MATI"

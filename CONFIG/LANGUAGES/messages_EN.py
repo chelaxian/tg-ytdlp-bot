@@ -343,6 +343,7 @@ Use:
     ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Failed to download video with all available proxies</b>\n\nAll download attempts through proxies have failed.\nTry:\n• Check proxy functionality\n• Try another proxy from the list\n• Download without proxy (if possible)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
 
@@ -593,10 +594,11 @@ Use:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error saving proxy settings."
     PROXY_MENU_TEXT_MSG = "Enable or disable using proxy server for all yt-dlp operations?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({count} available) for all yt-dlp operations?\n\nWhen enabled, proxies will be selected using {method} method."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({config_count} + {file_count} available) for all yt-dlp operations?\n\nWhen enabled ALL (AUTO), proxies will be selected using random method."
     PROXY_MENU_CLOSED_MSG = "Menu closed."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy enabled. All yt-dlp operations will use proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy enabled. All yt-dlp operations will use {count} proxy servers with {method} selection method."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy enabled (ALL AUTO mode).\n\n📊 Bot will try proxies in this order:\n1️⃣ {config_count} proxies from Config.py\n2️⃣ {file_count} proxies from TXT/proxy.txt file\n\n🔄 All proxies will be tried sequentially until successful connection."
     PROXY_DISABLED_MSG = "❌ Proxy disabled."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error saving proxy settings."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy enabled."
@@ -1629,9 +1631,23 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Check Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ON"
+    PROXY_ON_BUTTON_MSG = "✅ ALL (AUTO)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Close"
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Select Country:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Clear Country Selection"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Country selected: {country} (code: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Available proxies: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot will try HTTP first, then SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Proxy automatically enabled for selected country"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Country selection cleared"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Country selection cleared"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Country selected: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Using country from file: {country}"
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Available countries from file: {count}"
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Selected country: {country} (code: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Proxy enabled for this country"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy disabled (press ALL (AUTO) to enable)"
     
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"

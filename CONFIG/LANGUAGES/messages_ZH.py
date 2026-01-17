@@ -343,6 +343,7 @@ class Messages(object):
     ERROR_UNKNOWN_MSG = "❌ 未知错误：{error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 磁盘空间不足，无法下载视频。"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ 文件大小超过 {limit} GB 限制。请在允许的大小范围内选择较小的文件。"
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>使用所有可用代理下载视频失败</b>\n\n通过代理的所有下载尝试均失败。\n请尝试：\n• 检查代理功能\n• 尝试列表中的其他代理\n• 不使用代理下载（如果可能）"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>获取链接时出错：</b>\n{error}"
 
@@ -593,10 +594,12 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ 代理 {status}。"
     PROXY_ERROR_SAVING_MSG = "❌ 保存代理设置时出错。"
     PROXY_MENU_TEXT_MSG = "启用或禁用代理服务器用于所有yt-dlp操作？"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "启用或禁用代理服务器（{count} 个可用）用于所有yt-dlp操作？\n\n启用后，将使用 {method} 方法选择代理。"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "为所有 yt-dlp 操作启用或禁用使用代理服务器（{config_count} + {file_count} 可用）？\n\n当启用全部（自动）时，将使用随机方法选择代理。"
     PROXY_MENU_CLOSED_MSG = "菜单已关闭。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ 代理已启用。所有yt-dlp操作将使用代理。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 代理已启用。所有yt-dlp操作将使用 {count} 个代理服务器，采用 {method} 选择方法。"
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 启用代理（全部自动模式）。\n\n📊 Bot 将按以下顺序尝试代理：\n1️⃣ 来自 Config.py 的 {config_count} 个代理\n2️⃣ 来自 TXT/proxy.txt 文件的 {file_count} 个代理\n\n🔄 所有代理将依次尝试，直到连接成功。"
     PROXY_DISABLED_MSG = "❌ 代理已禁用。"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ 保存代理设置时出错。"
     PROXY_ENABLED_CALLBACK_MSG = "代理已启用。"
@@ -1629,10 +1632,27 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ 检查Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ 开启"
+    PROXY_ON_BUTTON_MSG = "✅ 全部（自动）"
     PROXY_OFF_BUTTON_MSG = "❌ 关闭"
     PROXY_CLOSE_BUTTON_MSG = "🔚关闭"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 选择国家："
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ 清除国家/地区选择"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ 选择的国家/地区：{country}（代码：{country_code}）"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 可用代理：{proxy_count}（HTTP：{http_count}，SOCKS5：{socks5_count}）"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot 将首先尝试 HTTP，然后尝试 SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 为选定的国家/地区自动启用代理"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ 清除国家/地区选择"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 清除国家/地区选择"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 选择的国家/地区：{country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 使用文件中的国家/地区：{country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 文件中的可用国家/地区：{count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 所选国家/地区：{country}（代码：{country_code}）"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ 已为该国家/地区启用代理"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ 代理已禁用（按全部（自动）启用）"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ 开启"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ 关闭"

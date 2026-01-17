@@ -2532,9 +2532,12 @@ def askq_callback(app, callback_query):
                 except Exception:
                     pass
         else:
+            # Маскируем секретные данные перед отправкой пользователю
+            from HELPERS.logger import sanitize_error_message
+            sanitized_output = sanitize_error_message(output)
             app.send_message(
                 user_id,
-                safe_get_messages(user_id).AA_FAILED_GET_FORMATS_MSG.format(output=output),
+                safe_get_messages(user_id).AA_FAILED_GET_FORMATS_MSG.format(output=sanitized_output),
                 reply_parameters=ReplyParameters(message_id=original_message.id)
             )
         
@@ -7058,10 +7061,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         short_error = safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG
         detailed_error = f"{short_error}: {str(e)}"
         # Для пользователя оставляем читаемое сообщение + технические детали отдельным блоком
+        # ВАЖНО: маскируем секретные данные перед отправкой пользователю
+        from HELPERS.logger import sanitize_error_message
+        sanitized_error = sanitize_error_message(str(e))
         error_text = (
             f"{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG}"
             f"\n<blockquote>{short_error}</blockquote>\n"
-            f"\n<code>{str(e)}</code>\n\n"
+            f"\n<code>{sanitized_error}</code>\n\n"
             f"{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
         )
         

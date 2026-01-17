@@ -680,6 +680,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Check if error is related to quality_key
             if "'quality_key'" in str(e):
                 _handle_quality_key_error(e, split_msg_ids, is_playlist, successful_uploads, indices_to_download, video_count, user_id, proc_msg_id, message, app)
+            # Stop animation before returning
+            stop_anim.set()
+            if anim_thread:
+                anim_thread.join(timeout=1)
             return
 
         # If there is no flood error, send a normal message
@@ -696,7 +700,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         status_msg_id = None
         hourglass_msg = None
         hourglass_msg_id = None
-        anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
+        anim_thread = None
+        # Note: hourglass animation will be started later when hourglass_msg_id is available
 
         # Check if there's enough disk space (estimate 2GB per video)
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
@@ -1616,14 +1621,108 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Try with proxy fallback if user proxy is enabled
                 def extract_info_operation(opts):
                     messages = safe_get_messages(message.chat.id)
-                    with yt_dlp.YoutubeDL(opts) as ydl:
-                        logger.info("yt-dlp instance created, starting extract_info...")
-                        info_dict = ydl.extract_info(url, download=False)
-                        logger.info("extract_info completed successfully")
-                        return info_dict
+                    try:
+                        with yt_dlp.YoutubeDL(opts) as ydl:
+                            logger.info("yt-dlp instance created, starting extract_info...")
+                            info_dict = ydl.extract_info(url, download=False)
+                            logger.info("extract_info completed successfully")
+                            return info_dict
+                    except Exception as e:
+                        error_text = str(e)
+                        logger.warning(f"Error in extract_info_operation: {error_text[:200]}")
+                        raise  # Re-raise to let caller handle it
                 
-                from HELPERS.proxy_helper import try_with_proxy_fallback
-                info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
+                
+                # Track last error for Cloudflare detection
+                last_error_info = {'error': None, 'error_text': None}
+                
+                # Wrapper that catches exceptions and stores error info
+                def extract_info_with_error_tracking(opts):
+                    try:
+                        return extract_info_operation(opts)
+                    except Exception as e:
+                        error_text = str(e)
+                        logger.warning(f"Error in extract_info_with_error_tracking: {error_text[:200]}")
+                        last_error_info['error'] = e
+                        last_error_info['error_text'] = error_text
+                        raise  # Re-raise to let caller handle it
+                
+                # First, try with original options to detect Cloudflare errors early
+                info_dict = None
+                original_error_text = None  # Сохраняем оригинальный текст ошибки
+                try:
+                    info_dict = extract_info_operation(ytdl_opts)
+                except Exception as e:
+                    error_text = str(e)
+                    original_error_text = error_text  # Сохраняем оригинальный текст
+                    logger.info(f"Initial extract_info failed: {error_text[:200]}")
+                    last_error_info['error'] = e
+                    last_error_info['error_text'] = error_text
+                    
+                    # If it's a Cloudflare error, try impersonate fallback first
+                    if is_cloudflare_error(error_text):
+                        logger.info(f"Cloudflare error detected for {url}, trying impersonate fallback first")
+                        try:
+                            impersonate_result = try_with_impersonate_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                            if impersonate_result is not None:
+                                info_dict = impersonate_result
+                                logger.info(f"Impersonate fallback succeeded for {url}")
+                            else:
+                                # If impersonate fallback failed, try proxy fallback
+                                logger.info(f"Impersonate fallback failed for {url}, trying proxy fallback")
+                                try:
+                                    info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_error_tracking)
+                                except Exception as e3:
+                                    logger.error(f"Proxy fallback also failed: {e3}")
+                                    info_dict = None
+                                if info_dict is None:
+                                    raise Exception("Failed to extract video information with all available proxies and impersonate versions")
+                        except Exception as e2:
+                            logger.error(f"Impersonate fallback exception: {e2}")
+                            # Try proxy fallback as last resort
+                            try:
+                                info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_error_tracking)
+                            except:
+                                pass
+                            if info_dict is None:
+                                raise Exception("Failed to extract video information with all available proxies and impersonate versions")
+                    else:
+                        # Not a Cloudflare error, try proxy fallback
+                        logger.info(f"Non-Cloudflare error detected for {url}, trying proxy fallback")
+                        try:
+                            info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_error_tracking)
+                        except Exception as e3:
+                            logger.error(f"Proxy fallback failed: {e3}")
+                            info_dict = None
+                        if info_dict is None:
+                            # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
+                            if is_youtube_url(url) and user_id is not None:
+                                from COMMANDS.cookies_cmd import is_youtube_geo_error, retry_download_with_proxy
+                                if is_youtube_geo_error(original_error_text if original_error_text else error_text):
+                                    logger.info(f"YouTube geo-blocked error detected in extract_info for user {user_id}, attempting retry with proxy from file")
+                                    
+                                    def extract_with_attempt_opts(url_arg, attempt_opts_dict):
+                                        # Используем attempt_opts_dict (который включает proxy) вместо оригинальных opts
+                                        if 'geo_bypass' not in attempt_opts_dict:
+                                            attempt_opts_dict['geo_bypass'] = True
+                                        logger.info(f"extract_with_attempt_opts: proxy={attempt_opts_dict.get('proxy', 'None')}, geo_bypass={attempt_opts_dict.get('geo_bypass', 'None')}, cookiefile={'set' if attempt_opts_dict.get('cookiefile') else 'None'}")
+                                        return extract_info_operation(attempt_opts_dict)
+                                    
+                                    retry_result = retry_download_with_proxy(
+                                        user_id, url, extract_with_attempt_opts, url, ytdl_opts, error_message=original_error_text if original_error_text else error_text
+                                    )
+                                    
+                                    if retry_result is not None:
+                                        logger.info(f"extract_info retry with proxy from file successful for user {user_id}")
+                                        info_dict = retry_result
+                                    else:
+                                        logger.warning(f"extract_info retry with proxy from file failed for user {user_id}")
+                            
+                            if info_dict is None:
+                                # Сохраняем оригинальный текст ошибки для последующей обработки
+                                raise Exception(f"Failed to extract video information: {original_error_text if original_error_text else error_text}")
+                
                 if info_dict is None:
                     raise Exception("Failed to extract video information with all available proxies")
                 # Normalize info_dict to a dict
@@ -1688,6 +1787,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     ytdl_opts.pop("http_chunk_size", None)
                     # Reduce parallelism for fragile HLS endpoints
                     ytdl_opts["concurrent_fragment_downloads"] = 1
+                    
+                    # Если используется прокси - добавляем параметры для быстрого прерывания при ошибках 403
+                    # чтобы не ждать 20 минут в бесконечном цикле повторов
+                    if ytdl_opts.get('proxy'):
+                        logger.info("HLS stream with proxy detected - adding fast-fail options to prevent infinite 403 retries")
+                        # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
+                        ytdl_opts["hls_prefer_native"] = True
+                        ytdl_opts["downloader"] = "native"  # Используем native downloader для HLS
+                        ytdl_opts["fragment_retries"] = 0  # Не повторять при ошибке фрагмента
+                        ytdl_opts["hls_fragment_retries"] = 0  # Не повторять HLS-сегменты
+                        ytdl_opts["abort_on_unavailable_fragment"] = True  # Прервать при недоступном сегменте
+                        ytdl_opts["max_fragments"] = 1  # Максимум 1 сегмент для теста (если ошибка - сразу прервать)
+                        # Добавляем таймаут для downloader_args (на случай если native не сработает)
+                        if "downloader_args" not in ytdl_opts:
+                            ytdl_opts["downloader_args"] = {}
+                        ytdl_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
+                        logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
@@ -1702,31 +1818,114 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         _handle_quality_key_error(e, split_msg_ids, is_playlist, successful_uploads, indices_to_download, video_count, user_id, proc_msg_id, message, app)
                 
                 logger.info("Starting download phase...")
-                # Try with proxy fallback if user proxy is enabled
-                def download_operation(opts):
-                    messages = safe_get_messages(user_id)
-                    with yt_dlp.YoutubeDL(opts) as ydl:
-                        if is_hls:
-                            # For HLS, start cycle progress as fallback, but progress_func will override it if percentages are available
-                            cycle_stop = threading.Event()
-                            progress_data = {'downloaded_bytes': 0, 'total_bytes': 0}
-                            cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop, progress_data)
-                            # Pass cycle_stop and progress_data to progress_func so it can update the cycle animation
-                            progress_func.cycle_stop = cycle_stop
-                            progress_func.progress_data = progress_data
-                            try:
-                                ydl.download([url])
-                            finally:
-                                cycle_stop.set()
-                                cycle_thread.join(timeout=1)
-                        else:
-                            ydl.download([url])
-                        return True
+                # Initialize cycle_stop and cycle_thread for HLS at outer level to ensure cleanup on any error
+                cycle_stop = None
+                cycle_thread = None
+                if is_hls:
+                    cycle_stop = threading.Event()
+                    progress_data = {'downloaded_bytes': 0, 'total_bytes': 0}
+                    cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop, progress_data)
+                    # Pass cycle_stop and progress_data to progress_func so it can update the cycle animation
+                    progress_func.cycle_stop = cycle_stop
+                    progress_func.progress_data = progress_data
                 
-                from HELPERS.proxy_helper import try_with_proxy_fallback
-                result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
-                if result is None:
-                    raise Exception("Failed to download video with all available proxies")
+                # Try with proxy fallback if user proxy is enabled
+                try:
+                    def download_operation(opts):
+                        messages = safe_get_messages(user_id)
+                        
+                        # Если используется прокси и HLS - добавляем таймаут для быстрого прерывания
+                        if is_hls and opts.get('proxy'):
+                            import signal
+                            import threading
+                            
+                            # Флаг для отслеживания ошибок 403
+                            hls_403_detected = threading.Event()
+                            
+                            # Создаем кастомный logger hook для мониторинга ошибок 403
+                            original_logger = opts.get('logger') or logger
+                            
+                            class HLS403Monitor:
+                                def error(self, msg):
+                                    if "403" in str(msg) or "HTTP error 403" in str(msg) or "Forbidden" in str(msg):
+                                        logger.warning(f"HLS 403 error detected in logger: {msg}")
+                                        hls_403_detected.set()
+                                    original_logger.error(msg)
+                                
+                                def warning(self, msg):
+                                    if "403" in str(msg) or "HTTP error 403" in str(msg) or "Forbidden" in str(msg):
+                                        logger.warning(f"HLS 403 error detected in logger: {msg}")
+                                        hls_403_detected.set()
+                                    if hasattr(original_logger, 'warning'):
+                                        original_logger.warning(msg)
+                                
+                                def debug(self, msg):
+                                    if hasattr(original_logger, 'debug'):
+                                        original_logger.debug(msg)
+                                
+                                def info(self, msg):
+                                    if hasattr(original_logger, 'info'):
+                                        original_logger.info(msg)
+                            
+                            opts['logger'] = HLS403Monitor()
+                            
+                            # Запускаем таймер для принудительного прерывания через 15 секунд
+                            def timeout_handler():
+                                time.sleep(15)  # Ждем 15 секунд
+                                if not hls_403_detected.is_set():
+                                    # Если за 15 секунд не было прогресса - прерываем
+                                    logger.warning("HLS download with proxy timeout after 15 seconds - aborting")
+                                    hls_403_detected.set()
+                            
+                            timeout_thread = threading.Thread(target=timeout_handler, daemon=True)
+                            timeout_thread.start()
+                        
+                        with yt_dlp.YoutubeDL(opts) as ydl:
+                            if is_hls and opts.get('proxy'):
+                                try:
+                                    # Запускаем скачивание в отдельном потоке для возможности прерывания
+                                    download_exception = [None]
+                                    
+                                    def download_wrapper():
+                                        try:
+                                            ydl.download([url])
+                                        except Exception as e:
+                                            download_exception[0] = e
+                                    
+                                    download_thread = threading.Thread(target=download_wrapper, daemon=True)
+                                    download_thread.start()
+                                    download_thread.join(timeout=15)  # Максимум 15 секунд
+                                    
+                                    # Проверяем, была ли обнаружена ошибка 403
+                                    if hls_403_detected.is_set():
+                                        logger.warning("HLS 403 error detected - aborting download immediately")
+                                        raise yt_dlp.utils.DownloadError("HLS 403 error detected - proxy blocked. Please try another proxy.")
+                                    
+                                    if download_thread.is_alive():
+                                        # Если поток еще работает после 15 секунд - прерываем
+                                        logger.warning("HLS download with proxy exceeded 15 second timeout - aborting")
+                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 15 seconds - too many 403 errors. Please try another proxy.")
+                                    
+                                    # Проверяем, была ли ошибка в потоке
+                                    if download_exception[0]:
+                                        raise download_exception[0]
+                                except yt_dlp.utils.DownloadError as e:
+                                    # Re-raise all errors
+                                    raise
+                            else:
+                                ydl.download([url])
+                            return True
+                    
+                    from HELPERS.proxy_helper import try_with_proxy_fallback
+                    result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
+                    if result is None:
+                        raise Exception("Failed to download video with all available proxies")
+                finally:
+                    # Always stop cycle animation, even if error occurred
+                    if cycle_stop is not None:
+                        cycle_stop.set()
+                    if cycle_thread is not None:
+                        cycle_thread.join(timeout=1)
                 try:
                     safe_edit_message_text(user_id, proc_msg_id, safe_get_messages(user_id).VIDEO_DOWNLOAD_COMPLETE_MSG.format(process=current_total_process, bar=full_bar))
                 except Exception as e:
@@ -1752,6 +1951,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
+                # Ensure cycle animation is stopped on error
+                if 'cycle_stop' in locals() and cycle_stop is not None:
+                    cycle_stop.set()
+                if 'cycle_thread' in locals() and cycle_thread is not None:
+                    cycle_thread.join(timeout=1)
+                
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
@@ -2033,13 +2238,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         else:
                             logger.warning(f"All YouTube cookie retry attempts failed for user {user_id}")
                     
-                    # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси один раз
-                    if is_youtube_geo_error(error_message) and not did_proxy_retry:
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy")
+                    # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси из файла
+                    # Не прерываем скачивание сразу, а пробуем все подходящие прокси
+                    # НО: если все прокси уже провалились - не пытаемся снова
+                    if "Failed to download video with all available proxies" in error_message:
+                        logger.warning(f"All proxies already failed, skipping proxy retry")
+                    elif is_youtube_geo_error(error_message) and not did_proxy_retry:
+                        logger.info(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
+                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
+                        logger.info(f"Full error message: {error_message}")
                         
-                        # Пробуем скачать через прокси
+                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
                         retry_result = retry_download_with_proxy(
-                            user_id, url, try_download, url, attempt_opts
+                            user_id, url, try_download, url, attempt_opts, error_message=error_message
                         )
                         
                         if retry_result is not None:
@@ -2047,8 +2258,29 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             did_proxy_retry = True
                             return retry_result
                         else:
-                            logger.warning(f"Download retry with proxy failed for user {user_id}")
+                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
+                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
                             did_proxy_retry = True
+                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
+                    elif is_youtube_geo_error(error_message):
+                        logger.info(f"Geo-error detected but proxy retry already attempted, skipping")
+                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
+                        logger.info(f"Full error message: {error_message}")
+                        
+                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
+                        retry_result = retry_download_with_proxy(
+                            user_id, url, try_download, url, attempt_opts, error_message=error_message
+                        )
+                        
+                        if retry_result is not None:
+                            logger.info(f"Download retry with proxy successful for user {user_id}")
+                            did_proxy_retry = True
+                            return retry_result
+                        else:
+                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
+                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
+                            did_proxy_retry = True
+                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube download error detected for user {user_id}, attempting cookie fallback")
@@ -2165,6 +2397,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             except Exception as e:
                 error_message = str(e)
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}")
+                logger.debug(f"Error message for geo-check: {error_message[:500]}")
+                
+                # Если все прокси уже провалились - сразу прерываем все операции
+                if "Failed to download video with all available proxies" in error_message:
+                    logger.warning(f"All proxies failed, error already sent to user - aborting all operations immediately")
+                    if not error_message_sent:
+                        send_error_to_user(
+                            message,
+                            safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
+                        )
+                        error_message_sent = True
+                    # Прерываем все дальнейшие операции
+                    return None
+                
                 # Auto-fallback to gallery-dl for obvious non-video cases
                 emsg = str(e)
                 if (
@@ -4388,6 +4634,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         except Exception as cleanup_error:
             logger.error(f"Error cleaning up temp files after error for user {user_id}: {cleanup_error}")
     finally:
+        # Always stop hourglass animation to prevent resource leaks
+        try:
+            stop_anim.set()
+            if anim_thread:
+                anim_thread.join(timeout=1)  # Wait for animation thread with timeout
+        except Exception as e:
+            logger.error(f"Error stopping hourglass animation: {e}")
+        
         set_active_download(user_id, False)
         clear_download_start_time(user_id)  # Clear the download start time
         if playlist_name:

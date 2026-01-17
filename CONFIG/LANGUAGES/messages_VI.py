@@ -343,6 +343,7 @@ Use:
     ERROR_UNKNOWN_MSG = "❌ Lỗi không xác định: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Không đủ dung lượng ổ đĩa để tải xuống video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Kích thước tệp vượt quá giới hạn {limit} GB. Vui lòng chọn tệp nhỏ hơn trong phạm vi kích thước được phép."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Không thể tải xuống video với tất cả proxy có sẵn</b>\n\nTất cả các lần thử tải xuống qua proxy đều thất bại.\nHãy thử:\n• Kiểm tra chức năng của proxy\n• Thử proxy khác từ danh sách\n• Tải xuống không dùng proxy (nếu có thể)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Lỗi khi lấy liên kết:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Use:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Lỗi khi lưu cài đặt proxy."
     PROXY_MENU_TEXT_MSG = "Bật hoặc tắt sử dụng máy chủ proxy cho tất cả các thao tác yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Bật hoặc tắt sử dụng máy chủ proxy ({count} có sẵn) cho tất cả các thao tác yt-dlp?\n\nKhi bật, proxy sẽ được chọn bằng phương pháp {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Bật hoặc tắt việc sử dụng máy chủ proxy (có sẵn {config_count} + {file_count}) cho tất cả hoạt động yt-dlp?\n\nKhi được bật TẤT CẢ (TỰ ĐỘNG), proxy sẽ được chọn bằng phương pháp ngẫu nhiên."
     PROXY_MENU_CLOSED_MSG = "Menu đã đóng."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng {count} máy chủ proxy với phương pháp chọn {method}."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Đã bật proxy (TẤT CẢ chế độ TỰ ĐỘNG).\n\n📊 Bot sẽ thử proxy theo thứ tự sau:\n1️⃣ {config_count} proxy từ Config.py\n2️⃣ {file_count} proxy từ tệp TXT/proxy.txt\n\n🔄 Tất cả các proxy sẽ được thử tuần tự cho đến khi kết nối thành công."
     PROXY_DISABLED_MSG = "❌ Proxy đã tắt."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Lỗi khi lưu cài đặt proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy đã bật."
@@ -1629,10 +1632,27 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Kiểm Tra Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ BẬT"
+    PROXY_ON_BUTTON_MSG = "✅ TẤT CẢ (TỰ ĐỘNG)"
     PROXY_OFF_BUTTON_MSG = "❌ TẮT"
     PROXY_CLOSE_BUTTON_MSG = "🔚Đóng"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Chọn quốc gia:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Lựa chọn quốc gia rõ ràng"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Quốc gia được chọn: {country} (code: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Proxy hiện có: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot sẽ thử HTTP trước, sau đó là SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Proxy được bật tự động cho quốc gia đã chọn"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Đã xóa lựa chọn quốc gia"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Đã xóa lựa chọn quốc gia"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Quốc gia được chọn: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Sử dụng quốc gia từ tệp: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Các quốc gia có sẵn trong tệp: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Quốc gia được chọn: {country} (code: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Đã bật proxy cho quốc gia này"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy bị vô hiệu hóa (nhấn TẤT CẢ (AUTO) để bật)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ BẬT"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ TẮT"

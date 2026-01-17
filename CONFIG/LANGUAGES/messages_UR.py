@@ -343,6 +343,7 @@ Use:
     ERROR_UNKNOWN_MSG = "❌ نامعلوم غلطی: {error}"
     ERROR_NO_DISK_SPACE_MSG = "videos ویڈیوز ڈاؤن لوڈ کرنے کے لئے کافی ڈسک کی جگہ نہیں ہے۔"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ فائل کا سائز {limit} GB حد سے تجاوز کرتا ہے۔ براہ کرم اجازت شدہ سائز میں ایک چھوٹی فائل منتخب کریں۔"
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>تمام دستیاب پراکسی کے ساتھ ویڈیو ڈاؤن لوڈ کرنے میں ناکام</b>\n\nپراکسی کے ذریعے تمام ڈاؤن لوڈ کی کوششیں ناکام ہو گئیں۔\nکوشش کریں:\n• پراکسی کی فعالیت کی جانچ کریں\n• فہرست سے دوسرا پراکسی آزمائیں\n• پراکسی کے بغیر ڈاؤن لوڈ کریں (اگر ممکن ہو)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Use:
     PROXY_ENABLED_MSG = "✅ پراکسی {status}."
     PROXY_ERROR_SAVING_MSG = "❌ پروکسی ترتیبات محفوظ کرنے میں خرابی۔"
     PROXY_MENU_TEXT_MSG = "تمام yt-dlp آپریشنز کے لیے پروکسی سرور استعمال کرنے کو فعال/غیر فعال کریں؟"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "تمام yt-dlp آپریشنز کے لیے پروکسی سرورز ({count} دستیاب) استعمال کرنے کو فعال/غیر فعال کریں؟\n\nجب فعال ہو تو، پروکسیز {method} طریقہ استعمال کرتے ہوئے منتخب کیے جائیں گے۔"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "تمام YT-DLP آپریشنز کے لئے پراکسی سرورز ({config_count} + {file_count} دستیاب) کا استعمال کرتے ہوئے فعال یا غیر فعال کریں؟\n\nجب تمام (آٹو) کو فعال کیا جائے تو ، بے ترتیب طریقہ کا استعمال کرتے ہوئے پراکسیوں کا انتخاب کیا جائے گا۔"
     PROXY_MENU_CLOSED_MSG = "مینو بند۔"
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز proxy استعمال کریں گے۔"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز {count} proxy سرورز {method} انتخاب کے طریقہ کے ساتھ استعمال کریں گے۔"
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پراکسی فعال (تمام آٹو موڈ)۔\n\n📊 BOT اس ترتیب میں پراکسیوں کی کوشش کرے گا:\n1⃣ {config_count} config.py سے پراکسی\n2⃣ {file_Count t txt/proxy.txt فائل سے پراکسی\n\nconnection کامیاب کنکشن تک تمام پراکسیوں کی ترتیب سے ترتیب دی جائے گی۔"
     PROXY_DISABLED_MSG = "❌ Proxy غیر فعال ہے۔"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ پروکسی ترتیبات محفوظ کرنے میں خرابی۔"
     PROXY_ENABLED_CALLBACK_MSG = "Proxy فعال ہے۔"
@@ -1629,10 +1632,27 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ کوکی چیک کریں"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ on"
+    PROXY_ON_BUTTON_MSG = "✅ سب (آٹو)"
     PROXY_OFF_BUTTON_MSG = "❌ آف"
     PROXY_CLOSE_BUTTON_MSG = "🔚بند"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 ملک منتخب کریں:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ ملک کا واضح انتخاب"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ ملک منتخب: {ملک} (کوڈ: {ملک_کوڈ})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 دستیاب پراکسی: {پراکسی_کاؤنٹ} (HTTP: {HTTP_Count} ، SOCKKS5: {SOCKS5_COUNT})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 BOT پہلے HTTP آزمائے گا ، پھر SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 منتخب کردہ ملک کے لئے خود بخود پراکسی فعال"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ ملک کا انتخاب صاف ہوگیا"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ ملک کا انتخاب صاف ہوگیا"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ ملک منتخب: {ملک}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "file فائل سے ملک کا استعمال: {ملک}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "file فائل سے دستیاب ممالک: {گنتی}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 منتخب ملک: {ملک} (کوڈ: {ملک_کوڈ})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ اس ملک کے لئے پراکسی فعال ہے"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠ پراکسی غیر فعال (قابل بنانے کے لئے تمام (آٹو) دبائیں)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ on"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ آف"

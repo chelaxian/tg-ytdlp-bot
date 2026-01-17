@@ -343,6 +343,7 @@ Yi amfani da:
     ERROR_UNKNOWN_MSG = "❌ Kuskure da ba a sani ba: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Babu isasshen sarari na diski don saukewa bidiyoyi."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Girman fayil ya wuce iyakar {limit} GB. Da fatan za a zaɓi fayil ƙarami a cikin girman da aka yarda."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>An kasa saukar da bidiyo tare da duk wakilcin da ake da shi</b>\n\nDuk ƙoƙarin saukewa ta hanyar wakilci sun gaza.\nGwada:\n• Bincika aikin wakilci\n• Gwada wani wakilci daga jerin\n• Saukewa ba tare da wakilci ba (idan zai yiwu)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Kuskure wajen samun hanyar haɗi:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Yi amfani da:
     PROXY_ENABLED_MSG = "✅ Wakili {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_MENU_TEXT_MSG = "Kunna ko kashe amfani da uwar garken proxy don duk ayyukan yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe amfani da uwar garken proxy ({count} suna samuwa) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna, za a zaɓi proxies ta amfani da hanyar {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe ta amfani da sabar wakili ({config_count} + {file_count} akwai) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna DUKA (AUTO), za a zaɓi proxies ta hanyar bazuwar hanya."
     PROXY_MENU_CLOSED_MSG = "An rufe menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da uwar garken proxy {count} tare da hanyar zaɓi {method}."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ An kunna wakili (duk yanayin AUTO).\n\n📊 Bot zai gwada proxies ta wannan tsari:\n1️⃣ {config_count} proxies daga Config.py\n2️⃣ {file_count} proxies daga TXT/proxy.txt fayil\n\n🔄 Duk proxies za a gwada su bi da bi har sai an yi nasarar haɗin gwiwa."
     PROXY_DISABLED_MSG = "❌ An kashe proxy."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_ENABLED_CALLBACK_MSG = "An kunna proxy."
@@ -1629,10 +1632,27 @@ Yi amfani da:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Duba Kuki"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ON"
+    PROXY_ON_BUTTON_MSG = "✅ DUK (AUT)"
     PROXY_OFF_BUTTON_MSG = "❌ KASHE"
     PROXY_CLOSE_BUTTON_MSG = "🔚Rufe"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Zaɓi Ƙasa:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Share Zaɓin Ƙasa"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Ƙasar da aka zaɓa: {ƙasar} (lambar: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Akwai proxies: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot zai fara gwada HTTP, sannan SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Ana kunna wakili ta atomatik don zaɓin ƙasa"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ An share zaɓin ƙasa"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ An share zaɓin ƙasa"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Kasar da aka zaba: {kasa}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Amfani da ƙasa daga fayil: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Akwai ƙasashe daga fayil: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Ƙasar da aka zaɓa: {ƙasa} (lambar: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ An ba da izinin wakili ga wannan ƙasa"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ An kashe wakili (latsa ALL (AUTO) don kunnawa)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ KASHE"

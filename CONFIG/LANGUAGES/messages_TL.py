@@ -343,6 +343,7 @@ Gamitin:
     ERROR_UNKNOWN_MSG = "❌ Hindi kilalang error: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Walang sapat na disk space upang mag-download ng mga video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Ang file size ay lumampas sa limit na {limit} GB. Mangyaring pumili ng mas maliit na file sa loob ng pinapayagang size."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Nabigo sa pag-download ng video gamit ang lahat ng available na proxy</b>\n\nLahat ng pagtatangka sa pag-download sa pamamagitan ng proxy ay nabigo.\nSubukan:\n• Suriin ang paggana ng proxy\n• Subukan ang ibang proxy mula sa listahan\n• Mag-download nang walang proxy (kung posible)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error sa pagkuha ng link:</b>\n{error}"
 
@@ -593,10 +594,12 @@ Gamitin:
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error sa pag-save ng mga setting ng proxy."
     PROXY_MENU_TEXT_MSG = "Paganahin o huwag paganahin ang paggamit ng proxy server para sa lahat ng pagpapatakbo ng yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Paganahin o huwag paganahin ang paggamit ng proxy servers ({count} available) para sa lahat ng yt-dlp operations?\n\nKapag pinagana, pipiliin ang mga proxy gamit ang {method} method."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Paganahin o huwag paganahin ang paggamit ng mga proxy server ({config_count} + {file_count} available) para sa lahat ng yt-dlp operation?\n\nKapag pinagana ang LAHAT (AUTO), pipiliin ang mga proxy gamit ang random na paraan."
     PROXY_MENU_CLOSED_MSG = "Sarado ang menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng {count} proxy server na may {method} paraan ng pagpili."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Naka-enable ang proxy (ALL AUTO mode).\n\n📊 Susubukan ni Bot ang mga proxy sa ganitong pagkakasunud-sunod:\n1️⃣ {config_count} (na) proxy mula sa Config.py\n2️⃣ {file_count} (na) proxy mula sa TXT/proxy.txt file\n\n🔄 Lahat ng proxy ay susubukan nang sunud-sunod hanggang sa matagumpay na koneksyon."
     PROXY_DISABLED_MSG = "❌ Naka-disable ang proxy."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error sa pag-save ng mga setting ng proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Pinagana ang proxy."
@@ -1629,10 +1632,27 @@ Gamitin:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Suriin ang Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ NAKA-ON"
+    PROXY_ON_BUTTON_MSG = "✅ LAHAT (AUTO)"
     PROXY_OFF_BUTTON_MSG = "❌ NAKA-OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Isara"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Piliin ang Bansa:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ I-clear ang Pinili ng Bansa"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Bansang napili: {country} (code: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Mga available na proxy: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Susubukan muna ni Bot ang HTTP, pagkatapos ay SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Awtomatikong pinagana ang proxy para sa napiling bansa"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ Na-clear ang pagpili ng bansa"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ Na-clear ang pagpili ng bansa"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Bansang napili: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Paggamit ng bansa mula sa file: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Mga available na bansa mula sa file: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Napiling bansa: {country} (code: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Naka-enable ang proxy para sa bansang ito"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Hindi pinagana ang proxy (pindutin ang LAHAT (AUTO) para paganahin)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ NAKA-ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ NAKA-OFF"

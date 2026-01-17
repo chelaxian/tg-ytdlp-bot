@@ -343,6 +343,7 @@ class Messages(object):
     ERROR_UNKNOWN_MSG = "❌ 알 수 없는 오류: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 동영상을 다운로드할 디스크 공간이 부족합니다."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ 파일 크기가 {limit} GB 제한을 초과했습니다. 허용된 크기 내에서 더 작은 파일을 선택하세요."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>사용 가능한 모든 프록시로 비디오 다운로드 실패</b>\n\n프록시를 통한 모든 다운로드 시도가 실패했습니다.\n시도해 보세요:\n• 프록시 기능 확인\n• 목록에서 다른 프록시 시도\n• 프록시 없이 다운로드 (가능한 경우)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>링크 가져오기 오류:</b>\n{error}"
 
@@ -593,10 +594,12 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ 프록시 {status}."
     PROXY_ERROR_SAVING_MSG = "❌ 프록시 설정 저장 중 오류가 발생했습니다."
     PROXY_MENU_TEXT_MSG = "모든 yt-dlp 작업에 대해 프록시 서버 사용을 활성화하거나 비활성화하시겠습니까?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "모든 yt-dlp 작업에 대해 프록시 서버({count}개 사용 가능) 사용을 활성화하거나 비활성화하시겠습니까?\n\n활성화되면 {method} 방법을 사용하여 프록시가 선택됩니다."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "모든 yt-dlp 작업에 프록시 서버({config_count} + {file_count} 사용 가능) 사용을 활성화 또는 비활성화하시겠습니까?\n\nALL(AUTO)을 활성화하면 무작위 방법을 사용하여 프록시가 선택됩니다."
     PROXY_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
     PROXY_ENABLED_CONFIRM_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 프록시를 사용합니다."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 {method} 선택 방법으로 {count}개의 프록시 서버를 사용합니다."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 프록시가 활성화되었습니다(ALL AUTO 모드).\n\n📊 봇은 다음 순서로 프록시를 시도합니다.\n1️⃣ Config.py의 {config_count} 프록시\n2️⃣ TXT/proxy.txt 파일의 {file_count} 프록시\n\n🔄 모든 프록시는 성공적으로 연결될 때까지 순차적으로 시도됩니다."
     PROXY_DISABLED_MSG = "❌ 프록시가 비활성화되었습니다."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ 프록시 설정 저장 중 오류가 발생했습니다."
     PROXY_ENABLED_CALLBACK_MSG = "프록시가 활성화되었습니다."
@@ -1629,10 +1632,27 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ 쿠키 확인"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ON"
+    PROXY_ON_BUTTON_MSG = "✅ 모두(자동)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Close"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 국가 선택:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ 국가 선택 지우기"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ 선택한 국가: {country}(코드: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 사용 가능한 프록시: {proxy_count}(HTTP: {http_count}, SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 봇은 HTTP를 먼저 시도한 다음 SOCKS5를 시도합니다."
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 선택한 국가에 대해 프록시가 자동으로 활성화됩니다."
+    PROXY_COUNTRY_CLEARED_MSG = "✅ 국가 선택이 삭제되었습니다."
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 국가 선택이 삭제되었습니다."
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 선택한 국가: {국가}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 파일의 국가 사용: {국가}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 파일에서 사용 가능한 국가: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 선택한 국가: {country}(코드: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ 이 국가에 프록시가 활성화되었습니다."
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ 프록시 비활성화됨(활성화하려면 모두(AUTO)를 누르세요)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ ON"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ OFF"

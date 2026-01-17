@@ -343,6 +343,7 @@ class Messages(object):
     ERROR_UNKNOWN_MSG = "❌ خطأ غير معروف: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ مساحة القرص غير كافية لتحميل مقاطع الفيديو."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ حجم الملف يتجاوز الحد الأقصى {limit} جيجابايت. يرجى اختيار ملف أصغر ضمن الحجم المسموح."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>فشل تحميل الفيديو مع جميع البروكسيات المتاحة</b>\n\nفشلت جميع محاولات التحميل عبر البروكسيات.\nجرب:\n• التحقق من عمل البروكسي\n• تجربة بروكسي آخر من القائمة\n• التحميل بدون بروكسي (إن أمكن)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>خطأ في الحصول على الرابط:</b>\n{error}"
 
@@ -593,10 +594,12 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ البروكسي {status}."
     PROXY_ERROR_SAVING_MSG = "❌ خطأ في حفظ إعدادات البروكسي."
     PROXY_MENU_TEXT_MSG = "تفعيل أو إلغاء استخدام خادم البروكسي لجميع عمليات yt-dlp؟"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "تفعيل أو إلغاء استخدام خوادم البروكسي ({count} متاح) لجميع عمليات yt-dlp؟\n\nعند التفعيل، سيتم اختيار البروكسي باستخدام طريقة {method}."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "هل تريد تمكين أو تعطيل استخدام الخوادم الوكيلة (يتوفر {config_count} + {file_count}) لجميع عمليات yt-dlp؟\n\nعند تمكين الكل (AUTO)، سيتم اختيار الوكلاء باستخدام طريقة عشوائية."
     PROXY_MENU_CLOSED_MSG = "تم إغلاق القائمة."
     PROXY_ENABLED_CONFIRM_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم البروكسي."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم {count} خادم بروكسي مع طريقة اختيار {method}."
+
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ تم تمكين الوكيل (الوضع التلقائي بالكامل).\n\n📊 سيحاول الروبوت استخدام الوكلاء بهذا الترتيب:\n1️⃣ {config_count} وكلاء من Config.py\n2️⃣ {file_count} وكيل من ملف TXT/proxy.txt\n\n🔄 سيتم تجربة جميع البروكسيات بشكل تسلسلي حتى يتم الاتصال بنجاح."
     PROXY_DISABLED_MSG = "❌ تم إلغاء البروكسي."
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ خطأ في حفظ إعدادات البروكسي."
     PROXY_ENABLED_CALLBACK_MSG = "تم تفعيل البروكسي."
@@ -1635,10 +1638,27 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ فحص ملف تعريف الارتباط"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ تشغيل"
+    PROXY_ON_BUTTON_MSG = "✅ الكل (تلقائي)"
     PROXY_OFF_BUTTON_MSG = "❌ إيقاف"
     PROXY_CLOSE_BUTTON_MSG = "🔚إغلاق"
     
+
+    PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 اختر الدولة:"
+    PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ مسح اختيار البلد"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ الدولة المحددة: {country} (الرمز: {country_code})"
+    PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 الوكلاء المتاحون: {proxy_count} (HTTP: {http_count}، SOCKS5: {socks5_count})"
+    PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 سيحاول البوت استخدام HTTP أولاً، ثم SOCKS5"
+    PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 تم تمكين الوكيل تلقائيًا للبلد المحدد"
+    PROXY_COUNTRY_CLEARED_MSG = "✅ تم مسح اختيار البلد"
+    PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ تم مسح اختيار البلد"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ البلد المحدد: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 استخدام البلد من الملف: {country}"
+
+    PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 الدول المتاحة من الملف: {count}"
+
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 الدولة المختارة: {country} (الرمز: {country_code})"
+    PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ تمكين الوكيل لهذا البلد"
+    PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ تم تعطيل الوكيل (اضغط الكل (AUTO) للتمكين)"
     # MediaInfo command button texts
     MEDIAINFO_ON_BUTTON_MSG = "✅ تشغيل"
     MEDIAINFO_OFF_BUTTON_MSG = "❌ إيقاف"

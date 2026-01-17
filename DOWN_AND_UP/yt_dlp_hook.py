@@ -379,7 +379,7 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
             
             # Check for YouTube cookie errors and try automatic retry
             if is_youtube_url(url) and user_id is not None:
-                from COMMANDS.cookies_cmd import is_youtube_cookie_error, retry_download_with_different_cookies
+                from COMMANDS.cookies_cmd import is_youtube_cookie_error, is_youtube_geo_error, retry_download_with_different_cookies, retry_download_with_proxy
                 
                 if is_youtube_cookie_error(error_text):
                     logger.info(f"YouTube cookie error detected in get_video_formats for user {user_id}, attempting automatic retry")
@@ -394,6 +394,9 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                         return retry_result
                     else:
                         logger.warning(f"All cookie retry attempts failed in get_video_formats for user {user_id}")
+                
+                # Note: Geo errors are handled at the outer level (before try_with_proxy_fallback)
+                # to ensure proxy from file is tried first
             elif not is_youtube_url(url) and user_id is not None:
                 # For non-YouTube sites, try cookie fallback
                 logger.info(f"Non-YouTube error detected in get_video_formats for user {user_id}, attempting cookie fallback")
@@ -438,15 +441,83 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                 logger.info(f"Fallback to gallery-dl recommended for {url} due to error: {error_text[:200]}...")
                 return {'error': 'FALLBACK_TO_GALLERY_DL', 'original_error': error_text}
             
+            # Check for Cloudflare errors and try impersonate fallback
+            from HELPERS.proxy_helper import is_cloudflare_error
+            if is_cloudflare_error(error_text):
+                logger.info(f"Cloudflare error detected for {url}, will try impersonate fallback")
+                # Store the error to handle it in the outer scope
+                raise e
+            
             # Re-raise other DownloadErrors
             raise e
         except Exception as e:
+            error_text = str(e)
+            # Check if it's a Cloudflare error
+            from HELPERS.proxy_helper import is_cloudflare_error, try_with_impersonate_fallback
+            if is_cloudflare_error(error_text):
+                logger.info(f"Cloudflare error detected for {url}, trying impersonate fallback")
+                # Try with different impersonate versions
+                impersonate_result = try_with_impersonate_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                if impersonate_result is not None:
+                    return impersonate_result
+                logger.warning(f"All impersonate versions failed for {url}, trying proxy fallback")
+            
             logger.error(f"Error extracting info for {url}: {e}")
             raise e
     
-    from HELPERS.proxy_helper import try_with_proxy_fallback
+    from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
+    
+    # First, try to extract info
+    try:
+        result = extract_info_operation(ytdl_opts)
+        if result is not None:
+            return result
+    except yt_dlp.utils.DownloadError as e:
+        error_text = str(e)
+        
+        # Check for YouTube geo errors BEFORE trying proxy fallback
+        if is_youtube_url(url) and user_id is not None:
+            from COMMANDS.cookies_cmd import is_youtube_geo_error, retry_download_with_proxy
+            
+            if is_youtube_geo_error(error_text):
+                logger.info(f"YouTube geo-blocked error detected in get_video_formats for user {user_id}, attempting retry with proxy from file")
+                
+                # Try retry with proxy from file
+                # extract_info_operation takes opts as single argument, so we need to wrap it
+                # retry_download_with_proxy expects (url, attempt_opts) format, so we create a wrapper
+                def extract_with_attempt_opts(url_arg, attempt_opts_dict):
+                    # Use attempt_opts_dict (which includes proxy) instead of original opts
+                    # Убеждаемся, что geo_bypass включен для обхода геоблокировки
+                    if 'geo_bypass' not in attempt_opts_dict:
+                        attempt_opts_dict['geo_bypass'] = True
+                    logger.info(f"extract_with_attempt_opts: proxy={attempt_opts_dict.get('proxy', 'None')}, geo_bypass={attempt_opts_dict.get('geo_bypass', 'None')}, cookiefile={'set' if attempt_opts_dict.get('cookiefile') else 'None'}")
+                    return extract_info_operation(attempt_opts_dict)
+                
+                retry_result = retry_download_with_proxy(
+                    user_id, url, extract_with_attempt_opts, url, ytdl_opts, error_message=error_text
+                )
+                
+                if retry_result is not None:
+                    logger.info(f"get_video_formats retry with proxy from file successful for user {user_id}")
+                    return retry_result
+                else:
+                    logger.warning(f"get_video_formats retry with proxy from file failed for user {user_id}")
+    
+    # If geo retry failed or wasn't applicable, try with proxy fallback from config
     result = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
     if result is None:
+        # If proxy fallback failed, check if it was a Cloudflare error and try impersonate fallback
+        try:
+            # Try once more to capture the error
+            extract_info_operation(ytdl_opts)
+        except Exception as e:
+            error_text = str(e)
+            if is_cloudflare_error(error_text):
+                logger.info(f"Cloudflare error detected after proxy fallback for {url}, trying impersonate fallback")
+                impersonate_result = try_with_impersonate_fallback(ytdl_opts, url, user_id, extract_info_operation)
+                if impersonate_result is not None:
+                    return impersonate_result
+        
         return {'error': 'Failed to extract video information with all available proxies'}
     return result
 

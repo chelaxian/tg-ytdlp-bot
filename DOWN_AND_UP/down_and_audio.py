@@ -622,6 +622,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             return
         except Exception as e:
             logger.error(f"Error editing message: {e}")
+            # Stop animation before returning
+            stop_anim.set()
+            if anim_thread:
+                anim_thread.join(timeout=1)
             return
 
         # If there is no flood error, send a normal message (only once)
@@ -1059,6 +1063,23 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 ytdl_opts.pop("http_chunk_size", None)
                 # Reduce parallelism for fragile HLS endpoints
                 ytdl_opts["concurrent_fragment_downloads"] = 1
+                
+                # Если используется прокси - добавляем параметры для быстрого прерывания при ошибках 403
+                # чтобы не ждать 20 минут в бесконечном цикле повторов
+                if ytdl_opts.get('proxy'):
+                    logger.info("HLS stream with proxy detected - adding fast-fail options to prevent infinite 403 retries")
+                    # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
+                    ytdl_opts["hls_prefer_native"] = True
+                    ytdl_opts["downloader"] = "native"  # Используем native downloader для HLS
+                    ytdl_opts["fragment_retries"] = 0  # Не повторять при ошибке фрагмента
+                    ytdl_opts["hls_fragment_retries"] = 0  # Не повторять HLS-сегменты
+                    ytdl_opts["abort_on_unavailable_fragment"] = True  # Прервать при недоступном сегменте
+                    ytdl_opts["max_fragments"] = 1  # Максимум 1 сегмент для теста (если ошибка - сразу прервать)
+                    # Добавляем таймаут для downloader_args (на случай если native не сработает)
+                    if "downloader_args" not in ytdl_opts:
+                        ytdl_opts["downloader_args"] = {}
+                    ytdl_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
+                    logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
             
             # Define sanitize_title_for_filename function
             def sanitize_title_for_filename(title):
@@ -1106,7 +1127,17 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 ytdl_opts['cookiefile'] = cookie_file
             
             # Add proxy configuration if needed
-            if use_proxy:
+            # Проверяем, есть ли прокси в thread-local storage (для retry с прокси из файла)
+            import threading
+            thread_proxy = getattr(threading.current_thread(), 'proxy_for_audio_download', None)
+            
+            if thread_proxy:
+                # Используем прокси из thread-local storage (приоритет)
+                ytdl_opts['proxy'] = thread_proxy
+                logger.info(f"Using proxy from thread-local storage for audio download: {thread_proxy}")
+                # Очищаем после использования
+                threading.current_thread().proxy_for_audio_download = None
+            elif use_proxy:
                 # Force proxy for this download
                 from COMMANDS.proxy_cmd import get_proxy_config
                 proxy_config = get_proxy_config()
@@ -1202,30 +1233,146 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     logger.error(f"Status update error: {e}")
                 
                 # Try with proxy fallback if user proxy is enabled
-                def download_operation(opts):
-                    messages = safe_get_messages(user_id)
-                    with yt_dlp.YoutubeDL(opts) as ydl:
-                        if is_hls:
-                            # For HLS audio, start cycle progress as fallback, but progress_hook will override it if percentages are available
-                            cycle_stop = threading.Event()
-                            progress_data = {'downloaded_bytes': 0, 'total_bytes': 0}
-                            cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_folder, cycle_stop, progress_data)
-                            # Pass cycle_stop and progress_data to progress_hook so it can update the cycle animation
-                            progress_hook.cycle_stop = cycle_stop
-                            progress_hook.progress_data = progress_data
-                            try:
-                                ydl.download([url])
-                            finally:
-                                cycle_stop.set()
-                                cycle_thread.join(timeout=1)
-                        else:
-                            ydl.download([url])
-                    return True
+                # Initialize cycle_stop and cycle_thread for HLS at outer level to ensure cleanup on any error
+                cycle_stop = None
+                cycle_thread = None
+                if is_hls:
+                    cycle_stop = threading.Event()
+                    progress_data = {'downloaded_bytes': 0, 'total_bytes': 0}
+                    cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_folder, cycle_stop, progress_data)
+                    # Pass cycle_stop and progress_data to progress_hook so it can update the cycle animation
+                    progress_hook.cycle_stop = cycle_stop
+                    progress_hook.progress_data = progress_data
                 
-                from HELPERS.proxy_helper import try_with_proxy_fallback
-                result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
+                # Try with proxy fallback if user proxy is enabled
+                last_download_error = None
+                try:
+                    def download_operation(opts):
+                        messages = safe_get_messages(user_id)
+                        
+                        # Если используется прокси и HLS - добавляем таймаут для быстрого прерывания
+                        if is_hls and opts.get('proxy'):
+                            import signal
+                            import threading
+                            
+                            # Флаг для отслеживания ошибок 403
+                            hls_403_detected = threading.Event()
+                            
+                            # Создаем кастомный logger hook для мониторинга ошибок 403
+                            original_logger = opts.get('logger') or logger
+                            
+                            class HLS403Monitor:
+                                def error(self, msg):
+                                    if "403" in str(msg) or "HTTP error 403" in str(msg) or "Forbidden" in str(msg):
+                                        logger.warning(f"HLS 403 error detected in logger: {msg}")
+                                        hls_403_detected.set()
+                                    original_logger.error(msg)
+                                
+                                def warning(self, msg):
+                                    if "403" in str(msg) or "HTTP error 403" in str(msg) or "Forbidden" in str(msg):
+                                        logger.warning(f"HLS 403 error detected in logger: {msg}")
+                                        hls_403_detected.set()
+                                    if hasattr(original_logger, 'warning'):
+                                        original_logger.warning(msg)
+                                
+                                def debug(self, msg):
+                                    if hasattr(original_logger, 'debug'):
+                                        original_logger.debug(msg)
+                                
+                                def info(self, msg):
+                                    if hasattr(original_logger, 'info'):
+                                        original_logger.info(msg)
+                            
+                            opts['logger'] = HLS403Monitor()
+                            
+                            # Запускаем таймер для принудительного прерывания через 15 секунд
+                            def timeout_handler():
+                                time.sleep(15)  # Ждем 15 секунд
+                                if not hls_403_detected.is_set():
+                                    # Если за 15 секунд не было прогресса - прерываем
+                                    logger.warning("HLS download with proxy timeout after 15 seconds - aborting")
+                                    hls_403_detected.set()
+                            
+                            timeout_thread = threading.Thread(target=timeout_handler, daemon=True)
+                            timeout_thread.start()
+                        
+                        with yt_dlp.YoutubeDL(opts) as ydl:
+                            if is_hls and opts.get('proxy'):
+                                try:
+                                    # Запускаем скачивание в отдельном потоке для возможности прерывания
+                                    download_exception = [None]
+                                    
+                                    def download_wrapper():
+                                        try:
+                                            ydl.download([url])
+                                        except Exception as e:
+                                            download_exception[0] = e
+                                    
+                                    download_thread = threading.Thread(target=download_wrapper, daemon=True)
+                                    download_thread.start()
+                                    download_thread.join(timeout=15)  # Максимум 15 секунд
+                                    
+                                    # Проверяем, была ли обнаружена ошибка 403
+                                    if hls_403_detected.is_set():
+                                        logger.warning("HLS 403 error detected - aborting download immediately")
+                                        raise yt_dlp.utils.DownloadError("HLS 403 error detected - proxy blocked. Please try another proxy.")
+                                    
+                                    if download_thread.is_alive():
+                                        # Если поток еще работает после 15 секунд - прерываем
+                                        logger.warning("HLS download with proxy exceeded 15 second timeout - aborting")
+                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 15 seconds - too many 403 errors. Please try another proxy.")
+                                    
+                                    # Проверяем, была ли ошибка в потоке
+                                    if download_exception[0]:
+                                        raise download_exception[0]
+                                except yt_dlp.utils.DownloadError as e:
+                                    # Re-raise all errors
+                                    raise
+                            else:
+                                ydl.download([url])
+                        return True
+                    
+                    from HELPERS.proxy_helper import try_with_proxy_fallback
+                    result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
+                except Exception as proxy_error:
+                    last_download_error = str(proxy_error)
+                    result = None
+                finally:
+                    # Always stop cycle animation, even if error occurred
+                    if cycle_stop is not None:
+                        cycle_stop.set()
+                    if cycle_thread is not None:
+                        cycle_thread.join(timeout=1)
+                
                 if result is None:
-                    raise Exception("Failed to download audio with all available proxies")
+                    # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
+                    if is_youtube_url(url) and user_id is not None:
+                        from COMMANDS.cookies_cmd import is_youtube_geo_error, retry_download_with_proxy
+                        # Используем последнюю ошибку, если она есть
+                        error_to_check = last_download_error if last_download_error else "Failed to download audio with all available proxies"
+                        if is_youtube_geo_error(error_to_check):
+                            logger.info(f"YouTube geo-blocked error detected in audio download for user {user_id}, attempting retry with proxy from file")
+                            
+                            def try_download_audio_wrapper(url_arg, attempt_opts_dict):
+                                proxy_url = attempt_opts_dict.get('proxy')
+                                import threading
+                                if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
+                                    threading.current_thread().proxy_for_audio_download = None
+                                threading.current_thread().proxy_for_audio_download = proxy_url
+                                return try_download_audio(url_arg, current_index)
+                            
+                            retry_result = retry_download_with_proxy(
+                                user_id, url, try_download_audio_wrapper, url, {}, error_message=error_to_check
+                            )
+                            
+                            if retry_result is not None:
+                                logger.info(f"Audio download retry with proxy from file successful for user {user_id}")
+                                result = retry_result
+                            else:
+                                logger.warning(f"Audio download retry with proxy from file failed for user {user_id}")
+                    
+                    if result is None:
+                        raise Exception("Failed to download audio with all available proxies")
                 
                 try:
                     full_bar = "🟩" * 10
@@ -1247,6 +1394,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
+                # Ensure cycle animation is stopped on error
+                if 'cycle_stop' in locals() and cycle_stop is not None:
+                    cycle_stop.set()
+                if 'cycle_thread' in locals() and cycle_thread is not None:
+                    cycle_thread.join(timeout=1)
+                
                 error_text = str(e)
                 logger.error(f"DownloadError: {error_text}")
                 
@@ -1419,12 +1572,32 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Проверяем, связана ли ошибка с региональными ограничениями YouTube
                 if is_youtube_url(url):
-                    if is_youtube_geo_error(error_text) and not did_proxy_retry:
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy")
+                    # НО: если все прокси уже провалились - не пытаемся снова
+                    if "Failed to download audio with all available proxies" in error_text:
+                        logger.warning(f"All proxies already failed for audio, skipping proxy retry")
+                    elif is_youtube_geo_error(error_text) and not did_proxy_retry:
+                        logger.debug(f"Checking geo-error in audio: is_youtube_geo_error={is_youtube_geo_error(error_text)}, did_proxy_retry={did_proxy_retry}, error_text[:200]={error_text[:200]}")
+                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
+                        logger.info(f"Full error message: {error_text}")
                         
-                        # Пробуем скачать через прокси
+                        # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
+                        # attempt_opts будет содержать прокси, который нужно использовать
+                        def try_download_audio_wrapper(url_arg, attempt_opts_dict):
+                            # Сохраняем прокси из attempt_opts для использования в try_download_audio
+                            proxy_url = attempt_opts_dict.get('proxy')
+                            
+                            # Используем thread-local storage для передачи прокси в try_download_audio
+                            import threading
+                            if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
+                                threading.current_thread().proxy_for_audio_download = None
+                            threading.current_thread().proxy_for_audio_download = proxy_url
+                            
+                            # Вызываем оригинальную функцию
+                            return try_download_audio(url_arg, current_index)
+                        
+                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
                         retry_result = retry_download_with_proxy(
-                            user_id, url, try_download_audio, url, current_index
+                            user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
                         )
                         
                         if retry_result is not None:
@@ -1432,8 +1605,44 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             did_proxy_retry = True
                             return retry_result
                         else:
-                            logger.warning(f"Audio download retry with proxy failed for user {user_id}")
+                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
+                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
                             did_proxy_retry = True
+                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
+                    elif is_youtube_geo_error(error_text):
+                        logger.info(f"Geo-error detected in audio but proxy retry already attempted, skipping")
+                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
+                        logger.info(f"Full error message: {error_text}")
+                        
+                        # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
+                        # attempt_opts будет содержать прокси, который нужно использовать
+                        def try_download_audio_wrapper(url_arg, attempt_opts_dict):
+                            # Сохраняем прокси из attempt_opts для использования в try_download_audio
+                            proxy_url = attempt_opts_dict.get('proxy')
+                            
+                            # Используем thread-local storage для передачи прокси в try_download_audio
+                            import threading
+                            if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
+                                threading.current_thread().proxy_for_audio_download = None
+                            threading.current_thread().proxy_for_audio_download = proxy_url
+                            
+                            # Вызываем оригинальную функцию
+                            return try_download_audio(url_arg, current_index)
+                        
+                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
+                        retry_result = retry_download_with_proxy(
+                            user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
+                        )
+                        
+                        if retry_result is not None:
+                            logger.info(f"Audio download retry with proxy successful for user {user_id}")
+                            did_proxy_retry = True
+                            return retry_result
+                        else:
+                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
+                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
+                            did_proxy_retry = True
+                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube audio download error detected for user {user_id}, attempting cookie fallback")
@@ -1565,6 +1774,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             except Exception as e:
                 error_text = str(e)
                 logger.error(f"Audio download attempt failed: {e}")
+                logger.debug(f"Error message for geo-check in audio: {error_text[:500]}")
+                
+                # Если все прокси уже провалились - сразу прерываем все операции
+                if "Failed to download audio with all available proxies" in error_text:
+                    logger.warning(f"All proxies failed for audio, error already sent to user - aborting all operations immediately")
+                    if not getattr(down_and_audio, '_error_message_sent', False):
+                        send_error_to_user(
+                            message,
+                            safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
+                        )
+                        down_and_audio._error_message_sent = True
+                    # Прерываем все дальнейшие операции
+                    return None
                 
                 # Check if this is a "No videos found in playlist" error
                 if "No videos found in playlist" in error_text or "Story might have expired" in error_text:
