@@ -343,6 +343,7 @@ Gamitin:
     ERROR_UNKNOWN_MSG = "❌ Hindi kilalang error: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Walang sapat na disk space upang mag-download ng mga video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Ang file size ay lumampas sa limit na {limit} GB. Mangyaring pumili ng mas maliit na file sa loob ng pinapayagang size."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Nabigo sa pag-download ng video gamit ang lahat ng available na proxy</b>\n\nLahat ng pagtatangka sa pag-download sa pamamagitan ng proxy ay nabigo.\nSubukan:\n• Suriin ang paggana ng proxy\n• Subukan ang ibang proxy mula sa listahan\n• Mag-download nang walang proxy (kung posible)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error sa pagkuha ng link:</b>\n{error}"
 

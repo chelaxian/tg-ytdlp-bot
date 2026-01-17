@@ -343,6 +343,7 @@ Yi amfani da:
     ERROR_UNKNOWN_MSG = "❌ Kuskure da ba a sani ba: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Babu isasshen sarari na diski don saukewa bidiyoyi."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Girman fayil ya wuce iyakar {limit} GB. Da fatan za a zaɓi fayil ƙarami a cikin girman da aka yarda."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>An kasa saukar da bidiyo tare da duk wakilcin da ake da shi</b>\n\nDuk ƙoƙarin saukewa ta hanyar wakilci sun gaza.\nGwada:\n• Bincika aikin wakilci\n• Gwada wani wakilci daga jerin\n• Saukewa ba tare da wakilci ba (idan zai yiwu)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Kuskure wajen samun hanyar haɗi:</b>\n{error}"
 

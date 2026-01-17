@@ -343,6 +343,7 @@ Use:
     ERROR_UNKNOWN_MSG = "❌ Kesalahan tidak diketahui: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Ruang disk tidak cukup untuk mengunduh video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Ukuran file melebihi batas {limit} GB. Silakan pilih file yang lebih kecil dalam ukuran yang diizinkan."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Gagal mengunduh video dengan semua proxy yang tersedia</b>\n\nSemua upaya pengunduhan melalui proxy gagal.\nCoba:\n• Periksa fungsionalitas proxy\n• Coba proxy lain dari daftar\n• Unduh tanpa proxy (jika memungkinkan)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
 

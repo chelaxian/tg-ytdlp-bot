@@ -1782,12 +1782,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     if not getattr(down_and_audio, '_error_message_sent', False):
                         send_error_to_user(
                             message,
-                            f"❌ <b>Не удалось скачать аудио со всеми доступными прокси</b>\n\n"
-                            f"Все попытки скачивания через прокси завершились неудачей.\n"
-                            f"Попробуйте:\n"
-                            f"• Проверить работоспособность прокси\n"
-                            f"• Попробовать другой прокси из списка\n"
-                            f"• Скачать без прокси (если возможно)"
+                            safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
                         )
                         down_and_audio._error_message_sent = True
                     # Прерываем все дальнейшие операции

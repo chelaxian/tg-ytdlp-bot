@@ -343,6 +343,7 @@ Use:
     ERROR_UNKNOWN_MSG = "❌ Lỗi không xác định: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Không đủ dung lượng ổ đĩa để tải xuống video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Kích thước tệp vượt quá giới hạn {limit} GB. Vui lòng chọn tệp nhỏ hơn trong phạm vi kích thước được phép."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Không thể tải xuống video với tất cả proxy có sẵn</b>\n\nTất cả các lần thử tải xuống qua proxy đều thất bại.\nHãy thử:\n• Kiểm tra chức năng của proxy\n• Thử proxy khác từ danh sách\n• Tải xuống không dùng proxy (nếu có thể)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Lỗi khi lấy liên kết:</b>\n{error}"
 

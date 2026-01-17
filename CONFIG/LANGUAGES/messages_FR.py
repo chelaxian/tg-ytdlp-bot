@@ -343,6 +343,7 @@ Utilisez :
     ERROR_UNKNOWN_MSG = "❌ Erreur inconnue : {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Pas assez d'espace disque pour télécharger les vidéos."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ La taille du fichier dépasse la limite de {limit} Go. Veuillez sélectionner un fichier plus petit dans la taille autorisée."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Échec du téléchargement de la vidéo avec tous les proxies disponibles</b>\n\nToutes les tentatives de téléchargement via proxies ont échoué.\nEssayez:\n• Vérifier le fonctionnement du proxy\n• Essayer un autre proxy de la liste\n• Télécharger sans proxy (si possible)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Erreur lors de l'obtention du lien :</b>\n{error}"
 

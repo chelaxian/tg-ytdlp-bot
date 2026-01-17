@@ -343,6 +343,7 @@ Ishlating:
     ERROR_UNKNOWN_MSG = "❌ Noma'lum xatolik: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Videolarni yuklab olish uchun disk maydoni yetarli emas."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Fayl hajmi {limit} GB chegarasidan oshib ketdi. Iltimos, ruxsat etilgan hajm ichida kichikroq faylni tanlang."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Barcha mavjud proksi-lar bilan video yuklab olish muvaffaqiyatsiz tugadi</b>\n\nProksi-lar orqali barcha yuklab olish urinishlari muvaffaqiyatsiz tugadi.\nUrinib ko'ring:\n• Proksi-lar ishlashini tekshiring\n• Ro'yxatdan boshqa proksi-larni sinab ko'ring\n• Proksi-larsiz yuklab oling (agar mumkin bo'lsa)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Havolani olishda xatolik:</b>\n{error}"
 

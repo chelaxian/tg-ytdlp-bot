@@ -343,6 +343,7 @@ class Messages(object):
     ERROR_UNKNOWN_MSG = "❌ 未知错误：{error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 磁盘空间不足，无法下载视频。"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ 文件大小超过 {limit} GB 限制。请在允许的大小范围内选择较小的文件。"
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>使用所有可用代理下载视频失败</b>\n\n通过代理的所有下载尝试均失败。\n请尝试：\n• 检查代理功能\n• 尝试列表中的其他代理\n• 不使用代理下载（如果可能）"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>获取链接时出错：</b>\n{error}"
 

@@ -2405,12 +2405,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if not error_message_sent:
                         send_error_to_user(
                             message,
-                            f"❌ <b>Не удалось скачать видео со всеми доступными прокси</b>\n\n"
-                            f"Все попытки скачивания через прокси завершились неудачей.\n"
-                            f"Попробуйте:\n"
-                            f"• Проверить работоспособность прокси\n"
-                            f"• Попробовать другой прокси из списка\n"
-                            f"• Скачать без прокси (если возможно)"
+                            safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
                         )
                         error_message_sent = True
                     # Прерываем все дальнейшие операции

@@ -343,6 +343,7 @@ class Messages(object):
     ERROR_UNKNOWN_MSG = "❌ 알 수 없는 오류: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 동영상을 다운로드할 디스크 공간이 부족합니다."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ 파일 크기가 {limit} GB 제한을 초과했습니다. 허용된 크기 내에서 더 작은 파일을 선택하세요."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>사용 가능한 모든 프록시로 비디오 다운로드 실패</b>\n\n프록시를 통한 모든 다운로드 시도가 실패했습니다.\n시도해 보세요:\n• 프록시 기능 확인\n• 목록에서 다른 프록시 시도\n• 프록시 없이 다운로드 (가능한 경우)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>링크 가져오기 오류:</b>\n{error}"
 

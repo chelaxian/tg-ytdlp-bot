@@ -343,6 +343,7 @@ Kullanın:
     ERROR_UNKNOWN_MSG = "❌ Bilinmeyen hata: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Video indirmek için yeterli disk alanı yok."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Dosya boyutu {limit} GB limitini aşıyor. Lütfen izin verilen boyut içinde daha küçük bir dosya seçin."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Tüm mevcut proxy'lerle video indirilemedi</b>\n\nProxy üzerinden yapılan tüm indirme denemeleri başarısız oldu.\nDeneyin:\n• Proxy işlevselliğini kontrol edin\n• Listeden başka bir proxy deneyin\n• Proxy olmadan indirin (mümkünse)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Bağlantı alma hatası:</b>\n{error}"
 

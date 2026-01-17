@@ -343,6 +343,7 @@ Użyj:
     ERROR_UNKNOWN_MSG = "❌ Nieznany błąd: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Za mało miejsca na dysku, aby pobrać filmy."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Rozmiar pliku przekracza limit {limit} GB. Proszę wybrać mniejszy plik w dozwolonym rozmiarze."
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Nie udało się pobrać wideo ze wszystkimi dostępnymi proxy</b>\n\nWszystkie próby pobrania przez proxy zakończyły się niepowodzeniem.\nSpróbuj:\n• Sprawdzić funkcjonalność proxy\n• Wypróbować inne proxy z listy\n• Pobrać bez proxy (jeśli to możliwe)"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Błąd pobierania linku:</b>\n{error}"
 

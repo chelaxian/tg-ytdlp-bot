@@ -343,6 +343,7 @@ class Messages(object):
     ERROR_UNKNOWN_MSG = "❌ 不明なエラー：{error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 動画をダウンロードするためのディスク容量が不足しています。"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ ファイルサイズが{limit}GBの制限を超えています。許可されたサイズ内でより小さなファイルを選択してください。"
+    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>利用可能なすべてのプロキシでビデオのダウンロードに失敗しました</b>\n\nプロキシ経由のすべてのダウンロード試行が失敗しました。\n試してください：\n• プロキシの機能を確認する\n• リストから別のプロキシを試す\n• プロキシなしでダウンロードする（可能な場合）"
 
     ERROR_GETTING_LINK_MSG = "❌ <b>リンク取得エラー：</b>\n{error}"
 
