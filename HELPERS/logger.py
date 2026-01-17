@@ -154,7 +154,7 @@ def sanitize_error_message(error_text: str) -> str:
         
         # Также маскируем прокси в одинарных/двойных кавычках (для командных строк)
         # Паттерн: '--proxy', 'http://user:pass@host:port'
-        proxy_in_quotes_pattern = r"(['\"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)\1"
+        proxy_in_quotes_pattern = r'([\'"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)\1'
         
         def mask_proxy_in_quotes(match):
             quote = match.group(1)
@@ -167,7 +167,7 @@ def sanitize_error_message(error_text: str) -> str:
         sanitized = re.sub(proxy_in_quotes_pattern, mask_proxy_in_quotes, sanitized, flags=re.IGNORECASE)
         
         # Маскируем прокси в квадратных скобках (для списков/массивов)
-        proxy_in_brackets_pattern = r"(\['--proxy',\s*['\"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)(['\"])"
+        proxy_in_brackets_pattern = r'(\[\'--proxy\',\s*[\'"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)([\'"])'
         
         def mask_proxy_in_brackets(match):
             prefix = match.group(1)
