@@ -680,6 +680,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Check if error is related to quality_key
             if "'quality_key'" in str(e):
                 _handle_quality_key_error(e, split_msg_ids, is_playlist, successful_uploads, indices_to_download, video_count, user_id, proc_msg_id, message, app)
+            # Stop animation before returning
+            stop_anim.set()
+            if anim_thread:
+                anim_thread.join(timeout=1)
             return
 
         # If there is no flood error, send a normal message
@@ -696,7 +700,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         status_msg_id = None
         hourglass_msg = None
         hourglass_msg_id = None
-        anim_thread = start_hourglass_animation(user_id, hourglass_msg_id, stop_anim)
+        anim_thread = None
+        # Note: hourglass animation will be started later when hourglass_msg_id is available
 
         # Check if there's enough disk space (estimate 2GB per video)
         user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
@@ -1782,26 +1787,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     ytdl_opts.pop("http_chunk_size", None)
                     # Reduce parallelism for fragile HLS endpoints
                     ytdl_opts["concurrent_fragment_downloads"] = 1
-                    # Limit maximum fragments to prevent infinite loops when many segments fail with 403
-                    # If first few segments fail, abort early instead of trying all segments
-                    # This will abort after trying to download max_fragments segments
-                    # Set to a small number (5) to abort quickly when 403 errors occur
-                    ytdl_opts["max_fragments"] = 5
-                    # Don't skip unavailable fragments - abort early instead
-                    # This prevents infinite loops when many segments fail with 403 errors
-                    ytdl_opts["abort_on_unavailable_fragment"] = True
-                    # Limit fragment retries to 0 (no retries) for faster failure detection
-                    # This will abort immediately when a segment fails with 403
-                    ytdl_opts["fragment_retries"] = 0
-                    ytdl_opts["hls_fragment_retries"] = 0
-                    # Add timeout for HLS segment downloads to fail faster (15 seconds per segment)
-                    if "downloader_args" not in ytdl_opts:
-                        ytdl_opts["downloader_args"] = {}
-                    if "ffmpeg" not in ytdl_opts["downloader_args"]:
-                        ytdl_opts["downloader_args"]["ffmpeg"] = []
-                    # Add timeout for HTTP requests (15 seconds per segment for faster failure)
-                    if "-timeout" not in str(ytdl_opts["downloader_args"]["ffmpeg"]):
-                        ytdl_opts["downloader_args"]["ffmpeg"].extend(["-timeout", "15000000"])  # 15 seconds in microseconds
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
@@ -1816,35 +1801,43 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         _handle_quality_key_error(e, split_msg_ids, is_playlist, successful_uploads, indices_to_download, video_count, user_id, proc_msg_id, message, app)
                 
                 logger.info("Starting download phase...")
-                # Try with proxy fallback if user proxy is enabled
-                def download_operation(opts):
-                    messages = safe_get_messages(user_id)
-                    
-                    with yt_dlp.YoutubeDL(opts) as ydl:
-                        if is_hls:
-                            # For HLS, start cycle progress as fallback, but progress_func will override it if percentages are available
-                            cycle_stop = threading.Event()
-                            progress_data = {'downloaded_bytes': 0, 'total_bytes': 0}
-                            cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop, progress_data)
-                            # Pass cycle_stop and progress_data to progress_func so it can update the cycle animation
-                            progress_func.cycle_stop = cycle_stop
-                            progress_func.progress_data = progress_data
-                            try:
-                                ydl.download([url])
-                            except yt_dlp.utils.DownloadError as e:
-                                # Re-raise all errors
-                                raise
-                            finally:
-                                cycle_stop.set()
-                                cycle_thread.join(timeout=1)
-                        else:
-                            ydl.download([url])
-                        return True
+                # Initialize cycle_stop and cycle_thread for HLS at outer level to ensure cleanup on any error
+                cycle_stop = None
+                cycle_thread = None
+                if is_hls:
+                    cycle_stop = threading.Event()
+                    progress_data = {'downloaded_bytes': 0, 'total_bytes': 0}
+                    cycle_thread = start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop, progress_data)
+                    # Pass cycle_stop and progress_data to progress_func so it can update the cycle animation
+                    progress_func.cycle_stop = cycle_stop
+                    progress_func.progress_data = progress_data
                 
-                from HELPERS.proxy_helper import try_with_proxy_fallback
-                result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
-                if result is None:
-                    raise Exception("Failed to download video with all available proxies")
+                # Try with proxy fallback if user proxy is enabled
+                try:
+                    def download_operation(opts):
+                        messages = safe_get_messages(user_id)
+                        
+                        with yt_dlp.YoutubeDL(opts) as ydl:
+                            if is_hls:
+                                try:
+                                    ydl.download([url])
+                                except yt_dlp.utils.DownloadError as e:
+                                    # Re-raise all errors
+                                    raise
+                            else:
+                                ydl.download([url])
+                            return True
+                    
+                    from HELPERS.proxy_helper import try_with_proxy_fallback
+                    result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
+                    if result is None:
+                        raise Exception("Failed to download video with all available proxies")
+                finally:
+                    # Always stop cycle animation, even if error occurred
+                    if cycle_stop is not None:
+                        cycle_stop.set()
+                    if cycle_thread is not None:
+                        cycle_thread.join(timeout=1)
                 try:
                     safe_edit_message_text(user_id, proc_msg_id, safe_get_messages(user_id).VIDEO_DOWNLOAD_COMPLETE_MSG.format(process=current_total_process, bar=full_bar))
                 except Exception as e:
@@ -1870,6 +1863,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 return info_dict
             except yt_dlp.utils.DownloadError as e:
+                # Ensure cycle animation is stopped on error
+                if 'cycle_stop' in locals() and cycle_stop is not None:
+                    cycle_stop.set()
+                if 'cycle_thread' in locals() and cycle_thread is not None:
+                    cycle_thread.join(timeout=1)
+                
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
@@ -4512,6 +4511,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         except Exception as cleanup_error:
             logger.error(f"Error cleaning up temp files after error for user {user_id}: {cleanup_error}")
     finally:
+        # Always stop hourglass animation to prevent resource leaks
+        try:
+            stop_anim.set()
+            if anim_thread:
+                anim_thread.join(timeout=1)  # Wait for animation thread with timeout
+        except Exception as e:
+            logger.error(f"Error stopping hourglass animation: {e}")
+        
         set_active_download(user_id, False)
         clear_download_start_time(user_id)  # Clear the download start time
         if playlist_name:

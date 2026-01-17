@@ -99,7 +99,9 @@ def send_to_logger(message, msg):
 def send_to_user(message, msg):
     capture_message_context(message)
     user_id = message.chat.id
-    safe_send_message(user_id, msg, parse_mode=enums.ParseMode.HTML, message=message)
+    # Маскируем секретные данные перед отправкой пользователю
+    sanitized_msg = sanitize_error_message(str(msg))
+    safe_send_message(user_id, sanitized_msg, parse_mode=enums.ParseMode.HTML, message=message)
 
 # Send Message to All ...
 
@@ -123,6 +125,68 @@ def _extract_url_from_message(message) -> str:
     except Exception:
         return ""
 
+def sanitize_error_message(error_text: str) -> str:
+    """
+    Маскирует секретные данные в тексте ошибки перед отправкой пользователю.
+    Маскирует:
+    - Прокси с логином/паролем: http://user:pass@host:port -> http://***:***@host:port
+    - Прокси в разных форматах (http, https, socks4, socks5, socks5h)
+    - Пароли в других местах
+    """
+    if not error_text:
+        return error_text
+    
+    try:
+        # Маскируем прокси с логином/паролем в формате protocol://user:pass@host:port
+        # Паттерн: protocol://user:pass@host:port или protocol://user:pass@host
+        # Поддерживаемые протоколы: http, https, socks4, socks5, socks5h
+        proxy_pattern = r'((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\),]+)'
+        
+        def mask_proxy(match):
+            protocol = match.group(1)
+            user = match.group(2)
+            password = match.group(3)
+            host_port = match.group(4)
+            # Маскируем логин и пароль, оставляем протокол и хост:порт
+            return f"{protocol}***:***@{host_port}"
+        
+        sanitized = re.sub(proxy_pattern, mask_proxy, error_text, flags=re.IGNORECASE)
+        
+        # Также маскируем прокси в одинарных/двойных кавычках (для командных строк)
+        # Паттерн: '--proxy', 'http://user:pass@host:port'
+        proxy_in_quotes_pattern = r"(['\"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)\1"
+        
+        def mask_proxy_in_quotes(match):
+            quote = match.group(1)
+            protocol = match.group(2)
+            user = match.group(3)
+            password = match.group(4)
+            host_port = match.group(5)
+            return f"{quote}{protocol}***:***@{host_port}{quote}"
+        
+        sanitized = re.sub(proxy_in_quotes_pattern, mask_proxy_in_quotes, sanitized, flags=re.IGNORECASE)
+        
+        # Маскируем прокси в квадратных скобках (для списков/массивов)
+        proxy_in_brackets_pattern = r"(\['--proxy',\s*['\"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)(['\"])"
+        
+        def mask_proxy_in_brackets(match):
+            prefix = match.group(1)
+            protocol = match.group(2)
+            user = match.group(3)
+            password = match.group(4)
+            host_port = match.group(5)
+            quote = match.group(6)
+            return f"{prefix}{protocol}***:***@{host_port}{quote}"
+        
+        sanitized = re.sub(proxy_in_brackets_pattern, mask_proxy_in_brackets, sanitized, flags=re.IGNORECASE)
+        
+        return sanitized
+    except Exception as e:
+        # Если что-то пошло не так с маскировкой, возвращаем оригинал
+        # но логируем ошибку
+        logger.error(f"Error sanitizing error message: {e}")
+        return error_text
+
 # Send Error Message to User and LOG_EXCEPTION channel
 def send_error_to_user(message, msg, url: str = None):
     capture_message_context(message)
@@ -133,14 +197,18 @@ def send_error_to_user(message, msg, url: str = None):
     """
     user_id = message.chat.id
     url_str = (url or _extract_url_from_message(message) or "").strip()
+    
+    # Маскируем секретные данные в сообщении для пользователя
+    sanitized_msg = sanitize_error_message(str(msg))
+    
     if url_str:
-        msg_with_id = f"{message.chat.first_name} - {user_id}\n \nURL: {url_str}\n\n{msg}"
+        msg_with_id = f"{message.chat.first_name} - {user_id}\n \nURL: {url_str}\n\n{sanitized_msg}"
     else:
-        msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    # Send to LOG_EXCEPTION channel for error tracking
+        msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{sanitized_msg}"
+    # Send to LOG_EXCEPTION channel for error tracking (полная версия для админов)
     safe_send_message(Config.LOG_EXCEPTION, msg_with_id, parse_mode=enums.ParseMode.HTML)
-    # Send to user
-    safe_send_message(user_id, msg, parse_mode=enums.ParseMode.HTML, message=message)
+    # Send to user (маскированная версия)
+    safe_send_message(user_id, sanitized_msg, parse_mode=enums.ParseMode.HTML, message=message)
 
 # Log error message to LOG_EXCEPTION channel (without sending to user)
 def log_error_to_channel(message, msg, url: str = None):

@@ -11,7 +11,7 @@ from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from HELPERS.app_instance import get_app
-from HELPERS.logger import logger, send_to_user, send_error_to_user
+from HELPERS.logger import logger, send_to_user, send_error_to_user, sanitize_error_message
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.safe_messeger import safe_send_message
 from HELPERS.decorators import background_handler
@@ -61,7 +61,13 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
         # Append URL last
         cmd.append(url)
         
-        logger.info(f"Running yt-dlp list command: {' '.join(cmd)}")
+        # Маскируем прокси в логах для безопасности
+        log_cmd = cmd.copy()
+        if proxy_url and '--proxy' in log_cmd:
+            proxy_idx = log_cmd.index('--proxy')
+            if proxy_idx + 1 < len(log_cmd):
+                log_cmd[proxy_idx + 1] = sanitize_error_message(log_cmd[proxy_idx + 1])
+        logger.info(f"Running yt-dlp list command: {' '.join(log_cmd)}")
         
         # Run command
         result = subprocess.run(
@@ -218,7 +224,9 @@ safe_get_messages(user_id).LIST_PROCESSING_MSG,
             except Exception:
                 pass
                 
-            send_error_to_user(message, safe_get_messages(user_id).LIST_ERROR_GETTING_MSG.format(error=output))
+            # Маскируем секретные данные (прокси с логином/паролем) перед отправкой пользователю
+            sanitized_output = sanitize_error_message(output)
+            send_error_to_user(message, safe_get_messages(user_id).LIST_ERROR_GETTING_MSG.format(error=sanitized_output))
             
     except Exception as e:
         logger.error(f"Error in list command: {e}")
