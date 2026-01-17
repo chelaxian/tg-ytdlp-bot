@@ -2240,8 +2240,30 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси из файла
                     # Не прерываем скачивание сразу, а пробуем все подходящие прокси
-                    logger.info(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
-                    if is_youtube_geo_error(error_message) and not did_proxy_retry:
+                    # НО: если все прокси уже провалились - не пытаемся снова
+                    if "Failed to download video with all available proxies" in error_message:
+                        logger.warning(f"All proxies already failed, skipping proxy retry")
+                    elif is_youtube_geo_error(error_message) and not did_proxy_retry:
+                        logger.info(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
+                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
+                        logger.info(f"Full error message: {error_message}")
+                        
+                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
+                        retry_result = retry_download_with_proxy(
+                            user_id, url, try_download, url, attempt_opts, error_message=error_message
+                        )
+                        
+                        if retry_result is not None:
+                            logger.info(f"Download retry with proxy successful for user {user_id}")
+                            did_proxy_retry = True
+                            return retry_result
+                        else:
+                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
+                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
+                            did_proxy_retry = True
+                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
+                    elif is_youtube_geo_error(error_message):
+                        logger.info(f"Geo-error detected but proxy retry already attempted, skipping")
                         logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
                         logger.info(f"Full error message: {error_message}")
                         
@@ -2376,6 +2398,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 error_message = str(e)
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}")
                 logger.debug(f"Error message for geo-check: {error_message[:500]}")
+                
+                # Если все прокси уже провалились - сразу прерываем все операции
+                if "Failed to download video with all available proxies" in error_message:
+                    logger.warning(f"All proxies failed, error already sent to user - aborting all operations immediately")
+                    if not error_message_sent:
+                        send_error_to_user(
+                            message,
+                            f"❌ <b>Не удалось скачать видео со всеми доступными прокси</b>\n\n"
+                            f"Все попытки скачивания через прокси завершились неудачей.\n"
+                            f"Попробуйте:\n"
+                            f"• Проверить работоспособность прокси\n"
+                            f"• Попробовать другой прокси из списка\n"
+                            f"• Скачать без прокси (если возможно)"
+                        )
+                        error_message_sent = True
+                    # Прерываем все дальнейшие операции
+                    return None
+                
                 # Auto-fallback to gallery-dl for obvious non-video cases
                 emsg = str(e)
                 if (
