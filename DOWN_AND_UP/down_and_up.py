@@ -1787,6 +1787,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     ytdl_opts.pop("http_chunk_size", None)
                     # Reduce parallelism for fragile HLS endpoints
                     ytdl_opts["concurrent_fragment_downloads"] = 1
+                    
+                    # Если используется прокси - добавляем параметры для быстрого прерывания при ошибках 403
+                    # чтобы не ждать 20 минут в бесконечном цикле повторов
+                    if ytdl_opts.get('proxy'):
+                        logger.info("HLS stream with proxy detected - adding fast-fail options to prevent infinite 403 retries")
+                        ytdl_opts["fragment_retries"] = 0  # Не повторять при ошибке фрагмента
+                        ytdl_opts["hls_fragment_retries"] = 0  # Не повторять HLS-сегменты
+                        ytdl_opts["abort_on_unavailable_fragment"] = True  # Прервать при недоступном сегменте
+                        ytdl_opts["max_fragments"] = 1  # Максимум 1 сегмент для теста (если ошибка - сразу прервать)
+                        logger.info("Fast-fail options applied: fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,

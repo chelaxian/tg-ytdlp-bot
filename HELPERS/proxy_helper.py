@@ -270,6 +270,15 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                         # Добавляем PO token provider для YouTube (если еще не добавлен)
                         if is_youtube_url(url):
                             current_opts = add_pot_to_ytdl_opts(current_opts, url)
+                        
+                        # Если это HLS-стрим - добавляем параметры для быстрого прерывания при ошибках 403
+                        if "m3u8" in url.lower() or current_opts.get("downloader") == "ffmpeg" or current_opts.get("hls_prefer_native") is False:
+                            logger.info("HLS stream with proxy detected in fallback - adding fast-fail options")
+                            current_opts["fragment_retries"] = 0
+                            current_opts["hls_fragment_retries"] = 0
+                            current_opts["abort_on_unavailable_fragment"] = True
+                            current_opts["max_fragments"] = 1
+                        
                         logger.info(f"Trying {url} with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
                         result = operation_func(current_opts, *args, **kwargs)
                         
@@ -355,6 +364,14 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
             # Добавляем PO token provider для YouTube (если еще не добавлен)
             if is_youtube_url(url):
                 current_opts = add_pot_to_ytdl_opts(current_opts, url)
+            
+            # Если это HLS-стрим - добавляем параметры для быстрого прерывания при ошибках 403
+            if "m3u8" in url.lower() or current_opts.get("downloader") == "ffmpeg" or current_opts.get("hls_prefer_native") is False:
+                logger.info("HLS stream with proxy detected in ALL AUTO fallback - adding fast-fail options")
+                current_opts["fragment_retries"] = 0
+                current_opts["hls_fragment_retries"] = 0
+                current_opts["abort_on_unavailable_fragment"] = True
+                current_opts["max_fragments"] = 1
             
             source_info = f"{proxy_item['source']}"
             if proxy_item['source'] == 'file':
