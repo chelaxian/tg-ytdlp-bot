@@ -274,10 +274,17 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                         # Если это HLS-стрим - добавляем параметры для быстрого прерывания при ошибках 403
                         if "m3u8" in url.lower() or current_opts.get("downloader") == "ffmpeg" or current_opts.get("hls_prefer_native") is False:
                             logger.info("HLS stream with proxy detected in fallback - adding fast-fail options")
+                            # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
+                            current_opts["hls_prefer_native"] = True
+                            current_opts["downloader"] = "native"  # Используем native downloader для HLS
                             current_opts["fragment_retries"] = 0
                             current_opts["hls_fragment_retries"] = 0
                             current_opts["abort_on_unavailable_fragment"] = True
                             current_opts["max_fragments"] = 1
+                            # Добавляем таймаут для downloader_args
+                            if "downloader_args" not in current_opts:
+                                current_opts["downloader_args"] = {}
+                            current_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
                         
                         logger.info(f"Trying {url} with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
                         result = operation_func(current_opts, *args, **kwargs)
@@ -368,10 +375,17 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
             # Если это HLS-стрим - добавляем параметры для быстрого прерывания при ошибках 403
             if "m3u8" in url.lower() or current_opts.get("downloader") == "ffmpeg" or current_opts.get("hls_prefer_native") is False:
                 logger.info("HLS stream with proxy detected in ALL AUTO fallback - adding fast-fail options")
+                # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
+                current_opts["hls_prefer_native"] = True
+                current_opts["downloader"] = "native"  # Используем native downloader для HLS
                 current_opts["fragment_retries"] = 0
                 current_opts["hls_fragment_retries"] = 0
                 current_opts["abort_on_unavailable_fragment"] = True
                 current_opts["max_fragments"] = 1
+                # Добавляем таймаут для downloader_args
+                if "downloader_args" not in current_opts:
+                    current_opts["downloader_args"] = {}
+                current_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
             
             source_info = f"{proxy_item['source']}"
             if proxy_item['source'] == 'file':

@@ -1792,11 +1792,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # чтобы не ждать 20 минут в бесконечном цикле повторов
                     if ytdl_opts.get('proxy'):
                         logger.info("HLS stream with proxy detected - adding fast-fail options to prevent infinite 403 retries")
+                        # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
+                        ytdl_opts["hls_prefer_native"] = True
+                        ytdl_opts["downloader"] = "native"  # Используем native downloader для HLS
                         ytdl_opts["fragment_retries"] = 0  # Не повторять при ошибке фрагмента
                         ytdl_opts["hls_fragment_retries"] = 0  # Не повторять HLS-сегменты
                         ytdl_opts["abort_on_unavailable_fragment"] = True  # Прервать при недоступном сегменте
                         ytdl_opts["max_fragments"] = 1  # Максимум 1 сегмент для теста (если ошибка - сразу прервать)
-                        logger.info("Fast-fail options applied: fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
+                        # Добавляем таймаут для downloader_args (на случай если native не сработает)
+                        if "downloader_args" not in ytdl_opts:
+                            ytdl_opts["downloader_args"] = {}
+                        ytdl_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
+                        logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
@@ -1827,10 +1834,81 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     def download_operation(opts):
                         messages = safe_get_messages(user_id)
                         
+                        # Если используется прокси и HLS - добавляем таймаут для быстрого прерывания
+                        if is_hls and opts.get('proxy'):
+                            import signal
+                            import threading
+                            
+                            # Флаг для отслеживания ошибок 403
+                            hls_403_detected = threading.Event()
+                            
+                            # Создаем кастомный logger hook для мониторинга ошибок 403
+                            original_logger = opts.get('logger') or logger
+                            
+                            class HLS403Monitor:
+                                def error(self, msg):
+                                    if "403" in str(msg) or "HTTP error 403" in str(msg) or "Forbidden" in str(msg):
+                                        logger.warning(f"HLS 403 error detected in logger: {msg}")
+                                        hls_403_detected.set()
+                                    original_logger.error(msg)
+                                
+                                def warning(self, msg):
+                                    if "403" in str(msg) or "HTTP error 403" in str(msg) or "Forbidden" in str(msg):
+                                        logger.warning(f"HLS 403 error detected in logger: {msg}")
+                                        hls_403_detected.set()
+                                    if hasattr(original_logger, 'warning'):
+                                        original_logger.warning(msg)
+                                
+                                def debug(self, msg):
+                                    if hasattr(original_logger, 'debug'):
+                                        original_logger.debug(msg)
+                                
+                                def info(self, msg):
+                                    if hasattr(original_logger, 'info'):
+                                        original_logger.info(msg)
+                            
+                            opts['logger'] = HLS403Monitor()
+                            
+                            # Запускаем таймер для принудительного прерывания через 15 секунд
+                            def timeout_handler():
+                                time.sleep(15)  # Ждем 15 секунд
+                                if not hls_403_detected.is_set():
+                                    # Если за 15 секунд не было прогресса - прерываем
+                                    logger.warning("HLS download with proxy timeout after 15 seconds - aborting")
+                                    hls_403_detected.set()
+                            
+                            timeout_thread = threading.Thread(target=timeout_handler, daemon=True)
+                            timeout_thread.start()
+                        
                         with yt_dlp.YoutubeDL(opts) as ydl:
-                            if is_hls:
+                            if is_hls and opts.get('proxy'):
                                 try:
-                                    ydl.download([url])
+                                    # Запускаем скачивание в отдельном потоке для возможности прерывания
+                                    download_exception = [None]
+                                    
+                                    def download_wrapper():
+                                        try:
+                                            ydl.download([url])
+                                        except Exception as e:
+                                            download_exception[0] = e
+                                    
+                                    download_thread = threading.Thread(target=download_wrapper, daemon=True)
+                                    download_thread.start()
+                                    download_thread.join(timeout=15)  # Максимум 15 секунд
+                                    
+                                    # Проверяем, была ли обнаружена ошибка 403
+                                    if hls_403_detected.is_set():
+                                        logger.warning("HLS 403 error detected - aborting download immediately")
+                                        raise yt_dlp.utils.DownloadError("HLS 403 error detected - proxy blocked. Please try another proxy.")
+                                    
+                                    if download_thread.is_alive():
+                                        # Если поток еще работает после 15 секунд - прерываем
+                                        logger.warning("HLS download with proxy exceeded 15 second timeout - aborting")
+                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 15 seconds - too many 403 errors. Please try another proxy.")
+                                    
+                                    # Проверяем, была ли ошибка в потоке
+                                    if download_exception[0]:
+                                        raise download_exception[0]
                                 except yt_dlp.utils.DownloadError as e:
                                     # Re-raise all errors
                                     raise
