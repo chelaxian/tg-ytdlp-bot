@@ -1409,6 +1409,9 @@ Utilisez :
     AUDIO_EXTRACTION_FAILED_MSG = "❌ Échec de l'extraction des informations audio"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Ignorant le type de fichier non supporté dans la liste de lecture à l'index {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "Fichier audio introuvable après téléchargement."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ Échec de l'envoi de l'audio : La taille du fichier est égale à 0 B (index de la liste de lecture {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ Le fichier audio est encore en cours de téléchargement, veuillez patienter..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Téléversement du fichier audio...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ Échec de l'envoi de l'audio : {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "Audio de liste de lecture envoyé : {sent}/{total} fichiers (qualité={quality}) à l'utilisateur{user_id}"
@@ -1418,6 +1421,9 @@ Utilisez :
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ Fichier vidéo introuvable : {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ Échec de l'envoi de la vidéo : La taille du fichier est égale à 0 B (index de la liste de lecture {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ Le fichier vidéo est encore en cours de téléchargement, veuillez patienter..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Erreur lors du traitement de la vidéo : {error}"
     
     # Sender messages

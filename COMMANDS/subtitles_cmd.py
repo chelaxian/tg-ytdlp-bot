@@ -1046,10 +1046,12 @@ def _clean_srt_text(text: str) -> str:
     text = re.sub(r'</?c[^>]*>', '', text)
 
     # We clean the webvt parameters in the timing line
+    # Keep both start and end times, but remove cue settings after the end time
     def _strip_settings(m):
-        return m.group(1)
+        # Group 1: start time, Group 2: -->, Group 3: end time, Group 4: settings to remove
+        return m.group(1) + m.group(2) + m.group(3)
     text = re.sub(
-        r'(^\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(.*)$',
+        r'(^\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(\s*-->\s*)(\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(.*)$',
         _strip_settings,
         text,
         flags=re.MULTILINE
@@ -1107,8 +1109,13 @@ def _convert_vtt_to_srt(path: str) -> str:
             tc_line = next((l for l in lines if '-->' in l), None)
             if not tc_line:
                 continue
+            # Convert VTT timing format (HH:MM:SS.mmm) to SRT format (HH:MM:SS,mmm)
+            # VTT format: 00:00:49.966 --> 00:01:12.447
+            # SRT format: 00:00:49,966 --> 00:01:12,447
             timing = re.sub(r'(\d{2}:\d{2}:\d{2})\.(\d{3})', r'\1,\2', tc_line)
-            timing = re.sub(r'(-->.*?)(\s+.*)$', r'\1', timing)
+            # Remove any cue settings after the end time (like align:start, position:10%, etc.)
+            # But keep the end time itself
+            timing = re.sub(r'(-->.*?\d{2}:\d{2}:\d{2}[.,]\d{3}).*$', r'\1', timing)
             payload = '\n'.join(lines[lines.index(tc_line)+1:]).strip()
             if not payload:
                 continue
@@ -1417,9 +1424,9 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 logger.info(f"{LoggerMsg.SUBS_LANGUAGE_NOT_FOUND_LOG_MSG}")
                 return None
 
-            client = _subs_check_cache.get(f"{url}_{user_id}_client", 'tv')  # tv is the only reliable client
-
-            info_opts = {
+            # Use the same extraction logic as get_available_subs_languages
+            # Try different clients to ensure we get subtitle tracks
+            base_opts = {
                 'quiet': True,
                 'no_warnings': True,
                 'skip_download': True,
@@ -1431,14 +1438,13 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 'max_sleep_interval': 3,
                 'retries': 6,
                 'extractor_retries': 3,
-                'extractor_args': {'youtube': {'player_client': [client]}},
             }
             # cookies
             user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(user_cookie_path):
-                info_opts['cookiefile'] = user_cookie_path
+                base_opts['cookiefile'] = user_cookie_path
             elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
-                info_opts['cookiefile'] = Config.COOKIE_FILE_PATH
+                base_opts['cookiefile'] = Config.COOKIE_FILE_PATH
             
             # Add proxy configuration based on attempt number
             # Attempt 0: use default proxy (via add_proxy_to_ytdl_opts)
@@ -1448,7 +1454,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             
             if attempt == 0:
                 # First attempt: use default proxy logic
-                info_opts = add_proxy_to_ytdl_opts(info_opts, url)
+                base_opts = add_proxy_to_ytdl_opts(base_opts, url)
             elif attempt == 1:
                 # Second attempt: use PROXY
                 proxy_config = {
@@ -1460,7 +1466,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 }
                 proxy_url = build_proxy_url(proxy_config)
                 if proxy_url:
-                    info_opts['proxy'] = proxy_url
+                    base_opts['proxy'] = proxy_url
                     logger.info(f"Using PROXY for subtitle download attempt {attempt + 1}: {proxy_url}")
             elif attempt == 2:
                 # Third attempt: use PROXY_2
@@ -1473,89 +1479,151 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 }
                 proxy_url = build_proxy_url(proxy_config)
                 if proxy_url:
-                    info_opts['proxy'] = proxy_url
+                    base_opts['proxy'] = proxy_url
                     logger.info(f"Using PROXY_2 for subtitle download attempt {attempt + 1}: {proxy_url}")
             
             # Add PO token provider for YouTube domains
-            info_opts = add_pot_to_ytdl_opts(info_opts, url)
+            base_opts = add_pot_to_ytdl_opts(base_opts, url)
 
-            # Reuse the same ydl instance for both extract_info and urlopen
-            with yt_dlp.YoutubeDL(info_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
+            # Try different clients, same as get_available_subs_languages
+            info = None
+            used_client = None
+            working_ydl = None
+            working_info_opts = None
+            
+            for client in ('tv', None):  # Only try tv client since it always works
+                opts = dict(base_opts)
+                # Preserve youtubepot extractor_args if they exist (from PO token provider)
+                # and add youtube player_client
+                if 'extractor_args' in opts:
+                    extractor_args = opts['extractor_args'].copy()
+                    # Remove youtube key if it exists, we'll set it per client
+                    extractor_args.pop('youtube', None)
+                    if client:
+                        extractor_args['youtube'] = {'player_client': [client]}
+                    elif extractor_args:
+                        # If client is None but we have other extractor_args (like youtubepot), keep them
+                        opts['extractor_args'] = extractor_args
+                    else:
+                        # No extractor_args needed
+                        opts.pop('extractor_args', None)
+                elif client:
+                    # No existing extractor_args, create new one with youtube client
+                    opts['extractor_args'] = {'youtube': {'player_client': [client]}}
+                # If client is None and no extractor_args, don't set it (use default client)
+                
+                try:
+                    ydl = yt_dlp.YoutubeDL(opts)
+                    info = ydl.extract_info(url, download=False)
+                except yt_dlp.utils.DownloadError as e:
+                    if 'Requested format is not available' in str(e):
+                        logger.warning(f"Client {client} failed with format error, trying next client")
+                        continue
+                    raise
+                
+                if info and (info.get('subtitles') or info.get('automatic_captions')):
+                    used_client = client or 'default'
+                    working_ydl = ydl
+                    logger.info(f"Successfully extracted info with client {used_client}, found subtitles")
+                    # Cache the working client
+                    _subs_check_cache[f"{url}_{user_id}_client"] = used_client
+                    break
+                elif info:
+                    logger.warning(f"Client {client} returned info but no subtitles, trying next client")
+                    # Keep info and ydl as fallback if we don't find subtitles with any client
+                    if not working_ydl:
+                        used_client = client or 'default'
+                        working_ydl = ydl
+            
+            if not info:
+                logger.error("yt-dlp extract_info returned None in download_subtitles_ytdlp after trying all clients")
+                return None
+            
+            # Use the working ydl instance for downloading subtitles
+            if not working_ydl:
+                logger.error("No working ydl instance found in download_subtitles_ytdlp")
+                return None
+            ydl = working_ydl
 
-                # Prefer union view: sometimes only one dict is filled depending on client
-                subs_dict = {}
-                if not auto_mode:
-                    subs_dict = info.get('subtitles', {}) or {}
-                    # merge automatic as fallbacks for listing
-                    auto_dict = info.get('automatic_captions', {}) or {}
-                    for k, v in auto_dict.items():
-                        subs_dict.setdefault(k, v)
-                else:
-                    subs_dict = info.get('automatic_captions', {}) or {}
-                    normal_dict = info.get('subtitles', {}) or {}
-                    for k, v in normal_dict.items():
-                        subs_dict.setdefault(k, v)
-                tracks = subs_dict.get(found_lang) or []
-                if not tracks:
-                    alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
-                    tracks = subs_dict.get(alt, []) if alt else []
+            # Prefer union view: sometimes only one dict is filled depending on client
+            subs_dict = {}
+            if not auto_mode:
+                subs_dict = info.get('subtitles', {}) or {}
+                # merge automatic as fallbacks for listing
+                auto_dict = info.get('automatic_captions', {}) or {}
+                for k, v in auto_dict.items():
+                    subs_dict.setdefault(k, v)
+            else:
+                subs_dict = info.get('automatic_captions', {}) or {}
+                normal_dict = info.get('subtitles', {}) or {}
+                for k, v in normal_dict.items():
+                    subs_dict.setdefault(k, v)
+            
+            logger.info(f"[DEBUG] download_subtitles_ytdlp: found_lang={found_lang}, auto_mode={auto_mode}, used_client={used_client}, subs_dict keys={list(subs_dict.keys())}")
+            logger.info(f"[DEBUG] download_subtitles_ytdlp: subtitles keys={list(info.get('subtitles', {}).keys())}, automatic_captions keys={list(info.get('automatic_captions', {}).keys())}")
+            
+            tracks = subs_dict.get(found_lang) or []
+            if not tracks:
+                alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
+                if alt:
+                    logger.info(f"[DEBUG] download_subtitles_ytdlp: found alternative language key: {alt}")
+                    tracks = subs_dict.get(alt, [])
 
-                if not tracks:
-                    logger.error(LoggerMsg.SUBS_NO_TRACK_URL_FOUND_LOG_MSG)
-                    return None
+            if not tracks:
+                logger.error(f"{LoggerMsg.SUBS_NO_TRACK_URL_FOUND_LOG_MSG} for language '{found_lang}'. Available languages: {list(subs_dict.keys())}, used_client={used_client}")
+                return None
+            
+            # Detect translated subs (tlang=) - these are more rate-limited
+            def _is_translated_track(t: dict) -> bool:
+                u = (t.get("url") or "")
+                return "tlang=" in u
 
-                # Detect translated subs (tlang=) - these are more rate-limited
-                def _is_translated_track(t: dict) -> bool:
-                    u = (t.get("url") or "")
-                    return "tlang=" in u
+            any_translated = any(_is_translated_track(t) for t in tracks)
 
-                any_translated = any(_is_translated_track(t) for t in tracks)
+            # Prefer formats that are easier on YouTube and convertible locally
+            # For translated tracks, SRT is often the most rate-limited -> keep it last
+            if any_translated:
+                preferred = ('srv3', 'json3', 'vtt', 'ttml', 'srt')
+            else:
+                preferred = ('vtt', 'ttml', 'srv3', 'json3', 'srt')
 
-                # Prefer formats that are easier on YouTube and convertible locally
-                # For translated tracks, SRT is often the most rate-limited -> keep it last
-                if any_translated:
-                    preferred = ('srv3', 'json3', 'vtt', 'ttml', 'srt')
-                else:
-                    preferred = ('vtt', 'ttml', 'srv3', 'json3', 'srt')
+            def _prio(t: dict) -> int:
+                ext = ((t.get("ext") or "").lower())
+                return preferred.index(ext) if ext in preferred else 999
 
-                def _prio(t: dict) -> int:
-                    ext = ((t.get("ext") or "").lower())
-                    return preferred.index(ext) if ext in preferred else 999
+            # Pick best track by priority
+            track = min(tracks, key=_prio)
 
-                # Pick best track by priority
-                track = min(tracks, key=_prio)
+            ext = (track.get('ext') or 'txt').lower()
+            track_url = track.get('url', '')
+            # If the auto transmission (there is tlang =) - do not touch the FMT, make exactly one request
+            is_translated = 'tlang=' in track_url
 
-                ext = (track.get('ext') or 'txt').lower()
-                track_url = track.get('url', '')
-                # If the auto transmission (there is tlang =) - do not touch the FMT, make exactly one request
-                is_translated = 'tlang=' in track_url
+            # Clean filename for Windows compatibility
+            title = info.get('title', 'video')
+            # Remove/replace invalid characters for Windows filenames
+            invalid_chars = '<>:"/\\|?*'
+            for char in invalid_chars:
+                title = title.replace(char, '_')
+            # Also replace other problematic characters
+            title = title.replace('|', '_').replace('\\', '_').replace('/', '_')
+            base_name = f"{title[:50]}.{found_lang}.{ext}"
+            dst = os.path.join(video_dir, base_name)
 
-                # Clean filename for Windows compatibility
-                title = info.get('title', 'video')
-                # Remove/replace invalid characters for Windows filenames
-                invalid_chars = '<>:"/\\|?*'
-                for char in invalid_chars:
-                    title = title.replace(char, '_')
-                # Also replace other problematic characters
-                title = title.replace('|', '_').replace('\\', '_').replace('/', '_')
-                base_name = f"{title[:50]}.{found_lang}.{ext}"
-                dst = os.path.join(video_dir, base_name)
-
-                # Download using yt-dlp transport (reuse the same ydl instance)
-                ok = False
-                if is_translated:
-                    # For translated tracks, use the URL as-is
-                    ok = _download_once_with_ydl(ydl, track_url, dst, retries=4)
-                else:
-                    # For non-translated tracks, try the original URL first
-                    if _download_once_with_ydl(ydl, track_url, dst, retries=4):
-                        ok = True
-                    elif 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
-                        # Fallback: try VTT format
-                        q = '&' if '?' in track_url else '?'
-                        vtt_url = track_url + q + 'fmt=vtt'
-                        ok = _download_once_with_ydl(ydl, vtt_url, dst, retries=4)
+            # Download using yt-dlp transport (reuse the same ydl instance)
+            ok = False
+            if is_translated:
+                # For translated tracks, use the URL as-is
+                ok = _download_once_with_ydl(ydl, track_url, dst, retries=4)
+            else:
+                # For non-translated tracks, try the original URL first
+                if _download_once_with_ydl(ydl, track_url, dst, retries=4):
+                    ok = True
+                elif 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
+                    # Fallback: try VTT format
+                    q = '&' if '?' in track_url else '?'
+                    vtt_url = track_url + q + 'fmt=vtt'
+                    ok = _download_once_with_ydl(ydl, vtt_url, dst, retries=4)
 
             if not ok:
                 try: 
@@ -1596,25 +1664,43 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             # envelope - convert to SRT if needed
             if ext == 'vtt':
+                logger.info(f"[DEBUG] Converting VTT to SRT: {dst}")
                 dst = _convert_vtt_to_srt(dst)
+                logger.info(f"[DEBUG] After VTT conversion: dst={dst}, exists={os.path.exists(dst) if dst else False}")
             elif ext in ('json3', 'srv3'):
+                logger.info(f"[DEBUG] Converting JSON3/SRV3 to SRT: {dst}")
                 dst = _convert_json3_srv3_to_srt(dst)
+                logger.info(f"[DEBUG] After JSON3/SRV3 conversion: dst={dst}, exists={os.path.exists(dst) if dst else False}")
             elif ext == 'ttml':
+                logger.info(f"[DEBUG] Converting TTML to SRT: {dst}")
                 dst = _convert_ttml_to_srt(dst)
+                logger.info(f"[DEBUG] After TTML conversion: dst={dst}, exists={os.path.exists(dst) if dst else False}")
+
+            if not dst or not os.path.exists(dst):
+                logger.error(f"[DEBUG] Subtitle file does not exist after conversion: {dst}")
+                return None
+
+            file_size = os.path.getsize(dst)
+            logger.info(f"[DEBUG] Subtitle file size after conversion: {file_size} bytes")
 
             with open(dst, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
 
+            logger.info(f"[DEBUG] Subtitle content length: {len(content)} characters, first 200 chars: {content[:200]}")
+
             cleaned = _clean_srt_text(content)
             if cleaned != content:
+                logger.info(f"[DEBUG] Content was cleaned, original length: {len(content)}, cleaned length: {len(cleaned)}")
                 with open(dst, 'w', encoding='utf-8') as f:
                     f.write(cleaned)
                 content = cleaned
 
             ok_ts = _has_srt_timestamps(content)
+            logger.info(f"[DEBUG] Subtitle timestamps check: ok_ts={ok_ts}")
             ok_lang = True
             if subs_lang in RTL_CJK or subs_lang == 'el':  # we'll check Greek too
                 ok_lang = _check_lang_text(subs_lang, content)
+                logger.info(f"[DEBUG] Subtitle language check: ok_lang={ok_lang}")
 
             if ok_ts and ok_lang:
                 if subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
@@ -1622,7 +1708,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 logger.info(f"{LoggerMsg.SUBS_VALID_SUBTITLES_LOG_MSG}")
                 return dst
 
-            logger.warning(LoggerMsg.SUBS_DOWNLOADED_TRACK_INVALID_LOG_MSG)
+            logger.warning(f"{LoggerMsg.SUBS_DOWNLOADED_TRACK_INVALID_LOG_MSG} (ok_ts={ok_ts}, ok_lang={ok_lang})")
             try: os.remove(dst)
             except Exception: pass
             return None

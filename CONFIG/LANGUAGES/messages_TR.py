@@ -1409,6 +1409,9 @@ Kullanın:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ Ses bilgileri çıkarılamadı"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "{index} dizinindeki oynatma listesinde desteklenmeyen dosya türü atlanıyor"
     AUDIO_FILE_NOT_FOUND_MSG = "İndirdikten sonra ses dosyası bulunamadı."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ Ses gönderme başarısız: Dosya boyutu 0 B'ye eşit (çalma listesi dizini {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ Ses dosyası hala indiriliyor, lütfen bekleyin..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Ses dosyası yükleniyor...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ Ses gönderilemedi: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "Çalma listesi sesi gönderildi: {sent}/{total} dosyalar (kalite={quality}){user_id}"
@@ -1418,6 +1421,9 @@ Kullanın:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ Video dosyası bulunamadı: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ Video gönderme başarısız: Dosya boyutu 0 B'ye eşit (çalma listesi dizini {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ Video dosyası hala indiriliyor, lütfen bekleyin..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Video işlenirken hata oluştu: {error}"
     
     # Sender messages

@@ -1409,6 +1409,9 @@ class Messages(object):
     AUDIO_EXTRACTION_FAILED_MSG = "❌ استخراج اطلاعات صدا ناموفق بود"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "رد کردن نوع فایل پشتیبانی نشده در لیست پخش در شاخص {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "فایل صوتی پس از دانلود یافت نشد."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ ارسال صدا ناموفق بود: اندازه فایل برابر 0 بایت است (شاخص لیست پخش {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ فایل صدا هنوز در حال دانلود است، لطفا صبر کنید..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 در حال آپلود فایل صوتی...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ ارسال صدا ناموفق بود: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "صداهای لیست پخش ارسال شد: {sent}/{total} فایل (کیفیت={quality}) به کاربر {user_id}"
@@ -1418,6 +1421,9 @@ class Messages(object):
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ فایل ویدیو یافت نشد: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ ارسال ویدیو ناموفق بود: اندازه فایل برابر 0 بایت است (شاخص لیست پخش {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ فایل ویدیو هنوز در حال دانلود است، لطفا صبر کنید..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ خطا در پردازش ویدیو: {error}"
     
     # Sender messages

@@ -1409,6 +1409,9 @@ Yi amfani da:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ An kasa fitar da bayanin mai jiwuwa"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Tsallake nau'in fayil mara tallafi a lissafin waƙa a index {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "Fayil mai jiwuwa ba a samo shi ba bayan zazzagewa."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ An kasa aika saukar audio: Girman fayil yana daidai da 0 B (fihirisa jerin wasan {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ Fayil ɗin audio har yanzu yana saukewa, da fatan za a jira..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Ana loda fayil ɗin sauti...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ An kasa aika sauti: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "An aika sautin jigon waƙa: {user_id}/ {quality}__ fayiloli (mai inganci={total}) ga mai amfani{sent}"
@@ -1418,6 +1421,9 @@ Yi amfani da:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ Ba a samo fayil ɗin bidiyo ba: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ An kasa aika saukar bidiyo: Girman fayil yana daidai da 0 B (fihirisa jerin wasan {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ Fayil ɗin bidiyo har yanzu yana saukewa, da fatan za a jira..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Kuskuren sarrafa bidiyo: {error}"
     
     # Sender messages

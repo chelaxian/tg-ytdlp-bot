@@ -1530,7 +1530,12 @@ def ask_filter_callback(app, callback_query):
                         selected_subs_langs.append(value)
                     fstate["selected_subs_langs"] = selected_subs_langs
                     fstate["subs_all_selected"] = False  # Clear ALL/ALL DUBS when selecting/deselecting individual languages
-                    fstate["selected_subs_lang"] = None
+                    # Also set selected_subs_lang for single subtitle download compatibility
+                    if selected_subs_langs and len(selected_subs_langs) > 0:
+                        fstate["selected_subs_lang"] = selected_subs_langs[0]
+                    else:
+                        fstate["selected_subs_lang"] = None
+                    logger.info(f"[DEBUG] Toggled language {value}: selected_subs_langs={selected_subs_langs}, selected_subs_lang={fstate.get('selected_subs_lang')}")
                 save_filters(user_id, fstate)
                 
                 # Reload the keyboard to show updated checkmarks - preserve current page
@@ -7222,6 +7227,39 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             callback_query.answer("💬 Downloading subtitles only...")
         except Exception:
             pass
+        
+        # Get selected subtitle language from Always Ask filters state
+        selected_subs_lang = filters_state.get("selected_subs_lang")
+        selected_subs_langs = filters_state.get("selected_subs_langs", []) or []
+        
+        logger.info(f"[DEBUG] subs_only: selected_subs_lang={selected_subs_lang}, selected_subs_langs={selected_subs_langs}, filters_state keys={list(filters_state.keys())}")
+        
+        # If user selected a language in Always Ask menu, save it to subs.txt
+        if selected_subs_lang:
+            from COMMANDS.subtitles_cmd import save_user_subs_language, save_user_subs_auto_mode
+            save_user_subs_language(user_id, selected_subs_lang)
+            # If user picks explicit language from SUBS menu – assume manual, not auto
+            save_user_subs_auto_mode(user_id, False)
+            logger.info(f"Using selected subtitle language from Always Ask for subs_only: {selected_subs_lang}")
+        elif selected_subs_langs and len(selected_subs_langs) > 0:
+            # If multiple languages selected, use the first one for single subtitle download
+            first_lang = selected_subs_langs[0]
+            from COMMANDS.subtitles_cmd import save_user_subs_language, save_user_subs_auto_mode
+            save_user_subs_language(user_id, first_lang)
+            save_user_subs_auto_mode(user_id, False)
+            logger.info(f"Using first selected subtitle language from Always Ask for subs_only: {first_lang}")
+        else:
+            # Fallback: try to get language from available_langs if provided
+            if available_langs and len(available_langs) > 0:
+                # Use first available language as fallback
+                fallback_lang = available_langs[0]
+                from COMMANDS.subtitles_cmd import save_user_subs_language, save_user_subs_auto_mode
+                save_user_subs_language(user_id, fallback_lang)
+                save_user_subs_auto_mode(user_id, False)
+                logger.info(f"Using fallback language from available_langs for subs_only: {fallback_lang}")
+            else:
+                logger.warning(f"No subtitle language found in filters_state or available_langs for subs_only")
+        
         # Extract playlist parameters from the original message
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)

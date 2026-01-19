@@ -1618,8 +1618,8 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         if not langs_to_download:
             return []
         
-        # Get video info
-        info_opts = {
+        # Get video info - use same logic as get_available_subs_languages
+        base_opts = {
             'quiet': True,
             'no_warnings': True,
             'skip_download': True,
@@ -1631,45 +1631,83 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         # Add cookies
         user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
         if os.path.exists(user_cookie_path):
-            info_opts['cookiefile'] = user_cookie_path
+            base_opts['cookiefile'] = user_cookie_path
         
         # Add proxy
-        info_opts = add_proxy_to_ytdl_opts(info_opts, url, user_id)
+        base_opts = add_proxy_to_ytdl_opts(base_opts, url, user_id)
         
         # Add PO token
-        info_opts = add_pot_to_ytdl_opts(info_opts, url)
+        base_opts = add_pot_to_ytdl_opts(base_opts, url)
         
-        # Use tv client for reliability
-        info_opts['extractor_args'] = {'youtube': {'player_client': ['tv']}}
+        # Try different clients, same as get_available_subs_languages
+        info = None
+        working_ydl = None
         
-        # Reuse the same ydl instance for both extract_info and urlopen
-        # Reuse the same ydl instance for both extract_info and urlopen
-        with yt_dlp.YoutubeDL(info_opts) as ydl:
-            try:
-                info = ydl.extract_info(url, download=False)
-                if not info:
-                    logger.error("yt-dlp extract_info returned None")
-                    return []
-            except Exception as e:
-                logger.error(f"Error extracting video info in download_all_subtitles: {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-                return []
-        
-            # Get subtitles dict
-            subs_dict = {}
-            if not auto_mode:
-                subs_dict = info.get('subtitles', {}) or {}
-                auto_dict = info.get('automatic_captions', {}) or {}
-                for k, v in auto_dict.items():
-                    subs_dict.setdefault(k, v)
-            else:
-                subs_dict = info.get('automatic_captions', {}) or {}
-                normal_dict = info.get('subtitles', {}) or {}
-                for k, v in normal_dict.items():
-                    subs_dict.setdefault(k, v)
+        for client in ('tv', None):  # Only try tv client since it always works
+            info_opts = dict(base_opts)
+            # Preserve youtubepot extractor_args if they exist (from PO token provider)
+            # and add youtube player_client
+            if 'extractor_args' in info_opts:
+                extractor_args = info_opts['extractor_args'].copy()
+                # Remove youtube key if it exists, we'll set it per client
+                extractor_args.pop('youtube', None)
+                if client:
+                    extractor_args['youtube'] = {'player_client': [client]}
+                elif extractor_args:
+                    # If client is None but we have other extractor_args (like youtubepot), keep them
+                    info_opts['extractor_args'] = extractor_args
+                else:
+                    # No extractor_args needed
+                    info_opts.pop('extractor_args', None)
+            elif client:
+                # No existing extractor_args, create new one with youtube client
+                info_opts['extractor_args'] = {'youtube': {'player_client': [client]}}
+            # If client is None and no extractor_args, don't set it (use default client)
             
-            # Download each subtitle language
+            try:
+                ydl = yt_dlp.YoutubeDL(info_opts)
+                info = ydl.extract_info(url, download=False)
+            except yt_dlp.utils.DownloadError as e:
+                if 'Requested format is not available' in str(e):
+                    logger.warning(f"Client {client} failed with format error in download_all_subtitles, trying next client")
+                    continue
+                raise
+            
+            if info and (info.get('subtitles') or info.get('automatic_captions')):
+                working_ydl = ydl
+                used_client = client or 'default'
+                logger.info(f"Successfully extracted info with client {used_client} in download_all_subtitles, found subtitles")
+                break
+            elif info:
+                logger.warning(f"Client {client} returned info but no subtitles in download_all_subtitles, trying next client")
+                # Keep info and ydl as fallback
+                working_ydl = ydl
+        
+        if not info:
+            logger.error("yt-dlp extract_info returned None in download_all_subtitles after trying all clients")
+            return []
+        
+        if not working_ydl:
+            logger.error("No working ydl instance found in download_all_subtitles")
+            return []
+        
+        # Use the working ydl instance
+        ydl = working_ydl
+        
+        # Get subtitles dict
+        subs_dict = {}
+        if not auto_mode:
+            subs_dict = info.get('subtitles', {}) or {}
+            auto_dict = info.get('automatic_captions', {}) or {}
+            for k, v in auto_dict.items():
+                subs_dict.setdefault(k, v)
+        else:
+            subs_dict = info.get('automatic_captions', {}) or {}
+            normal_dict = info.get('subtitles', {}) or {}
+            for k, v in normal_dict.items():
+                subs_dict.setdefault(k, v)
+        
+        # Download each subtitle language
             downloaded_subs = []
             preferred = ('srt', 'vtt', 'ttml', 'json3', 'srv3')
             
