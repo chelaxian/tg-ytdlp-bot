@@ -1645,11 +1645,24 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         
         for client in ('tv', None):  # Only try tv client since it always works
             info_opts = dict(base_opts)
-            if client:
+            # Preserve youtubepot extractor_args if they exist (from PO token provider)
+            # and add youtube player_client
+            if 'extractor_args' in info_opts:
+                extractor_args = info_opts['extractor_args'].copy()
+                # Remove youtube key if it exists, we'll set it per client
+                extractor_args.pop('youtube', None)
+                if client:
+                    extractor_args['youtube'] = {'player_client': [client]}
+                elif extractor_args:
+                    # If client is None but we have other extractor_args (like youtubepot), keep them
+                    info_opts['extractor_args'] = extractor_args
+                else:
+                    # No extractor_args needed
+                    info_opts.pop('extractor_args', None)
+            elif client:
+                # No existing extractor_args, create new one with youtube client
                 info_opts['extractor_args'] = {'youtube': {'player_client': [client]}}
-            else:
-                # Don't set extractor_args for default client
-                info_opts.pop('extractor_args', None)
+            # If client is None and no extractor_args, don't set it (use default client)
             
             try:
                 ydl = yt_dlp.YoutubeDL(info_opts)

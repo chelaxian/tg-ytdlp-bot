@@ -1485,15 +1485,28 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             working_info_opts = None
             
             for client in ('tv', None):  # Only try tv client since it always works
-                info_opts = dict(base_opts)
-                if client:
-                    info_opts['extractor_args'] = {'youtube': {'player_client': [client]}}
-                else:
-                    # Don't set extractor_args for default client
-                    info_opts.pop('extractor_args', None)
+                opts = dict(base_opts)
+                # Preserve youtubepot extractor_args if they exist (from PO token provider)
+                # and add youtube player_client
+                if 'extractor_args' in opts:
+                    extractor_args = opts['extractor_args'].copy()
+                    # Remove youtube key if it exists, we'll set it per client
+                    extractor_args.pop('youtube', None)
+                    if client:
+                        extractor_args['youtube'] = {'player_client': [client]}
+                    elif extractor_args:
+                        # If client is None but we have other extractor_args (like youtubepot), keep them
+                        opts['extractor_args'] = extractor_args
+                    else:
+                        # No extractor_args needed
+                        opts.pop('extractor_args', None)
+                elif client:
+                    # No existing extractor_args, create new one with youtube client
+                    opts['extractor_args'] = {'youtube': {'player_client': [client]}}
+                # If client is None and no extractor_args, don't set it (use default client)
                 
                 try:
-                    ydl = yt_dlp.YoutubeDL(info_opts)
+                    ydl = yt_dlp.YoutubeDL(opts)
                     info = ydl.extract_info(url, download=False)
                 except yt_dlp.utils.DownloadError as e:
                     if 'Requested format is not available' in str(e):
@@ -1504,23 +1517,25 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 if info and (info.get('subtitles') or info.get('automatic_captions')):
                     used_client = client or 'default'
                     working_ydl = ydl
-                    working_info_opts = info_opts
                     logger.info(f"Successfully extracted info with client {used_client}, found subtitles")
                     # Cache the working client
                     _subs_check_cache[f"{url}_{user_id}_client"] = used_client
                     break
                 elif info:
                     logger.warning(f"Client {client} returned info but no subtitles, trying next client")
-                    # Keep info as fallback
-                    used_client = client or 'default'
-                    working_ydl = ydl
-                    working_info_opts = info_opts
+                    # Keep info and ydl as fallback if we don't find subtitles with any client
+                    if not working_ydl:
+                        used_client = client or 'default'
+                        working_ydl = ydl
             
             if not info:
                 logger.error("yt-dlp extract_info returned None in download_subtitles_ytdlp after trying all clients")
                 return None
             
             # Use the working ydl instance for downloading subtitles
+            if not working_ydl:
+                logger.error("No working ydl instance found in download_subtitles_ytdlp")
+                return None
             ydl = working_ydl
 
             # Prefer union view: sometimes only one dict is filled depending on client
