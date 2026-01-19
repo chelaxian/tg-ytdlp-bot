@@ -1046,10 +1046,12 @@ def _clean_srt_text(text: str) -> str:
     text = re.sub(r'</?c[^>]*>', '', text)
 
     # We clean the webvt parameters in the timing line
+    # Keep both start and end times, but remove cue settings after the end time
     def _strip_settings(m):
-        return m.group(1)
+        # Group 1: start time, Group 2: -->, Group 3: end time, Group 4: settings to remove
+        return m.group(1) + m.group(2) + m.group(3)
     text = re.sub(
-        r'(^\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(.*)$',
+        r'(^\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(\s*-->\s*)(\d{1,2}:\d{2}:\d{2}[.,]\d{1,3})(.*)$',
         _strip_settings,
         text,
         flags=re.MULTILINE
@@ -1107,8 +1109,13 @@ def _convert_vtt_to_srt(path: str) -> str:
             tc_line = next((l for l in lines if '-->' in l), None)
             if not tc_line:
                 continue
+            # Convert VTT timing format (HH:MM:SS.mmm) to SRT format (HH:MM:SS,mmm)
+            # VTT format: 00:00:49.966 --> 00:01:12.447
+            # SRT format: 00:00:49,966 --> 00:01:12,447
             timing = re.sub(r'(\d{2}:\d{2}:\d{2})\.(\d{3})', r'\1,\2', tc_line)
-            timing = re.sub(r'(-->.*?)(\s+.*)$', r'\1', timing)
+            # Remove any cue settings after the end time (like align:start, position:10%, etc.)
+            # But keep the end time itself
+            timing = re.sub(r'(-->.*?\d{2}:\d{2}:\d{2}[.,]\d{3}).*$', r'\1', timing)
             payload = '\n'.join(lines[lines.index(tc_line)+1:]).strip()
             if not payload:
                 continue
