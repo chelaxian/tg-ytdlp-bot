@@ -1657,25 +1657,43 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
             # envelope - convert to SRT if needed
             if ext == 'vtt':
+                logger.info(f"[DEBUG] Converting VTT to SRT: {dst}")
                 dst = _convert_vtt_to_srt(dst)
+                logger.info(f"[DEBUG] After VTT conversion: dst={dst}, exists={os.path.exists(dst) if dst else False}")
             elif ext in ('json3', 'srv3'):
+                logger.info(f"[DEBUG] Converting JSON3/SRV3 to SRT: {dst}")
                 dst = _convert_json3_srv3_to_srt(dst)
+                logger.info(f"[DEBUG] After JSON3/SRV3 conversion: dst={dst}, exists={os.path.exists(dst) if dst else False}")
             elif ext == 'ttml':
+                logger.info(f"[DEBUG] Converting TTML to SRT: {dst}")
                 dst = _convert_ttml_to_srt(dst)
+                logger.info(f"[DEBUG] After TTML conversion: dst={dst}, exists={os.path.exists(dst) if dst else False}")
+
+            if not dst or not os.path.exists(dst):
+                logger.error(f"[DEBUG] Subtitle file does not exist after conversion: {dst}")
+                return None
+
+            file_size = os.path.getsize(dst)
+            logger.info(f"[DEBUG] Subtitle file size after conversion: {file_size} bytes")
 
             with open(dst, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
 
+            logger.info(f"[DEBUG] Subtitle content length: {len(content)} characters, first 200 chars: {content[:200]}")
+
             cleaned = _clean_srt_text(content)
             if cleaned != content:
+                logger.info(f"[DEBUG] Content was cleaned, original length: {len(content)}, cleaned length: {len(cleaned)}")
                 with open(dst, 'w', encoding='utf-8') as f:
                     f.write(cleaned)
                 content = cleaned
 
             ok_ts = _has_srt_timestamps(content)
+            logger.info(f"[DEBUG] Subtitle timestamps check: ok_ts={ok_ts}")
             ok_lang = True
             if subs_lang in RTL_CJK or subs_lang == 'el':  # we'll check Greek too
                 ok_lang = _check_lang_text(subs_lang, content)
+                logger.info(f"[DEBUG] Subtitle language check: ok_lang={ok_lang}")
 
             if ok_ts and ok_lang:
                 if subs_lang in {'ar', 'fa', 'ur', 'ps', 'iw', 'he'}:
@@ -1683,7 +1701,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 logger.info(f"{LoggerMsg.SUBS_VALID_SUBTITLES_LOG_MSG}")
                 return dst
 
-            logger.warning(LoggerMsg.SUBS_DOWNLOADED_TRACK_INVALID_LOG_MSG)
+            logger.warning(f"{LoggerMsg.SUBS_DOWNLOADED_TRACK_INVALID_LOG_MSG} (ok_ts={ok_ts}, ok_lang={ok_lang})")
             try: os.remove(dst)
             except Exception: pass
             return None
