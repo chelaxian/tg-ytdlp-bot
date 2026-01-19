@@ -5,6 +5,9 @@
 # Run from the bot folder (where magic.py is located)
 # Note: backups created with minute-level timestamp (.backup_YYYYMMDD_HHMM)
 
+# Опция сохранения docker-compose.yml при обновлении
+PRESERVE_DOCKER_COMPOSE=True
+
 echo "🚀 tg-ytdlp-bot updater"
 echo "=================================="
 
@@ -30,10 +33,32 @@ if ! command -v git &> /dev/null; then
     exit 1
 fi
 
+# Сохраняем docker-compose.yml перед обновлением, если опция включена
+if [ "$PRESERVE_DOCKER_COMPOSE" = "True" ] || [ "$PRESERVE_DOCKER_COMPOSE" = "true" ]; then
+    if [ -f "docker-compose.yml" ]; then
+        echo "💾 Preserving docker-compose.yml..."
+        cp docker-compose.yml ../
+        echo "✅ docker-compose.yml backed up to parent directory"
+    else
+        echo "⚠️  docker-compose.yml not found, skipping backup"
+    fi
+fi
+
 # Run update
 echo "📥 Starting update..."
 python3 update_from_repo.py
 update_status=$?
+
+# Восстанавливаем docker-compose.yml после обновления, если опция включена
+if [ "$PRESERVE_DOCKER_COMPOSE" = "True" ] || [ "$PRESERVE_DOCKER_COMPOSE" = "true" ]; then
+    if [ -f "../docker-compose.yml" ]; then
+        echo "🔄 Restoring docker-compose.yml..."
+        cp ../docker-compose.yml .
+        echo "✅ docker-compose.yml restored from backup"
+    else
+        echo "⚠️  Backup docker-compose.yml not found in parent directory"
+    fi
+fi
 
 # Final status
 if [ $update_status -eq 0 ]; then
