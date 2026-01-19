@@ -1584,39 +1584,39 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 ext = ((t.get("ext") or "").lower())
                 return preferred.index(ext) if ext in preferred else 999
 
-                # Pick best track by priority
-                track = min(tracks, key=_prio)
+            # Pick best track by priority
+            track = min(tracks, key=_prio)
 
-                ext = (track.get('ext') or 'txt').lower()
-                track_url = track.get('url', '')
-                # If the auto transmission (there is tlang =) - do not touch the FMT, make exactly one request
-                is_translated = 'tlang=' in track_url
+            ext = (track.get('ext') or 'txt').lower()
+            track_url = track.get('url', '')
+            # If the auto transmission (there is tlang =) - do not touch the FMT, make exactly one request
+            is_translated = 'tlang=' in track_url
 
-                # Clean filename for Windows compatibility
-                title = info.get('title', 'video')
-                # Remove/replace invalid characters for Windows filenames
-                invalid_chars = '<>:"/\\|?*'
-                for char in invalid_chars:
-                    title = title.replace(char, '_')
-                # Also replace other problematic characters
-                title = title.replace('|', '_').replace('\\', '_').replace('/', '_')
-                base_name = f"{title[:50]}.{found_lang}.{ext}"
-                dst = os.path.join(video_dir, base_name)
+            # Clean filename for Windows compatibility
+            title = info.get('title', 'video')
+            # Remove/replace invalid characters for Windows filenames
+            invalid_chars = '<>:"/\\|?*'
+            for char in invalid_chars:
+                title = title.replace(char, '_')
+            # Also replace other problematic characters
+            title = title.replace('|', '_').replace('\\', '_').replace('/', '_')
+            base_name = f"{title[:50]}.{found_lang}.{ext}"
+            dst = os.path.join(video_dir, base_name)
 
-                # Download using yt-dlp transport (reuse the same ydl instance)
-                ok = False
-                if is_translated:
-                    # For translated tracks, use the URL as-is
-                    ok = _download_once_with_ydl(ydl, track_url, dst, retries=4)
-                else:
-                    # For non-translated tracks, try the original URL first
-                    if _download_once_with_ydl(ydl, track_url, dst, retries=4):
-                        ok = True
-                    elif 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
-                        # Fallback: try VTT format
-                        q = '&' if '?' in track_url else '?'
-                        vtt_url = track_url + q + 'fmt=vtt'
-                        ok = _download_once_with_ydl(ydl, vtt_url, dst, retries=4)
+            # Download using yt-dlp transport (reuse the same ydl instance)
+            ok = False
+            if is_translated:
+                # For translated tracks, use the URL as-is
+                ok = _download_once_with_ydl(ydl, track_url, dst, retries=4)
+            else:
+                # For non-translated tracks, try the original URL first
+                if _download_once_with_ydl(ydl, track_url, dst, retries=4):
+                    ok = True
+                elif 'fmt=' not in track_url and ext not in ('vtt', 'srt', 'ttml'):
+                    # Fallback: try VTT format
+                    q = '&' if '?' in track_url else '?'
+                    vtt_url = track_url + q + 'fmt=vtt'
+                    ok = _download_once_with_ydl(ydl, vtt_url, dst, retries=4)
 
             if not ok:
                 try: 
