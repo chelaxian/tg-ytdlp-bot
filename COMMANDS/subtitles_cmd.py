@@ -1417,9 +1417,9 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 logger.info(f"{LoggerMsg.SUBS_LANGUAGE_NOT_FOUND_LOG_MSG}")
                 return None
 
-            client = _subs_check_cache.get(f"{url}_{user_id}_client", 'tv')  # tv is the only reliable client
-
-            info_opts = {
+            # Use the same extraction logic as get_available_subs_languages
+            # Try different clients to ensure we get subtitle tracks
+            base_opts = {
                 'quiet': True,
                 'no_warnings': True,
                 'skip_download': True,
@@ -1431,14 +1431,13 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 'max_sleep_interval': 3,
                 'retries': 6,
                 'extractor_retries': 3,
-                'extractor_args': {'youtube': {'player_client': [client]}},
             }
             # cookies
             user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")
             if os.path.exists(user_cookie_path):
-                info_opts['cookiefile'] = user_cookie_path
+                base_opts['cookiefile'] = user_cookie_path
             elif hasattr(Config, "COOKIE_FILE_PATH") and os.path.exists(Config.COOKIE_FILE_PATH):
-                info_opts['cookiefile'] = Config.COOKIE_FILE_PATH
+                base_opts['cookiefile'] = Config.COOKIE_FILE_PATH
             
             # Add proxy configuration based on attempt number
             # Attempt 0: use default proxy (via add_proxy_to_ytdl_opts)
@@ -1448,7 +1447,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             
             if attempt == 0:
                 # First attempt: use default proxy logic
-                info_opts = add_proxy_to_ytdl_opts(info_opts, url)
+                base_opts = add_proxy_to_ytdl_opts(base_opts, url)
             elif attempt == 1:
                 # Second attempt: use PROXY
                 proxy_config = {
@@ -1460,7 +1459,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 }
                 proxy_url = build_proxy_url(proxy_config)
                 if proxy_url:
-                    info_opts['proxy'] = proxy_url
+                    base_opts['proxy'] = proxy_url
                     logger.info(f"Using PROXY for subtitle download attempt {attempt + 1}: {proxy_url}")
             elif attempt == 2:
                 # Third attempt: use PROXY_2
@@ -1473,55 +1472,102 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 }
                 proxy_url = build_proxy_url(proxy_config)
                 if proxy_url:
-                    info_opts['proxy'] = proxy_url
+                    base_opts['proxy'] = proxy_url
                     logger.info(f"Using PROXY_2 for subtitle download attempt {attempt + 1}: {proxy_url}")
             
             # Add PO token provider for YouTube domains
-            info_opts = add_pot_to_ytdl_opts(info_opts, url)
+            base_opts = add_pot_to_ytdl_opts(base_opts, url)
 
-            # Reuse the same ydl instance for both extract_info and urlopen
-            with yt_dlp.YoutubeDL(info_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-
-                # Prefer union view: sometimes only one dict is filled depending on client
-                subs_dict = {}
-                if not auto_mode:
-                    subs_dict = info.get('subtitles', {}) or {}
-                    # merge automatic as fallbacks for listing
-                    auto_dict = info.get('automatic_captions', {}) or {}
-                    for k, v in auto_dict.items():
-                        subs_dict.setdefault(k, v)
+            # Try different clients, same as get_available_subs_languages
+            info = None
+            used_client = None
+            working_ydl = None
+            working_info_opts = None
+            
+            for client in ('tv', None):  # Only try tv client since it always works
+                info_opts = dict(base_opts)
+                if client:
+                    info_opts['extractor_args'] = {'youtube': {'player_client': [client]}}
                 else:
-                    subs_dict = info.get('automatic_captions', {}) or {}
-                    normal_dict = info.get('subtitles', {}) or {}
-                    for k, v in normal_dict.items():
-                        subs_dict.setdefault(k, v)
-                tracks = subs_dict.get(found_lang) or []
-                if not tracks:
-                    alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
-                    tracks = subs_dict.get(alt, []) if alt else []
+                    # Don't set extractor_args for default client
+                    info_opts.pop('extractor_args', None)
+                
+                try:
+                    ydl = yt_dlp.YoutubeDL(info_opts)
+                    info = ydl.extract_info(url, download=False)
+                except yt_dlp.utils.DownloadError as e:
+                    if 'Requested format is not available' in str(e):
+                        logger.warning(f"Client {client} failed with format error, trying next client")
+                        continue
+                    raise
+                
+                if info and (info.get('subtitles') or info.get('automatic_captions')):
+                    used_client = client or 'default'
+                    working_ydl = ydl
+                    working_info_opts = info_opts
+                    logger.info(f"Successfully extracted info with client {used_client}, found subtitles")
+                    # Cache the working client
+                    _subs_check_cache[f"{url}_{user_id}_client"] = used_client
+                    break
+                elif info:
+                    logger.warning(f"Client {client} returned info but no subtitles, trying next client")
+                    # Keep info as fallback
+                    used_client = client or 'default'
+                    working_ydl = ydl
+                    working_info_opts = info_opts
+            
+            if not info:
+                logger.error("yt-dlp extract_info returned None in download_subtitles_ytdlp after trying all clients")
+                return None
+            
+            # Use the working ydl instance for downloading subtitles
+            ydl = working_ydl
 
-                if not tracks:
-                    logger.error(LoggerMsg.SUBS_NO_TRACK_URL_FOUND_LOG_MSG)
-                    return None
+            # Prefer union view: sometimes only one dict is filled depending on client
+            subs_dict = {}
+            if not auto_mode:
+                subs_dict = info.get('subtitles', {}) or {}
+                # merge automatic as fallbacks for listing
+                auto_dict = info.get('automatic_captions', {}) or {}
+                for k, v in auto_dict.items():
+                    subs_dict.setdefault(k, v)
+            else:
+                subs_dict = info.get('automatic_captions', {}) or {}
+                normal_dict = info.get('subtitles', {}) or {}
+                for k, v in normal_dict.items():
+                    subs_dict.setdefault(k, v)
+            
+            logger.info(f"[DEBUG] download_subtitles_ytdlp: found_lang={found_lang}, auto_mode={auto_mode}, used_client={used_client}, subs_dict keys={list(subs_dict.keys())}")
+            logger.info(f"[DEBUG] download_subtitles_ytdlp: subtitles keys={list(info.get('subtitles', {}).keys())}, automatic_captions keys={list(info.get('automatic_captions', {}).keys())}")
+            
+            tracks = subs_dict.get(found_lang) or []
+            if not tracks:
+                alt = next((k for k in subs_dict if k.startswith(found_lang)), None)
+                if alt:
+                    logger.info(f"[DEBUG] download_subtitles_ytdlp: found alternative language key: {alt}")
+                    tracks = subs_dict.get(alt, [])
 
-                # Detect translated subs (tlang=) - these are more rate-limited
-                def _is_translated_track(t: dict) -> bool:
-                    u = (t.get("url") or "")
-                    return "tlang=" in u
+            if not tracks:
+                logger.error(f"{LoggerMsg.SUBS_NO_TRACK_URL_FOUND_LOG_MSG} for language '{found_lang}'. Available languages: {list(subs_dict.keys())}, used_client={used_client}")
+                return None
+            
+            # Detect translated subs (tlang=) - these are more rate-limited
+            def _is_translated_track(t: dict) -> bool:
+                u = (t.get("url") or "")
+                return "tlang=" in u
 
-                any_translated = any(_is_translated_track(t) for t in tracks)
+            any_translated = any(_is_translated_track(t) for t in tracks)
 
-                # Prefer formats that are easier on YouTube and convertible locally
-                # For translated tracks, SRT is often the most rate-limited -> keep it last
-                if any_translated:
-                    preferred = ('srv3', 'json3', 'vtt', 'ttml', 'srt')
-                else:
-                    preferred = ('vtt', 'ttml', 'srv3', 'json3', 'srt')
+            # Prefer formats that are easier on YouTube and convertible locally
+            # For translated tracks, SRT is often the most rate-limited -> keep it last
+            if any_translated:
+                preferred = ('srv3', 'json3', 'vtt', 'ttml', 'srt')
+            else:
+                preferred = ('vtt', 'ttml', 'srv3', 'json3', 'srt')
 
-                def _prio(t: dict) -> int:
-                    ext = ((t.get("ext") or "").lower())
-                    return preferred.index(ext) if ext in preferred else 999
+            def _prio(t: dict) -> int:
+                ext = ((t.get("ext") or "").lower())
+                return preferred.index(ext) if ext in preferred else 999
 
                 # Pick best track by priority
                 track = min(tracks, key=_prio)

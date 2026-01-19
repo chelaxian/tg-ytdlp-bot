@@ -1409,6 +1409,9 @@ Ishlating:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ Audio ma'lumotlarini ajratishda muvaffaqiyatsizlik"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Ro'yxatdagi {index} indeksida qo'llab-quvvatlanmaydigan fayl turi o'tkazib yuborilmoqda"
     AUDIO_FILE_NOT_FOUND_MSG = "Yuklab olingandan keyin audio fayl topilmadi."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ Audio yuborish muvaffaqiyatsiz: Fayl hajmi 0 B ga teng (pleylist indeksi {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ Audio fayli hali yuklanmoqda, iltimos kuting..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Audio fayl yuklanmoqda...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ Audioni yuborishda muvaffaqiyatsizlik: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "Ro'yxat audio yuborildi: {sent}/{total} fayl (sifat={quality}) foydalanuvchi{user_id} ga"
@@ -1418,6 +1421,9 @@ Ishlating:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ Video fayl topilmadi: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ Video yuborish muvaffaqiyatsiz: Fayl hajmi 0 B ga teng (pleylist indeksi {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ Video fayli hali yuklanmoqda, iltimos kuting..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Videoni qayta ishlashda xatolik: {error}"
     
     # Sender messages

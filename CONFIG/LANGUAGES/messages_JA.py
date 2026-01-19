@@ -1409,6 +1409,9 @@ class Messages(object):
     AUDIO_EXTRACTION_FAILED_MSG = "❌ 音声情報の抽出に失敗しました"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "プレイリストのインデックス {index} でサポートされていないファイル タイプをスキップします"
     AUDIO_FILE_NOT_FOUND_MSG = "ダウンロード後に音声ファイルが見つかりません。"
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ 音声の送信に失敗しました: ファイルサイズが 0 B です (プレイリストインデックス {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ 音声ファイルはまだダウンロード中です。お待ちください..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 オーディオファイルをアップロード中...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ 音声の送信に失敗しました: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "プレイリスト オーディオがユーザー {sent} に送信されました: {user_id}/{quality} ファイル (品質= {total})"
@@ -1418,6 +1421,9 @@ class Messages(object):
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ ビデオ ファイルが見つかりません: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ 動画の送信に失敗しました: ファイルサイズが 0 B です (プレイリストインデックス {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ 動画ファイルはまだダウンロード中です。お待ちください..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ ビデオ処理エラー: {error}"
     
     # Sender messages

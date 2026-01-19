@@ -1409,6 +1409,9 @@ class Messages(object):
     AUDIO_EXTRACTION_FAILED_MSG = "❌ 오디오 정보 추출 실패"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "재생목록 인덱스 {index}에서 지원되지 않는 파일 형식 건너뛰기"
     AUDIO_FILE_NOT_FOUND_MSG = "다운로드 후 오디오 파일을 찾을 수 없습니다."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ 오디오 전송 실패: 파일 크기가 0 B입니다 (재생 목록 인덱스 {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ 오디오 파일이 아직 다운로드 중입니다. 잠시 기다려 주세요..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 오디오 파일 업로드 중...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ 오디오 전송 실패: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "재생목록 오디오 전송됨: {sent}/{total} 파일 (quality={quality}) 사용자{user_id}에게"
@@ -1418,6 +1421,9 @@ class Messages(object):
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ 비디오 파일을 찾을 수 없습니다: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ 비디오 전송 실패: 파일 크기가 0 B입니다 (재생 목록 인덱스 {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ 비디오 파일이 아직 다운로드 중입니다. 잠시 기다려 주세요..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ 비디오 처리 오류: {error}"
     
     # Sender messages

@@ -2194,6 +2194,44 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             if not os.path.exists(audio_file):
                 send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_NOT_FOUND_MSG)
                 continue
+            
+            # Check if file is still downloading (.part file)
+            # Check if the file itself ends with .part
+            if audio_file.endswith('.part'):
+                logger.warning(f"Audio file is still downloading (part file): {audio_file}")
+                send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_STILL_DOWNLOADING_MSG)
+                continue
+            
+            # Check if there's a .part file with the same name (yt-dlp creates .part files during download)
+            if os.path.exists(audio_file + '.part'):
+                logger.warning(f"Audio file is still downloading (part file exists): {audio_file}.part")
+                send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_STILL_DOWNLOADING_MSG)
+                continue
+            
+            # Check if there are any .part files in the directory that might be related
+            # This handles cases where yt-dlp hasn't finished renaming the file yet
+            try:
+                dir_files = os.listdir(user_folder)
+                base_name = os.path.splitext(os.path.basename(audio_file))[0]
+                part_files = [f for f in dir_files if f.startswith(base_name) and f.endswith('.part')]
+                if part_files:
+                    logger.warning(f"Found .part files related to audio file: {part_files}")
+                    send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_STILL_DOWNLOADING_MSG)
+                    continue
+            except Exception as part_check_error:
+                logger.debug(f"Error checking for .part files: {part_check_error}")
+            
+            # Check file size - skip empty files (0 bytes)
+            try:
+                file_size = os.path.getsize(audio_file)
+                if file_size == 0:
+                    logger.error(f"Audio file has zero size: {audio_file}")
+                    send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_SIZE_ZERO_MSG.format(index=original_playlist_index))
+                    continue
+            except Exception as size_error:
+                logger.error(f"Error checking audio file size: {size_error}")
+                send_to_user(message, safe_get_messages(user_id).AUDIO_FILE_NOT_FOUND_MSG)
+                continue
 
             # Apply explicit trimming if download_sections was specified
             # This ensures trimming even if download_sections didn't work (e.g., for HLS streams)

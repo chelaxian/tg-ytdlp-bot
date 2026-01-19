@@ -1409,6 +1409,9 @@ Use:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ Gagal mengekstrak informasi audio"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Melewati tipe file yang tidak didukung dalam daftar putar pada indeks {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "File audio tidak ditemukan setelah pengunduhan."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ Gagal mengirim audio: Ukuran file sama dengan 0 B (indeks daftar putar {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ File audio masih sedang diunduh, harap tunggu..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Mengunggah file audio...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ Gagal mengirim audio: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "Audio daftar putar dikirim: {sent}/{total} file (kualitas={quality}) ke pengguna{user_id}"
@@ -1418,6 +1421,9 @@ Use:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ File video tidak ditemukan: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ Gagal mengirim video: Ukuran file sama dengan 0 B (indeks daftar putar {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ File video masih sedang diunduh, harap tunggu..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Kesalahan memproses video: {error}"
     
     # Sender messages

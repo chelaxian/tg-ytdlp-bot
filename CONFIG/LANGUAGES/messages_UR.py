@@ -1409,6 +1409,9 @@ Use:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ آڈیو کی معلومات نکالنے میں ناکام"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "پلے لسٹ میں انڈیکس {index} پر غیر معاون فائل کی قسم کو چھوڑ رہے ہیں"
     AUDIO_FILE_NOT_FOUND_MSG = "ڈاؤن لوڈ کے بعد آڈیو فائل نہیں ملی۔"
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ آڈیو بھیجنے میں ناکام: فائل کا سائز 0 B کے برابر ہے (پلے لسٹ انڈیکس {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ آڈیو فائل ابھی بھی ڈاؤن لوڈ ہو رہی ہے، براہ کرم انتظار کریں..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 آڈیو فائل اپ لوڈ ہو رہی ہے...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ آڈیو بھیجنے میں ناکام: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "پلے لسٹ آڈیو بھیجی گئی: {sent}/{total} فائلیں (کوالٹی={quality}) صارف{user_id} کو"
@@ -1418,6 +1421,9 @@ Use:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ ویڈیو فائل نہیں ملی: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ ویڈیو بھیجنے میں ناکام: فائل کا سائز 0 B کے برابر ہے (پلے لسٹ انڈیکس {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ ویڈیو فائل ابھی بھی ڈاؤن لوڈ ہو رہی ہے، براہ کرم انتظار کریں..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ ویڈیو پراسیس کرنے میں خرابی: {error}"
     
     # Sender messages

@@ -1409,6 +1409,9 @@ Use:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ Không thể trích xuất thông tin âm thanh"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Bỏ qua loại tệp không được hỗ trợ trong danh sách phát tại chỉ mục {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "Không tìm thấy tệp âm thanh sau khi tải xuống."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ Không thể gửi âm thanh: Kích thước tệp bằng 0 B (chỉ mục danh sách phát {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ Tệp âm thanh vẫn đang được tải xuống, vui lòng đợi..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Đang tải tệp âm thanh lên...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ Không thể gửi âm thanh: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "Âm thanh danh sách phát đã được gửi: {sent}/{total} tệp (chất lượng={quality}) cho người dùng{user_id}"
@@ -1418,6 +1421,9 @@ Use:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ Không tìm thấy tệp video: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ Không thể gửi video: Kích thước tệp bằng 0 B (chỉ mục danh sách phát {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ Tệp video vẫn đang được tải xuống, vui lòng đợi..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Lỗi khi xử lý video: {error}"
     
     # Sender messages

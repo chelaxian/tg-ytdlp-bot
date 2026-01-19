@@ -1409,6 +1409,9 @@ class Messages(object):
     AUDIO_EXTRACTION_FAILED_MSG = "❌ 提取音频信息失败"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "跳过播放列表中索引 {index} 处不支持的文件类型"
     AUDIO_FILE_NOT_FOUND_MSG = "下载后未找到音频文件。"
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ 发送音频失败：文件大小等于 0 B（播放列表索引 {index}）"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ 音频文件仍在下载中，请稍候..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 正在上传音频文件...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ 发送音频失败：{error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "播放列表音频已发送：{sent}/{total} 个文件（质量={quality}）给用户{user_id}"
@@ -1418,6 +1421,9 @@ class Messages(object):
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ 未找到视频文件：{filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ 发送视频失败：文件大小等于 0 B（播放列表索引 {index}）"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ 视频文件仍在下载中，请稍候..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ 处理视频时出错：{error}"
     
     # Sender messages

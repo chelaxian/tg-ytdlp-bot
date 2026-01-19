@@ -1409,6 +1409,9 @@ Usa:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ Error al extraer información de audio"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Omitiendo tipo de archivo no soportado en lista de reproducción en índice {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "Archivo de audio no encontrado después de la descarga."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ Error al enviar audio: El tamaño del archivo es igual a 0 B (índice de lista de reproducción {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ El archivo de audio aún se está descargando, por favor espere..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Subiendo archivo de audio...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ Error al enviar audio: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "Audio de lista de reproducción enviado: {sent}/{total} archivos (calidad={quality}) al usuario{user_id}"
@@ -1418,6 +1421,9 @@ Usa:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ Archivo de video no encontrado: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ Error al enviar video: El tamaño del archivo es igual a 0 B (índice de lista de reproducción {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ El archivo de video aún se está descargando, por favor espere..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Error al procesar video: {error}"
     
     # Sender messages

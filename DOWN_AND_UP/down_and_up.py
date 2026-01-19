@@ -3350,6 +3350,50 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     break
 
             after_rename_abs_path = os.path.abspath(user_vid_path)
+            
+            # Check if file exists
+            if not os.path.exists(after_rename_abs_path):
+                send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(after_rename_abs_path)))
+                continue
+            
+            # Check if file is still downloading (.part file)
+            # Check if the file itself ends with .part
+            if after_rename_abs_path.endswith('.part'):
+                logger.warning(f"Video file is still downloading (part file): {after_rename_abs_path}")
+                send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_STILL_DOWNLOADING_MSG)
+                continue
+            
+            # Check if there's a .part file with the same name (yt-dlp creates .part files during download)
+            if os.path.exists(after_rename_abs_path + '.part'):
+                logger.warning(f"Video file is still downloading (part file exists): {after_rename_abs_path}.part")
+                send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_STILL_DOWNLOADING_MSG)
+                continue
+            
+            # Check if there are any .part files in the directory that might be related
+            # This handles cases where yt-dlp hasn't finished renaming the file yet
+            try:
+                dir_files = os.listdir(dir_path)
+                base_name = os.path.splitext(os.path.basename(after_rename_abs_path))[0]
+                part_files = [f for f in dir_files if f.startswith(base_name) and f.endswith('.part')]
+                if part_files:
+                    logger.warning(f"Found .part files related to video file: {part_files}")
+                    send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_STILL_DOWNLOADING_MSG)
+                    continue
+            except Exception as part_check_error:
+                logger.debug(f"Error checking for .part files: {part_check_error}")
+            
+            # Check file size - skip empty files (0 bytes)
+            try:
+                file_size = os.path.getsize(after_rename_abs_path)
+                if file_size == 0:
+                    logger.error(f"Video file has zero size: {after_rename_abs_path}")
+                    send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_SIZE_ZERO_MSG.format(index=current_index))
+                    continue
+            except Exception as size_error:
+                logger.error(f"Error checking video file size: {size_error}")
+                send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(after_rename_abs_path)))
+                continue
+            
             # --- YouTube thumbnail logic (priority over ffmpeg) ---
             youtube_thumb_path = None
             thumb_dir = None
@@ -3455,12 +3499,29 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Note: split_msg_ids is already initialized at function start, don't reset it here
                 for p in range(len(caption_lst) if caption_lst else 0):
                     caption_name = caption_lst[p] if caption_lst and p < len(caption_lst) else f"part_{p+1}"
-                    part_result = get_duration_thumb(message, dir_path, path_lst[p], sanitize_filename_strict(caption_name))
+                    part_path = path_lst[p]
+                    
+                    # Check if split part file exists and has valid size
+                    if not os.path.exists(part_path):
+                        logger.error(f"Split part file not found: {part_path}")
+                        continue
+                    
+                    # Check file size - skip empty files (0 bytes)
+                    try:
+                        part_file_size = os.path.getsize(part_path)
+                        if part_file_size == 0:
+                            logger.error(f"Split part file has zero size: {part_path}")
+                            continue
+                    except Exception as size_error:
+                        logger.error(f"Error checking split part file size: {size_error}")
+                        continue
+                    
+                    part_result = get_duration_thumb(message, dir_path, part_path, sanitize_filename_strict(caption_name))
                     if part_result is None:
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, path_lst[p], '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                    video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
                     if not video_msg:
                         logger.error("send_videos returned None for split part; skipping cache save for this part")
                         continue

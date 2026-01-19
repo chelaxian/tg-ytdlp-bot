@@ -1409,6 +1409,9 @@ Gamitin:
     AUDIO_EXTRACTION_FAILED_MSG = "❌ Nabigong i-extract ang impormasyon ng audio"
     AUDIO_UNSUPPORTED_FILE_TYPE_MSG = "Nilaktawan ang hindi sinusuportahang uri ng file sa playlist sa index {index}"
     AUDIO_FILE_NOT_FOUND_MSG = "Hindi nahanap ang audio file pagkatapos ng pag-download."
+
+    AUDIO_FILE_SIZE_ZERO_MSG = "❌ Nabigo ang pagpapadala ng audio: Ang laki ng file ay katumbas ng 0 B (index ng playlist {index})"
+    AUDIO_FILE_STILL_DOWNLOADING_MSG = "❌ Ang audio file ay patuloy na na-download, mangyaring maghintay..."
     AUDIO_UPLOADING_MSG = "{process}\n📤 Nag-u-upload ng audio file...\n{bar}   100.0%"
     AUDIO_SEND_FAILED_MSG = "❌ Nabigong magpadala ng audio: {error}"
     PLAYLIST_AUDIO_SENT_LOG_MSG = "Ipinadala ang audio ng playlist: {sent}/{total} mga file (kalidad={quality}) sa user{user_id}"
@@ -1418,6 +1421,9 @@ Gamitin:
     
     # FFmpeg messages
     VIDEO_FILE_NOT_FOUND_MSG = "❌ Hindi nahanap ang video file: {filename}"
+
+    VIDEO_FILE_SIZE_ZERO_MSG = "❌ Nabigo ang pagpapadala ng video: Ang laki ng file ay katumbas ng 0 B (index ng playlist {index})"
+    VIDEO_FILE_STILL_DOWNLOADING_MSG = "❌ Ang video file ay patuloy na na-download, mangyaring maghintay..."
     VIDEO_PROCESSING_ERROR_MSG = "❌ Error sa pagproseso ng video: {error}"
     
     # Sender messages
