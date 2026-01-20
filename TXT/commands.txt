@@ -1,27 +1,11 @@
-start - Start the bot
-lang - Change language
-help - Show help instructions
-keyboard - Show keyboard (off/1x3/2x3/full)
-settings - All commands of both
-add_bot_to_group - Terms of Use
-clean - Delete cookies & broken downloads (args/nsfw/proxy/flood_wait)
-vid - + URL - Download video from link
-img - + URL - Download image from link
-audio - + URL - Extract only audio from link
-search - Find videos directly in bot
-cookie - Download cookie from web (youtube/tiktok/x/custom)
-cookies_from_browser - Cookies from browser
-playlist - How to download playlists
-format - Change quality & format options (720/4k/best/ask/id 134)
-list - Show available formats for URL
-mediainfo - Turn ON/OFF sending mediainfo
-split - Change splitted video part size (100mb-2gb)
-subs - Enable/disable subtitle embedding (off/ru/en auto)
-link - + [quality] URL - Get direct stream links
-proxy - on/off - Enable/disable proxy
-check_cookie - Check and validate cookie
-save_as_cookie - Save text as cookie (or upload *.TXT)
-tags - Get all your #tags
-usage - Get all your logs
-nsfw - on/off - turn on/off blur nsfw content
-args - change yt-dlp hook arguments (grouped menu)
+ПНР (включая переключение ЦИПП): 
+1. снять заглушки и смонтировать новые 3000F в стойку с оборудованием. 
+2. перепрошить их на Континент 4.2.1 с сохранением старых ID. 
+3. согласовать с Малининым по 3 новых айпи для сетей 10.69.192.х и 10.69.193.х и сделать заявку на открытие доступа с них до ЦУС по всем портам нужным для континента. 
+4. согласовать 10г-порты на ядре и бордере (по 2 на каждом) и сделать заявку на их настройку в нужный влан. 
+5. создать их в МК и выгрузить их сертификаты и json-конфиг. 
+6. записать на флэшки и установить на оборудование. 
+7. перевести VPN с ЦУС на кластер - сменить везде в правилах (виртуальные частные сети, МЭ, NAT) целевое устройство с ЦУС на новый кластер. 
+8. попросить Малинина сменить все настройки (криптокарты, маршруты, правила МЭ) на новые айпи для нового кластера.
+9. проверить работоспособность 3 ципп через новый кластер.
+10. провести тестирование отказоустойчивости кластера.

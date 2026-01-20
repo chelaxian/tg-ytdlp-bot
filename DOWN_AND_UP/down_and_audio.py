@@ -654,7 +654,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_folder)
 
-        if not check_disk_space(user_folder, 500 * 1024 * 1024 * video_count):
+        if not check_disk_space(user_folder, 280 * 1024 * 1024 * video_count):
             send_to_user(message, safe_get_messages(user_id).ERROR_NO_DISK_SPACE_MSG)
             return
 
