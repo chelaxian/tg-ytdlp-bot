@@ -4637,7 +4637,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Send playlist range hint if auto-range was added
             try:
                 if auto_range_added:
-                    from HELPERS.safe_messeger import safe_send_message
                     hint_msg = safe_get_messages(user_id).PLAYLIST_AUTO_RANGE_HINT_MSG
                     safe_send_message(user_id, hint_msg, reply_parameters=ReplyParameters(message_id=message.id))
                     logger.info(f"Sent playlist auto-range hint to user {user_id}")
