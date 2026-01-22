@@ -376,6 +376,17 @@ Verwenden Sie:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Wiedergabelisten-Videos gesendet: {sent}/{total} Dateien."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Wiedergabeliste-Tipp</b>
+
+Sie haben einen Wiedergabelisten-Link ohne Bereichsangabe gesendet. Der Bot hat automatisch das erste Video heruntergeladen (<code>*1*1</code>).
+
+<b>Um mehrere Videos aus einer Wiedergabeliste herunterzuladen, geben Sie einen Bereich an:</b>
+• <code>URL*1*5</code> — erste 5 Videos (von 1 bis 5 einschließlich)
+• <code>URL*3*3</code> — nur das 3. Video
+• <code>/vid 1-10 URL</code> — alternatives Format
+
+Mehr erfahren: <code>/playlist</code>"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Aus Cache gesendet: {cached}/{total} Dateien."
     
     # Failed Stream Messages

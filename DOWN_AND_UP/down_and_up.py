@@ -36,7 +36,7 @@ from CONFIG.limits import LimitsConfig
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, get_user_subs_language, clear_subs_check_cache, is_subs_always_ask
 from COMMANDS.split_sizer import get_user_split_size
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
-from URL_PARSERS.playlist_utils import is_playlist_with_range
+from URL_PARSERS.playlist_utils import is_playlist_with_range, is_playlist_url
 from URL_PARSERS.normalizer import get_clean_playlist_url
 from urllib.parse import urlparse
 from DATABASE.cache_db import get_cached_playlist_videos, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache
@@ -436,6 +436,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # We define a playlist not only by the number of videos, but also by the presence of a range in the URL
     original_text = message.text or message.caption or ""
     is_playlist = video_count > 1 or is_playlist_with_range(original_text)
+    
+    # Check if auto-range was added (for playlist hint message)
+    # Check if message has the flag or if URL is playlist and range was auto-added
+    auto_range_added = False
+    if hasattr(message, '_auto_range_added') and message._auto_range_added:
+        auto_range_added = True
+    elif is_playlist_url(url):
+        # Check if original text doesn't have range syntax and we're downloading single video (1-1)
+        from URL_PARSERS.video_extractor import has_range_syntax
+        if not has_range_syntax(original_text) and video_start_with == 1 and video_end_with == 1 and video_count == 1:
+            auto_range_added = True
     
     # Получаем video_end_with из original_text, если он там есть
     _, parsed_start, parsed_end, _, _, _, _ = extract_url_range_tags(original_text)
@@ -4622,6 +4633,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.info(f"[SUBS] End of task: cleared {cleared} subtitle cache entries for user={user_id}")
             except Exception as _e:
                 logger.debug(f"[SUBS] Failed to clear end cache: {_e}")
+            
+            # Send playlist range hint if auto-range was added
+            try:
+                if auto_range_added:
+                    from HELPERS.safe_messeger import safe_send_message
+                    hint_msg = safe_get_messages(user_id).PLAYLIST_AUTO_RANGE_HINT_MSG
+                    safe_send_message(user_id, hint_msg, reply_parameters=ReplyParameters(message_id=message.id))
+                    logger.info(f"Sent playlist auto-range hint to user {user_id}")
+            except Exception as hint_error:
+                logger.error(f"Error sending playlist auto-range hint: {hint_error}")
             
             # Clean up download subdirectory after successful upload
             try:

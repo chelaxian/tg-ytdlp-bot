@@ -376,6 +376,17 @@ Use:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Video playlist yang dikirimkan: {sent}/{total} file."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Tips Playlist</b>
+
+Anda mengirim tautan playlist tanpa menentukan rentang. Bot secara otomatis mengunduh video pertama (<code>*1*1</code>).
+
+<b>Untuk mengunduh beberapa video dari playlist, tentukan rentang:</b>
+• <code>URL*1*5</code> — 5 video pertama (dari 1 hingga 5 termasuk)
+• <code>URL*3*3</code> — hanya video ke-3
+• <code>/vid 1-10 URL</code> — format alternatif
+
+Pelajari lebih lanjut: <code>/playlist</code>"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Dikirim dari cache: {cached}/{total} file."
     
     # Failed Stream Messages

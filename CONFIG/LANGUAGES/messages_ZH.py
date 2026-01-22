@@ -376,6 +376,17 @@ class Messages(object):
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ 播放列表视频已发送：{sent}/{total} 个文件。"
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>播放列表提示</b>
+
+您发送了一个没有指定范围的播放列表链接。机器人自动下载了第一个视频 (<code>*1*1</code>)。
+
+<b>要从播放列表下载多个视频，请指定范围：</b>
+• <code>URL*1*5</code> — 前5个视频（从1到5，包括）
+• <code>URL*3*3</code> — 仅第3个视频
+• <code>/vid 1-10 URL</code> — 替代格式
+
+了解更多：<code>/playlist</code>"""
     PLAYLIST_CACHE_SENT_MSG = "✅ 从缓存发送：{cached}/{total} 个文件。"
     
     # Failed Stream Messages

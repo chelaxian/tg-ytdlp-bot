@@ -376,6 +376,17 @@ Utilisez :
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Vidéos de liste de lecture envoyées : {sent}/{total} fichiers."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Astuce pour les listes de lecture</b>
+
+Vous avez envoyé un lien de liste de lecture sans spécifier de plage. Le bot a automatiquement téléchargé la première vidéo (<code>*1*1</code>).
+
+<b>Pour télécharger plusieurs vidéos d'une liste de lecture, spécifiez une plage :</b>
+• <code>URL*1*5</code> — les 5 premières vidéos (de 1 à 5 inclus)
+• <code>URL*3*3</code> — uniquement la 3e vidéo
+• <code>/vid 1-10 URL</code> — format alternatif
+
+En savoir plus : <code>/playlist</code>"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Envoyé depuis le cache : {cached}/{total} fichiers."
     
     # Failed Stream Messages

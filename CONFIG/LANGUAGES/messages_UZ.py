@@ -376,6 +376,17 @@ Ishlating:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Ro'yxat videolari yuborildi: {sent}/{total} fayl."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Ro'yxat bo'yicha maslahat</b>
+
+Siz diapazonni ko'rsatmasdan ro'yxat havolasini yubordingiz. Bot avtomatik ravishda birinchi videoni yuklab oldi (<code>*1*1</code>).
+
+<b>Ro'yxatdan bir nechta videoni yuklab olish uchun diapazonni ko'rsating:</b>
+• <code>URL*1*5</code> — birinchi 5 ta video (1 dan 5 gacha, shu jumladan)
+• <code>URL*3*3</code> — faqat 3-video
+• <code>/vid 1-10 URL</code> — muqobil format
+
+Ko'proq ma'lumot: <code>/playlist</code>"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Keshdan yuborildi: {cached}/{total} fayl."
     
     # Failed Stream Messages

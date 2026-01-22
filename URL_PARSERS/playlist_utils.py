@@ -14,4 +14,19 @@ def is_playlist_with_range(text: str) -> bool:
 
     # Look for patterns like *1*3, 1*1000, *5*10, *-1*-100, or just * for full playlist (поддерживаем отрицательные числа)
     range_pattern = r'\*-?\d+\*-?\d+|-?\d+\*-?\d+|\*'
-    return bool(re.search(range_pattern, text)) 
+    return bool(re.search(range_pattern, text))
+
+def is_playlist_url(url: str) -> bool:
+    """
+    Checks if the URL is a playlist URL (e.g., YouTube playlist with list= parameter).
+    Returns True if URL appears to be a playlist, False otherwise.
+    """
+    if not isinstance(url, str):
+        return False
+    
+    # Check for YouTube playlist pattern (list= parameter)
+    if 'list=' in url.lower():
+        return True
+    
+    # Can be extended for other platforms that use playlist URLs
+    return False 

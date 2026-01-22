@@ -376,6 +376,17 @@ class Messages(object):
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ プレイリストの動画を送信しました：{sent}/{total}ファイル。"
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>プレイリストのヒント</b>
+
+範囲を指定せずにプレイリストのリンクを送信しました。ボットは自動的に最初の動画をダウンロードしました (<code>*1*1</code>)。
+
+<b>プレイリストから複数の動画をダウンロードするには、範囲を指定してください：</b>
+• <code>URL*1*5</code> — 最初の5本の動画（1から5まで含む）
+• <code>URL*3*3</code> — 3番目の動画のみ
+• <code>/vid 1-10 URL</code> — 代替形式
+
+詳細: <code>/playlist</code>"""
     PLAYLIST_CACHE_SENT_MSG = "✅ キャッシュから送信しました：{cached}/{total}ファイル。"
     
     # Failed Stream Messages

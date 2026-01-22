@@ -376,6 +376,17 @@ Use:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ پلے لسٹ ویڈیوز بھیجی گئیں: {sent}/{total} فائلیں۔"
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>پلے لسٹ کی تجویز</b>
+
+آپ نے بغیر رینج بتائے پلے لسٹ کا لنک بھیجا۔ بوٹ نے خودکار طور پر پہلی ویڈیو ڈاؤن لوڈ کی (<code>*1*1</code>).
+
+<b>پلے لسٹ سے متعدد ویڈیوز ڈاؤن لوڈ کرنے کے لیے، رینج بتائیں:</b>
+• <code>URL*1*5</code> — پہلی 5 ویڈیوز (1 سے 5 تک شامل)
+• <code>URL*3*3</code> — صرف تیسری ویڈیو
+• <code>/vid 1-10 URL</code> — متبادل فارمیٹ
+
+مزید جانیں: <code>/playlist</code>"""
     PLAYLIST_CACHE_SENT_MSG = "cache کیشے سے بھیجا گیا: {cached}/{total} فائلیں۔"
     
     # Failed Stream Messages
