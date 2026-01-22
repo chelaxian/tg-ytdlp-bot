@@ -386,7 +386,7 @@ Use:
 • <code>URL*3*3</code> — صرف تیسری ویڈیو
 • <code>/vid 1-10 URL</code> — متبادل فارمیٹ
 
-مزید جانیں: <code>/playlist</code>"""
+مزید جانیں: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "cache کیشے سے بھیجا گیا: {cached}/{total} فائلیں۔"
     
     # Failed Stream Messages

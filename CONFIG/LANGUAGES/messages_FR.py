@@ -386,7 +386,7 @@ Vous avez envoyé un lien de liste de lecture sans spécifier de plage. Le bot a
 • <code>URL*3*3</code> — uniquement la 3e vidéo
 • <code>/vid 1-10 URL</code> — format alternatif
 
-En savoir plus : <code>/playlist</code>"""
+En savoir plus : /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Envoyé depuis le cache : {cached}/{total} fichiers."
     
     # Failed Stream Messages

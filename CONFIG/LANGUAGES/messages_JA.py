@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — 3番目の動画のみ
 • <code>/vid 1-10 URL</code> — 代替形式
 
-詳細: <code>/playlist</code>"""
+詳細: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ キャッシュから送信しました：{cached}/{total}ファイル。"
     
     # Failed Stream Messages

@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — 3번째 동영상만
 • <code>/vid 1-10 URL</code> — 대체 형식
 
-자세히 알아보기: <code>/playlist</code>"""
+자세히 알아보기: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ 캐시에서 전송됨: {cached}/{total} 파일."
     
     # Failed Stream Messages

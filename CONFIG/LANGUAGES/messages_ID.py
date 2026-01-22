@@ -386,7 +386,7 @@ Anda mengirim tautan playlist tanpa menentukan rentang. Bot secara otomatis meng
 • <code>URL*3*3</code> — hanya video ke-3
 • <code>/vid 1-10 URL</code> — format alternatif
 
-Pelajari lebih lanjut: <code>/playlist</code>"""
+Pelajari lebih lanjut: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Dikirim dari cache: {cached}/{total} file."
     
     # Failed Stream Messages

@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — শুধুমাত্র 3য় ভিডিও
 • <code>/vid 1-10 URL</code> — বিকল্প ফরম্যাট
 
-আরও জানুন: <code>/playlist</code>"""
+আরও জানুন: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ ক্যাশ থেকে পাঠানো হয়েছে: {cached}/{total} ফাইল।"
     
     # Failed Stream Messages

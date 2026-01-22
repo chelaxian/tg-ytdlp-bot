@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — тек 3-бейне
 • <code>/vid 1-10 URL</code> — балама формат
 
-Көбірек біліңіз: <code>/playlist</code>"""
+Көбірек біліңіз: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Кэштен жіберілді: {cached}/{total} файл."
     
     # Failed Stream Messages

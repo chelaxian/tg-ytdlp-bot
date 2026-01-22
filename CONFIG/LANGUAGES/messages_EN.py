@@ -386,7 +386,7 @@ You sent a playlist link without specifying a range. The bot automatically downl
 • <code>URL*3*3</code> — only the 3rd video
 • <code>/vid 1-10 URL</code> — alternative format
 
-Learn more: <code>/playlist</code>"""
+Learn more: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Sent from cache: {cached}/{total} files."
     
     # Failed Stream Messages

@@ -386,7 +386,7 @@ Bir aralık belirtmeden çalma listesi bağlantısı gönderdiniz. Bot otomatik 
 • <code>URL*3*3</code> — yalnızca 3. video
 • <code>/vid 1-10 URL</code> — alternatif format
 
-Daha fazla bilgi: <code>/playlist</code>"""
+Daha fazla bilgi: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Önbellekten gönderildi: {cached}/{total} dosya."
     
     # Failed Stream Messages

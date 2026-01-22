@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — лише 3-є відео
 • <code>/vid 1-10 URL</code> — альтернативний формат
 
-Дізнатися більше: <code>/playlist</code>"""
+Дізнатися більше: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Відправлено з кешу: {cached}/{total} файлів."
     
     # Failed Stream Messages

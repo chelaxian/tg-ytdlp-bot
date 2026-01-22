@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — الفيديو الثالث فقط
 • <code>/vid 1-10 URL</code> — تنسيق بديل
 
-اعرف المزيد: <code>/playlist</code>"""
+اعرف المزيد: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ تم الإرسال من التخزين المؤقت: {cached}/{total} ملف."
     
     # Failed Stream Messages

@@ -385,7 +385,7 @@ class Messages(object):
 • <code>URL*3*3</code> — केवल तीसरा वीडियो
 • <code>/vid 1-10 URL</code> — वैकल्पिक प्रारूप
 
-अधिक जानें: <code>/playlist</code>"""
+अधिक जानें: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ कैश से भेजा गया: {cached}/{total} फाइलें।"
     
     # Failed Stream Messages

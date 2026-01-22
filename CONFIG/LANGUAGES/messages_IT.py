@@ -386,7 +386,7 @@ Hai inviato un link di playlist senza specificare un intervallo. Il bot ha scari
 • <code>URL*3*3</code> — solo il 3° video
 • <code>/vid 1-10 URL</code> — formato alternativo
 
-Scopri di più: <code>/playlist</code>"""
+Scopri di più: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Inviato dalla cache: {cached}/{total} file."
     
     # Failed Stream Messages

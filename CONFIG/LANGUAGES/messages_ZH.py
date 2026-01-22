@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — 仅第3个视频
 • <code>/vid 1-10 URL</code> — 替代格式
 
-了解更多：<code>/playlist</code>"""
+了解更多：/playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ 从缓存发送：{cached}/{total} 个文件。"
     
     # Failed Stream Messages

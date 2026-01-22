@@ -386,7 +386,7 @@ Kun aika hanyar haɗin jerin bidiyo ba tare da ƙayyade kewayon ba. Bot ya zazza
 • <code>URL*3*3</code> — bidiyo na 3 kawai
 • <code>/vid 1-10 URL</code> — tsarin madadin
 
-Koyi ƙari: <code>/playlist</code>"""
+Koyi ƙari: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ An aika daga cache: {cached}/{total} fayiloli."
     
     # Failed Stream Messages

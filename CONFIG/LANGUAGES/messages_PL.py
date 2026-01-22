@@ -386,7 +386,7 @@ Wysłałeś link do playlisty bez określenia zakresu. Bot automatycznie pobrał
 • <code>URL*3*3</code> — tylko 3. film
 • <code>/vid 1-10 URL</code> — format alternatywny
 
-Dowiedz się więcej: <code>/playlist</code>"""
+Dowiedz się więcej: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Wysłano z cache: {cached}/{total} plików."
     
     # Failed Stream Messages

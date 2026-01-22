@@ -386,7 +386,7 @@ Bạn đã gửi liên kết danh sách phát mà không chỉ định phạm vi
 • <code>URL*3*3</code> — chỉ video thứ 3
 • <code>/vid 1-10 URL</code> — định dạng thay thế
 
-Tìm hiểu thêm: <code>/playlist</code>"""
+Tìm hiểu thêm: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Đã gửi từ bộ nhớ cache: {cached}/{total} tệp."
     
     # Failed Stream Messages

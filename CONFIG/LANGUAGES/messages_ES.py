@@ -386,7 +386,7 @@ Enviaste un enlace de lista de reproducción sin especificar un rango. El bot de
 • <code>URL*3*3</code> — solo el 3er video
 • <code>/vid 1-10 URL</code> — formato alternativo
 
-Más información: <code>/playlist</code>"""
+Más información: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Enviado desde caché: {cached}/{total} archivos."
     
     # Failed Stream Messages

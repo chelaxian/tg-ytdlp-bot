@@ -386,7 +386,7 @@ Nagpadala ka ng link ng playlist nang hindi tinukoy ang saklaw. Awtomatikong na-
 • <code>URL*3*3</code> — ikatlong video lamang
 • <code>/vid 1-10 URL</code> — alternatibong format
 
-Matuto pa: <code>/playlist</code>"""
+Matuto pa: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Naipadala mula sa cache: {cached}/{total} files."
     
     # Failed Stream Messages

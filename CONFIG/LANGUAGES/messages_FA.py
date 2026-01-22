@@ -386,7 +386,7 @@ class Messages(object):
 • <code>URL*3*3</code> — فقط ویدیوی سوم
 • <code>/vid 1-10 URL</code> — فرمت جایگزین
 
-بیشتر بدانید: <code>/playlist</code>"""
+بیشتر بدانید: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ از کش ارسال شد: {cached}/{total} فایل."
     
     # Failed Stream Messages

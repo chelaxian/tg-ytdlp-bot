@@ -386,7 +386,7 @@ Siz diapazonni ko'rsatmasdan ro'yxat havolasini yubordingiz. Bot avtomatik ravis
 • <code>URL*3*3</code> — faqat 3-video
 • <code>/vid 1-10 URL</code> — muqobil format
 
-Ko'proq ma'lumot: <code>/playlist</code>"""
+Ko'proq ma'lumot: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Keshdan yuborildi: {cached}/{total} fayl."
     
     # Failed Stream Messages

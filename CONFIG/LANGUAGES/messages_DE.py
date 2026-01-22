@@ -386,7 +386,7 @@ Sie haben einen Wiedergabelisten-Link ohne Bereichsangabe gesendet. Der Bot hat 
 • <code>URL*3*3</code> — nur das 3. Video
 • <code>/vid 1-10 URL</code> — alternatives Format
 
-Mehr erfahren: <code>/playlist</code>"""
+Mehr erfahren: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Aus Cache gesendet: {cached}/{total} Dateien."
     
     # Failed Stream Messages
