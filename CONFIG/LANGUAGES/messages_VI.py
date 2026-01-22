@@ -376,6 +376,17 @@ Use:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Video danh sách phát đã được gửi: {sent}/{total} tệp."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Mẹo về danh sách phát</b>
+
+Bạn đã gửi liên kết danh sách phát mà không chỉ định phạm vi. Bot đã tự động tải xuống video đầu tiên (<code>*1*1</code>).
+
+<b>Để tải xuống nhiều video từ danh sách phát, hãy chỉ định phạm vi:</b>
+• <code>URL*1*5</code> — 5 video đầu tiên (từ 1 đến 5 bao gồm)
+• <code>URL*3*3</code> — chỉ video thứ 3
+• <code>/vid 1-10 URL</code> — định dạng thay thế
+
+Tìm hiểu thêm: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Đã gửi từ bộ nhớ cache: {cached}/{total} tệp."
     
     # Failed Stream Messages

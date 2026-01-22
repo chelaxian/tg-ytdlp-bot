@@ -376,6 +376,17 @@ Yi amfani da:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ An aika bidiyoyin jerin bidiyo: {sent}/{total} fayiloli."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Shawara game da jerin bidiyo</b>
+
+Kun aika hanyar haɗin jerin bidiyo ba tare da ƙayyade kewayon ba. Bot ya zazzage bidiyon farko ta atomatik (<code>*1*1</code>).
+
+<b>Don zazzage bidiyo da yawa daga jerin bidiyo, ƙayyade kewayon:</b>
+• <code>URL*1*5</code> — bidiyo 5 na farko (daga 1 zuwa 5 ciki har da)
+• <code>URL*3*3</code> — bidiyo na 3 kawai
+• <code>/vid 1-10 URL</code> — tsarin madadin
+
+Koyi ƙari: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ An aika daga cache: {cached}/{total} fayiloli."
     
     # Failed Stream Messages

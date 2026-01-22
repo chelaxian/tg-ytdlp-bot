@@ -36,7 +36,7 @@ from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, is_subs_always_ask
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
-from URL_PARSERS.playlist_utils import is_playlist_with_range
+from URL_PARSERS.playlist_utils import is_playlist_with_range, is_playlist_url, is_playlist_from_info_dict
 from URL_PARSERS.normalizer import get_clean_playlist_url
 from DATABASE.cache_db import get_cached_playlist_videos, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache
 from pyrogram.types import ReplyParameters
@@ -362,6 +362,32 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     _, parsed_start, parsed_end, _, _, _, _ = extract_url_range_tags(original_text)
     video_end_with = parsed_end if parsed_end != 1 or parsed_start != 1 else (video_start_with + video_count - 1)
     
+    # Check if auto-range was added (for playlist hint message)
+    # Check if message has the flag or if URL is playlist and range was auto-added
+    auto_range_added = False
+    if hasattr(message, '_auto_range_added') and message._auto_range_added:
+        auto_range_added = True
+    else:
+        # Try to determine if it's a playlist using multiple methods
+        is_playlist_detected = False
+        
+        # Method 1: Check URL pattern (fast, no API call)
+        if is_playlist_url(url):
+            is_playlist_detected = True
+        
+        # Method 2: Check cached_video_info if available (fast, uses cached data)
+        if not is_playlist_detected and cached_video_info:
+            if is_playlist_from_info_dict(cached_video_info):
+                is_playlist_detected = True
+                logger.info(f"🔍 [DEBUG] Playlist detected from cached_video_info for URL: {url}")
+        
+        # If playlist detected, check if range was auto-added
+        if is_playlist_detected:
+            from URL_PARSERS.video_extractor import has_range_syntax
+            if not has_range_syntax(original_text) and video_start_with == 1 and video_end_with == 1 and video_count == 1:
+                auto_range_added = True
+                logger.info(f"🔍 [DEBUG] Auto-range added detected for playlist URL: {url}")
+    
     # Определяем, нужен ли обратный порядок (когда start > end)
     # Для отрицательных индексов: -1 до -7 означает обратный порядок (7, 6, 5, 4, 3, 2, 1)
     is_reverse_order = False
@@ -654,7 +680,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         user_folder = os.path.abspath(os.path.join("users", str(user_id)))
         create_directory(user_folder)
 
-        if not check_disk_space(user_folder, 500 * 1024 * 1024 * video_count):
+        if not check_disk_space(user_folder, 280 * 1024 * 1024 * video_count):
             send_to_user(message, safe_get_messages(user_id).ERROR_NO_DISK_SPACE_MSG)
             return
 
@@ -2645,6 +2671,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             logger.error(f"Error updating final status: {e}")
 
         send_to_logger(message, success_msg)
+        
+        # Send playlist range hint if auto-range was added
+        try:
+            if auto_range_added:
+                hint_msg = safe_get_messages(user_id).PLAYLIST_AUTO_RANGE_HINT_MSG
+                safe_send_message(user_id, hint_msg, reply_parameters=ReplyParameters(message_id=message.id))
+                logger.info(f"Sent playlist auto-range hint to user {user_id}")
+        except Exception as hint_error:
+            logger.error(f"Error sending playlist auto-range hint: {hint_error}")
         
         # Clean up download subdirectory after successful upload
         try:

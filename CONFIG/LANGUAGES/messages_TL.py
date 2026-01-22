@@ -376,6 +376,17 @@ Gamitin:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Naipadala ang mga video ng playlist: {sent}/{total} files."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Tip sa Playlist</b>
+
+Nagpadala ka ng link ng playlist nang hindi tinukoy ang saklaw. Awtomatikong na-download ng bot ang unang video (<code>*1*1</code>).
+
+<b>Upang mag-download ng maraming video mula sa playlist, tukuyin ang saklaw:</b>
+• <code>URL*1*5</code> — unang 5 na video (mula 1 hanggang 5 kasama)
+• <code>URL*3*3</code> — ikatlong video lamang
+• <code>/vid 1-10 URL</code> — alternatibong format
+
+Matuto pa: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Naipadala mula sa cache: {cached}/{total} files."
     
     # Failed Stream Messages

@@ -376,6 +376,17 @@ Usa:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Videos de lista de reproducción enviados: {sent}/{total} archivos."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Consejo sobre listas de reproducción</b>
+
+Enviaste un enlace de lista de reproducción sin especificar un rango. El bot descargó automáticamente el primer video (<code>*1*1</code>).
+
+<b>Para descargar varios videos de una lista de reproducción, especifica un rango:</b>
+• <code>URL*1*5</code> — primeros 5 videos (del 1 al 5 inclusive)
+• <code>URL*3*3</code> — solo el 3er video
+• <code>/vid 1-10 URL</code> — formato alternativo
+
+Más información: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Enviado desde caché: {cached}/{total} archivos."
     
     # Failed Stream Messages

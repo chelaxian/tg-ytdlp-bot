@@ -376,6 +376,17 @@ Kullanın:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Çalma listesi videoları gönderildi: {sent}/{total} dosya."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Çalma Listesi İpucu</b>
+
+Bir aralık belirtmeden çalma listesi bağlantısı gönderdiniz. Bot otomatik olarak ilk videoyu indirdi (<code>*1*1</code>).
+
+<b>Bir çalma listesinden birden fazla video indirmek için bir aralık belirtin:</b>
+• <code>URL*1*5</code> — ilk 5 video (1'den 5'e dahil)
+• <code>URL*3*3</code> — yalnızca 3. video
+• <code>/vid 1-10 URL</code> — alternatif format
+
+Daha fazla bilgi: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Önbellekten gönderildi: {cached}/{total} dosya."
     
     # Failed Stream Messages

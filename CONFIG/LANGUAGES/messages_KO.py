@@ -376,6 +376,17 @@ class Messages(object):
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ 재생 목록 동영상 전송됨: {sent}/{total} 파일."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>재생 목록 팁</b>
+
+범위를 지정하지 않고 재생 목록 링크를 보냈습니다. 봇이 자동으로 첫 번째 동영상을 다운로드했습니다 (<code>*1*1</code>).
+
+<b>재생 목록에서 여러 동영상을 다운로드하려면 범위를 지정하세요:</b>
+• <code>URL*1*5</code> — 처음 5개 동영상 (1~5 포함)
+• <code>URL*3*3</code> — 3번째 동영상만
+• <code>/vid 1-10 URL</code> — 대체 형식
+
+자세히 알아보기: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ 캐시에서 전송됨: {cached}/{total} 파일."
     
     # Failed Stream Messages

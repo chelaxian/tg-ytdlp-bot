@@ -376,6 +376,17 @@ Użyj:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Filmy z playlisty wysłane: {sent}/{total} plików."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Wskazówka dotycząca playlist</b>
+
+Wysłałeś link do playlisty bez określenia zakresu. Bot automatycznie pobrał pierwszy film (<code>*1*1</code>).
+
+<b>Aby pobrać kilka filmów z playlisty, określ zakres:</b>
+• <code>URL*1*5</code> — pierwsze 5 filmów (od 1 do 5 włącznie)
+• <code>URL*3*3</code> — tylko 3. film
+• <code>/vid 1-10 URL</code> — format alternatywny
+
+Dowiedz się więcej: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Wysłano z cache: {cached}/{total} plików."
     
     # Failed Stream Messages

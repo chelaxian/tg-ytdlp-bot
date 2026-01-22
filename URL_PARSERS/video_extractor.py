@@ -5,6 +5,7 @@ from HELPERS.download_status import get_active_download
 from HELPERS.logger import send_to_logger, send_error_to_user, logger
 from URL_PARSERS.tags import extract_url_range_tags, save_user_tags, get_auto_tags
 from URL_PARSERS.tiktok import is_tiktok_url
+from URL_PARSERS.playlist_utils import is_playlist_url
 from DOWN_AND_UP.always_ask_menu import ask_quality_menu
 from DOWN_AND_UP.down_and_up import down_and_up
 from HELPERS.download_status import playlist_errors, playlist_errors_lock
@@ -288,12 +289,32 @@ def video_url_extractor(app, message):
                 from HELPERS.logger import log_error_to_channel
                 log_error_to_channel(message, error_msg)
             return
+        
+        # Auto-add *1*1 range for playlists without range
+        auto_range_added = False
+        if url and is_playlist_url(url):
+            # Check if range is missing (default values 1, 1 and no range syntax in text)
+            has_range_syntax_in_text = has_range_syntax(full_string)
+            if not has_range_syntax_in_text and video_start_with == 1 and video_end_with == 1:
+                # Auto-add *1*1 range
+                full_string = f"{url}*1*1"
+                message.text = full_string
+                video_start_with = 1
+                video_end_with = 1
+                auto_range_added = True
+                logger.info(f"🔍 [DEBUG] video_extractor: Автоматически добавлен диапазон *1*1 для плейлиста: {url}")
+        
         # Если есть диапазон, используем video_start_with из парсинга, иначе 1
         # ask_quality_menu сам определит диапазон из original_text и обновит playlist_start_index
         # Для отрицательных индексов проверяем, что хотя бы одно число не равно 1
         has_range = (video_start_with != 1 or video_end_with != 1) or (video_start_with < 0 or video_end_with < 0)
         playlist_start_index = video_start_with if has_range else 1
         logger.info(f"🔍 [DEBUG] video_extractor: video_start_with={video_start_with}, video_end_with={video_end_with}, has_range={has_range}, playlist_start_index={playlist_start_index}")
+        
+        # Store auto_range_added flag in message for later use
+        if auto_range_added:
+            message._auto_range_added = True
+        
         ask_quality_menu(app, message, url, tags, playlist_start_index)
         return
 
@@ -369,6 +390,24 @@ def video_url_extractor(app, message):
             from HELPERS.logger import log_error_to_channel
             log_error_to_channel(message, error_msg)
         return
+    
+    # Auto-add *1*1 range for playlists without range
+    auto_range_added = False
+    if url and is_playlist_url(url):
+        # Check if range is missing (default values 1, 1 and no range syntax in text)
+        has_range_syntax_in_text = has_range_syntax(full_string)
+        if not has_range_syntax_in_text and video_start_with == 1 and video_end_with == 1:
+            # Auto-add *1*1 range
+            full_string = f"{url}*1*1"
+            message.text = full_string
+            # Re-extract with new range
+            url, video_start_with, video_end_with, playlist_name, tags, tags_text, tag_error = extract_url_range_tags(full_string)
+            auto_range_added = True
+            logger.info(f"🔍 [DEBUG] video_extractor: Автоматически добавлен диапазон *1*1 для плейлиста: {url}")
+    
+    # Store auto_range_added flag in message for later use
+    if auto_range_added:
+        message._auto_range_added = True
     
     # Checking the range limit
     if not check_playlist_range_limits(url, video_start_with, video_end_with, app, message):

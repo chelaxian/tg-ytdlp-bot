@@ -376,6 +376,17 @@ Use:
     
     # Playlist Messages
     PLAYLIST_SENT_MSG = "✅ Vídeos da playlist enviados: {sent}/{total} arquivos."
+    
+    PLAYLIST_AUTO_RANGE_HINT_MSG = """💡 <b>Dica sobre playlists</b>
+
+Você enviou um link de playlist sem especificar um intervalo. O bot baixou automaticamente o primeiro vídeo (<code>*1*1</code>).
+
+<b>Para baixar vários vídeos de uma playlist, especifique um intervalo:</b>
+• <code>URL*1*5</code> — primeiros 5 vídeos (de 1 a 5 inclusive)
+• <code>URL*3*3</code> — apenas o 3º vídeo
+• <code>/vid 1-10 URL</code> — formato alternativo
+
+Saiba mais: /playlist"""
     PLAYLIST_CACHE_SENT_MSG = "✅ Enviado do cache: {cached}/{total} arquivos."
     
     # Failed Stream Messages
