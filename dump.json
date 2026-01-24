@@ -4,7 +4,7 @@
       "blocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768206828
+          "timestamp": 1769287766
         }
       },
       "logs": {
@@ -21,13 +21,252 @@
       "unblocked_users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768206828
+          "timestamp": 1769287766
         }
       },
       "users": {
         "0": {
           "ID": "0",
-          "timestamp": 1768206828
+          "timestamp": 1769287766
+        }
+      },
+      "channel_guard": {
+        "leavers": {
+          "7326108350": {
+            "ID": "7326108350",
+            "first_left_ts": 1769113580.0,
+            "username": null,
+            "name": "Tea",
+            "last_left_ts": 1769113580.0,
+            "blocked": false
+          },
+          "6887845027": {
+            "ID": "6887845027",
+            "first_left_ts": 1769114960.0,
+            "username": null,
+            "name": "RYAH",
+            "last_left_ts": 1769114960.0,
+            "blocked": false
+          },
+          "7951868444": {
+            "ID": "7951868444",
+            "first_left_ts": 1769124083.0,
+            "username": "AxeIbolt",
+            "name": "Rindoqls",
+            "last_left_ts": 1769124083.0,
+            "blocked": false
+          },
+          "2011177966": {
+            "ID": "2011177966",
+            "first_left_ts": 1769137986.0,
+            "username": null,
+            "name": "M-II",
+            "last_left_ts": 1769137986.0,
+            "blocked": false
+          },
+          "7909777421": {
+            "ID": "7909777421",
+            "first_left_ts": 1769151113.0,
+            "username": "Eslamaiu",
+            "name": "Eslam",
+            "last_left_ts": 1769151113.0,
+            "blocked": false
+          },
+          "6982543229": {
+            "ID": "6982543229",
+            "first_left_ts": 1769152388.0,
+            "username": null,
+            "name": "Thevindu Fernando",
+            "last_left_ts": 1769152388.0,
+            "blocked": false
+          },
+          "1718662994": {
+            "ID": "1718662994",
+            "first_left_ts": 1769153782.0,
+            "username": null,
+            "name": "🏳️ 🏴",
+            "last_left_ts": 1769153782.0,
+            "blocked": false
+          },
+          "1529341283": {
+            "ID": "1529341283",
+            "first_left_ts": 1769159361.0,
+            "username": "Mahdiftp",
+            "name": ".",
+            "last_left_ts": 1769159361.0,
+            "blocked": false
+          },
+          "5538424092": {
+            "ID": "5538424092",
+            "first_left_ts": 1769170988.0,
+            "username": "aedanxd",
+            "name": "𝓂𝒽𝓂𝒹",
+            "last_left_ts": 1769170988.0,
+            "blocked": false
+          },
+          "8255441903": {
+            "ID": "8255441903",
+            "first_left_ts": 1769171691.0,
+            "username": null,
+            "name": "A",
+            "last_left_ts": 1769171691.0,
+            "blocked": false
+          },
+          "489391295": {
+            "ID": "489391295",
+            "first_left_ts": 1769173764.0,
+            "username": "Nymaaa",
+            "name": "Nyma",
+            "last_left_ts": 1769173764.0,
+            "blocked": false
+          },
+          "6608332676": {
+            "ID": "6608332676",
+            "first_left_ts": 1769183301.0,
+            "username": null,
+            "name": "Majd",
+            "last_left_ts": 1769183301.0,
+            "blocked": false
+          },
+          "2017039971": {
+            "ID": "2017039971",
+            "first_left_ts": 1769187378.0,
+            "username": "esp1ral",
+            "name": "Sebastián Díaz",
+            "last_left_ts": 1769187378.0,
+            "blocked": false
+          },
+          "890420697": {
+            "ID": "890420697",
+            "first_left_ts": 1769189019.0,
+            "username": null,
+            "name": "Dayron",
+            "last_left_ts": 1769189019.0,
+            "blocked": false
+          },
+          "6848354168": {
+            "ID": "6848354168",
+            "first_left_ts": 1769191551.0,
+            "username": "Soheilo",
+            "name": "Soheil",
+            "last_left_ts": 1769191551.0,
+            "blocked": false
+          },
+          "596540913": {
+            "ID": "596540913",
+            "first_left_ts": 1769191594.0,
+            "username": "Fm01130113",
+            "name": "A",
+            "last_left_ts": 1769191594.0,
+            "blocked": false
+          },
+          "7369483104": {
+            "ID": "7369483104",
+            "first_left_ts": 1769196349.0,
+            "username": "Yareyaredazebro",
+            "name": "Wonder of you",
+            "last_left_ts": 1769196349.0,
+            "blocked": false
+          },
+          "299960572": {
+            "ID": "299960572",
+            "first_left_ts": 1769203343.0,
+            "username": "Serkaqzi",
+            "name": "S",
+            "last_left_ts": 1769203343.0,
+            "blocked": false
+          },
+          "8443445298": {
+            "ID": "8443445298",
+            "first_left_ts": 1769203994.0,
+            "username": "wavemol",
+            "name": "Wavemol",
+            "last_left_ts": 1769203994.0,
+            "blocked": false
+          },
+          "284908190": {
+            "ID": "284908190",
+            "first_left_ts": 1769208436.0,
+            "username": null,
+            "name": "☕️",
+            "last_left_ts": 1769208436.0,
+            "blocked": false
+          },
+          "5634808008": {
+            "ID": "5634808008",
+            "first_left_ts": 1769244210.0,
+            "username": "mrwrightd7a",
+            "name": "Мистер Райт",
+            "last_left_ts": 1769244210.0,
+            "blocked": false
+          },
+          "8595778183": {
+            "ID": "8595778183",
+            "first_left_ts": 1769248680.0,
+            "username": null,
+            "name": "Serge",
+            "last_left_ts": 1769248680.0,
+            "blocked": false
+          },
+          "936864576": {
+            "ID": "936864576",
+            "first_left_ts": 1769248974.0,
+            "username": "Viperkilo",
+            "name": "Mř_ቃል 🦇",
+            "last_left_ts": 1769248974.0,
+            "blocked": false
+          },
+          "5453402281": {
+            "ID": "5453402281",
+            "first_left_ts": 1769250750.0,
+            "username": "IvanDragoW",
+            "name": "D K",
+            "last_left_ts": 1769250857.0,
+            "blocked": false
+          },
+          "291618767": {
+            "ID": "291618767",
+            "first_left_ts": 1769254949.0,
+            "username": "GreySadOrc",
+            "name": "Александр",
+            "last_left_ts": 1769254949.0,
+            "blocked": false
+          },
+          "825321143": {
+            "ID": "825321143",
+            "first_left_ts": 1769257653.0,
+            "username": "r_RiX_x",
+            "name": "♪ ʁḷӿ ♪",
+            "last_left_ts": 1769257653.0,
+            "blocked": false
+          },
+          "44427550": {
+            "ID": "44427550",
+            "first_left_ts": 1769259501.0,
+            "username": "Sirbigwig001",
+            "name": "Ali Jb",
+            "last_left_ts": 1769259501.0,
+            "blocked": false
+          },
+          "6336292315": {
+            "ID": "6336292315",
+            "first_left_ts": 1769281334.0,
+            "username": null,
+            "name": "Алекс",
+            "last_left_ts": 1769281334.0,
+            "blocked": false
+          },
+          "200039064": {
+            "ID": "200039064",
+            "first_left_ts": 1769282284.0,
+            "username": "rusanov",
+            "name": "Danil Rusanov",
+            "last_left_ts": 1769282284.0,
+            "blocked": false
+          }
+        },
+        "state": {
+          "last_event_id": 960503844504
         }
       }
     },
@@ -52,4 +291,3 @@
     }
   }
 }
-

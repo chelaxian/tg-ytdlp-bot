@@ -231,15 +231,23 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
                     logger.info(f"{LoggerMsg.LINK_USER_PROXY_DISABLED_LOG_MSG}")
         
         # Add proxy configuration if needed (same as down_and_up.py)
-        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
+        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback
         ytdl_opts = add_proxy_to_ytdl_opts(ytdl_opts, url, user_id)
         
         # Add PO token provider for YouTube domains
         ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
         
-        # Get video information
-        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        # Get video information with proxy fallback
+        def extract_info_operation(opts, *args, **kwargs):
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                return ydl.extract_info(url, download=False)
+        
+        # Use try_with_proxy_fallback to try all proxies if first one fails
+        info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
+        
+        if info is None:
+            return {'error': 'Failed to extract video information: all proxies failed or video unavailable'}
+        
         # Normalize info to a dict
         if isinstance(info, list):
             info = (info[0] if len(info) > 0 else {})

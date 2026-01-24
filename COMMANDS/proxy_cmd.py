@@ -151,6 +151,7 @@ def proxy_command(app, message):
                 'Thailand': '🇹🇭',
                 'Netherlands': '🇳🇱',
                 'United Kingdom': '🇬🇧',
+                'United Arab Emirates': '🇦🇪',
             }
             flag_emoji = country_flags.get(country, '🌍')
             
@@ -705,6 +706,7 @@ def get_country_code(country: str) -> str:
         'Thailand': 'TH',
         'Netherlands': 'NL',
         'United Kingdom': 'GB',
+        'United Arab Emirates': 'AE',
     }
     return country_codes.get(country, country.upper()[:2] if len(country) >= 2 else country.upper())
 
@@ -722,6 +724,8 @@ def get_country_by_code(code: str) -> str:
         'TH': 'Thailand',
         'NL': 'Netherlands',
         'GB': 'United Kingdom',
+        'AE': 'United Arab Emirates',
+        'UN': 'United Arab Emirates',  # Обратная совместимость для уже сохраненных кодов
     }
     return code_to_country.get(code.upper())
 
