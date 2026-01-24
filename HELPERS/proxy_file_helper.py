@@ -24,6 +24,8 @@ COUNTRY_MAPPING = {
     'thailand': 'thailand',
     'netherlands': 'netherlands',
     'united kingdom': 'united kingdom',
+    'united arab emirates': 'united arab emirates',
+    'uae': 'united arab emirates',
     # Common variations and abbreviations
     'usa': 'united states',
     'us': 'united states',
@@ -85,7 +87,7 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
                 continue
             
             # Parse proxy line: 🇩🇪 Germany – 1.2.3.4:8080:username:password
-            # Format: [flag] Country – IP:PORT:USER:PASSWORD
+            # Format: [flag] Country – IP:PORT:USER:PASSWORD 
             match = re.match(r'[^\w]*([A-Za-z\s]+?)\s*[–-]\s*(\d+\.\d+\.\d+\.\d+):(\d+):([^:]+):(.+)', line)
             if match:
                 country = match.group(1).strip()
@@ -95,6 +97,7 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
                 password = match.group(5)
                 
                 # Build proxy URL based on type
+                # No URL encoding needed - yt-dlp and requests handle special characters automatically
                 if current_type == 'socks5':
                     proxy_url = f"socks5://{user}:{password}@{ip}:{port}"
                 else:  # http or https
