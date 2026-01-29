@@ -1373,7 +1373,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if result is None:
                     # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
                     if is_youtube_url(url) and user_id is not None:
-                        from COMMANDS.cookies_cmd import is_youtube_geo_error, retry_download_with_proxy
                         # Используем последнюю ошибку, если она есть
                         error_to_check = last_download_error if last_download_error else "Failed to download audio with all available proxies"
                         if is_youtube_geo_error(error_to_check):

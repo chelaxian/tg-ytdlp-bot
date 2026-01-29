@@ -1733,7 +1733,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if info_dict is None:
                             # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
                             if is_youtube_url(url) and user_id is not None:
-                                from COMMANDS.cookies_cmd import is_youtube_geo_error, retry_download_with_proxy
                                 if is_youtube_geo_error(original_error_text if original_error_text else error_text):
                                     logger.info(f"YouTube geo-blocked error detected in extract_info for user {user_id}, attempting retry with proxy from file")
                                     
