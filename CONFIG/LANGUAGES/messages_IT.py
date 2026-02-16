@@ -1960,7 +1960,7 @@ Scopri di più: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Didascalia:</b> <code>{caption}</code>\n<b>ID utente:</b> <code>{user_id}</code>\n<b>Nome utente:</b> <code>{users_name}</code>\n<b>ID file video:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Errore nell'editor_didascalia: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Errore imprevisto in caption_editor: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗URL del video</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗URL del video</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL mancante nella configurazione"

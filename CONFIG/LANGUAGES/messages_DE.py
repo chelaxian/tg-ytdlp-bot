@@ -1961,7 +1961,7 @@ Mehr erfahren: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Beschriftung:</b> <code>{caption}</code>\n<b>Benutzer-ID:</b> <code>{user_id}</code>\n<b>Benutzer Vorname:</b> <code>{users_name}</code>\n<b>Video-Datei-ID:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Fehler im caption_editor: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Unerwarteter Fehler im caption_editor: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 Video-URL</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 Video-URL</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL fehlt in der Konfiguration"

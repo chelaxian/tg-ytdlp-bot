@@ -1960,7 +1960,7 @@ Ko'proq ma'lumot: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Sarlavha:</b> <code>{caption}</code>\n<b>Foydalanuvchi id:</b> <code>{user_id}</code>\n<b>Foydalanuvchi ismi:</b> <code>{users_name}</code>\n<b>Video fayl id:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor'da xatolik: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor'da kutilmagan xatolik: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 Video havolasi</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 Video havolasi</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL konfiguratsiyada mavjud emas"

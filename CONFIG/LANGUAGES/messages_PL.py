@@ -1899,7 +1899,7 @@ Dowiedz się więcej: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Podpis:</b> <code>{caption}</code>\n<b>ID użytkownika:</b> <code>{user_id}</code>\n<b>Imię użytkownika:</b> <code>{users_name}</code>\n<b>ID pliku wideo:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Błąd w caption_editor: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Nieoczekiwany błąd w caption_editor: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL wideo</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL wideo</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL brakuje w konfiguracji"

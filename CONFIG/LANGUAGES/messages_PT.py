@@ -1960,7 +1960,7 @@ Saiba mais: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Legenda:</b> <code>{caption}</code>\n<b>ID do usuário:</b> <code>{user_id}</code>\n<b>Primeiro nome do usuário:</b> <code>{users_name}</code>\n<b>ID do arquivo de vídeo:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Erro em caption_editor: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Erro inesperado em caption_editor: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL do Vídeo</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL do Vídeo</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL ausente na configuração"

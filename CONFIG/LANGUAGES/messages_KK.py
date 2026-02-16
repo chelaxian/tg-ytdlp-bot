@@ -1960,7 +1960,7 @@ class Messages(object):
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Сипаттама:</b> <code>{caption}</code>\n<b>Пайдаланушы ID:</b> <code>{user_id}</code>\n<b>Пайдаланушы аты:</b> <code>{users_name}</code>\n<b>Бейне файл ID:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Caption_редакторындағы қате: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Caption_editor ішіндегі күтпеген қате: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 V{bot_mention}bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 Video URL</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL конфигурацияда жауап береді"

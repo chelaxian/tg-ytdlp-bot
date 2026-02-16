@@ -1960,7 +1960,7 @@ class Messages(object):
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>标题：</b> <code>{caption}</code>\n<b>用户ID：</b> <code>{user_id}</code>\n<b>用户名字：</b> <code>{users_name}</code>\n<b>视频文件ID：</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor中出错：{error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor中发生意外错误：{error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 视频URL</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 视频URL</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "配置中缺少FIREBASE_CONF.databaseURL"

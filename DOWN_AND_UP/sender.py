@@ -83,6 +83,7 @@ def send_videos(
     full_video_title: str,
     tags_text: str = '',
     skip_size_check: bool = False,
+    video_quality_codec: str = '',
 ):
     import re
     import os
@@ -193,7 +194,8 @@ def send_videos(
                                                 msg_id,
                                                 full_video_title,
                                                 tags_text,
-                                                skip_size_check=True  # Skip size check for sub-parts
+                                                skip_size_check=True,  # Skip size check for sub-parts
+                                                video_quality_codec=video_quality_codec,
                                             )
                                             sent_parts.append(sub_part_path)
                                         except Exception as send_error:
@@ -222,7 +224,8 @@ def send_videos(
                                         msg_id,
                                         full_video_title,
                                         tags_text,
-                                        skip_size_check=True  # Skip size check for parts
+                                        skip_size_check=True,  # Skip size check for parts
+                                        video_quality_codec=video_quality_codec,
                                     )
                                     sent_parts.append(part_path)
                                 except Exception:
@@ -243,7 +246,8 @@ def send_videos(
                                     msg_id,
                                     full_video_title,
                                     tags_text,
-                                    skip_size_check=True  # Skip size check for parts
+                                    skip_size_check=True,  # Skip size check for parts
+                                    video_quality_codec=video_quality_codec,
                                 )
                                 sent_parts.append(part_path)
                             except Exception as send_error:
@@ -302,9 +306,10 @@ def send_videos(
             title=caption,  # Original title for caption
             description=full_video_title,  # Full description to be truncated
             url=video_url,
-            tags_text=tags_text, # Use final tags for calculation
+            tags_text=tags_text,  # Use final tags for calculation
             max_length=1000,  # Reduced for safety
-            user_id=user_id
+            user_id=user_id,
+            quality_codec_suffix=video_quality_codec,
         )
         # Define spoiler flag for porn-tagged content
         try:

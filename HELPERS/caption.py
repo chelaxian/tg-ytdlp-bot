@@ -10,6 +10,51 @@ from pyrogram import filters
 # Get app instance for decorators
 app = get_app()
 
+
+# Standard resolution sides (p) used in practice; quality = exact match of either width or height
+_STANDARD_QUALITIES = {144, 240, 360, 480, 576, 720, 1080, 1440, 2160, 4320}
+
+
+def format_quality_codec(height=None, width=None, vcodec=None):
+    """
+    Build suffix string for caption: quality (144p–4320p) and codec (AV1, AVC1, VP9).
+    Quality = whichever of width/height exactly matches a standard value (144, 240, 360, 480, 720, 1080, …).
+    E.g. 1920x1080 → 1080p, 1080x1920 → 1080p. If both match, use the minimum (e.g. 1080×720 → 720p).
+    Returns e.g. " 📹1080P 📼AV1" or " 📹2160p(4K) 📼VP9" or "" if both missing.
+    """
+    parts = []
+    try:
+        h = int(height) if height is not None else None
+        w = int(width) if width is not None else None
+        if h is not None or w is not None:
+            candidates = [s for s in (h, w) if s is not None and s in _STANDARD_QUALITIES]
+            quality_side = min(candidates) if candidates else (min(h, w) if (h is not None and w is not None) else (h or w))
+        else:
+            quality_side = None
+        if quality_side is not None:
+            if quality_side >= 2160:
+                parts.append(f"📹{quality_side}p(4K)" if quality_side == 2160 else f"📹{quality_side}p")
+            else:
+                parts.append(f"📹{quality_side}P")
+    except (TypeError, ValueError):
+        pass
+    if vcodec:
+        v = (vcodec or "").strip().lower()
+        if "av01" in v or v == "av1":
+            codec_display = "AV1"
+        elif "avc1" in v or "h264" in v or "avc" in v:
+            codec_display = "AVC1"
+        elif "vp9" in v:
+            codec_display = "VP9"
+        elif "hevc" in v or "h265" in v:
+            codec_display = "HEVC"
+        else:
+            codec_display = v[:4].upper() if len(v) >= 4 else v.upper()
+        if codec_display:
+            parts.append(f"📼{codec_display}")
+    return (" " + " ".join(parts)) if parts else ""
+
+
 # Called from url_distractor - no decorator needed
 def caption_editor(app, message):
     messages = safe_get_messages(message.chat.id)
@@ -46,10 +91,12 @@ def truncate_caption(
     url: str,
     tags_text: str = '',
     max_length: int = 1000,  # Reduced from 1024 to be safe with encoding issues
-    user_id: int = None
+    user_id: int = None,
+    quality_codec_suffix: str = '',
 ) -> Tuple[str, str, str, str, str, bool]:
     """
     Returns: (title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated)
+    quality_codec_suffix: optional string like " 📹1080P 📼AV1" appended after Video URL (included in overhead for truncation).
     """
     # Get messages instance
     messages = safe_get_messages(user_id)
@@ -73,10 +120,12 @@ def truncate_caption(
     post_block_str = '\n'.join(post_block_lines).strip()
 
     tags_block = (tags_text.strip() + '\n') if tags_text and tags_text.strip() else ''
-    # --- Add bot name next to the link ---
+    # --- Add bot name and optional quality/codec next to the link ---
     bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
     bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
-    link_block = safe_get_messages(user_id).CAPTION_VIDEO_URL_LINK_MSG.format(url=url, bot_mention=bot_mention)
+    link_block = safe_get_messages(user_id).CAPTION_VIDEO_URL_LINK_MSG.format(
+        url=url, bot_mention=bot_mention, quality_codec=quality_codec_suffix
+    )
     
     was_truncated = False
     
