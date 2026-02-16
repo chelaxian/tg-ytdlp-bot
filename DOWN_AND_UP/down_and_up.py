@@ -2806,6 +2806,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             tags_text_final = generate_final_tags(url, tags_list, info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
+            # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1")
+            from HELPERS.caption import format_quality_codec
+            _height = info_dict.get('height') if info_dict else None
+            _vcodec = info_dict.get('vcodec') if info_dict else None
+            if not _vcodec and info_dict and info_dict.get('requested_formats'):
+                for rf in info_dict.get('requested_formats', []):
+                    if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
+                        _vcodec = rf.get('vcodec')
+                        break
+            video_quality_codec = format_quality_codec(_height, _vcodec)
+
            # If rename_name is not set, set it equal to video_title
             if rename_name is None:
                 rename_name = video_title
@@ -3555,7 +3566,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                    video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
                     if not video_msg:
                         logger.error("send_videos returned None for split part; skipping cache save for this part")
                         continue
@@ -4198,7 +4209,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # States are needed for all videos in playlist (if it's a playlist)
                         # States will be cleared at the end of the function after ALL videos are processed
                         
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
                         if not video_msg:
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue

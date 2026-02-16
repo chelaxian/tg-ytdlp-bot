@@ -1960,7 +1960,7 @@ Pelajari lebih lanjut: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Keterangan:</b> <code>{caption}</code>\n<b>ID pengguna:</b> <code>{user_id}</code>\n<b>Nama depan pengguna:</b> <code>{users_name}</code>\n<b>ID file video:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Error di caption_editor: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Error tak terduga di caption_editor: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL Video</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL Video</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL hilang dalam konfigurasi"

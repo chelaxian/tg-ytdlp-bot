@@ -1960,7 +1960,7 @@ Use:
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>کیپشن:</b> <code>{caption}</code>\n<b>صارف ID:</b> <code>{user_id}</code>\n<b>صارف کا پہلا نام:</b> <code>{users_name}</code>\n<b>ویڈیو فائل ID:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor میں خرابی: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor میں غیر متوقع خرابی: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 ویڈیو URL</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 ویڈیو URL</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL کنفیگریشن میں موجود نہیں"

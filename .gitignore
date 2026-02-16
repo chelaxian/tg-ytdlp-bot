@@ -18,6 +18,8 @@ benv/
 .venv/
 .env
 .python-version
+clear_logs_branch.py
+create_logs_branch.py
 
 # Bot runtime / sessions / logs
 magic.session

@@ -1960,7 +1960,7 @@ class Messages(object):
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>캡션:</b> <code>{caption}</code>\n<b>사용자 ID:</b> <code>{user_id}</code>\n<b>사용자 이름:</b> <code>{users_name}</code>\n<b>비디오 파일 ID:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor 오류: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor 예상치 못한 오류: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 비디오 URL</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 비디오 URL</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL이 구성에 없습니다"

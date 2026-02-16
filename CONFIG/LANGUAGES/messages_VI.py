@@ -1960,7 +1960,7 @@ Tìm hiểu thêm: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Chú thích:</b> <code>{caption}</code>\n<b>ID người dùng:</b> <code>{user_id}</code>\n<b>Tên người dùng:</b> <code>{users_name}</code>\n<b>ID tệp video:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "Lỗi trong caption_editor: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Lỗi không mong đợi trong caption_editor: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL Video</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 URL Video</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL thiếu trong cấu hình"

@@ -1960,7 +1960,7 @@ Daha fazla bilgi: /playlist"""
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>Başlık:</b> <code>{caption}</code>\n<b>Kullanıcı id:</b> <code>{user_id}</code>\n<b>Kullanıcı adı:</b> <code>{users_name}</code>\n<b>Video dosya id:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor'da hata: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "Caption_editor'da beklenmeyen hata: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 Video URL\'si</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 Video URL\'si</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL, konsollarda отсутствует"

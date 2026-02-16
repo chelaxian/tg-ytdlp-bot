@@ -1960,7 +1960,7 @@ class Messages(object):
     CAPTION_INFO_OF_VIDEO_MSG = "\n<b>キャプション:</b> <code>{caption}</code>\n<b>ユーザーID:</b> <code>{user_id}</code>\n<b>ユーザー名:</b> <code>{users_name}</code>\n<b>動画ファイルID:</b> <code>{video_file_id}</code>"
     CAPTION_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor のエラー: {error}"
     CAPTION_UNEXPECTED_ERROR_IN_CAPTION_EDITOR_MSG = "caption_editor で予期しないエラーが発生しました: {error}"
-    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 動画 URL</a>{bot_mention}'
+    CAPTION_VIDEO_URL_LINK_MSG = '<a href="{url}">🔗 動画 URL</a>{quality_codec}{bot_mention}'
     
     # Database messages
     DB_DATABASE_URL_MISSING_MSG = "FIREBASE_CONF.databaseURL によるアクセス"
