@@ -11,22 +11,24 @@ from pyrogram import filters
 app = get_app()
 
 
+# Standard resolution sides (p) used in practice; quality = exact match of either width or height
+_STANDARD_QUALITIES = {144, 240, 360, 480, 576, 720, 1080, 1440, 2160, 4320}
+
+
 def format_quality_codec(height=None, width=None, vcodec=None):
     """
-    Build suffix string for caption: quality (144p–4320p) by min side, and codec (AV1, AVC1, VP9).
-    Quality is determined by the shorter side (e.g. 1920x1080 → 1080p, 1080x1920 → 1080p).
+    Build suffix string for caption: quality (144p–4320p) and codec (AV1, AVC1, VP9).
+    Quality = whichever of width/height exactly matches a standard value (144, 240, 360, 480, 720, 1080, …).
+    E.g. 1920x1080 → 1080p, 1080x1920 → 1080p. If both match, use the minimum (e.g. 1080×720 → 720p).
     Returns e.g. " 📹1080P 📼AV1" or " 📹2160p(4K) 📼VP9" or "" if both missing.
     """
     parts = []
     try:
         h = int(height) if height is not None else None
         w = int(width) if width is not None else None
-        if h is not None and w is not None:
-            quality_side = min(h, w)
-        elif h is not None:
-            quality_side = h
-        elif w is not None:
-            quality_side = w
+        if h is not None or w is not None:
+            candidates = [s for s in (h, w) if s is not None and s in _STANDARD_QUALITIES]
+            quality_side = min(candidates) if candidates else (min(h, w) if (h is not None and w is not None) else (h or w))
         else:
             quality_side = None
         if quality_side is not None:
