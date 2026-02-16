@@ -13,6 +13,16 @@ app = get_app()
 
 # Standard resolution sides (p) used in practice; quality = exact match of either width or height
 _STANDARD_QUALITIES = {144, 240, 360, 480, 576, 720, 1080, 1440, 2160, 4320}
+# Short names in parentheses: SD, HD, Full HD, QHD, 4K, 8K
+_QUALITY_HINT = {
+    480: "SD",
+    576: "SD",
+    720: "HD",
+    1080: "Full HD",
+    1440: "QHD",
+    2160: "4K",
+    4320: "8K",
+}
 
 
 def format_quality_codec(height=None, width=None, vcodec=None):
@@ -20,7 +30,8 @@ def format_quality_codec(height=None, width=None, vcodec=None):
     Build suffix string for caption: quality (144p–4320p) and codec (AV1, AVC1, VP9).
     Quality = whichever of width/height exactly matches a standard value (144, 240, 360, 480, 720, 1080, …).
     E.g. 1920x1080 → 1080p, 1080x1920 → 1080p. If both match, use the minimum (e.g. 1080×720 → 720p).
-    Returns e.g. " 📹1080P 📼AV1" or " 📹2160p(4K) 📼VP9" or "" if both missing.
+    Hints in parentheses: SD, HD, Full HD, QHD, 4K, 8K.
+    Returns e.g. " 📹1080P(Full HD) 📼AV1" or " 📹4320p(8K) 📼VP9" or "" if both missing.
     """
     parts = []
     try:
@@ -32,10 +43,9 @@ def format_quality_codec(height=None, width=None, vcodec=None):
         else:
             quality_side = None
         if quality_side is not None:
-            if quality_side >= 2160:
-                parts.append(f"📹{quality_side}p(4K)" if quality_side == 2160 else f"📹{quality_side}p")
-            else:
-                parts.append(f"📹{quality_side}P")
+            hint = _QUALITY_HINT.get(quality_side)
+            p_label = f"📹{quality_side}p" if quality_side >= 2160 else f"📹{quality_side}P"
+            parts.append(f"{p_label}({hint})" if hint else p_label)
     except (TypeError, ValueError):
         pass
     if vcodec:
