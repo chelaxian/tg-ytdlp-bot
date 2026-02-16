@@ -11,21 +11,31 @@ from pyrogram import filters
 app = get_app()
 
 
-def format_quality_codec(height=None, vcodec=None):
+def format_quality_codec(height=None, width=None, vcodec=None):
     """
-    Build suffix string for caption: quality (144p–4320p) and codec (AV1, AVC1, VP9).
+    Build suffix string for caption: quality (144p–4320p) by min side, and codec (AV1, AVC1, VP9).
+    Quality is determined by the shorter side (e.g. 1920x1080 → 1080p, 1080x1920 → 1080p).
     Returns e.g. " 📹1080P 📼AV1" or " 📹2160p(4K) 📼VP9" or "" if both missing.
     """
     parts = []
-    if height is not None:
-        try:
-            h = int(height)
-            if h >= 2160:
-                parts.append(f"📹{h}p(4K)" if h == 2160 else f"📹{h}p")
+    try:
+        h = int(height) if height is not None else None
+        w = int(width) if width is not None else None
+        if h is not None and w is not None:
+            quality_side = min(h, w)
+        elif h is not None:
+            quality_side = h
+        elif w is not None:
+            quality_side = w
+        else:
+            quality_side = None
+        if quality_side is not None:
+            if quality_side >= 2160:
+                parts.append(f"📹{quality_side}p(4K)" if quality_side == 2160 else f"📹{quality_side}p")
             else:
-                parts.append(f"📹{h}P")
-        except (TypeError, ValueError):
-            pass
+                parts.append(f"📹{quality_side}P")
+    except (TypeError, ValueError):
+        pass
     if vcodec:
         v = (vcodec or "").strip().lower()
         if "av01" in v or v == "av1":

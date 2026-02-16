@@ -2806,16 +2806,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             tags_text_final = generate_final_tags(url, tags_list, info_dict)
             save_user_tags(user_id, tags_text_final.split())
 
-            # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1")
+            # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1"); quality = min(width, height)
             from HELPERS.caption import format_quality_codec
             _height = info_dict.get('height') if info_dict else None
+            _width = info_dict.get('width') if info_dict else None
             _vcodec = info_dict.get('vcodec') if info_dict else None
             if not _vcodec and info_dict and info_dict.get('requested_formats'):
                 for rf in info_dict.get('requested_formats', []):
                     if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
                         _vcodec = rf.get('vcodec')
                         break
-            video_quality_codec = format_quality_codec(_height, _vcodec)
+            video_quality_codec = format_quality_codec(_height, _width, _vcodec)
 
            # If rename_name is not set, set it equal to video_title
             if rename_name is None:
