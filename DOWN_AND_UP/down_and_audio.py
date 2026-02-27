@@ -2505,14 +2505,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                         audio=audio_file, 
                                         caption=caption_with_link, 
                                         reply_parameters=ReplyParameters(message_id=message.id),
-                                        thumb=telegram_thumb
+                                        thumb=telegram_thumb,
+                                        title=title,
+                                        performer=artist,
                                     )
                                 else:
                                     audio_msg = app.send_audio(
                                         chat_id=user_id, 
                                         audio=audio_file, 
                                         caption=caption_with_link, 
-                                        reply_parameters=ReplyParameters(message_id=message.id)
+                                        reply_parameters=ReplyParameters(message_id=message.id),
+                                        title=title,
+                                        performer=artist,
                                     )
                             else:
                                 # Send as document for unsupported audio formats
@@ -2540,7 +2544,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     audio=audio_file, 
                                     caption=caption_with_link, 
                                     reply_parameters=ReplyParameters(message_id=message.id),
-                                    thumb=telegram_thumb
+                                    thumb=telegram_thumb,
+                                    title=title,
+                                    performer=artist,
                                 )
                                 logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
                             else:
@@ -2548,7 +2554,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     chat_id=user_id, 
                                     audio=audio_file, 
                                     caption=caption_with_link, 
-                                    reply_parameters=ReplyParameters(message_id=message.id)
+                                    reply_parameters=ReplyParameters(message_id=message.id),
+                                    title=title,
+                                    performer=artist,
                                 )
                                 logger.info("Audio sent without thumbnail")
                         else:
@@ -2591,7 +2599,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             audio=audio_file,
                             caption=caption_with_link,
                             reply_parameters=ReplyParameters(message_id=message.id),
-                            thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None
+                            thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None,
+                            title=title,
+                            performer=artist,
                         )
                         logger.info(f"down_and_audio: NSFW audio open copy sent to NSFW channel for history")
                     except Exception as e:
