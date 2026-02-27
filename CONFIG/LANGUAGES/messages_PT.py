@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Gerenciado por</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Alterar idioma: /lang</b>"
-    TO_USE_MSG = "<i>Para usar este bot você precisa se inscrever no canal Telegram @tg_ytdlp.</i>\nDepois de ingressar no canal, <b>reenvie seu link de vídeo novamente e o bot fará o download para você</b> ❤️\n\n<blockquote>P.S. Baixar conteúdo 🔞NSFW e arquivos de ☁️Armazenamento em Nuvem é pago! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Não saia do canal - você será banido de usar o bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Para usar este bot você precisa se inscrever no canal Telegram @tg_ytdlp.</i>\nDepois de ingressar no canal, <b>reenvie seu link de vídeo e o bot fará o download para você</b> ❤️\n\n<blockquote>P.S. Devido a possível conteúdo 🔞NSFW - download de ☁️<b>Armazenamento em nuvem</b>, 📁<b>Compartilhamento de arquivos</b>, 🔗<b>Encurtadores de URL</b> e 🔞<b>Sites adultos</b> é pago! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ NÃO 🗑<b>exclua/cancele a inscrição do canal @tg_ytdlp</b> e NÃO 🤖<b>envie spam de URL/comandos em excesso ao bot</b> - você será banido automaticamente ⛔️</blockquote>"
 
     ERROR1 = "Link URL não encontrado. Por favor, insira uma URL com <b>https://</b> ou <b>http://</b>"
 

@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Dikelola oleh</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Ubah bahasa: /lang</b>"
-    TO_USE_MSG = "<i>Untuk menggunakan bot ini, Anda perlu berlangganan ke saluran Telegram @tg_ytdlp.</i>\nSetelah Anda bergabung dengan saluran, <b>kirim ulang tautan video Anda dan bot akan mengunduhnya untuk Anda</b> ❤️\n\n<blockquote>P.S. Mengunduh konten 🔞NSFW dan file dari ☁️Penyimpanan Cloud berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Jangan tinggalkan saluran - Anda akan dilarang menggunakan bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Untuk menggunakan bot ini, Anda perlu berlangganan ke saluran Telegram @tg_ytdlp.</i>\nSetelah bergabung ke saluran, <b>kirim ulang tautan video Anda dan bot akan mengunduhnya untuk Anda</b> ❤️\n\n<blockquote>P.S. Karena kemungkinan konten 🔞NSFW - mengunduh dari ☁️<b>Penyimpanan Cloud</b>, 📁<b>Berbagi File</b>, 🔗<b>Pemendek URL</b> dan 🔞<b>Situs dewasa</b> berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ JANGAN 🗑<b>hapus/berhenti berlangganan saluran @tg_ytdlp</b> dan JANGAN 🤖<b>spam URL/perintah terlalu banyak ke bot</b> - Anda akan dilarang menggunakan bot secara otomatis ⛔️</blockquote>"
 
     ERROR1 = "Tautan URL tidak ditemukan. Silakan masukkan URL dengan <b>https://</b> atau <b>http://</b>"
 

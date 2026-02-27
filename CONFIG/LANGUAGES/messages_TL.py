@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Pinamamahalaan ni</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Baguhin ang wika: /lang</b>"
-    TO_USE_MSG = "<i>Upang magamit ang bot na ito, kailangan mong mag-subscribe sa @tg_ytdlp Telegram channel.</i>\nPagkatapos mong sumali sa channel, <b>ipadala ulit ang iyong video link at i-download ito ng bot para sa iyo</b> ❤️\n\n<blockquote>P.S. Ang pag-download ng 🔞NSFW content at mga file mula sa ☁️Cloud Storage ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Huwag umalis sa channel - mababan ka sa paggamit ng bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Upang magamit ang bot na ito, kailangan mong mag-subscribe sa @tg_ytdlp Telegram channel.</i>\nPagkatapos sumali sa channel, <b>ipadala ulit ang iyong video link at i-download ito ng bot para sa iyo</b> ❤️\n\n<blockquote>P.S. Dahil sa posibleng 🔞NSFW content - ang pag-download mula sa ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> at 🔞<b>Porn sites</b> ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ HUWAG 🗑<b>tanggalin/i-unsubscribe ang @tg_ytdlp channel</b> at HUWAG 🤖<b>mag-SPAM ng sobrang URL/commands sa bot</b> - mababan ka nang awtomatiko ⛔️</blockquote>"
 
     ERROR1 = "Hindi nahanap ang url link. Mangyaring maglagay ng url na may <b>https://</b> o <b>http://</b>"
 

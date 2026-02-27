@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Boshqaruvchi</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Tilni o'zgartirish: /lang</b>"
-    TO_USE_MSG = "<i>Ushbu botdan foydalanish uchun @tg_ytdlp Telegram kanaliga obuna bo'lishingiz kerak.</i>\nKanalga qo'shilgandan so'ng, <b>video havolangizni qayta yuboring va bot uni siz uchun yuklab oladi</b> ❤️\n\n<blockquote>P.S. 🔞NSFW kontentini va ☁️Cloud Storage'dan fayllarni yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kanaldan chiqmang - botdan foydalanishdan chetlashtirilasiz ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Ushbu botdan foydalanish uchun @tg_ytdlp Telegram kanaliga obuna bo'lishingiz kerak.</i>\nKanalga qo'shilgandan so'ng <b>video havolangizni qayta yuboring, bot uni siz uchun yuklab oladi</b> ❤️\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>"
 
     ERROR1 = "URL havolasi topilmadi. Iltimos, <b>https://</b> yoki <b>http://</b> bilan URL kiriting"
 

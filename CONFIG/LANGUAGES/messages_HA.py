@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Ana gudanar da shi ta</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Canza harshe: /lang</b>"
-    TO_USE_MSG = "<i>Don amfani da wannan bot kuna buƙatar yin rajista zuwa tashar Telegram @tg_ytdlp.</i>\nBayan kun shiga tashar, <b>sake aika hanyar bidiyon ku kuma bot zai sauke shi gare ku</b> ❤️\n\n<blockquote>P.S. Saukewa 🔞NSFW abun ciki da fayiloli daga ☁️Cloud Storage ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku bar tashar - za a hana ku amfani da bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Don amfani da wannan bot kuna buƙatar yin rajista zuwa tashar Telegram @tg_ytdlp.</i>\nBayan kun shiga tashar, <b>sake aika hanyar bidiyon ku kuma bot zai sauke shi gare ku</b> ❤️\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>"
 
     ERROR1 = "Ba a sami hanyar url ba. Da fatan za a shigar da url tare da <b>https://</b> ko <b>http://</b>"
 

@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Được quản lý bởi</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Thay đổi ngôn ngữ: /lang</b>"
-    TO_USE_MSG = "<i>Để sử dụng bot này, bạn cần đăng ký kênh Telegram @tg_ytdlp.</i>\nSau khi bạn tham gia kênh, <b>gửi lại liên kết video của bạn và bot sẽ tải xuống cho bạn</b> ❤️\n\n<blockquote>P.S. Tải xuống nội dung 🔞NSFW và tệp từ ☁️Cloud Storage là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Đừng rời khỏi kênh - bạn sẽ bị cấm sử dụng bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Để sử dụng bot này, bạn cần đăng ký kênh Telegram @tg_ytdlp.</i>\nSau khi tham gia kênh, <b>gửi lại liên kết video và bot sẽ tải xuống cho bạn</b> ❤️\n\n<blockquote>P.S. Do nội dung 🔞NSFW tiềm ẩn - tải từ ☁️<b>Lưu trữ đám mây</b>, 📁<b>Chia sẻ tệp</b>, 🔗<b>Rút gọn URL</b> và 🔞<b>Trang khiêu dâm</b> là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ KHÔNG 🗑<b>xóa/hủy đăng ký kênh @tg_ytdlp</b> và KHÔNG 🤖<b>spam URL/lệnh quá nhiều cho bot</b> - bạn sẽ bị cấm sử dụng bot tự động ⛔️</blockquote>"
 
     ERROR1 = "Không tìm thấy liên kết url. Vui lòng nhập url có <b>https://</b> hoặc <b>http://</b>"
 

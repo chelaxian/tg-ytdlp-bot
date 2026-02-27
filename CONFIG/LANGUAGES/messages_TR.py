@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Tarafından yönetiliyor</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Dili değiştir: /lang</b>"
-    TO_USE_MSG = "<i>Bu botu kullanmak için @tg_ytdlp Telegram kanalına abone olmanız gerekir.</i>\nKanala katıldıktan sonra, <b>video bağlantınızı tekrar gönderin ve bot sizin için indirecektir</b> ❤️\n\n<blockquote>P.S. 🔞NSFW içeriği ve ☁️Cloud Storage'dan dosyaları indirmek ücretlidir! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kanaldan ayrılmayın - bot kullanımından yasaklanırsınız ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Bu botu kullanmak için @tg_ytdlp Telegram kanalına abone olmanız gerekir.</i>\nKanala katıldıktan sonra <b>video bağlantınızı tekrar gönderin, bot sizin için indirecektir</b> ❤️\n\n<blockquote>P.S. Olası 🔞NSFW içeriği nedeniyle - ☁️<b>Bulut Depolama</b>, 📁<b>Dosya Paylaşımları</b>, 🔗<b>URL kısaltıcılar</b> ve 🔞<b>Porno sitelerinden</b> indirme ücretlidir! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalını 🗑<b>silme/abonelikten çıkma</b> ve bota 🤖<b>aşırı URL/komut SPAM’i yapma</b> - bot kullanımından otomatik yasaklanırsınız ⛔️</blockquote>"
 
     ERROR1 = "URL bağlantısı bulunamadı. Lütfen <b>https://</b> veya <b>http://</b> ile bir URL girin"
 

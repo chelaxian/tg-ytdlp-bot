@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>จัดการโดย</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 เปลี่ยนภาษา: /lang</b>"
-    TO_USE_MSG = "<i>เพื่อใช้บอทนี้คุณต้องสมัครสมาชิกช่อง Telegram @tg_ytdlp</i>\nหลังจากเข้าร่วมช่องแล้ว <b>ส่งลิงก์วิดีโอของคุณอีกครั้งและบอทจะดาวน์โหลดให้คุณ</b> ❤️\n\n<blockquote>P.S. การดาวน์โหลดเนื้อหา 🔞NSFW และไฟล์จาก ☁️Cloud Storage เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่าออกจากช่อง - คุณจะถูกแบนจากการใช้บอท ⛔️</blockquote>"
+    TO_USE_MSG = "<i>เพื่อใช้บอทนี้คุณต้องสมัครสมาชิกช่อง Telegram @tg_ytdlp</i>\nหลังจากเข้าร่วมช่องแล้ว <b>ส่งลิงก์วิดีโอของคุณอีกครั้งและบอทจะดาวน์โหลดให้คุณ</b> ❤️\n\n<blockquote>P.S. เนื่องจากเนื้อหา 🔞NSFW ที่อาจเกิดขึ้น - การดาวน์โหลดจาก ☁️<b>คลาวด์สตอเรจ</b> 📁<b>แชร์ไฟล์</b> 🔗<b>ตัวย่อ URL</b> และ 🔞<b>เว็บโป๊</b> เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่า 🗑<b>ลบ/ยกเลิกสมัครช่อง @tg_ytdlp</b> และอย่า 🤖<b>สแปม URL/คำสั่งกับบอทมากเกินไป</b> - คุณจะถูกแบนจากการใช้บอทโดยอัตโนมัติ ⛔️</blockquote>"
 
     ERROR1 = "ไม่พบลิงก์ URL กรุณาใส่ URL ที่มี <b>https://</b> หรือ <b>http://</b>"
 

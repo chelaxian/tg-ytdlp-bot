@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>يديره</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 تغيير اللغة: /lang</b>"
-    TO_USE_MSG = "<i>لاستخدام هذا البوت تحتاج إلى الاشتراك في قناة تليجرام @tg_ytdlp.</i>\nبعد انضمامك إلى القناة، <b>أعد إرسال رابط الفيديو مرة أخرى وسيقوم البوت بتحميله لك</b> ❤️\n\n<blockquote>P.S. تحميل 🔞NSFW المحتوى والملفات من ☁️Cloud Storage هو مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا تغادر القناة - سيتم حظرك من استخدام البوت ⛔️</blockquote>"
+    TO_USE_MSG = "<i>لاستخدام هذا البوت تحتاج إلى الاشتراك في قناة تليجرام @tg_ytdlp.</i>\nبعد انضمامك إلى القناة، <b>أعد إرسال رابط الفيديو مرة أخرى وسيقوم البوت بتحميله لك</b> ❤️\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>"
 
     ERROR1 = "لم يتم العثور على رابط URL. يرجى إدخال رابط يحتوي على <b>https://</b> أو <b>http://</b>"
 

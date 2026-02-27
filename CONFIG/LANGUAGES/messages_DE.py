@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Verwaltet von</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Sprache ändern: /lang</b>"
-    TO_USE_MSG = "<i>Um diesen Bot zu verwenden, müssen Sie dem Telegram-Kanal @tg_ytdlp beitreten.</i>\nNachdem Sie dem Kanal beigetreten sind, <b>senden Sie Ihren Video-Link erneut und der Bot wird ihn für Sie herunterladen</b> ❤️\n\n<blockquote>P.S. Das Herunterladen von 🔞NSFW-Inhalten und Dateien von ☁️Cloud Storage ist kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Verlassen Sie den Kanal nicht - Sie werden vom Bot-Nutzung gesperrt ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Um diesen Bot zu verwenden, müssen Sie dem Telegram-Kanal @tg_ytdlp beitreten.</i>\nNach dem Beitritt <b>senden Sie Ihren Video-Link erneut und der Bot lädt ihn für Sie herunter</b> ❤️\n\n<blockquote>P.S. Wegen möglicherm 🔞NSFW-Inhalt - Downloads von ☁️<b>Cloud-Speicher</b>, 📁<b>Dateifreigaben</b>, 🔗<b>URL-Kürzern</b> und 🔞<b>Pornoseiten</b> sind kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 🗑<b>Löschen/Abmelden des Kanals @tg_ytdlp</b> und 🤖<b>übermäßiges SPAM von URLs/Befehlen an den Bot</b> sind verboten - Sie werden automatisch vom Bot gesperrt ⛔️</blockquote>"
 
     ERROR1 = "URL-Link nicht gefunden. Bitte geben Sie eine URL mit <b>https://</b> oder <b>http://</b> ein"
 
