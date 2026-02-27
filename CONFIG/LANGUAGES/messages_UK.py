@@ -2019,7 +2019,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для роботи в групі потрібні права адміністратора. Будь ласка, зробіть роботу адміном цієї групи."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Привіт {first_name},\n \n<i>Цей бот🤖 може завантажувати будь-які відео в telegram безпосередньо.😊 Для отримання додаткової інформації натисніть <b>/help</b></i> 👈\n\n<blockquote>P.S. Завантаження 🔞NSFW контенту та файлів з ☁️Cloud Storage платне! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Не покидайте канал - вас заблокують від використання бота ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Привіт {first_name},\n \n<i>Цей бот🤖 може завантажувати будь-які відео в telegram безпосередньо.😊 Для отримання додаткової інформації натисніть <b>/help</b></i> 👈\n\n<blockquote>P.S. Через можливий 🔞NSFW контент — завантаження з ☁️<b>хмарного сховища</b>, 📁<b>обміну файлами</b>, 🔗<b>скорочувачів URL</b> та 🔞<b>порно-сайтів</b> платне! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ НЕ 🗑<b>видаляйте/не відписуйтесь від каналу @tg_ytdlp</b> і НЕ 🤖<b>надсилайте зайвого спаму URL/командами боту</b> — вас автоматично заблокують ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Немає файлів для видалення."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

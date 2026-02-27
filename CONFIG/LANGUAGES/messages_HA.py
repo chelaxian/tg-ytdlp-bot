@@ -2019,7 +2019,7 @@ Koyi ƙari: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйsta, sdelayte bota adminom эtoy ruppy."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Sannu {first_name},\n \n<i>Wannan bot🤖 na iya zazzage kowane bidiyo zuwa telegram kai tsaye.😊 Don ƙarin bayani danna <b>/help</b></i> 👈\n\n<blockquote>P.S. Zazzagewar abun ciki na 🔞NSFW da fayiloli daga ☁️Cloud Storage ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku bar tashar - za a hana ku amfani da bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Sannu {first_name},\n \n<i>Wannan bot🤖 na iya zazzage kowane bidiyo zuwa telegram kai tsaye.😊 Don ƙarin bayani danna <b>/help</b></i> 👈\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Babu fayilolin da za a cire."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

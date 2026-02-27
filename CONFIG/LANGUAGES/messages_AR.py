@@ -2025,7 +2025,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ للعمل في المجموعة يحتاج البوت إلى صلاحيات المدير. يرجى جعل البوت مديراً لهذه المجموعة."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "مرحباً {first_name}،\n \n<i>هذا البوت🤖 يمكنه تحميل أي فيديوهات إلى Telegram مباشرة.😊 لمزيد من المعلومات اضغط <b>/help</b></i> 👈\n\n<blockquote>P.S. تحميل 🔞المحتوى السميح والملفات من ☁️Cloud Storage هو مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا تغادر القناة - سيتم حظرك من استخدام البوت ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "مرحباً {first_name}،\n \n<i>هذا البوت🤖 يمكنه تحميل أي فيديوهات إلى Telegram مباشرة.😊 لمزيد من المعلومات اضغط <b>/help</b></i> 👈\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 لا توجد ملفات للحذف."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 تم حذف جميع الملفات بنجاح!\n\nالملفات المحذوفة:\n{files_list}"
     

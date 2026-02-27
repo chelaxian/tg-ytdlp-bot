@@ -2019,7 +2019,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ গ্রুপে কাজ করার জন্য বটের জন্য প্রশাসক অধিকার প্রয়োজন। অনুগ্রহ করে এই গ্রুপে বটকে অ্যাডমিন করুন।"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "হ্যালো {first_name},\n \n<i>এই বট🤖 সরাসরি telegram এ যেকোনো ভিডিও ডাউনলোড করতে পারে।😊 আরও তথ্যের জন্য <b>/help</b> চাপুন</i> 👈\n\n<blockquote>P.S. 🔞NSFW কন্টেন্ট এবং ☁️Cloud Storage থেকে ফাইল ডাউনলোড করা পেইড! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ চ্যানেল ছেড়ে যাবেন না - আপনি বট ব্যবহার থেকে নিষিদ্ধ হবেন ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "হ্যালো {first_name},\n \n<i>এই বট🤖 সরাসরি telegram এ যেকোনো ভিডিও ডাউনলোড করতে পারে।😊 আরও তথ্যের জন্য <b>/help</b> চাপুন</i> 👈\n\n<blockquote>P.S. সম্ভাব্য 🔞NSFW কন্টেন্টের কারণে - ☁️<b>ক্লাউড স্টোরেজ</b>, 📁<b>ফাইল শেয়ার</b>, 🔗<b>URL শর্টনার</b> এবং 🔞<b>পর্ন সাইট</b> থেকে ডাউনলোড অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp চ্যানেল 🗑<b>মুছবেন না/আনসাবস্ক্রাইব করবেন না</b> এবং বটে 🤖<b>অতিরিক্ত URL/কমান্ড স্প্যাম করবেন না</b> - বট ব্যবহার থেকে স্বয়ংক্রিয়ভাবে নিষিদ্ধ হবেন ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 সরানোর জন্য কোন ফাইল নেই।"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 সমস্ত ফাইল সফলভাবে সরানো হয়েছে!\n\nসরানো ফাইল:\n{files_list}"
     

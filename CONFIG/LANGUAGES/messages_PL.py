@@ -1958,7 +1958,7 @@ Dowiedz się więcej: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Do pracy w grupie bot potrzebuje uprawnień administratora. Proszę ustawić bota jako administratora tej grupy."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Witaj {first_name},\n \n<i>Ten bot🤖 może pobierać dowolne wideo bezpośrednio do telegramu.😊 Aby uzyskać więcej informacji, naciśnij <b>/help</b></i> 👈\n\n<blockquote>P.S. Pobieranie treści 🔞NSFW i plików z ☁️Cloud Storage jest płatne! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Nie opuszczaj kanału - zostaniesz zbanowany z używania bota ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Witaj {first_name},\n \n<i>Ten bot🤖 może pobierać dowolne wideo bezpośrednio do telegramu.😊 Aby uzyskać więcej informacji, naciśnij <b>/help</b></i> 👈\n\n<blockquote>P.S. Ze względu na potencjalną treść 🔞NSFW - pobieranie z ☁️<b>chmury</b>, 📁<b>udostępniania plików</b>, 🔗<b>skracaczy URL</b> i 🔞<b>stron dla dorosłych</b> jest płatne! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ NIE 🗑<b>usuwaj/nie rezygnuj z kanału @tg_ytdlp</b> i NIE 🤖<b>spamuj bota zbyt dużą ilością URL/poleceń</b> - zostaniesz automatycznie zbanowany ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Brak plików do usunięcia."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Wszystkie pliki usunięte pomyślnie!\n\nUsunięte pliki:\n{files_list}"
     

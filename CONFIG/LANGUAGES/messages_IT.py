@@ -2019,7 +2019,7 @@ Scopri di più: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Per il lavoro di gruppo, è necessario un lavoro da parte dell'amministratore. Quindi, seleziona l'amministratore di questo gruppo."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Ciao {first_name},\n \n<i>Questo bot🤖 può scaricare qualsiasi video direttamente in telegram.😊 Per maggiori informazioni premi <b>/help</b></i> 👈\n\n<blockquote>P.S. Il download di contenuti 🔞NSFW e file da ☁️Cloud Storage è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Non lasciare il canale - sarai bannato dall'uso del bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Ciao {first_name},\n \n<i>Questo bot🤖 può scaricare qualsiasi video direttamente in telegram.😊 Per maggiori informazioni premi <b>/help</b></i> 👈\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Nessun file da rimuovere."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

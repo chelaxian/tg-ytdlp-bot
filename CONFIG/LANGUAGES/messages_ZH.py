@@ -2019,7 +2019,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ 机器人在群组中工作需要管理员权限。请将机器人设为该群组的管理员。"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "你好 {first_name}，\n \n<i>这个机器人🤖可以直接将任何视频下载到telegram。😊 更多信息请按 <b>/help</b></i> 👈\n\n<blockquote>附注：下载🔞NSFW内容和☁️云存储文件是付费的！1⭐️ = $0.02</blockquote>\n<blockquote>再附注：‼️ 不要离开频道 - 您将被禁止使用机器人 ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "你好 {first_name}，\n \n<i>这个机器人🤖可以直接将任何视频下载到telegram。😊 更多信息请按 <b>/help</b></i> 👈\n\n<blockquote>P.S. 因可能含🔞NSFW内容 - 从☁️<b>云存储</b>、📁<b>文件分享</b>、🔗<b>短链接</b>和🔞<b>色情网站</b>下载需付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 请勿🗑<b>删除/取消订阅 @tg_ytdlp 频道</b>，请勿🤖<b>向机器人过度发送 URL/命令</b> - 否则将被自动封禁 ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 没有要删除的文件。"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 所有文件已成功删除！\n\n已删除的文件：\n{files_list}"
     

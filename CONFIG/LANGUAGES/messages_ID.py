@@ -2019,7 +2019,7 @@ Pelajari lebih lanjut: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Bot memerlukan hak administrator untuk bekerja di grup. Harap jadikan bot sebagai admin grup ini."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Halo {first_name},\n \n<i>Bot ini🤖 dapat mengunduh video apa pun langsung ke telegram.😊 Untuk informasi lebih lanjut tekan <b>/help</b></i> 👈\n\n<blockquote>P.S. Mengunduh konten 🔞NSFW dan file dari ☁️Cloud Storage berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Jangan tinggalkan saluran - Anda akan dilarang menggunakan bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Halo {first_name},\n \n<i>Bot ini🤖 dapat mengunduh video apa pun langsung ke telegram.😊 Untuk informasi lebih lanjut tekan <b>/help</b></i> 👈\n\n<blockquote>P.S. Karena kemungkinan konten 🔞NSFW - mengunduh dari ☁️<b>Penyimpanan Cloud</b>, 📁<b>Berbagi File</b>, 🔗<b>Pemendek URL</b> dan 🔞<b>Situs dewasa</b> berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ JANGAN 🗑<b>hapus/berhenti berlangganan saluran @tg_ytdlp</b> dan JANGAN 🤖<b>spam URL/perintah terlalu banyak ke bot</b> - Anda akan dilarang menggunakan bot secara otomatis ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Tidak ada file untuk dihapus."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Semua file berhasil dihapus!\n\nFile yang dihapus:\n{files_list}"
     

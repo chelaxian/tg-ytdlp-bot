@@ -2019,7 +2019,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ برای کار در گروه، ربات به حقوق مدیر نیاز دارد. لطفاً ربات را مدیر این گروه کنید."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "سلام {first_name}،\n \n<i>این ربات🤖 می‌تواند هر ویدیویی را مستقیماً به تلگرام دانلود کند.😊 برای اطلاعات بیشتر <b>/help</b> را فشار دهید</i> 👈\n\n<blockquote>P.S. دانلود محتوای 🔞NSFW و فایل‌ها از ☁️Cloud Storage پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال را ترک نکنید - از استفاده از ربات محروم خواهید شد ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "سلام {first_name}،\n \n<i>این ربات🤖 می‌تواند هر ویدیویی را مستقیماً به تلگرام دانلود کند.😊 برای اطلاعات بیشتر <b>/help</b> را فشار دهید</i> 👈\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 هیچ فایلی برای حذف وجود ندارد."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 همه فایل‌ها با موفقیت حذف شدند!\n\nفایل‌های حذف شده:\n{files_list}"
     

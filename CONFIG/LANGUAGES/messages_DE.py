@@ -2020,7 +2020,7 @@ Mehr erfahren: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Für die Arbeit in der Gruppe benötigt der Bot Administratorrechte. Bitte machen Sie den Bot zum Administrator dieser Gruppe."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Hallo {first_name},\n \n<i>Dieser Bot🤖 kann Videos direkt in Telegram herunterladen.😊 Für weitere Informationen drücken Sie <b>/help</b></i> 👈\n\n<blockquote>P.S. Das Herunterladen von 🔞NSFW-Inhalten und Dateien von ☁️Cloud Storage ist kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Verlassen Sie den Kanal nicht - Sie werden von der Bot-Nutzung gesperrt ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Hallo {first_name},\n \n<i>Dieser Bot🤖 kann Videos direkt in Telegram herunterladen.😊 Für weitere Informationen drücken Sie <b>/help</b></i> 👈\n\n<blockquote>P.S. Wegen möglicherm 🔞NSFW-Inhalt - Downloads von ☁️<b>Cloud-Speicher</b>, 📁<b>Dateifreigaben</b>, 🔗<b>URL-Kürzern</b> und 🔞<b>Pornoseiten</b> sind kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 🗑<b>Löschen/Abmelden des Kanals @tg_ytdlp</b> und 🤖<b>übermäßiges SPAM von URLs/Befehlen an den Bot</b> sind verboten - Sie werden automatisch vom Bot gesperrt ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Keine Dateien zum Entfernen."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Alle Dateien erfolgreich entfernt!\n\nEntfernte Dateien:\n{files_list}"
     

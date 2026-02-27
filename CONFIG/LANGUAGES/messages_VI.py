@@ -2019,7 +2019,7 @@ Tìm hiểu thêm: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Để bot hoạt động trong nhóm, bot cần quyền quản trị viên. Vui lòng đặt bot làm quản trị viên của nhóm này."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Xin chào {first_name},\n \n<i>Bot này🤖 có thể tải bất kỳ video nào vào telegram trực tiếp.😊 Để biết thêm thông tin, nhấn <b>/help</b></i> 👈\n\n<blockquote>P.S. Tải xuống nội dung 🔞NSFW và tệp từ ☁️Cloud Storage là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Đừng rời khỏi kênh - bạn sẽ bị cấm sử dụng bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Xin chào {first_name},\n \n<i>Bot này🤖 có thể tải bất kỳ video nào vào telegram trực tiếp.😊 Để biết thêm thông tin, nhấn <b>/help</b></i> 👈\n\n<blockquote>P.S. Do nội dung 🔞NSFW tiềm ẩn - tải từ ☁️<b>Lưu trữ đám mây</b>, 📁<b>Chia sẻ tệp</b>, 🔗<b>Rút gọn URL</b> và 🔞<b>Trang khiêu dâm</b> là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ KHÔNG 🗑<b>xóa/hủy đăng ký kênh @tg_ytdlp</b> và KHÔNG 🤖<b>spam URL/lệnh quá nhiều cho bot</b> - bạn sẽ bị cấm sử dụng bot tự động ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Không có tệp để xóa."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Tất cả tệp đã được xóa thành công!\n\nTệp đã xóa:\n{files_list}"
     

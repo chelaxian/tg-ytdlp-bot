@@ -2018,7 +2018,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ समूह में काम करने के लिए बॉट को व्यवस्थापक अधिकारों की आवश्यकता है। कृपया इस समूह में बॉट को व्यवस्थापक बनाएं।"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "नमस्ते {first_name},\n \n<i>यह बॉट🤖 किसी भी वीडियो को सीधे टेलीग्राम में डाउनलोड कर सकता है।😊 अधिक जानकारी के लिए <b>/help</b> दबाएं</i> 👈\n\n<blockquote>P.S. ☁️क्लाउड स्टोरेज से 🔞NSFW सामग्री और फाइल्स डाउनलोड करना भुगतान योग्य है! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ चैनल छोड़ने न करें - आपको बॉट का उपयोग करने से बाध्य होगा ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "नमस्ते {first_name},\n \n<i>यह बॉट🤖 किसी भी वीडियो को सीधे टेलीग्राम में डाउनलोड कर सकता है।😊 अधिक जानकारी के लिए <b>/help</b> दबाएं</i> 👈\n\n<blockquote>P.S. संभावित 🔞NSFW सामग्री के कारण - ☁️<b>क्लाउड स्टोरेज</b>, 📁<b>फाइल शेयर</b>, 🔗<b>URL शॉर्टनर</b> और 🔞<b>पोर्न साइट्स</b> से डाउनलोड भुगतान योग्य है! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp चैनल को 🗑<b>मत हटाएं/अनसब्सक्राइब मत करें</b> और बॉट को 🤖<b>बहुत ज्यादा URL/कमांड स्पैम मत भेजें</b> - आपको बॉट उपयोग से स्वचालित रूप से प्रतिबंधित कर दिया जाएगा ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 हटाने के लिए कोई फ़ाइलें नहीं।"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 सभी फ़ाइलें सफलतापूर्वक हटाई गईं!\n\nहटाई गई फ़ाइलें:\n{files_list}"
     

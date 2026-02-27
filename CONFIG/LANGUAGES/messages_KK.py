@@ -2019,7 +2019,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Топта жұмыс істеу үшін ботқа әкімші құқықтары қажет. Ботты осы топтың әкімшісі етіп тағайындаңыз."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Сәлем {first_name},\n \n<i>Бұл бот🤖 кез келген бейнелерді Telegram-ға тікелей жүктей алады.😊 Көбірек ақпарат алу үшін <b>/help</b> басыңыз</i> 👈\n\n<blockquote>P.S. 🔞NSFW контентін және ☁️Cloud Storage-дан файлдарды жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Арнадан шықпаңыз - ботты пайдаланудан тыйым салынасыз ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Сәлем {first_name},\n \n<i>Бұл бот🤖 кез келген бейнелерді Telegram-ға тікелей жүктей алады.😊 Көбірек ақпарат алу үшін <b>/help</b> басыңыз</i> 👈\n\n<blockquote>P.S. 🔞NSFW контент мүмкіндігіне байланысты - ☁️<b>Бұлттық сақтау</b>, 📁<b>Файл бөлісу</b>, 🔗<b>URL қысқартқыштар</b> және 🔞<b>Порно сайттары</b>нан жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp арнасын 🗑<b>жоймаңыз/жазылымнан шықпаңыз</b> және ботқа 🤖<b>URL/командаларды тым көп спамдамаңыз</b> - ботты пайдаланудан автоматты түрде тыйым салынасыз ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Жойылатын файлдар жоқ."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Барлық файлдар сәтті жойылды!\n\nЖойылған файлдар:\n{files_list}"
     

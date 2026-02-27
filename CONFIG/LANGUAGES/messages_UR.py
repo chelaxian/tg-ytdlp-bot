@@ -2019,7 +2019,7 @@ Use:
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ گروپ میں کام کرنے کے لیے بوٹ کو ایڈمنسٹریٹر کی اجازت درکار ہے۔ براہ کرم اس گروپ میں بوٹ کو ایڈمن بنائیں۔"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "ہیلو {first_name},\n \n<i>یہ بوٹ🤖 کسی بھی ویڈیو کو براہ راست telegram میں ڈاؤن لوڈ کر سکتا ہے۔😊 مزید معلومات کے لیے <b>/help</b> دبائیں</i> 👈\n\n<blockquote>P.S. 🔞NSFW مواد اور ☁️کلاؤڈ اسٹوریج سے فائلوں کو ڈاؤن لوڈ کرنا ادائیگی ہے! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ چینل مت چھوڑیں - آپ کو بوٹ استعمال کرنے سے پابند کر دیا جائے گا ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "ہیلو {first_name},\n \n<i>یہ بوٹ🤖 کسی بھی ویڈیو کو براہ راست telegram میں ڈاؤن لوڈ کر سکتا ہے۔😊 مزید معلومات کے لیے <b>/help</b> دبائیں</i> 👈\n\n<blockquote>P.S. ممکنہ 🔞NSFW مواد کی وجہ سے - ☁️<b>کلاؤڈ اسٹوریج</b>، 📁<b>فائل شیئر</b>، 🔗<b>URL شارٹنر</b> اور 🔞<b>پورن سائٹس</b> سے ڈاؤن لوڈ ادائیگی شدہ ہے! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp چینل کو 🗑<b>ڈیلیٹ/ان سبسکرائب نہ کریں</b> اور بوٹ کو 🤖<b>بہت زیادہ URL/کمانڈز اسپیم نہ کریں</b> - آپ کو بوٹ استعمال سے خودکار پابندی لگائی جائے گی ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 ہٹانے کے لیے کوئی فائل نہیں۔"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 تمام فائلیں کامیابی سے ہٹا دی گئیں!\n\nہٹائی گئی فائلیں:\n{files_list}"
     

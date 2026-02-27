@@ -2019,7 +2019,7 @@ Ko'proq ma'lumot: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Guruhda ishlash uchun botga admin huquqlari kerak. Iltimos, botni bu guruhning admini qiling."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Salom {first_name},\n \n<i>Bu bot🤖 har qanday videolarni to'g'ridan-to'g'ri telegramga yuklab olishi mumkin.😊 Ko'proq ma'lumot uchun <b>/help</b> ni bosing</i> 👈\n\n<blockquote>Eslatma: 🔞NSFW kontent va ☁️Cloud Storage'dan fayllarni yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>Eslatma 2: ‼️ Kanalni tark etmang - botdan foydalanishdan bloklanasiz ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Salom {first_name},\n \n<i>Bu bot🤖 har qanday videolarni to'g'ridan-to'g'ri telegramga yuklab olishi mumkin.😊 Ko'proq ma'lumot uchun <b>/help</b> ni bosing</i> 👈\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Olib tashlash uchun fayllar yo'q."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Barcha fayllar muvaffaqiyatli olib tashlandi!\n\nOlib tashlangan fayllar:\n{files_list}"
     

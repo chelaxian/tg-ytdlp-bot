@@ -2019,7 +2019,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ 그룹에서 작동하려면 봇에 관리자 권한이 필요합니다. 이 그룹의 관리자로 봇을 설정하세요."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "안녕하세요 {first_name},\n \n<i>이 봇🤖은 모든 비디오를 Telegram으로 직접 다운로드할 수 있습니다.😊 자세한 내용은 <b>/help</b>를 누르세요</i> 👈\n\n<blockquote>참고: 🔞NSFW 콘텐츠 및 ☁️클라우드 스토리지의 파일 다운로드는 유료입니다! 1⭐️ = $0.02</blockquote>\n<blockquote>주의: ‼️ 채널을 떠나지 마세요 - 봇 사용이 차단됩니다 ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "안녕하세요 {first_name},\n \n<i>이 봇🤖은 모든 비디오를 Telegram으로 직접 다운로드할 수 있습니다.😊 자세한 내용은 <b>/help</b>를 누르세요</i> 👈\n\n<blockquote>P.S. 🔞NSFW 콘텐츠 가능성으로 - ☁️<b>클라우드 스토리지</b>, 📁<b>파일 공유</b>, 🔗<b>URL 단축</b>, 🔞<b>포르노 사이트</b>에서 다운로드는 유료입니다! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp 채널 🗑<b>삭제/구독 해지 금지</b>, 봇에 🤖<b>URL/명령 과도한 스팸 금지</b> - 봇 사용이 자동 차단됩니다 ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 제거할 파일이 없습니다."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 모든 파일이 성공적으로 제거되었습니다!\n\n제거된 파일:\n{files_list}"
     
