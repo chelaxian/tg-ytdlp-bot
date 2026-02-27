@@ -2361,8 +2361,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         # Remove artist name from title if it's included
                         title_for_metadata = original_title
                         if artist and artist in original_title:
-                            # Remove artist name from title (e.g., "Rick Astley - Never Gonna Give You Up" -> "Never Gonna Give You Up")
-                            title_for_metadata = original_title.replace(f"{artist} - ", "").replace(f"{artist}: ", "").strip()
+                            # Try common separators between artist and title
+                            separators = [" - ", ": ", " – ", " — ", " | "]
+                            new_title = original_title
+                            for sep in separators:
+                                pattern = f"{artist}{sep}"
+                                if pattern in new_title:
+                                    new_title = new_title.replace(pattern, "").strip()
+                                    break
+                            title_for_metadata = new_title
                             logger.info(f"Removed artist from title: '{original_title}' -> '{title_for_metadata}'")
                         
                         logger.info(f"Metadata - Title: {title_for_metadata}, Artist: {artist}, Album: {album}")
@@ -2395,6 +2402,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
             bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
             bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
+
+            # Defaults in case MP3 has no metadata or reading fails
+            artist = "Unknown Artist"
+            title = original_audio_title or "Unknown Title"
+
             # Create display title from MP3 metadata (artist + title)
             try:
                 import mutagen
@@ -2403,8 +2415,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Try to read metadata from the MP3 file
                 audio_metadata = MP3(audio_file)
-                artist = audio_metadata.get('TPE1', ['Unknown Artist'])[0] if 'TPE1' in audio_metadata else 'Unknown Artist'
-                title = audio_metadata.get('TIT2', ['Unknown Title'])[0] if 'TIT2' in audio_metadata else 'Unknown Title'
+                artist = audio_metadata.get('TPE1', ['Unknown Artist'])[0] if 'TPE1' in audio_metadata else artist
+                title = audio_metadata.get('TIT2', [title])[0] if 'TIT2' in audio_metadata else title
                 
                 # Create display title: "Artist - Title"
                 display_title = f"{artist} - {title}"
@@ -2412,7 +2424,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
             except Exception as e:
                 logger.warning(f"Failed to read MP3 metadata, using original title: {e}")
-                display_title = original_audio_title
+                display_title = title
             
             # Use display title from metadata for caption
             caption_with_link = f"{display_title}\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
