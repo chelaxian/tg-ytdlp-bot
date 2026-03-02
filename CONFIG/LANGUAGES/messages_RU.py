@@ -1806,6 +1806,10 @@ class Messages(object):
     # Porn filter messages
     PORN_DOMAIN_BLACKLIST_MSG = "❌ Домен в черном списке порно: {domain_parts}"
     PORN_KEYWORDS_FOUND_MSG = "❌ Найдены порно ключевые слова: {keywords}"
+    PORN_KEYWORDS_IN_TITLE_MSG = "❌ Ключевые слова в названии: {keywords}"
+    PORN_KEYWORDS_IN_DESCRIPTION_MSG = "❌ Ключевые слова в описании: {keywords}"
+    PORN_KEYWORDS_IN_CAPTION_MSG = "❌ Ключевые слова в подписи: {keywords}"
+    PORN_KEYWORDS_IN_UPLOADER_MSG = "❌ Ключевые слова в имени канала/автора/загрузчика: {keywords}"
     PORN_DOMAIN_WHITELIST_MSG = "✅ Домен в белом списке: {domain}"
     PORN_WHITELIST_KEYWORDS_MSG = "✅ Найдены ключевые слова белого списка: {keywords}"
     PORN_NO_KEYWORDS_FOUND_MSG = "✅ Порно ключевые слова не найдены"

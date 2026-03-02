@@ -146,10 +146,14 @@ def generate_final_tags(url, user_tags, info_dict):
         if uid_tag.lower() not in seen:
             final_tags.append(uid_tag)
             seen.add(uid_tag.lower())
-    # 5. #nsfw if defined by title, description, caption or tags (keywords)
+    # 5. #nsfw if defined by title, description, caption, tags or uploader/author (keywords)
     video_title = info_dict.get("title") if info_dict else None
     video_description = info_dict.get("description") if info_dict else None
     video_caption = info_dict.get("caption") if info_dict else None
+    video_uploader = None
+    if info_dict:
+        uploader_parts = [info_dict.get("uploader"), info_dict.get("channel"), info_dict.get("creator"), info_dict.get("artist")]
+        video_uploader = " ".join(str(p).strip() for p in uploader_parts if p and str(p).strip()) or None
     # Get tags from info_dict (for tags with underscores)
     video_tags = info_dict.get("tags") if info_dict else None
     # Also check already collected tags (user tags + auto tags)
@@ -165,7 +169,7 @@ def generate_final_tags(url, user_tags, info_dict):
                 all_tags = str(video_tags)
         if existing_tags_text:
             all_tags = f"{all_tags} {existing_tags_text}" if all_tags else existing_tags_text
-        if is_porn(url, video_title, video_description, video_caption, tags=all_tags):
+        if is_porn(url, video_title, video_description, video_caption, tags=all_tags, uploader=video_uploader):
             if '#nsfw' not in seen:
                 final_tags.append('#nsfw')
                 seen.add('#nsfw')

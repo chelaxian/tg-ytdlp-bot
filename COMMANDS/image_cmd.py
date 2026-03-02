@@ -15,6 +15,7 @@ from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.domains import DomainsConfig
 from HELPERS.app_instance import get_app
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
+from HELPERS.download_status import progress_bar
 from HELPERS.decorators import background_handler
 import HELPERS.safe_messeger as sm
 from DOWN_AND_UP.gallery_dl_hook import (
@@ -3293,12 +3294,15 @@ def image_command(app, message):
                                             # Start upload logging to prevent watchdog false positives
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
+                                            _upload_prog = (user_id, status_msg.id, safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG) if (status_msg and status_msg.id) else None
                                             try:
                                                 sent_msg = app.send_document(
                                                     user_id,
                                                     document=f,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                    message_thread_id=message_thread_id
+                                                    message_thread_id=message_thread_id,
+                                                    progress=progress_bar if _upload_prog else None,
+                                                    progress_args=_upload_prog,
                                                 )
                                             finally:
                                                 # Stop upload logging after upload completes or fails
@@ -3844,6 +3848,7 @@ def image_command(app, message):
                                                     # Start upload logging to prevent watchdog false positives
                                                     if status_msg and status_msg.id:
                                                         _start_upload_logging(user_id, status_msg.id)
+                                                    _upload_prog_ph = (user_id, status_msg.id, safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG) if (status_msg and status_msg.id) else None
                                                     try:
                                                         sent_msg = app.send_photo(
                                                             user_id,
@@ -3851,7 +3856,9 @@ def image_command(app, message):
                                                             caption=(tags_text_norm or ''),
                                                             has_spoiler=should_apply_spoiler(user_id, nsfw_flag, is_private_chat),
                                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                            message_thread_id=message_thread_id
+                                                            message_thread_id=message_thread_id,
+                                                            progress=progress_bar if _upload_prog_ph else None,
+                                                            progress_args=_upload_prog_ph,
                                                         )
                                                     finally:
                                                         # Stop upload logging after upload completes or fails
@@ -3902,6 +3909,7 @@ def image_command(app, message):
                                                     # Start upload logging to prevent watchdog false positives
                                                     if status_msg and status_msg.id:
                                                         _start_upload_logging(user_id, status_msg.id)
+                                                    _upload_prog_v = (user_id, status_msg.id, safe_get_messages(user_id).SENDER_UPLOADING_VIDEO_MSG) if (status_msg and status_msg.id) else None
                                                     try:
                                                         sent_msg = app.send_video(
                                                             user_id,
@@ -3910,7 +3918,9 @@ def image_command(app, message):
                                                             caption=(tags_text_norm or ''),
                                                             has_spoiler=should_apply_spoiler(user_id, nsfw_flag, is_private_chat),
                                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                            message_thread_id=message_thread_id
+                                                            message_thread_id=message_thread_id,
+                                                            progress=progress_bar if _upload_prog_v else None,
+                                                            progress_args=_upload_prog_v,
                                                         )
                                                     finally:
                                                         # Stop upload logging after upload completes or fails

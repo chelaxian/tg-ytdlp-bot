@@ -267,11 +267,17 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
     return cycle_thread
 
 def progress_bar(*args):
-    # It is expected that Pyrogram will cause Progress_BAR with five parameters:
-    # Current, Total, Speed, ETA, File_SIZE, and then additionally your Progress_args (User_id, Msg_id, Status_text)
-    if len(args) < 8:
+    # Pyrogram/pyrotgfork pass (current, total, *progress_args).
+    # progress_args is (user_id, msg_id, status_text) → 5 args total.
+    # Some forks may pass (current, total, speed, eta, file_size, user_id, msg_id, status_text) → 8 args.
+    if len(args) < 5:
         return
-    current, total, speed, eta, file_size, user_id, msg_id, status_text = args[:8]
+    current = args[0]
+    total = args[1]
+    if len(args) >= 8:
+        user_id, msg_id, status_text = args[5], args[6], args[7]
+    else:
+        user_id, msg_id, status_text = args[2], args[3], args[4]
     # Throttle to avoid flood: update at most once per second per message
     now = time.time()
     key = (user_id, msg_id)
@@ -285,13 +291,13 @@ def progress_bar(*args):
         logger.info("[Upload] Uploading video to Telegram")
         _last_upload_log_ts[key] = now
     
-    # Build a simple progress bar
+    # Build upload progress bar (same style as download: 🟩/⬜️ cubes)
     try:
         percent = (current / total * 100) if total else 0
         blocks = int(percent // 10)
         bar = "🟩" * blocks + "⬜️" * (10 - blocks)
         text = f"{status_text}\n{bar}   {percent:.1f}%"
-        app.edit_message_text(user_id, msg_id, text)
+        safe_edit_message_text(user_id, msg_id, text)
         _last_upload_update_ts[key] = now
     except Exception as e:
-        logger.error(f"Error updating progress: {e}")
+        logger.error(f"Error updating upload progress: {e}")

@@ -14,7 +14,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, log_error_to_channel
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user
-from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, playlist_errors, playlist_errors_lock
+from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, create_directory, check_disk_space, cleanup_user_temp_files
 from DATABASE.firebase_init import write_logs
@@ -2390,6 +2390,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             audio_files.append(audio_file)
 
+            # Upload status message header (progress bar % will be updated by progress_bar callback)
+            _upload_status_text = f"{current_total_process}\n{safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG}"
             try:
                 full_bar = "🟩" * 10
                 safe_edit_message_text(user_id, proc_msg_id, safe_get_messages(user_id).AUDIO_UPLOADING_MSG.format(process=current_total_process, bar=full_bar))
@@ -2509,6 +2511,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if proc_msg_id:
                             _start_upload_logging(user_id, proc_msg_id)
                         try:
+                            _prog_args_fb = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
                             if file_ext == '.mp3' or file_ext == '.m4a':
                                 # Send as audio for supported formats
                                 if telegram_thumb and os.path.exists(telegram_thumb):
@@ -2520,6 +2523,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                         thumb=telegram_thumb,
                                         title=title,
                                         performer=artist,
+                                        progress=progress_bar if _prog_args_fb else None,
+                                        progress_args=_prog_args_fb,
                                     )
                                 else:
                                     audio_msg = app.send_audio(
@@ -2529,6 +2534,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                         reply_parameters=ReplyParameters(message_id=message.id),
                                         title=title,
                                         performer=artist,
+                                        progress=progress_bar if _prog_args_fb else None,
+                                        progress_args=_prog_args_fb,
                                     )
                             else:
                                 # Send as document for unsupported audio formats
@@ -2536,7 +2543,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     chat_id=user_id, 
                                     document=audio_file, 
                                     caption=caption_with_link, 
-                                    reply_parameters=ReplyParameters(message_id=message.id)
+                                    reply_parameters=ReplyParameters(message_id=message.id),
+                                    progress=progress_bar if _prog_args_fb else None,
+                                    progress_args=_prog_args_fb,
                                 )
                         finally:
                             # Stop upload logging after upload completes or fails
@@ -2548,6 +2557,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     if proc_msg_id:
                         _start_upload_logging(user_id, proc_msg_id)
                     try:
+                        _prog_args = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
                         if file_ext == '.mp3' or file_ext == '.m4a':
                             # Send as audio for supported formats
                             if telegram_thumb and os.path.exists(telegram_thumb):
@@ -2559,6 +2569,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     thumb=telegram_thumb,
                                     title=title,
                                     performer=artist,
+                                    progress=progress_bar if _prog_args else None,
+                                    progress_args=_prog_args,
                                 )
                                 logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
                             else:
@@ -2569,6 +2581,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     reply_parameters=ReplyParameters(message_id=message.id),
                                     title=title,
                                     performer=artist,
+                                    progress=progress_bar if _prog_args else None,
+                                    progress_args=_prog_args,
                                 )
                                 logger.info("Audio sent without thumbnail")
                         else:
@@ -2577,7 +2591,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 chat_id=user_id, 
                                 document=audio_file, 
                                 caption=caption_with_link, 
-                                reply_parameters=ReplyParameters(message_id=message.id)
+                                reply_parameters=ReplyParameters(message_id=message.id),
+                                progress=progress_bar if _prog_args else None,
+                                progress_args=_prog_args,
                             )
                             logger.info(f"Audio sent as document (format: {file_ext})")
                     finally:
