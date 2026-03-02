@@ -94,7 +94,8 @@ def get_metadata_text_for_keyword_check(info_dict):
     """
     Collects all text from info_dict fields that may contain keywords (author names,
     album/series/playlist names, etc.). Used for NSFW check across all popular services.
-    Returns a single string (underscores replaced with spaces for handle-style names).
+    Returns raw string (keeps underscores) so white keywords can match literally (e.g. brazzers_don).
+    Porn keyword check normalizes _ to space inside is_porn/check_porn_detailed.
     """
     if not info_dict or not isinstance(info_dict, dict):
         return ""
@@ -117,8 +118,7 @@ def get_metadata_text_for_keyword_check(info_dict):
             t = ch.get('title')
             if isinstance(t, str) and t.strip():
                 parts.append(t.strip())
-    text = " ".join(parts)
-    return text.replace("_", " ") if text else ""
+    return " ".join(parts) or ""
 
 # --- an auxiliary function for extracting a domain ---
 def extract_domain_parts(url):
@@ -192,15 +192,12 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
     title_lower       = title.lower()       if title       else ""
     description_lower = description.lower() if description else ""
     caption_lower     = caption.lower()     if caption     else ""
-    uploader_lower = (uploader.lower().replace("_", " ") if uploader else "")
-    # Process tags: replace underscores with spaces for keyword matching
-    tags_lower = ""
-    if tags:
-        # Tags are space-separated, but keywords inside tags use underscores
-        # Replace underscores with spaces for matching
-        tags_lower = tags.lower().replace("_", " ")
+    uploader_lower_raw = uploader.lower()   if uploader    else ""
+    uploader_lower    = uploader_lower_raw.replace("_", " ")  # normalized for porn keyword match
+    tags_lower_raw    = tags.lower()       if tags        else ""
+    tags_lower        = tags_lower_raw.replace("_", " ") if tags else ""
     
-    # 3. Prepare URL for keyword checking (replace spaces with underscores and dashes)
+    # 3. Prepare URL for keyword checking
     url_lower = clean_url
     logger.debug(f"is_porn URL for keyword check: '{url_lower}'")
     
@@ -208,27 +205,21 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
         logger.info("is_porn: all text fields, uploader and URL empty")
         return False
 
-    # 4. We collect a single text for search (including URL, tags and uploader/author)
+    # 4. White keywords: check against raw text (with underscores) so "brazzers_don" matches only literally
+    combined_white = " ".join([title_lower, description_lower, caption_lower, tags_lower_raw, uploader_lower_raw, url_lower])
+    white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
+    if white_keywords:
+        white_kws = [re.escape(kw.lower().strip()) for kw in white_keywords if kw.strip()]
+        if white_kws:
+            white_pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
+            if white_pattern.search(combined_white):
+                logger.info(f"is_porn: white keyword match found (literal), content considered clean: {white_pattern.pattern}")
+                return False
+
+    # 5. Combined text (normalized) for porn keyword check
     combined = " ".join([title_lower, description_lower, caption_lower, tags_lower, uploader_lower, url_lower])
     logger.debug(f"is_porn combined text: '{combined}'")
     logger.debug(f"is_porn keywords: {PORN_KEYWORDS}")
-
-    # 5. Check for white keywords first (override porn detection)
-    # White keywords with underscores (e.g. brazzers_don) must match text where _ was normalized to space (brazzers don)
-    white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
-    if white_keywords:
-        def _white_kw_pattern(kw):
-            s = re.escape(kw.lower().strip())
-            if not s:
-                return None
-            return s.replace("_", r"[_\s]+")
-        white_kws = [_white_kw_pattern(kw) for kw in white_keywords if kw.strip()]
-        white_kws = [p for p in white_kws if p]
-        if white_kws:
-            white_pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
-            if white_pattern.search(combined):
-                logger.info(f"is_porn: white keyword match found, content considered clean: {white_pattern.pattern}")
-                return False
 
     # 6. Preparing regex patterns
     # For text fields we use word boundaries with escaped keywords
@@ -295,34 +286,26 @@ def check_porn_detailed(url, title, description, caption=None, uploader=None):
         return True, " | ".join(explanation_parts)
 
     # 2. Preparation of the text
-    title_lower       = title.lower()       if title       else ""
-    description_lower = description.lower() if description else ""
-    caption_lower     = caption.lower()     if caption     else ""
-    uploader_lower = (uploader.lower().replace("_", " ") if uploader else "")
-    url_lower         = clean_url
+    title_lower        = title.lower()       if title       else ""
+    description_lower  = description.lower() if description else ""
+    caption_lower      = caption.lower()     if caption     else ""
+    uploader_lower_raw = uploader.lower()   if uploader    else ""
+    uploader_lower     = uploader_lower_raw.replace("_", " ")  # normalized for porn keyword check
+    url_lower          = clean_url
     
     if not (title_lower or description_lower or caption_lower or uploader_lower or url_lower):
         explanation_parts.append(messages.PORN_ALL_TEXT_FIELDS_EMPTY_MSG)
         return False, " | ".join(explanation_parts)
 
-    # 3. We collect a single text for search (including uploader for white keywords)
-    combined = " ".join([title_lower, description_lower, caption_lower, uploader_lower])
-    
-    # 4. Check for white keywords first (override porn detection)
-    # White keywords with underscores (e.g. brazzers_don) must match text where _ was normalized to space (brazzers don)
+    # 3. White keywords: check against raw text (with underscores) — "brazzers_don" matches only literally, not "brazzers don"
+    combined_white = " ".join([title_lower, description_lower, caption_lower, uploader_lower_raw])
     white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
     if white_keywords:
-        def _white_kw_pattern(kw):
-            s = re.escape(kw.lower().strip())
-            if not s:
-                return None
-            return s.replace("_", r"[_\s]+")
-        white_kws = [_white_kw_pattern(kw) for kw in white_keywords if kw.strip()]
-        white_kws = [p for p in white_kws if p]
+        white_kws = [re.escape(kw.lower().strip()) for kw in white_keywords if kw.strip()]
         if white_kws:
             white_pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
-            white_matches = white_pattern.findall(combined)
-            if white_matches:
+            if white_pattern.search(combined_white):
+                white_matches = white_pattern.findall(combined_white)
                 explanation_parts.append(messages.PORN_WHITELIST_KEYWORDS_MSG.format(keywords=', '.join(set(white_matches))))
                 return False, " | ".join(explanation_parts)
 
