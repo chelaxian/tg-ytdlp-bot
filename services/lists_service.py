@@ -99,10 +99,11 @@ def update_domain_list(list_name: str, items: List[str]) -> bool:
         if end_idx is None:
             return False
         
-        # Формируем новый список
+        # Формируем новый список (экранируем \ и " для корректного Python)
         new_lines = [f"{indent}{list_name} = [\n"]
         for item in items:
-            new_lines.append(f'{indent}    "{item}",\n')
+            escaped = str(item).replace("\\", "\\\\").replace('"', '\\"')
+            new_lines.append(f'{indent}    "{escaped}",\n')
         new_lines.append(f"{indent}]\n")
         
         # Заменяем старый список новым
