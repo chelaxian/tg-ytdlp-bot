@@ -214,9 +214,16 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
     logger.debug(f"is_porn keywords: {PORN_KEYWORDS}")
 
     # 5. Check for white keywords first (override porn detection)
+    # White keywords with underscores (e.g. brazzers_don) must match text where _ was normalized to space (brazzers don)
     white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
     if white_keywords:
-        white_kws = [re.escape(kw.lower()) for kw in white_keywords if kw.strip()]
+        def _white_kw_pattern(kw):
+            s = re.escape(kw.lower().strip())
+            if not s:
+                return None
+            return s.replace("_", r"[_\s]+")
+        white_kws = [_white_kw_pattern(kw) for kw in white_keywords if kw.strip()]
+        white_kws = [p for p in white_kws if p]
         if white_kws:
             white_pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
             if white_pattern.search(combined):
@@ -302,9 +309,16 @@ def check_porn_detailed(url, title, description, caption=None, uploader=None):
     combined = " ".join([title_lower, description_lower, caption_lower, uploader_lower])
     
     # 4. Check for white keywords first (override porn detection)
+    # White keywords with underscores (e.g. brazzers_don) must match text where _ was normalized to space (brazzers don)
     white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
     if white_keywords:
-        white_kws = [re.escape(kw.lower()) for kw in white_keywords if kw.strip()]
+        def _white_kw_pattern(kw):
+            s = re.escape(kw.lower().strip())
+            if not s:
+                return None
+            return s.replace("_", r"[_\s]+")
+        white_kws = [_white_kw_pattern(kw) for kw in white_keywords if kw.strip()]
+        white_kws = [p for p in white_kws if p]
         if white_kws:
             white_pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
             white_matches = white_pattern.findall(combined)
