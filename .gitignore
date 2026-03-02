@@ -60,6 +60,7 @@ replace_dump_in_history.sh
 fix_and_replace_dump.sh
 ИТОГОВЫЙ_СПИСОК_АЛЕРТОВ.md
 dump.json
+_dump.json
 CONFIG/.command_limits.json
 CONFIG/.*.json
 

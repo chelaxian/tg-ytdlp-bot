@@ -152,8 +152,12 @@ def generate_final_tags(url, user_tags, info_dict):
     video_caption = info_dict.get("caption") if info_dict else None
     video_uploader = None
     if info_dict:
-        uploader_parts = [info_dict.get("uploader"), info_dict.get("channel"), info_dict.get("creator"), info_dict.get("artist")]
-        video_uploader = " ".join(str(p).strip() for p in uploader_parts if p and str(p).strip()) or None
+        try:
+            from HELPERS.porn import get_metadata_text_for_keyword_check
+            video_uploader = get_metadata_text_for_keyword_check(info_dict) or None
+        except Exception:
+            uploader_parts = [info_dict.get("uploader"), info_dict.get("uploader_id"), info_dict.get("channel"), info_dict.get("creator"), info_dict.get("artist")]
+            video_uploader = " ".join(str(p).strip() for p in uploader_parts if p and str(p).strip()) or None
     # Get tags from info_dict (for tags with underscores)
     video_tags = info_dict.get("tags") if info_dict else None
     # Also check already collected tags (user tags + auto tags)

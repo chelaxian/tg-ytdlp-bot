@@ -75,6 +75,51 @@ def load_domain_lists():
 
 load_domain_lists()
 
+# --- All yt-dlp metadata fields that may contain user text (for NSFW keyword check) ---
+# Covers YouTube, X/Twitter, VK, TikTok, Instagram, SoundCloud, etc.
+METADATA_KEYS_FOR_KEYWORD_CHECK = (
+    # Author / channel (all services)
+    'uploader', 'uploader_id', 'channel', 'channel_id', 'creator', 'artist',
+    # Music / audio
+    'album', 'track',
+    # Series / shows
+    'series', 'season', 'episode',
+    # Playlists / collections
+    'playlist', 'playlist_title', 'playlist_id',
+    # Other text metadata
+    'alt_title', 'genre', 'location', 'license',
+)
+
+def get_metadata_text_for_keyword_check(info_dict):
+    """
+    Collects all text from info_dict fields that may contain keywords (author names,
+    album/series/playlist names, etc.). Used for NSFW check across all popular services.
+    Returns a single string (underscores replaced with spaces for handle-style names).
+    """
+    if not info_dict or not isinstance(info_dict, dict):
+        return ""
+    parts = []
+    for key in METADATA_KEYS_FOR_KEYWORD_CHECK:
+        val = info_dict.get(key)
+        if val is None:
+            continue
+        if isinstance(val, str) and val.strip():
+            parts.append(val.strip())
+        elif isinstance(val, (int, float)) and key in ('season', 'episode'):
+            parts.append(str(val))
+    # categories: list of strings (e.g. YouTube)
+    for cat in (info_dict.get('categories') or []):
+        if isinstance(cat, str) and cat.strip():
+            parts.append(cat.strip())
+    # chapters: list of dicts with 'title'
+    for ch in (info_dict.get('chapters') or []):
+        if isinstance(ch, dict):
+            t = ch.get('title')
+            if isinstance(t, str) and t.strip():
+                parts.append(t.strip())
+    text = " ".join(parts)
+    return text.replace("_", " ") if text else ""
+
 # --- an auxiliary function for extracting a domain ---
 def extract_domain_parts(url):
     try:
@@ -147,7 +192,7 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
     title_lower       = title.lower()       if title       else ""
     description_lower = description.lower() if description else ""
     caption_lower     = caption.lower()     if caption     else ""
-    uploader_lower    = uploader.lower()    if uploader    else ""
+    uploader_lower = (uploader.lower().replace("_", " ") if uploader else "")
     # Process tags: replace underscores with spaces for keyword matching
     tags_lower = ""
     if tags:
@@ -246,7 +291,7 @@ def check_porn_detailed(url, title, description, caption=None, uploader=None):
     title_lower       = title.lower()       if title       else ""
     description_lower = description.lower() if description else ""
     caption_lower     = caption.lower()     if caption     else ""
-    uploader_lower    = uploader.lower()    if uploader    else ""
+    uploader_lower = (uploader.lower().replace("_", " ") if uploader else "")
     url_lower         = clean_url
     
     if not (title_lower or description_lower or caption_lower or uploader_lower or url_lower):

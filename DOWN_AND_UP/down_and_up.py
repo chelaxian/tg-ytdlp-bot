@@ -4226,10 +4226,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             video_title_for_check = info_dict.get("title", "") if info_dict else ""
                             video_description_for_check = info_dict.get("description", "") if info_dict else ""
                             video_caption_for_check = info_dict.get("caption", "") if info_dict else ""
-                            video_uploader_for_check = ""
-                            if info_dict:
-                                uploader_parts = [info_dict.get("uploader"), info_dict.get("channel"), info_dict.get("creator"), info_dict.get("artist")]
-                                video_uploader_for_check = " ".join(str(p).strip() for p in uploader_parts if p and str(p).strip())
+                            from HELPERS.porn import get_metadata_text_for_keyword_check
+                            video_uploader_for_check = get_metadata_text_for_keyword_check(info_dict) if info_dict else ""
                             # Get tags from info_dict and tags_text_final
                             video_tags_for_check = None
                             if info_dict and info_dict.get("tags"):
@@ -4239,7 +4237,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     video_tags_for_check = str(info_dict.get("tags"))
                             # Also check if #nsfw tag is already in tags_text_final (from generate_final_tags)
                             has_nsfw_tag = "#nsfw" in tags_text_final.lower() if tags_text_final else False
-                            # Use metadata for NSFW check (including uploader/author/channel)
+                            # Use metadata for NSFW check (title, description, tags, and all other metadata fields)
                             is_nsfw_from_metadata = is_porn(url, video_title_for_check, video_description_for_check, video_caption_for_check, tags=video_tags_for_check, uploader=video_uploader_for_check or None)
                             is_nsfw = is_nsfw_from_metadata or has_nsfw_tag or user_forced_nsfw
                             logger.info(f"[NSFW_CHECK] is_porn check for {url}: is_porn={is_nsfw_from_metadata}, has_nsfw_tag={has_nsfw_tag}, user_forced_nsfw={user_forced_nsfw}, final is_nsfw={is_nsfw}")
@@ -4397,10 +4395,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         video_title_for_check = info_dict.get("title", "") if info_dict else ""
                                         video_description_for_check = info_dict.get("description", "") if info_dict else ""
                                         video_caption_for_check = info_dict.get("caption", "") if info_dict else ""
-                                        video_uploader_for_check = ""
-                                        if info_dict:
-                                            uploader_parts = [info_dict.get("uploader"), info_dict.get("channel"), info_dict.get("creator"), info_dict.get("artist")]
-                                            video_uploader_for_check = " ".join(str(p).strip() for p in uploader_parts if p and str(p).strip())
+                                        from HELPERS.porn import get_metadata_text_for_keyword_check
+                                        video_uploader_for_check = get_metadata_text_for_keyword_check(info_dict) if info_dict else ""
                                         # Get tags from info_dict and tags_text_final
                                         video_tags_for_check = None
                                         if info_dict and info_dict.get("tags"):
@@ -4410,7 +4406,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 video_tags_for_check = str(info_dict.get("tags"))
                                         # Also check if #nsfw tag is already in tags_text_final (from generate_final_tags)
                                         has_nsfw_tag = "#nsfw" in tags_text_final.lower() if tags_text_final else False
-                                        # Use metadata for NSFW check (including uploader/author/channel)
+                                        # Use metadata for NSFW check (title, description, tags, and all other metadata fields)
                                         is_nsfw_from_metadata = is_porn(url, video_title_for_check, video_description_for_check, video_caption_for_check, tags=video_tags_for_check, uploader=video_uploader_for_check or None)
                                         is_nsfw = is_nsfw_from_metadata or has_nsfw_tag or user_forced_nsfw
                                         logger.info(f"[NSFW_CHECK] is_porn check for {url}: is_porn={is_nsfw_from_metadata}, has_nsfw_tag={has_nsfw_tag}, user_forced_nsfw={user_forced_nsfw}, final is_nsfw={is_nsfw}")

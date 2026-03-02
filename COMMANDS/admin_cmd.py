@@ -1122,7 +1122,7 @@ def check_porn_command(app, message):
         # Import the detailed check function
         from HELPERS.porn import check_porn_detailed
         
-        # Fetch video metadata (title, description, uploader/author) for full NSFW check
+        # Fetch video metadata for full NSFW check (title, description, all other text fields)
         title, description, uploader_str = "", "", ""
         try:
             import yt_dlp
@@ -1150,13 +1150,8 @@ def check_porn_command(app, message):
                         info = entry
                 title = (info.get('title') or '').strip()
                 description = (info.get('description') or '').strip()
-                uploader_parts = [
-                    info.get('uploader'),
-                    info.get('channel'),
-                    info.get('creator'),
-                    info.get('artist'),
-                ]
-                uploader_str = ' '.join(str(p).strip() for p in uploader_parts if p and str(p).strip())
+                from HELPERS.porn import get_metadata_text_for_keyword_check
+                uploader_str = get_metadata_text_for_keyword_check(info)
         except Exception as e:
             logger.warning(f"check_porn: could not fetch metadata for {url}: {e}")
         
