@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>يديره</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 تغيير اللغة: /lang</b>"
-    TO_USE_MSG = "<i>لاستخدام هذا البوت تحتاج إلى الاشتراك في قناة تليجرام @tg_ytdlp.</i>\nبعد انضمامك إلى القناة، <b>أعد إرسال رابط الفيديو مرة أخرى وسيقوم البوت بتحميله لك</b> ❤️\n\n<blockquote>P.S. تحميل 🔞NSFW المحتوى والملفات من ☁️Cloud Storage هو مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا تغادر القناة - سيتم حظرك من استخدام البوت ⛔️</blockquote>"
+    TO_USE_MSG = "<i>لاستخدام هذا البوت تحتاج إلى الاشتراك في قناة تليجرام @tg_ytdlp.</i>\nبعد انضمامك إلى القناة، <b>أعد إرسال رابط الفيديو مرة أخرى وسيقوم البوت بتحميله لك</b> ❤️\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>"
 
     ERROR1 = "لم يتم العثور على رابط URL. يرجى إدخال رابط يحتوي على <b>https://</b> أو <b>http://</b>"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ البروكسي {status}."
     PROXY_ERROR_SAVING_MSG = "❌ خطأ في حفظ إعدادات البروكسي."
     PROXY_MENU_TEXT_MSG = "تفعيل أو إلغاء استخدام خادم البروكسي لجميع عمليات yt-dlp؟"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "هل تريد تمكين أو تعطيل استخدام الخوادم الوكيلة (يتوفر {config_count} + {file_count}) لجميع عمليات yt-dlp؟\n\nعند تمكين الكل (AUTO)، سيتم اختيار الوكلاء باستخدام طريقة عشوائية."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "هل تريد تمكين أو تعطيل استخدام الخوادم الوكيلة (يتوفر {config_count} + {file_count}) لجميع عمليات yt-dlp؟\n\nعند تمكين الكل (AUTO)، يتم اختيار الوكلاء تلقائياً وفقاً للدول المسموح بها (الواردة في رسالة خطأ YouTube)."
     PROXY_MENU_CLOSED_MSG = "تم إغلاق القائمة."
     PROXY_ENABLED_CONFIRM_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم البروكسي."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم {count} خادم بروكسي مع طريقة اختيار {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ تم تمكين الوكيل (الوضع التلقائي بالكامل).\n\n📊 سيحاول الروبوت استخدام الوكلاء بهذا الترتيب:\n1️⃣ {config_count} وكلاء من Config.py\n2️⃣ {file_count} وكيل من ملف TXT/proxy.txt\n\n🔄 سيتم تجربة جميع البروكسيات بشكل تسلسلي حتى يتم الاتصال بنجاح."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ تم تمكين الوكيل (تلقائي عند خطأ YouTube).\n\nعند إرجاع YouTube خطأ حظر جغرافي، سيستخدم الروبوت فقط وكلاء من الدول المذكورة في ذلك الخطأ (بدون تجربة كل الوكلاء بالتسلسل)."
     PROXY_DISABLED_MSG = "❌ تم إلغاء البروكسي."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 جاري تجربة الوكيل: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ خطأ في حفظ إعدادات البروكسي."
     PROXY_ENABLED_CALLBACK_MSG = "تم تفعيل البروكسي."
     PROXY_DISABLED_CALLBACK_MSG = "تم إلغاء البروكسي."
@@ -1655,7 +1656,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ فحص ملف تعريف الارتباط"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ الكل (تلقائي)"
+    PROXY_ON_BUTTON_MSG = "✅ تلقائي (عند خطأ YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ إيقاف"
     PROXY_CLOSE_BUTTON_MSG = "🔚إغلاق"
     
@@ -2025,7 +2026,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ للعمل في المجموعة يحتاج البوت إلى صلاحيات المدير. يرجى جعل البوت مديراً لهذه المجموعة."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "مرحباً {first_name}،\n \n<i>هذا البوت🤖 يمكنه تحميل أي فيديوهات إلى Telegram مباشرة.😊 لمزيد من المعلومات اضغط <b>/help</b></i> 👈\n\n<blockquote>P.S. تحميل 🔞المحتوى السميح والملفات من ☁️Cloud Storage هو مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا تغادر القناة - سيتم حظرك من استخدام البوت ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "مرحباً {first_name}،\n \n<i>هذا البوت🤖 يمكنه تحميل أي فيديوهات إلى Telegram مباشرة.😊 لمزيد من المعلومات اضغط <b>/help</b></i> 👈\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 لا توجد ملفات للحذف."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 تم حذف جميع الملفات بنجاح!\n\nالملفات المحذوفة:\n{files_list}"
     

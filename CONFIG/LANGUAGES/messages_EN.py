@@ -10,8 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Managed by</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Change language: /lang</b>"
-    TO_USE_MSG = "<i>To use this bot you need to subscribe to @tg_ytdlp Telegram channel.</i>\nAfter you join the channel, <b>resend your video link again and bot will download it for you</b> ❤️\n\n<blockquote>P.S. Downloading 🔞NSFW content and files from ☁️Cloud Storage is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do not leave the channel - you will be banned from using the bot ⛔️</blockquote>"
-
+    TO_USE_MSG = "<i>To use this bot you need to subscribe to @tg_ytdlp Telegram channel.</i>\nAfter you join the channel, <b>resend your video link again and bot will download it for you</b> ❤️\n\n<blockquote>P.S. Due to potential 🔞NSFW content - downloading from ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> and 🔞<b>Porn sites</b> is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do NOT 🗑<b>delete/unsubscribe the @tg_ytdlp channel</b> and do NOT 🤖<b>SPAM URL/commands too much to bot</b> - you will be automatically banned from using the bot ⛔️</blockquote>"
     ERROR1 = "Did not found a url link. Please enter a url with <b>https://</b> or <b>http://</b>"
 
     PLAYLIST_HELP_MSG = """
@@ -605,12 +604,13 @@ Learn more: /playlist"""
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error saving proxy settings."
     PROXY_MENU_TEXT_MSG = "Enable or disable using proxy server for all yt-dlp operations?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({config_count} + {file_count} available) for all yt-dlp operations?\n\nWhen enabled ALL (AUTO), proxies will be selected using random method."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Enable or disable using proxy servers ({config_count} + {file_count} available) for all yt-dlp operations?\n\nWhen enabled ALL (AUTO), proxies are selected automatically according to allowed countries (from the YouTube error)."
     PROXY_MENU_CLOSED_MSG = "Menu closed."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy enabled. All yt-dlp operations will use proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy enabled. All yt-dlp operations will use {count} proxy servers with {method} selection method."
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy enabled (ALL AUTO mode).\n\n📊 Bot will try proxies in this order:\n1️⃣ {config_count} proxies from Config.py\n2️⃣ {file_count} proxies from TXT/proxy.txt file\n\n🔄 All proxies will be tried sequentially until successful connection."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy enabled (AUTO on YouTube error).\n\nWhen YouTube returns a geo-block error, the bot will use only proxies from the countries listed in that error (no sequential try of all proxies)."
     PROXY_DISABLED_MSG = "❌ Proxy disabled."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Trying proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error saving proxy settings."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy enabled."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy disabled."
@@ -1647,7 +1647,7 @@ Learn more: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Check Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ALL (AUTO)"
+    PROXY_ON_BUTTON_MSG = "✅ AUTO (on YouTube error)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Close"
     PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Select Country:"
@@ -1805,6 +1805,10 @@ Learn more: /playlist"""
     # Porn filter messages
     PORN_DOMAIN_BLACKLIST_MSG = "❌ Domain in porn blacklist: {domain_parts}"
     PORN_KEYWORDS_FOUND_MSG = "❌ Found porn keywords: {keywords}"
+    PORN_KEYWORDS_IN_TITLE_MSG = "❌ Keywords in title: {keywords}"
+    PORN_KEYWORDS_IN_DESCRIPTION_MSG = "❌ Keywords in description: {keywords}"
+    PORN_KEYWORDS_IN_CAPTION_MSG = "❌ Keywords in caption: {keywords}"
+    PORN_KEYWORDS_IN_UPLOADER_MSG = "❌ Keywords in channel/uploader/author: {keywords}"
     PORN_DOMAIN_WHITELIST_MSG = "✅ Domain in whitelist: {domain}"
     PORN_WHITELIST_KEYWORDS_MSG = "✅ Found whitelist keywords: {keywords}"
     PORN_NO_KEYWORDS_FOUND_MSG = "✅ No porn keywords found"
@@ -2015,7 +2019,7 @@ Learn more: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйста, сделайте бота админом этой группы."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Hello {first_name},\n \n<i>This bot🤖 can download any videos into telegram directly.😊 For more information press <b>/help</b></i> 👈\n\n<blockquote>P.S. Downloading 🔞NSFW content and files from ☁️Cloud Storage is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do not leave the channel - you will be banned from using the bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Hello {first_name},\n \n<i>This bot🤖 can download any videos into telegram directly.😊 For more information press <b>/help</b></i> 👈\n\n<blockquote>P.S. Due to potential 🔞NSFW content - downloading from ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> and 🔞<b>Porn sites</b> is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do NOT 🗑<b>delete/unsubscribe the @tg_ytdlp channel</b> and do NOT 🤖<b>SPAM URL/commands too much to bot</b> - you will be automatically banned from using the bot ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 No files to remove."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

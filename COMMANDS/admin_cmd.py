@@ -1122,9 +1122,40 @@ def check_porn_command(app, message):
         # Import the detailed check function
         from HELPERS.porn import check_porn_detailed
         
-        # For now, we'll check without title/description since we don't have video info
-        # In a real scenario, you might want to fetch video info first
-        is_nsfw, explanation = check_porn_detailed(url, "", "", None)
+        # Fetch video metadata for full NSFW check (title, description, all other text fields)
+        title, description, uploader_str = "", "", ""
+        try:
+            import yt_dlp
+            ytdl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'skip_download': True,
+                'extract_flat': False,
+            }
+            from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback
+            ytdl_opts = add_proxy_to_ytdl_opts(ytdl_opts, url, user_id)
+            try:
+                from HELPERS.pot_helper import add_pot_to_ytdl_opts
+                ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
+            except Exception:
+                pass
+            def extract_info_operation(opts, *args, **kwargs):
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    return ydl.extract_info(url, download=False)
+            info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
+            if info and isinstance(info, dict):
+                if info.get('entries'):
+                    entry = (info.get('entries') or [None])[0]
+                    if isinstance(entry, dict):
+                        info = entry
+                title = (info.get('title') or '').strip()
+                description = (info.get('description') or '').strip()
+                from HELPERS.porn import get_metadata_text_for_keyword_check
+                uploader_str = get_metadata_text_for_keyword_check(info)
+        except Exception as e:
+            logger.warning(f"check_porn: could not fetch metadata for {url}: {e}")
+        
+        is_nsfw, explanation = check_porn_detailed(url, title, description, None, uploader=uploader_str or None)
         
         # Format the result
         status_icon = safe_get_messages(message.chat.id).ADMIN_STATUS_NSFW_MSG if is_nsfw else safe_get_messages(message.chat.id).ADMIN_STATUS_CLEAN_MSG

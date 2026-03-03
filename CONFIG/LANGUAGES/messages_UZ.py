@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Boshqaruvchi</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Tilni o'zgartirish: /lang</b>"
-    TO_USE_MSG = "<i>Ushbu botdan foydalanish uchun @tg_ytdlp Telegram kanaliga obuna bo'lishingiz kerak.</i>\nKanalga qo'shilgandan so'ng, <b>video havolangizni qayta yuboring va bot uni siz uchun yuklab oladi</b> ❤️\n\n<blockquote>P.S. 🔞NSFW kontentini va ☁️Cloud Storage'dan fayllarni yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kanaldan chiqmang - botdan foydalanishdan chetlashtirilasiz ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Ushbu botdan foydalanish uchun @tg_ytdlp Telegram kanaliga obuna bo'lishingiz kerak.</i>\nKanalga qo'shilgandan so'ng <b>video havolangizni qayta yuboring, bot uni siz uchun yuklab oladi</b> ❤️\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>"
 
     ERROR1 = "URL havolasi topilmadi. Iltimos, <b>https://</b> yoki <b>http://</b> bilan URL kiriting"
 
@@ -605,13 +605,14 @@ Ko'proq ma'lumot: /playlist"""
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Proxy sozlamalarini saqlashda xatolik."
     PROXY_MENU_TEXT_MSG = "Barcha yt-dlp operatsiyalari uchun proxy serverni yoqish yoki o'chirish?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Barcha yt-dlp operatsiyalari uchun proksi-serverlar ({config_count} + {file_count} mavjud) yordamida yoqilsin yoki oʻchirilsinmi?\n\nALL (AVTO) yoqilganda proksi-serverlar tasodifiy usul yordamida tanlanadi."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Barcha yt-dlp operatsiyalari uchun proksi-serverlar ({config_count} + {file_count} mavjud) yordamida yoqilsin yoki oʻchirilsinmi?\n\nALL (AVTO) yoqilganda proksi-serverlar ruxsat etilgan mamlakatlar boʻyicha (YouTube xatosida koʻrsatilgan) avtomatik tanlanadi."
     PROXY_MENU_CLOSED_MSG = "Menyu yopildi."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari proxy'dan foydalanadi."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari {count} proxy server va {method} tanlash usuli bilan ishlaydi."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi yoqilgan (BARCHA AUTO rejimi).\n\n📊 Bot proksi-serverlarni quyidagi tartibda sinab ko'radi:\nConfig.py dan 1️⃣ {config_count} ta proksi\nTXT/proxy.txt faylidan 2️⃣ {file_count} proksi\n\n🔄 Barcha proksi-serverlar muvaffaqiyatli ulanishga qadar ketma-ket tekshiriladi."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi yoqilgan (YouTube xatosi bo'yicha AVTO).\n\nYouTube geo-blok xatosi qaytarganda bot faqat shu xatoda ko'rsatilgan mamlakatlar proksilaridan foydalanadi (barcha proksilarni ketma-ket sinash yo'q)."
     PROXY_DISABLED_MSG = "❌ Proxy o'chirildi."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Proksi sinanmoqda: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy sozlamalarini saqlashda xatolik."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy yoqildi."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy o'chirildi."
@@ -1649,7 +1650,7 @@ Ko'proq ma'lumot: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie'ni tekshirish"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ HAMMA (AVTO)"
+    PROXY_ON_BUTTON_MSG = "✅ AVTO (YouTube xatosi bo'yicha)"
     PROXY_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"
     PROXY_CLOSE_BUTTON_MSG = "🔚Yopish"
     
@@ -2019,7 +2020,7 @@ Ko'proq ma'lumot: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Guruhda ishlash uchun botga admin huquqlari kerak. Iltimos, botni bu guruhning admini qiling."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Salom {first_name},\n \n<i>Bu bot🤖 har qanday videolarni to'g'ridan-to'g'ri telegramga yuklab olishi mumkin.😊 Ko'proq ma'lumot uchun <b>/help</b> ni bosing</i> 👈\n\n<blockquote>Eslatma: 🔞NSFW kontent va ☁️Cloud Storage'dan fayllarni yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>Eslatma 2: ‼️ Kanalni tark etmang - botdan foydalanishdan bloklanasiz ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Salom {first_name},\n \n<i>Bu bot🤖 har qanday videolarni to'g'ridan-to'g'ri telegramga yuklab olishi mumkin.😊 Ko'proq ma'lumot uchun <b>/help</b> ni bosing</i> 👈\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Olib tashlash uchun fayllar yo'q."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Barcha fayllar muvaffaqiyatli olib tashlandi!\n\nOlib tashlangan fayllar:\n{files_list}"
     

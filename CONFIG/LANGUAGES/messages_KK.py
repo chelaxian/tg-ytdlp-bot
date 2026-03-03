@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Басқарушы</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Тілді өзгерту: /lang</b>"
-    TO_USE_MSG = "<i>Бұл ботты пайдалану үшін @tg_ytdlp Telegram арнасына жазылуыңыз керек.</i>\nАрнаға қосылғаннан кейін, <b>бейне сілтемеңізді қайта жіберіңіз, бот оны сіз үшін жүктейді</b> ❤️\n\n<blockquote>P.S. 🔞NSFW контентін және ☁️Cloud Storage-дан файлдарды жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Арнадан шықпаңыз - ботты пайдаланудан тыйым салынасыз ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Бұл ботты пайдалану үшін @tg_ytdlp Telegram арнасына жазылуыңыз керек.</i>\nАрнаға қосылғаннан кейін <b>бейне сілтемеңізді қайта жіберіңіз, бот оны сіз үшін жүктейді</b> ❤️\n\n<blockquote>P.S. 🔞NSFW контент мүмкіндігіне байланысты - ☁️<b>Бұлттық сақтау</b>, 📁<b>Файл бөлісу</b>, 🔗<b>URL қысқартқыштар</b> және 🔞<b>Порно сайттары</b>нан жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp арнасын 🗑<b>жоймаңыз/жазылымнан шықпаңыз</b> және ботқа 🤖<b>URL/командаларды тым көп спамдамаңыз</b> - ботты пайдаланудан автоматты түрде тыйым салынасыз ⛔️</blockquote>"
 
     ERROR1 = "URL сілтемесі табылмады. <b>https://</b> немесе <b>http://</b> бар URL енгізіңіз"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ Прокси {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Прокси параметрлерін сақтау қатесі."
     PROXY_MENU_TEXT_MSG = "Барлық yt-dlp операциялары үшін прокси серверін пайдалануды қосу немесе өшіру?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Барлық yt-dlp операциялары үшін прокси серверлерді ({config_count} + {file_count} қолжетімді) пайдалануды қосу немесе өшіру керек пе?\n\nБАРЛЫҚ (АВТО) қосылған кезде проксилер кездейсоқ әдіс арқылы таңдалады."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Барлық yt-dlp операциялары үшін прокси серверлерді ({config_count} + {file_count} қолжетімді) пайдалануды қосу немесе өшіру керек пе?\n\nБАРЛЫҚ (АВТО) қосылған кезде проксилер рұқсат етілген елдер бойынша (YouTube қатесінде көрсетілген) автоматты түрде таңдалады."
     PROXY_MENU_CLOSED_MSG = "Меню жабылды."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Прокси қосылған. Барлық yt-dlp операциялары проксиді пайдаланады."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Прокси қосылған. Барлық yt-dlp әрекеттері {count} прокси сервері{method}h {әдіс} таңдау әдісін пайдаланады."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Прокси қосылған (БАРЛЫҚ АВТО режимі).\n\n📊 Бот прокси-серверлерді келесі ретпен сынап көреді:\nConfig.py сайтынан 1️⃣ {config_count} прокси\nTXT/proxy.txt файлынан 2️⃣ {file_count} прокси\n\n🔄 Барлық прокси-серверлер сәтті қосылымға дейін дәйекті түрде сыналады."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Прокси қосылған (YouTube қатесі бойынша АВТО).\n\nYouTube гео-блок қатесі қайтарғанда бот тек осы қатеде көрсетілген елдердің проксилерін пайдаланады (барлық проксилерді кезекпен сынамайды)."
     PROXY_DISABLED_MSG = "❌ Прокси өшірілген."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Прокси сынап көруде: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Прокси параметрлерін сақтау қатесі."
     PROXY_ENABLED_CALLBACK_MSG = "Прокси қосылды."
     PROXY_DISABLED_CALLBACK_MSG = "Прокси өшірілген."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie тексеру"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ БАРЛЫҒЫ (АВТО)"
+    PROXY_ON_BUTTON_MSG = "✅ АВТО (YouTube қатесі бойынша)"
     PROXY_OFF_BUTTON_MSG = "❌ ӨШІРІЛГЕН"
     PROXY_CLOSE_BUTTON_MSG = "🔚Жабу"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Топта жұмыс істеу үшін ботқа әкімші құқықтары қажет. Ботты осы топтың әкімшісі етіп тағайындаңыз."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Сәлем {first_name},\n \n<i>Бұл бот🤖 кез келген бейнелерді Telegram-ға тікелей жүктей алады.😊 Көбірек ақпарат алу үшін <b>/help</b> басыңыз</i> 👈\n\n<blockquote>P.S. 🔞NSFW контентін және ☁️Cloud Storage-дан файлдарды жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Арнадан шықпаңыз - ботты пайдаланудан тыйым салынасыз ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Сәлем {first_name},\n \n<i>Бұл бот🤖 кез келген бейнелерді Telegram-ға тікелей жүктей алады.😊 Көбірек ақпарат алу үшін <b>/help</b> басыңыз</i> 👈\n\n<blockquote>P.S. 🔞NSFW контент мүмкіндігіне байланысты - ☁️<b>Бұлттық сақтау</b>, 📁<b>Файл бөлісу</b>, 🔗<b>URL қысқартқыштар</b> және 🔞<b>Порно сайттары</b>нан жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp арнасын 🗑<b>жоймаңыз/жазылымнан шықпаңыз</b> және ботқа 🤖<b>URL/командаларды тым көп спамдамаңыз</b> - ботты пайдаланудан автоматты түрде тыйым салынасыз ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Жойылатын файлдар жоқ."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Барлық файлдар сәтті жойылды!\n\nЖойылған файлдар:\n{files_list}"
     

@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Được quản lý bởi</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Thay đổi ngôn ngữ: /lang</b>"
-    TO_USE_MSG = "<i>Để sử dụng bot này, bạn cần đăng ký kênh Telegram @tg_ytdlp.</i>\nSau khi bạn tham gia kênh, <b>gửi lại liên kết video của bạn và bot sẽ tải xuống cho bạn</b> ❤️\n\n<blockquote>P.S. Tải xuống nội dung 🔞NSFW và tệp từ ☁️Cloud Storage là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Đừng rời khỏi kênh - bạn sẽ bị cấm sử dụng bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Để sử dụng bot này, bạn cần đăng ký kênh Telegram @tg_ytdlp.</i>\nSau khi tham gia kênh, <b>gửi lại liên kết video và bot sẽ tải xuống cho bạn</b> ❤️\n\n<blockquote>P.S. Do nội dung 🔞NSFW tiềm ẩn - tải từ ☁️<b>Lưu trữ đám mây</b>, 📁<b>Chia sẻ tệp</b>, 🔗<b>Rút gọn URL</b> và 🔞<b>Trang khiêu dâm</b> là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ KHÔNG 🗑<b>xóa/hủy đăng ký kênh @tg_ytdlp</b> và KHÔNG 🤖<b>spam URL/lệnh quá nhiều cho bot</b> - bạn sẽ bị cấm sử dụng bot tự động ⛔️</blockquote>"
 
     ERROR1 = "Không tìm thấy liên kết url. Vui lòng nhập url có <b>https://</b> hoặc <b>http://</b>"
 
@@ -605,13 +605,14 @@ Tìm hiểu thêm: /playlist"""
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Lỗi khi lưu cài đặt proxy."
     PROXY_MENU_TEXT_MSG = "Bật hoặc tắt sử dụng máy chủ proxy cho tất cả các thao tác yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Bật hoặc tắt việc sử dụng máy chủ proxy (có sẵn {config_count} + {file_count}) cho tất cả hoạt động yt-dlp?\n\nKhi được bật TẤT CẢ (TỰ ĐỘNG), proxy sẽ được chọn bằng phương pháp ngẫu nhiên."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Bật hoặc tắt việc sử dụng máy chủ proxy (có sẵn {config_count} + {file_count}) cho tất cả hoạt động yt-dlp?\n\nKhi bật TẤT CẢ (TỰ ĐỘNG), proxy được chọn tự động theo các quốc gia được phép (ghi trong lỗi YouTube)."
     PROXY_MENU_CLOSED_MSG = "Menu đã đóng."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng {count} máy chủ proxy với phương pháp chọn {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Đã bật proxy (TẤT CẢ chế độ TỰ ĐỘNG).\n\n📊 Bot sẽ thử proxy theo thứ tự sau:\n1️⃣ {config_count} proxy từ Config.py\n2️⃣ {file_count} proxy từ tệp TXT/proxy.txt\n\n🔄 Tất cả các proxy sẽ được thử tuần tự cho đến khi kết nối thành công."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Đã bật proxy (TỰ ĐỘNG khi lỗi YouTube).\n\nKhi YouTube trả về lỗi chặn theo vùng, bot chỉ dùng proxy từ các quốc gia nêu trong lỗi đó (không thử lần lượt tất cả proxy)."
     PROXY_DISABLED_MSG = "❌ Proxy đã tắt."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Đang thử proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Lỗi khi lưu cài đặt proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy đã bật."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy đã tắt."
@@ -1649,7 +1650,7 @@ Tìm hiểu thêm: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Kiểm Tra Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ TẤT CẢ (TỰ ĐỘNG)"
+    PROXY_ON_BUTTON_MSG = "✅ TỰ ĐỘNG (khi lỗi YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ TẮT"
     PROXY_CLOSE_BUTTON_MSG = "🔚Đóng"
     
@@ -2019,7 +2020,7 @@ Tìm hiểu thêm: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Để bot hoạt động trong nhóm, bot cần quyền quản trị viên. Vui lòng đặt bot làm quản trị viên của nhóm này."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Xin chào {first_name},\n \n<i>Bot này🤖 có thể tải bất kỳ video nào vào telegram trực tiếp.😊 Để biết thêm thông tin, nhấn <b>/help</b></i> 👈\n\n<blockquote>P.S. Tải xuống nội dung 🔞NSFW và tệp từ ☁️Cloud Storage là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Đừng rời khỏi kênh - bạn sẽ bị cấm sử dụng bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Xin chào {first_name},\n \n<i>Bot này🤖 có thể tải bất kỳ video nào vào telegram trực tiếp.😊 Để biết thêm thông tin, nhấn <b>/help</b></i> 👈\n\n<blockquote>P.S. Do nội dung 🔞NSFW tiềm ẩn - tải từ ☁️<b>Lưu trữ đám mây</b>, 📁<b>Chia sẻ tệp</b>, 🔗<b>Rút gọn URL</b> và 🔞<b>Trang khiêu dâm</b> là có phí! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ KHÔNG 🗑<b>xóa/hủy đăng ký kênh @tg_ytdlp</b> và KHÔNG 🤖<b>spam URL/lệnh quá nhiều cho bot</b> - bạn sẽ bị cấm sử dụng bot tự động ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Không có tệp để xóa."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Tất cả tệp đã được xóa thành công!\n\nTệp đã xóa:\n{files_list}"
     

@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Ana gudanar da shi ta</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Canza harshe: /lang</b>"
-    TO_USE_MSG = "<i>Don amfani da wannan bot kuna buƙatar yin rajista zuwa tashar Telegram @tg_ytdlp.</i>\nBayan kun shiga tashar, <b>sake aika hanyar bidiyon ku kuma bot zai sauke shi gare ku</b> ❤️\n\n<blockquote>P.S. Saukewa 🔞NSFW abun ciki da fayiloli daga ☁️Cloud Storage ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku bar tashar - za a hana ku amfani da bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Don amfani da wannan bot kuna buƙatar yin rajista zuwa tashar Telegram @tg_ytdlp.</i>\nBayan kun shiga tashar, <b>sake aika hanyar bidiyon ku kuma bot zai sauke shi gare ku</b> ❤️\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>"
 
     ERROR1 = "Ba a sami hanyar url ba. Da fatan za a shigar da url tare da <b>https://</b> ko <b>http://</b>"
 
@@ -605,13 +605,14 @@ Koyi ƙari: /playlist"""
     PROXY_ENABLED_MSG = "✅ Wakili {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_MENU_TEXT_MSG = "Kunna ko kashe amfani da uwar garken proxy don duk ayyukan yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe ta amfani da sabar wakili ({config_count} + {file_count} akwai) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna DUKA (AUTO), za a zaɓi proxies ta hanyar bazuwar hanya."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Kunna ko kashe ta amfani da sabar wakili ({config_count} + {file_count} akwai) don duk ayyukan yt-dlp?\n\nLokacin da aka kunna DUKA (AUTO), ana zaɓar proxies ta atomatik bisa ƙasashen da aka yarda (daga kuskuren YouTube)."
     PROXY_MENU_CLOSED_MSG = "An rufe menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da uwar garken proxy {count} tare da hanyar zaɓi {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ An kunna wakili (duk yanayin AUTO).\n\n📊 Bot zai gwada proxies ta wannan tsari:\n1️⃣ {config_count} proxies daga Config.py\n2️⃣ {file_count} proxies daga TXT/proxy.txt fayil\n\n🔄 Duk proxies za a gwada su bi da bi har sai an yi nasarar haɗin gwiwa."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ An kunna wakili (AUTO akan kuskuren YouTube).\n\nLokacin da YouTube ya mayar da kuskuren toshe yanki, bot zai yi amfani da wakilai na ƙasashen da aka jera a cikin wannan kuskure kawai (ba a gwada duk wakilai a jere ba)."
     PROXY_DISABLED_MSG = "❌ An kashe proxy."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Ana gwada proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_ENABLED_CALLBACK_MSG = "An kunna proxy."
     PROXY_DISABLED_CALLBACK_MSG = "An kashe proxy."
@@ -1649,7 +1650,7 @@ Koyi ƙari: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Duba Kuki"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ DUK (AUT)"
+    PROXY_ON_BUTTON_MSG = "✅ AUTO (akan kuskuren YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ KASHE"
     PROXY_CLOSE_BUTTON_MSG = "🔚Rufe"
     
@@ -2019,7 +2020,7 @@ Koyi ƙari: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйsta, sdelayte bota adminom эtoy ruppy."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Sannu {first_name},\n \n<i>Wannan bot🤖 na iya zazzage kowane bidiyo zuwa telegram kai tsaye.😊 Don ƙarin bayani danna <b>/help</b></i> 👈\n\n<blockquote>P.S. Zazzagewar abun ciki na 🔞NSFW da fayiloli daga ☁️Cloud Storage ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku bar tashar - za a hana ku amfani da bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Sannu {first_name},\n \n<i>Wannan bot🤖 na iya zazzage kowane bidiyo zuwa telegram kai tsaye.😊 Don ƙarin bayani danna <b>/help</b></i> 👈\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Babu fayilolin da za a cire."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

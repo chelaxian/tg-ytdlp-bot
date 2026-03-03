@@ -60,6 +60,7 @@ replace_dump_in_history.sh
 fix_and_replace_dump.sh
 ИТОГОВЫЙ_СПИСОК_АЛЕРТОВ.md
 dump.json
+_dump.json
 CONFIG/.command_limits.json
 CONFIG/.*.json
 
@@ -78,6 +79,11 @@ proxy.txt
 TXT/proxy.txt
 proxy_test.py
 TXT/proxy_test.py
+TXT/working_proxies.txt
+TXT/merge_working_proxies.py
+TXT/.proxy_merged_mtime
+TXT/.proxy_geo_cache.json  
+TXT/.gitkeep
 
 # Sample / experimental scripts
 gallery-dl/
@@ -88,7 +94,7 @@ users.txt
 TOOLS/script.sh
 scripts/delete_video_cache.py
 scripts/create_video_cache_folders.py
-scripts/
+#scripts/
 _cursor/TOOLS/script.sh
 script.sh
 log.txt

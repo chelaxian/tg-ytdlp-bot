@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>পরিচালিত</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 ভাষা পরিবর্তন করুন: /lang</b>"
-    TO_USE_MSG = "<i>এই বট ব্যবহার করতে আপনাকে @tg_ytdlp Telegram চ্যানেলে সাবস্ক্রাইব করতে হবে।</i>\nচ্যানেলে যোগদানের পর, <b>আপনার ভিডিও লিঙ্কটি আবার পাঠান এবং বট এটি আপনার জন্য ডাউনলোড করবে</b> ❤️\n\n<blockquote>P.S. 🔞NSFW কন্টেন্ট এবং ☁️ক্লাউড স্টোরেজ থেকে ফাইল ডাউনলোড করা অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ চ্যানেল ছেড়ে যাবেন না - আপনি বট ব্যবহার থেকে নিষিদ্ধ হবেন ⛔️</blockquote>"
+    TO_USE_MSG = "<i>এই বট ব্যবহার করতে আপনাকে @tg_ytdlp Telegram চ্যানেলে সাবস্ক্রাইব করতে হবে।</i>\nচ্যানেলে যোগদানের পর <b>আপনার ভিডিও লিঙ্কটি আবার পাঠান এবং বট এটি আপনার জন্য ডাউনলোড করবে</b> ❤️\n\n<blockquote>P.S. সম্ভাব্য 🔞NSFW কন্টেন্টের কারণে - ☁️<b>ক্লাউড স্টোরেজ</b>, 📁<b>ফাইল শেয়ার</b>, 🔗<b>URL শর্টনার</b> এবং 🔞<b>পর্ন সাইট</b> থেকে ডাউনলোড অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp চ্যানেল 🗑<b>মুছবেন না/আনসাবস্ক্রাইব করবেন না</b> এবং বটে 🤖<b>অতিরিক্ত URL/কমান্ড স্প্যাম করবেন না</b> - বট ব্যবহার থেকে স্বয়ংক্রিয়ভাবে নিষিদ্ধ হবেন ⛔️</blockquote>"
 
     ERROR1 = "URL লিঙ্ক পাওয়া যায়নি। অনুগ্রহ করে <b>https://</b> বা <b>http://</b> সহ একটি URL লিখুন"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ Proxy {status}।"
     PROXY_ERROR_SAVING_MSG = "❌ Proxy সেটিংস সংরক্ষণ করতে ত্রুটি।"
     PROXY_MENU_TEXT_MSG = "সমস্ত yt-dlp অপারেশনের জন্য proxy সার্ভার ব্যবহার সক্ষম বা অক্ষম করবেন?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "সমস্ত yt-dlp অপারেশনের জন্য প্রক্সি সার্ভার ({config_count} + {file_count} উপলব্ধ) ব্যবহার করে সক্ষম বা নিষ্ক্রিয় করবেন?\n\nALL (AUTO) সক্ষম হলে, প্রক্সিগুলি র্যান্ডম পদ্ধতি ব্যবহার করে নির্বাচন করা হবে৷"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "সমস্ত yt-dlp অপারেশনের জন্য প্রক্সি সার্ভার ({config_count} + {file_count} উপলব্ধ) ব্যবহার করে সক্ষম বা নিষ্ক্রিয় করবেন?\n\nALL (AUTO) সক্ষম হলে, অনুমোদিত দেশ অনুযায়ী (YouTube ত্রুটিতে উল্লিখিত) প্রক্সি স্বয়ংক্রিয়ভাবে নির্বাচিত হয়।"
     PROXY_MENU_CLOSED_MSG = "মেনু বন্ধ করা হয়েছে।"
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy সক্ষম করা হয়েছে। সমস্ত yt-dlp অপারেশন proxy ব্যবহার করবে।"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy সক্ষম করা হয়েছে। সমস্ত yt-dlp অপারেশন {method} নির্বাচন পদ্ধতি সহ {count} proxy সার্ভার ব্যবহার করবে।"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ প্রক্সি সক্ষম (সমস্ত অটো মোড)।\n\n📊 বট এই ক্রমে প্রক্সি চেষ্টা করবে:\nConfig.py থেকে 1️⃣ {config_count} প্রক্সি\nTXT/proxy.txt ফাইল থেকে 2️⃣ {file_count} প্রক্সি\n\n🔄 সফল সংযোগ না হওয়া পর্যন্ত সমস্ত প্রক্সি পর্যায়ক্রমে চেষ্টা করা হবে।"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ প্রক্সি চালু (YouTube ত্রুটিতে অটো)।\n\nYouTube যখন জিও-ব্লক ত্রুটি দেবে, বট শুধুমাত্র সেই ত্রুটিতে উল্লিখিত দেশগুলির প্রক্সি ব্যবহার করবে (সমস্ত প্রক্সি ধারাবাহিকভাবে চেষ্টা করা হবে না)।"
     PROXY_DISABLED_MSG = "❌ Proxy অক্ষম করা হয়েছে।"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 প্রক্সি চেষ্টা করা হচ্ছে: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy সেটিংস সংরক্ষণ করতে ত্রুটি।"
     PROXY_ENABLED_CALLBACK_MSG = "Proxy সক্ষম করা হয়েছে।"
     PROXY_DISABLED_CALLBACK_MSG = "Proxy অক্ষম করা হয়েছে।"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie পরীক্ষা করুন"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ সব (অটো)"
+    PROXY_ON_BUTTON_MSG = "✅ অটো (YouTube ত্রুটিতে)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚বন্ধ করুন"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ গ্রুপে কাজ করার জন্য বটের জন্য প্রশাসক অধিকার প্রয়োজন। অনুগ্রহ করে এই গ্রুপে বটকে অ্যাডমিন করুন।"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "হ্যালো {first_name},\n \n<i>এই বট🤖 সরাসরি telegram এ যেকোনো ভিডিও ডাউনলোড করতে পারে।😊 আরও তথ্যের জন্য <b>/help</b> চাপুন</i> 👈\n\n<blockquote>P.S. 🔞NSFW কন্টেন্ট এবং ☁️Cloud Storage থেকে ফাইল ডাউনলোড করা পেইড! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ চ্যানেল ছেড়ে যাবেন না - আপনি বট ব্যবহার থেকে নিষিদ্ধ হবেন ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "হ্যালো {first_name},\n \n<i>এই বট🤖 সরাসরি telegram এ যেকোনো ভিডিও ডাউনলোড করতে পারে।😊 আরও তথ্যের জন্য <b>/help</b> চাপুন</i> 👈\n\n<blockquote>P.S. সম্ভাব্য 🔞NSFW কন্টেন্টের কারণে - ☁️<b>ক্লাউড স্টোরেজ</b>, 📁<b>ফাইল শেয়ার</b>, 🔗<b>URL শর্টনার</b> এবং 🔞<b>পর্ন সাইট</b> থেকে ডাউনলোড অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp চ্যানেল 🗑<b>মুছবেন না/আনসাবস্ক্রাইব করবেন না</b> এবং বটে 🤖<b>অতিরিক্ত URL/কমান্ড স্প্যাম করবেন না</b> - বট ব্যবহার থেকে স্বয়ংক্রিয়ভাবে নিষিদ্ধ হবেন ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 সরানোর জন্য কোন ফাইল নেই।"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 সমস্ত ফাইল সফলভাবে সরানো হয়েছে!\n\nসরানো ফাইল:\n{files_list}"
     

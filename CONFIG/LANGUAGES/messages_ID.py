@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Dikelola oleh</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Ubah bahasa: /lang</b>"
-    TO_USE_MSG = "<i>Untuk menggunakan bot ini, Anda perlu berlangganan ke saluran Telegram @tg_ytdlp.</i>\nSetelah Anda bergabung dengan saluran, <b>kirim ulang tautan video Anda dan bot akan mengunduhnya untuk Anda</b> ❤️\n\n<blockquote>P.S. Mengunduh konten 🔞NSFW dan file dari ☁️Penyimpanan Cloud berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Jangan tinggalkan saluran - Anda akan dilarang menggunakan bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Untuk menggunakan bot ini, Anda perlu berlangganan ke saluran Telegram @tg_ytdlp.</i>\nSetelah bergabung ke saluran, <b>kirim ulang tautan video Anda dan bot akan mengunduhnya untuk Anda</b> ❤️\n\n<blockquote>P.S. Karena kemungkinan konten 🔞NSFW - mengunduh dari ☁️<b>Penyimpanan Cloud</b>, 📁<b>Berbagi File</b>, 🔗<b>Pemendek URL</b> dan 🔞<b>Situs dewasa</b> berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ JANGAN 🗑<b>hapus/berhenti berlangganan saluran @tg_ytdlp</b> dan JANGAN 🤖<b>spam URL/perintah terlalu banyak ke bot</b> - Anda akan dilarang menggunakan bot secara otomatis ⛔️</blockquote>"
 
     ERROR1 = "Tautan URL tidak ditemukan. Silakan masukkan URL dengan <b>https://</b> atau <b>http://</b>"
 
@@ -605,13 +605,14 @@ Pelajari lebih lanjut: /playlist"""
     PROXY_ENABLED_MSG = "✅ Proksi {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Kesalahan menyimpan pengaturan proxy."
     PROXY_MENU_TEXT_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy untuk semua operasi yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy ({config_count} + {file_count} tersedia) untuk semua operasi yt-dlp?\n\nSaat diaktifkan SEMUA (AUTO), proxy akan dipilih menggunakan metode acak."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Aktifkan atau nonaktifkan penggunaan server proxy ({config_count} + {file_count} tersedia) untuk semua operasi yt-dlp?\n\nSaat diaktifkan SEMUA (AUTO), proxy dipilih otomatis menurut negara yang diizinkan (dari pesan error YouTube)."
     PROXY_MENU_CLOSED_MSG = "Menu ditutup."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy diaktifkan. Semua operasi yt-dlp akan menggunakan proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy diaktifkan. Semua operasi yt-dlp akan menggunakan {count} server proxy dengan metode pemilihan {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi diaktifkan (SEMUA mode OTOMATIS).\n\n📊 Bot akan mencoba proxy dengan urutan sebagai berikut:\n1️⃣ {config_count} proksi dari Config.py\n2️⃣ {file_count} proxy dari file TXT/proxy.txt\n\n🔄 Semua proxy akan dicoba secara berurutan hingga koneksi berhasil."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi diaktifkan (OTOMATIS saat error YouTube).\n\nSaat YouTube mengembalikan error blokir wilayah, bot hanya akan memakai proxy dari negara yang tercantum di error tersebut (tanpa mencoba semua proxy berurutan)."
     PROXY_DISABLED_MSG = "❌ Proxy dinonaktifkan."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Mencoba proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Kesalahan menyimpan pengaturan proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy diaktifkan."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy dinonaktifkan."
@@ -1649,7 +1650,7 @@ Pelajari lebih lanjut: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Periksa Kue"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ SEMUA (OTOMATIS)"
+    PROXY_ON_BUTTON_MSG = "✅ OTOMATIS (saat error YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ MATI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Tutup"
     
@@ -2019,7 +2020,7 @@ Pelajari lebih lanjut: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Bot memerlukan hak administrator untuk bekerja di grup. Harap jadikan bot sebagai admin grup ini."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Halo {first_name},\n \n<i>Bot ini🤖 dapat mengunduh video apa pun langsung ke telegram.😊 Untuk informasi lebih lanjut tekan <b>/help</b></i> 👈\n\n<blockquote>P.S. Mengunduh konten 🔞NSFW dan file dari ☁️Cloud Storage berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Jangan tinggalkan saluran - Anda akan dilarang menggunakan bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Halo {first_name},\n \n<i>Bot ini🤖 dapat mengunduh video apa pun langsung ke telegram.😊 Untuk informasi lebih lanjut tekan <b>/help</b></i> 👈\n\n<blockquote>P.S. Karena kemungkinan konten 🔞NSFW - mengunduh dari ☁️<b>Penyimpanan Cloud</b>, 📁<b>Berbagi File</b>, 🔗<b>Pemendek URL</b> dan 🔞<b>Situs dewasa</b> berbayar! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ JANGAN 🗑<b>hapus/berhenti berlangganan saluran @tg_ytdlp</b> dan JANGAN 🤖<b>spam URL/perintah terlalu banyak ke bot</b> - Anda akan dilarang menggunakan bot secara otomatis ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Tidak ada file untuk dihapus."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Semua file berhasil dihapus!\n\nFile yang dihapus:\n{files_list}"
     

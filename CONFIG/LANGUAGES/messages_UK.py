@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Керується</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Змінити мову: /lang</b>"
-    TO_USE_MSG = "<i>Щоб використовувати цього бота, вам потрібно підписатися на канал Telegram @tg_ytdlp.</i>\nПісля того, як ви приєднаєтеся до каналу, <b>надішліть знову ваше посилання на відео, і бот завантажить його для вас</b> ❤️\n\n<blockquote>P.S. Завантаження 🔞NSFW контенту та файлів з ☁️Cloud Storage платне! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Не покидайте канал - вас забанять від використання бота ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Щоб використовувати цього бота, потрібно підписатися на канал Telegram @tg_ytdlp.</i>\nПісля приєднання до каналу <b>надішліть знову посилання на відео — бот завантажить його для вас</b> ❤️\n\n<blockquote>P.S. Через можливий 🔞NSFW контент — завантаження з ☁️<b>хмарного сховища</b>, 📁<b>обміну файлами</b>, 🔗<b>скорочувачів URL</b> та 🔞<b>порно-сайтів</b> платне! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ НЕ 🗑<b>видаляйте/не відписуйтесь від каналу @tg_ytdlp</b> і НЕ 🤖<b>надсилайте зайвого спаму URL/командами боту</b> — вас автоматично заблокують ⛔️</blockquote>"
 
     ERROR1 = "Посилання URL не знайдено. Будь ласка, введіть URL з <b>https://</b> або <b>http://</b>"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ Проксі {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Помилка збереження налаштувань проксі."
     PROXY_MENU_TEXT_MSG = "Увімкнути або вимкнути використання проксі-сервера для всіх операцій yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Увімкнути або вимкнути використання проксі-серверів (доступно {config_count} + {file_count}) для всіх операцій yt-dlp?\n\nЯкщо ввімкнено ВСІ (АВТО), проксі-сервери будуть вибрані випадковим методом."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Увімкнути або вимкнути використання проксі-серверів (доступно {config_count} + {file_count}) для всіх операцій yt-dlp?\n\nЯкщо ввімкнено ВСІ (АВТО), проксі підбираються автоматично за дозволеними країнами (з повідомлення про помилку YouTube)."
     PROXY_MENU_CLOSED_MSG = "Меню закрито."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Проксі увімкнено. Всі операції yt-dlp використовуватимуть проксі."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Проксі увімкнено. Всі операції yt-dlp використовуватимуть {count} проксі-серверів з методом вибору {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Проксі ввімкнено (режим ALL AUTO).\n\n📊 Бот спробує проксі-сервери в такому порядку:\n1️⃣ {config_count} проксі з Config.py\n2️⃣ {file_count} проксі з файлу TXT/proxy.txt\n\n🔄 Усі проксі-сервери будуть випробувані послідовно до успішного підключення."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Проксі ввімкнено (АВТО за помилкою YouTube).\n\nПри помилці гео-блоковки YouTube бот використовуватиме лише проксі з країн, зазначених у тексті помилки (без перебору всіх проксі підряд)."
     PROXY_DISABLED_MSG = "❌ Проксі вимкнено."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Пробуємо проксі: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Помилка збереження налаштувань проксі."
     PROXY_ENABLED_CALLBACK_MSG = "Проксі ввімкнено."
     PROXY_DISABLED_CALLBACK_MSG = "Проксі вимкнено."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Перевірте файли cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ВСІ (АВТО)"
+    PROXY_ON_BUTTON_MSG = "✅ АВТО (за помилкою YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ ВИМКНЕНО"
     PROXY_CLOSE_BUTTON_MSG = "🔚Закрити"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для роботи в групі потрібні права адміністратора. Будь ласка, зробіть роботу адміном цієї групи."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Привіт {first_name},\n \n<i>Цей бот🤖 може завантажувати будь-які відео в telegram безпосередньо.😊 Для отримання додаткової інформації натисніть <b>/help</b></i> 👈\n\n<blockquote>P.S. Завантаження 🔞NSFW контенту та файлів з ☁️Cloud Storage платне! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Не покидайте канал - вас заблокують від використання бота ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Привіт {first_name},\n \n<i>Цей бот🤖 може завантажувати будь-які відео в telegram безпосередньо.😊 Для отримання додаткової інформації натисніть <b>/help</b></i> 👈\n\n<blockquote>P.S. Через можливий 🔞NSFW контент — завантаження з ☁️<b>хмарного сховища</b>, 📁<b>обміну файлами</b>, 🔗<b>скорочувачів URL</b> та 🔞<b>порно-сайтів</b> платне! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ НЕ 🗑<b>видаляйте/не відписуйтесь від каналу @tg_ytdlp</b> і НЕ 🤖<b>надсилайте зайвого спаму URL/командами боту</b> — вас автоматично заблокують ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Немає файлів для видалення."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

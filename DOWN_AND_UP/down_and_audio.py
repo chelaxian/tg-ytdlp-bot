@@ -14,7 +14,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, log_error_to_channel
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user
-from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, playlist_errors, playlist_errors_lock
+from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, create_directory, check_disk_space, cleanup_user_temp_files
 from DATABASE.firebase_init import write_logs
@@ -1371,12 +1371,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         cycle_thread.join(timeout=1)
                 
                 if result is None:
-                    # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
+                    # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла (только если прокси включен)
                     if is_youtube_url(url) and user_id is not None:
-                        # Используем последнюю ошибку, если она есть
+                        from COMMANDS.proxy_cmd import is_proxy_enabled
                         error_to_check = last_download_error if last_download_error else "Failed to download audio with all available proxies"
-                        if is_youtube_geo_error(error_to_check):
-                            logger.info(f"YouTube geo-blocked error detected in audio download for user {user_id}, attempting retry with proxy from file")
+                        if is_proxy_enabled(user_id) and is_youtube_geo_error(error_to_check):
+                            logger.info(f"YouTube geo-blocked error detected in audio download for user {user_id}, attempting retry with proxy from file (matching countries only)")
                             
                             def try_download_audio_wrapper(url_arg, attempt_opts_dict):
                                 proxy_url = attempt_opts_dict.get('proxy')
@@ -1601,73 +1601,35 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     if "Failed to download audio with all available proxies" in error_text:
                         logger.warning(f"All proxies already failed for audio, skipping proxy retry")
                     elif is_youtube_geo_error(error_text) and not did_proxy_retry:
-                        logger.debug(f"Checking geo-error in audio: is_youtube_geo_error={is_youtube_geo_error(error_text)}, did_proxy_retry={did_proxy_retry}, error_text[:200]={error_text[:200]}")
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
-                        logger.info(f"Full error message: {error_text}")
-                        
-                        # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
-                        # attempt_opts будет содержать прокси, который нужно использовать
-                        def try_download_audio_wrapper(url_arg, attempt_opts_dict):
-                            # Сохраняем прокси из attempt_opts для использования в try_download_audio
-                            proxy_url = attempt_opts_dict.get('proxy')
-                            
-                            # Используем thread-local storage для передачи прокси в try_download_audio
-                            import threading
-                            if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
-                                threading.current_thread().proxy_for_audio_download = None
-                            threading.current_thread().proxy_for_audio_download = proxy_url
-                            
-                            # Вызываем оригинальную функцию
-                            return try_download_audio(url_arg, current_index)
-                        
-                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
-                        retry_result = retry_download_with_proxy(
-                            user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
-                        )
-                        
-                        if retry_result is not None:
-                            logger.info(f"Audio download retry with proxy successful for user {user_id}")
-                            did_proxy_retry = True
-                            return retry_result
+                        from COMMANDS.proxy_cmd import is_proxy_enabled
+                        if not is_proxy_enabled(user_id):
+                            logger.info(f"Proxy not enabled for user {user_id}, skipping geo retry with proxy for audio")
                         else:
-                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
-                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
-                            did_proxy_retry = True
-                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
+                            logger.debug(f"Checking geo-error in audio: is_youtube_geo_error={is_youtube_geo_error(error_text)}, did_proxy_retry={did_proxy_retry}, error_text[:200]={error_text[:200]}")
+                            logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file (matching countries only)")
+                            logger.info(f"Full error message: {error_text}")
+                            
+                            def try_download_audio_wrapper(url_arg, attempt_opts_dict):
+                                proxy_url = attempt_opts_dict.get('proxy')
+                                import threading
+                                if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
+                                    threading.current_thread().proxy_for_audio_download = None
+                                threading.current_thread().proxy_for_audio_download = proxy_url
+                                return try_download_audio(url_arg, current_index)
+                            
+                            retry_result = retry_download_with_proxy(
+                                user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
+                            )
+                            
+                            if retry_result is not None:
+                                logger.info(f"Audio download retry with proxy successful for user {user_id}")
+                                did_proxy_retry = True
+                                return retry_result
+                            else:
+                                logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
+                                did_proxy_retry = True
                     elif is_youtube_geo_error(error_text):
                         logger.info(f"Geo-error detected in audio but proxy retry already attempted, skipping")
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
-                        logger.info(f"Full error message: {error_text}")
-                        
-                        # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
-                        # attempt_opts будет содержать прокси, который нужно использовать
-                        def try_download_audio_wrapper(url_arg, attempt_opts_dict):
-                            # Сохраняем прокси из attempt_opts для использования в try_download_audio
-                            proxy_url = attempt_opts_dict.get('proxy')
-                            
-                            # Используем thread-local storage для передачи прокси в try_download_audio
-                            import threading
-                            if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
-                                threading.current_thread().proxy_for_audio_download = None
-                            threading.current_thread().proxy_for_audio_download = proxy_url
-                            
-                            # Вызываем оригинальную функцию
-                            return try_download_audio(url_arg, current_index)
-                        
-                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
-                        retry_result = retry_download_with_proxy(
-                            user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
-                        )
-                        
-                        if retry_result is not None:
-                            logger.info(f"Audio download retry with proxy successful for user {user_id}")
-                            did_proxy_retry = True
-                            return retry_result
-                        else:
-                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
-                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
-                            did_proxy_retry = True
-                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube audio download error detected for user {user_id}, attempting cookie fallback")
@@ -2361,8 +2323,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         # Remove artist name from title if it's included
                         title_for_metadata = original_title
                         if artist and artist in original_title:
-                            # Remove artist name from title (e.g., "Rick Astley - Never Gonna Give You Up" -> "Never Gonna Give You Up")
-                            title_for_metadata = original_title.replace(f"{artist} - ", "").replace(f"{artist}: ", "").strip()
+                            # Try common separators between artist and title
+                            separators = [" - ", ": ", " – ", " — ", " | "]
+                            new_title = original_title
+                            for sep in separators:
+                                pattern = f"{artist}{sep}"
+                                if pattern in new_title:
+                                    new_title = new_title.replace(pattern, "").strip()
+                                    break
+                            title_for_metadata = new_title
                             logger.info(f"Removed artist from title: '{original_title}' -> '{title_for_metadata}'")
                         
                         logger.info(f"Metadata - Title: {title_for_metadata}, Artist: {artist}, Album: {album}")
@@ -2383,6 +2352,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             audio_files.append(audio_file)
 
+            # Upload status message header (progress bar % will be updated by progress_bar callback)
+            _upload_status_text = f"{current_total_process}\n{safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG}"
             try:
                 full_bar = "🟩" * 10
                 safe_edit_message_text(user_id, proc_msg_id, safe_get_messages(user_id).AUDIO_UPLOADING_MSG.format(process=current_total_process, bar=full_bar))
@@ -2395,6 +2366,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
             bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
             bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
+
+            # Defaults in case MP3 has no metadata or reading fails
+            artist = "Unknown Artist"
+            title = original_audio_title or "Unknown Title"
+
             # Create display title from MP3 metadata (artist + title)
             try:
                 import mutagen
@@ -2403,8 +2379,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Try to read metadata from the MP3 file
                 audio_metadata = MP3(audio_file)
-                artist = audio_metadata.get('TPE1', ['Unknown Artist'])[0] if 'TPE1' in audio_metadata else 'Unknown Artist'
-                title = audio_metadata.get('TIT2', ['Unknown Title'])[0] if 'TIT2' in audio_metadata else 'Unknown Title'
+                artist = audio_metadata.get('TPE1', ['Unknown Artist'])[0] if 'TPE1' in audio_metadata else artist
+                title = audio_metadata.get('TIT2', [title])[0] if 'TIT2' in audio_metadata else title
                 
                 # Create display title: "Artist - Title"
                 display_title = f"{artist} - {title}"
@@ -2412,7 +2388,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
             except Exception as e:
                 logger.warning(f"Failed to read MP3 metadata, using original title: {e}")
-                display_title = original_audio_title
+                display_title = title
             
             # Use display title from metadata for caption
             caption_with_link = f"{display_title}\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
@@ -2497,6 +2473,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if proc_msg_id:
                             _start_upload_logging(user_id, proc_msg_id)
                         try:
+                            _prog_args_fb = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
                             if file_ext == '.mp3' or file_ext == '.m4a':
                                 # Send as audio for supported formats
                                 if telegram_thumb and os.path.exists(telegram_thumb):
@@ -2508,6 +2485,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                         thumb=telegram_thumb,
                                         title=title,
                                         performer=artist,
+                                        progress=progress_bar if _prog_args_fb else None,
+                                        progress_args=_prog_args_fb,
                                     )
                                 else:
                                     audio_msg = app.send_audio(
@@ -2517,6 +2496,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                         reply_parameters=ReplyParameters(message_id=message.id),
                                         title=title,
                                         performer=artist,
+                                        progress=progress_bar if _prog_args_fb else None,
+                                        progress_args=_prog_args_fb,
                                     )
                             else:
                                 # Send as document for unsupported audio formats
@@ -2524,7 +2505,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     chat_id=user_id, 
                                     document=audio_file, 
                                     caption=caption_with_link, 
-                                    reply_parameters=ReplyParameters(message_id=message.id)
+                                    reply_parameters=ReplyParameters(message_id=message.id),
+                                    progress=progress_bar if _prog_args_fb else None,
+                                    progress_args=_prog_args_fb,
                                 )
                         finally:
                             # Stop upload logging after upload completes or fails
@@ -2536,6 +2519,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     if proc_msg_id:
                         _start_upload_logging(user_id, proc_msg_id)
                     try:
+                        _prog_args = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
                         if file_ext == '.mp3' or file_ext == '.m4a':
                             # Send as audio for supported formats
                             if telegram_thumb and os.path.exists(telegram_thumb):
@@ -2547,6 +2531,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     thumb=telegram_thumb,
                                     title=title,
                                     performer=artist,
+                                    progress=progress_bar if _prog_args else None,
+                                    progress_args=_prog_args,
                                 )
                                 logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
                             else:
@@ -2557,6 +2543,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     reply_parameters=ReplyParameters(message_id=message.id),
                                     title=title,
                                     performer=artist,
+                                    progress=progress_bar if _prog_args else None,
+                                    progress_args=_prog_args,
                                 )
                                 logger.info("Audio sent without thumbnail")
                         else:
@@ -2565,7 +2553,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 chat_id=user_id, 
                                 document=audio_file, 
                                 caption=caption_with_link, 
-                                reply_parameters=ReplyParameters(message_id=message.id)
+                                reply_parameters=ReplyParameters(message_id=message.id),
+                                progress=progress_bar if _prog_args else None,
+                                progress_args=_prog_args,
                             )
                             logger.info(f"Audio sent as document (format: {file_ext})")
                     finally:

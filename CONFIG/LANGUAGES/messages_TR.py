@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Tarafından yönetiliyor</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Dili değiştir: /lang</b>"
-    TO_USE_MSG = "<i>Bu botu kullanmak için @tg_ytdlp Telegram kanalına abone olmanız gerekir.</i>\nKanala katıldıktan sonra, <b>video bağlantınızı tekrar gönderin ve bot sizin için indirecektir</b> ❤️\n\n<blockquote>P.S. 🔞NSFW içeriği ve ☁️Cloud Storage'dan dosyaları indirmek ücretlidir! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kanaldan ayrılmayın - bot kullanımından yasaklanırsınız ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Bu botu kullanmak için @tg_ytdlp Telegram kanalına abone olmanız gerekir.</i>\nKanala katıldıktan sonra <b>video bağlantınızı tekrar gönderin, bot sizin için indirecektir</b> ❤️\n\n<blockquote>P.S. Olası 🔞NSFW içeriği nedeniyle - ☁️<b>Bulut Depolama</b>, 📁<b>Dosya Paylaşımları</b>, 🔗<b>URL kısaltıcılar</b> ve 🔞<b>Porno sitelerinden</b> indirme ücretlidir! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalını 🗑<b>silme/abonelikten çıkma</b> ve bota 🤖<b>aşırı URL/komut SPAM’i yapma</b> - bot kullanımından otomatik yasaklanırsınız ⛔️</blockquote>"
 
     ERROR1 = "URL bağlantısı bulunamadı. Lütfen <b>https://</b> veya <b>http://</b> ile bir URL girin"
 
@@ -605,13 +605,14 @@ Daha fazla bilgi: /playlist"""
     PROXY_ENABLED_MSG = "✅ Vekil {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Proxy ayarları kaydedilirken hata oluştu."
     PROXY_MENU_TEXT_MSG = "Tüm yt-dlp işlemleri için proxy sunucusu kullanmayı etkinleştir veya devre dışı bırak?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Tüm yt-dlp işlemleri için proxy sunucuların ({config_count} + {file_count} mevcut) kullanılması etkinleştirilsin mi devre dışı mı bırakılsın?\n\nALL (AUTO) etkinleştirildiğinde, proxy'ler rastgele yöntem kullanılarak seçilecektir."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Tüm yt-dlp işlemleri için proxy sunucuların ({config_count} + {file_count} mevcut) kullanılması etkinleştirilsin mi devre dışı mı bırakılsın?\n\nALL (AUTO) etkinleştirildiğinde, proxy'ler izin verilen ülkelere (YouTube hata mesajında belirtilen) göre otomatik seçilir."
     PROXY_MENU_CLOSED_MSG = "Menü kapatıldı."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemlerinde proxy kullanılacaktır."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemleri {count} proxy sunucularını {method} seçim yöntemiyle kullanacaktır."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy etkin (TÜM OTOMATİK mod).\n\n📊 Bot proxy'leri şu sırayla deneyecek:\nConfig.py'den 1️⃣ {config_count} proxy\nTXT/proxy.txt dosyasından 2️⃣ {file_count} proxy\n\n🔄 Başarılı bağlantı sağlanana kadar tüm proxy'ler sırayla denenecektir."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy etkin (YouTube hatasında OTOMATİK).\n\nYouTube coğrafi kısıtlama hatası verdiğinde bot yalnızca hata mesajında belirtilen ülkelerin proxy'lerini kullanır (tüm proxy'ler sırayla denenmez)."
     PROXY_DISABLED_MSG = "❌ Proxy devre dışı bırakıldı."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Proxy deneniyor: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy ayarları kaydedilirken hata oluştu."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy etkinleştirildi."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy devre dışı bırakıldı."
@@ -1649,7 +1650,7 @@ Daha fazla bilgi: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Çerezleri Kontrol Et"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ HEPSİ (OTOMATİK)"
+    PROXY_ON_BUTTON_MSG = "✅ OTOMATİK (YouTube hatasında)"
     PROXY_OFF_BUTTON_MSG = "❌ KAPALI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Kapat"
     
@@ -2019,7 +2020,7 @@ Daha fazla bilgi: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Yönetim kuruluna yeni bir yönetici olarak katıldım. Lütfen, yönetici grubunuzla iletişime geçin."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Hello {first_name},\n \n<i>This bot🤖 can download any videos into telegram directly.😊 For more information press <b>/help</b></i> 👈\n\n<blockquote>P.S. Downloading 🔞NSFW content and files from ☁️Cloud Storage is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do not leave the channel - you will be banned from using the bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Merhaba {first_name},\n \n<i>Bu bot🤖 her türlü videoyu doğrudan telegram'a indirebilir.😊 Daha fazla bilgi için <b>/help</b> tuşuna basın</i> 👈\n\n<blockquote>P.S. Olası 🔞NSFW içeriği nedeniyle - ☁️<b>Bulut Depolama</b>, 📁<b>Dosya Paylaşımları</b>, 🔗<b>URL kısaltıcılar</b> ve 🔞<b>Porno sitelerinden</b> indirme ücretlidir! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalını 🗑<b>silme/abonelikten çıkma</b> ve bota 🤖<b>aşırı URL/komut SPAM'i yapma</b> - bot kullanımından otomatik yasaklanırsınız ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Kaldırılacak dosya yok."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>จัดการโดย</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 เปลี่ยนภาษา: /lang</b>"
-    TO_USE_MSG = "<i>เพื่อใช้บอทนี้คุณต้องสมัครสมาชิกช่อง Telegram @tg_ytdlp</i>\nหลังจากเข้าร่วมช่องแล้ว <b>ส่งลิงก์วิดีโอของคุณอีกครั้งและบอทจะดาวน์โหลดให้คุณ</b> ❤️\n\n<blockquote>P.S. การดาวน์โหลดเนื้อหา 🔞NSFW และไฟล์จาก ☁️Cloud Storage เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่าออกจากช่อง - คุณจะถูกแบนจากการใช้บอท ⛔️</blockquote>"
+    TO_USE_MSG = "<i>เพื่อใช้บอทนี้คุณต้องสมัครสมาชิกช่อง Telegram @tg_ytdlp</i>\nหลังจากเข้าร่วมช่องแล้ว <b>ส่งลิงก์วิดีโอของคุณอีกครั้งและบอทจะดาวน์โหลดให้คุณ</b> ❤️\n\n<blockquote>P.S. เนื่องจากเนื้อหา 🔞NSFW ที่อาจเกิดขึ้น - การดาวน์โหลดจาก ☁️<b>คลาวด์สตอเรจ</b> 📁<b>แชร์ไฟล์</b> 🔗<b>ตัวย่อ URL</b> และ 🔞<b>เว็บโป๊</b> เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่า 🗑<b>ลบ/ยกเลิกสมัครช่อง @tg_ytdlp</b> และอย่า 🤖<b>สแปม URL/คำสั่งกับบอทมากเกินไป</b> - คุณจะถูกแบนจากการใช้บอทโดยอัตโนมัติ ⛔️</blockquote>"
 
     ERROR1 = "ไม่พบลิงก์ URL กรุณาใส่ URL ที่มี <b>https://</b> หรือ <b>http://</b>"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ พร็อกซี {status}."
     PROXY_ERROR_SAVING_MSG = "❌ เกิดข้อผิดพลาดในการบันทึกการตั้งค่าพร็อกซี"
     PROXY_MENU_TEXT_MSG = "เปิดหรือปิดการใช้เซิร์ฟเวอร์พร็อกซี่สำหรับการทำงานทั้งหมดของ yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "เปิดหรือปิดใช้งานโดยใช้พร็อกซีเซิร์ฟเวอร์ (มี {config_count} + {file_count}) สำหรับการดำเนินการ yt-dlp ทั้งหมด\n\nเมื่อเปิดใช้งาน ALL (AUTO) พรอกซีจะถูกเลือกโดยใช้วิธีการสุ่ม"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "เปิดหรือปิดใช้งานโดยใช้พร็อกซีเซิร์ฟเวอร์ (มี {config_count} + {file_count}) สำหรับการดำเนินการ yt-dlp ทั้งหมด\n\nเมื่อเปิดใช้งาน ALL (AUTO) พร็อกซีจะถูกเลือกอัตโนมัติตามประเทศที่อนุญาต (จากข้อผิดพลาดของ YouTube)"
     PROXY_MENU_CLOSED_MSG = "ปิดเมนูแล้ว"
     PROXY_ENABLED_CONFIRM_MSG = "✅เปิดใช้งานพรอกซี การดำเนินการ yt-dlp ทั้งหมดจะใช้พร็อกซี"
     PROXY_ENABLED_MULTIPLE_MSG = "✅เปิดใช้งานพรอกซี การดำเนินการ yt-dlp ทั้งหมดจะใช้ {count} พร็อกซีเซิร์ฟเวอร์พร้อมวิธีเลือก {method}"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅เปิดใช้งานพรอกซี (โหมดอัตโนมัติทั้งหมด)\n\n📊 บอทจะลองใช้พรอกซีตามลำดับนี้:\n1️⃣ {config_count} พร็อกซีจาก Config.py\n2️⃣ {file_count} พรอกซีจากไฟล์ TXT/proxy.txt\n\n🔄 พรอกซีทั้งหมดจะถูกลองตามลำดับจนกระทั่งการเชื่อมต่อสำเร็จ"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ เปิดใช้งานพร็อกซี (อัตโนมัติเมื่อ YouTube เกิดข้อผิดพลาด)\n\nเมื่อ YouTube แจ้งข้อผิดพลาดการบล็อกตามภูมิภาค บอทจะใช้เฉพาะพร็อกซีจากประเทศที่ระบุในข้อผิดพลาดนั้น (ไม่ลองพร็อกซีทั้งหมดตามลำดับ)"
     PROXY_DISABLED_MSG = "❌ ปิดพร็อกซีแล้ว"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 กำลังลองพร็อกซี: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ เกิดข้อผิดพลาดในการบันทึกการตั้งค่าพร็อกซี"
     PROXY_ENABLED_CALLBACK_MSG = "เปิดใช้งานพร็อกซี่แล้ว"
     PROXY_DISABLED_CALLBACK_MSG = "ปิดใช้งานพร็อกซี่แล้ว"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ ตรวจสอบคุกกี้"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ทั้งหมด (อัตโนมัติ)"
+    PROXY_ON_BUTTON_MSG = "✅ อัตโนมัติ (เมื่อ YouTube เกิดข้อผิดพลาด)"
     PROXY_OFF_BUTTON_MSG = "❌ ปิด"
     PROXY_CLOSE_BUTTON_MSG = "🔚ปิด"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйста, сделайте бота дмином этой группы."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "สวัสดี {first_name},\n \n<i>บอทนี้🤖 สามารถดาวน์โหลดวิดีโอใดๆ เข้า telegram โดยตรง😊 สำหรับข้อมูลเพิ่มเติม กด <b>/help</b></i> 👈\n\n<blockquote>P.S. การดาวน์โหลดเนื้อหา 🔞NSFW และไฟล์จาก ☁️Cloud Storage เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่าออกจากช่อง - คุณจะถูกแบนจากการใช้บอท ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "สวัสดี {first_name},\n \n<i>บอทนี้🤖 สามารถดาวน์โหลดวิดีโอใดๆ เข้า telegram โดยตรง😊 สำหรับข้อมูลเพิ่มเติม กด <b>/help</b></i> 👈\n\n<blockquote>P.S. เนื่องจากเนื้อหา 🔞NSFW ที่อาจเกิดขึ้น - การดาวน์โหลดจาก ☁️<b>คลาวด์สตอเรจ</b> 📁<b>แชร์ไฟล์</b> 🔗<b>ตัวย่อ URL</b> และ 🔞<b>เว็บโป๊</b> เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่า 🗑<b>ลบ/ยกเลิกสมัครช่อง @tg_ytdlp</b> และอย่า 🤖<b>สแปม URL/คำสั่งกับบอทมากเกินไป</b> - คุณจะถูกแบนจากการใช้บอทโดยอัตโนมัติ ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 ไม่มีไฟล์ที่จะลบ"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

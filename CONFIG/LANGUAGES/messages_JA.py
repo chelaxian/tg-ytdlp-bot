@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>管理：</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 言語を変更: /lang</b>"
-    TO_USE_MSG = "<i>このボットを使用するには、@tg_ytdlp Telegramチャンネルに登録する必要があります。</i>\nチャンネルに参加した後、<b>動画リンクを再度送信すると、ボットがダウンロードします</b> ❤️\n\n<blockquote>P.S. 🔞NSFWコンテンツと☁️クラウドストレージからのファイルのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ チャンネルを離れないでください - ボットの使用が禁止されます ⛔️</blockquote>"
+    TO_USE_MSG = "<i>このボットを使用するには、@tg_ytdlp Telegramチャンネルに登録する必要があります。</i>\nチャンネルに参加した後、<b>動画リンクを再度送信するとボットがダウンロードします</b> ❤️\n\n<blockquote>P.S. 🔞NSFWコンテンツの可能性のため - ☁️<b>クラウドストレージ</b>、📁<b>ファイル共有</b>、🔗<b>URL短縮</b>、🔞<b>ポルノサイト</b>からのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlpチャンネルを🗑<b>削除/登録解除しない</b>こと、ボットに🤖<b>URL/コマンドを過度にスパムしない</b>こと - ボット使用から自動的にBANされます ⛔️</blockquote>"
 
     ERROR1 = "URLリンクが見つかりませんでした。<b>https://</b>または<b>http://</b>を含むURLを入力してください"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ プロキシ{status}。"
     PROXY_ERROR_SAVING_MSG = "❌ プロキシ設定の保存エラー。"
     PROXY_MENU_TEXT_MSG = "すべてのyt-dlp操作にプロキシサーバーを使用することを有効または無効にしますか？"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "すべての yt-dlp 操作でプロキシ サーバー ({config_count} + {file_count} が利用可能) の使用を有効または無効にしますか?\n\nALL (AUTO) を有効にすると、プロキシはランダムな方法で選択されます。"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "すべての yt-dlp 操作でプロキシ サーバー ({config_count} + {file_count} が利用可能) の使用を有効または無効にしますか?\n\nALL (AUTO) を有効にすると、プロキシは許可された国（YouTube のエラーに表示）に応じて自動選択されます。"
     PROXY_MENU_CLOSED_MSG = "メニューを閉じました。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作でプロキシが使用されます。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作で{count}個のプロキシサーバーが{method}選択メソッドで使用されます。"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ プロキシが有効になっています (ALL AUTO モード)。\n\n📊 ボットは次の順序でプロキシを試行します。\n1️⃣ Config.py からの {config_count} プロキシ\n2️⃣ TXT/proxy.txt ファイルからの {file_count} プロキシ\n\n🔄 接続が成功するまで、すべてのプロキシが順番に試行されます。"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ プロキシを有効にしました（YouTube エラー時に自動）。\n\nYouTube が地域制限エラーを返した場合、ボットはそのエラーに記載された国のみのプロキシを使用します（全プロキシの順次試行は行いません）。"
     PROXY_DISABLED_MSG = "❌ プロキシが無効になりました。"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 プロキシを試行中: {country}（{current}/{total}）"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ プロキシ設定の保存エラー。"
     PROXY_ENABLED_CALLBACK_MSG = "プロキシが有効になりました。"
     PROXY_DISABLED_CALLBACK_MSG = "プロキシが無効になりました。"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ クッキーを確認する"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ オール（オート）"
+    PROXY_ON_BUTTON_MSG = "✅ 自動（YouTube エラー時）"
     PROXY_OFF_BUTTON_MSG = "❌ オフ"
     PROXY_CLOSE_BUTTON_MSG = "🔚閉じる"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ 問題は解決しました。 Пожалуйста、сделайте бота админом этой группы。"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Hello {first_name},\n \n<i>This bot🤖 can download any videos into telegram directly.😊 For more information press <b>/help</b></i> 👈\n\n<blockquote>P.S. Downloading 🔞NSFW content and files from ☁️Cloud Storage is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do not leave the channel - you will be banned from using the bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "こんにちは {first_name}、\n \n<i>このボット🤖は任意の動画をtelegramに直接ダウンロードできます。😊 詳細は <b>/help</b> を押してください</i> 👈\n\n<blockquote>P.S. 🔞NSFWコンテンツの可能性のため - ☁️<b>クラウドストレージ</b>、📁<b>ファイル共有</b>、🔗<b>URL短縮</b>、🔞<b>ポルノサイト</b>からのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlpチャンネルを🗑<b>削除/登録解除しない</b>こと、ボットに🤖<b>URL/コマンドを過度にスパムしない</b>こと - ボット使用から自動的にBANされます ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 削除するファイルはありません。"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

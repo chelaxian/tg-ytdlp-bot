@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>مدیریت شده توسط</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 تغییر زبان: /lang</b>"
-    TO_USE_MSG = "<i>برای استفاده از این ربات باید به کانال تلگرام @tg_ytdlp مشترک شوید.</i>\nپس از پیوستن به کانال، <b>لینک ویدیوی خود را دوباره ارسال کنید و ربات آن را برای شما دانلود می‌کند</b> ❤️\n\n<blockquote>P.S. دانلود محتوای 🔞NSFW و فایل‌ها از ☁️Cloud Storage پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال را ترک نکنید - از استفاده از ربات محروم خواهید شد ⛔️</blockquote>"
+    TO_USE_MSG = "<i>برای استفاده از این ربات باید به کانال تلگرام @tg_ytdlp مشترک شوید.</i>\nپس از پیوستن به کانال، <b>لینک ویدیوی خود را دوباره ارسال کنید و ربات آن را برای شما دانلود می‌کند</b> ❤️\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>"
 
     ERROR1 = "لینک URL یافت نشد. لطفاً یک URL با <b>https://</b> یا <b>http://</b> وارد کنید"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ پروکسی {status}."
     PROXY_ERROR_SAVING_MSG = "❌ خطا در ذخیره تنظیمات پروکسی."
     PROXY_MENU_TEXT_MSG = "فعال یا غیرفعال کردن استفاده از سرور پروکسی برای تمام عملیات yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "با استفاده از سرورهای پراکسی ({config_count} + {file_count} موجود) برای همه عملیات yt-dlp فعال یا غیرفعال شود؟\n\nوقتی ALL (AUTO) فعال باشد، پراکسی ها با استفاده از روش تصادفی انتخاب می شوند."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "با استفاده از سرورهای پراکسی ({config_count} + {file_count} موجود) برای همه عملیات yt-dlp فعال یا غیرفعال شود؟\n\nوقتی ALL (AUTO) فعال باشد، پراکسی‌ها بر اساس کشورهای مجاز (درج شده در خطای YouTube) به‌طور خودکار انتخاب می‌شوند."
     PROXY_MENU_CLOSED_MSG = "منو بسته شد."
     PROXY_ENABLED_CONFIRM_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از پروکسی استفاده خواهند کرد."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از {count} سرور پروکسی با روش انتخاب {method} استفاده خواهند کرد."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پروکسی فعال است (حالت ALL AUTO).\n\n📊 ربات پروکسی ها را به این ترتیب امتحان می کند:\n1️⃣ پروکسی های {config_count} از Config.py\n2️⃣ {file_count} پروکسی از فایل TXT/proxy.txt\n\n🔄 همه پراکسی ها به صورت متوالی تا زمان اتصال موفقیت آمیز آزمایش می شوند."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پروکسی فعال است (خودکار هنگام خطای YouTube).\n\nوقتی YouTube خطای محدودیت جغرافیایی برگرداند، ربات فقط از پروکسی کشورهای ذکر شده در آن خطا استفاده می‌کند (بدون امتحان متوالی همه پروکسی‌ها)."
     PROXY_DISABLED_MSG = "❌ پروکسی غیرفعال شد."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 در حال امتحان پروکسی: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ خطا در ذخیره تنظیمات پروکسی."
     PROXY_ENABLED_CALLBACK_MSG = "پروکسی فعال شد."
     PROXY_DISABLED_CALLBACK_MSG = "پروکسی غیرفعال شد."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ بررسی کوکی"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ همه (خودکار)"
+    PROXY_ON_BUTTON_MSG = "✅ خودکار (هنگام خطای YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ خاموش"
     PROXY_CLOSE_BUTTON_MSG = "🔚بستن"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ برای کار در گروه، ربات به حقوق مدیر نیاز دارد. لطفاً ربات را مدیر این گروه کنید."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "سلام {first_name}،\n \n<i>این ربات🤖 می‌تواند هر ویدیویی را مستقیماً به تلگرام دانلود کند.😊 برای اطلاعات بیشتر <b>/help</b> را فشار دهید</i> 👈\n\n<blockquote>P.S. دانلود محتوای 🔞NSFW و فایل‌ها از ☁️Cloud Storage پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال را ترک نکنید - از استفاده از ربات محروم خواهید شد ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "سلام {first_name}،\n \n<i>این ربات🤖 می‌تواند هر ویدیویی را مستقیماً به تلگرام دانلود کند.😊 برای اطلاعات بیشتر <b>/help</b> را فشار دهید</i> 👈\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 هیچ فایلی برای حذف وجود ندارد."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 همه فایل‌ها با موفقیت حذف شدند!\n\nفایل‌های حذف شده:\n{files_list}"
     

@@ -13,10 +13,104 @@ from HELPERS.logger import send_to_logger, logger, send_to_all
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
 from HELPERS.decorators import background_handler
 from HELPERS.limitter import is_user_in_channel
-from HELPERS.proxy_file_helper import parse_proxy_file
+from HELPERS.proxy_file_helper import (
+    parse_proxy_file,
+    get_country_name_by_code_extended,
+    get_country_code_by_name_extended,
+    country_code_to_flag,
+)
 
 # Get app instance for decorators
 app = get_app()
+
+PROXY_COUNTRIES_PER_PAGE = 10
+
+
+def build_proxy_menu(user_id, page=0):
+    """
+    Build proxy menu text and keyboard for given user and page.
+    Returns (message_text, InlineKeyboardMarkup).
+    """
+    messages = safe_get_messages(user_id)
+    buttons = [
+        [InlineKeyboardButton(messages.PROXY_ON_BUTTON_MSG, callback_data="proxy_option|on"),
+         InlineKeyboardButton(messages.PROXY_OFF_BUTTON_MSG, callback_data="proxy_option|off")],
+    ]
+    # TXT/proxy.txt is optional: if missing, countries=[] and menu uses only Config proxies
+    countries = get_countries_from_proxy_file()
+    selected_country = get_user_selected_country(user_id)
+
+    if countries:
+        buttons.append([InlineKeyboardButton(messages.PROXY_COUNTRY_SELECT_HEADER_MSG, callback_data="proxy_option|country_header")])
+        total_pages = max(1, (len(countries) + PROXY_COUNTRIES_PER_PAGE - 1) // PROXY_COUNTRIES_PER_PAGE)
+        page = max(0, min(page, total_pages - 1))
+        start = page * PROXY_COUNTRIES_PER_PAGE
+        end = start + PROXY_COUNTRIES_PER_PAGE
+        page_countries = countries[start:end]
+        country_buttons = []
+        for country in page_countries:
+            code = get_country_code(country)
+            flag_emoji = country_code_to_flag(code) if code else "🌍"
+            if selected_country and selected_country.lower() == country.lower():
+                country_display = f"✓ {flag_emoji} {country}"
+            else:
+                country_display = f"{flag_emoji} {country}"
+            country_buttons.append(InlineKeyboardButton(
+                country_display,
+                callback_data=f"proxy_option|country|{country}"
+            ))
+        for i in range(0, len(country_buttons), 2):
+            row = country_buttons[i:i+2]
+            buttons.append(row)
+        # Pagination
+        if total_pages > 1:
+            nav = []
+            if page > 0:
+                prev_text = getattr(messages, 'SUBS_PREV_BUTTON_MSG', '◀ Prev')
+                nav.append(InlineKeyboardButton(prev_text, callback_data=f"proxy_option|page|{page - 1}"))
+            if page < total_pages - 1:
+                next_text = getattr(messages, 'SUBTITLES_NEXT_BUTTON_MSG', 'Next ▶')
+                nav.append(InlineKeyboardButton(next_text, callback_data=f"proxy_option|page|{page + 1}"))
+            if nav:
+                buttons.append(nav)
+        if selected_country:
+            buttons.append([InlineKeyboardButton(messages.PROXY_COUNTRY_CLEAR_BUTTON_MSG, callback_data="proxy_option|country|clear")])
+
+    buttons.append([InlineKeyboardButton(messages.PROXY_CLOSE_BUTTON_MSG, callback_data="proxy_option|close")])
+    keyboard = InlineKeyboardMarkup(buttons)
+
+    configs = get_all_proxy_configs()
+    proxy_count = len(configs)
+    file_count = 0
+    try:
+        if os.path.exists("TXT/proxy.txt"):
+            from HELPERS.proxy_file_helper import get_all_proxies_from_file
+            file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
+            file_count = len(file_proxies)
+    except Exception:
+        pass
+
+    if proxy_count > 0 or file_count > 0:
+        proxy_text = messages.PROXY_MENU_TEXT_MULTIPLE_MSG.format(config_count=proxy_count, file_count=file_count)
+    else:
+        proxy_text = messages.PROXY_MENU_TEXT_MSG
+
+    if selected_country:
+        country_code = get_country_code(selected_country)
+        proxy_text += "\n\n" + messages.PROXY_COUNTRY_SELECTED_IN_MENU_MSG.format(country=selected_country, country_code=country_code)
+        proxies = get_proxies_for_country(selected_country)
+        if proxies:
+            http_count = len([p for p in proxies if p['type'] == 'http'])
+            socks5_count = len([p for p in proxies if p['type'] == 'socks5'])
+            proxy_text += "\n" + messages.PROXY_COUNTRY_PROXIES_AVAILABLE_MSG.format(proxy_count=len(proxies), http_count=http_count, socks5_count=socks5_count)
+            if is_proxy_enabled(user_id):
+                proxy_text += "\n" + messages.PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG
+            else:
+                proxy_text += "\n" + messages.PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG
+    if countries:
+        proxy_text += "\n\n" + messages.PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG.format(count=len(countries))
+    return proxy_text, keyboard
+
 
 def safe_write_file(file_path, content):
     """Safely write content to file with atomic operation"""
@@ -76,7 +170,7 @@ def proxy_command(app, message):
     logger.info(LoggerMsg.PROXY_CMD_USER_ACCESS_GRANTED_LOG_MSG.format(user_id=user_id))
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
-    
+
     # Fast toggle via args: /proxy on|off
     try:
         parts = (message.text or "").split()
@@ -119,113 +213,7 @@ def proxy_command(app, message):
     except Exception:
         pass
     
-    buttons = [
-        [InlineKeyboardButton(safe_get_messages(user_id).PROXY_ON_BUTTON_MSG, callback_data="proxy_option|on"), InlineKeyboardButton(safe_get_messages(user_id).PROXY_OFF_BUTTON_MSG, callback_data="proxy_option|off")],
-    ]
-    
-    # Add country buttons from proxy file
-    countries = get_countries_from_proxy_file()
-    selected_country = get_user_selected_country(user_id)
-    
-    if countries:
-        # Add header for country selection
-        messages = safe_get_messages(user_id)
-        buttons.append([InlineKeyboardButton(messages.PROXY_COUNTRY_SELECT_HEADER_MSG, callback_data="proxy_option|country_header")])
-        
-        # Add country buttons in rows of 2
-        country_buttons = []
-        for country in countries:
-            # Add flag emoji if available, or use country name
-            flag_emoji = ""
-            country_display = country
-            # Try to match country with flag (simplified)
-            country_flags = {
-                'Germany': '🇩🇪',
-                'Russia': '🇷🇺',
-                'United States': '🇺🇸',
-                'Turkey': '🇹🇷',
-                'Italy': '🇮🇹',
-                'India': '🇮🇳',
-                'Georgia': '🇬🇪',
-                'Belarus': '🇧🇾',
-                'Thailand': '🇹🇭',
-                'Netherlands': '🇳🇱',
-                'United Kingdom': '🇬🇧',
-                'United Arab Emirates': '🇦🇪',
-            }
-            flag_emoji = country_flags.get(country, '🌍')
-            
-            # Mark selected country
-            if selected_country and selected_country.lower() == country.lower():
-                country_display = f"✓ {flag_emoji} {country}"
-            else:
-                country_display = f"{flag_emoji} {country}"
-            
-            country_buttons.append(InlineKeyboardButton(
-                country_display,
-                callback_data=f"proxy_option|country|{country}"
-            ))
-        
-        # Add country buttons in rows of 2
-        for i in range(0, len(country_buttons), 2):
-            row = country_buttons[i:i+2]
-            buttons.append(row)
-        
-        # Add button to clear country selection
-        if selected_country:
-            buttons.append([InlineKeyboardButton(messages.PROXY_COUNTRY_CLEAR_BUTTON_MSG, callback_data="proxy_option|country|clear")])
-    
-    buttons.append([InlineKeyboardButton(safe_get_messages(user_id).PROXY_CLOSE_BUTTON_MSG, callback_data="proxy_option|close")])
-    
-    keyboard = InlineKeyboardMarkup(buttons)
-    # Get available proxy count
-    configs = get_all_proxy_configs()
-    proxy_count = len(configs)
-    
-    # Get proxy count from file
-    try:
-        from HELPERS.proxy_file_helper import get_all_proxies_from_file
-        file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
-        file_count = len(file_proxies)
-    except Exception:
-        file_count = 0
-    
-    # Build message text
-    if proxy_count > 0 or file_count > 0:
-        proxy_text = safe_get_messages(user_id).PROXY_MENU_TEXT_MULTIPLE_MSG.format(
-            config_count=proxy_count,
-            file_count=file_count
-        )
-    else:
-        proxy_text = safe_get_messages(user_id).PROXY_MENU_TEXT_MSG
-    
-    # Add info about selected country if any (reads from proxy.txt)
-    messages = safe_get_messages(user_id)
-    if selected_country:
-        country_code = get_country_code(selected_country)
-        proxy_text += "\n\n" + messages.PROXY_COUNTRY_SELECTED_IN_MENU_MSG.format(
-            country=selected_country,
-            country_code=country_code
-        )
-        proxies = get_proxies_for_country(selected_country)
-        if proxies:
-            http_count = len([p for p in proxies if p['type'] == 'http'])
-            socks5_count = len([p for p in proxies if p['type'] == 'socks5'])
-            proxy_text += "\n" + messages.PROXY_COUNTRY_PROXIES_AVAILABLE_MSG.format(
-                proxy_count=len(proxies),
-                http_count=http_count,
-                socks5_count=socks5_count
-            )
-            # Check if proxy is enabled
-            if is_proxy_enabled(user_id):
-                proxy_text += "\n" + messages.PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG
-            else:
-                proxy_text += "\n" + messages.PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG
-    
-    # Add info about available countries
-    if countries:
-        proxy_text += "\n\n" + safe_get_messages(user_id).PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG.format(count=len(countries))
-    
+    proxy_text, keyboard = build_proxy_menu(user_id, page=0)
     safe_send_message(
         user_id,
         proxy_text,
@@ -256,6 +244,23 @@ def proxy_option_callback(app, callback_query):
         except Exception:
             pass
         send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_MENU_CLOSED_LOG_MSG)
+        return
+
+    # Handle pagination: proxy_option|page|N
+    if data == "page" and len(parts) > 2:
+        try:
+            page = int(parts[2])
+        except ValueError:
+            page = 0
+        proxy_text, keyboard = build_proxy_menu(user_id, page=page)
+        try:
+            callback_query.edit_message_text(proxy_text, reply_markup=keyboard)
+        except Exception:
+            pass
+        try:
+            callback_query.answer()
+        except Exception:
+            pass
         return
     
     # Handle country selection
@@ -380,23 +385,8 @@ def proxy_option_callback(app, callback_query):
                 else:
                     message_text = messages.PROXY_ENABLED_CONFIRM_MSG
         else:
-            # ALL AUTO mode - show info about Config + file proxies
-            try:
-                from HELPERS.proxy_file_helper import get_all_proxies_from_file
-                file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
-                file_count = len(file_proxies)
-            except Exception:
-                file_count = 0
-            
-            if proxy_count > 0 or file_count > 0:
-                message_text = messages.PROXY_ENABLED_ALL_AUTO_MSG.format(
-                    config_count=proxy_count,
-                    file_count=file_count
-                )
-            elif proxy_count and proxy_count > 1:
-                message_text = messages.PROXY_ENABLED_MULTIPLE_MSG.format(count=proxy_count, method=Config.PROXY_SELECT)
-            else:
-                message_text = messages.PROXY_ENABLED_CONFIRM_MSG
+            # AUTO mode: proxy only on YouTube geo-error, only matching countries from error
+            message_text = messages.PROXY_ENABLED_ALL_AUTO_MSG
         
         # Close menu
         try:
@@ -693,7 +683,7 @@ def get_requests_proxies(user_id=None, url=None, allow_domain_fallback=True):
 
 
 def get_country_code(country: str) -> str:
-    """Get ISO country code for country name"""
+    """Get ISO country code for country name (extended for online proxy list countries)."""
     country_codes = {
         'Germany': 'DE',
         'Russia': 'RU',
@@ -708,10 +698,15 @@ def get_country_code(country: str) -> str:
         'United Kingdom': 'GB',
         'United Arab Emirates': 'AE',
     }
-    return country_codes.get(country, country.upper()[:2] if len(country) >= 2 else country.upper())
+    if country in country_codes:
+        return country_codes[country]
+    ext = get_country_code_by_name_extended(country)
+    if ext:
+        return ext
+    return country.upper()[:2] if len(country) >= 2 else (country.upper() or "XX")
 
 def get_country_by_code(code: str) -> str:
-    """Get country name by ISO country code"""
+    """Get country name by ISO country code (extended for online proxy list)."""
     code_to_country = {
         'DE': 'Germany',
         'RU': 'Russia',
@@ -727,16 +722,20 @@ def get_country_by_code(code: str) -> str:
         'AE': 'United Arab Emirates',
         'UN': 'United Arab Emirates',  # Обратная совместимость для уже сохраненных кодов
     }
-    return code_to_country.get(code.upper())
+    c = (code or "").upper()
+    if c in code_to_country:
+        return code_to_country[c]
+    ext = get_country_name_by_code_extended(code)
+    return code_to_country.get(c) or ext
 
 def get_countries_from_proxy_file():
-    """Get unique list of countries from TXT/proxy.txt file"""
+    """Get unique list of countries from TXT/proxy.txt file. Returns [] if file is missing (optional)."""
     proxies = parse_proxy_file("TXT/proxy.txt")
     countries = sorted(set(proxy['country'] for proxy in proxies))
     return countries
 
 def get_proxies_for_country(country: str):
-    """Get all proxies (HTTP and SOCKS5) for a specific country from TXT/proxy.txt"""
+    """Get all proxies (HTTP and SOCKS5) for a specific country from TXT/proxy.txt. Returns [] if file missing (optional)."""
     proxies = parse_proxy_file("TXT/proxy.txt")
     country_proxies = [p for p in proxies if p['country'].lower() == country.lower()]
     # Sort: HTTP first, then SOCKS5

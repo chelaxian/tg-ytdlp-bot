@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>منتظم</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 زبان تبدیل کریں: /lang</b>"
-    TO_USE_MSG = "<i>اس بوٹ کو استعمال کرنے کے لیے آپ کو @tg_ytdlp Telegram چینل میں سبسکرائب کرنا ہوگا۔</i>\nچینل میں شامل ہونے کے بعد، <b>اپنا ویڈیو لنک دوبارہ بھیجیں اور بوٹ اسے آپ کے لیے ڈاؤن لوڈ کرے گا</b> ❤️\n\n<blockquote>P.S. 🔞NSFW مواد اور ☁️کلاؤڈ اسٹوریج سے فائلیں ڈاؤن لوڈ کرنا ادائیگی شدہ ہے! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ چینل نہ چھوڑیں - آپ کو بوٹ استعمال کرنے سے پابندی لگائی جائے گی ⛔️</blockquote>"
+    TO_USE_MSG = "<i>اس بوٹ کو استعمال کرنے کے لیے آپ کو @tg_ytdlp Telegram چینل میں سبسکرائب کرنا ہوگا۔</i>\nچینل میں شامل ہونے کے بعد <b>اپنا ویڈیو لنک دوبارہ بھیجیں اور بوٹ اسے آپ کے لیے ڈاؤن لوڈ کرے گا</b> ❤️\n\n<blockquote>P.S. ممکنہ 🔞NSFW مواد کی وجہ سے - ☁️<b>کلاؤڈ اسٹوریج</b>، 📁<b>فائل شیئر</b>، 🔗<b>URL شارٹنر</b> اور 🔞<b>پورن سائٹس</b> سے ڈاؤن لوڈ ادائیگی شدہ ہے! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp چینل کو 🗑<b>ڈیلیٹ/ان سبسکرائب نہ کریں</b> اور بوٹ کو 🤖<b>بہت زیادہ URL/کمانڈز اسپیم نہ کریں</b> - آپ کو بوٹ استعمال سے خودکار پابندی لگائی جائے گی ⛔️</blockquote>"
 
     ERROR1 = "URL لنک نہیں ملا۔ براہ کرم <b>https://</b> یا <b>http://</b> کے ساتھ ایک URL درج کریں"
 
@@ -605,13 +605,14 @@ Use:
     PROXY_ENABLED_MSG = "✅ پراکسی {status}."
     PROXY_ERROR_SAVING_MSG = "❌ پروکسی ترتیبات محفوظ کرنے میں خرابی۔"
     PROXY_MENU_TEXT_MSG = "تمام yt-dlp آپریشنز کے لیے پروکسی سرور استعمال کرنے کو فعال/غیر فعال کریں؟"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "تمام YT-DLP آپریشنز کے لئے پراکسی سرورز ({config_count} + {file_count} دستیاب) کا استعمال کرتے ہوئے فعال یا غیر فعال کریں؟\n\nجب تمام (آٹو) کو فعال کیا جائے تو ، بے ترتیب طریقہ کا استعمال کرتے ہوئے پراکسیوں کا انتخاب کیا جائے گا۔"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "تمام YT-DLP آپریشنز کے لئے پراکسی سرورز ({config_count} + {file_count} دستیاب) کا استعمال کرتے ہوئے فعال یا غیر فعال کریں؟\n\nجب تمام (آٹو) کو فعال کیا جائے تو، پراکسیوں کا انتخاب خودکار طور پر اجازت یافتہ ممالک (YouTube خرابی میں درج) کے مطابق کیا جاتا ہے۔"
     PROXY_MENU_CLOSED_MSG = "مینو بند۔"
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز proxy استعمال کریں گے۔"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز {count} proxy سرورز {method} انتخاب کے طریقہ کے ساتھ استعمال کریں گے۔"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پراکسی فعال (تمام آٹو موڈ)۔\n\n📊 BOT اس ترتیب میں پراکسیوں کی کوشش کرے گا:\n1⃣ {config_count} config.py سے پراکسی\n2⃣ {file_Count t txt/proxy.txt فائل سے پراکسی\n\nconnection کامیاب کنکشن تک تمام پراکسیوں کی ترتیب سے ترتیب دی جائے گی۔"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پراکسی فعال (YouTube خرابی پر آٹو)۔\n\nجب YouTube جغرافیائی بلاک کی خرابی واپس کرے گا تو بوٹ صرف اس خرابی میں درج ممالک کے پراکسی استعمال کرے گا (تمام پراکسیوں کو ترتیب سے آزمانا نہیں)۔"
     PROXY_DISABLED_MSG = "❌ Proxy غیر فعال ہے۔"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 پراکسی آزمایا جا رہا ہے: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ پروکسی ترتیبات محفوظ کرنے میں خرابی۔"
     PROXY_ENABLED_CALLBACK_MSG = "Proxy فعال ہے۔"
     PROXY_DISABLED_CALLBACK_MSG = "Proxy غیر فعال ہے۔"
@@ -1649,7 +1650,7 @@ Use:
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ کوکی چیک کریں"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ سب (آٹو)"
+    PROXY_ON_BUTTON_MSG = "✅ آٹو (YouTube خرابی پر)"
     PROXY_OFF_BUTTON_MSG = "❌ آف"
     PROXY_CLOSE_BUTTON_MSG = "🔚بند"
     
@@ -2019,7 +2020,7 @@ Use:
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ گروپ میں کام کرنے کے لیے بوٹ کو ایڈمنسٹریٹر کی اجازت درکار ہے۔ براہ کرم اس گروپ میں بوٹ کو ایڈمن بنائیں۔"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "ہیلو {first_name},\n \n<i>یہ بوٹ🤖 کسی بھی ویڈیو کو براہ راست telegram میں ڈاؤن لوڈ کر سکتا ہے۔😊 مزید معلومات کے لیے <b>/help</b> دبائیں</i> 👈\n\n<blockquote>P.S. 🔞NSFW مواد اور ☁️کلاؤڈ اسٹوریج سے فائلوں کو ڈاؤن لوڈ کرنا ادائیگی ہے! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ چینل مت چھوڑیں - آپ کو بوٹ استعمال کرنے سے پابند کر دیا جائے گا ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "ہیلو {first_name},\n \n<i>یہ بوٹ🤖 کسی بھی ویڈیو کو براہ راست telegram میں ڈاؤن لوڈ کر سکتا ہے۔😊 مزید معلومات کے لیے <b>/help</b> دبائیں</i> 👈\n\n<blockquote>P.S. ممکنہ 🔞NSFW مواد کی وجہ سے - ☁️<b>کلاؤڈ اسٹوریج</b>، 📁<b>فائل شیئر</b>، 🔗<b>URL شارٹنر</b> اور 🔞<b>پورن سائٹس</b> سے ڈاؤن لوڈ ادائیگی شدہ ہے! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp چینل کو 🗑<b>ڈیلیٹ/ان سبسکرائب نہ کریں</b> اور بوٹ کو 🤖<b>بہت زیادہ URL/کمانڈز اسپیم نہ کریں</b> - آپ کو بوٹ استعمال سے خودکار پابندی لگائی جائے گی ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 ہٹانے کے لیے کوئی فائل نہیں۔"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 تمام فائلیں کامیابی سے ہٹا دی گئیں!\n\nہٹائی گئی فائلیں:\n{files_list}"
     

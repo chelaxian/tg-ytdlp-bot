@@ -53,9 +53,9 @@ def check_pot_provider_availability(base_url: str) -> bool:
             except ValueError:
                 pass
         
-        # Быстрая проверка доступности провайдера
+        # Быстрая проверка доступности провайдера (всегда локально, в обход прокси — сервис на том же сервере/в докере)
         # PO token провайдер может возвращать 404 для корневого пути, но это означает что сервис работает
-        response = requests.get(base_url, timeout=5)
+        response = requests.get(base_url, timeout=5, proxies={'http': None, 'https': None})
         is_available = response.status_code in [200, 404]  # 404 означает что сервис работает, но эндпоинт не найден
         
         # Обновляем кэш

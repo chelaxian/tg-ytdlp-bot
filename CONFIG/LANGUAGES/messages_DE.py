@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Verwaltet von</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Sprache ändern: /lang</b>"
-    TO_USE_MSG = "<i>Um diesen Bot zu verwenden, müssen Sie dem Telegram-Kanal @tg_ytdlp beitreten.</i>\nNachdem Sie dem Kanal beigetreten sind, <b>senden Sie Ihren Video-Link erneut und der Bot wird ihn für Sie herunterladen</b> ❤️\n\n<blockquote>P.S. Das Herunterladen von 🔞NSFW-Inhalten und Dateien von ☁️Cloud Storage ist kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Verlassen Sie den Kanal nicht - Sie werden vom Bot-Nutzung gesperrt ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Um diesen Bot zu verwenden, müssen Sie dem Telegram-Kanal @tg_ytdlp beitreten.</i>\nNach dem Beitritt <b>senden Sie Ihren Video-Link erneut und der Bot lädt ihn für Sie herunter</b> ❤️\n\n<blockquote>P.S. Wegen möglicherm 🔞NSFW-Inhalt - Downloads von ☁️<b>Cloud-Speicher</b>, 📁<b>Dateifreigaben</b>, 🔗<b>URL-Kürzern</b> und 🔞<b>Pornoseiten</b> sind kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 🗑<b>Löschen/Abmelden des Kanals @tg_ytdlp</b> und 🤖<b>übermäßiges SPAM von URLs/Befehlen an den Bot</b> sind verboten - Sie werden automatisch vom Bot gesperrt ⛔️</blockquote>"
 
     ERROR1 = "URL-Link nicht gefunden. Bitte geben Sie eine URL mit <b>https://</b> oder <b>http://</b> ein"
 
@@ -605,13 +605,14 @@ Mehr erfahren: /playlist"""
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Fehler beim Speichern der Proxy-Einstellungen."
     PROXY_MENU_TEXT_MSG = "Proxy-Server für alle yt-dlp-Operationen aktivieren oder deaktivieren?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Verwendung von Proxyservern ({config_count} + {file_count} verfügbar) für alle YT-DLP-Vorgänge aktivieren oder deaktivieren?\n\nWenn ALL (AUTO) aktiviert ist, werden Proxys nach dem Zufallsprinzip ausgewählt."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Verwendung von Proxyservern ({config_count} + {file_count} verfügbar) für alle YT-DLP-Vorgänge aktivieren oder deaktivieren?\n\nWenn ALL (AUTO) aktiviert ist, werden Proxys automatisch nach erlaubten Ländern (aus der YouTube-Fehlermeldung) ausgewählt."
     PROXY_MENU_CLOSED_MSG = "Menü geschlossen."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy aktiviert. Alle yt-dlp-Operationen verwenden den Proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy aktiviert. Alle yt-dlp-Operationen verwenden {count} Proxy-Server mit {method} Auswahlmethode."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy aktiviert (ALL AUTO-Modus).\n\n📊 Bot probiert Proxys in dieser Reihenfolge aus:\n1️⃣ {config_count} Proxys von Config.py\n2️⃣ {file_count} Proxys aus der TXT/proxy.txt-Datei\n\n🔄 Alle Proxys werden nacheinander ausprobiert, bis die Verbindung erfolgreich ist."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy aktiviert (AUTO bei YouTube-Fehler).\n\nBei einer Geo-Sperre von YouTube verwendet der Bot nur Proxys aus den in der Fehlermeldung genannten Ländern (kein Durchprobieren aller Proxys)."
     PROXY_DISABLED_MSG = "❌ Proxy deaktiviert."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Proxy wird versucht: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Fehler beim Speichern der Proxy-Einstellungen."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy aktiviert."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy deaktiviert."
@@ -1650,7 +1651,7 @@ Mehr erfahren: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie prüfen"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ALLE (AUTO)"
+    PROXY_ON_BUTTON_MSG = "✅ AUTO (bei YouTube-Fehler)"
     PROXY_OFF_BUTTON_MSG = "❌ AUS"
     PROXY_CLOSE_BUTTON_MSG = "🔚Schließen"
     
@@ -2020,7 +2021,7 @@ Mehr erfahren: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Für die Arbeit in der Gruppe benötigt der Bot Administratorrechte. Bitte machen Sie den Bot zum Administrator dieser Gruppe."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Hallo {first_name},\n \n<i>Dieser Bot🤖 kann Videos direkt in Telegram herunterladen.😊 Für weitere Informationen drücken Sie <b>/help</b></i> 👈\n\n<blockquote>P.S. Das Herunterladen von 🔞NSFW-Inhalten und Dateien von ☁️Cloud Storage ist kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Verlassen Sie den Kanal nicht - Sie werden von der Bot-Nutzung gesperrt ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Hallo {first_name},\n \n<i>Dieser Bot🤖 kann Videos direkt in Telegram herunterladen.😊 Für weitere Informationen drücken Sie <b>/help</b></i> 👈\n\n<blockquote>P.S. Wegen möglicherm 🔞NSFW-Inhalt - Downloads von ☁️<b>Cloud-Speicher</b>, 📁<b>Dateifreigaben</b>, 🔗<b>URL-Kürzern</b> und 🔞<b>Pornoseiten</b> sind kostenpflichtig! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 🗑<b>Löschen/Abmelden des Kanals @tg_ytdlp</b> und 🤖<b>übermäßiges SPAM von URLs/Befehlen an den Bot</b> sind verboten - Sie werden automatisch vom Bot gesperrt ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Keine Dateien zum Entfernen."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Alle Dateien erfolgreich entfernt!\n\nEntfernte Dateien:\n{files_list}"
     

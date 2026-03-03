@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>由</i> @iilililiiillliiliililliilliliiil <i>管理</i>\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 更改语言: /lang</b>"
-    TO_USE_MSG = "<i>要使用此机器人，您需要订阅 @tg_ytdlp Telegram 频道。</i>\n加入频道后，<b>重新发送您的视频链接，机器人将为您下载</b> ❤️\n\n<blockquote>P.S. 下载 🔞NSFW 内容和 ☁️云存储文件需要付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 不要离开频道 - 否则将被禁止使用机器人 ⛔️</blockquote>"
+    TO_USE_MSG = "<i>要使用此机器人，您需要订阅 @tg_ytdlp Telegram 频道。</i>\n加入频道后，<b>重新发送您的视频链接，机器人将为您下载</b> ❤️\n\n<blockquote>P.S. 因可能含🔞NSFW内容 - 从☁️<b>云存储</b>、📁<b>文件分享</b>、🔗<b>短链接</b>和🔞<b>色情网站</b>下载需付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 请勿🗑<b>删除/取消订阅 @tg_ytdlp 频道</b>，请勿🤖<b>向机器人过度发送 URL/命令</b> - 否则将被自动封禁 ⛔️</blockquote>"
 
     ERROR1 = "未找到URL链接。请输入带有 <b>https://</b> 或 <b>http://</b> 的URL"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ 代理 {status}。"
     PROXY_ERROR_SAVING_MSG = "❌ 保存代理设置时出错。"
     PROXY_MENU_TEXT_MSG = "启用或禁用代理服务器用于所有yt-dlp操作？"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "为所有 yt-dlp 操作启用或禁用使用代理服务器（{config_count} + {file_count} 可用）？\n\n当启用全部（自动）时，将使用随机方法选择代理。"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "为所有 yt-dlp 操作启用或禁用使用代理服务器（{config_count} + {file_count} 可用）？\n\n当启用全部（自动）时，将根据允许的国家/地区（来自 YouTube 错误信息）自动选择代理。"
     PROXY_MENU_CLOSED_MSG = "菜单已关闭。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ 代理已启用。所有yt-dlp操作将使用代理。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 代理已启用。所有yt-dlp操作将使用 {count} 个代理服务器，采用 {method} 选择方法。"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 启用代理（全部自动模式）。\n\n📊 Bot 将按以下顺序尝试代理：\n1️⃣ 来自 Config.py 的 {config_count} 个代理\n2️⃣ 来自 TXT/proxy.txt 文件的 {file_count} 个代理\n\n🔄 所有代理将依次尝试，直到连接成功。"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 已启用代理（按 YouTube 错误自动）。\n\n当 YouTube 返回地区限制错误时，机器人只会使用该错误中列出的国家/地区的代理（不会依次尝试所有代理）。"
     PROXY_DISABLED_MSG = "❌ 代理已禁用。"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 正在尝试代理：{country}（{current}/{total}）"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ 保存代理设置时出错。"
     PROXY_ENABLED_CALLBACK_MSG = "代理已启用。"
     PROXY_DISABLED_CALLBACK_MSG = "代理已禁用。"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ 检查Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ 全部（自动）"
+    PROXY_ON_BUTTON_MSG = "✅ 自动（按 YouTube 错误）"
     PROXY_OFF_BUTTON_MSG = "❌ 关闭"
     PROXY_CLOSE_BUTTON_MSG = "🔚关闭"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ 机器人在群组中工作需要管理员权限。请将机器人设为该群组的管理员。"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "你好 {first_name}，\n \n<i>这个机器人🤖可以直接将任何视频下载到telegram。😊 更多信息请按 <b>/help</b></i> 👈\n\n<blockquote>附注：下载🔞NSFW内容和☁️云存储文件是付费的！1⭐️ = $0.02</blockquote>\n<blockquote>再附注：‼️ 不要离开频道 - 您将被禁止使用机器人 ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "你好 {first_name}，\n \n<i>这个机器人🤖可以直接将任何视频下载到telegram。😊 更多信息请按 <b>/help</b></i> 👈\n\n<blockquote>P.S. 因可能含🔞NSFW内容 - 从☁️<b>云存储</b>、📁<b>文件分享</b>、🔗<b>短链接</b>和🔞<b>色情网站</b>下载需付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 请勿🗑<b>删除/取消订阅 @tg_ytdlp 频道</b>，请勿🤖<b>向机器人过度发送 URL/命令</b> - 否则将被自动封禁 ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 没有要删除的文件。"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 所有文件已成功删除！\n\n已删除的文件：\n{files_list}"
     

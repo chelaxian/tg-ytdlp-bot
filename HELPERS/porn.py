@@ -75,6 +75,51 @@ def load_domain_lists():
 
 load_domain_lists()
 
+# --- All yt-dlp metadata fields that may contain user text (for NSFW keyword check) ---
+# Covers YouTube, X/Twitter, VK, TikTok, Instagram, SoundCloud, etc.
+METADATA_KEYS_FOR_KEYWORD_CHECK = (
+    # Author / channel (all services)
+    'uploader', 'uploader_id', 'channel', 'channel_id', 'creator', 'artist',
+    # Music / audio
+    'album', 'track',
+    # Series / shows
+    'series', 'season', 'episode',
+    # Playlists / collections
+    'playlist', 'playlist_title', 'playlist_id',
+    # Other text metadata
+    'alt_title', 'genre', 'location', 'license',
+)
+
+def get_metadata_text_for_keyword_check(info_dict):
+    """
+    Collects all text from info_dict fields that may contain keywords (author names,
+    album/series/playlist names, etc.). Used for NSFW check across all popular services.
+    Returns raw string (keeps underscores) so white keywords can match literally (e.g. brazzers_don).
+    Porn keyword check normalizes _ to space inside is_porn/check_porn_detailed.
+    """
+    if not info_dict or not isinstance(info_dict, dict):
+        return ""
+    parts = []
+    for key in METADATA_KEYS_FOR_KEYWORD_CHECK:
+        val = info_dict.get(key)
+        if val is None:
+            continue
+        if isinstance(val, str) and val.strip():
+            parts.append(val.strip())
+        elif isinstance(val, (int, float)) and key in ('season', 'episode'):
+            parts.append(str(val))
+    # categories: list of strings (e.g. YouTube)
+    for cat in (info_dict.get('categories') or []):
+        if isinstance(cat, str) and cat.strip():
+            parts.append(cat.strip())
+    # chapters: list of dicts with 'title'
+    for ch in (info_dict.get('chapters') or []):
+        if isinstance(ch, dict):
+            t = ch.get('title')
+            if isinstance(t, str) and t.strip():
+                parts.append(t.strip())
+    return " ".join(parts) or ""
+
 # --- an auxiliary function for extracting a domain ---
 def extract_domain_parts(url):
     try:
@@ -123,12 +168,13 @@ def is_porn_domain(domain_parts):
     return False
 
 # --- a new function for checking for porn ---
-def is_porn(url, title, description, caption=None, tags=None):
+def is_porn(url, title, description, caption=None, tags=None, uploader=None):
     """
     Checks content for pornography by domain and keywords (word-boundary regex search)
-    in title, description, caption, tags and URL. Domain whitelist has highest priority.
+    in title, description, caption, tags, URL, and uploader/author/channel (other metadata).
+    Domain whitelist has highest priority.
     White keywords list can override porn detection for false positive correction.
-    URL keywords are checked with spaces replaced by underscores and dashes.
+    URL keywords are checked with delimiter-aware patterns.
     Tags are checked with underscores treated as word separators.
     """
     # 1. Checking the domain (with redirect unwrapping)
@@ -146,35 +192,34 @@ def is_porn(url, title, description, caption=None, tags=None):
     title_lower       = title.lower()       if title       else ""
     description_lower = description.lower() if description else ""
     caption_lower     = caption.lower()     if caption     else ""
-    # Process tags: replace underscores with spaces for keyword matching
-    tags_lower = ""
-    if tags:
-        # Tags are space-separated, but keywords inside tags use underscores
-        # Replace underscores with spaces for matching
-        tags_lower = tags.lower().replace("_", " ")
+    uploader_lower_raw = uploader.lower()   if uploader    else ""
+    uploader_lower    = uploader_lower_raw.replace("_", " ")  # normalized for porn keyword match
+    tags_lower_raw    = tags.lower()       if tags        else ""
+    tags_lower        = tags_lower_raw.replace("_", " ") if tags else ""
     
-    # 3. Prepare URL for keyword checking (replace spaces with underscores and dashes)
+    # 3. Prepare URL for keyword checking
     url_lower = clean_url
     logger.debug(f"is_porn URL for keyword check: '{url_lower}'")
     
-    if not (title_lower or description_lower or caption_lower or tags_lower or url_lower):
-        logger.info("is_porn: all text fields and URL empty")
+    if not (title_lower or description_lower or caption_lower or tags_lower or uploader_lower or url_lower):
+        logger.info("is_porn: all text fields, uploader and URL empty")
         return False
 
-    # 4. We collect a single text for search (including URL and tags)
-    combined = " ".join([title_lower, description_lower, caption_lower, tags_lower, url_lower])
-    logger.debug(f"is_porn combined text: '{combined}'")
-    logger.debug(f"is_porn keywords: {PORN_KEYWORDS}")
-
-    # 5. Check for white keywords first (override porn detection)
+    # 4. White keywords: check against raw text (with underscores) so "brazzers_don" matches only literally
+    combined_white = " ".join([title_lower, description_lower, caption_lower, tags_lower_raw, uploader_lower_raw, url_lower])
     white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
     if white_keywords:
-        white_kws = [re.escape(kw.lower()) for kw in white_keywords if kw.strip()]
+        white_kws = [re.escape(kw.lower().strip()) for kw in white_keywords if kw.strip()]
         if white_kws:
             white_pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
-            if white_pattern.search(combined):
-                logger.info(f"is_porn: white keyword match found, content considered clean: {white_pattern.pattern}")
+            if white_pattern.search(combined_white):
+                logger.info(f"is_porn: white keyword match found (literal), content considered clean: {white_pattern.pattern}")
                 return False
+
+    # 5. Combined text (normalized) for porn keyword check
+    combined = " ".join([title_lower, description_lower, caption_lower, tags_lower, uploader_lower, url_lower])
+    logger.debug(f"is_porn combined text: '{combined}'")
+    logger.debug(f"is_porn keywords: {PORN_KEYWORDS}")
 
     # 6. Preparing regex patterns
     # For text fields we use word boundaries with escaped keywords
@@ -186,11 +231,11 @@ def is_porn(url, title, description, caption=None, tags=None):
         return False
 
     # 7. Check for keyword matches in text fields (with word boundaries)
-    # Include tags in text fields check (tags already have underscores replaced with spaces)
+    # Include tags and uploader/author in text fields check (tags already have underscores replaced with spaces)
     text_pattern = re.compile(r"\b(" + "|".join(text_kws) + r")\b", flags=re.IGNORECASE)
-    text_to_check = " ".join([title_lower, description_lower, caption_lower, tags_lower])
+    text_to_check = " ".join([title_lower, description_lower, caption_lower, tags_lower, uploader_lower])
     if text_pattern.search(text_to_check):
-        logger.info(f"is_porn: keyword match in text fields (regex): {text_pattern.pattern}")
+        logger.info(f"is_porn: keyword match in text fields / uploader (regex): {text_pattern.pattern}")
         return True
 
     # 8. Check for keyword matches in URL with delimiter-aware patterns
@@ -216,10 +261,11 @@ def is_porn(url, title, description, caption=None, tags=None):
     return False
 
 
-def check_porn_detailed(url, title, description, caption=None):
+def check_porn_detailed(url, title, description, caption=None, uploader=None):
     messages = safe_get_messages(None)
     """
     Detailed porn check that returns both result and explanation.
+    Checks title, description, caption, URL, and uploader/author/channel (other metadata).
     Returns: (is_porn: bool, explanation: str)
     """
     explanation_parts = []
@@ -240,41 +286,55 @@ def check_porn_detailed(url, title, description, caption=None):
         return True, " | ".join(explanation_parts)
 
     # 2. Preparation of the text
-    title_lower       = title.lower()       if title       else ""
-    description_lower = description.lower() if description else ""
-    caption_lower     = caption.lower()     if caption     else ""
-    url_lower         = clean_url
+    title_lower        = title.lower()       if title       else ""
+    description_lower  = description.lower() if description else ""
+    caption_lower      = caption.lower()     if caption     else ""
+    uploader_lower_raw = uploader.lower()   if uploader    else ""
+    uploader_lower     = uploader_lower_raw.replace("_", " ")  # normalized for porn keyword check
+    url_lower          = clean_url
     
-    if not (title_lower or description_lower or caption_lower or url_lower):
+    if not (title_lower or description_lower or caption_lower or uploader_lower or url_lower):
         explanation_parts.append(messages.PORN_ALL_TEXT_FIELDS_EMPTY_MSG)
         return False, " | ".join(explanation_parts)
 
-    # 3. We collect a single text for search
-    combined = " ".join([title_lower, description_lower, caption_lower])
-    
-    # 4. Check for white keywords first (override porn detection)
+    # 3. White keywords: check against raw text (with underscores) — "brazzers_don" matches only literally, not "brazzers don"
+    combined_white = " ".join([title_lower, description_lower, caption_lower, uploader_lower_raw])
     white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
     if white_keywords:
-        white_kws = [re.escape(kw.lower()) for kw in white_keywords if kw.strip()]
+        white_kws = [re.escape(kw.lower().strip()) for kw in white_keywords if kw.strip()]
         if white_kws:
             white_pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
-            white_matches = white_pattern.findall(combined)
-            if white_matches:
+            if white_pattern.search(combined_white):
+                white_matches = white_pattern.findall(combined_white)
                 explanation_parts.append(messages.PORN_WHITELIST_KEYWORDS_MSG.format(keywords=', '.join(set(white_matches))))
                 return False, " | ".join(explanation_parts)
 
-    # 5. Check for porn keywords in text fields
+    # 5. Check for porn keywords in text fields (title, description, caption, uploader) with per-field explanation
     text_kws = [re.escape(kw.lower()) for kw in PORN_KEYWORDS if kw.strip()]
     if not text_kws:
         explanation_parts.append("ℹ️ No porn keywords loaded")
         return False, " | ".join(explanation_parts)
 
-    # Check text fields with word boundaries
     text_pattern = re.compile(r"\b(" + "|".join(text_kws) + r")\b", flags=re.IGNORECASE)
-    text_matches = text_pattern.findall(combined)
+    title_matches = text_pattern.findall(title_lower) if title_lower else []
+    desc_matches = text_pattern.findall(description_lower) if description_lower else []
+    caption_matches = text_pattern.findall(caption_lower) if caption_lower else []
+    uploader_matches = text_pattern.findall(uploader_lower) if uploader_lower else []
     
-    if text_matches:
-        explanation_parts.append(messages.PORN_KEYWORDS_FOUND_MSG.format(keywords=', '.join(set(text_matches))))
+    def _keywords_msg(key, keywords, default_fmt):
+        msg = getattr(messages, key, None)
+        return (msg.format(keywords=keywords) if msg else default_fmt.format(keywords=keywords))
+
+    if title_matches:
+        explanation_parts.append(_keywords_msg('PORN_KEYWORDS_IN_TITLE_MSG', ', '.join(set(title_matches)), "❌ NSFW keywords in title: {keywords}"))
+    if desc_matches:
+        explanation_parts.append(_keywords_msg('PORN_KEYWORDS_IN_DESCRIPTION_MSG', ', '.join(set(desc_matches)), "❌ NSFW keywords in description: {keywords}"))
+    if caption_matches:
+        explanation_parts.append(_keywords_msg('PORN_KEYWORDS_IN_CAPTION_MSG', ', '.join(set(caption_matches)), "❌ NSFW keywords in caption: {keywords}"))
+    if uploader_matches:
+        explanation_parts.append(_keywords_msg('PORN_KEYWORDS_IN_UPLOADER_MSG', ', '.join(set(uploader_matches)), "❌ NSFW keywords in channel/uploader/author: {keywords}"))
+    
+    if title_matches or desc_matches or caption_matches or uploader_matches:
         return True, " | ".join(explanation_parts)
 
     # 6. Check for porn keywords in URL with delimiter-aware patterns

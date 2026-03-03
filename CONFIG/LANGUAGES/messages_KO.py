@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>관리자</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 언어 변경: /lang</b>"
-    TO_USE_MSG = "<i>이 봇을 사용하려면 @tg_ytdlp Telegram 채널에 구독해야 합니다.</i>\n채널에 가입한 후, <b>비디오 링크를 다시 보내시면 봇이 다운로드해 드립니다</b> ❤️\n\n<blockquote>P.S. 🔞NSFW 콘텐츠 및 ☁️클라우드 스토리지에서 파일 다운로드는 유료입니다! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 채널을 떠나지 마세요 - 봇 사용이 금지됩니다 ⛔️</blockquote>"
+    TO_USE_MSG = "<i>이 봇을 사용하려면 @tg_ytdlp Telegram 채널에 구독해야 합니다.</i>\n채널에 가입한 후 <b>비디오 링크를 다시 보내시면 봇이 다운로드해 드립니다</b> ❤️\n\n<blockquote>P.S. 🔞NSFW 콘텐츠 가능성으로 - ☁️<b>클라우드 스토리지</b>, 📁<b>파일 공유</b>, 🔗<b>URL 단축</b>, 🔞<b>포르노 사이트</b>에서 다운로드는 유료입니다! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp 채널 🗑<b>삭제/구독 해지 금지</b>, 봇에 🤖<b>URL/명령 과도한 스팸 금지</b> - 봇 사용이 자동 차단됩니다 ⛔️</blockquote>"
 
     ERROR1 = "URL 링크를 찾을 수 없습니다. <b>https://</b> 또는 <b>http://</b>가 포함된 URL을 입력하세요"
 
@@ -605,13 +605,14 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ 프록시 {status}."
     PROXY_ERROR_SAVING_MSG = "❌ 프록시 설정 저장 중 오류가 발생했습니다."
     PROXY_MENU_TEXT_MSG = "모든 yt-dlp 작업에 대해 프록시 서버 사용을 활성화하거나 비활성화하시겠습니까?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "모든 yt-dlp 작업에 프록시 서버({config_count} + {file_count} 사용 가능) 사용을 활성화 또는 비활성화하시겠습니까?\n\nALL(AUTO)을 활성화하면 무작위 방법을 사용하여 프록시가 선택됩니다."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "모든 yt-dlp 작업에 프록시 서버({config_count} + {file_count} 사용 가능) 사용을 활성화 또는 비활성화하시겠습니까?\n\nALL(AUTO)을 활성화하면 허용된 국가(YouTube 오류에 표시)에 따라 프록시가 자동 선택됩니다."
     PROXY_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
     PROXY_ENABLED_CONFIRM_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 프록시를 사용합니다."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 {method} 선택 방법으로 {count}개의 프록시 서버를 사용합니다."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 프록시가 활성화되었습니다(ALL AUTO 모드).\n\n📊 봇은 다음 순서로 프록시를 시도합니다.\n1️⃣ Config.py의 {config_count} 프록시\n2️⃣ TXT/proxy.txt 파일의 {file_count} 프록시\n\n🔄 모든 프록시는 성공적으로 연결될 때까지 순차적으로 시도됩니다."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 프록시가 활성화되었습니다(YouTube 오류 시 자동).\n\nYouTube에서 지역 제한 오류가 발생하면 봇은 해당 오류에 명시된 국가의 프록시만 사용합니다(전체 프록시 순차 시도 없음)."
     PROXY_DISABLED_MSG = "❌ 프록시가 비활성화되었습니다."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 프록시 시도 중: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ 프록시 설정 저장 중 오류가 발생했습니다."
     PROXY_ENABLED_CALLBACK_MSG = "프록시가 활성화되었습니다."
     PROXY_DISABLED_CALLBACK_MSG = "프록시가 비활성화되었습니다."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ 쿠키 확인"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ 모두(자동)"
+    PROXY_ON_BUTTON_MSG = "✅ 자동(YouTube 오류 시)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Close"
     
@@ -2019,7 +2020,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ 그룹에서 작동하려면 봇에 관리자 권한이 필요합니다. 이 그룹의 관리자로 봇을 설정하세요."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "안녕하세요 {first_name},\n \n<i>이 봇🤖은 모든 비디오를 Telegram으로 직접 다운로드할 수 있습니다.😊 자세한 내용은 <b>/help</b>를 누르세요</i> 👈\n\n<blockquote>참고: 🔞NSFW 콘텐츠 및 ☁️클라우드 스토리지의 파일 다운로드는 유료입니다! 1⭐️ = $0.02</blockquote>\n<blockquote>주의: ‼️ 채널을 떠나지 마세요 - 봇 사용이 차단됩니다 ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "안녕하세요 {first_name},\n \n<i>이 봇🤖은 모든 비디오를 Telegram으로 직접 다운로드할 수 있습니다.😊 자세한 내용은 <b>/help</b>를 누르세요</i> 👈\n\n<blockquote>P.S. 🔞NSFW 콘텐츠 가능성으로 - ☁️<b>클라우드 스토리지</b>, 📁<b>파일 공유</b>, 🔗<b>URL 단축</b>, 🔞<b>포르노 사이트</b>에서 다운로드는 유료입니다! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp 채널 🗑<b>삭제/구독 해지 금지</b>, 봇에 🤖<b>URL/명령 과도한 스팸 금지</b> - 봇 사용이 자동 차단됩니다 ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 제거할 파일이 없습니다."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 모든 파일이 성공적으로 제거되었습니다!\n\n제거된 파일:\n{files_list}"
     

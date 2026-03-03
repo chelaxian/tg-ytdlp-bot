@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Pinamamahalaan ni</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Baguhin ang wika: /lang</b>"
-    TO_USE_MSG = "<i>Upang magamit ang bot na ito, kailangan mong mag-subscribe sa @tg_ytdlp Telegram channel.</i>\nPagkatapos mong sumali sa channel, <b>ipadala ulit ang iyong video link at i-download ito ng bot para sa iyo</b> ❤️\n\n<blockquote>P.S. Ang pag-download ng 🔞NSFW content at mga file mula sa ☁️Cloud Storage ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Huwag umalis sa channel - mababan ka sa paggamit ng bot ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Upang magamit ang bot na ito, kailangan mong mag-subscribe sa @tg_ytdlp Telegram channel.</i>\nPagkatapos sumali sa channel, <b>ipadala ulit ang iyong video link at i-download ito ng bot para sa iyo</b> ❤️\n\n<blockquote>P.S. Dahil sa posibleng 🔞NSFW content - ang pag-download mula sa ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> at 🔞<b>Porn sites</b> ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ HUWAG 🗑<b>tanggalin/i-unsubscribe ang @tg_ytdlp channel</b> at HUWAG 🤖<b>mag-SPAM ng sobrang URL/commands sa bot</b> - mababan ka nang awtomatiko ⛔️</blockquote>"
 
     ERROR1 = "Hindi nahanap ang url link. Mangyaring maglagay ng url na may <b>https://</b> o <b>http://</b>"
 
@@ -605,13 +605,14 @@ Matuto pa: /playlist"""
     PROXY_ENABLED_MSG = "✅ Proxy {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Error sa pag-save ng mga setting ng proxy."
     PROXY_MENU_TEXT_MSG = "Paganahin o huwag paganahin ang paggamit ng proxy server para sa lahat ng pagpapatakbo ng yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Paganahin o huwag paganahin ang paggamit ng mga proxy server ({config_count} + {file_count} available) para sa lahat ng yt-dlp operation?\n\nKapag pinagana ang LAHAT (AUTO), pipiliin ang mga proxy gamit ang random na paraan."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Paganahin o huwag paganahin ang paggamit ng mga proxy server ({config_count} + {file_count} available) para sa lahat ng yt-dlp operation?\n\nKapag pinagana ang LAHAT (AUTO), ang mga proxy ay awtomatikong pinipili ayon sa pinapayagang mga bansa (mula sa error ng YouTube)."
     PROXY_MENU_CLOSED_MSG = "Sarado ang menu."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng {count} proxy server na may {method} paraan ng pagpili."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Naka-enable ang proxy (ALL AUTO mode).\n\n📊 Susubukan ni Bot ang mga proxy sa ganitong pagkakasunud-sunod:\n1️⃣ {config_count} (na) proxy mula sa Config.py\n2️⃣ {file_count} (na) proxy mula sa TXT/proxy.txt file\n\n🔄 Lahat ng proxy ay susubukan nang sunud-sunod hanggang sa matagumpay na koneksyon."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Naka-enable ang proxy (AUTO sa error ng YouTube).\n\nKapag nagbalik ng geo-block error ang YouTube, gagamitin lang ng bot ang mga proxy mula sa mga bansang nakalagay sa error na iyon (walang sunud-sunod na pagsubok ng lahat ng proxy)."
     PROXY_DISABLED_MSG = "❌ Naka-disable ang proxy."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Sinusubukang proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error sa pag-save ng mga setting ng proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Pinagana ang proxy."
     PROXY_DISABLED_CALLBACK_MSG = "Naka-disable ang proxy."
@@ -1649,7 +1650,7 @@ Matuto pa: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Suriin ang Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ LAHAT (AUTO)"
+    PROXY_ON_BUTTON_MSG = "✅ AUTO (sa error ng YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ NAKA-OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Isara"
     
@@ -2019,7 +2020,7 @@ Matuto pa: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Para sa pagtatrabaho sa grupo, kailangan ng bot ang mga karapatan ng administrator. Mangyaring gawing admin ang bot sa grupong ito."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Kamusta {first_name},\n \n<i>Ang bot na ito🤖 ay maaaring mag-download ng anumang video sa telegram nang direkta.😊 Para sa karagdagang impormasyon pindutin ang <b>/help</b></i> 👈\n\n<blockquote>P.S. Ang pag-download ng 🔞NSFW na nilalaman at mga file mula sa ☁️Cloud Storage ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Huwag umalis sa channel - ma-ba-ban ka sa paggamit ng bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Kamusta {first_name},\n \n<i>Ang bot na ito🤖 ay maaaring mag-download ng anumang video sa telegram nang direkta.😊 Para sa karagdagang impormasyon pindutin ang <b>/help</b></i> 👈\n\n<blockquote>P.S. Dahil sa posibleng 🔞NSFW content - ang pag-download mula sa ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> at 🔞<b>Porn sites</b> ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ HUWAG 🗑<b>tanggalin/i-unsubscribe ang @tg_ytdlp channel</b> at HUWAG 🤖<b>mag-SPAM ng sobrang URL/commands sa bot</b> - mababan ka nang awtomatiko ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Walang mga file na aalisin."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Matagumpay na naalis ang lahat ng file!\n\nMga naalis na file:\n{files_list}"
     
