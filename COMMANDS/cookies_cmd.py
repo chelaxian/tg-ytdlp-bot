@@ -54,6 +54,12 @@ _yt_round_robin_index = 0
 # Format: {user_id: {'attempts': [timestamp1, timestamp2, ...], 'last_reset': timestamp}}
 _youtube_cookie_retry_tracking = {}
 
+# Cache of successful proxies per (user_id, url) so that within one download task
+# (e.g. building Always Ask menu + subsequent quality button press) the bot can
+# reuse the same working proxy instead of starting the sequence from scratch.
+# Format: {(user_id, url): {'proxy_url': str, 'timestamp': float}}
+_proxy_success_cache = {}
+
 def generate_task_id(user_id: int, url: str, service: str = None) -> str:
     """
     Генерирует уникальный ID задачи для отслеживания состояния.
@@ -1935,6 +1941,11 @@ def is_youtube_geo_error(error_message: str) -> bool:
     
     return any(keyword in error_lower for keyword in geo_related_keywords)
 
+def _get_proxy_cache_key(user_id: int, url: str) -> tuple:
+    """Build cache key for proxy success cache."""
+    return (user_id, url)
+
+
 def retry_download_with_proxy(user_id: int, url: str, download_func, *args, error_message: str = None, **kwargs):
     """
     Повторяет скачивание через прокси при региональных ошибках.
@@ -1951,6 +1962,7 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
         Результат успешного скачивания или None если все попытки неудачны
     """
     from URL_PARSERS.youtube import is_youtube_url
+    import time
     
     # Проверяем только для YouTube URL
     if not is_youtube_url(url):
@@ -1989,7 +2001,16 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                 
                 if matching_proxies:
                     logger.info(f"Found {len(matching_proxies)} matching proxies for available countries")
-                    proxies_to_try = matching_proxies
+                    # Группируем по стране и внутри каждой страны случайно перемешиваем прокси,
+                    # а сами страны перебираем в алфавитном порядке.
+                    country_groups = {}
+                    for p in matching_proxies:
+                        country_groups.setdefault(p['country'], []).append(p)
+                    for group in country_groups.values():
+                        random.shuffle(group)
+                    proxies_to_try = []
+                    for country_name in sorted(country_groups.keys(), key=lambda c: c.lower()):
+                        proxies_to_try.extend(country_groups[country_name])
                 else:
                     # Если нет подходящих прокси для указанных стран, не пробуем все прокси
                     logger.warning(f"No matching proxies found for available countries: {available_countries[:5]}...")
@@ -2004,6 +2025,18 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                 else:
                     logger.info("No available countries list found in error, will try all proxies sequentially")
                     proxies_to_try = get_all_proxies_from_file(proxy_file_path)
+
+            # Если ранее уже находили рабочий прокси для этого (user_id, url) – пробуем его первым
+            cache_key = _get_proxy_cache_key(user_id, url)
+            cached = _proxy_success_cache.get(cache_key)
+            if cached:
+                cached_url = cached.get('proxy_url')
+                if cached_url:
+                    # Проверяем, что этот прокси всё ещё есть в списке и живой
+                    if any(p['proxy_url'] == cached_url for p in proxies_to_try) and test_proxy_url(cached_url, timeout=PROXY_TEST_TIMEOUT):
+                        logger.info(f"Using cached successful proxy first for user {user_id}: {cached_url}")
+                        proxies_to_try = [p for p in proxies_to_try if p['proxy_url'] == cached_url] + \
+                                         [p for p in proxies_to_try if p['proxy_url'] != cached_url]
             
             # Пробуем каждый прокси по очереди
             total_proxies = len(proxies_to_try)
@@ -2049,6 +2082,12 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         try:
                             result = download_func(*new_args, **kwargs)
                             if result is not None:
+                                # Сохраняем успешный прокси в кэш для этого (user_id, url),
+                                # чтобы при повторных действиях (например, нажатие качества) не начинать перебор с нуля
+                                _proxy_success_cache[_get_proxy_cache_key(user_id, url)] = {
+                                    'proxy_url': proxy_url,
+                                    'timestamp': time.time(),
+                                }
                                 logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) using cookies")
                                 return result
                         except Exception as e:
@@ -2081,6 +2120,10 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                                         new_args_no_cookies = (args[0], attempt_opts_no_cookies) + args[2:]
                                         result = download_func(*new_args_no_cookies, **kwargs)
                                         if result is not None:
+                                            _proxy_success_cache[_get_proxy_cache_key(user_id, url)] = {
+                                                'proxy_url': proxy_url,
+                                                'timestamp': time.time(),
+                                            }
                                             logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) without cookies using client: {client}")
                                             return result
                                     except Exception as client_error:
@@ -2097,6 +2140,10 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                                 try:
                                     result = download_func(*new_args_no_cookies, **kwargs)
                                     if result is not None:
+                                        _proxy_success_cache[_get_proxy_cache_key(user_id, url)] = {
+                                            'proxy_url': proxy_url,
+                                            'timestamp': time.time(),
+                                        }
                                         logger.info(f"Successfully downloaded with proxy {proxy_country} ({proxy_type}) without cookies")
                                         return result
                                 except Exception:

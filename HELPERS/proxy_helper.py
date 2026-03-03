@@ -1,6 +1,7 @@
 import yt_dlp
 import logging
 import os
+import random
 from urllib.parse import quote
 from COMMANDS.proxy_cmd import get_proxy_config
 from CONFIG.messages import Messages, safe_get_messages
@@ -248,6 +249,8 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
             # User selected country - try proxies from file (HTTP first, then SOCKS5)
             proxies = get_proxies_for_country(selected_country)
             if proxies:
+                # Для балансировки нагрузки прокси одной страны перебираем в случайном порядке
+                random.shuffle(proxies)
                 logger.info(f"User {user_id} selected country {selected_country}, trying {len(proxies)} proxies from file")
                 total_proxies = len(proxies)
                 for i, proxy_info in enumerate(proxies):
