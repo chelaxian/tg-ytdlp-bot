@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از پروکسی استفاده خواهند کرد."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از {count} سرور پروکسی با روش انتخاب {method} استفاده خواهند کرد."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پروکسی فعال است (حالت ALL AUTO).\n\n📊 ربات پروکسی ها را به این ترتیب امتحان می کند:\n1️⃣ پروکسی های {config_count} از Config.py\n2️⃣ {file_count} پروکسی از فایل TXT/proxy.txt\n\n🔄 همه پراکسی ها به صورت متوالی تا زمان اتصال موفقیت آمیز آزمایش می شوند."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ پروکسی فعال است (خودکار هنگام خطای YouTube).\n\nوقتی YouTube خطای محدودیت جغرافیایی برگرداند، ربات فقط از پروکسی کشورهای ذکر شده در آن خطا استفاده می‌کند (بدون امتحان متوالی همه پروکسی‌ها)."
     PROXY_DISABLED_MSG = "❌ پروکسی غیرفعال شد."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 در حال امتحان پروکسی: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ خطا در ذخیره تنظیمات پروکسی."
     PROXY_ENABLED_CALLBACK_MSG = "پروکسی فعال شد."
     PROXY_DISABLED_CALLBACK_MSG = "پروکسی غیرفعال شد."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ بررسی کوکی"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ همه (خودکار)"
+    PROXY_ON_BUTTON_MSG = "✅ خودکار (هنگام خطای YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ خاموش"
     PROXY_CLOSE_BUTTON_MSG = "🔚بستن"
     

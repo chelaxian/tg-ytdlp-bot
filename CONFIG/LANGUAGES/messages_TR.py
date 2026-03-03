@@ -610,8 +610,9 @@ Daha fazla bilgi: /playlist"""
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemlerinde proxy kullanılacaktır."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy etkin. Tüm yt-dlp işlemleri {count} proxy sunucularını {method} seçim yöntemiyle kullanacaktır."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy etkin (TÜM OTOMATİK mod).\n\n📊 Bot proxy'leri şu sırayla deneyecek:\nConfig.py'den 1️⃣ {config_count} proxy\nTXT/proxy.txt dosyasından 2️⃣ {file_count} proxy\n\n🔄 Başarılı bağlantı sağlanana kadar tüm proxy'ler sırayla denenecektir."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy etkin (YouTube hatasında OTOMATİK).\n\nYouTube coğrafi kısıtlama hatası verdiğinde bot yalnızca hata mesajında belirtilen ülkelerin proxy'lerini kullanır (tüm proxy'ler sırayla denenmez)."
     PROXY_DISABLED_MSG = "❌ Proxy devre dışı bırakıldı."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Proxy deneniyor: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy ayarları kaydedilirken hata oluştu."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy etkinleştirildi."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy devre dışı bırakıldı."
@@ -1649,7 +1650,7 @@ Daha fazla bilgi: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Çerezleri Kontrol Et"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ HEPSİ (OTOMATİK)"
+    PROXY_ON_BUTTON_MSG = "✅ OTOMATİK (YouTube hatasında)"
     PROXY_OFF_BUTTON_MSG = "❌ KAPALI"
     PROXY_CLOSE_BUTTON_MSG = "🔚Kapat"
     

@@ -610,8 +610,9 @@ En savoir plus : /playlist"""
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy activé. Toutes les opérations yt-dlp utiliseront le proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy activé. Toutes les opérations yt-dlp utiliseront {count} serveurs proxy avec la méthode de sélection {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy activé (mode ALL AUTO).\n\n📊 Le robot essaiera les proxys dans cet ordre :\n1️⃣ {config_count} proxys de Config.py\n2️⃣ {file_count} proxys du fichier TXT/proxy.txt\n\n🔄 Tous les proxys seront essayés séquentiellement jusqu'à ce que la connexion soit réussie."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proxy activé (AUTO sur erreur YouTube).\n\nEn cas d'erreur de géo-blocage YouTube, le bot n'utilisera que les proxys des pays indiqués dans l'erreur (pas d'essai séquentiel de tous les proxys)."
     PROXY_DISABLED_MSG = "❌ Proxy désactivé."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Essai du proxy : {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Erreur lors de l'enregistrement des paramètres de proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy activé."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy désactivé."
@@ -1649,7 +1650,7 @@ En savoir plus : /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Vérifier Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ TOUT (AUTO)"
+    PROXY_ON_BUTTON_MSG = "✅ AUTO (sur erreur YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ DÉSACTIVÉ"
     PROXY_CLOSE_BUTTON_MSG = "🔚Fermer"
     

@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ Прокси қосылған. Барлық yt-dlp операциялары проксиді пайдаланады."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Прокси қосылған. Барлық yt-dlp әрекеттері {count} прокси сервері{method}h {әдіс} таңдау әдісін пайдаланады."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Прокси қосылған (БАРЛЫҚ АВТО режимі).\n\n📊 Бот прокси-серверлерді келесі ретпен сынап көреді:\nConfig.py сайтынан 1️⃣ {config_count} прокси\nTXT/proxy.txt файлынан 2️⃣ {file_count} прокси\n\n🔄 Барлық прокси-серверлер сәтті қосылымға дейін дәйекті түрде сыналады."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Прокси қосылған (YouTube қатесі бойынша АВТО).\n\nYouTube гео-блок қатесі қайтарғанда бот тек осы қатеде көрсетілген елдердің проксилерін пайдаланады (барлық проксилерді кезекпен сынамайды)."
     PROXY_DISABLED_MSG = "❌ Прокси өшірілген."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Прокси сынап көруде: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Прокси параметрлерін сақтау қатесі."
     PROXY_ENABLED_CALLBACK_MSG = "Прокси қосылды."
     PROXY_DISABLED_CALLBACK_MSG = "Прокси өшірілген."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie тексеру"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ БАРЛЫҒЫ (АВТО)"
+    PROXY_ON_BUTTON_MSG = "✅ АВТО (YouTube қатесі бойынша)"
     PROXY_OFF_BUTTON_MSG = "❌ ӨШІРІЛГЕН"
     PROXY_CLOSE_BUTTON_MSG = "🔚Жабу"
     

@@ -79,6 +79,11 @@ proxy.txt
 TXT/proxy.txt
 proxy_test.py
 TXT/proxy_test.py
+TXT/working_proxies.txt
+TXT/merge_working_proxies.py
+TXT/.proxy_merged_mtime
+TXT/.proxy_geo_cache.json  
+TXT/.gitkeep
 
 # Sample / experimental scripts
 gallery-dl/

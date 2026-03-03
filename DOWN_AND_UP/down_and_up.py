@@ -1730,11 +1730,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         except Exception as e3:
                             logger.error(f"Proxy fallback failed: {e3}")
                             info_dict = None
-                        if info_dict is None:
-                            # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
-                            if is_youtube_url(url) and user_id is not None:
-                                if is_youtube_geo_error(original_error_text if original_error_text else error_text):
-                                    logger.info(f"YouTube geo-blocked error detected in extract_info for user {user_id}, attempting retry with proxy from file")
+                            if info_dict is None:
+                                # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла (только если у пользователя включен прокси — АВТО или страна)
+                                if is_youtube_url(url) and user_id is not None:
+                                    from COMMANDS.proxy_cmd import is_proxy_enabled
+                                    if is_proxy_enabled(user_id) and is_youtube_geo_error(original_error_text if original_error_text else error_text):
+                                        logger.info(f"YouTube geo-blocked error detected in extract_info for user {user_id}, attempting retry with proxy from file (matching countries only)")
                                     
                                     def extract_with_attempt_opts(url_arg, attempt_opts_dict):
                                         # Используем attempt_opts_dict (который включает proxy) вместо оригинальных opts
@@ -2278,43 +2279,28 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if "Failed to download video with all available proxies" in error_message:
                         logger.warning(f"All proxies already failed, skipping proxy retry")
                     elif is_youtube_geo_error(error_message) and not did_proxy_retry:
-                        logger.info(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
-                        logger.info(f"Full error message: {error_message}")
-                        
-                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
-                        retry_result = retry_download_with_proxy(
-                            user_id, url, try_download, url, attempt_opts, error_message=error_message
-                        )
-                        
-                        if retry_result is not None:
-                            logger.info(f"Download retry with proxy successful for user {user_id}")
-                            did_proxy_retry = True
-                            return retry_result
+                        from COMMANDS.proxy_cmd import is_proxy_enabled
+                        if not is_proxy_enabled(user_id):
+                            logger.info(f"Proxy not enabled for user {user_id}, skipping geo retry with proxy")
                         else:
-                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
-                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
-                            did_proxy_retry = True
-                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
+                            logger.info(f"Checking geo-error: is_youtube_geo_error={is_youtube_geo_error(error_message)}, did_proxy_retry={did_proxy_retry}, error_message[:200]={error_message[:200]}")
+                            logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file (matching countries only)")
+                            logger.info(f"Full error message: {error_message}")
+                            
+                            # Пробуем скачать через прокси (только подходящие по описанию ошибки)
+                            retry_result = retry_download_with_proxy(
+                                user_id, url, try_download, url, attempt_opts, error_message=error_message
+                            )
+                            
+                            if retry_result is not None:
+                                logger.info(f"Download retry with proxy successful for user {user_id}")
+                                did_proxy_retry = True
+                                return retry_result
+                            else:
+                                logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
+                                did_proxy_retry = True
                     elif is_youtube_geo_error(error_message):
                         logger.info(f"Geo-error detected but proxy retry already attempted, skipping")
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
-                        logger.info(f"Full error message: {error_message}")
-                        
-                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
-                        retry_result = retry_download_with_proxy(
-                            user_id, url, try_download, url, attempt_opts, error_message=error_message
-                        )
-                        
-                        if retry_result is not None:
-                            logger.info(f"Download retry with proxy successful for user {user_id}")
-                            did_proxy_retry = True
-                            return retry_result
-                        else:
-                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
-                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
-                            did_proxy_retry = True
-                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube download error detected for user {user_id}, attempting cookie fallback")

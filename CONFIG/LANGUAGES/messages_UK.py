@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ Проксі увімкнено. Всі операції yt-dlp використовуватимуть проксі."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Проксі увімкнено. Всі операції yt-dlp використовуватимуть {count} проксі-серверів з методом вибору {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Проксі ввімкнено (режим ALL AUTO).\n\n📊 Бот спробує проксі-сервери в такому порядку:\n1️⃣ {config_count} проксі з Config.py\n2️⃣ {file_count} проксі з файлу TXT/proxy.txt\n\n🔄 Усі проксі-сервери будуть випробувані послідовно до успішного підключення."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Проксі ввімкнено (АВТО за помилкою YouTube).\n\nПри помилці гео-блоковки YouTube бот використовуватиме лише проксі з країн, зазначених у тексті помилки (без перебору всіх проксі підряд)."
     PROXY_DISABLED_MSG = "❌ Проксі вимкнено."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Пробуємо проксі: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Помилка збереження налаштувань проксі."
     PROXY_ENABLED_CALLBACK_MSG = "Проксі ввімкнено."
     PROXY_DISABLED_CALLBACK_MSG = "Проксі вимкнено."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Перевірте файли cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ВСІ (АВТО)"
+    PROXY_ON_BUTTON_MSG = "✅ АВТО (за помилкою YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ ВИМКНЕНО"
     PROXY_CLOSE_BUTTON_MSG = "🔚Закрити"
     

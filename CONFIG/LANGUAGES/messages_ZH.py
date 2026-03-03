@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ 代理已启用。所有yt-dlp操作将使用代理。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 代理已启用。所有yt-dlp操作将使用 {count} 个代理服务器，采用 {method} 选择方法。"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 启用代理（全部自动模式）。\n\n📊 Bot 将按以下顺序尝试代理：\n1️⃣ 来自 Config.py 的 {config_count} 个代理\n2️⃣ 来自 TXT/proxy.txt 文件的 {file_count} 个代理\n\n🔄 所有代理将依次尝试，直到连接成功。"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 已启用代理（按 YouTube 错误自动）。\n\n当 YouTube 返回地区限制错误时，机器人只会使用该错误中列出的国家/地区的代理（不会依次尝试所有代理）。"
     PROXY_DISABLED_MSG = "❌ 代理已禁用。"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 正在尝试代理：{country}（{current}/{total}）"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ 保存代理设置时出错。"
     PROXY_ENABLED_CALLBACK_MSG = "代理已启用。"
     PROXY_DISABLED_CALLBACK_MSG = "代理已禁用。"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ 检查Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ 全部（自动）"
+    PROXY_ON_BUTTON_MSG = "✅ 自动（按 YouTube 错误）"
     PROXY_OFF_BUTTON_MSG = "❌ 关闭"
     PROXY_CLOSE_BUTTON_MSG = "🔚关闭"
     

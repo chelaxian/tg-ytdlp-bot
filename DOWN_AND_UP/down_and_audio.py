@@ -1371,12 +1371,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         cycle_thread.join(timeout=1)
                 
                 if result is None:
-                    # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла
+                    # Проверяем, является ли это гео-ошибкой YouTube, и пробуем прокси из файла (только если прокси включен)
                     if is_youtube_url(url) and user_id is not None:
-                        # Используем последнюю ошибку, если она есть
+                        from COMMANDS.proxy_cmd import is_proxy_enabled
                         error_to_check = last_download_error if last_download_error else "Failed to download audio with all available proxies"
-                        if is_youtube_geo_error(error_to_check):
-                            logger.info(f"YouTube geo-blocked error detected in audio download for user {user_id}, attempting retry with proxy from file")
+                        if is_proxy_enabled(user_id) and is_youtube_geo_error(error_to_check):
+                            logger.info(f"YouTube geo-blocked error detected in audio download for user {user_id}, attempting retry with proxy from file (matching countries only)")
                             
                             def try_download_audio_wrapper(url_arg, attempt_opts_dict):
                                 proxy_url = attempt_opts_dict.get('proxy')
@@ -1601,73 +1601,35 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     if "Failed to download audio with all available proxies" in error_text:
                         logger.warning(f"All proxies already failed for audio, skipping proxy retry")
                     elif is_youtube_geo_error(error_text) and not did_proxy_retry:
-                        logger.debug(f"Checking geo-error in audio: is_youtube_geo_error={is_youtube_geo_error(error_text)}, did_proxy_retry={did_proxy_retry}, error_text[:200]={error_text[:200]}")
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
-                        logger.info(f"Full error message: {error_text}")
-                        
-                        # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
-                        # attempt_opts будет содержать прокси, который нужно использовать
-                        def try_download_audio_wrapper(url_arg, attempt_opts_dict):
-                            # Сохраняем прокси из attempt_opts для использования в try_download_audio
-                            proxy_url = attempt_opts_dict.get('proxy')
-                            
-                            # Используем thread-local storage для передачи прокси в try_download_audio
-                            import threading
-                            if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
-                                threading.current_thread().proxy_for_audio_download = None
-                            threading.current_thread().proxy_for_audio_download = proxy_url
-                            
-                            # Вызываем оригинальную функцию
-                            return try_download_audio(url_arg, current_index)
-                        
-                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
-                        retry_result = retry_download_with_proxy(
-                            user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
-                        )
-                        
-                        if retry_result is not None:
-                            logger.info(f"Audio download retry with proxy successful for user {user_id}")
-                            did_proxy_retry = True
-                            return retry_result
+                        from COMMANDS.proxy_cmd import is_proxy_enabled
+                        if not is_proxy_enabled(user_id):
+                            logger.info(f"Proxy not enabled for user {user_id}, skipping geo retry with proxy for audio")
                         else:
-                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
-                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
-                            did_proxy_retry = True
-                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
+                            logger.debug(f"Checking geo-error in audio: is_youtube_geo_error={is_youtube_geo_error(error_text)}, did_proxy_retry={did_proxy_retry}, error_text[:200]={error_text[:200]}")
+                            logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file (matching countries only)")
+                            logger.info(f"Full error message: {error_text}")
+                            
+                            def try_download_audio_wrapper(url_arg, attempt_opts_dict):
+                                proxy_url = attempt_opts_dict.get('proxy')
+                                import threading
+                                if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
+                                    threading.current_thread().proxy_for_audio_download = None
+                                threading.current_thread().proxy_for_audio_download = proxy_url
+                                return try_download_audio(url_arg, current_index)
+                            
+                            retry_result = retry_download_with_proxy(
+                                user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
+                            )
+                            
+                            if retry_result is not None:
+                                logger.info(f"Audio download retry with proxy successful for user {user_id}")
+                                did_proxy_retry = True
+                                return retry_result
+                            else:
+                                logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
+                                did_proxy_retry = True
                     elif is_youtube_geo_error(error_text):
                         logger.info(f"Geo-error detected in audio but proxy retry already attempted, skipping")
-                        logger.info(f"YouTube geo-blocked error detected for user {user_id}, attempting retry with proxy from file")
-                        logger.info(f"Full error message: {error_text}")
-                        
-                        # Создаем обертку для try_download_audio, которая принимает (url, attempt_opts)
-                        # attempt_opts будет содержать прокси, который нужно использовать
-                        def try_download_audio_wrapper(url_arg, attempt_opts_dict):
-                            # Сохраняем прокси из attempt_opts для использования в try_download_audio
-                            proxy_url = attempt_opts_dict.get('proxy')
-                            
-                            # Используем thread-local storage для передачи прокси в try_download_audio
-                            import threading
-                            if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
-                                threading.current_thread().proxy_for_audio_download = None
-                            threading.current_thread().proxy_for_audio_download = proxy_url
-                            
-                            # Вызываем оригинальную функцию
-                            return try_download_audio(url_arg, current_index)
-                        
-                        # Пробуем скачать через прокси (только подходящие по описанию ошибки)
-                        retry_result = retry_download_with_proxy(
-                            user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
-                        )
-                        
-                        if retry_result is not None:
-                            logger.info(f"Audio download retry with proxy successful for user {user_id}")
-                            did_proxy_retry = True
-                            return retry_result
-                        else:
-                            # Все подходящие прокси не помогли - продолжаем обработку ошибки
-                            logger.warning(f"All matching proxies from file failed for user {user_id}, will show error to user")
-                            did_proxy_retry = True
-                            # Не возвращаемся здесь - продолжаем обработку ошибки ниже
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube audio download error detected for user {user_id}, attempting cookie fallback")

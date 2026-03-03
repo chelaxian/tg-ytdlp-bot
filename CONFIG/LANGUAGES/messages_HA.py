@@ -610,8 +610,9 @@ Koyi ƙari: /playlist"""
     PROXY_ENABLED_CONFIRM_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ An kunna proxy. Duk ayyukan yt-dlp za su yi amfani da uwar garken proxy {count} tare da hanyar zaɓi {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ An kunna wakili (duk yanayin AUTO).\n\n📊 Bot zai gwada proxies ta wannan tsari:\n1️⃣ {config_count} proxies daga Config.py\n2️⃣ {file_count} proxies daga TXT/proxy.txt fayil\n\n🔄 Duk proxies za a gwada su bi da bi har sai an yi nasarar haɗin gwiwa."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ An kunna wakili (AUTO akan kuskuren YouTube).\n\nLokacin da YouTube ya mayar da kuskuren toshe yanki, bot zai yi amfani da wakilai na ƙasashen da aka jera a cikin wannan kuskure kawai (ba a gwada duk wakilai a jere ba)."
     PROXY_DISABLED_MSG = "❌ An kashe proxy."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Ana gwada proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Kuskure wajen adana saitunan proxy."
     PROXY_ENABLED_CALLBACK_MSG = "An kunna proxy."
     PROXY_DISABLED_CALLBACK_MSG = "An kashe proxy."
@@ -1649,7 +1650,7 @@ Koyi ƙari: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Duba Kuki"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ DUK (AUT)"
+    PROXY_ON_BUTTON_MSG = "✅ AUTO (akan kuskuren YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ KASHE"
     PROXY_CLOSE_BUTTON_MSG = "🔚Rufe"
     

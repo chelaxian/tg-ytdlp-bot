@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅เปิดใช้งานพรอกซี การดำเนินการ yt-dlp ทั้งหมดจะใช้พร็อกซี"
     PROXY_ENABLED_MULTIPLE_MSG = "✅เปิดใช้งานพรอกซี การดำเนินการ yt-dlp ทั้งหมดจะใช้ {count} พร็อกซีเซิร์ฟเวอร์พร้อมวิธีเลือก {method}"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅เปิดใช้งานพรอกซี (โหมดอัตโนมัติทั้งหมด)\n\n📊 บอทจะลองใช้พรอกซีตามลำดับนี้:\n1️⃣ {config_count} พร็อกซีจาก Config.py\n2️⃣ {file_count} พรอกซีจากไฟล์ TXT/proxy.txt\n\n🔄 พรอกซีทั้งหมดจะถูกลองตามลำดับจนกระทั่งการเชื่อมต่อสำเร็จ"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ เปิดใช้งานพร็อกซี (อัตโนมัติเมื่อ YouTube เกิดข้อผิดพลาด)\n\nเมื่อ YouTube แจ้งข้อผิดพลาดการบล็อกตามภูมิภาค บอทจะใช้เฉพาะพร็อกซีจากประเทศที่ระบุในข้อผิดพลาดนั้น (ไม่ลองพร็อกซีทั้งหมดตามลำดับ)"
     PROXY_DISABLED_MSG = "❌ ปิดพร็อกซีแล้ว"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 กำลังลองพร็อกซี: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ เกิดข้อผิดพลาดในการบันทึกการตั้งค่าพร็อกซี"
     PROXY_ENABLED_CALLBACK_MSG = "เปิดใช้งานพร็อกซี่แล้ว"
     PROXY_DISABLED_CALLBACK_MSG = "ปิดใช้งานพร็อกซี่แล้ว"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ ตรวจสอบคุกกี้"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ ทั้งหมด (อัตโนมัติ)"
+    PROXY_ON_BUTTON_MSG = "✅ อัตโนมัติ (เมื่อ YouTube เกิดข้อผิดพลาด)"
     PROXY_OFF_BUTTON_MSG = "❌ ปิด"
     PROXY_CLOSE_BUTTON_MSG = "🔚ปิด"
     

@@ -610,8 +610,9 @@ Tìm hiểu thêm: /playlist"""
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy đã bật. Tất cả các thao tác yt-dlp sẽ sử dụng {count} máy chủ proxy với phương pháp chọn {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Đã bật proxy (TẤT CẢ chế độ TỰ ĐỘNG).\n\n📊 Bot sẽ thử proxy theo thứ tự sau:\n1️⃣ {config_count} proxy từ Config.py\n2️⃣ {file_count} proxy từ tệp TXT/proxy.txt\n\n🔄 Tất cả các proxy sẽ được thử tuần tự cho đến khi kết nối thành công."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Đã bật proxy (TỰ ĐỘNG khi lỗi YouTube).\n\nKhi YouTube trả về lỗi chặn theo vùng, bot chỉ dùng proxy từ các quốc gia nêu trong lỗi đó (không thử lần lượt tất cả proxy)."
     PROXY_DISABLED_MSG = "❌ Proxy đã tắt."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Đang thử proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Lỗi khi lưu cài đặt proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy đã bật."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy đã tắt."
@@ -1649,7 +1650,7 @@ Tìm hiểu thêm: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Kiểm Tra Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ TẤT CẢ (TỰ ĐỘNG)"
+    PROXY_ON_BUTTON_MSG = "✅ TỰ ĐỘNG (khi lỗi YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ TẮT"
     PROXY_CLOSE_BUTTON_MSG = "🔚Đóng"
     

@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy সক্ষম করা হয়েছে। সমস্ত yt-dlp অপারেশন proxy ব্যবহার করবে।"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy সক্ষম করা হয়েছে। সমস্ত yt-dlp অপারেশন {method} নির্বাচন পদ্ধতি সহ {count} proxy সার্ভার ব্যবহার করবে।"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ প্রক্সি সক্ষম (সমস্ত অটো মোড)।\n\n📊 বট এই ক্রমে প্রক্সি চেষ্টা করবে:\nConfig.py থেকে 1️⃣ {config_count} প্রক্সি\nTXT/proxy.txt ফাইল থেকে 2️⃣ {file_count} প্রক্সি\n\n🔄 সফল সংযোগ না হওয়া পর্যন্ত সমস্ত প্রক্সি পর্যায়ক্রমে চেষ্টা করা হবে।"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ প্রক্সি চালু (YouTube ত্রুটিতে অটো)।\n\nYouTube যখন জিও-ব্লক ত্রুটি দেবে, বট শুধুমাত্র সেই ত্রুটিতে উল্লিখিত দেশগুলির প্রক্সি ব্যবহার করবে (সমস্ত প্রক্সি ধারাবাহিকভাবে চেষ্টা করা হবে না)।"
     PROXY_DISABLED_MSG = "❌ Proxy অক্ষম করা হয়েছে।"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 প্রক্সি চেষ্টা করা হচ্ছে: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy সেটিংস সংরক্ষণ করতে ত্রুটি।"
     PROXY_ENABLED_CALLBACK_MSG = "Proxy সক্ষম করা হয়েছে।"
     PROXY_DISABLED_CALLBACK_MSG = "Proxy অক্ষম করা হয়েছে।"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie পরীক্ষা করুন"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ সব (অটো)"
+    PROXY_ON_BUTTON_MSG = "✅ অটো (YouTube ত্রুটিতে)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚বন্ধ করুন"
     

@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 프록시를 사용합니다."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 {method} 선택 방법으로 {count}개의 프록시 서버를 사용합니다."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 프록시가 활성화되었습니다(ALL AUTO 모드).\n\n📊 봇은 다음 순서로 프록시를 시도합니다.\n1️⃣ Config.py의 {config_count} 프록시\n2️⃣ TXT/proxy.txt 파일의 {file_count} 프록시\n\n🔄 모든 프록시는 성공적으로 연결될 때까지 순차적으로 시도됩니다."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ 프록시가 활성화되었습니다(YouTube 오류 시 자동).\n\nYouTube에서 지역 제한 오류가 발생하면 봇은 해당 오류에 명시된 국가의 프록시만 사용합니다(전체 프록시 순차 시도 없음)."
     PROXY_DISABLED_MSG = "❌ 프록시가 비활성화되었습니다."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 프록시 시도 중: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ 프록시 설정 저장 중 오류가 발생했습니다."
     PROXY_ENABLED_CALLBACK_MSG = "프록시가 활성화되었습니다."
     PROXY_DISABLED_CALLBACK_MSG = "프록시가 비활성화되었습니다."
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ 쿠키 확인"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ 모두(자동)"
+    PROXY_ON_BUTTON_MSG = "✅ 자동(YouTube 오류 시)"
     PROXY_OFF_BUTTON_MSG = "❌ OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Close"
     

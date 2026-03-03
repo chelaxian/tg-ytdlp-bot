@@ -610,8 +610,9 @@ Ko'proq ma'lumot: /playlist"""
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari proxy'dan foydalanadi."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy yoqildi. Barcha yt-dlp operatsiyalari {count} proxy server va {method} tanlash usuli bilan ishlaydi."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi yoqilgan (BARCHA AUTO rejimi).\n\n📊 Bot proksi-serverlarni quyidagi tartibda sinab ko'radi:\nConfig.py dan 1️⃣ {config_count} ta proksi\nTXT/proxy.txt faylidan 2️⃣ {file_count} proksi\n\n🔄 Barcha proksi-serverlar muvaffaqiyatli ulanishga qadar ketma-ket tekshiriladi."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Proksi yoqilgan (YouTube xatosi bo'yicha AVTO).\n\nYouTube geo-blok xatosi qaytarganda bot faqat shu xatoda ko'rsatilgan mamlakatlar proksilaridan foydalanadi (barcha proksilarni ketma-ket sinash yo'q)."
     PROXY_DISABLED_MSG = "❌ Proxy o'chirildi."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Proksi sinanmoqda: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Proxy sozlamalarini saqlashda xatolik."
     PROXY_ENABLED_CALLBACK_MSG = "Proxy yoqildi."
     PROXY_DISABLED_CALLBACK_MSG = "Proxy o'chirildi."
@@ -1649,7 +1650,7 @@ Ko'proq ma'lumot: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Cookie'ni tekshirish"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ HAMMA (AVTO)"
+    PROXY_ON_BUTTON_MSG = "✅ AVTO (YouTube xatosi bo'yicha)"
     PROXY_OFF_BUTTON_MSG = "❌ O'CHIRILGAN"
     PROXY_CLOSE_BUTTON_MSG = "🔚Yopish"
     

@@ -1994,15 +1994,30 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                     logger.warning("Will not try other proxies - only matching proxies are used")
                     proxies_to_try = []  # Не пробуем прокси, если нет подходящих
             else:
-                # Если нет списка стран (например, блокировка по копирайту), пробуем все прокси подряд
-                logger.info("No available countries list found in error, will try all proxies sequentially")
-                proxies_to_try = get_all_proxies_from_file(proxy_file_path)
+                # В режиме АВТО (без выбранной страны) не перебираем все прокси — только по списку стран из ошибки
+                from COMMANDS.proxy_cmd import get_user_selected_country
+                if get_user_selected_country(user_id) is None:
+                    logger.info("AUTO mode: no country list in error, will not try all proxies (only matching countries from YouTube error)")
+                    proxies_to_try = []
+                else:
+                    logger.info("No available countries list found in error, will try all proxies sequentially")
+                    proxies_to_try = get_all_proxies_from_file(proxy_file_path)
             
             # Пробуем каждый прокси по очереди
+            total_proxies = len(proxies_to_try)
             for i, proxy_info in enumerate(proxies_to_try):
                 proxy_url = proxy_info['proxy_url']
                 proxy_country = proxy_info['country']
                 proxy_type = proxy_info['type']
+                
+                # Сообщение пользователю: пробуем прокси такой-то страны (без технических деталей)
+                try:
+                    messages = safe_get_messages(user_id)
+                    msg_template = getattr(messages, 'PROXY_TRYING_COUNTRY_MSG', None)
+                    if msg_template:
+                        safe_send_message(user_id, msg_template.format(country=proxy_country, current=i + 1, total=total_proxies))
+                except Exception as notify_e:
+                    logger.debug("Could not send proxy progress to user: %s", notify_e)
                 
                 logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url}")
                 logger.info(f"Proxy details: IP={proxy_info.get('ip', 'unknown')}, Port={proxy_info.get('port', 'unknown')}")

@@ -610,8 +610,9 @@ Matuto pa: /playlist"""
     PROXY_ENABLED_CONFIRM_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng proxy."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Naka-enable ang proxy. Lahat ng yt-dlp operation ay gagamit ng {count} proxy server na may {method} paraan ng pagpili."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Naka-enable ang proxy (ALL AUTO mode).\n\n📊 Susubukan ni Bot ang mga proxy sa ganitong pagkakasunud-sunod:\n1️⃣ {config_count} (na) proxy mula sa Config.py\n2️⃣ {file_count} (na) proxy mula sa TXT/proxy.txt file\n\n🔄 Lahat ng proxy ay susubukan nang sunud-sunod hanggang sa matagumpay na koneksyon."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ Naka-enable ang proxy (AUTO sa error ng YouTube).\n\nKapag nagbalik ng geo-block error ang YouTube, gagamitin lang ng bot ang mga proxy mula sa mga bansang nakalagay sa error na iyon (walang sunud-sunod na pagsubok ng lahat ng proxy)."
     PROXY_DISABLED_MSG = "❌ Naka-disable ang proxy."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 Sinusubukang proxy: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ Error sa pag-save ng mga setting ng proxy."
     PROXY_ENABLED_CALLBACK_MSG = "Pinagana ang proxy."
     PROXY_DISABLED_CALLBACK_MSG = "Naka-disable ang proxy."
@@ -1649,7 +1650,7 @@ Matuto pa: /playlist"""
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ Suriin ang Cookie"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ LAHAT (AUTO)"
+    PROXY_ON_BUTTON_MSG = "✅ AUTO (sa error ng YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ NAKA-OFF"
     PROXY_CLOSE_BUTTON_MSG = "🔚Isara"
     

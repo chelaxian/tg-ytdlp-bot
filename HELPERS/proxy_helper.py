@@ -5,9 +5,13 @@ from urllib.parse import quote
 from COMMANDS.proxy_cmd import get_proxy_config
 from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.pot_helper import add_pot_to_ytdl_opts
+from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.youtube import is_youtube_url
+from HELPERS.proxy_file_helper import test_proxy_url
 
 logger = logging.getLogger(__name__)
+
+PROXY_TEST_TIMEOUT = 5
 
 def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_id: int = None) -> dict:
     """
@@ -173,39 +177,22 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
             logger.warning(f"Error checking country proxy for user {user_id}: {e}")
             pass
     
-    # Priority 2: Check if user has proxy enabled (ALL AUTO mode) - uses first available proxy
-    # (Config first, then file) - full rotation happens in try_with_proxy_fallback
+    # Priority 2: When user has proxy enabled but no country (AUTO mode) - do NOT add proxy to initial request.
+    # First request goes without proxy; proxy is used only on retry when YouTube returns geo-error with country list (retry_download_with_proxy).
     if user_id:
         try:
             from COMMANDS.proxy_cmd import is_proxy_enabled
             proxy_enabled = is_proxy_enabled(user_id)
             logger.info(f"User {user_id} proxy enabled: {proxy_enabled}")
             if proxy_enabled:
-                # Try Config proxies first
-                proxy_config = select_proxy_for_user()
-                if proxy_config:
-                    proxy_url = build_proxy_url(proxy_config)
-                    if proxy_url:
-                        ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"Added user proxy from Config for {user_id} (ALL AUTO mode): {proxy_url}")
-                        return ytdl_opts
-                
-                # If no Config proxies, try first proxy from file
-                try:
-                    from HELPERS.proxy_file_helper import get_all_proxies_from_file
-                    file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
-                    if file_proxies:
-                        proxy_url = file_proxies[0]['proxy_url']
-                        ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"Added user proxy from file for {user_id} (ALL AUTO mode): {proxy_url}")
-                        return ytdl_opts
-                except Exception as e:
-                    logger.warning(f"Error loading proxies from file: {e}")
+                # AUTO: no proxy on first request; retry with proxy only when geo-error with country list
+                logger.info(f"User {user_id} in AUTO mode (no country) - not adding proxy to initial request")
+                return ytdl_opts
         except Exception as e:
             logger.warning(f"Error checking proxy for user {user_id}: {e}")
             pass
     
-    # Priority 3: Check if domain requires specific proxy (only if user proxy is OFF)
+    # Priority 3: Check if domain requires specific proxy (only if user proxy is OFF or no user)
     logger.info(f"Checking domain-specific proxy for {url}")
     proxy_config = select_proxy_for_domain(url)
     if proxy_config:
@@ -262,10 +249,22 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
             proxies = get_proxies_for_country(selected_country)
             if proxies:
                 logger.info(f"User {user_id} selected country {selected_country}, trying {len(proxies)} proxies from file")
+                total_proxies = len(proxies)
                 for i, proxy_info in enumerate(proxies):
                     try:
-                        current_opts = ytdl_opts.copy()
                         proxy_url = proxy_info['proxy_url']
+                        if not test_proxy_url(proxy_url, timeout=PROXY_TEST_TIMEOUT):
+                            logger.warning(f"Skipping proxy (unreachable): {proxy_info.get('country', '?')} {proxy_info.get('type', '?')}")
+                            continue
+                        # Сообщение пользователю: какой прокси используется (страна, без технических деталей)
+                        try:
+                            proxy_country = proxy_info.get('country', selected_country)
+                            msg_template = getattr(safe_get_messages(user_id), 'PROXY_TRYING_COUNTRY_MSG', None)
+                            if msg_template:
+                                safe_send_message(user_id, msg_template.format(country=proxy_country, current=i + 1, total=total_proxies))
+                        except Exception as notify_e:
+                            logger.debug("Could not send proxy progress to user: %s", notify_e)
+                        current_opts = ytdl_opts.copy()
                         current_opts['proxy'] = proxy_url
                         # Добавляем PO token provider для YouTube (если еще не добавлен)
                         if is_youtube_url(url):
@@ -319,100 +318,13 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                 logger.warning(f"User selected country {selected_country} but no proxies found for this country")
                 return None
         else:
-            # No country selected - continue to ALL AUTO mode below
-            pass
+            # No country selected (AUTO mode) - do NOT try all proxies; let caller handle geo error and use retry_download_with_proxy (matching countries only)
+            logger.info(f"User {user_id} in AUTO mode (no country) - not iterating over all proxies; geo retry will use only countries from YouTube error")
+            return None
     except Exception as e:
         logger.warning(f"Error checking user selected country: {e}")
     
-    # User proxy is enabled (ALL AUTO mode) - try all proxies: first from Config, then from file
-    all_proxies_to_try = []
-    
-    # Step 1: Add all proxies from Config
-    all_configs = get_all_proxy_configs()
-    for proxy_config in all_configs:
-        proxy_url = build_proxy_url(proxy_config)
-        if proxy_url:
-            all_proxies_to_try.append({
-                'proxy_url': proxy_url,
-                'source': 'config',
-                'index': len(all_proxies_to_try) + 1
-            })
-    
-    # Step 2: Add all proxies from file (if file exists)
-    try:
-        from HELPERS.proxy_file_helper import get_all_proxies_from_file
-        file_proxies = get_all_proxies_from_file("TXT/proxy.txt")
-        for proxy_info in file_proxies:
-            all_proxies_to_try.append({
-                'proxy_url': proxy_info['proxy_url'],
-                'source': 'file',
-                'country': proxy_info['country'],
-                'type': proxy_info['type'],
-                'index': len(all_proxies_to_try) + 1
-            })
-    except Exception as e:
-        logger.warning(f"Error loading proxies from file: {e}")
-    
-    if not all_proxies_to_try:
-        logger.info(f"No proxies available for {url}, trying without proxy")
-        # Добавляем PO token provider для YouTube (если еще не добавлен)
-        if is_youtube_url(url):
-            ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts.copy(), url)
-        return operation_func(ytdl_opts, *args, **kwargs)
-    
-    logger.info(f"Trying {len(all_proxies_to_try)} proxies in ALL AUTO mode: {len(all_configs)} from Config, {len(all_proxies_to_try) - len(all_configs)} from file")
-    
-    # Try with each proxy
-    for proxy_item in all_proxies_to_try:
-        try:
-            current_opts = ytdl_opts.copy()
-            proxy_url = proxy_item['proxy_url']
-            current_opts['proxy'] = proxy_url
-            # Добавляем PO token provider для YouTube (если еще не добавлен)
-            if is_youtube_url(url):
-                current_opts = add_pot_to_ytdl_opts(current_opts, url)
-            
-            # Если это HLS-стрим - добавляем параметры для быстрого прерывания при ошибках 403
-            if "m3u8" in url.lower() or current_opts.get("downloader") == "ffmpeg" or current_opts.get("hls_prefer_native") is False:
-                logger.info("HLS stream with proxy detected in ALL AUTO fallback - adding fast-fail options")
-                # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
-                current_opts["hls_prefer_native"] = True
-                current_opts["downloader"] = "native"  # Используем native downloader для HLS
-                current_opts["fragment_retries"] = 0
-                current_opts["hls_fragment_retries"] = 0
-                current_opts["abort_on_unavailable_fragment"] = True
-                current_opts["max_fragments"] = 1
-                # Добавляем таймаут для downloader_args
-                if "downloader_args" not in current_opts:
-                    current_opts["downloader_args"] = {}
-                current_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
-            
-            source_info = f"{proxy_item['source']}"
-            if proxy_item['source'] == 'file':
-                source_info += f" ({proxy_item.get('country', 'unknown')}, {proxy_item.get('type', 'unknown')})"
-            
-            logger.info(f"Trying {url} with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {proxy_url}")
-            result = operation_func(current_opts, *args, **kwargs)
-            
-            if result is not None:
-                logger.info(f"Success with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {proxy_url}")
-                return result
-            else:
-                logger.warning(f"Operation returned None with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {proxy_url}")
-        except Exception as e:
-            logger.warning(f"Failed with proxy {proxy_item['index']}/{len(all_proxies_to_try)} from {source_info}: {e}")
-            continue
-    
-    # If all proxies failed, try without proxy as last resort
-    try:
-        logger.warning(f"All {len(all_proxies_to_try)} proxies failed for {url}, trying without proxy")
-        current_opts = ytdl_opts.copy()
-        if 'proxy' in current_opts:
-            del current_opts['proxy']
-        return operation_func(current_opts, *args, **kwargs)
-    except Exception as e:
-        logger.error(f"Failed without proxy for {url}: {e}")
-        return None
+    return None
 
 def is_proxy_domain(url: str) -> bool:
     """Check if the domain is in PROXY_DOMAINS or PROXY_2_DOMAINS"""

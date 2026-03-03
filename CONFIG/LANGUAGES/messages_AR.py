@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم البروكسي."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم {count} خادم بروكسي مع طريقة اختيار {method}."
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ تم تمكين الوكيل (الوضع التلقائي بالكامل).\n\n📊 سيحاول الروبوت استخدام الوكلاء بهذا الترتيب:\n1️⃣ {config_count} وكلاء من Config.py\n2️⃣ {file_count} وكيل من ملف TXT/proxy.txt\n\n🔄 سيتم تجربة جميع البروكسيات بشكل تسلسلي حتى يتم الاتصال بنجاح."
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ تم تمكين الوكيل (تلقائي عند خطأ YouTube).\n\nعند إرجاع YouTube خطأ حظر جغرافي، سيستخدم الروبوت فقط وكلاء من الدول المذكورة في ذلك الخطأ (بدون تجربة كل الوكلاء بالتسلسل)."
     PROXY_DISABLED_MSG = "❌ تم إلغاء البروكسي."
+    PROXY_TRYING_COUNTRY_MSG = "🔄 جاري تجربة الوكيل: {country} ({current}/{total})"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ خطأ في حفظ إعدادات البروكسي."
     PROXY_ENABLED_CALLBACK_MSG = "تم تفعيل البروكسي."
     PROXY_DISABLED_CALLBACK_MSG = "تم إلغاء البروكسي."
@@ -1655,7 +1656,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ فحص ملف تعريف الارتباط"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ الكل (تلقائي)"
+    PROXY_ON_BUTTON_MSG = "✅ تلقائي (عند خطأ YouTube)"
     PROXY_OFF_BUTTON_MSG = "❌ إيقاف"
     PROXY_CLOSE_BUTTON_MSG = "🔚إغلاق"
     

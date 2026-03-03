@@ -610,8 +610,9 @@ class Messages(object):
     PROXY_ENABLED_CONFIRM_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作でプロキシが使用されます。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作で{count}個のプロキシサーバーが{method}選択メソッドで使用されます。"
 
-    PROXY_ENABLED_ALL_AUTO_MSG = "✅ プロキシが有効になっています (ALL AUTO モード)。\n\n📊 ボットは次の順序でプロキシを試行します。\n1️⃣ Config.py からの {config_count} プロキシ\n2️⃣ TXT/proxy.txt ファイルからの {file_count} プロキシ\n\n🔄 接続が成功するまで、すべてのプロキシが順番に試行されます。"
+    PROXY_ENABLED_ALL_AUTO_MSG = "✅ プロキシを有効にしました（YouTube エラー時に自動）。\n\nYouTube が地域制限エラーを返した場合、ボットはそのエラーに記載された国のみのプロキシを使用します（全プロキシの順次試行は行いません）。"
     PROXY_DISABLED_MSG = "❌ プロキシが無効になりました。"
+    PROXY_TRYING_COUNTRY_MSG = "🔄 プロキシを試行中: {country}（{current}/{total}）"
     PROXY_ERROR_SAVING_CALLBACK_MSG = "❌ プロキシ設定の保存エラー。"
     PROXY_ENABLED_CALLBACK_MSG = "プロキシが有効になりました。"
     PROXY_DISABLED_CALLBACK_MSG = "プロキシが無効になりました。"
@@ -1649,7 +1650,7 @@ class Messages(object):
     COOKIES_CHECK_COOKIE_BUTTON_MSG = "✅ クッキーを確認する"
     
     # Proxy command button texts
-    PROXY_ON_BUTTON_MSG = "✅ オール（オート）"
+    PROXY_ON_BUTTON_MSG = "✅ 自動（YouTube エラー時）"
     PROXY_OFF_BUTTON_MSG = "❌ オフ"
     PROXY_CLOSE_BUTTON_MSG = "🔚閉じる"
     
