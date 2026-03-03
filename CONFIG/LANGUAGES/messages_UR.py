@@ -605,7 +605,7 @@ Use:
     PROXY_ENABLED_MSG = "✅ پراکسی {status}."
     PROXY_ERROR_SAVING_MSG = "❌ پروکسی ترتیبات محفوظ کرنے میں خرابی۔"
     PROXY_MENU_TEXT_MSG = "تمام yt-dlp آپریشنز کے لیے پروکسی سرور استعمال کرنے کو فعال/غیر فعال کریں؟"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "تمام YT-DLP آپریشنز کے لئے پراکسی سرورز ({config_count} + {file_count} دستیاب) کا استعمال کرتے ہوئے فعال یا غیر فعال کریں؟\n\nجب تمام (آٹو) کو فعال کیا جائے تو ، بے ترتیب طریقہ کا استعمال کرتے ہوئے پراکسیوں کا انتخاب کیا جائے گا۔"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "تمام YT-DLP آپریشنز کے لئے پراکسی سرورز ({config_count} + {file_count} دستیاب) کا استعمال کرتے ہوئے فعال یا غیر فعال کریں؟\n\nجب تمام (آٹو) کو فعال کیا جائے تو، پراکسیوں کا انتخاب خودکار طور پر اجازت یافتہ ممالک (YouTube خرابی میں درج) کے مطابق کیا جاتا ہے۔"
     PROXY_MENU_CLOSED_MSG = "مینو بند۔"
     PROXY_ENABLED_CONFIRM_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز proxy استعمال کریں گے۔"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Proxy فعال ہے۔ تمام yt-dlp آپریشنز {count} proxy سرورز {method} انتخاب کے طریقہ کے ساتھ استعمال کریں گے۔"

@@ -435,10 +435,12 @@ def merge_working_proxies_to_proxy_file(
     progress_callback: Optional[Callable[[int, int, str], None]] = None,
 ) -> Tuple[int, int]:
     """
-    Read working_proxies.txt, resolve country per IP (with cache), append lines in proxy.txt
-    format to proxy_path. Replaces any existing "HTTP(S) (online):" / "SOCKS5 (online):" block.
+    Read working_proxies.txt, resolve country per IP (with cache), write proxy.txt format to proxy_path.
+    Replaces the entire "HTTP(S) (online):" / "SOCKS5 (online):" block with the current working_proxies
+    content — so when working_proxies.txt is updated (e.g. every 30 min), old merged proxies that are
+    no longer in the file are removed from proxy.txt; only current working proxies remain.
     progress_callback: optional callable(current_index, total, host) for progress output.
-    Returns (count_http, count_socks5) added.
+    Returns (count_http, count_socks5) written.
     """
     import time
     import json
@@ -488,7 +490,8 @@ def merge_working_proxies_to_proxy_file(
             json.dump(geo_cache, f, ensure_ascii=False)
     except Exception as e:
         logger.debug(f"merge_working_proxies: write geo cache: {e}")
-    # Read current proxy.txt and remove online block
+    # Read proxy.txt: keep only lines before the first "online" block (manual proxies/headers)
+    # Everything from "HTTP(S) (online):" / "SOCKS5 (online):" to EOF is discarded and replaced below
     manual_lines = []
     if os.path.exists(proxy_path):
         try:

@@ -604,7 +604,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ Прокси {status}."
     PROXY_ERROR_SAVING_MSG = "❌ Ошибка сохранения настроек прокси."
     PROXY_MENU_TEXT_MSG = "Включить или отключить использование прокси сервера для всех операций yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "Включить или отключить использование прокси серверов ({config_count} + {file_count} доступно) для всех операций yt-dlp?\n\nПри включении ALL (AUTO) прокси будут выбираться случайным методом."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "Включить или отключить использование прокси серверов ({config_count} + {file_count} доступно) для всех операций yt-dlp?\n\nПри включении ALL (AUTO) прокси подбираются автоматически по разрешённым странам (из ошибки YouTube)."
     PROXY_MENU_CLOSED_MSG = "Меню закрыто."
     PROXY_ENABLED_CONFIRM_MSG = "✅ Прокси включён. Все операции yt-dlp будут использовать прокси."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ Прокси включён. Все операции yt-dlp будут использовать {count} прокси серверов с методом выбора {method}."

@@ -604,7 +604,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ प्रॉक्सी {status}।"
     PROXY_ERROR_SAVING_MSG = "❌ प्रॉक्सी सेटिंग्स सहेजने में त्रुटि।"
     PROXY_MENU_TEXT_MSG = "सभी yt-dlp ऑपरेशन के लिए प्रॉक्सी सर्वर का उपयोग सक्षम या अक्षम करें?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "सभी yt-dlp परिचालनों के लिए प्रॉक्सी सर्वर ({config_count} + {file_count} उपलब्ध) का उपयोग सक्षम या अक्षम करें?\n\nसभी (ऑटो) सक्षम होने पर, यादृच्छिक विधि का उपयोग करके प्रॉक्सी का चयन किया जाएगा।"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "सभी yt-dlp परिचालनों के लिए प्रॉक्सी सर्वर ({config_count} + {file_count} उपलब्ध) का उपयोग सक्षम या अक्षम करें?\n\nसभी (ऑटो) सक्षम होने पर, प्रॉक्सी अनुमत देशों (YouTube त्रुटि में दिए गए) के अनुसार स्वचालित रूप से चुने जाते हैं।"
     PROXY_MENU_CLOSED_MSG = "मेनू बंद।"
     PROXY_ENABLED_CONFIRM_MSG = "✅ प्रॉक्सी सक्षम। सभी yt-dlp ऑपरेशन प्रॉक्सी का उपयोग करेंगे।"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ प्रॉक्सी सक्षम। सभी yt-dlp ऑपरेशन {method} चयन विधि के साथ {count} प्रॉक्सी सर्वर का उपयोग करेंगे।"

@@ -605,7 +605,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ 代理 {status}。"
     PROXY_ERROR_SAVING_MSG = "❌ 保存代理设置时出错。"
     PROXY_MENU_TEXT_MSG = "启用或禁用代理服务器用于所有yt-dlp操作？"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "为所有 yt-dlp 操作启用或禁用使用代理服务器（{config_count} + {file_count} 可用）？\n\n当启用全部（自动）时，将使用随机方法选择代理。"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "为所有 yt-dlp 操作启用或禁用使用代理服务器（{config_count} + {file_count} 可用）？\n\n当启用全部（自动）时，将根据允许的国家/地区（来自 YouTube 错误信息）自动选择代理。"
     PROXY_MENU_CLOSED_MSG = "菜单已关闭。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ 代理已启用。所有yt-dlp操作将使用代理。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 代理已启用。所有yt-dlp操作将使用 {count} 个代理服务器，采用 {method} 选择方法。"

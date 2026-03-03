@@ -605,7 +605,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ พร็อกซี {status}."
     PROXY_ERROR_SAVING_MSG = "❌ เกิดข้อผิดพลาดในการบันทึกการตั้งค่าพร็อกซี"
     PROXY_MENU_TEXT_MSG = "เปิดหรือปิดการใช้เซิร์ฟเวอร์พร็อกซี่สำหรับการทำงานทั้งหมดของ yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "เปิดหรือปิดใช้งานโดยใช้พร็อกซีเซิร์ฟเวอร์ (มี {config_count} + {file_count}) สำหรับการดำเนินการ yt-dlp ทั้งหมด\n\nเมื่อเปิดใช้งาน ALL (AUTO) พรอกซีจะถูกเลือกโดยใช้วิธีการสุ่ม"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "เปิดหรือปิดใช้งานโดยใช้พร็อกซีเซิร์ฟเวอร์ (มี {config_count} + {file_count}) สำหรับการดำเนินการ yt-dlp ทั้งหมด\n\nเมื่อเปิดใช้งาน ALL (AUTO) พร็อกซีจะถูกเลือกอัตโนมัติตามประเทศที่อนุญาต (จากข้อผิดพลาดของ YouTube)"
     PROXY_MENU_CLOSED_MSG = "ปิดเมนูแล้ว"
     PROXY_ENABLED_CONFIRM_MSG = "✅เปิดใช้งานพรอกซี การดำเนินการ yt-dlp ทั้งหมดจะใช้พร็อกซี"
     PROXY_ENABLED_MULTIPLE_MSG = "✅เปิดใช้งานพรอกซี การดำเนินการ yt-dlp ทั้งหมดจะใช้ {count} พร็อกซีเซิร์ฟเวอร์พร้อมวิธีเลือก {method}"

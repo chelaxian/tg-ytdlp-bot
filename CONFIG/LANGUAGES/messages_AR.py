@@ -605,7 +605,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ البروكسي {status}."
     PROXY_ERROR_SAVING_MSG = "❌ خطأ في حفظ إعدادات البروكسي."
     PROXY_MENU_TEXT_MSG = "تفعيل أو إلغاء استخدام خادم البروكسي لجميع عمليات yt-dlp؟"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "هل تريد تمكين أو تعطيل استخدام الخوادم الوكيلة (يتوفر {config_count} + {file_count}) لجميع عمليات yt-dlp؟\n\nعند تمكين الكل (AUTO)، سيتم اختيار الوكلاء باستخدام طريقة عشوائية."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "هل تريد تمكين أو تعطيل استخدام الخوادم الوكيلة (يتوفر {config_count} + {file_count}) لجميع عمليات yt-dlp؟\n\nعند تمكين الكل (AUTO)، يتم اختيار الوكلاء تلقائياً وفقاً للدول المسموح بها (الواردة في رسالة خطأ YouTube)."
     PROXY_MENU_CLOSED_MSG = "تم إغلاق القائمة."
     PROXY_ENABLED_CONFIRM_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم البروكسي."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ تم تفعيل البروكسي. جميع عمليات yt-dlp ستستخدم {count} خادم بروكسي مع طريقة اختيار {method}."

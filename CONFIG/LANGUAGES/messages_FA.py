@@ -605,7 +605,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ پروکسی {status}."
     PROXY_ERROR_SAVING_MSG = "❌ خطا در ذخیره تنظیمات پروکسی."
     PROXY_MENU_TEXT_MSG = "فعال یا غیرفعال کردن استفاده از سرور پروکسی برای تمام عملیات yt-dlp?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "با استفاده از سرورهای پراکسی ({config_count} + {file_count} موجود) برای همه عملیات yt-dlp فعال یا غیرفعال شود؟\n\nوقتی ALL (AUTO) فعال باشد، پراکسی ها با استفاده از روش تصادفی انتخاب می شوند."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "با استفاده از سرورهای پراکسی ({config_count} + {file_count} موجود) برای همه عملیات yt-dlp فعال یا غیرفعال شود؟\n\nوقتی ALL (AUTO) فعال باشد، پراکسی‌ها بر اساس کشورهای مجاز (درج شده در خطای YouTube) به‌طور خودکار انتخاب می‌شوند."
     PROXY_MENU_CLOSED_MSG = "منو بسته شد."
     PROXY_ENABLED_CONFIRM_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از پروکسی استفاده خواهند کرد."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ پروکسی فعال شد. تمام عملیات yt-dlp از {count} سرور پروکسی با روش انتخاب {method} استفاده خواهند کرد."

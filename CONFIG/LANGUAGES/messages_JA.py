@@ -605,7 +605,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ プロキシ{status}。"
     PROXY_ERROR_SAVING_MSG = "❌ プロキシ設定の保存エラー。"
     PROXY_MENU_TEXT_MSG = "すべてのyt-dlp操作にプロキシサーバーを使用することを有効または無効にしますか？"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "すべての yt-dlp 操作でプロキシ サーバー ({config_count} + {file_count} が利用可能) の使用を有効または無効にしますか?\n\nALL (AUTO) を有効にすると、プロキシはランダムな方法で選択されます。"
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "すべての yt-dlp 操作でプロキシ サーバー ({config_count} + {file_count} が利用可能) の使用を有効または無効にしますか?\n\nALL (AUTO) を有効にすると、プロキシは許可された国（YouTube のエラーに表示）に応じて自動選択されます。"
     PROXY_MENU_CLOSED_MSG = "メニューを閉じました。"
     PROXY_ENABLED_CONFIRM_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作でプロキシが使用されます。"
     PROXY_ENABLED_MULTIPLE_MSG = "✅ プロキシが有効になりました。すべてのyt-dlp操作で{count}個のプロキシサーバーが{method}選択メソッドで使用されます。"

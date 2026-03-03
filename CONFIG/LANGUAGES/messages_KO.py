@@ -605,7 +605,7 @@ class Messages(object):
     PROXY_ENABLED_MSG = "✅ 프록시 {status}."
     PROXY_ERROR_SAVING_MSG = "❌ 프록시 설정 저장 중 오류가 발생했습니다."
     PROXY_MENU_TEXT_MSG = "모든 yt-dlp 작업에 대해 프록시 서버 사용을 활성화하거나 비활성화하시겠습니까?"
-    PROXY_MENU_TEXT_MULTIPLE_MSG = "모든 yt-dlp 작업에 프록시 서버({config_count} + {file_count} 사용 가능) 사용을 활성화 또는 비활성화하시겠습니까?\n\nALL(AUTO)을 활성화하면 무작위 방법을 사용하여 프록시가 선택됩니다."
+    PROXY_MENU_TEXT_MULTIPLE_MSG = "모든 yt-dlp 작업에 프록시 서버({config_count} + {file_count} 사용 가능) 사용을 활성화 또는 비활성화하시겠습니까?\n\nALL(AUTO)을 활성화하면 허용된 국가(YouTube 오류에 표시)에 따라 프록시가 자동 선택됩니다."
     PROXY_MENU_CLOSED_MSG = "메뉴가 닫혔습니다."
     PROXY_ENABLED_CONFIRM_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 프록시를 사용합니다."
     PROXY_ENABLED_MULTIPLE_MSG = "✅ 프록시가 활성화되었습니다. 모든 yt-dlp 작업이 {method} 선택 방법으로 {count}개의 프록시 서버를 사용합니다."
