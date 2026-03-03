@@ -1961,11 +1961,13 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
     # Пробуем использовать прокси из файла TXT/proxy.txt
     try:
         from HELPERS.proxy_file_helper import (
-            parse_proxy_file, 
-            extract_available_countries, 
+            parse_proxy_file,
+            extract_available_countries,
             find_matching_proxies,
-            get_all_proxies_from_file
+            get_all_proxies_from_file,
+            test_proxy_url,
         )
+        from HELPERS.proxy_helper import PROXY_TEST_TIMEOUT
         
         proxy_file_path = "TXT/proxy.txt"
         proxies_from_file = parse_proxy_file(proxy_file_path)
@@ -2009,7 +2011,9 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                 proxy_url = proxy_info['proxy_url']
                 proxy_country = proxy_info['country']
                 proxy_type = proxy_info['type']
-                
+                if not test_proxy_url(proxy_url, timeout=PROXY_TEST_TIMEOUT):
+                    logger.warning(f"Skipping proxy (unreachable): {proxy_country} ({proxy_type})")
+                    continue
                 # Сообщение пользователю: пробуем прокси такой-то страны (без технических деталей)
                 try:
                     messages = safe_get_messages(user_id)
@@ -2018,7 +2022,6 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         safe_send_message(user_id, msg_template.format(country=proxy_country, current=i + 1, total=total_proxies))
                 except Exception as notify_e:
                     logger.debug("Could not send proxy progress to user: %s", notify_e)
-                
                 logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url}")
                 logger.info(f"Proxy details: IP={proxy_info.get('ip', 'unknown')}, Port={proxy_info.get('port', 'unknown')}")
                 

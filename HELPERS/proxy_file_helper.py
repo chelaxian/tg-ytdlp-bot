@@ -36,6 +36,14 @@ COUNTRY_MAPPING = {
     'britain': 'united kingdom',
     'u.k.': 'united kingdom',
     'g.b.': 'united kingdom',
+    # Avoid Austria vs Australia mix-up (keep distinct)
+    'austria': 'austria',
+    'australia': 'australia',
+    # YouTube often uses full names
+    'united states of america': 'united states',
+    'russian federation': 'russia',
+    'republic of korea': 'south korea',
+    'korea': 'south korea',
 }
 
 def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
@@ -252,21 +260,13 @@ def find_matching_proxies(available_countries: List[str], proxy_list: List[Dict]
         if proxy_key in seen_proxies:
             continue
         
-        # Check if proxy country matches any available country
+        # Check if proxy country matches any available country (exact match only to avoid e.g. Austria vs Australia)
         for available_country in normalized_available:
             available_normalized = normalize_country_name(available_country)
-            
-            # Exact match
             if proxy_country_normalized == available_normalized:
                 matching_proxies.append(proxy)
                 seen_proxies.add(proxy_key)
                 logger.debug(f"Found matching proxy: {proxy['country']} ({proxy['type']}) matches {available_country}")
-                break
-            # Partial match (e.g., "United States" matches "United States of America")
-            elif proxy_country_normalized in available_normalized or available_normalized in proxy_country_normalized:
-                matching_proxies.append(proxy)
-                seen_proxies.add(proxy_key)
-                logger.debug(f"Found partial matching proxy: {proxy['country']} ({proxy['type']}) partially matches {available_country}")
                 break
     
     # Sort by type: http first, then socks5
