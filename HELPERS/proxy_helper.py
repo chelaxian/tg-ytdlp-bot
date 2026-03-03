@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 
 PROXY_TEST_TIMEOUT = 5
 
+# Per-task (user_id, url) set of proxy URLs that were already tried and failed in this task.
+# Prevents infinite loop: each proxy is tried at most once per download task.
+_proxy_failed_for_task = {}
+
 def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_id: int = None) -> dict:
     """
     Get direct stream link using proxy
@@ -249,9 +253,17 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
             # User selected country - try proxies from file (HTTP first, then SOCKS5)
             proxies = get_proxies_for_country(selected_country)
             if proxies:
+                # В рамках одной задачи (user_id, url) каждый прокси пробуем только один раз
+                task_key = (user_id, url)
+                failed_for_task = _proxy_failed_for_task.setdefault(task_key, set())
+                proxies = [p for p in proxies if p['proxy_url'] not in failed_for_task]
+                if not proxies:
+                    logger.info(f"All {len(failed_for_task)} proxies for this task were already tried and failed, skipping")
+                    _proxy_failed_for_task.pop(task_key, None)
+                    return None
                 # Для балансировки нагрузки прокси одной страны перебираем в случайном порядке
                 random.shuffle(proxies)
-                logger.info(f"User {user_id} selected country {selected_country}, trying {len(proxies)} proxies from file")
+                logger.info(f"User {user_id} selected country {selected_country}, trying {len(proxies)} proxies from file (already failed in this task: {len(failed_for_task)})")
                 total_proxies = len(proxies)
                 for i, proxy_info in enumerate(proxies):
                     try:
@@ -293,16 +305,20 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                         
                         if result is not None:
                             logger.info(f"Success with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
+                            _proxy_failed_for_task.pop(task_key, None)
                             return result
                         else:
                             logger.warning(f"Operation returned None with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {proxy_url}")
+                            failed_for_task.add(proxy_url)
                     except Exception as e:
                         logger.warning(f"Failed with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {e}")
+                        failed_for_task.add(proxy_url)
                         continue
                 
                 # All proxies from file failed for selected country - do NOT fall back to config proxies
                 # User explicitly selected a country, so we should only use proxies from that country
                 logger.warning(f"All proxies from file for country {selected_country} failed, not trying config proxies (user selected specific country)")
+                _proxy_failed_for_task.pop(task_key, None)
                 # Try without proxy as last resort
                 try:
                     logger.info(f"Trying {url} without proxy as last resort (selected country proxies failed)")
