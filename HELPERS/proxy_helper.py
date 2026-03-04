@@ -248,6 +248,7 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
     # Check if user has selected a country from proxy file
     try:
         from COMMANDS.proxy_cmd import get_user_selected_country, get_proxies_for_country
+        from CONFIG.limits import LimitsConfig
         selected_country = get_user_selected_country(user_id)
         if selected_country:
             # User selected country - try proxies from file (HTTP first, then SOCKS5)
@@ -263,7 +264,14 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                     return None
                 # Для балансировки нагрузки прокси одной страны перебираем в случайном порядке
                 random.shuffle(proxies)
-                logger.info(f"User {user_id} selected country {selected_country}, trying {len(proxies)} proxies from file (already failed in this task: {len(failed_for_task)})")
+                # Применяем лимит на количество прокси в рамках одной страны
+                max_per_country = getattr(LimitsConfig, "MAX_PROXIES_PER_COUNTRY", 3)
+                if len(proxies) > max_per_country:
+                    proxies = proxies[:max_per_country]
+                logger.info(
+                    f"User {user_id} selected country {selected_country}, "
+                    f"trying {len(proxies)} proxies from file (already failed in this task: {len(failed_for_task)})"
+                )
                 total_proxies = len(proxies)
                 for i, proxy_info in enumerate(proxies):
                     try:
