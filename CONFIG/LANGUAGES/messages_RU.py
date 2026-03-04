@@ -1663,6 +1663,8 @@ class Messages(object):
     PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ Выбрана страна: {country}"
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Используется страна из файла: {country}"
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Доступно стран из файла: {count}"
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Прокси для этой страны недоступны. Попробуйте другую страну."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ Прокси установлен: страна {country} (код: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Выбрана страна: {country} (код: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Прокси включен для этой страны"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Прокси выключен (нажмите ALL (AUTO) для включения)"

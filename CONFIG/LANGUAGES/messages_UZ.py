@@ -1668,6 +1668,8 @@ Ko'proq ma'lumot: /playlist"""
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Fayldagi mavjud mamlakatlar: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Bu mamlakat uchun proxy mavjud emas. Boshqa mamlakatni sinab ko'ring."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ Proxy o'rnatildi: {country} (kod: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Tanlangan mamlakat: {mamlakat} (kod: {mamlakat_kodi})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Bu mamlakat uchun proksi yoqilgan"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proksi oʻchirilgan (yoqish uchun ALL (AVTO) tugmasini bosing)"

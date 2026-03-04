@@ -1668,6 +1668,8 @@ Tìm hiểu thêm: /playlist"""
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Các quốc gia có sẵn trong tệp: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Không có proxy cho quốc gia này. Vui lòng thử quốc gia khác."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ Đã đặt proxy: quốc gia {country} (mã: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Quốc gia được chọn: {country} (code: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Đã bật proxy cho quốc gia này"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Proxy bị vô hiệu hóa (nhấn TẤT CẢ (AUTO) để bật)"

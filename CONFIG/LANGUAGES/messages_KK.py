@@ -1668,6 +1668,8 @@ class Messages(object):
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Файлдағы қолжетімді елдер: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Бұл ел үшін прокси қолжетімсіз. Басқа елді көріңіз."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ Прокси орнатылды: {country} (коды: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Таңдалған ел: {ел} (коды: {ел_коды})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Осы ел үшін прокси қосылған"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Прокси өшірілген (қосу үшін БАРЛЫҚ (АВТО) түймесін басыңыз)"

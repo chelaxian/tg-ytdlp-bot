@@ -1668,6 +1668,8 @@ class Messages(object):
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 ফাইল থেকে পাওয়া দেশগুলি: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ এই দেশের জন্য প্রক্সি উপলব্ধ নয়। অন্য দেশ চেষ্টা করুন।"
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ প্রক্সি সেট করা হয়েছে: দেশ {country} (কোড: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 নির্বাচিত দেশ: {country} (কোড: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ এই দেশের জন্য প্রক্সি সক্ষম"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ প্রক্সি নিষ্ক্রিয় (সক্ষম করতে ALL (AUTO) টিপুন)"

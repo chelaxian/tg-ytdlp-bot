@@ -1667,6 +1667,8 @@ Más información: /playlist"""
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 Usando país del archivo: {país}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Países disponibles desde el archivo: {count}"
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Proxy no disponible para este país. Pruebe otro país."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ Proxy establecido: país {country} (código: {country_code})"
 
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 País seleccionado: {país} (código: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Proxy habilitado para este país"

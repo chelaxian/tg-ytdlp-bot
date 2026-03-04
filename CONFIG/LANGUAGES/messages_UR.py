@@ -1668,6 +1668,8 @@ Use:
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "file فائل سے دستیاب ممالک: {گنتی}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ اس ملک کے لیے پراکسی دستیاب نہیں۔ دوسرا ملک آزمائیں۔"
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ پراکسی سیٹ ہو گئی: ملک {country} (کوڈ: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 منتخب ملک: {ملک} (کوڈ: {ملک_کوڈ})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ اس ملک کے لئے پراکسی فعال ہے"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠ پراکسی غیر فعال (قابل بنانے کے لئے تمام (آٹو) دبائیں)"
@@ -1686,7 +1688,7 @@ Use:
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ON"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: OFF"
     
-    # Subtitles command button texts
+    # Subtitles command button texts 
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
     SUBS_AUTO_EMOJI_MSG = "✅"
     SUBS_AUTO_EMOJI_INACTIVE_MSG = "☑️"

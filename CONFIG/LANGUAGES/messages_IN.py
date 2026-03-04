@@ -1666,6 +1666,8 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 फ़ाइल से देश का उपयोग करना: {देश}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 फ़ाइल से उपलब्ध देश: {गिनती}"
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ इस देश के लिए प्रॉक्सी उपलब्ध नहीं। किसी अन्य देश को आज़माएं।"
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ प्रॉक्सी सेट: देश {country} (कोड: {country_code})"
 
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 चयनित देश: {देश} (कोड: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ इस देश के लिए प्रॉक्सी सक्षम"
