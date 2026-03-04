@@ -925,8 +925,8 @@ def image_command(app, message):
     # Check range limits if manual range is specified (BEFORE cache check)
     if manual_range:
         # Handle case where end range is None (e.g., "1-" means from 1 to end)
-        if manual_range[1] is None:
-            # For open-ended ranges, we can't check limits here - skip validation
+        if manual_range[1] is None or manual_range[0] is None:
+            # For open-ended ranges or missing start, we can't check limits here - skip validation
             range_count = None
         else:
             range_count = manual_range[1] - manual_range[0] + 1
@@ -1719,13 +1719,19 @@ def image_command(app, message):
                     else:
                         # Если не удалось получить общее количество, используем абсолютные значения
                         logger.warning(f"[IMG] Could not get total media count for negative indices conversion, using absolute values")
-                        total_expected = abs(manual_end_cap) - abs(current_start) + 1
+                        if manual_end_cap is not None and current_start is not None:
+                            total_expected = abs(manual_end_cap) - abs(current_start) + 1
+                        else:
+                            total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
                 elif current_start is not None and manual_end_cap is not None and current_start > manual_end_cap:
                     is_reverse_order_img = True
                     total_expected = abs(current_start - manual_end_cap) + 1
-                else:
+                elif manual_end_cap is not None and current_start is not None:
                     # Calculate correct expected count for range (end - start + 1)
                     total_expected = manual_end_cap - current_start + 1
+                else:
+                    # manual_end_cap is None (e.g. invalid range 1,0) or current_start None — open-ended fallback
+                    total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
             else:
                 # Open-ended range
                 if current_start is not None and current_start < 0:
@@ -1824,6 +1830,9 @@ def image_command(app, message):
             """Скачивает диапазон в обратном порядке, по одному элементу
             ВАЖНО: start и end должны быть уже преобразованы в положительные индексы"""
             messages = safe_get_messages(user_id)
+            if start is None or end is None:
+                logger.warning("[IMG REVERSE] start or end is None, skipping reverse range")
+                return True
             # Для обратного порядка скачиваем по одному элементу от start до end (в обратном порядке)
             # start > end после преобразования отрицательных индексов
             if start > end:
@@ -1905,12 +1914,12 @@ def image_command(app, message):
                     # Для обратного порядка gallery-dl может не поддерживать напрямую
                     # Скачиваем по одному элементу в обратном порядке
                     result = run_and_collect_reverse(current_start, next_end, batch_size)
-                    # Обновляем current_start для обратного порядка
-                    current_start = next_end - 1
+                    # Обновляем current_start для обратного порядка (next_end всегда int в этой ветке)
+                    current_start = (next_end - 1) if next_end is not None else (current_start or 1)
                 else:
                     result = run_and_collect(next_end)
                     # Обновляем current_start для прямого порядка
-                    current_start = next_end + 1
+                    current_start = (next_end + 1) if next_end is not None else (current_start or 1)
                     
                     # Debug: Log the result type and content
                     logger.info(f"[IMG DEBUG] run_and_collect result: type={type(result)}, value={result}")
@@ -1960,10 +1969,13 @@ def image_command(app, message):
                     files_downloaded_in_range = files_after - files_before
                     # Правильный расчет expected_files для обратного порядка
                     # Используем исходное значение original_current_start, сохраненное выше
-                    if is_reverse_order_img:
-                        expected_files = abs(original_current_start - next_end) + 1
+                    if original_current_start is not None and next_end is not None:
+                        if is_reverse_order_img:
+                            expected_files = abs(original_current_start - next_end) + 1
+                        else:
+                            expected_files = next_end - original_current_start + 1
                     else:
-                        expected_files = next_end - original_current_start + 1
+                        expected_files = files_downloaded_in_range or 1
                     
                     elapsed_time = time.time() - range_start_time
                     logger.info(LoggerMsg.IMG_BATCH_DOWNLOADED_FILES_LOG_MSG.format(files_downloaded_in_range=files_downloaded_in_range, current_start=original_current_start, next_end=next_end, expected_files=expected_files, elapsed_time=elapsed_time))
