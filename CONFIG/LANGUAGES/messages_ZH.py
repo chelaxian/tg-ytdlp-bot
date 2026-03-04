@@ -1668,6 +1668,8 @@ class Messages(object):
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 文件中的可用国家/地区：{count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ 该国家/地区无法使用代理。请尝试其他国家/地区。"
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ 代理已设置：{country}（代码：{country_code}）"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 所选国家/地区：{country}（代码：{country_code}）"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ 已为该国家/地区启用代理"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ 代理已禁用（按全部（自动）启用）"

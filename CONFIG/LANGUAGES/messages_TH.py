@@ -1667,6 +1667,8 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 ใช้ประเทศจากไฟล์: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 ประเทศที่มีจากไฟล์: {count}"
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ พร็อกซีไม่พร้อมใช้งานสำหรับประเทศนี้ ลองประเทศอื่น"
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ ตั้งค่าพร็อกซี: ประเทศ {country} (รหัส: {country_code})"
 
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 ประเทศที่เลือก: {country} (รหัส: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ เปิดใช้งานพรอกซีสำหรับประเทศนี้"

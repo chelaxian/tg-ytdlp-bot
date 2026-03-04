@@ -1668,6 +1668,8 @@ class Messages(object):
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 파일에서 사용 가능한 국가: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ 이 국가에서는 프록시를 사용할 수 없습니다. 다른 국가를 시도해 주세요."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ 프록시 설정됨: {country}(코드: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 선택한 국가: {country}(코드: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ 이 국가에 프록시가 활성화되었습니다."
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ 프록시 비활성화됨(활성화하려면 모두(AUTO)를 누르세요)"

@@ -167,69 +167,6 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
             ytdl_opts['cookiefile'] = None
             logger.info(f"Using --no-cookies for domain in link extraction: {url}")
         
-        # Add proxy if needed
-        if use_proxy:
-            # Check if user has global proxy enabled first
-            from COMMANDS.proxy_cmd import is_proxy_enabled, select_proxy_for_user, build_proxy_url
-            proxy_enabled = is_proxy_enabled(user_id)
-            
-            if proxy_enabled:
-                # User has global proxy enabled - use round-robin/random selection
-                proxy_config = select_proxy_for_user()
-                if proxy_config:
-                    proxy_url = build_proxy_url(proxy_config)
-                    if proxy_url:
-                        ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"Using global proxy for link extraction: {proxy_url}")
-                    else:
-                        logger.warning("Failed to build proxy URL from global config")
-                else:
-                    logger.warning("Global proxy enabled but no proxy configuration available")
-            else:
-                # User doesn't have global proxy enabled - check domain-specific proxy
-                from COMMANDS.proxy_cmd import select_proxy_for_domain
-                proxy_config = select_proxy_for_domain(url)
-                if proxy_config:
-                    proxy_url = build_proxy_url(proxy_config)
-                    if proxy_url:
-                        ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"{LoggerMsg.LINK_USING_DOMAIN_SPECIFIC_PROXY_LOG_MSG}")
-                    else:
-                        logger.warning("Failed to build proxy URL from domain config")
-                else:
-                    logger.info(f"No domain-specific proxy required for {url}")
-        else:
-            # use_proxy=False: Check if user has global proxy enabled OR domain requires proxy
-            from COMMANDS.proxy_cmd import is_proxy_enabled, select_proxy_for_user, select_proxy_for_domain, build_proxy_url
-            
-            # Check if user has global proxy enabled
-            proxy_enabled = is_proxy_enabled(user_id)
-            
-            if proxy_enabled:
-                # User has global proxy enabled - use proxy for ALL requests
-                proxy_config = select_proxy_for_user()
-                if proxy_config:
-                    proxy_url = build_proxy_url(proxy_config)
-                    if proxy_url:
-                        ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"Using global proxy for link extraction (user enabled): {proxy_url}")
-                    else:
-                        logger.warning("Failed to build proxy URL from global config")
-                else:
-                    logger.warning("Global proxy enabled but no proxy configuration available")
-            else:
-                # User proxy disabled - check if domain requires specific proxy
-                proxy_config = select_proxy_for_domain(url)
-                if proxy_config:
-                    proxy_url = build_proxy_url(proxy_config)
-                    if proxy_url:
-                        ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"{LoggerMsg.LINK_USING_DOMAIN_SPECIFIC_PROXY_LOG_MSG}")
-                    else:
-                        logger.warning(LoggerMsg.LINK_FAILED_BUILD_PROXY_URL_LOG_MSG)
-                else:
-                    logger.info(f"{LoggerMsg.LINK_USER_PROXY_DISABLED_LOG_MSG}")
-        
         # Add proxy configuration if needed (same as down_and_up.py)
         from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback
         ytdl_opts = add_proxy_to_ytdl_opts(ytdl_opts, url, user_id)

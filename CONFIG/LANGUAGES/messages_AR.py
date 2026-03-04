@@ -1673,6 +1673,8 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 استخدام البلد من الملف: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 الدول المتاحة من الملف: {count}"
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ البروكسي غير متاح لهذه الدولة. جرب دولة أخرى."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ تم تعيين البروكسي: الدولة {country} (الرمز: {country_code})"
 
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 الدولة المختارة: {country} (الرمز: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ تمكين الوكيل لهذا البلد"

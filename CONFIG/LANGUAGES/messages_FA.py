@@ -1667,6 +1667,8 @@ class Messages(object):
     PROXY_COUNTRY_FROM_FILE_MSG = "🌍 استفاده از کشور از فایل: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 کشورهای موجود از فایل: {count}"
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ پراکسی برای این کشور در دسترس نیست. کشور دیگری امتحان کنید."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ پراکسی تنظیم شد: کشور {country} (کد: {country_code})"
 
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 کشور انتخابی: {country} (کد: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ پروکسی برای این کشور فعال است"

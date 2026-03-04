@@ -1668,6 +1668,8 @@ Matuto pa: /playlist"""
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Mga available na bansa mula sa file: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Hindi available ang proxy para sa bansang ito. Subukan ang ibang bansa."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ Naitakda ang proxy: bansa {country} (code: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Napiling bansa: {country} (code: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ Naka-enable ang proxy para sa bansang ito"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ Hindi pinagana ang proxy (pindutin ang LAHAT (AUTO) para paganahin)"

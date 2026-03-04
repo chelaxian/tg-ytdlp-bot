@@ -1668,6 +1668,8 @@ Koyi ƙari: /playlist"""
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 Akwai ƙasashe daga fayil: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Proxy ba a ƙasa baya samuwa. Ka gwada wata ƙasa."
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ An saita proxy: ƙasa {country} (lambar: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Ƙasar da aka zaɓa: {ƙasa} (lambar: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ An ba da izinin wakili ga wannan ƙasa"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ An kashe wakili (latsa ALL (AUTO) don kunnawa)"

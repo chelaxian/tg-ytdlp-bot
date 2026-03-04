@@ -1965,6 +1965,7 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
         Результат успешного скачивания или None если все попытки неудачны
     """
     from URL_PARSERS.youtube import is_youtube_url
+    from CONFIG.limits import LimitsConfig
     import time
     
     # Проверяем только для YouTube URL
@@ -2011,9 +2012,24 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         country_groups.setdefault(p['country'], []).append(p)
                     for group in country_groups.values():
                         random.shuffle(group)
+                    # Применяем лимиты на количество прокси:
+                    # - не более MAX_PROXIES_PER_COUNTRY на страну
+                    # - не более MAX_PROXIES_PER_TASK суммарно по всем странам
+                    max_per_country = getattr(LimitsConfig, "MAX_PROXIES_PER_COUNTRY", 3)
+                    max_total = getattr(LimitsConfig, "MAX_PROXIES_PER_TASK", 10)
                     proxies_to_try = []
-                    for country_name in sorted(country_groups.keys(), key=lambda c: c.lower()):
-                        proxies_to_try.extend(country_groups[country_name])
+                    # Перебираем страны в случайном порядке, чтобы при общем лимите
+                    # MAX_PROXIES_PER_TASK не зацикливаться только на первых по алфавиту
+                    country_list = list(country_groups.keys())
+                    random.shuffle(country_list)
+                    for country_name in country_list:
+                        group = country_groups[country_name][:max_per_country]
+                        for p in group:
+                            proxies_to_try.append(p)
+                            if len(proxies_to_try) >= max_total:
+                                break
+                        if len(proxies_to_try) >= max_total:
+                            break
                 else:
                     # Если нет подходящих прокси для указанных стран, не пробуем все прокси
                     logger.warning(f"No matching proxies found for available countries: {available_countries[:5]}...")
@@ -2050,6 +2066,13 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                 _proxy_failed_for_task.pop(task_key, None)
                 return None
             
+            # Предрасчёт количества прокси по странам для корректного счётчика (N/M) внутри одной страны
+            country_totals = {}
+            for p in proxies_to_try:
+                c = p['country']
+                country_totals[c] = country_totals.get(c, 0) + 1
+            country_indices = {}
+            
             # Пробуем каждый прокси по очереди
             total_proxies = len(proxies_to_try)
             for i, proxy_info in enumerate(proxies_to_try):
@@ -2065,7 +2088,14 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                     messages = safe_get_messages(user_id)
                     msg_template = getattr(messages, 'PROXY_TRYING_COUNTRY_MSG', None)
                     if msg_template:
-                        safe_send_message(user_id, msg_template.format(country=proxy_country, current=i + 1, total=total_proxies))
+                        # Номер прокси внутри текущей страны и общее количество прокси этой страны
+                        country_indices[proxy_country] = country_indices.get(proxy_country, 0) + 1
+                        current_in_country = country_indices[proxy_country]
+                        total_in_country = country_totals.get(proxy_country, total_proxies)
+                        safe_send_message(
+                            user_id,
+                            msg_template.format(country=proxy_country, current=current_in_country, total=total_in_country),
+                        )
                 except Exception as notify_e:
                     logger.debug("Could not send proxy progress to user: %s", notify_e)
                 logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url}")

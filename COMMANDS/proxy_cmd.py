@@ -171,14 +171,14 @@ def proxy_command(app, message):
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
 
-    # Fast toggle via args: /proxy on|off
+    # Fast toggle via args: /proxy on|off  or  /proxy <country code or name>  (e.g. /proxy ru, /proxy us, /proxy Vietnam)
     try:
         parts = (message.text or "").split()
         if len(parts) >= 2:
-            arg = parts[1].lower()
+            arg_raw = parts[1].lower()
             proxy_file = os.path.join(user_dir, "proxy.txt")
-            if arg in ("on", "off"):
-                if arg == "on":
+            if arg_raw in ("on", "off"):
+                if arg_raw == "on":
                     # Check if user has selected a country
                     selected_country = get_user_selected_country(user_id)
                     if selected_country:
@@ -193,7 +193,7 @@ def proxy_command(app, message):
                     content_to_write = "OFF"
                 
                 if safe_write_file(proxy_file, content_to_write):
-                    if arg == "on":
+                    if arg_raw == "on":
                         selected_country_after = get_user_selected_country(user_id)
                         if selected_country_after:
                             msg = f"✅ Прокси включен\n🌍 Используется страна: {selected_country_after}"
@@ -202,7 +202,7 @@ def proxy_command(app, message):
                     else:
                         msg = safe_get_messages(user_id).PROXY_ENABLED_MSG.format(status='disabled')
                     safe_send_message(user_id, msg, message=message)
-                    send_to_logger(message, safe_get_messages(user_id).PROXY_SET_COMMAND_LOG_MSG.format(arg=arg))
+                    send_to_logger(message, safe_get_messages(user_id).PROXY_SET_COMMAND_LOG_MSG.format(arg=arg_raw))
                     return
                 else:
                     error_msg = safe_get_messages(user_id).PROXY_ERROR_SAVING_MSG
@@ -210,6 +210,60 @@ def proxy_command(app, message):
                     from HELPERS.logger import log_error_to_channel
                     log_error_to_channel(message, error_msg)
                     return
+            # /proxy <country code or name>: set proxy to that country if available in TXT/proxy.txt
+            available = get_countries_from_proxy_file()
+            if not available:
+                msg = getattr(
+                    safe_get_messages(user_id),
+                    "PROXY_COUNTRY_NOT_AVAILABLE_MSG",
+                    "❌ Proxy is not available for this country. Try another country."
+                )
+                safe_send_message(user_id, msg, message=message)
+                return
+            arg = " ".join(parts[1:]).strip()
+            if not arg:
+                # fall through to menu
+                pass
+            else:
+                matched = None
+                arg_lower = arg.lower()
+                # Match by country code (2–3 letters): e.g. ru, us, vn, gb
+                if len(arg_lower) <= 3 and arg_lower.replace(" ", "").isalpha():
+                    for c in available:
+                        if get_country_code(c).upper() == arg_lower.upper():
+                            matched = c
+                            break
+                # Match by country name (exact or substring)
+                if not matched:
+                    for c in available:
+                        if c.lower() == arg_lower:
+                            matched = c
+                            break
+                    if not matched:
+                        for c in available:
+                            if arg_lower in c.lower():
+                                matched = c
+                                break
+                if matched:
+                    if set_user_selected_country(user_id, matched):
+                        country_code = get_country_code(matched)
+                        msg = getattr(
+                            safe_get_messages(user_id),
+                            "PROXY_COUNTRY_SET_BY_COMMAND_MSG",
+                            "✅ Proxy set to country: {country} (code: {country_code})",
+                        )
+                        if "{country}" in msg and "{country_code}" in msg:
+                            msg = msg.format(country=matched, country_code=country_code)
+                        safe_send_message(user_id, msg, message=message)
+                        send_to_logger(message, safe_get_messages(user_id).PROXY_SET_COMMAND_LOG_MSG.format(arg=arg))
+                        return
+                msg = getattr(
+                    safe_get_messages(user_id),
+                    "PROXY_COUNTRY_NOT_AVAILABLE_MSG",
+                    "❌ Proxy is not available for this country. Try another country.",
+                )
+                safe_send_message(user_id, msg, message=message)
+                return
     except Exception:
         pass
     
@@ -743,7 +797,9 @@ def get_proxies_for_country(country: str):
     return country_proxies
 
 def get_user_selected_country(user_id):
-    """Get user's selected country from proxy.txt file (checks for country code)"""
+    """Get user's selected country from proxy.txt file (checks for country code).
+    Returns the country name as it appears in TXT/proxy.txt so get_proxies_for_country() finds proxies (e.g. Czechia vs Czech Republic).
+    """
     user_dir = os.path.join("users", str(user_id))
     proxy_file = os.path.join(user_dir, "proxy.txt")
     if not os.path.exists(proxy_file):
@@ -756,6 +812,11 @@ def get_user_selected_country(user_id):
                 return None
             # Check if it's a country code
             if len(content) >= 2 and len(content) <= 3 and content.isalpha():
+                # Prefer country name from proxy file so get_proxies_for_country matches (e.g. Czechia in file, not Czech Republic)
+                available = get_countries_from_proxy_file()
+                for c in available:
+                    if get_country_code(c).upper() == content:
+                        return c
                 country = get_country_by_code(content)
                 if country:
                     return country

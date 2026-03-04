@@ -1668,6 +1668,8 @@ class Messages(object):
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 ファイルから利用可能な国: {count}"
 
+    PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ この国ではプロキシを利用できません。他の国をお試しください。"
+    PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ プロキシを設定しました: {country} (コード: {country_code})"
     PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 選択した国: {country} (コード: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ この国ではプロキシが有効になっています"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ プロキシが無効になっています (有効にするには [ALL (AUTO)] を押します)"
