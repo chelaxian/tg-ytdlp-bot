@@ -503,29 +503,35 @@ def select_proxy_for_user():
         return selected
 
 def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) -> dict:
-    """Add proxy to gallery-dl config if proxy is enabled for user or domain requires it"""
+    """Add proxy to gallery-dl config; same logic as add_proxy_to_ytdl_opts: country → file, AUTO → no proxy, domain → proxy"""
     logger.info(f"add_proxy_to_gallery_dl_config called: user_id={user_id}, url={url}")
     
-    # Priority 1: Check if user has proxy enabled (/proxy on)
+    # Priority 1: User has selected a country from proxy file → use proxy from file
+    if user_id:
+        try:
+            from COMMANDS.proxy_cmd import get_proxy_url_for_user_country
+            country_proxy_url, selected_country = get_proxy_url_for_user_country(user_id)
+            if country_proxy_url:
+                config['extractor']['proxy'] = country_proxy_url
+                logger.info(f"Using proxy from file for country {selected_country} (gallery-dl): {country_proxy_url}")
+                return config
+        except Exception as e:
+            logger.warning(f"Error checking country proxy for user {user_id}: {e}")
+            pass
+    
+    # Priority 2: User has proxy enabled but no country (AUTO) → do NOT add proxy to initial request
     if user_id:
         try:
             from COMMANDS.proxy_cmd import is_proxy_enabled
             proxy_enabled = is_proxy_enabled(user_id)
-            logger.info(f"User {user_id} proxy enabled: {proxy_enabled}")
             if proxy_enabled:
-                # Use round-robin/random selection for user proxy
-                proxy_config = select_proxy_for_user()
-                if proxy_config:
-                    proxy_url = build_proxy_url(proxy_config)
-                    if proxy_url:
-                        config['extractor']['proxy'] = proxy_url
-                        logger.info(f"Added user proxy for {user_id}: {proxy_url}")
-                        return config
+                logger.info(f"User {user_id} in AUTO mode (no country) - not adding proxy to gallery-dl initial request")
+                return config
         except Exception as e:
             logger.warning(f"Error checking proxy for user {user_id}: {e}")
             pass
     
-    # Priority 2: Check if domain requires specific proxy (only if user proxy is OFF)
+    # Priority 3: Domain requires specific proxy
     logger.info(f"Checking domain-specific proxy for {url}")
     proxy_config = select_proxy_for_domain(url)
     if proxy_config:

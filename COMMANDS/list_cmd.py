@@ -19,7 +19,7 @@ from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.pot_helper import build_cli_extractor_args
-from COMMANDS.proxy_cmd import get_proxy_url
+from COMMANDS.proxy_cmd import get_proxy_url, get_proxy_url_for_user_country, get_user_selected_country, is_proxy_enabled
 
 # Get app instance
 app = get_app()
@@ -50,8 +50,17 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
         # Verbose for clearer diagnostics
         cmd.extend(["-v", "-F"])
         
-        # Respect per-user proxy settings
-        proxy_url, proxy_reason = get_proxy_url(user_id=user_id, url=url)
+        # Respect per-user proxy: country → proxy from file; AUTO → no proxy for initial request; domain → proxy if required
+        proxy_url = None
+        proxy_reason = None
+        if is_proxy_enabled(user_id):
+            proxy_url, _ = get_proxy_url_for_user_country(user_id)
+            if proxy_url:
+                proxy_reason = "country_file"
+        if not proxy_url:
+            proxy_url, proxy_reason = get_proxy_url(user_id=user_id, url=url)
+            if proxy_url and proxy_reason == "user" and not get_user_selected_country(user_id):
+                proxy_url = None  # AUTO: do not use config proxy on first request
         if proxy_url:
             cmd.extend(["--proxy", proxy_url])
             logger.info(LoggerMsg.LIST_USING_PROXY_LOG_MSG.format(user_id=user_id, proxy_url=proxy_url, reason=proxy_reason or "user"))
