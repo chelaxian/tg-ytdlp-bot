@@ -118,23 +118,53 @@ class FirebaseDBAdapter:
         return admin_db.reference(self._path)
 
     def set(self, data: Any) -> None:
-        return self._ref().set(data)
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).set(data)
+        try:
+            return self._ref().set(data)
+        except Exception as e:
+            logger.error(f"❌ FirebaseAdmin set() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).set(data)
 
     def get(self) -> _SnapshotCompat:
-        value = self._ref().get()
-        return _SnapshotCompat(value)
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).get()
+        try:
+            value = self._ref().get()
+            return _SnapshotCompat(value)
+        except Exception as e:
+            logger.error(f"❌ FirebaseAdmin get() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).get()
 
     def push(self, data: Any):
         messages = safe_get_messages(None)
         # firebase_admin Reference has push in RTDB; return child key-compatible object
-        ref = self._ref().push(data)
-        return ref
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).push(data)
+        try:
+            ref = self._ref().push(data)
+            return ref
+        except Exception as e:
+            logger.error(f"❌ FirebaseAdmin push() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).push(data)
 
     def update(self, data: Dict[str, Any]) -> None:
-        return self._ref().update(data)
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).update(data)
+        try:
+            return self._ref().update(data)
+        except Exception as e:
+            logger.error(f"❌ FirebaseAdmin update() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).update(data)
 
     def remove(self) -> None:
-        return self._ref().delete()
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).remove()
+        try:
+            return self._ref().delete()
+        except Exception as e:
+            logger.error(f"❌ FirebaseAdmin remove() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).remove()
 
 
 class RestDBAdapter:
@@ -242,27 +272,57 @@ class RestDBAdapter:
         return f"{self._database_url}{self._path}.json"
 
     def set(self, data: Any) -> None:
-        r = self._session.put(self._url(), params=self._auth_params(), json=data, timeout=60)
-        r.raise_for_status()
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).set(data)
+        try:
+            r = self._session.put(self._url(), params=self._auth_params(), json=data, timeout=60)
+            r.raise_for_status()
+        except Exception as e:
+            logger.error(f"❌ Firebase REST set() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).set(data)
 
     def update(self, data: Dict[str, Any]) -> None:
-        r = self._session.patch(self._url(), params=self._auth_params(), json=data, timeout=60)
-        r.raise_for_status()
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).update(data)
+        try:
+            r = self._session.patch(self._url(), params=self._auth_params(), json=data, timeout=60)
+            r.raise_for_status()
+        except Exception as e:
+            logger.error(f"❌ Firebase REST update() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).update(data)
 
     def remove(self) -> None:
-        r = self._session.delete(self._url(), params=self._auth_params(), timeout=60)
-        r.raise_for_status()
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).remove()
+        try:
+            r = self._session.delete(self._url(), params=self._auth_params(), timeout=60)
+            r.raise_for_status()
+        except Exception as e:
+            logger.error(f"❌ Firebase REST remove() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).remove()
 
     def push(self, data: Any):
-        parent_url = f"{self._database_url}{self._path}.json"
-        r = self._session.post(parent_url, params=self._auth_params(), json=data, timeout=60)
-        r.raise_for_status()
-        return r.json()
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).push(data)
+        try:
+            parent_url = f"{self._database_url}{self._path}.json"
+            r = self._session.post(parent_url, params=self._auth_params(), json=data, timeout=60)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            logger.error(f"❌ Firebase REST push() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).push(data)
 
     def get(self) -> _SnapshotCompat:
-        r = self._session.get(self._url(), params=self._auth_params(), timeout=60)
-        r.raise_for_status()
-        return _SnapshotCompat(r.json())
+        if _local_fallback_active:
+            return _get_local_fallback_child(self._path).get()
+        try:
+            r = self._session.get(self._url(), params=self._auth_params(), timeout=60)
+            r.raise_for_status()
+            return _SnapshotCompat(r.json())
+        except Exception as e:
+            logger.error(f"❌ Firebase REST get() failed, switching to local JSON: {e}")
+            return _get_local_fallback_child(self._path).get()
 
     def close(self):
         messages = safe_get_messages(None)
@@ -438,44 +498,98 @@ class LocalDBAdapter:
         pass
 
 
-# Initialize db adapter (admin, REST fallback, or local)
-use_firebase = getattr(Config, 'USE_FIREBASE', True)
-if not use_firebase:
-    # Локальный режим - используем JSON файл
-    cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'dump.json')
-    db = LocalDBAdapter(cache_file, "/")
-    logger.info(f"✅ Локальный режим активирован (кэш: {cache_file})")
-else:
-    # Firebase режим - используем облачную базу
-    use_admin = _init_firebase_admin_if_needed()
-    if use_admin:
-        db = FirebaseDBAdapter("/")
-    else:
-        database_url = _get_database_url()
-        api_key = getattr(Config, "FIREBASE_CONF", {}).get("apiKey")
-        if not api_key:
-            raise RuntimeError("FIREBASE_CONF.apiKey отсутствует — нужен для REST аутентификации")
-        # Sign in via REST using managed session
-        from HELPERS.http_manager import get_managed_session
-        auth_manager = get_managed_session("firebase-auth")
-        auth_session = auth_manager.get_session()
+# ------------------------------------------------------------------------------
+# Глобальный фолбэк на локальный JSON (dump.json), если Firebase недоступен
+# ------------------------------------------------------------------------------
+
+_fallback_lock = threading.RLock()
+_local_fallback_active = False
+_local_fallback_root = None  # type: ignore[var-annotated]
+
+
+def _get_local_fallback_root():
+    """
+    Возвращает (и лениво создаёт) корневой LocalDBAdapter.
+    Одновременно переключает конфиг в режим USE_FIREBASE = False.
+    """
+    global _local_fallback_root, _local_fallback_active
+    with _fallback_lock:
+        if _local_fallback_root is None:
+            cache_file = getattr(Config, "FIREBASE_CACHE_FILE", "dump.json")
+            _local_fallback_root = LocalDBAdapter(cache_file, "/")
+            logger.info(f"✅ Активирован локальный режим БД (fallback, файл: {cache_file})")
+        _local_fallback_active = True
         try:
-            auth_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
-            resp = auth_session.post(auth_url, json={
-                "email": getattr(Config, "FIREBASE_USER", None),
-                "password": getattr(Config, "FIREBASE_PASSWORD", None),
-                "returnSecureToken": True,
-            }, timeout=60)
-            resp.raise_for_status()
-            payload = resp.json()
-            id_token = payload.get("idToken")
-            refresh_token = payload.get("refreshToken")
-            if not id_token:
-                raise RuntimeError("Не удалось получить idToken через REST аутентификацию")
-            logger.info("✅ REST Firebase auth successful")
-            db = RestDBAdapter(database_url, id_token, refresh_token, api_key, "/")
-        finally:
-            auth_manager.close()
+            setattr(Config, "USE_FIREBASE", False)
+        except Exception:
+            # В ранней инициализации Config может быть защищён
+            pass
+        return _local_fallback_root
+
+
+def _get_local_fallback_child(path: str):
+    """
+    Возвращает LocalDBAdapter, указывающий на тот же путь, что и оригинальный
+    Firebase/REST адаптер (self._path).
+    """
+    root = _get_local_fallback_root()
+    adapter = root
+    for part in path.strip("/").split("/"):
+        part = part.strip("/")
+        if not part:
+            continue
+        adapter = adapter.child(part)
+    return adapter
+
+
+# Initialize db adapter (admin, REST fallback, or local)
+use_firebase = getattr(Config, "USE_FIREBASE", True)
+try:
+    if not use_firebase:
+        # Локальный режим - используем JSON файл
+        cache_file = getattr(Config, "FIREBASE_CACHE_FILE", "dump.json")
+        db = LocalDBAdapter(cache_file, "/")
+        logger.info(f"✅ Локальный режим активирован (кэш: {cache_file})")
+    else:
+        # Firebase режим - используем облачную базу
+        use_admin = _init_firebase_admin_if_needed()
+        if use_admin:
+            db = FirebaseDBAdapter("/")
+        else:
+            database_url = _get_database_url()
+            api_key = getattr(Config, "FIREBASE_CONF", {}).get("apiKey")
+            if not api_key:
+                raise RuntimeError("FIREBASE_CONF.apiKey отсутствует — нужен для REST аутентификации")
+            # Sign in via REST using managed session
+            from HELPERS.http_manager import get_managed_session
+
+            auth_manager = get_managed_session("firebase-auth")
+            auth_session = auth_manager.get_session()
+            try:
+                auth_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
+                resp = auth_session.post(
+                    auth_url,
+                    json={
+                        "email": getattr(Config, "FIREBASE_USER", None),
+                        "password": getattr(Config, "FIREBASE_PASSWORD", None),
+                        "returnSecureToken": True,
+                    },
+                    timeout=60,
+                )
+                resp.raise_for_status()
+                payload = resp.json()
+                id_token = payload.get("idToken")
+                refresh_token = payload.get("refreshToken")
+                if not id_token:
+                    raise RuntimeError("Не удалось получить idToken через REST аутентификацию")
+                logger.info("✅ REST Firebase auth successful")
+                db = RestDBAdapter(database_url, id_token, refresh_token, api_key, "/")
+            finally:
+                auth_manager.close()
+except Exception as e:
+    # Любая ошибка инициализации Firebase — мягко падаем в локальный режим
+    logger.error(f"❌ Ошибка инициализации Firebase, включаю локальный режим: {e}")
+    db = _get_local_fallback_root()
 
 db = wrap_db_adapter(db)
 

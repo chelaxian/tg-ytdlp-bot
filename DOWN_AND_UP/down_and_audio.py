@@ -950,6 +950,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     progress_hook.progress_data['total_bytes'] = total
                 
                 try:
+                    # Явная подпись стадии downloading (как у uploading), чтобы было понятно, какому этапу принадлежит прогресс-бар
                     safe_edit_message_text(user_id, proc_msg_id, safe_get_messages(user_id).AUDIO_DOWNLOADING_PROGRESS_MSG.format(process=current_total_process, bar=bar, percent=percent))
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
@@ -2352,7 +2353,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             audio_files.append(audio_file)
 
-            # Upload status message header (progress bar % will be updated by progress_bar callback)
+            # Явная подпись стадии uploading (как у downloading), progress_bar обновит процент
             _upload_status_text = f"{current_total_process}\n{safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG}"
             try:
                 full_bar = "🟩" * 10

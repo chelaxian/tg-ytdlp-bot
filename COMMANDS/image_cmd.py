@@ -1733,12 +1733,15 @@ def image_command(app, message):
                     # manual_end_cap is None (e.g. invalid range 1,0) or current_start None — open-ended fallback
                     total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
             else:
-                # Open-ended range
+                # Open-ended range (manual_end_cap is None)
                 if current_start is not None and current_start < 0:
                     # Для отрицательных индексов без конца используем разумное значение
                     total_expected = abs(current_start) if is_admin else min(abs(current_start), total_limit or 0)
                 else:
-                    total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
+                    # IMPORTANT: total_limit=0 means unlimited for admin - never use 0 for total_expected
+                    # as it would set upper_cap=0 and cause "current_start > upper_cap" to break the loop immediately
+                    total_expected = (LimitsConfig.MAX_IMG_FILES if (total_limit is not None and total_limit == 0)
+                                     else (total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES))
         
         # For small totals, set end cap to avoid range issues
         if detected_total and detected_total <= 10 and manual_range is None:
@@ -1766,7 +1769,9 @@ def image_command(app, message):
                 if manual_range[0] is not None and manual_range[0] < 0:
                     total_expected = abs(manual_range[0]) if is_admin else min(abs(manual_range[0]), total_limit or 0)
                 else:
-                    total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
+                    # total_limit=0 (unlimited for admin) must not become total_expected=0 - would break download loop
+                    total_expected = (LimitsConfig.MAX_IMG_FILES if (total_limit is not None and total_limit == 0)
+                                     else (total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES))
             logger.info(f"[IMG FALLBACK] Using manual range for total_expected: {total_expected}")
             
             # Update status message to show we're proceeding with manual range
@@ -1792,9 +1797,9 @@ def image_command(app, message):
         # helper to run one range and wait for files to appear
         def run_and_collect(next_end: int):
             messages = safe_get_messages(user_id)
-            # For single item or when total is small, use range 1-1 to avoid API issues
-            # Only use 1-1 when we're actually starting from 1 and it's a single item
-            if (current_start == next_end and current_start == 1) or (detected_total and detected_total <= 10 and current_start == 1):
+            # Use 1-1 ONLY when we explicitly want exactly one item (single-item gallery or range)
+            # For small galleries (<=10), use full range 1-{next_end} to download batch in one call
+            if current_start == next_end and current_start == 1:
                 logger.info(LoggerMsg.IMG_DOWNLOADING_RANGE_1_1_LOG_MSG.format(detected_total=detected_total, current_start=current_start, next_end=next_end))
                 result = download_image_range_cli(url, "1-1", user_id, use_proxy, output_dir=run_dir)
                 if isinstance(result, str):  # 401 Unauthorized error message
@@ -2018,7 +2023,12 @@ def image_command(app, message):
                                 continue
                         except Exception:
                             pass
-                        if file_path in seen_files:
+                        # Deduplicate by realpath (handles symlinks, hardlinks, same file different paths)
+                        try:
+                            file_realpath = os.path.realpath(file_path)
+                        except Exception:
+                            file_realpath = file_path
+                        if file_realpath in seen_files:
                             continue
                         # Only consider media-like files
                         if not file.lower().endswith((
@@ -2035,7 +2045,7 @@ def image_command(app, message):
                                 continue
                         except Exception:
                             continue
-                        seen_files.add(file_path)
+                        seen_files.add(file_realpath)
                         total_downloaded += 1
                         files_found_in_this_search += 1  # Count files found in this search
                         last_activity_time = time.time()  # Update activity time when we find new files
@@ -2047,9 +2057,19 @@ def image_command(app, message):
                         # Convert if needed, then classify
                         original_path = file_path
                         converted = convert_file_to_telegram_format(file_path)
+                        # Prevent duplicates: if conversion created a new file, mark it as seen
+                        # (otherwise os.walk would find the converted file and add it again)
+                        if converted != file_path:
+                            try:
+                                seen_files.add(os.path.realpath(converted))
+                            except Exception:
+                                seen_files.add(converted)
                         files_to_cleanup.append(converted)
                         if converted != original_path:
                             files_to_cleanup.append(original_path)
+                        # Skip if converted path already in buffer (deduplication)
+                        if any(p[0] == converted for p in photos_videos_buffer):
+                            continue
                         ext = os.path.splitext(converted)[1].lower()
                         if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']:
                             photos_videos_buffer.append((converted, 'photo', original_path))
@@ -2058,6 +2078,11 @@ def image_command(app, message):
                         elif ext in ['.avi', '.mov', '.mkv', '.webm', '.flv', '.m4v']:
                             # Try to convert to mp4 if not already
                             converted = convert_file_to_telegram_format(converted)
+                            if converted != file_path:
+                                try:
+                                    seen_files.add(os.path.realpath(converted))
+                                except Exception:
+                                    seen_files.add(converted)
                             ext2 = os.path.splitext(converted)[1].lower()
                             if ext2 != '.mp4':
                                 # keep as document if still not mp4
