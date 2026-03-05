@@ -1138,7 +1138,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 _handle_quality_key_error(e, split_msg_ids, is_playlist, successful_uploads, indices_to_download, video_count, user_id, proc_msg_id, message, app)
                         first_progress_update = False
 
-                    progress_text = f"{current_total_process}\n{bar}   {percent:.1f}%"
+                    # Явная подпись стадии downloading (как у uploading), чтобы было понятно, какому этапу принадлежит прогресс-бар
+                    progress_text = f"{current_total_process}\n{messages.DOWNLOADING_MSG}{bar}   {percent:.1f}%"
                     logger.info(f"Updating progress for user {user_id}, message {proc_msg_id}: {progress_text}")
                     result = safe_edit_message_text(user_id, proc_msg_id, progress_text)
                     if result is None:

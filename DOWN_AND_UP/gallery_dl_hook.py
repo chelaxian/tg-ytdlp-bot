@@ -616,8 +616,21 @@ def download_image(url: str, user_id=None, use_proxy: bool = False, output_dir: 
         if status == 0:
             # Ищем файлы в указанной папке или в стандартной папке gallery-dl
             downloaded_files = []
+            seen_paths = set()  # Deduplicate by realpath to avoid same file added twice
             current_time = time.time()
             logger.info(safe_get_messages(user_id).GALLERY_DL_SEARCHING_DOWNLOADED_FILES_MSG)
+
+            def _add_unique(path):
+                """Add path only if not already seen (by realpath)"""
+                try:
+                    rp = os.path.realpath(path)
+                    if rp not in seen_paths:
+                        seen_paths.add(rp)
+                        downloaded_files.append(path)
+                        return True
+                except Exception:
+                    pass
+                return False
 
             # Сначала пытаемся найти файлы по именам из extractor 
             try:
@@ -678,8 +691,7 @@ def download_image(url: str, user_id=None, use_proxy: bool = False, output_dir: 
                                         ])
                                     
                                     for file_path in possible_paths:
-                                        if os.path.exists(file_path):
-                                            downloaded_files.append(file_path)
+                                        if os.path.exists(file_path) and _add_unique(file_path):
                                             logger.info(f"Found file by name: {file_path}")
                                             break
             except Exception as e:
@@ -704,8 +716,7 @@ def download_image(url: str, user_id=None, use_proxy: bool = False, output_dir: 
                                 time_diff = current_time - file_time
                                 logger.info(f"Gallery-dl file: {file_path}, created: {file_time}, diff: {time_diff}s")
                                 # Check if file was created in the last 0.5 minutes
-                                if time_diff and time_diff < 30:
-                                    downloaded_files.append(file_path)
+                                if time_diff and time_diff < 30 and _add_unique(file_path):
                                     logger.info(f"Found recently created file in {search_dir}: {file_path}")
 
             if downloaded_files:
