@@ -289,7 +289,7 @@ def remove_media(message, only=None, force_clean=False):
             else:
                 files = [fname for fname in allfiles if fname.endswith(extension)]
             for file in files:
-                if extension == '.txt' and file in ['logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt']:
+                if extension == '.txt' and file in ['logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt', 'cookie.txt']:
                     continue
                 file_path = os.path.join(dir, file)
                 try:
@@ -324,7 +324,7 @@ def remove_media(message, only=None, force_clean=False):
             else:
                 files = [fname for fname in allfiles if fname.endswith(extension)]
             for file in files:
-                if extension == '.txt' and file in ['logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt']:
+                if extension == '.txt' and file in ['logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt', 'cookie.txt']:
                     continue
                 file_path = os.path.join(dir, file)
                 try:

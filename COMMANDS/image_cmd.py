@@ -1733,12 +1733,15 @@ def image_command(app, message):
                     # manual_end_cap is None (e.g. invalid range 1,0) or current_start None — open-ended fallback
                     total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
             else:
-                # Open-ended range
+                # Open-ended range (manual_end_cap is None)
                 if current_start is not None and current_start < 0:
                     # Для отрицательных индексов без конца используем разумное значение
                     total_expected = abs(current_start) if is_admin else min(abs(current_start), total_limit or 0)
                 else:
-                    total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
+                    # IMPORTANT: total_limit=0 means unlimited for admin - never use 0 for total_expected
+                    # as it would set upper_cap=0 and cause "current_start > upper_cap" to break the loop immediately
+                    total_expected = (LimitsConfig.MAX_IMG_FILES if (total_limit is not None and total_limit == 0)
+                                     else (total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES))
         
         # For small totals, set end cap to avoid range issues
         if detected_total and detected_total <= 10 and manual_range is None:
@@ -1766,7 +1769,9 @@ def image_command(app, message):
                 if manual_range[0] is not None and manual_range[0] < 0:
                     total_expected = abs(manual_range[0]) if is_admin else min(abs(manual_range[0]), total_limit or 0)
                 else:
-                    total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
+                    # total_limit=0 (unlimited for admin) must not become total_expected=0 - would break download loop
+                    total_expected = (LimitsConfig.MAX_IMG_FILES if (total_limit is not None and total_limit == 0)
+                                     else (total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES))
             logger.info(f"[IMG FALLBACK] Using manual range for total_expected: {total_expected}")
             
             # Update status message to show we're proceeding with manual range

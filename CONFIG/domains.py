@@ -120,8 +120,8 @@ class DomainsConfig(object):
     ]
 
     GALLERYDL_FALLBACK_DOMAINS = [
-        # Social media platforms largely covered by gallery-dl
-        'instagram.com',
+        # Domains where --simulate/--get-urls are known to fail or timeout;
+        # Instagram was here but caused 0/0 downloads - now we try _get_instagram_media_count
     ]
 
     # --- Whitelist of domains that are not considered porn ---
