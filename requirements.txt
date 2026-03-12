@@ -9,7 +9,8 @@ uvicorn[standard]
 jinja2
 python-multipart
 psutil
-TgCrypto>=1.2.5
+TgCrypto-pyrofork
+#TgCrypto>=1.2.5
 moviepy==1.0.3
 tldextract
 pillow
@@ -37,3 +38,4 @@ gallery-dl
 #pyrotgfork
 
 #apt-get install sshpass
+
