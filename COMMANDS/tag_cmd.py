@@ -2,7 +2,7 @@ from HELPERS.app_instance import get_app
 from pyrogram import filters
 import os
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters
-from HELPERS.safe_messeger import safe_send_message
+from HELPERS.safe_messeger import safe_send_message, safe_edit_reply_markup
 from HELPERS.decorators import background_handler
 from CONFIG.config import Config
 from HELPERS.logger import send_to_logger
@@ -75,7 +75,12 @@ def tags_close_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
         return
@@ -85,7 +90,12 @@ def tags_close_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
         return

@@ -10,7 +10,7 @@ from HELPERS.app_instance import get_app
 from HELPERS.logger import send_to_logger, logger
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.limitter import is_user_in_channel
-from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
+from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text, safe_edit_reply_markup
 from HELPERS.decorators import background_handler
 from urllib.parse import urlparse
 import os
@@ -277,7 +277,12 @@ def format_option_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).FORMAT_CHOICE_UPDATED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_SELECTION_CLOSED_LOG_MSG)
         return
@@ -510,7 +515,12 @@ def format_codec_callback(app, callback_query):
             [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         try:
-            callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=full_res_keyboard,
+                _callback_query=callback_query,
+            )
         except Exception:
             pass
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_CODEC_SET_LOG_MSG.format(codec=data))
@@ -536,7 +546,12 @@ def format_container_callback(app, callback_query):
             [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         try:
-            callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=full_res_keyboard,
+                _callback_query=callback_query,
+            )
         except Exception:
             pass
         try:
@@ -554,7 +569,12 @@ def format_custom_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         try:
             callback_query.answer(safe_get_messages(user_id).FORMAT_CUSTOM_MENU_CLOSED_MSG)
         except Exception:

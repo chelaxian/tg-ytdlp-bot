@@ -1581,9 +1581,13 @@ def lang_callback(app, callback_query):
                     confirmation_msg = confirmation_msg.format(lang_name=lang_name)
                 
                 callback_query.answer(confirmation_msg)
-                callback_query.edit_message_text(
+                from HELPERS.safe_messeger import safe_edit_message_text
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
                     confirmation_msg,
-                    parse_mode=enums.ParseMode.HTML
+                    parse_mode=enums.ParseMode.HTML,
+                    _callback_query=callback_query,
                 )
             else:
                 error_msg = safe_get_messages(user_id).LANG_ERROR_MSG if hasattr(safe_get_messages(user_id), 'LANG_ERROR_MSG') else "❌ Error changing language"
@@ -1593,7 +1597,13 @@ def lang_callback(app, callback_query):
             # Close language selection
             close_msg = safe_get_messages(user_id).LANG_CLOSED_MSG if hasattr(safe_get_messages(user_id), 'LANG_CLOSED_MSG') else "Language selection closed"
             callback_query.answer(close_msg)
-            callback_query.edit_message_text(close_msg)
+            from HELPERS.safe_messeger import safe_edit_message_text
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                close_msg,
+                _callback_query=callback_query,
+            )
             
     except Exception as e:
         # Log error and answer callback

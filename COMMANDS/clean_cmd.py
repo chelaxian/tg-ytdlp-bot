@@ -3,7 +3,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram import enums
 
 from HELPERS.app_instance import get_app
-from HELPERS.safe_messeger import fake_message
+from HELPERS.safe_messeger import fake_message, safe_edit_message_text
 from HELPERS.logger import logger
 from CONFIG.messages import Messages, safe_get_messages
 # Lazy import to avoid circular dependency - import url_distractor inside functions
@@ -94,10 +94,13 @@ def clean_option_callback(app, callback_query):
                                   callback_data="settings__cmd__save_as_cookie")],
             [InlineKeyboardButton("🔙Back", callback_data="settings__menu__back")]
         ])
-        callback_query.edit_message_text(
+        safe_edit_message_text(
+            callback_query.message.chat.id,
+            callback_query.message.id,
             messages.CLEAN_COOKIES_MENU_TITLE_MSG,
             reply_markup=keyboard,
-            parse_mode=enums.ParseMode.HTML
+            parse_mode=enums.ParseMode.HTML,
+            _callback_query=callback_query,
         )
         callback_query.answer()
         return

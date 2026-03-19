@@ -150,10 +150,7 @@ def split_size_callback(app, callback_query):
                 from HELPERS.safe_messeger import safe_edit_reply_markup
                 safe_edit_reply_markup(callback_query.message.chat.id, callback_query.message.id, reply_markup=None, _callback_query=callback_query)
             except Exception:
-                try:
-                    callback_query.edit_message_reply_markup(reply_markup=None)
-                except Exception:
-                    pass
+                pass
         try:
             callback_query.answer(safe_get_messages(user_id).SPLIT_MENU_CLOSED_MSG)
         except Exception:

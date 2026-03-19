@@ -10,7 +10,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyPara
 from HELPERS.app_instance import get_app
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.logger import send_to_logger, logger, send_to_all
-from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
+from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text, safe_edit_reply_markup
 from HELPERS.decorators import background_handler
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.proxy_file_helper import (
@@ -292,7 +292,12 @@ def proxy_option_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         try:
             callback_query.answer(safe_get_messages(user_id).PROXY_MENU_CLOSED_MSG)
         except Exception:
@@ -308,7 +313,13 @@ def proxy_option_callback(app, callback_query):
             page = 0
         proxy_text, keyboard = build_proxy_menu(user_id, page=page)
         try:
-            callback_query.edit_message_text(proxy_text, reply_markup=keyboard)
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                proxy_text,
+                reply_markup=keyboard,
+                _callback_query=callback_query,
+            )
         except Exception:
             pass
         try:

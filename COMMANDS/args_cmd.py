@@ -15,7 +15,7 @@ from pyrogram import enums
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger, send_to_user, send_error_to_user
 from HELPERS.limitter import check_user, is_user_in_channel
-from HELPERS.safe_messeger import safe_send_message
+from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
 from HELPERS.decorators import background_handler
 from CONFIG.config import Config
 from CONFIG.messages import Messages, get_messages_instance, safe_get_messages
@@ -1211,9 +1211,12 @@ def args_callback_handler(app, callback_query):
                 pass
             keyboard = get_args_menu_keyboard(user_id)
             try:
-                callback_query.edit_message_text(
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
                     messages.ARGS_CONFIG_TITLE_MSG.format(groups_msg=messages.ARGS_MENU_DESCRIPTION_MSG),
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
                 )
             except Exception:
                 # If editing failed (deleted/invalid) — just ignore
@@ -1231,7 +1234,13 @@ def args_callback_handler(app, callback_query):
                 [InlineKeyboardButton(messages.ARGS_EXPORT_SETTINGS_BUTTON_MSG, callback_data="args_export")],
                 [InlineKeyboardButton(messages.ARGS_BACK_BUTTON_MSG, callback_data="args_back")]
             ])
-            callback_query.edit_message_text(message, reply_markup=keyboard)
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                message,
+                reply_markup=keyboard,
+                _callback_query=callback_query,
+            )
             callback_query.answer()
             return
         
@@ -1241,16 +1250,25 @@ def args_callback_handler(app, callback_query):
             keyboard = InlineKeyboardMarkup([[
                 InlineKeyboardButton(messages.ARGS_BACK_BUTTON_MSG, callback_data="args_view_current")
             ]])
-            callback_query.edit_message_text(export_message, reply_markup=keyboard)
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                export_message,
+                reply_markup=keyboard,
+                _callback_query=callback_query,
+            )
             callback_query.answer(messages.ARGS_SETTINGS_READY_MSG)
             return
         
         elif data == "args_reset_all":
             if save_user_args(user_id, {}):
                 keyboard = get_args_menu_keyboard(user_id)
-                callback_query.edit_message_text(
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
                     messages.ARGS_CONFIG_TITLE_MSG.format(groups_msg=messages.ARGS_MENU_DESCRIPTION_MSG) + "\n\n" + messages.ARGS_RESET_SUCCESS_MSG,
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
                 )
                 callback_query.answer(messages.ARGS_ALL_RESET_MSG)
             else:
@@ -1270,19 +1288,25 @@ def args_callback_handler(app, callback_query):
             if param_config["type"] == "boolean" or param_name == "send_as_file":
                 keyboard = get_boolean_menu_keyboard(param_name, current_value, user_id)
                 display_value = messages.ARGS_STATUS_TRUE_DISPLAY_MSG if current_value else messages.ARGS_STATUS_FALSE_DISPLAY_MSG
-                callback_query.edit_message_text(
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
                     f"<b>⚙️ {get_param_description(param_config, param_name, messages)}</b>\n\n"
                     f"{messages.ARGS_CURRENT_VALUE_MSG.format(current_value=display_value)}",
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
                 )
             
             elif param_config["type"] == "select":
                 keyboard = get_select_menu_keyboard(param_name, current_value, user_id)
                 display_value = f'<code>{current_value}</code>'
-                callback_query.edit_message_text(
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
                     f"<b>⚙️ {get_param_description(param_config, param_name, messages)}</b>\n\n"
                     f"{messages.ARGS_CURRENT_VALUE_MSG.format(current_value=current_value)}",
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
                 )
             
             elif param_config["type"] in ["text", "json", "number"]:
@@ -1310,9 +1334,12 @@ def args_callback_handler(app, callback_query):
                 # For text/numeric/JSON parameters, replace current message with input prompt,
                 # to avoid duplicating main menu.
                 try:
-                    callback_query.edit_message_text(
+                    safe_edit_message_text(
+                        callback_query.message.chat.id,
+                        callback_query.message.id,
                         message,
-                        reply_markup=keyboard
+                        reply_markup=keyboard,
+                        _callback_query=callback_query,
                     )
                 except Exception:
                     # Fallback: if editing failed — send as reply in the same topic
@@ -1380,9 +1407,12 @@ def args_callback_handler(app, callback_query):
             if current_value != value:
                 # Rebuild main menu to reflect paired toggles instantly
                 keyboard = get_args_menu_keyboard(user_id)
-                callback_query.edit_message_text(
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
                     messages.ARGS_CONFIG_TITLE_MSG.format(groups_msg=messages.ARGS_MENU_DESCRIPTION_MSG),
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
                 )
                 try:
                     callback_query.answer(messages.ARGS_BOOL_SET_MSG.format(value='True' if value else 'False'))
@@ -1431,10 +1461,13 @@ def args_callback_handler(app, callback_query):
             if current_value != value:
                 keyboard = get_select_menu_keyboard(param_name, value)
                 # If we changed impersonate, it may affect headers; but keep same screen
-                callback_query.edit_message_text(
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
                     f"<b>⚙️ {get_param_description(YTDLP_PARAMS[param_name], param_name, messages)}</b>\n\n"
                     f"{messages.ARGS_CURRENT_VALUE_MSG.format(current_value=value)}",
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
                 )
                 try:
                     callback_query.answer(messages.ARGS_VALUE_SET_MSG.format(value=value))

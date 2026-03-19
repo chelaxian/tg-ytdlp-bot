@@ -30,6 +30,6 @@ echo "Using Python interpreter: ${PY}"
 "${PY}" -m pip install -U --no-cache-dir --force-reinstall \
   "git+https://github.com/mikf/gallery-dl.git@master"
 
-# pyrotgfork и TgCrypto
+# pyrotgfork и TgCrypto-pyrofork
 "${PY}" -m pip install --upgrade pyrotgfork
-"${PY}" -m pip install --upgrade TgCrypto
+"${PY}" -m pip install --upgrade TgCrypto-pyrofork

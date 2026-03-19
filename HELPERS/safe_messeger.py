@@ -9,7 +9,19 @@ from HELPERS.app_instance import get_app
 from CONFIG.messages import Messages, safe_get_messages
 from pyrogram.errors import FloodWait
 import os
-from pyrogram.types import ReplyParameters
+
+# Совместимость с разными форками pyrogram: ReplyParameters может отсутствовать
+try:
+    from pyrogram.types import ReplyParameters
+except ImportError:
+    try:
+        from PATCH.PYROGRAM_COMPAT import apply_pyrogram_compat
+
+        apply_pyrogram_compat()
+        from pyrogram.types import ReplyParameters  # type: ignore
+    except Exception:
+        ReplyParameters = None  # type: ignore
+
 from pyrogram import enums
 
 # Configure local logger
@@ -179,6 +191,68 @@ def safe_send_message(chat_id, text, **kwargs):
         if isinstance(k, str) and k.startswith('_'):
             kwargs.pop(k, None)
 
+    # If inline keyboard present, prefer HTTP Bot API to support native button styles,
+    # BUT only when we won't lose functionality vs pyrogram (guarded allowlist).
+    try:
+        from pyrogram.types import InlineKeyboardMarkup
+        rm = kwargs.get("reply_markup")
+        if isinstance(rm, InlineKeyboardMarkup):
+            from HELPERS.bot_api import bot_api_call
+            from HELPERS.bot_api_keyboards import inline_keyboard_with_styles
+
+            payload = {"chat_id": chat_id, "text": text}
+            # parse_mode
+            pm = kwargs.get("parse_mode")
+            if pm is not None:
+                try:
+                    payload["parse_mode"] = str(pm).split(".")[-1]
+                except Exception:
+                    pass
+            # common flags (only if present; keep parity with pyrogram calls)
+            for key in ("disable_web_page_preview", "disable_notification", "protect_content"):
+                if key in kwargs:
+                    payload[key] = kwargs.get(key)
+            # topic/thread support
+            if kwargs.get("message_thread_id") is not None:
+                payload["message_thread_id"] = kwargs.get("message_thread_id")
+            # reply_to
+            rp = kwargs.get("reply_parameters")
+            if rp is not None and getattr(rp, "message_id", None) is not None:
+                payload["reply_to_message_id"] = rp.message_id
+
+            payload["reply_markup"] = inline_keyboard_with_styles(rm)
+
+            # Guard: if caller passed extra kwargs that we don't forward to Bot API,
+            # keep pyrogram path to avoid regressions.
+            allowed_keys = {
+                "parse_mode",
+                "reply_markup",
+                "reply_parameters",
+                "message_thread_id",
+                "disable_web_page_preview",
+                "disable_notification",
+                "protect_content",
+            }
+            extra = [k for k in kwargs.keys() if isinstance(k, str) and k not in allowed_keys]
+            if extra:
+                raise RuntimeError(f"bot_api_guard_skip:{extra}")
+
+            res = bot_api_call("sendMessage", payload)
+            if isinstance(res, dict) and res.get("ok"):
+                try:
+                    mid = res.get("result", {}).get("message_id")
+                    if mid:
+                        m = SimpleNamespace()
+                        m.id = mid
+                        m.chat = SimpleNamespace()
+                        m.chat.id = chat_id
+                        return m
+                except Exception:
+                    pass
+                return None
+    except Exception:
+        pass
+
     # Throttle message sending to prevent msg_seqno issues
     with _message_send_lock:
         last_sent = _last_message_sent.get(chat_id, 0)
@@ -213,37 +287,221 @@ def safe_send_message(chat_id, text, **kwargs):
             except Exception:
                 pass
             return None
-        except Exception as e:
-            if "FLOOD_WAIT" in str(e):
-                # Extract wait time
-                wait_match = re.search(r'A wait of (\d+) seconds is required', str(e))
-                if wait_match:
-                    wait_seconds = int(wait_match.group(1))
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG.format(wait_seconds=wait_seconds))
-                    time.sleep(min(wait_seconds + 1, 5))  # short backoff
-                else:
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG.format(retry_delay=retry_delay))
-                    time.sleep(retry_delay)
-                if attempt and attempt < max_retries - 1:
-                    continue
-            
-            # Handle msg_seqno errors
-            elif "msg_seqno is too high" in str(e):
-                logger.warning(safe_get_messages(user_id).HELPER_MSG_SEQNO_ERROR_DETECTED_MSG.format(retry_delay=retry_delay))
-                time.sleep(retry_delay)
-                if attempt and attempt < max_retries - 1:
-                    continue
-            # Handle RANDOM_ID_DUPLICATE errors by brief backoff and retry
-            elif "RANDOM_ID_DUPLICATE" in str(e):
+
+
+def safe_send_photo(chat_id, photo, *, caption=None, **kwargs):
+    """
+    Send photo with inline keyboard styles via HTTP Bot API if reply_markup is InlineKeyboardMarkup.
+    Falls back to pyrogram send_photo otherwise.
+    """
+    # Extract internal helper kwargs
+    cb = kwargs.pop('_callback_query', None)
+    for k in list(kwargs.keys()):
+        if isinstance(k, str) and k.startswith('_'):
+            kwargs.pop(k, None)
+    try:
+        from pyrogram.types import InlineKeyboardMarkup
+        rm = kwargs.get("reply_markup")
+        if isinstance(rm, InlineKeyboardMarkup):
+            from HELPERS.bot_api import bot_api_call
+            from HELPERS.bot_api_keyboards import inline_keyboard_with_styles
+
+            payload = {"chat_id": chat_id, "photo": photo}
+            if caption is not None:
+                payload["caption"] = caption
+            pm = kwargs.get("parse_mode")
+            if pm is not None:
                 try:
-                    logger.warning("RANDOM_ID_DUPLICATE detected, backing off briefly and retrying")
+                    payload["parse_mode"] = str(pm).split(".")[-1]
                 except Exception:
                     pass
-                time.sleep(0.5)
-                if attempt and attempt < max_retries - 1:
-                    continue
-            logger.error(f"Failed to send message after {max_retries} attempts: {e}")
-            return None
+            # Keep parity flags commonly used in project
+            for key in ("has_spoiler", "disable_notification", "protect_content"):
+                if key in kwargs:
+                    payload[key] = kwargs.get(key)
+            if kwargs.get("message_thread_id") is not None:
+                payload["message_thread_id"] = kwargs.get("message_thread_id")
+            rp = kwargs.get("reply_parameters")
+            if rp is not None and getattr(rp, "message_id", None) is not None:
+                payload["reply_to_message_id"] = rp.message_id
+            payload["reply_markup"] = inline_keyboard_with_styles(rm, pressed_callback_data=getattr(cb, "data", None) if cb else None)
+
+            allowed_keys = {
+                "parse_mode",
+                "reply_markup",
+                "reply_parameters",
+                "message_thread_id",
+                "has_spoiler",
+                "disable_notification",
+                "protect_content",
+            }
+            extra = [k for k in kwargs.keys() if isinstance(k, str) and k not in allowed_keys]
+            if extra:
+                raise RuntimeError(f"bot_api_guard_skip:{extra}")
+
+            res = bot_api_call("sendPhoto", payload)
+            if isinstance(res, dict) and res.get("ok"):
+                try:
+                    mid = res.get("result", {}).get("message_id")
+                    if mid:
+                        m = SimpleNamespace()
+                        m.id = mid
+                        m.chat = SimpleNamespace()
+                        m.chat.id = chat_id
+                        return m
+                except Exception:
+                    pass
+                return None
+    except Exception:
+        pass
+
+    try:
+        app = get_app_safe()
+        return app.send_photo(chat_id, photo, caption=caption, **kwargs)
+    except Exception:
+        return None
+
+
+def safe_send_document(chat_id, document, *, caption=None, **kwargs):
+    """
+    Send document with inline keyboard styles via HTTP Bot API if reply_markup is InlineKeyboardMarkup.
+    Falls back to pyrogram send_document otherwise.
+    """
+    cb = kwargs.pop('_callback_query', None)
+    for k in list(kwargs.keys()):
+        if isinstance(k, str) and k.startswith('_'):
+            kwargs.pop(k, None)
+    try:
+        from pyrogram.types import InlineKeyboardMarkup
+        rm = kwargs.get("reply_markup")
+        if isinstance(rm, InlineKeyboardMarkup):
+            from HELPERS.bot_api import bot_api_call
+            from HELPERS.bot_api_keyboards import inline_keyboard_with_styles
+
+            payload = {"chat_id": chat_id, "document": document}
+            if caption is not None:
+                payload["caption"] = caption
+            pm = kwargs.get("parse_mode")
+            if pm is not None:
+                try:
+                    payload["parse_mode"] = str(pm).split(".")[-1]
+                except Exception:
+                    pass
+            for key in ("disable_notification", "protect_content"):
+                if key in kwargs:
+                    payload[key] = kwargs.get(key)
+            if kwargs.get("message_thread_id") is not None:
+                payload["message_thread_id"] = kwargs.get("message_thread_id")
+            rp = kwargs.get("reply_parameters")
+            if rp is not None and getattr(rp, "message_id", None) is not None:
+                payload["reply_to_message_id"] = rp.message_id
+            payload["reply_markup"] = inline_keyboard_with_styles(rm, pressed_callback_data=getattr(cb, "data", None) if cb else None)
+
+            allowed_keys = {
+                "parse_mode",
+                "reply_markup",
+                "reply_parameters",
+                "message_thread_id",
+                "disable_notification",
+                "protect_content",
+            }
+            extra = [k for k in kwargs.keys() if isinstance(k, str) and k not in allowed_keys]
+            if extra:
+                raise RuntimeError(f"bot_api_guard_skip:{extra}")
+
+            res = bot_api_call("sendDocument", payload)
+            if isinstance(res, dict) and res.get("ok"):
+                try:
+                    mid = res.get("result", {}).get("message_id")
+                    if mid:
+                        m = SimpleNamespace()
+                        m.id = mid
+                        m.chat = SimpleNamespace()
+                        m.chat.id = chat_id
+                        return m
+                except Exception:
+                    pass
+                return None
+    except Exception:
+        pass
+
+    try:
+        app = get_app_safe()
+        return app.send_document(chat_id, document, caption=caption, **kwargs)
+    except Exception:
+        return None
+
+
+def safe_send_video(chat_id, video, *, caption=None, **kwargs):
+    """
+    Send video with inline keyboard styles via HTTP Bot API if reply_markup is InlineKeyboardMarkup.
+    Falls back to pyrogram send_video otherwise.
+    """
+    cb = kwargs.pop('_callback_query', None)
+    for k in list(kwargs.keys()):
+        if isinstance(k, str) and k.startswith('_'):
+            kwargs.pop(k, None)
+    try:
+        from pyrogram.types import InlineKeyboardMarkup
+        rm = kwargs.get("reply_markup")
+        if isinstance(rm, InlineKeyboardMarkup):
+            from HELPERS.bot_api import bot_api_call
+            from HELPERS.bot_api_keyboards import inline_keyboard_with_styles
+
+            payload = {"chat_id": chat_id, "video": video}
+            if caption is not None:
+                payload["caption"] = caption
+            pm = kwargs.get("parse_mode")
+            if pm is not None:
+                try:
+                    payload["parse_mode"] = str(pm).split(".")[-1]
+                except Exception:
+                    pass
+            for key in ("has_spoiler", "supports_streaming", "disable_notification", "protect_content"):
+                if key in kwargs:
+                    payload[key] = kwargs.get(key)
+            if kwargs.get("message_thread_id") is not None:
+                payload["message_thread_id"] = kwargs.get("message_thread_id")
+            rp = kwargs.get("reply_parameters")
+            if rp is not None and getattr(rp, "message_id", None) is not None:
+                payload["reply_to_message_id"] = rp.message_id
+            payload["reply_markup"] = inline_keyboard_with_styles(rm, pressed_callback_data=getattr(cb, "data", None) if cb else None)
+
+            allowed_keys = {
+                "parse_mode",
+                "reply_markup",
+                "reply_parameters",
+                "message_thread_id",
+                "has_spoiler",
+                "supports_streaming",
+                "disable_notification",
+                "protect_content",
+            }
+            extra = [k for k in kwargs.keys() if isinstance(k, str) and k not in allowed_keys]
+            if extra:
+                raise RuntimeError(f"bot_api_guard_skip:{extra}")
+
+            res = bot_api_call("sendVideo", payload)
+            if isinstance(res, dict) and res.get("ok"):
+                try:
+                    mid = res.get("result", {}).get("message_id")
+                    if mid:
+                        m = SimpleNamespace()
+                        m.id = mid
+                        m.chat = SimpleNamespace()
+                        m.chat.id = chat_id
+                        return m
+                except Exception:
+                    pass
+                return None
+    except Exception:
+        pass
+
+    try:
+        app = get_app_safe()
+        return app.send_video(chat_id, video, caption=caption, **kwargs)
+    except Exception:
+        return None
 
 # Helper function for safe message forwarding with flood wait handling
 def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
@@ -330,6 +588,27 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
+            # If inline keyboard present, prefer HTTP Bot API for native button styles.
+            try:
+                from pyrogram.types import InlineKeyboardMarkup
+                rm = kwargs.get("reply_markup")
+                if isinstance(rm, InlineKeyboardMarkup):
+                    from HELPERS.bot_api import bot_api_call
+                    from HELPERS.bot_api_keyboards import inline_keyboard_with_styles
+
+                    payload = {"chat_id": chat_id, "message_id": message_id, "text": text}
+                    pm = kwargs.get("parse_mode")
+                    if pm is not None:
+                        try:
+                            payload["parse_mode"] = str(pm).split(".")[-1]
+                        except Exception:
+                            pass
+                    payload["reply_markup"] = inline_keyboard_with_styles(rm)
+                    res = bot_api_call("editMessageText", payload)
+                    if isinstance(res, dict) and res.get("ok"):
+                        return None
+            except Exception:
+                pass
             return app.edit_message_text(chat_id, message_id, text, **kwargs)
         except FloodWait as e:
             # Persist FloodWait info and stop
@@ -381,6 +660,27 @@ def safe_edit_reply_markup(chat_id, message_id, reply_markup=None, **kwargs):
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
+            try:
+                from pyrogram.types import InlineKeyboardMarkup
+                if isinstance(reply_markup, InlineKeyboardMarkup):
+                    from HELPERS.bot_api import bot_api_call
+                    from HELPERS.bot_api_keyboards import inline_keyboard_with_styles
+                    pressed = None
+                    try:
+                        cbq = kwargs.get("_callback_query", None)
+                        pressed = getattr(cbq, "data", None) if cbq is not None else None
+                    except Exception:
+                        pressed = None
+                    payload = {
+                        "chat_id": chat_id,
+                        "message_id": message_id,
+                        "reply_markup": inline_keyboard_with_styles(reply_markup, pressed_callback_data=pressed),
+                    }
+                    res = bot_api_call("editMessageReplyMarkup", payload)
+                    if isinstance(res, dict) and res.get("ok"):
+                        return None
+            except Exception:
+                pass
             return app.edit_message_reply_markup(chat_id, message_id, reply_markup=reply_markup, **kwargs)
         except FloodWait as e:
             try:

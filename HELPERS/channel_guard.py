@@ -569,7 +569,7 @@ class ChannelGuard:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for admin_id in admins:
             try:
-                safe_send_message(
+                res = safe_send_message(
                     admin_id,
                     safe_get_messages(admin_id).BAN_TIME_REPORT_MSG.format(
                         run_ts=ts,
@@ -580,6 +580,12 @@ class ChannelGuard:
                         last_event_id=self._last_event_id,
                     ),
                 )
+                # safe_send_message может вернуть coroutine (в зависимости от режима pyrogram)
+                try:
+                    if asyncio.iscoroutine(res):
+                        await res
+                except Exception:
+                    pass
             except Exception as exc:
                 logger.error(f"[ChannelGuard] Failed to send report to {admin_id}: {exc}")
         logger.info(

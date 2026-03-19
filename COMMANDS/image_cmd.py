@@ -6,7 +6,45 @@ import tempfile
 import threading
 import time
 from pyrogram import filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyParameters, InputMediaPhoto, InputMediaVideo, InputPaidMediaPhoto, InputPaidMediaVideo
+# Совместимость с разными форками pyrogram: ReplyParameters/InputPaidMedia* могут отсутствовать
+try:
+    from pyrogram.types import (
+        InlineKeyboardMarkup,
+        InlineKeyboardButton,
+        CallbackQuery,
+        ReplyParameters,
+        InputMediaPhoto,
+        InputMediaVideo,
+        InputPaidMediaPhoto,
+        InputPaidMediaVideo,
+    )
+except ImportError:
+    try:
+        from PATCH.PYROGRAM_COMPAT import apply_pyrogram_compat
+
+        apply_pyrogram_compat()
+        from pyrogram.types import (  # type: ignore
+            InlineKeyboardMarkup,
+            InlineKeyboardButton,
+            CallbackQuery,
+            ReplyParameters,
+            InputMediaPhoto,
+            InputMediaVideo,
+            InputPaidMediaPhoto,
+            InputPaidMediaVideo,
+        )
+    except Exception:
+        # Минимальный фолбэк: платные медиа будут отключены, остальное продолжит работать.
+        from pyrogram.types import (  # type: ignore
+            InlineKeyboardMarkup,
+            InlineKeyboardButton,
+            CallbackQuery,
+            InputMediaPhoto,
+            InputMediaVideo,
+        )
+        ReplyParameters = None  # type: ignore
+        InputPaidMediaPhoto = None  # type: ignore
+        InputPaidMediaVideo = None  # type: ignore
 from pyrogram import enums
 from pyrogram.errors import FloodWait
 from HELPERS.logger import send_to_logger, logger, get_log_channel, log_error_to_channel
@@ -4545,7 +4583,13 @@ def img_help_callback(app, callback_query: CallbackQuery):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         try:
             callback_query.answer(safe_get_messages(user_id).IMG_HELP_CLOSED_MSG)
         except Exception:
@@ -4575,7 +4619,13 @@ def img_range_callback(app, callback_query: CallbackQuery):
             try:
                 callback_query.message.delete()
             except Exception:
-                callback_query.edit_message_reply_markup(reply_markup=None)
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=None,
+                    _callback_query=callback_query,
+                )
             try:
                 callback_query.answer("❌ Cancelled")
             except Exception:

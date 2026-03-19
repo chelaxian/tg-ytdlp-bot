@@ -456,14 +456,18 @@ def subs_page_callback(app, callback_query):
         auto_text = safe_get_messages(user_id).SUBS_AUTO_SUBS_TEXT if auto_mode else ""
         status_text = safe_get_messages(user_id).SUBS_SELECTED_LANGUAGE_MSG.format(flag=lang_info['flag'], name=lang_info['name'], auto_text=auto_text)
     
-    callback_query.edit_message_text(
+    from HELPERS.safe_messeger import safe_edit_message_text
+    safe_edit_message_text(
+        callback_query.message.chat.id,
+        callback_query.message.id,
         safe_get_messages(user_id).SUBS_SETTINGS_MENU_MSG.format(status_text=status_text) +
         safe_get_messages(user_id).SUBS_QUICK_COMMANDS_MSG +
         safe_get_messages(user_id).SUBS_SETTINGS_ADDITIONAL_MSG +
         safe_get_messages(user_id).SUBS_SET_LANGUAGE_CODE_MSG +
         "• <code>/subs ru</code> - set language\n" +
         "• <code>/subs ru auto</code> - set language with AUTO/TRANS",
-        reply_markup=get_language_keyboard(page, user_id=user_id)
+        reply_markup=get_language_keyboard(page, user_id=user_id),
+        _callback_query=callback_query,
     )
     callback_query.answer()
 
@@ -482,7 +486,13 @@ def subs_lang_callback(app, callback_query):
     else:
         status = safe_get_messages(user_id).SUBS_LANGUAGE_SET_STATUS_MSG.format(flag=LANGUAGES[lang_code]['flag'], name=LANGUAGES[lang_code]['name'])
     
-    callback_query.edit_message_text(status)
+    from HELPERS.safe_messeger import safe_edit_message_text
+    safe_edit_message_text(
+        callback_query.message.chat.id,
+        callback_query.message.id,
+        status,
+        _callback_query=callback_query,
+    )
     callback_query.answer(safe_get_messages(user_id).SUBS_LANGUAGE_UPDATED_MSG)
     send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG.format(lang_code=lang_code))
 
@@ -520,9 +530,13 @@ def subs_auto_callback(app, callback_query):
             status_text = safe_get_messages(user_id).SUBS_SELECTED_LANGUAGE_MSG.format(flag=lang_info['flag'], name=lang_info['name'], auto_text=auto_text)
         
         # We update the message from the new menu
-        callback_query.edit_message_text(
+        from HELPERS.safe_messeger import safe_edit_message_text
+        safe_edit_message_text(
+            callback_query.message.chat.id,
+            callback_query.message.id,
             safe_get_messages(user_id).SUBS_AUTO_MENU_MSG.format(status_text=status_text),
-            reply_markup=get_language_keyboard(page=page, user_id=user_id)
+            reply_markup=get_language_keyboard(page=page, user_id=user_id),
+            _callback_query=callback_query,
         )
         
         send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_AUTO_MODE_TOGGLED_LOG_MSG.format(new_auto=new_auto))
@@ -551,7 +565,13 @@ def subs_always_ask_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         
         send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_ALWAYS_ASK_TOGGLED_LOG_MSG.format(new_always_ask=new_always_ask))
 
@@ -565,7 +585,13 @@ def subs_lang_close_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).SUBS_MENU_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_LANGUAGE_MENU_CLOSED_MSG)
         return

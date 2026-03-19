@@ -36,7 +36,13 @@ def help_msg_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).OTHER_HELP_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).HELP_MESSAGE_CLOSED_LOG_MSG)
         return
@@ -222,7 +228,13 @@ def playlist_help_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).PLAYLIST_HELP_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).PLAYLIST_HELP_CLOSED_LOG_MSG)
         return
@@ -236,7 +248,13 @@ def userlogs_close_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).OTHER_LOGS_MESSAGE_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).USERLOGS_CLOSED_MSG)
         return
@@ -249,7 +267,13 @@ def audio_hint_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).AUDIO_HELP_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).AUDIO_HINT_CLOSED_LOG_MSG)
         return

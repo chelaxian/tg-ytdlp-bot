@@ -1,6 +1,19 @@
 # @reply_with_keyboard
 from pyrogram import enums
-from pyrogram.types import ReplyParameters, InputPaidMediaVideo
+
+# Совместимость с разными форками pyrogram: ReplyParameters/InputPaidMediaVideo могут отсутствовать
+try:
+    from pyrogram.types import ReplyParameters, InputPaidMediaVideo
+except ImportError:
+    try:
+        from PATCH.PYROGRAM_COMPAT import apply_pyrogram_compat
+
+        apply_pyrogram_compat()
+        from pyrogram.types import ReplyParameters, InputPaidMediaVideo  # type: ignore
+    except Exception:
+        # Фолбэк: платные медиа отключаем, остальное продолжит работать
+        ReplyParameters = None  # type: ignore
+        InputPaidMediaVideo = None  # type: ignore
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
 from HELPERS.logger import get_log_channel
@@ -497,6 +510,9 @@ def send_videos(
             # Проверяем, должен ли админ получать платный контент
             from HELPERS.limitter import should_apply_limits_to_admin
             should_send_paid = is_spoiler and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            # Если тип платного медиа недоступен в текущем pyrogram/pyrotgfork — отключаем платную отправку
+            if should_send_paid and InputPaidMediaVideo is None:
+                should_send_paid = False
             if should_send_paid:
                 try:
                     # Пробиваем метаданные и добавляем корректный cover и параметры
@@ -641,6 +657,8 @@ def send_videos(
             # Проверяем, должен ли админ получать платный контент
             from HELPERS.limitter import should_apply_limits_to_admin
             should_send_paid = is_spoiler and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            if should_send_paid and InputPaidMediaVideo is None:
+                should_send_paid = False
             if should_send_paid:
                 try:
                     try:

@@ -12,6 +12,7 @@ from HELPERS.limitter import is_user_in_channel
 from HELPERS.logger import send_to_logger, logger, send_to_user, send_to_all
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_message_text
+from HELPERS.safe_messeger import safe_edit_reply_markup
 from pyrogram.errors import FloodWait
 import subprocess
 import os
@@ -525,7 +526,12 @@ def browser_choice_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).COOKIES_MENU_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).COOKIES_BROWSER_SELECTION_CLOSED_LOG_MSG)
         return
@@ -761,7 +767,12 @@ def download_cookie_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).COOKIES_MENU_CLOSED_MSG)
         return
 
@@ -780,7 +791,12 @@ def save_as_cookie_hint_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).COOKIES_HINT_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).COOKIES_SAVE_AS_HINT_CLOSED_MSG)
         return

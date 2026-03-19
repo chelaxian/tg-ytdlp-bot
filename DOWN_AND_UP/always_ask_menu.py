@@ -6,7 +6,19 @@ from datetime import datetime
 import json
 from pyrogram import filters, enums
 from pyrogram.errors import FloodWait
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters, WebAppInfo
+
+# Совместимость с разными форками pyrogram: ReplyParameters может отсутствовать
+try:
+    from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters, WebAppInfo
+except ImportError:
+    try:
+        from PATCH.PYROGRAM_COMPAT import apply_pyrogram_compat
+
+        apply_pyrogram_compat()
+        from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters, WebAppInfo  # type: ignore
+    except Exception:
+        from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo  # type: ignore
+        ReplyParameters = None  # type: ignore
 import requests
 
 def safe_callback_answer(callback_query, text, show_alert=False):
@@ -1414,7 +1426,13 @@ def ask_filter_callback(app, callback_query):
             current_page = fstate.get("subs_lang_page", 0)
             kb = get_language_keyboard_always_ask(page=current_page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
-                callback_query.edit_message_reply_markup(reply_markup=kb)
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=kb,
+                    _callback_query=callback_query,
+                )
             except Exception:
                 pass
             safe_callback_answer(callback_query, safe_get_messages(user_id).CHOOSE_SUBTITLE_LANGUAGE_MSG)
@@ -1445,7 +1463,13 @@ def ask_filter_callback(app, callback_query):
             # Preserve selected languages when navigating pages
             kb = get_language_keyboard_always_ask(page=page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
-                callback_query.edit_message_reply_markup(reply_markup=kb)
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=kb,
+                    _callback_query=callback_query,
+                )
             except Exception:
                 pass
             callback_query.answer(safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1))
@@ -1464,7 +1488,13 @@ def ask_filter_callback(app, callback_query):
             try:
                 safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             except Exception:
-                app.edit_message_reply_markup(chat_id=callback_query.message.chat.id, message_id=callback_query.message.id, reply_markup=None)
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=None,
+                    _callback_query=callback_query,
+                )
             callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         if kind == "subs_lang":
@@ -1556,7 +1586,13 @@ def ask_filter_callback(app, callback_query):
                     if langs:
                         kb = get_language_keyboard_always_ask(page=current_page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
                         try:
-                            callback_query.edit_message_reply_markup(reply_markup=kb)
+                            from HELPERS.safe_messeger import safe_edit_reply_markup
+                            safe_edit_reply_markup(
+                                callback_query.message.chat.id,
+                                callback_query.message.id,
+                                reply_markup=kb,
+                                _callback_query=callback_query,
+                            )
                         except Exception:
                             pass
                 try:
@@ -1673,7 +1709,13 @@ def ask_filter_callback(app, callback_query):
             
             rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
             try:
-                callback_query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=InlineKeyboardMarkup(rows),
+                    _callback_query=callback_query,
+                )
             except Exception:
                 pass
             try:
@@ -1755,7 +1797,13 @@ def ask_filter_callback(app, callback_query):
                         
                         rows.append([InlineKeyboardButton(safe_get_messages(user_id).BACK_BUTTON_TEXT, callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askf|dubs|close")])
                         try:
-                            callback_query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+                            from HELPERS.safe_messeger import safe_edit_reply_markup
+                            safe_edit_reply_markup(
+                                callback_query.message.chat.id,
+                                callback_query.message.id,
+                                reply_markup=InlineKeyboardMarkup(rows),
+                                _callback_query=callback_query,
+                            )
                         except Exception:
                             pass
                 try:
@@ -2215,7 +2263,13 @@ def askq_callback(app, callback_query):
         try:
             safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
         except Exception:
-            app.edit_message_reply_markup(chat_id=callback_query.message.chat.id, message_id=callback_query.message.id, reply_markup=None)
+            from HELPERS.safe_messeger import safe_edit_reply_markup
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_MENU_CLOSED_MSG)
         return
         
@@ -2754,8 +2808,13 @@ def askq_callback(app, callback_query):
             rows.append([InlineKeyboardButton("🔙Back", callback_data="askf|dubs|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="askf|dubs|close")])
             kb = InlineKeyboardMarkup(rows)
             try:
-                # Replace entire keyboard (keeping caption/text) to show dubs
-                callback_query.edit_message_reply_markup(reply_markup=kb)
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=kb,
+                    _callback_query=callback_query,
+                )
             except Exception:
                 pass
             callback_query.answer(safe_get_messages(user_id).AA_CHOOSE_AUDIO_LANGUAGE_MSG)
@@ -2785,7 +2844,13 @@ def askq_callback(app, callback_query):
             langs = sorted(set(normal) | set(auto))
             kb = get_language_keyboard_always_ask(page=page, user_id=user_id, langs_override=langs, per_page_rows=8, normal_langs=normal, auto_langs=auto)
             try:
-                callback_query.edit_message_reply_markup(reply_markup=kb)
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=kb,
+                    _callback_query=callback_query,
+                )
             except Exception:
                 pass
             callback_query.answer(safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1))
@@ -2805,7 +2870,13 @@ def askq_callback(app, callback_query):
             try:
                 safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             except Exception:
-                app.edit_message_reply_markup(chat_id=callback_query.message.chat.id, message_id=callback_query.message.id, reply_markup=None)
+                from HELPERS.safe_messeger import safe_edit_reply_markup
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=None,
+                    _callback_query=callback_query,
+                )
             callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         # OLD LINK TOGGLE HANDLER REMOVED - now using submenu approach
@@ -3983,9 +4054,26 @@ def show_manual_quality_menu(app, callback_query):
     if callback_query and getattr(callback_query, 'message', None):
         try:
             if callback_query.message.photo:
-                callback_query.edit_message_caption(caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                from HELPERS.safe_messeger import safe_edit_message_text
+                # Через Bot API (style в inline кнопках)
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    cap,
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
+                )
             else:
-                callback_query.edit_message_text(text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                from HELPERS.safe_messeger import safe_edit_message_text
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    cap,
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
+                )
             callback_query.answer("Меню выбора качества открыто.")
             return
         except Exception as ee:
@@ -3996,8 +4084,15 @@ def show_manual_quality_menu(app, callback_query):
     try:
         chat_id = callback_query.message.chat.id if callback_query and getattr(callback_query, 'message', None) else user_id
         ref_id = original_message.id if original_message else None
-        app.send_message(chat_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard,
-                         reply_parameters=ReplyParameters(message_id=ref_id))
+        from HELPERS.safe_messeger import safe_send_message
+        safe_send_message(
+            chat_id,
+            cap,
+            parse_mode=enums.ParseMode.HTML,
+            reply_markup=keyboard,
+            reply_parameters=ReplyParameters(message_id=ref_id),
+            _callback_query=callback_query,
+        )
         if callback_query:
             callback_query.answer("Меню выбора качества открыто.")
     except Exception as e2:
@@ -4402,17 +4497,40 @@ def show_other_qualities_menu(app, callback_query, page=0):
         # Update message
         try:
             if callback_query.message.photo:
-                callback_query.edit_message_caption(caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                from HELPERS.safe_messeger import safe_edit_message_text
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    cap,
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
+                )
             else:
-                callback_query.edit_message_text(text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                from HELPERS.safe_messeger import safe_edit_message_text
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    cap,
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=keyboard,
+                    _callback_query=callback_query,
+                )
             _safe_answer(f"Formats page {page + 1}/{total_pages}")
         except Exception as e:
             # Fallback: send new message
             try:
                 chat_id = callback_query.message.chat.id
                 ref_id = original_message.id if original_message else None
-                app.send_message(chat_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard,
-                               reply_parameters=ReplyParameters(message_id=ref_id))
+                from HELPERS.safe_messeger import safe_send_message
+                safe_send_message(
+                    chat_id,
+                    cap,
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=keyboard,
+                    reply_parameters=ReplyParameters(message_id=ref_id),
+                    _callback_query=callback_query,
+                )
                 _safe_answer(f"{safe_get_messages(user_id).ALWAYS_ASK_FORMATS_PAGE_MSG} {page + 1}/{total_pages}")
             except Exception as e2:
                 logger.error(f"Error showing other qualities menu: {e2}")
@@ -4428,9 +4546,23 @@ def show_other_qualities_menu(app, callback_query, page=0):
         error_cap = f"<b>{video_title}</b>\n\n{safe_get_messages(user_id).ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG}\n{safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG}"
         try:
             if callback_query.message.photo:
-                callback_query.edit_message_caption(caption=error_cap, parse_mode=enums.ParseMode.HTML)
+                from HELPERS.safe_messeger import safe_edit_message_text
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    error_cap,
+                    parse_mode=enums.ParseMode.HTML,
+                    _callback_query=callback_query,
+                )
             else:
-                callback_query.edit_message_text(text=error_cap, parse_mode=enums.ParseMode.HTML)
+                from HELPERS.safe_messeger import safe_edit_message_text
+                safe_edit_message_text(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    error_cap,
+                    parse_mode=enums.ParseMode.HTML,
+                    _callback_query=callback_query,
+                )
         except:
             pass
 
@@ -4554,17 +4686,40 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
     # Update message
     try:
         if callback_query.message.photo:
-            callback_query.edit_message_caption(caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+            from HELPERS.safe_messeger import safe_edit_message_text
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                cap,
+                parse_mode=enums.ParseMode.HTML,
+                reply_markup=keyboard,
+                _callback_query=callback_query,
+            )
         else:
-            callback_query.edit_message_text(text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+            from HELPERS.safe_messeger import safe_edit_message_text
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                cap,
+                parse_mode=enums.ParseMode.HTML,
+                reply_markup=keyboard,
+                _callback_query=callback_query,
+            )
         callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG} {page + 1}/{total_pages} {safe_get_messages(user_id).ALWAYS_ASK_FROM_CACHE_MSG}")
     except Exception as e:
         # Fallback: send new message
         try:
             chat_id = callback_query.message.chat.id
             ref_id = callback_query.message.reply_to_message.id if callback_query.message.reply_to_message else None
-            app.send_message(chat_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard,
-                           reply_parameters=ReplyParameters(message_id=ref_id) if ref_id else None)
+            from HELPERS.safe_messeger import safe_send_message
+            safe_send_message(
+                chat_id,
+                cap,
+                parse_mode=enums.ParseMode.HTML,
+                reply_markup=keyboard,
+                reply_parameters=ReplyParameters(message_id=ref_id) if ref_id else None,
+                _callback_query=callback_query,
+            )
             callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG} {page + 1}/{total_pages} {safe_get_messages(user_id).ALWAYS_ASK_FROM_CACHE_MSG}")
         except Exception as e2:
             logger.error(f"Error showing cached formats: {e2}")
@@ -4853,17 +5008,41 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
         try:
             if proc_msg:
                 try:
-                    result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                    from HELPERS.safe_messeger import safe_edit_message_text
+                    result = safe_edit_message_text(
+                        user_id,
+                        proc_msg.id,
+                        cap,
+                        parse_mode=enums.ParseMode.HTML,
+                        reply_markup=keyboard,
+                        _callback_query=callback_query,
+                    )
                     if result is None:
                         # Use original_message_id if provided (for trim mode), otherwise use message.id
                         reply_to_id = original_message_id if original_message_id is not None else message.id
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                        from HELPERS.safe_messeger import safe_send_message
+                        safe_send_message(
+                            user_id,
+                            cap,
+                            reply_parameters=ReplyParameters(message_id=reply_to_id),
+                            parse_mode=enums.ParseMode.HTML,
+                            reply_markup=keyboard,
+                            _callback_query=callback_query,
+                        )
                 except Exception as edit_error:
                     if "MESSAGE_ID_INVALID" in str(edit_error):
                         logger.warning(f"Message ID invalid, sending new message: {edit_error}")
                         # Use original_message_id if provided (for trim mode), otherwise use message.id
                         reply_to_id = original_message_id if original_message_id is not None else message.id
-                        app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                        from HELPERS.safe_messeger import safe_send_message
+                        safe_send_message(
+                            user_id,
+                            cap,
+                            reply_parameters=ReplyParameters(message_id=reply_to_id),
+                            parse_mode=enums.ParseMode.HTML,
+                            reply_markup=keyboard,
+                            _callback_query=callback_query,
+                        )
                     elif "BUTTON_TYPE_INVALID" in str(edit_error):
                         logger.warning(f"Button type invalid, sending without keyboard: {edit_error}")
                         # Use original_message_id if provided (for trim mode), otherwise use message.id
@@ -4875,7 +5054,15 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                 try:
                     # Use original_message_id if provided (for trim mode), otherwise use message.id
                     reply_to_id = original_message_id if original_message_id is not None else message.id
-                    app.send_message(user_id, cap, reply_parameters=ReplyParameters(message_id=reply_to_id), parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                    from HELPERS.safe_messeger import safe_send_message
+                    safe_send_message(
+                        user_id,
+                        cap,
+                        reply_parameters=ReplyParameters(message_id=reply_to_id),
+                        parse_mode=enums.ParseMode.HTML,
+                        reply_markup=keyboard,
+                        _callback_query=callback_query,
+                    )
                 except Exception as send_error:
                     if "BUTTON_TYPE_INVALID" in str(send_error):
                         logger.warning(f"Button type invalid, sending without keyboard: {send_error}")
@@ -5071,7 +5258,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         if cb is None:
             # Use original_message_id if provided (for trim mode), otherwise use message.id
             reply_to_id = original_message_id if original_message_id is not None else message.id
-            proc_msg = app.send_message(user_id, processing_text, reply_parameters=ReplyParameters(message_id=reply_to_id), reply_markup=get_main_reply_keyboard())
+            from HELPERS.safe_messeger import safe_send_message
+            proc_msg = safe_send_message(
+                user_id,
+                processing_text,
+                reply_parameters=ReplyParameters(message_id=reply_to_id),
+                reply_markup=get_main_reply_keyboard(),
+            )
             # Save processing message to cache for deletion when download starts
             set_user_proc_msg(user_id, proc_msg)
         else:
@@ -6852,25 +7045,51 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # Edit caption or text in place
             try:
                 if cb.message.photo:
-                    cb.edit_message_caption(caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                    from HELPERS.safe_messeger import safe_edit_message_text
+                    safe_edit_message_text(
+                        cb.message.chat.id,
+                        cb.message.id,
+                        cap,
+                        parse_mode=enums.ParseMode.HTML,
+                        reply_markup=keyboard,
+                        _callback_query=cb,
+                    )
                 else:
-                    cb.edit_message_text(text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
+                    from HELPERS.safe_messeger import safe_edit_message_text
+                    safe_edit_message_text(
+                        cb.message.chat.id,
+                        cb.message.id,
+                        cap,
+                        parse_mode=enums.ParseMode.HTML,
+                        reply_markup=keyboard,
+                        _callback_query=cb,
+                    )
             except Exception as e:
                 logger.warning(f"Failed to edit message for callback: {e}")
                 # Fallback: send new message if edit fails
                 try:
                     if thumb_path and os.path.exists(thumb_path):
-                        app.send_photo(
+                        from HELPERS.safe_messeger import safe_send_photo
+                        safe_send_photo(
                             user_id,
                             thumb_path,
                             caption=cap,
                             parse_mode=enums.ParseMode.HTML,
                             reply_markup=keyboard,
                             reply_parameters=ReplyParameters(message_id=message.id),
-                            has_spoiler=should_apply_spoiler(user_id, is_nsfw, getattr(message.chat, "type", None) == enums.ChatType.PRIVATE)
+                            has_spoiler=should_apply_spoiler(user_id, is_nsfw, getattr(message.chat, "type", None) == enums.ChatType.PRIVATE),
+                            _callback_query=cb,
                         )
                     else:
-                        app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters=ReplyParameters(message_id=message.id))
+                        from HELPERS.safe_messeger import safe_send_message
+                        safe_send_message(
+                            user_id,
+                            cap,
+                            parse_mode=enums.ParseMode.HTML,
+                            reply_markup=keyboard,
+                            reply_parameters=ReplyParameters(message_id=message.id),
+                            _callback_query=cb,
+                        )
                 except Exception as fallback_error:
                     logger.error(f"Failed to send fallback message: {fallback_error}")
             # Remove processing message quietly
@@ -6891,17 +7110,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # Try to send with keyboard first
             try:
                 if thumb_path and os.path.exists(thumb_path):
-                    app.send_photo(
+                    from HELPERS.safe_messeger import safe_send_photo
+                    safe_send_photo(
                         user_id,
                         thumb_path,
                         caption=cap,
                         parse_mode=enums.ParseMode.HTML,
                         reply_markup=keyboard,
                         reply_parameters=ReplyParameters(message_id=message.id),
-                        has_spoiler=should_apply_spoiler(user_id, is_nsfw, getattr(message.chat, "type", None) == enums.ChatType.PRIVATE)
+                        has_spoiler=should_apply_spoiler(user_id, is_nsfw, getattr(message.chat, "type", None) == enums.ChatType.PRIVATE),
                     )
                 else:
-                    app.send_message(user_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard, reply_parameters=ReplyParameters(message_id=message.id))
+                    from HELPERS.safe_messeger import safe_send_message
+                    safe_send_message(
+                        user_id,
+                        cap,
+                        parse_mode=enums.ParseMode.HTML,
+                        reply_markup=keyboard,
+                        reply_parameters=ReplyParameters(message_id=message.id),
+                    )
             except Exception as keyboard_error:
                 # If keyboard fails (e.g., BUTTON_TYPE_INVALID), try without keyboard
                 logger.warning(f"Failed to send with keyboard, retrying without: {keyboard_error}")

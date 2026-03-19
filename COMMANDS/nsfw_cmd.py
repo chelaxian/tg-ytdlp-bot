@@ -10,6 +10,7 @@ from HELPERS.filesystem_hlp import create_directory
 from HELPERS.logger import send_to_logger, logger
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
+from HELPERS.safe_messeger import safe_edit_reply_markup
 from HELPERS.decorators import background_handler
 from HELPERS.limitter import is_user_in_channel
 
@@ -124,7 +125,12 @@ def nsfw_option_callback(app, callback_query):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         try:
             callback_query.answer(safe_get_messages(user_id).NSFW_MENU_CLOSED_MSG)
         except Exception:

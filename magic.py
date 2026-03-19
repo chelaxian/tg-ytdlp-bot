@@ -52,6 +52,7 @@ from types import SimpleNamespace
 from typing import Tuple
 from urllib.parse import urlparse, parse_qs, urlunparse, unquote, urlencode
 import traceback
+from pathlib import Path
 # removed pyrebase (migrated to firebase_admin)
 import tldextract
 # from moviepy.editor import VideoFileClip
@@ -95,12 +96,36 @@ from HELPERS.safe_messeger import *
 ###########################################################
 #        APP INITIALIZATION
 ###########################################################
+# В WSL SQLite на /mnt/c иногда падает с "disk I/O error".
+# Чтобы не ломаться на magic.session, храним pyrogram session в Linux FS (в $HOME).
+def _pyrogram_workdir() -> str:
+    try:
+        # Простая эвристика WSL
+        is_wsl = "microsoft" in Path("/proc/version").read_text(encoding="utf-8", errors="ignore").lower()
+    except Exception:
+        is_wsl = False
+
+    # Можно переопределить вручную
+    override = os.environ.get("PYROGRAM_WORKDIR", "").strip()
+    if override:
+        Path(override).mkdir(parents=True, exist_ok=True)
+        return override
+
+    if is_wsl:
+        wd = Path.home() / ".cache" / "tg-ytdlp-NEW" / "pyrogram"
+        wd.mkdir(parents=True, exist_ok=True)
+        return str(wd)
+
+    # По умолчанию — текущая директория (как было)
+    return os.getcwd()
+
 # Pyrogram App Initialization
 app = Client(
     "magic",
     api_id=Config.API_ID,
     api_hash=Config.API_HASH,
-    bot_token=Config.BOT_TOKEN
+    bot_token=Config.BOT_TOKEN,
+    workdir=_pyrogram_workdir(),
 )
 
 # Set global app instance BEFORE importing handlers
@@ -108,6 +133,31 @@ set_app(app)
 
 # Кэш для username бота (будет заполнен после старта)
 _bot_username_cache = None
+
+# ----------------------------------------------------------
+# Global inline-button styling:
+# - Close/Back -> red (danger)
+# - pressed button -> green (success)
+# Работает через HTTP Bot API (там есть style=success/danger)
+# ----------------------------------------------------------
+@app.on_callback_query(group=-100)
+def _native_button_style_highlight(app, callback_query: CallbackQuery):
+    try:
+        msg = getattr(callback_query, "message", None)
+        if not msg:
+            return
+        rm = getattr(msg, "reply_markup", None)
+        if not rm:
+            return
+        # Use safe wrapper (will route via HTTP Bot API and apply styles)
+        safe_edit_reply_markup(
+            msg.chat.id,
+            msg.id,
+            reply_markup=rm,
+            _callback_query=callback_query,
+        )
+    except Exception:
+        return
 
 def _get_bot_username():
     """Получить username текущего бота (с кэшированием)"""
@@ -413,7 +463,12 @@ def vid_help_callback(app, callback_query):
             callback_query.message.delete()
         except Exception:
             try:
-                callback_query.edit_message_reply_markup(reply_markup=None)
+                safe_edit_reply_markup(
+                    callback_query.message.chat.id,
+                    callback_query.message.id,
+                    reply_markup=None,
+                    _callback_query=callback_query,
+                )
             except Exception:
                 pass
         try:

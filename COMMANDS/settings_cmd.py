@@ -10,6 +10,7 @@ from HELPERS.limitter import is_user_in_channel
 
 from HELPERS.app_instance import get_app
 from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_message_text
+from HELPERS.safe_messeger import safe_edit_reply_markup
 from HELPERS.decorators import background_handler
 from pyrogram.errors import FloodWait
 import os
@@ -111,7 +112,12 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         try:
             callback_query.answer(safe_get_messages(user_id).SETTINGS_MENU_CLOSED_MSG)
         except Exception:
@@ -332,10 +338,13 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             [InlineKeyboardButton(safe_get_messages(user_id).SUBS_BACK_BUTTON_MSG, callback_data="settings__menu__back")]
         ])
         try:
-            callback_query.edit_message_text(
+            safe_edit_message_text(
+                callback_query.message.chat.id,
+                callback_query.message.id,
                 safe_get_messages(user_id).SETTINGS_CLEAN_OPTIONS_MSG,
                 reply_markup=keyboard,
-                parse_mode=enums.ParseMode.HTML
+                parse_mode=enums.ParseMode.HTML,
+                _callback_query=callback_query,
             )
         except Exception:
             pass
@@ -758,7 +767,12 @@ def hint_callback(app, callback_query: CallbackQuery):
         try:
             callback_query.message.delete()
         except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
+            safe_edit_reply_markup(
+                callback_query.message.chat.id,
+                callback_query.message.id,
+                reply_markup=None,
+                _callback_query=callback_query,
+            )
         try:
             callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_CLOSED_MSG)
         except Exception:
