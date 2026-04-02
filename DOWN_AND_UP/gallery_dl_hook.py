@@ -307,26 +307,25 @@ def _prepare_user_cookies_and_proxy(url: str, user_id, use_proxy: bool, config: 
     # proxy
     if use_proxy:
         try:
-            from COMMANDS.proxy_cmd import get_proxy_config
+            from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
             proxy_config = get_proxy_config()
         except Exception as e:
             proxy_config = None
             logger.warning(safe_get_messages(user_id).GALLERY_DL_PROXY_REQUESTED_FAILED_MSG.format(error=e))
 
         if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
-            ptype = proxy_config['type']
-            auth = ""
-            if proxy_config.get('user') and proxy_config.get('password'):
-                auth = f"{proxy_config['user']}:{proxy_config['password']}@"
+            proxy_url = build_proxy_url(proxy_config)
+            if not proxy_url:
+                logger.warning(safe_get_messages(user_id).GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG)
+                return config
 
-            if ptype in ('http', 'https', 'socks4', 'socks5', 'socks5h'):
-                proxy_url = f"{ptype}://{auth}{proxy_config['ip']}:{proxy_config['port']}"
-            else:
-                # default to http
-                proxy_url = f"http://{auth}{proxy_config['ip']}:{proxy_config['port']}"
-
+            from HELPERS.proxy_utils import redact_proxy_url_for_logs
             config['extractor']['proxy'] = proxy_url
-            logger.info(safe_get_messages(user_id).GALLERY_DL_FORCE_USING_PROXY_MSG.format(proxy_url=proxy_url))
+            logger.info(
+                safe_get_messages(user_id).GALLERY_DL_FORCE_USING_PROXY_MSG.format(
+                    proxy_url=redact_proxy_url_for_logs(proxy_url)
+                )
+            )
         else:
             logger.warning(safe_get_messages(user_id).GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG)
     else:
@@ -1105,15 +1104,11 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
                 # Apply proxy but not cookies
                 if use_proxy:
                     try:
-                        from COMMANDS.proxy_cmd import get_proxy_config
+                        from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
                         proxy_config = get_proxy_config()
                         if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
-                            ptype = proxy_config['type']
-                            auth = ""
-                            if proxy_config.get('user') and proxy_config.get('password'):
-                                auth = f"{proxy_config['user']}:{proxy_config['password']}@"
-                            if ptype in ('http', 'https', 'socks4', 'socks5', 'socks5h'):
-                                proxy_url = f"{ptype}://{auth}{proxy_config['ip']}:{proxy_config['port']}"
+                            proxy_url = build_proxy_url(proxy_config)
+                            if proxy_url:
                                 config_no_cookies["extractor"]["proxy"] = proxy_url
                     except Exception:
                         pass
@@ -1149,15 +1144,11 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
                 # Apply proxy but not cookies
                 if use_proxy:
                     try:
-                        from COMMANDS.proxy_cmd import get_proxy_config
+                        from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
                         proxy_config = get_proxy_config()
                         if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
-                            ptype = proxy_config['type']
-                            auth = ""
-                            if proxy_config.get('user') and proxy_config.get('password'):
-                                auth = f"{proxy_config['user']}:{proxy_config['password']}@"
-                            if ptype in ('http', 'https', 'socks4', 'socks5', 'socks5h'):
-                                proxy_url = f"{ptype}://{auth}{proxy_config['ip']}:{proxy_config['port']}"
+                            proxy_url = build_proxy_url(proxy_config)
+                            if proxy_url:
                                 config_no_cookies["extractor"]["proxy"] = proxy_url
                     except Exception:
                         pass
