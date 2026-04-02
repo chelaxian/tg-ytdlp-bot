@@ -527,7 +527,9 @@ def get_proxy_config():
         'ip': Config.PROXY_IP,
         'port': Config.PROXY_PORT,
         'user': Config.PROXY_USER,
-        'password': Config.PROXY_PASSWORD
+        # Do not store the password value in-memory structures used across the app;
+        # keep only a reference and resolve the value only at URL-build time.
+        'password_ref': 'PROXY_PASSWORD',
     }
 
 def get_proxy_2_config():
@@ -537,7 +539,7 @@ def get_proxy_2_config():
         'ip': Config.PROXY_2_IP,
         'port': Config.PROXY_2_PORT,
         'user': Config.PROXY_2_USER,
-        'password': Config.PROXY_2_PASSWORD
+        'password_ref': 'PROXY_2_PASSWORD',
     }
 
 def get_all_proxy_configs():
@@ -552,7 +554,7 @@ def get_all_proxy_configs():
                 'ip': Config.PROXY_IP,
                 'port': Config.PROXY_PORT,
                 'user': Config.PROXY_USER,
-                'password': Config.PROXY_PASSWORD
+                'password_ref': 'PROXY_PASSWORD',
             })
     
     # Second proxy
@@ -563,7 +565,7 @@ def get_all_proxy_configs():
                 'ip': Config.PROXY_2_IP,
                 'port': Config.PROXY_2_PORT,
                 'user': Config.PROXY_2_USER,
-                'password': Config.PROXY_2_PASSWORD
+                'password_ref': 'PROXY_2_PASSWORD',
             })
     
     return configs
@@ -595,25 +597,33 @@ def build_proxy_url(proxy_config):
     """Build proxy URL from configuration"""
     if not proxy_config or 'type' not in proxy_config or 'ip' not in proxy_config or 'port' not in proxy_config:
         return None
+
+    user = proxy_config.get('user')
+    password = proxy_config.get('password')
+    if password is None and proxy_config.get('password_ref'):
+        try:
+            password = getattr(Config, str(proxy_config.get('password_ref')), None)
+        except Exception:
+            password = None
     
     if proxy_config['type'] == 'http':
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+        if user and password:
+            return f"http://{user}:{password}@{proxy_config['ip']}:{proxy_config['port']}"
         else:
             return f"http://{proxy_config['ip']}:{proxy_config['port']}"
     elif proxy_config['type'] == 'https':
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"https://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+        if user and password:
+            return f"https://{user}:{password}@{proxy_config['ip']}:{proxy_config['port']}"
         else:
             return f"https://{proxy_config['ip']}:{proxy_config['port']}"
     elif proxy_config['type'] in ['socks4', 'socks5', 'socks5h']:
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"{proxy_config['type']}://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+        if user and password:
+            return f"{proxy_config['type']}://{user}:{password}@{proxy_config['ip']}:{proxy_config['port']}"
         else:
             return f"{proxy_config['type']}://{proxy_config['ip']}:{proxy_config['port']}"
     else:
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+        if user and password:
+            return f"http://{user}:{password}@{proxy_config['ip']}:{proxy_config['port']}"
         else:
             return f"http://{proxy_config['ip']}:{proxy_config['port']}"
 
@@ -864,13 +874,16 @@ def get_proxy_url_for_user_country(user_id):
 def add_proxy_to_ytdl_opts(ytdl_opts, url, user_id=None, allow_domain_fallback=True):
     """Add proxy to yt-dlp options if proxy is enabled for user or domain requires it"""
     logger.info(LoggerMsg.PROXY_CMD_ADD_PROXY_CALLED_LOG_MSG.format(user_id=user_id, url=url))
+    from HELPERS.proxy_utils import redact_proxy_url_for_logs
     
     # First check if user has selected a country from proxy file
     if user_id:
         country_proxy_url, selected_country = get_proxy_url_for_user_country(user_id)
         if country_proxy_url:
             ytdl_opts['proxy'] = country_proxy_url
-            logger.info(f"Using proxy from file for country {selected_country}: {country_proxy_url}")
+            logger.info(
+                f"Using proxy from file for country {selected_country}: {redact_proxy_url_for_logs(country_proxy_url)}"
+            )
             return ytdl_opts
     
     # Fallback to config-based proxy
@@ -878,8 +891,16 @@ def add_proxy_to_ytdl_opts(ytdl_opts, url, user_id=None, allow_domain_fallback=T
     if proxy_url:
         ytdl_opts['proxy'] = proxy_url
         if reason == "user":
-            logger.info(LoggerMsg.PROXY_CMD_ADDED_PROXY_FOR_USER_LOG_MSG.format(user_id=user_id, proxy_url=proxy_url))
+            logger.info(
+                LoggerMsg.PROXY_CMD_ADDED_PROXY_FOR_USER_LOG_MSG.format(
+                    user_id=user_id, proxy_url=redact_proxy_url_for_logs(proxy_url)
+                )
+            )
         else:
-            logger.info(LoggerMsg.PROXY_CMD_ADDED_DOMAIN_PROXY_LOG_MSG.format(url=url, proxy_url=proxy_url))
+            logger.info(
+                LoggerMsg.PROXY_CMD_ADDED_DOMAIN_PROXY_LOG_MSG.format(
+                    url=url, proxy_url=redact_proxy_url_for_logs(proxy_url)
+                )
+            )
     
     return ytdl_opts
