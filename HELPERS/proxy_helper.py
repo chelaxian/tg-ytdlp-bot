@@ -8,7 +8,7 @@ from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.pot_helper import add_pot_to_ytdl_opts
 from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.youtube import is_youtube_url
-from HELPERS.proxy_file_helper import test_proxy_url
+from HELPERS.proxy_utils import test_proxy_url
 
 logger = logging.getLogger(__name__)
 
