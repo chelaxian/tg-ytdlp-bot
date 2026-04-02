@@ -24,6 +24,7 @@ import yt_dlp
 import random
 from HELPERS.pot_helper import add_pot_to_ytdl_opts
 from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
+from HELPERS.proxy_utils import redact_proxy_url_for_logs
 from URL_PARSERS.youtube import is_youtube_url
 
 # Get app instance for decorators
@@ -2053,7 +2054,10 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                 if cached_url:
                     # Проверяем, что этот прокси всё ещё есть в списке и живой
                     if any(p['proxy_url'] == cached_url for p in proxies_to_try) and test_proxy_url(cached_url, timeout=PROXY_TEST_TIMEOUT):
-                        logger.info(f"Using cached successful proxy first for user {user_id}: {cached_url}")
+                        logger.info(
+                            f"Using cached successful proxy first for user {user_id}: "
+                            f"{redact_proxy_url_for_logs(cached_url)}"
+                        )
                         proxies_to_try = [p for p in proxies_to_try if p['proxy_url'] == cached_url] + \
                                          [p for p in proxies_to_try if p['proxy_url'] != cached_url]
             
@@ -2077,6 +2081,7 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
             total_proxies = len(proxies_to_try)
             for i, proxy_info in enumerate(proxies_to_try):
                 proxy_url = proxy_info['proxy_url']
+                proxy_url_log = redact_proxy_url_for_logs(proxy_url)
                 proxy_country = proxy_info['country']
                 proxy_type = proxy_info['type']
                 if not test_proxy_url(proxy_url, timeout=PROXY_TEST_TIMEOUT):
@@ -2098,7 +2103,7 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         )
                 except Exception as notify_e:
                     logger.debug("Could not send proxy progress to user: %s", notify_e)
-                logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url}")
+                logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url_log}")
                 logger.info(f"Proxy details: IP={proxy_info.get('ip', 'unknown')}, Port={proxy_info.get('port', 'unknown')}")
                 
                 try:
@@ -2119,7 +2124,12 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         # Сначала пробуем с cookies
                         logger.info(f"Trying proxy {proxy_country} ({proxy_type}) with cookies first")
                         logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
-                        logger.info(f"yt-dlp opts: proxy={attempt_opts.get('proxy', 'None')}, geo_bypass={attempt_opts.get('geo_bypass', 'None')}, cookiefile={'set' if attempt_opts.get('cookiefile') else 'None'}")
+                        logger.info(
+                            "yt-dlp opts: proxy=%s, geo_bypass=%s, cookiefile=%s",
+                            redact_proxy_url_for_logs(attempt_opts.get("proxy")) if attempt_opts.get("proxy") else "None",
+                            attempt_opts.get("geo_bypass", "None"),
+                            "set" if attempt_opts.get("cookiefile") else "None",
+                        )
                         new_args = (args[0], attempt_opts) + args[2:]
                         
                         try:
@@ -2222,7 +2232,14 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                             # Сначала пробуем с cookies
                             logger.info(f"Trying proxy {proxy_country} ({proxy_type}) with cookies first (kwargs)")
                             logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
-                            logger.info(f"yt-dlp opts: proxy={kwargs_copy['attempt_opts'].get('proxy', 'None')}, geo_bypass={kwargs_copy['attempt_opts'].get('geo_bypass', 'None')}, cookiefile={'set' if kwargs_copy['attempt_opts'].get('cookiefile') else 'None'}")
+                            logger.info(
+                                "yt-dlp opts: proxy=%s, geo_bypass=%s, cookiefile=%s",
+                                redact_proxy_url_for_logs(kwargs_copy["attempt_opts"].get("proxy"))
+                                if kwargs_copy["attempt_opts"].get("proxy")
+                                else "None",
+                                kwargs_copy["attempt_opts"].get("geo_bypass", "None"),
+                                "set" if kwargs_copy["attempt_opts"].get("cookiefile") else "None",
+                            )
                             
                             try:
                                 result = download_func(*args, **kwargs_copy)
@@ -2342,7 +2359,11 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
             else:
                 proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
         
-        logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_URL_LOG_MSG.format(proxy_url=proxy_url))
+        logger.info(
+            LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_URL_LOG_MSG.format(
+                proxy_url=redact_proxy_url_for_logs(proxy_url)
+            )
+        )
         
         # Повторяем скачивание с прокси
         try:
