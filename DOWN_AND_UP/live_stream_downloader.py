@@ -191,27 +191,12 @@ def download_live_stream_chunked(
         
         # Add proxy if needed
         if use_proxy:
-            from COMMANDS.proxy_cmd import get_proxy_config
+            from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
             proxy_config = get_proxy_config()
             if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
-                if proxy_config['type'] == 'http':
-                    if proxy_config.get('user') and proxy_config.get('password'):
-                        proxy_url = f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                    else:
-                        proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
-                elif proxy_config['type'] == 'https':
-                    if proxy_config.get('user') and proxy_config.get('password'):
-                        proxy_url = f"https://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                    else:
-                        proxy_url = f"https://{proxy_config['ip']}:{proxy_config['port']}"
-                elif proxy_config['type'] in ['socks4', 'socks5', 'socks5h']:
-                    if proxy_config.get('user') and proxy_config.get('password'):
-                        proxy_url = f"{proxy_config['type']}://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                    else:
-                        proxy_url = f"{proxy_config['type']}://{proxy_config['ip']}:{proxy_config['port']}"
-                else:
-                    proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
-                base_opts['proxy'] = proxy_url
+                proxy_url = build_proxy_url(proxy_config)
+                if proxy_url:
+                    base_opts['proxy'] = proxy_url
         else:
             from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
             base_opts = add_proxy_to_ytdl_opts(base_opts, url, user_id)

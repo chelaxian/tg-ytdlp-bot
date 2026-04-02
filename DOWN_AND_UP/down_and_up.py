@@ -1493,34 +1493,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Add proxy configuration if needed
             if use_proxy:
                 # Force proxy for this download
-                from COMMANDS.proxy_cmd import get_proxy_config
+                from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
                 proxy_config = get_proxy_config()
                 
                 if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
-                    # Build proxy URL
-                    if proxy_config['type'] == 'http':
-                        if proxy_config.get('user') and proxy_config.get('password'):
-                            proxy_url = f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                        else:
-                            proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
-                    elif proxy_config['type'] == 'https':
-                        if proxy_config.get('user') and proxy_config.get('password'):
-                            proxy_url = f"https://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                        else:
-                            proxy_url = f"https://{proxy_config['ip']}:{proxy_config['port']}"
-                    elif proxy_config['type'] in ['socks4', 'socks5', 'socks5h']:
-                        if proxy_config.get('user') and proxy_config.get('password'):
-                            proxy_url = f"{proxy_config['type']}://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                        else:
-                            proxy_url = f"{proxy_config['type']}://{proxy_config['ip']}:{proxy_config['port']}"
-                    else:
-                        if proxy_config.get('user') and proxy_config.get('password'):
-                            proxy_url = f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                        else:
-                            proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
+                    proxy_url = build_proxy_url(proxy_config)
+                    if not proxy_url:
+                        logger.warning("Proxy requested but proxy configuration is incomplete")
+                        proxy_url = None
                     
-                    ytdl_opts['proxy'] = proxy_url
-                    logger.info(f"Force using proxy for download: {proxy_url}")
+                    if proxy_url:
+                        from HELPERS.proxy_utils import redact_proxy_url_for_logs
+                        ytdl_opts['proxy'] = proxy_url
+                        logger.info(f"Force using proxy for download: {redact_proxy_url_for_logs(proxy_url)}")
                 else:
                     logger.warning("Proxy requested but proxy configuration is incomplete")
             else:
