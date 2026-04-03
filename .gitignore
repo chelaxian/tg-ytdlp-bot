@@ -162,3 +162,5 @@ CONFIG/.dashboard_sessions.json
 CONFIG/.active_sessions.json
 env
 delete_redacted.sh
+tg-ytdlp-NEW.code-workspace
+*.code-workspace

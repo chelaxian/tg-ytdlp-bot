@@ -9,6 +9,8 @@ from typing import List, Dict, Optional, Tuple, Callable
 logger = logging.getLogger(__name__)
 from HELPERS.proxy_utils import redact_proxy_url_for_logs
 
+from HELPERS.proxy_utils import redact_proxy_url_for_logs
+
 # Mapping of country names from proxy.txt to normalized country names
 # This helps match countries even if they're written differently
 COUNTRY_MAPPING = {
@@ -280,15 +282,8 @@ def test_proxy_url(proxy_url: str, timeout: int = 5) -> bool:
     Test if proxy is reachable (one quick request). Used before download to skip dead proxies.
     Returns True if proxy responds, False otherwise.
     """
-    if not proxy_url:
-        return False
-    try:
-        import requests
-        proxies = {"http": proxy_url, "https": proxy_url}
-        r = requests.get("https://httpbin.org/ip", proxies=proxies, timeout=timeout)
-        return r.status_code == 200
-    except Exception:
-        return False
+    from HELPERS.proxy_utils import test_proxy_url as _test_proxy_url
+    return _test_proxy_url(proxy_url, timeout=timeout)
 
 
 def get_all_proxies_from_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
