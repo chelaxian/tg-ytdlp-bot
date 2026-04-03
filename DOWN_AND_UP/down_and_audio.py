@@ -2468,52 +2468,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             if proc_msg_id:
                                 _stop_upload_logging(user_id, proc_msg_id)
                     except Exception as e:
-                        logger.error(f"Failed to send paid audio, falling back to regular: {e}")
-                        # Fallback to regular audio or document
-                        # Start upload logging to prevent watchdog false positives
-                        if proc_msg_id:
-                            _start_upload_logging(user_id, proc_msg_id)
-                        try:
-                            _prog_args_fb = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
-                            if file_ext == '.mp3' or file_ext == '.m4a':
-                                # Send as audio for supported formats
-                                if telegram_thumb and os.path.exists(telegram_thumb):
-                                    audio_msg = app.send_audio(
-                                        chat_id=user_id, 
-                                        audio=audio_file, 
-                                        caption=caption_with_link, 
-                                        reply_parameters=ReplyParameters(message_id=message.id),
-                                        thumb=telegram_thumb,
-                                        title=title,
-                                        performer=artist,
-                                        progress=progress_bar if _prog_args_fb else None,
-                                        progress_args=_prog_args_fb,
-                                    )
-                                else:
-                                    audio_msg = app.send_audio(
-                                        chat_id=user_id, 
-                                        audio=audio_file, 
-                                        caption=caption_with_link, 
-                                        reply_parameters=ReplyParameters(message_id=message.id),
-                                        title=title,
-                                        performer=artist,
-                                        progress=progress_bar if _prog_args_fb else None,
-                                        progress_args=_prog_args_fb,
-                                    )
-                            else:
-                                # Send as document for unsupported audio formats
-                                audio_msg = app.send_document(
-                                    chat_id=user_id, 
-                                    document=audio_file, 
-                                    caption=caption_with_link, 
-                                    reply_parameters=ReplyParameters(message_id=message.id),
-                                    progress=progress_bar if _prog_args_fb else None,
-                                    progress_args=_prog_args_fb,
-                                )
-                        finally:
-                            # Stop upload logging after upload completes or fails
-                            if proc_msg_id:
-                                _stop_upload_logging(user_id, proc_msg_id)
+                        # CRITICAL: never fallback to free media when paid NSFW is required.
+                        logger.error(f"Failed to send paid audio (will NOT fallback to free): {e}")
+                        from HELPERS.logger import send_error_to_user
+                        send_error_to_user(
+                            message,
+                            safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)),
+                        )
+                        raise
                 else:
                     # Send regular audio for non-NSFW content or group chats
                     # Start upload logging to prevent watchdog false positives
