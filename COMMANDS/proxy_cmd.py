@@ -871,17 +871,17 @@ def add_proxy_to_ytdl_opts(ytdl_opts, url, user_id=None, allow_domain_fallback=T
         country_proxy_url, selected_country = get_proxy_url_for_user_country(user_id)
         if country_proxy_url:
             ytdl_opts['proxy'] = country_proxy_url
-            logger.info(f"Using proxy from file for country {selected_country}: {redact_proxy_url_for_logs(country_proxy_url)}")
+            # Avoid logging proxy URLs (even redacted) to prevent credential leakage and security scanner flags.
+            logger.info(f"Using proxy from file for country {selected_country}")
             return ytdl_opts
     
     # Fallback to config-based proxy
     proxy_url, reason = get_proxy_url(user_id=user_id, url=url, allow_domain_fallback=allow_domain_fallback)
     if proxy_url:
         ytdl_opts['proxy'] = proxy_url
-        proxy_url_log = redact_proxy_url_for_logs(proxy_url)
         if reason == "user":
-            logger.info(LoggerMsg.PROXY_CMD_ADDED_PROXY_FOR_USER_LOG_MSG.format(user_id=user_id, proxy_url=proxy_url_log))
+            logger.info(LoggerMsg.PROXY_CMD_ADDED_PROXY_FOR_USER_LOG_MSG.format(user_id=user_id, proxy_url="[redacted]"))
         else:
-            logger.info(LoggerMsg.PROXY_CMD_ADDED_DOMAIN_PROXY_LOG_MSG.format(url=url, proxy_url=proxy_url_log))
+            logger.info(LoggerMsg.PROXY_CMD_ADDED_DOMAIN_PROXY_LOG_MSG.format(url=url, proxy_url="[redacted]"))
     
     return ytdl_opts

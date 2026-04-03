@@ -67,7 +67,8 @@ def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_i
                     proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
             
             ydl_opts['proxy'] = proxy_url
-            logger.info(f"Using proxy for yt-dlp: {redact_proxy_url_for_logs(proxy_url)}")
+            # Avoid logging proxy URLs (even redacted) to reduce risk of credential leakage.
+            logger.info("Using proxy for yt-dlp")
         else:
             messages = safe_get_messages(user_id)
             logger.warning(messages.HELPER_PROXY_CONFIG_INCOMPLETE_MSG)
@@ -176,7 +177,7 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
             country_proxy_url, selected_country = get_proxy_url_for_user_country(user_id)
             if country_proxy_url:
                 ytdl_opts['proxy'] = country_proxy_url
-                logger.info(f"Using proxy from file for country {selected_country}: {redact_proxy_url_for_logs(country_proxy_url)}")
+                logger.info(f"Using proxy from file for country {selected_country}")
                 return ytdl_opts
         except Exception as e:
             logger.warning(f"Error checking country proxy for user {user_id}: {e}")
@@ -204,7 +205,7 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
         proxy_url = build_proxy_url(proxy_config)
         if proxy_url:
             ytdl_opts['proxy'] = proxy_url
-            logger.info(f"Added domain-specific proxy for {url}: {redact_proxy_url_for_logs(proxy_url)}")
+            logger.info(f"Added domain-specific proxy for {url}: [redacted]")
         else:
             logger.warning(f"Failed to build proxy URL from config: {proxy_config}")
     else:
@@ -308,15 +309,15 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                                 current_opts["downloader_args"] = {}
                             current_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
                         
-                        logger.info(f"Trying {url} with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {redact_proxy_url_for_logs(proxy_url)}")
+                        logger.info(f"Trying {url} with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): [redacted]")
                         result = operation_func(current_opts, *args, **kwargs)
                         
                         if result is not None:
-                            logger.info(f"Success with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {redact_proxy_url_for_logs(proxy_url)}")
+                            logger.info(f"Success with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): [redacted]")
                             _proxy_failed_for_task.pop(task_key, None)
                             return result
                         else:
-                            logger.warning(f"Operation returned None with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): {redact_proxy_url_for_logs(proxy_url)}")
+                            logger.warning(f"Operation returned None with proxy from file {i+1}/{len(proxies)} ({proxy_info['type']}): [redacted]")
                             failed_for_task.add(proxy_url)
                     except Exception as e:
                         # Avoid logging exception messages that may contain full proxy URLs with credentials
@@ -520,7 +521,7 @@ def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) 
             country_proxy_url, selected_country = get_proxy_url_for_user_country(user_id)
             if country_proxy_url:
                 config['extractor']['proxy'] = country_proxy_url
-                logger.info(f"Using proxy from file for country {selected_country} (gallery-dl): {redact_proxy_url_for_logs(country_proxy_url)}")
+                logger.info(f"Using proxy from file for country {selected_country} (gallery-dl)")
                 return config
         except Exception as e:
             logger.warning(f"Error checking country proxy for user {user_id}: {e}")
@@ -545,7 +546,7 @@ def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) 
         proxy_url = build_proxy_url(proxy_config)
         if proxy_url:
             config['extractor']['proxy'] = proxy_url
-            logger.info(f"Added domain-specific proxy for {url}: {redact_proxy_url_for_logs(proxy_url)}")
+            logger.info(f"Added domain-specific proxy for {url}: [redacted]")
         else:
             logger.warning(f"Failed to build proxy URL from config: {proxy_config}")
     else:

@@ -2077,8 +2077,6 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
             total_proxies = len(proxies_to_try)
             for i, proxy_info in enumerate(proxies_to_try):
                 proxy_url = proxy_info['proxy_url']
-                from HELPERS.proxy_utils import redact_proxy_url_for_logs
-                proxy_url_log = redact_proxy_url_for_logs(proxy_url) if proxy_url else "None"
                 proxy_country = proxy_info['country']
                 proxy_type = proxy_info['type']
                 if not test_proxy_url(proxy_url, timeout=PROXY_TEST_TIMEOUT):
@@ -2100,7 +2098,8 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         )
                 except Exception as notify_e:
                     logger.debug("Could not send proxy progress to user: %s", notify_e)
-                logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type}) - {proxy_url_log}")
+                # Avoid logging proxy URLs (even redacted) to reduce risk of credential leakage.
+                logger.info(f"Trying proxy {i+1}/{len(proxies_to_try)}: {proxy_country} ({proxy_type})")
                 logger.info(f"Proxy details: IP={proxy_info.get('ip', 'unknown')}, Port={proxy_info.get('port', 'unknown')}")
                 
                 try:
@@ -2121,10 +2120,8 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         # Сначала пробуем с cookies
                         logger.info(f"Trying proxy {proxy_country} ({proxy_type}) with cookies first")
                         logger.info(f"Proxy IP: {proxy_info.get('ip', 'unknown')}, Port: {proxy_info.get('port', 'unknown')}")
-                        _opt_proxy = attempt_opts.get('proxy')
-                        _opt_proxy_log = redact_proxy_url_for_logs(_opt_proxy) if _opt_proxy else "None"
                         logger.info(
-                            f"yt-dlp opts: proxy={_opt_proxy_log}, "
+                            "yt-dlp opts: proxy=[redacted], "
                             f"geo_bypass={attempt_opts.get('geo_bypass', 'None')}, "
                             f"cookiefile={'set' if attempt_opts.get('cookiefile') else 'None'}"
                         )

@@ -319,12 +319,9 @@ def _prepare_user_cookies_and_proxy(url: str, user_id, use_proxy: bool, config: 
                 logger.warning(safe_get_messages(user_id).GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG)
                 return config
 
-            from HELPERS.proxy_utils import redact_proxy_url_for_logs
             config['extractor']['proxy'] = proxy_url
             logger.info(
-                safe_get_messages(user_id).GALLERY_DL_FORCE_USING_PROXY_MSG.format(
-                    proxy_url=redact_proxy_url_for_logs(proxy_url)
-                )
+                safe_get_messages(user_id).GALLERY_DL_FORCE_USING_PROXY_MSG.format(proxy_url="[redacted]")
             )
         else:
             logger.warning(safe_get_messages(user_id).GALLERY_DL_PROXY_CONFIG_INCOMPLETE_MSG)
