@@ -2470,7 +2470,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     except Exception as e:
                         # CRITICAL: never fallback to free media when paid NSFW is required.
                         logger.error(f"Failed to send paid audio (will NOT fallback to free): {e}")
-                        from HELPERS.logger import send_error_to_user
                         send_error_to_user(
                             message,
                             safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)),

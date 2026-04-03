@@ -164,3 +164,7 @@ env
 delete_redacted.sh
 tg-ytdlp-NEW.code-workspace
 *.code-workspace
+
+# !Allow/Block tracked regression tests (keep most local tests ignored)
+tests/
+tests/test_down_and_audio_scoping.py
