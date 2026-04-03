@@ -7,6 +7,7 @@ import logging
 from typing import List, Dict, Optional, Tuple, Callable
 
 logger = logging.getLogger(__name__)
+from HELPERS.proxy_utils import redact_proxy_url_for_logs
 
 # Mapping of country names from proxy.txt to normalized country names
 # This helps match countries even if they're written differently
@@ -116,7 +117,7 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
                     'password': password,
                     'proxy_url': proxy_url
                 })
-                logger.debug(f"Parsed proxy: {country} - {proxy_url}")
+                logger.debug(f"Parsed proxy: {country} - {redact_proxy_url_for_logs(proxy_url)}")
             else:
                 # No-auth format: 🇩🇪 Germany – 1.2.3.4:8080
                 match_no_auth = re.match(r'[^\w]*([A-Za-z\s]+?)\s*[–-]\s*(\d+\.\d+\.\d+\.\d+):(\d+)\s*$', line)
@@ -137,7 +138,7 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
                         'password': '',
                         'proxy_url': proxy_url
                     })
-                    logger.debug(f"Parsed proxy (no auth): {country} - {proxy_url}")
+                    logger.debug(f"Parsed proxy (no auth): {country} - {redact_proxy_url_for_logs(proxy_url)}")
                 else:
                     logger.warning(f"Could not parse proxy line: {line}")
     
