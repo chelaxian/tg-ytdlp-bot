@@ -38,4 +38,3 @@ gallery-dl
 #pyrotgfork
 
 #apt-get install sshpass
-

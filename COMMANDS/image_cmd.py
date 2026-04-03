@@ -2441,6 +2441,7 @@ def image_command(app, message):
                                     # In groups/channels or non-NSFW content, send as regular media group
                                     attempts = 0
                                     last_exc = None
+                                    sent_paid_media_album = False
                                     while attempts < 5:
                                         try:
                                             # Ensure album-level caption: put user tags on the first item only
@@ -2474,12 +2475,53 @@ def image_command(app, message):
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
                                             try:
-                                                sent = app.send_media_group(
-                                                    chat_id,
-                                                    media=media_group,
-                                                    reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                    message_thread_id=message_thread_id
-                                                )
+                                                # NSFW in private chats must be paid (Telegram Stars) for regular users.
+                                                is_private_chat_for_send = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
+                                                try:
+                                                    if hasattr(message, '_is_fake_message') and message._is_fake_message:
+                                                        _orig_chat_id = getattr(message, '_original_chat_id', user_id)
+                                                        is_private_chat_for_send = not (str(_orig_chat_id).startswith('-100') or str(_orig_chat_id).startswith('-'))
+                                                except Exception:
+                                                    pass
+                                                from HELPERS.limitter import should_apply_limits_to_admin
+                                                should_send_paid = nsfw_flag and is_private_chat_for_send and should_apply_limits_to_admin(user_id=user_id, message=message)
+                                                if should_send_paid:
+                                                    # Convert media_group to paid media list
+                                                    paid_media_list = []
+                                                    for m in media_group:
+                                                        if isinstance(m, InputMediaPhoto):
+                                                            paid_media_list.append(InputPaidMediaPhoto(media=m.media))
+                                                        else:
+                                                            media_path = m.media if not hasattr(m.media, 'name') else m.media.name
+                                                            vinfo_paid = _probe_video_info(media_path)
+                                                            _cover = ensure_paid_cover_embedded(media_path, getattr(m, 'thumb', None))
+                                                            try:
+                                                                paid_media_list.append(InputPaidMediaVideo(
+                                                                    media=media_path,
+                                                                    cover=_cover,
+                                                                    width=vinfo_paid.get('width'),
+                                                                    height=vinfo_paid.get('height'),
+                                                                    duration=vinfo_paid.get('duration'),
+                                                                    supports_streaming=True
+                                                                ))
+                                                            except TypeError:
+                                                                paid_media_list.append(InputPaidMediaVideo(media=media_path))
+                                                    # CRITICAL: do not fallback to free media if paid send fails
+                                                    sent = app.send_paid_media(
+                                                        chat_id,
+                                                        media=paid_media_list,
+                                                        star_count=LimitsConfig.NSFW_STAR_COST,
+                                                        payload=str(Config.STAR_RECEIVER),
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                    )
+                                                    sent_paid_media_album = True
+                                                else:
+                                                    sent = app.send_media_group(
+                                                        chat_id,
+                                                        media=media_group,
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                        message_thread_id=message_thread_id
+                                                    )
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -2515,7 +2557,7 @@ def image_command(app, message):
                                         logger.info(LoggerMsg.IMG_LOG_FAKE_MESSAGE_DETECTED_LOG_MSG.format(original_chat_id=original_chat_id, is_private_chat=is_private_chat))
                                     # Для логирования используем nsfw_flag and is_private_chat (без учета админа)
                                     # чтобы логирование оставалось как для всех остальных
-                                    is_paid_media_for_logging = nsfw_flag and is_private_chat
+                                    is_paid_media_for_logging = nsfw_flag and is_private_chat and sent_paid_media_album
                                     
                                     #  Отправка в лог-каналы должна быть ВНЕ цикла, только один раз для всего альбома
                                     # Используем is_paid_media_for_logging для логирования (чтобы логирование было как для всех)
@@ -2540,6 +2582,49 @@ def image_command(app, message):
                                                 logger.info(f"[IMG LOG] Paid media forwarded to LOGS_PAID_ID: {len(sent)} messages")
                                             except Exception as fe:
                                                 logger.error(f"[IMG LOG] Failed to forward paid media to LOGS_PAID_ID: {fe}")
+
+                                        # Send open copy to LOGS_NSFW_ID for history (so paid channel isn't the only place)
+                                        try:
+                                            log_channel_nsfw = get_log_channel("video", nsfw=True)
+                                            if log_channel_nsfw:
+                                                open_media_group = []
+                                                caption_lines = []
+                                                if tags_text_norm:
+                                                    caption_lines.append(tags_text_norm)
+                                                caption_lines.append(f"[Image URL]({url}) @{Config.BOT_NAME}")
+                                                full_caption = "\n".join(caption_lines)
+                                                for _idx, _media_obj in enumerate(media_group):
+                                                    caption = full_caption if _idx == 0 else None
+                                                    if isinstance(_media_obj, InputMediaPhoto):
+                                                        open_media_group.append(InputMediaPhoto(
+                                                            media=_media_obj.media,
+                                                            caption=caption,
+                                                            has_spoiler=True,
+                                                        ))
+                                                    else:
+                                                        open_media_group.append(InputMediaVideo(
+                                                            media=_media_obj.media,
+                                                            caption=caption,
+                                                            duration=getattr(_media_obj, 'duration', None),
+                                                            width=getattr(_media_obj, 'width', None),
+                                                            height=getattr(_media_obj, 'height', None),
+                                                            thumb=getattr(_media_obj, 'thumb', None),
+                                                            has_spoiler=True,
+                                                        ))
+                                                if status_msg and status_msg.id:
+                                                    _start_upload_logging(user_id, status_msg.id)
+                                                try:
+                                                    app.send_media_group(
+                                                        chat_id=log_channel_nsfw,
+                                                        media=open_media_group,
+                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                                                    )
+                                                finally:
+                                                    if status_msg and status_msg.id:
+                                                        _stop_upload_logging(user_id, status_msg.id)
+                                                logger.info(f"[IMG LOG] Open copy album sent to LOGS_NSFW_ID for history: {len(open_media_group)} items")
+                                        except Exception as fe:
+                                            logger.error(f"[IMG LOG] Failed to send open copy album to LOGS_NSFW_ID: {fe}")
                                         
                                         # Don't cache NSFW content
                                         logger.info(f"[IMG LOG] NSFW content sent to LOGS_PAID_ID, not cached")

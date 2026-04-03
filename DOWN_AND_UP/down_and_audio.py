@@ -1166,19 +1166,34 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 threading.current_thread().proxy_for_audio_download = None
             elif use_proxy:
                 # Force proxy for this download
-                from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
+                from COMMANDS.proxy_cmd import get_proxy_config
                 proxy_config = get_proxy_config()
                 
                 if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
-                    proxy_url = build_proxy_url(proxy_config)
-                    if not proxy_url:
-                        logger.warning("Proxy requested but proxy configuration is incomplete")
-                        proxy_url = None
+                    # Build proxy URL
+                    if proxy_config['type'] == 'http':
+                        if proxy_config.get('user') and proxy_config.get('password'):
+                            proxy_url = f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+                        else:
+                            proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
+                    elif proxy_config['type'] == 'https':
+                        if proxy_config.get('user') and proxy_config.get('password'):
+                            proxy_url = f"https://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+                        else:
+                            proxy_url = f"https://{proxy_config['ip']}:{proxy_config['port']}"
+                    elif proxy_config['type'] in ['socks4', 'socks5', 'socks5h']:
+                        if proxy_config.get('user') and proxy_config.get('password'):
+                            proxy_url = f"{proxy_config['type']}://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+                        else:
+                            proxy_url = f"{proxy_config['type']}://{proxy_config['ip']}:{proxy_config['port']}"
+                    else:
+                        if proxy_config.get('user') and proxy_config.get('password'):
+                            proxy_url = f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
+                        else:
+                            proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
                     
-                    if proxy_url:
-                        from HELPERS.proxy_utils import redact_proxy_url_for_logs
-                        ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"Force using proxy for audio download: {redact_proxy_url_for_logs(proxy_url)}")
+                    ytdl_opts['proxy'] = proxy_url
+                    logger.info(f"Force using proxy for audio download: {proxy_url}")
                 else:
                     logger.warning("Proxy requested but proxy configuration is incomplete")
             else:
@@ -2453,52 +2468,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             if proc_msg_id:
                                 _stop_upload_logging(user_id, proc_msg_id)
                     except Exception as e:
-                        logger.error(f"Failed to send paid audio, falling back to regular: {e}")
-                        # Fallback to regular audio or document
-                        # Start upload logging to prevent watchdog false positives
-                        if proc_msg_id:
-                            _start_upload_logging(user_id, proc_msg_id)
-                        try:
-                            _prog_args_fb = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
-                            if file_ext == '.mp3' or file_ext == '.m4a':
-                                # Send as audio for supported formats
-                                if telegram_thumb and os.path.exists(telegram_thumb):
-                                    audio_msg = app.send_audio(
-                                        chat_id=user_id, 
-                                        audio=audio_file, 
-                                        caption=caption_with_link, 
-                                        reply_parameters=ReplyParameters(message_id=message.id),
-                                        thumb=telegram_thumb,
-                                        title=title,
-                                        performer=artist,
-                                        progress=progress_bar if _prog_args_fb else None,
-                                        progress_args=_prog_args_fb,
-                                    )
-                                else:
-                                    audio_msg = app.send_audio(
-                                        chat_id=user_id, 
-                                        audio=audio_file, 
-                                        caption=caption_with_link, 
-                                        reply_parameters=ReplyParameters(message_id=message.id),
-                                        title=title,
-                                        performer=artist,
-                                        progress=progress_bar if _prog_args_fb else None,
-                                        progress_args=_prog_args_fb,
-                                    )
-                            else:
-                                # Send as document for unsupported audio formats
-                                audio_msg = app.send_document(
-                                    chat_id=user_id, 
-                                    document=audio_file, 
-                                    caption=caption_with_link, 
-                                    reply_parameters=ReplyParameters(message_id=message.id),
-                                    progress=progress_bar if _prog_args_fb else None,
-                                    progress_args=_prog_args_fb,
-                                )
-                        finally:
-                            # Stop upload logging after upload completes or fails
-                            if proc_msg_id:
-                                _stop_upload_logging(user_id, proc_msg_id)
+                        # CRITICAL: never fallback to free media when paid NSFW is required.
+                        logger.error(f"Failed to send paid audio (will NOT fallback to free): {e}")
+                        from HELPERS.logger import send_error_to_user
+                        send_error_to_user(
+                            message,
+                            safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)),
+                        )
+                        raise
                 else:
                     # Send regular audio for non-NSFW content or group chats
                     # Start upload logging to prevent watchdog false positives

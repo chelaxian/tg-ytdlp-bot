@@ -1505,7 +1505,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if proxy_url:
                         from HELPERS.proxy_utils import redact_proxy_url_for_logs
                         ytdl_opts['proxy'] = proxy_url
-                        logger.info(f"Force using proxy for download: {redact_proxy_url_for_logs(proxy_url)}")
+                        # Avoid logging proxy URLs (even redacted) to reduce risk of leaking credentials.
+                        logger.info("Force using proxy for download")
                 else:
                     logger.warning("Proxy requested but proxy configuration is incomplete")
             else:

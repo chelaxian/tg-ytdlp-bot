@@ -85,6 +85,12 @@ def send_videos(
     skip_size_check: bool = False,
     video_quality_codec: str = '',
 ):
+    class PaidMediaSendError(RuntimeError):
+        """Paid NSFW media failed to send.
+
+        This must be treated as a hard stop: never fallback to free media.
+        """
+
     import re
     import os
     user_id = message.chat.id
@@ -544,25 +550,30 @@ def send_videos(
                     paid_media = InputPaidMediaVideo(
                         media=video_abs_path,
                     )
-                was_paid = True
                 allow_broadcast = getattr(message.chat, "type", None) != enums.ChatType.PRIVATE
                 # Start upload logging to prevent watchdog false positives
                 _start_upload_logging(user_id, msg_id)
                 try:
-                    result = app.send_paid_media(
-                        chat_id=user_id,
-                        media=[paid_media],
-                        star_count=LimitsConfig.NSFW_STAR_COST,
-                        **({"allow_paid_broadcast": True} if allow_broadcast else {}),
-                        payload=str(Config.STAR_RECEIVER),
-                        reply_parameters=ReplyParameters(message_id=message.id),
-                    )
+                    try:
+                        result = app.send_paid_media(
+                            chat_id=user_id,
+                            media=[paid_media],
+                            star_count=LimitsConfig.NSFW_STAR_COST,
+                            **({"allow_paid_broadcast": True} if allow_broadcast else {}),
+                            payload=str(Config.STAR_RECEIVER),
+                            reply_parameters=ReplyParameters(message_id=message.id),
+                        )
+                    except Exception as e:
+                        logger.error(f"send_paid_media failed (will NOT fallback to free): {e}")
+                        raise PaidMediaSendError(str(e)) from e
                     try:
                         # Some forks return list for albums; wrap to single message for uniformity
                         video_msg = result[0] if isinstance(result, list) and result else result
                         # Paid media will be forwarded to LOGS_PAID_ID in image_cmd.py for caching
+                        was_paid = True
                         return video_msg
                     except Exception:
+                        was_paid = True
                         return result
                 finally:
                     # Stop upload logging after upload completes or fails
@@ -687,24 +698,29 @@ def send_videos(
                     paid_media = InputPaidMediaVideo(
                         media=video_abs_path,
                     )
-                was_paid = True
                 allow_broadcast = getattr(message.chat, "type", None) != enums.ChatType.PRIVATE
                 # Start upload logging to prevent watchdog false positives
                 _start_upload_logging(user_id, msg_id)
                 try:
-                    result = app.send_paid_media(
-                        chat_id=user_id,
-                        media=[paid_media],
-                        star_count=LimitsConfig.NSFW_STAR_COST,
-                        **({"allow_paid_broadcast": True} if allow_broadcast else {}),
-                        payload=str(Config.STAR_RECEIVER),
-                        reply_parameters=ReplyParameters(message_id=message.id),
-                    )
+                    try:
+                        result = app.send_paid_media(
+                            chat_id=user_id,
+                            media=[paid_media],
+                            star_count=LimitsConfig.NSFW_STAR_COST,
+                            **({"allow_paid_broadcast": True} if allow_broadcast else {}),
+                            payload=str(Config.STAR_RECEIVER),
+                            reply_parameters=ReplyParameters(message_id=message.id),
+                        )
+                    except Exception as e:
+                        logger.error(f"send_paid_media (document fallback) failed (will NOT fallback to free): {e}")
+                        raise PaidMediaSendError(str(e)) from e
                     try:
                         video_msg = result[0] if isinstance(result, list) and result else result
                         # Paid media will be forwarded to LOGS_PAID_ID in image_cmd.py for caching
+                        was_paid = True
                         return video_msg
                     except Exception:
+                        was_paid = True
                         return result
                 finally:
                     # Stop upload logging after upload completes or fails
@@ -752,6 +768,14 @@ def send_videos(
                     try:
                         video_msg = _try_send_video(cap)
                         break
+                    except PaidMediaSendError as e:
+                        # Paid NSFW must not downgrade to free fallback.
+                        from HELPERS.logger import send_error_to_user
+                        send_error_to_user(
+                            message,
+                            safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)),
+                        )
+                        raise
                     except Exception as e:
                         error_str = str(e)
                         # Handle thumbnail file errors
@@ -795,6 +819,13 @@ def send_videos(
                             try:
                                 video_msg = _try_send_video(minimal_cap)
                                 break
+                            except PaidMediaSendError as e_paid:
+                                from HELPERS.logger import send_error_to_user
+                                send_error_to_user(
+                                    message,
+                                    safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e_paid)),
+                                )
+                                raise
                             except Exception as e2:
                                 error_str2 = str(e2)
                                 # Handle thumbnail file errors
@@ -826,6 +857,13 @@ def send_videos(
                             video_msg = _fallback_send_document("")
                         else:
                             video_msg = _try_send_video("")
+                    except PaidMediaSendError as e_paid3:
+                        from HELPERS.logger import send_error_to_user
+                        send_error_to_user(
+                            message,
+                            safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e_paid3)),
+                        )
+                        raise
                     except Exception as e3:
                         error_str3 = str(e3)
                         # Handle thumbnail file errors

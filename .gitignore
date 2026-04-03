@@ -73,6 +73,9 @@ yt-dlp.1
 *.ytdl
 *.temp
 *.tmp
+*.log
+*.bak-*
+test_paid_media_guard.py
 dump.json
 get_string.py
 proxy.txt
@@ -84,6 +87,7 @@ TXT/merge_working_proxies.py
 TXT/.proxy_merged_mtime
 TXT/.proxy_geo_cache.json  
 TXT/.gitkeep
+TXT/mtproto.txt
 
 # Sample / experimental scripts
 gallery-dl/
@@ -158,3 +162,5 @@ CONFIG/.dashboard_sessions.json
 CONFIG/.active_sessions.json
 env
 delete_redacted.sh
+tg-ytdlp-NEW.code-workspace
+*.code-workspace
