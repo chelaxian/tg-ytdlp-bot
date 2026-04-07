@@ -2746,6 +2746,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         )
                         send_error_to_user(message, format_error_message)
                         error_message_sent = True
+                    elif ("not available in your country" in error_message.lower()) or ("has not made this video available in your country" in error_message.lower()):
+                        geo_error_message = (
+                            "🌍 **Region restriction**\n"
+                            "This video is not available in your country.\n\n"
+                            "**What you can try:**\n"
+                            "• Enable proxy and retry (/proxy)\n"
+                            "• If you already use proxy: switch proxy country\n"
+                            "• Try a different mirror/reupload (if any)"
+                        )
+                        send_error_to_user(message, geo_error_message)
+                        error_message_sent = True
+                    elif ("blocked it on copyright grounds" in error_message.lower()) or ("copyright grounds" in error_message.lower()):
+                        copyright_message = (
+                            "⛔ **Copyright restriction**\n"
+                            "The uploader/rightsholder blocked this video on copyright grounds.\n\n"
+                            "This is not a technical issue — the bot can't bypass it."
+                        )
+                        send_error_to_user(message, copyright_message)
+                        error_message_sent = True
                 
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
