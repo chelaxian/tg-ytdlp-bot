@@ -2746,6 +2746,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         )
                         send_error_to_user(message, format_error_message)
                         error_message_sent = True
+                    elif "Failed to parse JSON" in error_message and ("hotstar" in error_message.lower() or "hotstar" in (url or "").lower()):
+                        hotstar_error_message = (
+                            "❌ **Hotstar error**\n"
+                            "The site returned an unexpected/empty response and yt-dlp couldn't parse JSON.\n\n"
+                            "**Possible causes:**\n"
+                            "• Hotstar now requires authentication (cookies)\n"
+                            "• Regional restriction / blocked IP\n"
+                            "• Upstream API changed\n\n"
+                            "**Solutions:**\n"
+                            "• Try again with cookies (/cookies) if available\n"
+                            "• Try enabling proxy or switching proxy country\n"
+                            "• If it keeps failing, this likely needs an extractor update in yt-dlp"
+                        )
+                        send_error_to_user(message, hotstar_error_message)
+                        error_message_sent = True
                 
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
