@@ -7069,10 +7069,23 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # ВАЖНО: маскируем секретные данные перед отправкой пользователю
         from HELPERS.logger import sanitize_error_message
         sanitized_error = sanitize_error_message(str(e))
+        tiktok_hint = ""
+        try:
+            from URL_PARSERS.tiktok import is_tiktok_url
+            if is_tiktok_url(url):
+                err_low = str(e).lower()
+                if any(k in err_low for k in ["403", "401", "429", "forbidden", "unauthorized", "login", "cookie", "private"]):
+                    tiktok_hint = (
+                        "\n<b>TikTok:</b> часто требуется авторизация.\n"
+                        "Попробуйте: <code>/cookie tiktok</code> и повторите запрос.\n"
+                    )
+        except Exception:
+            pass
         error_text = (
             f"{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG}"
             f"\n<blockquote>{short_error}</blockquote>\n"
             f"\n<code>{sanitized_error}</code>\n\n"
+            f"{tiktok_hint}"
             f"{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
         )
         
