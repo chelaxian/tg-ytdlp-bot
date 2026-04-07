@@ -1941,7 +1941,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     from HELPERS.proxy_helper import try_with_proxy_fallback
                     result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
                     if result is None:
-                        raise Exception("Failed to download video with all available proxies")
+                        # Last resort: try direct download without proxy once (if proxy was set)
+                        try:
+                            direct_opts = dict(ytdl_opts)
+                            direct_opts.pop("proxy", None)
+                            logger.warning("All proxies failed; trying direct download without proxy as last resort")
+                            direct_result = download_operation(direct_opts)
+                            if direct_result is not None:
+                                result = direct_result
+                            else:
+                                raise Exception("Failed to download video with all available proxies")
+                        except Exception:
+                            raise Exception("Failed to download video with all available proxies")
                 finally:
                     # Always stop cycle animation, even if error occurred
                     if cycle_stop is not None:
