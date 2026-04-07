@@ -2294,7 +2294,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Проверяем, связана ли ошибка с куки
                     error_str = error_message.lower()
-                    if any(keyword in error_str for keyword in ['cookie', 'auth', 'login', 'sign in', '403', '401', 'forbidden', 'unauthorized']):
+                    if any(keyword in error_str for keyword in ['cookie', 'auth', 'login', 'sign in', '403', '401', 'forbidden', 'unauthorized', 'rate-limit', 'rate limit', 'login required', 'requested content is not available']):
                         logger.info(f"Error appears to be cookie-related for {url}, trying cookie fallback")
                         
                         # Пробуем перебор куки с новой системой
