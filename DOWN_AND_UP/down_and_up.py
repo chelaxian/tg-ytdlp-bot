@@ -2164,6 +2164,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Check for format not available error
                 if "Requested format is not available" in error_message:
                     logger.error(f"Format not available error: {error_message}")
+                    # If we explicitly requested a format, retry once without it (yt-dlp will pick best available)
+                    if isinstance(attempt_opts, dict) and attempt_opts.get("format"):
+                        try:
+                            attempt_opts_no_format = dict(attempt_opts)
+                            attempt_opts_no_format.pop("format", None)
+                            logger.info("Retrying download without explicit format after FORMAT_NOT_AVAILABLE")
+                            retry_result = try_download(url, attempt_opts_no_format)
+                            if retry_result is not None and retry_result != "FORMAT_NOT_AVAILABLE":
+                                return retry_result
+                        except Exception as e:
+                            logger.warning(f"Format fallback retry failed: {e}")
                     return "FORMAT_NOT_AVAILABLE"
                 
                 # Check for --live-from-start error and retry with --no-live-from-start
