@@ -342,7 +342,14 @@ Use:
     ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
-    ERROR_ALL_PROXIES_FAILED_MSG = "❌ <b>Failed to download video with all available proxies</b>\n\nAll download attempts through proxies have failed.\nTry:\n• Check proxy functionality\n• Try another proxy from the list\n• Download without proxy (if possible)"
+    ERROR_ALL_PROXIES_FAILED_MSG = (
+        "❌ <b>Failed to download video with all available proxies</b>\n\n"
+        "All download attempts through proxies have failed.\n"
+        "Try:\n"
+        "• Switch proxy / proxy country\n"
+        "• Check whether proxies are alive\n"
+        "• Disable proxy and retry (direct download)\n"
+    )
 
     ERROR_GETTING_LINK_MSG = "❌ <b>Error getting link:</b>\n{error}"
 
