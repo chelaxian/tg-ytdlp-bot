@@ -11,6 +11,8 @@ from pathlib import Path
 REPO = os.environ.get("GITHUB_ISSUES_REPO", "chelaxian/tg-ytdlp-bot")
 BASE_BRANCH = os.environ.get("AUTOISSUE_BASE", "autoissue")
 LABEL = os.environ.get("AUTOISSUE_LABEL", "autoissue")
+TRUSTED_ACTORS = {s.strip() for s in os.environ.get("AUTOISSUE_TRUSTED_ACTORS", "chelaxian,autoissue-bot").split(",") if s.strip()}
+AUTOISSUE_SIGNATURE = os.environ.get("AUTOISSUE_SIGNATURE", "AUTOISSUE_BOT_SIGNATURE:v1")
 WORKDIR = Path(__file__).resolve().parents[1]
 SNAPSHOT_DIR = WORKDIR / "AUTOISSUE"
 
@@ -56,6 +58,11 @@ def build_snapshot(issue: dict) -> str:
     title = issue.get("title", "").strip()
     body = (issue.get("body") or "").rstrip()
     url = issue.get("url") or issue.get("html_url") or ""
+    author = None
+    try:
+        author = (issue.get("author") or {}).get("login")
+    except Exception:
+        author = None
     labels = [l["name"] for l in (issue.get("labels") or []) if isinstance(l, dict) and "name" in l]
     labels_str = ", ".join(labels) if labels else "-"
     updated = issue.get("updatedAt") or issue.get("updated_at") or "-"
@@ -63,6 +70,7 @@ def build_snapshot(issue: dict) -> str:
         f"# Issue #{n}: {title}\n\n"
         f"- Repo: `{REPO}`\n"
         f"- URL: `{url}`\n"
+        f"- Author: `{author or '-'}'\n"
         f"- Labels: {labels_str}\n"
         f"- Issue updatedAt: `{updated}`\n"
         f"- Snapshot updatedAt: `{utc_now_iso()}`\n\n"
@@ -134,8 +142,18 @@ def try_merge_base_into_branch(branch: str) -> bool:
 def find_pr_for_issue(issue_number: int, prs: list[dict]) -> dict | None:
     needle = f"#{issue_number}"
     for pr in prs:
+        # Only touch PRs created by trusted actors and carrying our signature.
+        pr_author = None
+        try:
+            pr_author = (pr.get("author") or {}).get("login")
+        except Exception:
+            pr_author = None
+        if pr_author not in TRUSTED_ACTORS:
+            continue
         body = pr.get("body") or ""
         title = pr.get("title") or ""
+        if AUTOISSUE_SIGNATURE not in body:
+            continue
         if needle in title or f"Fixes #{issue_number}" in body or f"Closes #{issue_number}" in body:
             return pr
     return None
@@ -189,7 +207,7 @@ def main() -> int:
             "--limit",
             "200",
             "--json",
-            "number,title,body,labels,updatedAt,url",
+            "number,title,body,labels,updatedAt,url,author",
         ]
     ) or []
 
@@ -205,13 +223,21 @@ def main() -> int:
             "--limit",
             "200",
             "--json",
-            "number,title,body,headRefName,baseRefName,url",
+            "number,title,body,headRefName,baseRefName,url,author",
         ]
     ) or []
 
     for issue in issues:
         n = int(issue["number"])
         title = (issue.get("title") or "").strip()
+        issue_author = None
+        try:
+            issue_author = (issue.get("author") or {}).get("login")
+        except Exception:
+            issue_author = None
+        # SECURITY: Only process issues created by trusted actors (default: chelaxian).
+        if issue_author not in TRUSTED_ACTORS:
+            continue
         pr = find_pr_for_issue(n, prs)
         desired_branch = f"autoissue/issue-{n}-{normalize_branch_name(title)}"
 
@@ -237,7 +263,7 @@ def main() -> int:
                         "--title",
                         f"autoissue: issue #{n} - {title}",
                         "--body",
-                        f"Automated snapshot PR for issue #{n}.\n\nFixes #{n}\n",
+                        f"{AUTOISSUE_SIGNATURE}\n\nAutomated snapshot PR for issue #{n}.\n\nFixes #{n}\n",
                         "--draft",
                     ]
                 ).stdout.strip()

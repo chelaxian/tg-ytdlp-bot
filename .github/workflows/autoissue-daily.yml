@@ -43,6 +43,8 @@ jobs:
           GITHUB_ISSUES_REPO: chelaxian/tg-ytdlp-bot
           AUTOISSUE_BASE: autoissue
           AUTOISSUE_LABEL: autoissue
+          AUTOISSUE_TRUSTED_ACTORS: chelaxian,autoissue-bot
+          AUTOISSUE_SIGNATURE: AUTOISSUE_BOT_SIGNATURE:v1
         run: |
           python3 scripts/autoissue_daily.py
 
