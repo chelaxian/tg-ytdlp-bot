@@ -479,6 +479,8 @@ def send_videos(
         def _try_send_video(caption_text: str):
             messages = safe_get_messages(user_id)
             nonlocal was_paid
+            if not os.path.exists(video_abs_path) or os.path.getsize(video_abs_path) <= 0:
+                raise FileNotFoundError(f"Video file not found or empty: {video_abs_path}")
             # Для бесплатных сообщений — внешний превью без паддинга; для платных — обложка 320x320
             local_thumb_free = None
             try:
@@ -626,6 +628,8 @@ def send_videos(
         def _fallback_send_document(caption_text: str):
             messages = safe_get_messages(user_id)
             nonlocal was_paid
+            if not os.path.exists(video_abs_path) or os.path.getsize(video_abs_path) <= 0:
+                raise FileNotFoundError(f"Video file not found or empty: {video_abs_path}")
             # Для бесплатных документов — внешний превью без паддинга
             local_thumb = _gen_free_cover(video_abs_path) or thumb_file_path
             try:
