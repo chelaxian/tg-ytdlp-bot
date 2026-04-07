@@ -36,11 +36,10 @@ except ImportError:
 
 try:
     from CONFIG.config import Config
-    from CONFIG.messages import safe_get_messages
 except ImportError as e:
     print(f"Import error: {e}")
     print("Config not found")
-    sys.exit(1)
+    Config = None
 
 try:
     import requests
@@ -59,20 +58,20 @@ FIREBASE_PASSWORD = getattr(Config, 'FIREBASE_PASSWORD', None)
 OUTPUT_FILE = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
 TMP_OUTPUT_FILE = f"{OUTPUT_FILE}.tmp"
 
-if not FIREBASE_CONFIG or not FIREBASE_USER or not FIREBASE_PASSWORD:
-    print(safe_get_messages().DB_NOT_ALL_PARAMETERS_SET_MSG)
-    sys.exit(1)
-
 def download_firebase_dump():
     """Downloads the entire Firebase Realtime Database dump"""
     if requests is None or Session is None:
         print(safe_get_messages().DB_DEPENDENCY_NOT_AVAILABLE_MSG)
         return False
-
-    # Create managed session for connection pooling
-    from HELPERS.http_manager import get_managed_session
-    session_manager = get_managed_session("firebase-download")
-    session = session_manager.get_session()
+    session_manager = None
+    session = None
+    try:
+        # Create managed session for connection pooling (if available)
+        from HELPERS.http_manager import get_managed_session
+        session_manager = get_managed_session("firebase-download")
+        session = session_manager.get_session()
+    except Exception:
+        session = requests.Session()
     
     # Timeout configuration (connect_timeout, read_timeout)
     AUTH_CONNECT_TIMEOUT = 30
@@ -258,12 +257,21 @@ def download_firebase_dump():
         logger.error("Firebase download request error: %s", e)
         return False
     finally:
-        # Always close the managed session
-        session_manager.close()
+        if session_manager is not None:
+            session_manager.close()
+        elif session is not None:
+            try:
+                session.close()
+            except Exception:
+                pass
 
 def main():
     print("🚀 Firebase Database Dumper (config-driven)")
     print("=" * 40)
+
+    if Config is None:
+        print("Config not found")
+        return False
     
     # Check config
     if not FIREBASE_CONFIG or not FIREBASE_USER or not FIREBASE_PASSWORD:
