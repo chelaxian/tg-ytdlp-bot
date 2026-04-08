@@ -4,6 +4,7 @@ import time
 import logging
 import threading
 import asyncio
+import concurrent.futures
 from types import SimpleNamespace
 from HELPERS.app_instance import get_app
 from CONFIG.messages import Messages, safe_get_messages
@@ -21,11 +22,23 @@ _message_send_lock = threading.Lock()
 
 # Get app instance dynamically to avoid None issues
 def get_app_safe():
-    messages = safe_get_messages(None)
     app = get_app()
     if app is None:
-        raise RuntimeError(safe_get_messages(user_id).HELPER_APP_INSTANCE_NOT_AVAILABLE_MSG)
+        raise RuntimeError(safe_get_messages(None).HELPER_APP_INSTANCE_NOT_AVAILABLE_MSG)
     return app
+
+
+def run_pyrogram_client_coroutine(app, coro, timeout=120):
+    """Выполнить async-метод Pyrogram Client из sync-кода (обработчики в executor)."""
+    loop = getattr(app, "loop", None)
+    if loop is None:
+        raise RuntimeError("Pyrogram client event loop is not available")
+    fut = asyncio.run_coroutine_threadsafe(coro, loop)
+    try:
+        return fut.result(timeout=timeout)
+    except concurrent.futures.TimeoutError:
+        logger.error(f"Pyrogram client call timed out after {timeout}s")
+        raise
 
 def fake_message(text, user_id, command=None, original_chat_id=None, message_thread_id=None, original_message=None):
     messages = safe_get_messages(user_id)
@@ -108,6 +121,7 @@ def fake_message_with_context(text, user_id, context_message=None, command=None)
 # Helper function for safe message sending with flood wait handling
 def safe_send_message(chat_id, text, **kwargs):
     messages = safe_get_messages(None)
+    user_id = chat_id
     # Normalize reply parameters and preserve topic/thread info
     original_message = kwargs.get('message')
     # Peek callback_query (will be popped later) to inherit thread context in topics
@@ -192,7 +206,7 @@ def safe_send_message(chat_id, text, **kwargs):
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
-            return app.send_message(chat_id, text, **kwargs)
+            return run_pyrogram_client_coroutine(app, app.send_message(chat_id, text, **kwargs))
         except FloodWait as e:
             # Write FloodWait seconds to per-user file and do not spin retries for huge waits
             try:
@@ -247,7 +261,6 @@ def safe_send_message(chat_id, text, **kwargs):
 
 # Helper function for safe message forwarding with flood wait handling
 def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
-    messages = safe_get_messages(None)
     """
     Safely forward messages with flood wait handling
 
@@ -260,13 +273,15 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
     Returns:
         The message objects or None if forwarding failed
     """
+    messages = safe_get_messages(None)
+    user_id = chat_id
     max_retries = 3
     retry_delay = 5
 
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
-            return app.forward_messages(chat_id, from_chat_id, message_ids, **kwargs)
+            return run_pyrogram_client_coroutine(app, app.forward_messages(chat_id, from_chat_id, message_ids, **kwargs))
         except Exception as e:
             if "FLOOD_WAIT" in str(e):
                 # Extract wait time
@@ -287,7 +302,6 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
 
 # Helper function for safely editing message text with flood wait handling
 def safe_edit_message_text(chat_id, message_id, text, **kwargs):
-    messages = safe_get_messages(None)
     """
     Safely edit message text with flood wait handling
 
@@ -300,6 +314,8 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
     Returns:
         The message object or None if editing failed
     """
+    messages = safe_get_messages(None)
+    user_id = chat_id
     max_retries = 3
     retry_delay = 5
 
@@ -330,7 +346,7 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
-            return app.edit_message_text(chat_id, message_id, text, **kwargs)
+            return run_pyrogram_client_coroutine(app, app.edit_message_text(chat_id, message_id, text, **kwargs))
         except FloodWait as e:
             # Persist FloodWait info and stop
             try:
@@ -353,12 +369,13 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
 
 # Helper function for safely clearing reply markup (inline keyboard)
 def safe_edit_reply_markup(chat_id, message_id, reply_markup=None, **kwargs):
-    messages = safe_get_messages(None)
     """
     Safely edit message reply markup (e.g., clear inline keyboard) with flood wait handling
 
     Inherits message_thread_id from provided message or _callback_query for topics.
     """
+    messages = safe_get_messages(None)
+    user_id = chat_id
     max_retries = 3
     retry_delay = 5
 
@@ -381,7 +398,7 @@ def safe_edit_reply_markup(chat_id, message_id, reply_markup=None, **kwargs):
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
-            return app.edit_message_reply_markup(chat_id, message_id, reply_markup=reply_markup, **kwargs)
+            return run_pyrogram_client_coroutine(app, app.edit_message_reply_markup(chat_id, message_id, reply_markup=reply_markup, **kwargs))
         except FloodWait as e:
             try:
                 user_dir = os.path.join("users", str(chat_id))
@@ -415,7 +432,6 @@ def safe_edit_reply_markup(chat_id, message_id, reply_markup=None, **kwargs):
 
 # Helper function for safely deleting messages with flood wait handling
 def safe_delete_messages(chat_id, message_ids, **kwargs):
-    messages = safe_get_messages(None)
     """
     Safely delete messages with flood wait handling
 
@@ -427,13 +443,15 @@ def safe_delete_messages(chat_id, message_ids, **kwargs):
     Returns:
         True on success or None if deletion failed
     """
+    messages = safe_get_messages(None)
+    user_id = chat_id
     max_retries = 3
     retry_delay = 5
 
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
-            return app.delete_messages(chat_id=chat_id, message_ids=message_ids, **kwargs)
+            return run_pyrogram_client_coroutine(app, app.delete_messages(chat_id=chat_id, message_ids=message_ids, **kwargs))
         except Exception as e:
             # Если сообщение уже удалено/невалидно — не считаем это ошибкой
             try:

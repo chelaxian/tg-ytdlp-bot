@@ -284,7 +284,9 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
     
     # Add PO token provider for YouTube domains
     ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
-    
+    # Как в down_and_up: явный Node, иначе user_args могут подставить deno/none и format-check даст FORMAT_NOT_AVAILABLE
+    ytdl_opts['js_runtimes'] = {'node': {}}
+
     # Try with proxy fallback if user proxy is enabled
     def extract_info_operation(opts):
         try:
