@@ -569,7 +569,7 @@ class ChannelGuard:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for admin_id in admins:
             try:
-                safe_send_message(
+                await safe_send_message(
                     admin_id,
                     safe_get_messages(admin_id).BAN_TIME_REPORT_MSG.format(
                         run_ts=ts,
