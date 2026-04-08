@@ -197,6 +197,7 @@ class Config(object):
     SUPPORTED_SITES_FILE = DomainsConfig.SUPPORTED_SITES_FILE
     UPDATE_PORN_SCRIPT_PATH = DomainsConfig.UPDATE_PORN_SCRIPT_PATH
     WHITELIST = DomainsConfig.WHITELIST
+    WHITE_KEYWORDS = getattr(DomainsConfig, "WHITE_KEYWORDS", [])
     NO_COOKIE_DOMAINS = DomainsConfig.NO_COOKIE_DOMAINS
     PROXY_DOMAINS = DomainsConfig.PROXY_DOMAINS    
     PROXY_2_DOMAINS = DomainsConfig.PROXY_2_DOMAINS    
