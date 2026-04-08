@@ -169,6 +169,7 @@ tg-ytdlp-NEW.code-workspace
 tests/
 /tests/
 tests/test_down_and_audio_scoping.py
+test_white_keywords_reload.py
 tests/*
 /tests/*
 yt-dlp
