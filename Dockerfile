@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     docker.io \
     curl \
     iputils-ping \
+    nodejs \
+    npm \
     fonts-noto-core \
     fonts-noto-extra \
     fonts-kacst-one \
