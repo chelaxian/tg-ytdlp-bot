@@ -167,4 +167,10 @@ tg-ytdlp-NEW.code-workspace
 
 # !Allow/Block tracked regression tests (keep most local tests ignored)
 tests/
+/tests/
 tests/test_down_and_audio_scoping.py
+tests/*
+/tests/*
+yt-dlp
+*.log.*
+*.log

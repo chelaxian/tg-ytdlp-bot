@@ -924,6 +924,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         try:
             ydl_opts = {
                 'quiet': True,
+                # YouTube extraction increasingly requires an explicit JS runtime.
+                # We ship Node.js in Docker and allow it here to avoid missing formats.
+                'js_runtimes': {'node': {}},
                 'extractor_args': {
                     'youtubetab': {'skip': ['authcheck']}
                 }
@@ -1252,6 +1255,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'ignoreerrors': ignore_errors,
                 # Allow Unicode characters in filenames
                 'restrictfilenames': False,
+                # YouTube extraction increasingly requires an explicit JS runtime.
+                # We ship Node.js in Docker and allow it here to avoid missing formats.
+                'js_runtimes': {'node': {}},
                 'extractor_args': {
                     'generic': {'impersonate': ['chrome']},
                     'youtubetab': {'skip': ['authcheck']}
