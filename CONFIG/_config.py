@@ -201,6 +201,11 @@ class Config(object):
     NO_COOKIE_DOMAINS = DomainsConfig.NO_COOKIE_DOMAINS
     PROXY_DOMAINS = DomainsConfig.PROXY_DOMAINS    
     PROXY_2_DOMAINS = DomainsConfig.PROXY_2_DOMAINS    
+    YTDLP_ONLY_DOMAINS = getattr(DomainsConfig, "YTDLP_ONLY_DOMAINS", [])
+    GALLERYDL_ONLY_DOMAINS = getattr(DomainsConfig, "GALLERYDL_ONLY_DOMAINS", [])
+    GALLERYDL_ONLY_PATH = getattr(DomainsConfig, "GALLERYDL_ONLY_PATH", [])
+    GALLERYDL_FALLBACK_DOMAINS = getattr(DomainsConfig, "GALLERYDL_FALLBACK_DOMAINS", [])
+    NO_FILTER_DOMAINS = getattr(DomainsConfig, "NO_FILTER_DOMAINS", [])
     TIKTOK_DOMAINS = DomainsConfig.TIKTOK_DOMAINS
     CLEAN_QUERY = DomainsConfig.CLEAN_QUERY
     PIPED_DOMAIN = DomainsConfig.PIPED_DOMAIN
