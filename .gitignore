@@ -171,3 +171,6 @@ tests/
 tests/test_down_and_audio_scoping.py
 tests/*
 /tests/*
+yt-dlp
+*.log.*
+*.log
