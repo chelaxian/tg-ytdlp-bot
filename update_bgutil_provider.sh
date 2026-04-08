@@ -12,6 +12,9 @@ IMAGE="${IMAGE_REPO}:${IMAGE_TAG}"
 CONTAINER_NAME="${CONTAINER_NAME:-$CONTAINER_NAME_DEFAULT}"
 PORT="${PORT:-$PORT_DEFAULT}"
 HEALTHCHECK_TIMEOUT_SECONDS="${HEALTHCHECK_TIMEOUT_SECONDS:-10}"
+# Повторы: Node может начать слушать порт чуть позже, чем docker run вернётся
+HEALTHCHECK_RETRIES="${HEALTHCHECK_RETRIES:-15}"
+HEALTHCHECK_RETRY_DELAY_SECONDS="${HEALTHCHECK_RETRY_DELAY_SECONDS:-1}"
 
 # Опциональная синхронизация Python-плагина в venv бота, чтобы версии plugin/server не расходились
 SYNC_PY_PLUGIN="${SYNC_PY_PLUGIN:-1}"          # 1=включено, 0=выключено
@@ -62,9 +65,18 @@ docker run -d \
   "${IMAGE}" >/dev/null
 
 # Health-check (корень может отвечать 404 — это нормально, главное что TCP/HTTP живой)
-log "Health-check: http://127.0.0.1:${PORT} (timeout ${HEALTHCHECK_TIMEOUT_SECONDS}s)"
+log "Health-check: http://127.0.0.1:${PORT}/ (до ${HEALTHCHECK_RETRIES} попыток, timeout ${HEALTHCHECK_TIMEOUT_SECONDS}s)"
 if command -v curl >/dev/null 2>&1; then
-  http_code="$(curl -sS -m "${HEALTHCHECK_TIMEOUT_SECONDS}" -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/" || true)"
+  http_code=""
+  for ((i = 1; i <= HEALTHCHECK_RETRIES; i++)); do
+    http_code="$(curl -sS -m "${HEALTHCHECK_TIMEOUT_SECONDS}" -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/" 2>/dev/null || true)"
+    if [[ "${http_code}" == "200" || "${http_code}" == "404" ]]; then
+      break
+    fi
+    if [[ "${i}" -lt "${HEALTHCHECK_RETRIES}" ]]; then
+      sleep "${HEALTHCHECK_RETRY_DELAY_SECONDS}"
+    fi
+  done
   if [[ "${http_code}" != "200" && "${http_code}" != "404" ]]; then
     log "Health-check failed (http ${http_code}). Последние логи контейнера:"
     docker logs --tail 50 "${CONTAINER_NAME}" || true
