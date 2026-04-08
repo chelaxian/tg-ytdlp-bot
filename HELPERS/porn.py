@@ -207,7 +207,8 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
 
     # 4. White keywords: check against raw text (with underscores) so "brazzers_don" matches only literally
     combined_white = " ".join([title_lower, description_lower, caption_lower, tags_lower_raw, uploader_lower_raw, url_lower])
-    white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
+    # IMPORTANT: use runtime Config.* so /reload_porn updates take effect without restart
+    white_keywords = getattr(Config, 'WHITE_KEYWORDS', [])
     if white_keywords:
         white_kws = [re.escape(kw.lower().strip()) for kw in white_keywords if kw.strip()]
         if white_kws:
@@ -298,8 +299,10 @@ def check_porn_detailed(url, title, description, caption=None, uploader=None):
         return False, " | ".join(explanation_parts)
 
     # 3. White keywords: check against raw text (with underscores) — "brazzers_don" matches only literally, not "brazzers don"
-    combined_white = " ".join([title_lower, description_lower, caption_lower, uploader_lower_raw])
-    white_keywords = getattr(DomainsConfig, 'WHITE_KEYWORDS', [])
+    # Include URL in whitelist check: it often contains uploader handles (e.g. x.com/<handle>/...)
+    combined_white = " ".join([title_lower, description_lower, caption_lower, uploader_lower_raw, url_lower])
+    # IMPORTANT: use runtime Config.* so /reload_porn updates take effect without restart
+    white_keywords = getattr(Config, 'WHITE_KEYWORDS', [])
     if white_keywords:
         white_kws = [re.escape(kw.lower().strip()) for kw in white_keywords if kw.strip()]
         if white_kws:

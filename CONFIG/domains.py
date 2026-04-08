@@ -91,6 +91,7 @@ class DomainsConfig(object):
     
     # --- Whitelist of keywords that are not considered porn ---
     WHITE_KEYWORDS = [
+        'dilf_minseok',
         'a55',
         'Hassas',
         'assasinate', 'assasinated', 'assassinate', 'assassinated', 'assassination'
