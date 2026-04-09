@@ -59,6 +59,20 @@ def run_pyrogram_client_coroutine(app, coro, timeout=120):
         except RuntimeError:
             # Уже внутри event loop (не наш случай для sync-хендлеров) — просто пробросим.
             raise RuntimeError("Pyrogram client event loop is not available")
+
+    # If we're already executing inside the same event loop, waiting on
+    # run_coroutine_threadsafe().result() would deadlock. In that case, schedule
+    # the coroutine and return the Task (best-effort fire-and-forget).
+    try:
+        running = asyncio.get_running_loop()
+    except RuntimeError:
+        running = None
+    if running is loop:
+        try:
+            return asyncio.create_task(coro)
+        except Exception:
+            return None
+
     fut = asyncio.run_coroutine_threadsafe(coro, loop)
     try:
         return fut.result(timeout=timeout)
