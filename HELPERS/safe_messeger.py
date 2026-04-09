@@ -40,6 +40,16 @@ def run_pyrogram_client_coroutine(app, coro, timeout=120):
         # Если не смогли определить awaitable — лучше не падать.
         return coro
 
+    # asyncio.run_coroutine_threadsafe принимает только coroutine object.
+    # Pyrogram может возвращать awaitable-объект (имеет __await__), который НЕ является coroutine.
+    try:
+        if not inspect.iscoroutine(coro):
+            async def _wrap(awaitable):
+                return await awaitable
+            coro = _wrap(coro)
+    except Exception:
+        pass
+
     loop = getattr(app, "loop", None)
     if loop is None:
         # Если это awaitable, но loop почему-то недоступен — попробуем выполнить в отдельном loop,
