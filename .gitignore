@@ -63,6 +63,7 @@ dump.json
 _dump.json
 CONFIG/.command_limits.json
 CONFIG/.*.json
+CONFIG/.cookies_state.json
 
 # yt-dlp binaries / temp downloads
 tests/*
