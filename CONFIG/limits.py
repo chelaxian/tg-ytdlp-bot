@@ -49,6 +49,16 @@ class LimitsConfig(object):
     
     # HTTP session timeout for individual requests 
     HTTP_REQUEST_TIMEOUT = 60  # 60 seconds
+
+    #######################################################
+    # ChannelGuard (subscribe channel admin-log scanner)
+    #######################################################
+    # Scheduled run times for ChannelGuard in local server time (HH:MM, 24h).
+    # Default: twice a day at 00:05 and 12:05.
+    CHANNEL_GUARD_SCHEDULE_TIMES = ("00:05", "12:05")
+    # Fallback interval (seconds) if schedule is empty/invalid.
+    # The first scan should NOT run immediately after restart.
+    CHANNEL_GUARD_SCAN_INTERVAL = 43200  # 12 hours
     #######################################################
     # Cookie cache configuration
     #######################################################

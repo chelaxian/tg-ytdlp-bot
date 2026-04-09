@@ -18,6 +18,7 @@ except ImportError:
     ChannelAdminLogEventActionParticipantAdd = None
 
 from CONFIG.config import Config
+from CONFIG.limits import LimitsConfig
 from CONFIG.messages import safe_get_messages
 from DATABASE.firebase_init import db
 from HELPERS.logger import logger
@@ -79,6 +80,48 @@ def format_seconds_human(seconds: int) -> str:
 # --------------------------------------------------------------------------------------
 
 
+def _parse_daily_times(values: Any) -> List[Tuple[int, int]]:
+    """
+    Parse schedule times in format "HH:MM" (24h). Returns sorted unique list of (hour, minute).
+    """
+    if not values:
+        return []
+    if isinstance(values, (str, bytes)):
+        values = [values]
+    parsed: List[Tuple[int, int]] = []
+    for raw in list(values):
+        if raw is None:
+            continue
+        s = str(raw).strip()
+        if not s or ":" not in s:
+            continue
+        hh, mm = s.split(":", 1)
+        try:
+            h = int(hh)
+            m = int(mm)
+        except ValueError:
+            continue
+        if 0 <= h <= 23 and 0 <= m <= 59:
+            parsed.append((h, m))
+    return sorted(set(parsed), key=lambda x: (x[0], x[1]))
+
+
+def _seconds_until_next_daily_slot(slots: List[Tuple[int, int]], *, now: Optional[datetime] = None) -> int:
+    # Use local server time (naive datetime) by design.
+    now = now or datetime.now()
+    if not slots:
+        return 0
+    now_sec = now.hour * 3600 + now.minute * 60 + now.second
+    for h, m in slots:
+        slot_sec = h * 3600 + m * 60
+        if slot_sec > now_sec:
+            return max(1, slot_sec - now_sec)
+    # Next is tomorrow's first slot
+    h0, m0 = slots[0]
+    first_sec = h0 * 3600 + m0 * 60
+    return max(1, (24 * 3600 - now_sec) + first_sec)
+
+
 class ChannelGuard:
     def __init__(self) -> None:
         self._channel_id = getattr(Config, "SUBSCRIBE_CHANNEL", None)
@@ -88,11 +131,13 @@ class ChannelGuard:
             .child("channel_guard")
         )
         self._settings = {
-            "scan_interval": 300,
+            # Default: twice a day. Also, first scan is scheduled (not immediate).
+            "scan_interval": int(getattr(LimitsConfig, "CHANNEL_GUARD_SCAN_INTERVAL", 43200)),
             "auto_enabled": False,
             "auto_interval": 0,
             "auto_window": 0,
         }
+        self._schedule_times = _parse_daily_times(getattr(LimitsConfig, "CHANNEL_GUARD_SCHEDULE_TIMES", None))
         self._last_event_id: int = 0
         self._leavers: Dict[str, Dict[str, Any]] = {}
         self._app = None
@@ -244,6 +289,13 @@ class ChannelGuard:
     async def _scan_loop(self) -> None:
         while self._running:
             try:
+                if self._schedule_times:
+                    # Do not scan immediately after restart; wait for the next scheduled time slot.
+                    delay = _seconds_until_next_daily_slot(self._schedule_times)
+                    await asyncio.sleep(delay)
+                else:
+                    # Fallback: interval-based scan when schedule is not configured/invalid.
+                    await asyncio.sleep(self._settings["scan_interval"])
                 new_leavers, auto_banned = await self._scan_once()
                 pending = len(self.get_pending_leavers())
                 logger.info(f"[ChannelGuard] Periodic scan: new={new_leavers}, auto_banned={auto_banned}, pending={pending}, last_event_id={self._last_event_id}")
@@ -252,7 +304,6 @@ class ChannelGuard:
                 break
             except Exception as exc:
                 logger.error(f"[ChannelGuard] Scan loop error: {exc}")
-            await asyncio.sleep(self._settings["scan_interval"])
 
     async def _auto_loop(self) -> None:
         while self._running:
@@ -564,7 +615,10 @@ class ChannelGuard:
         admins = getattr(Config, "ADMIN", [])
         if not admins:
             return
-        interval_text = format_seconds_human(self._settings.get("scan_interval", 0))
+        if self._schedule_times:
+            interval_text = ", ".join(f"{h:02d}:{m:02d}" for h, m in self._schedule_times)
+        else:
+            interval_text = format_seconds_human(self._settings.get("scan_interval", 0))
         pending_count = len(self.get_pending_leavers())
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for admin_id in admins:

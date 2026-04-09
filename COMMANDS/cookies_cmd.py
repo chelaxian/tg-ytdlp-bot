@@ -15,6 +15,7 @@ from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_mes
 from pyrogram.errors import FloodWait
 import subprocess
 import os
+import json
 import requests
 import re
 import time
@@ -25,7 +26,6 @@ import random
 from HELPERS.pot_helper import add_pot_to_ytdl_opts
 from HELPERS.proxy_helper import add_proxy_to_ytdl_opts
 from URL_PARSERS.youtube import is_youtube_url
-
 # Get app instance for decorators
 app = get_app()
 
@@ -63,6 +63,185 @@ _proxy_success_cache = {}
 # Per-task (user_id, url) set of proxy URLs already tried and failed in this download task.
 # Ensures each proxy is tried at most once per task (no infinite loop).
 _proxy_failed_for_task = {}
+
+# --------------------------------------------------------------------------------------
+# Persistence for window-based limits / caches (survive bot restarts)
+# --------------------------------------------------------------------------------------
+
+_COOKIES_STATE_FILE = "CONFIG/.cookies_state.json"
+_cookies_state_lock = None
+try:
+    import threading as _threading  # local alias to avoid name clashes in this huge module
+    _cookies_state_lock = _threading.Lock()
+except Exception:
+    _cookies_state_lock = None
+
+
+def _cookies_state_cleanup(now_ts: float) -> None:
+    """
+    Purge expired entries based on configured windows so the file doesn't grow unbounded.
+    """
+    global _youtube_cookie_cache, _non_youtube_cookie_cache, _checked_cookie_sources, _youtube_cookie_retry_tracking
+
+    max_lifetime = getattr(LimitsConfig, "COOKIE_CACHE_MAX_LIFETIME", 7200)
+    retry_window = getattr(LimitsConfig, "YOUTUBE_COOKIE_RETRY_WINDOW", 3600)
+
+    # Cookie validation caches
+    try:
+        _youtube_cookie_cache = {
+            int(uid): entry
+            for uid, entry in _youtube_cookie_cache.items()
+            if isinstance(entry, dict) and (now_ts - float(entry.get("timestamp", 0)) <= max_lifetime)
+        }
+    except Exception:
+        _youtube_cookie_cache = {}
+
+    try:
+        _non_youtube_cookie_cache = {
+            str(k): entry
+            for k, entry in _non_youtube_cookie_cache.items()
+            if isinstance(entry, dict) and (now_ts - float(entry.get("timestamp", 0)) <= max_lifetime)
+        }
+    except Exception:
+        _non_youtube_cookie_cache = {}
+
+    # Checked cookie sources (kept for ~1 hour like runtime cleanup)
+    try:
+        _checked_cookie_sources = {
+            int(uid): data
+            for uid, data in _checked_cookie_sources.items()
+            if isinstance(data, dict) and (now_ts - float(data.get("last_reset", 0)) <= 3600)
+        }
+    except Exception:
+        _checked_cookie_sources = {}
+
+    # Retry tracking window
+    try:
+        cleaned = {}
+        for uid, data in _youtube_cookie_retry_tracking.items():
+            if not isinstance(data, dict):
+                continue
+            attempts = data.get("attempts", [])
+            if not isinstance(attempts, list):
+                continue
+            attempts = [float(t) for t in attempts if (now_ts - float(t) <= retry_window)]
+            if attempts:
+                cleaned[int(uid)] = {"attempts": attempts, "last_reset": float(data.get("last_reset", now_ts))}
+        _youtube_cookie_retry_tracking = cleaned
+    except Exception:
+        _youtube_cookie_retry_tracking = {}
+
+
+def _load_cookies_state_from_disk() -> None:
+    global _youtube_cookie_cache, _non_youtube_cookie_cache, _checked_cookie_sources, _youtube_cookie_retry_tracking
+
+    now_ts = time.time()
+    if not os.path.exists(_COOKIES_STATE_FILE):
+        _cookies_state_cleanup(now_ts)
+        return
+
+    try:
+        with open(_COOKIES_STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f) or {}
+    except Exception as exc:
+        logger.error(f"Failed to load cookies state: {exc}")
+        _cookies_state_cleanup(now_ts)
+        return
+
+    try:
+        yc = data.get("youtube_cookie_cache", {}) or {}
+        _youtube_cookie_cache = {int(k): v for k, v in yc.items() if isinstance(v, dict)}
+    except Exception:
+        _youtube_cookie_cache = {}
+
+    try:
+        nyc = data.get("non_youtube_cookie_cache", {}) or {}
+        _non_youtube_cookie_cache = {str(k): v for k, v in nyc.items() if isinstance(v, dict)}
+    except Exception:
+        _non_youtube_cookie_cache = {}
+
+    try:
+        ccs = data.get("checked_cookie_sources", {}) or {}
+        # stored as list in json, restored to set in runtime
+        restored = {}
+        for k, v in ccs.items():
+            if not isinstance(v, dict):
+                continue
+            sources = v.get("checked_sources", [])
+            if not isinstance(sources, list):
+                sources = []
+            restored[int(k)] = {
+                "checked_sources": set(int(x) for x in sources),
+                "last_reset": float(v.get("last_reset", now_ts)),
+            }
+        _checked_cookie_sources = restored
+    except Exception:
+        _checked_cookie_sources = {}
+
+    try:
+        rt = data.get("youtube_cookie_retry_tracking", {}) or {}
+        restored = {}
+        for k, v in rt.items():
+            if not isinstance(v, dict):
+                continue
+            attempts = v.get("attempts", [])
+            if not isinstance(attempts, list):
+                attempts = []
+            restored[int(k)] = {
+                "attempts": [float(t) for t in attempts],
+                "last_reset": float(v.get("last_reset", now_ts)),
+            }
+        _youtube_cookie_retry_tracking = restored
+    except Exception:
+        _youtube_cookie_retry_tracking = {}
+
+    _cookies_state_cleanup(now_ts)
+
+
+def _save_cookies_state_to_disk() -> None:
+    now_ts = time.time()
+    _cookies_state_cleanup(now_ts)
+
+    payload = {
+        "saved_at": now_ts,
+        "youtube_cookie_cache": {str(k): v for k, v in _youtube_cookie_cache.items()},
+        "non_youtube_cookie_cache": {str(k): v for k, v in _non_youtube_cookie_cache.items()},
+        "checked_cookie_sources": {
+            str(k): {
+                "checked_sources": sorted(list(v.get("checked_sources", set()))),
+                "last_reset": float(v.get("last_reset", now_ts)),
+            }
+            for k, v in _checked_cookie_sources.items()
+            if isinstance(v, dict)
+        },
+        "youtube_cookie_retry_tracking": {str(k): v for k, v in _youtube_cookie_retry_tracking.items()},
+    }
+
+    try:
+        os.makedirs(os.path.dirname(_COOKIES_STATE_FILE), exist_ok=True)
+        tmp = _COOKIES_STATE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+        os.replace(tmp, _COOKIES_STATE_FILE)
+    except Exception as exc:
+        logger.error(f"Failed to save cookies state: {exc}")
+        try:
+            tmp = _COOKIES_STATE_FILE + ".tmp"
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
+
+
+# Load persisted state on module import
+try:
+    if _cookies_state_lock:
+        with _cookies_state_lock:
+            _load_cookies_state_from_disk()
+    else:
+        _load_cookies_state_from_disk()
+except Exception:
+    pass
 
 def generate_task_id(user_id: int, url: str, service: str = None) -> str:
     """
@@ -148,6 +327,14 @@ def finish_cookie_task(task_id: str, success: bool, cookie_path: str = None):
     del _active_cookie_tasks[task_id]
     
     logger.info(f"Finished cookie task {task_id} for user {user_id}, success: {success}")
+    try:
+        if _cookies_state_lock:
+            with _cookies_state_lock:
+                _save_cookies_state_to_disk()
+        else:
+            _save_cookies_state_to_disk()
+    except Exception:
+        pass
 
 def is_cookie_task_active(user_id: int, url: str, service: str = None) -> bool:
     """
@@ -219,6 +406,14 @@ def cleanup_expired_tasks():
     for user_id in expired_checked_users:
         del _checked_cookie_sources[user_id]
         logger.info(f"Cleared expired checked cookie sources for user {user_id}")
+    try:
+        if _cookies_state_lock:
+            with _cookies_state_lock:
+                _save_cookies_state_to_disk()
+        else:
+            _save_cookies_state_to_disk()
+    except Exception:
+        pass
 
 def get_checked_cookie_sources(user_id: int) -> set:
     """Получает множество уже проверенных источников куки для пользователя."""
@@ -233,6 +428,14 @@ def mark_cookie_source_checked(user_id: int, source_index: int):
     if user_id not in _checked_cookie_sources:
         _checked_cookie_sources[user_id] = {'checked_sources': set(), 'last_reset': time.time()}
     _checked_cookie_sources[user_id]['checked_sources'].add(source_index)
+    try:
+        if _cookies_state_lock:
+            with _cookies_state_lock:
+                _save_cookies_state_to_disk()
+        else:
+            _save_cookies_state_to_disk()
+    except Exception:
+        pass
 
 def reset_checked_cookie_sources(user_id: int):
     """Сбрасывает список проверенных источников куки для пользователя."""
@@ -240,12 +443,28 @@ def reset_checked_cookie_sources(user_id: int):
     if user_id in _checked_cookie_sources:
         _checked_cookie_sources[user_id] = {'checked_sources': set(), 'last_reset': time.time()}
         logger.info(f"Reset checked cookie sources for user {user_id}")
+        try:
+            if _cookies_state_lock:
+                with _cookies_state_lock:
+                    _save_cookies_state_to_disk()
+            else:
+                _save_cookies_state_to_disk()
+        except Exception:
+            pass
 
 def reset_all_checked_cookie_sources():
     """Сбрасывает список проверенных источников куки для всех пользователей."""
     global _checked_cookie_sources
     _checked_cookie_sources.clear()
     logger.info("Reset checked cookie sources for all users")
+    try:
+        if _cookies_state_lock:
+            with _cookies_state_lock:
+                _save_cookies_state_to_disk()
+        else:
+            _save_cookies_state_to_disk()
+    except Exception:
+        pass
 
 def check_youtube_cookie_retry_limit(user_id: int) -> bool:
     """
@@ -305,6 +524,14 @@ def record_youtube_cookie_retry_attempt(user_id: int):
     
     _youtube_cookie_retry_tracking[user_id]['attempts'].append(current_time)
     logger.info(f"Recorded YouTube cookie retry attempt for user {user_id}")
+    try:
+        if _cookies_state_lock:
+            with _cookies_state_lock:
+                _save_cookies_state_to_disk()
+        else:
+            _save_cookies_state_to_disk()
+    except Exception:
+        pass
 
 def get_youtube_cookie_retry_status(user_id: int) -> dict:
     """
@@ -371,6 +598,14 @@ def reset_youtube_cookie_retry_tracking(user_id: int = None):
             logger.info(f"Reset YouTube cookie retry tracking for user {user_id}")
         else:
             logger.info(f"No YouTube cookie retry tracking found for user {user_id}")
+    try:
+        if _cookies_state_lock:
+            with _cookies_state_lock:
+                _save_cookies_state_to_disk()
+        else:
+            _save_cookies_state_to_disk()
+    except Exception:
+        pass
 
 def get_unchecked_cookie_sources(user_id: int, cookie_urls: list) -> list:
     """Возвращает список непроверенных источников куки для пользователя."""

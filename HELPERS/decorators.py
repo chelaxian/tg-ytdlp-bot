@@ -1,6 +1,8 @@
 # Decorators for automatic app usage
 from functools import wraps
 import os
+import threading
+import concurrent.futures
 # ####################################################################################
 # Decorators for bot functionality
 # ####################################################################################
@@ -202,17 +204,71 @@ def background_handler(func=None, *, label=None):
     if func is None:
         return lambda f: background_handler(f, label=label)
 
+    # Global shared executor for background handlers.
+    # Keep it here to avoid importing in every call and to share capacity across handlers.
+    global _BG_EXECUTOR, _BG_INFLIGHT_SEM
+    try:
+        _BG_EXECUTOR
+    except NameError:
+        # Defaults chosen to keep bot responsive while allowing parallel heavy jobs.
+        # If needed, expose these via Config/LimitsConfig later.
+        _BG_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+            max_workers=int(os.getenv("TG_YTDLP_BG_WORKERS", "32"))
+        )
+        _BG_INFLIGHT_SEM = threading.Semaphore(
+            int(os.getenv("TG_YTDLP_BG_INFLIGHT", "256"))
+        )
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         message_obj = _extract_message_arg(args, kwargs)
         context = _format_handler_context(label or func.__name__, message_obj)
         logger.info(f"[INBOUND] {context}")
+        # Try to enqueue into background pool. If overloaded, fail fast to avoid
+        # unbounded queue growth and "bot looks alive but doesn't respond".
+        acquired = False
         try:
+            acquired = _BG_INFLIGHT_SEM.acquire(blocking=False)
+            if not acquired:
+                # Best-effort notify user when we can.
+                try:
+                    msg = safe_get_messages(getattr(getattr(message_obj, "chat", None), "id", None))
+                    safe_send_message(
+                        getattr(getattr(message_obj, "chat", None), "id", None),
+                        getattr(msg, "BOT_BUSY_TRY_LATER_MSG", "⏳ Сейчас высокая нагрузка, попробуйте ещё раз через минуту."),
+                        message=message_obj,
+                    )
+                except Exception:
+                    pass
+                logger.warning(f"[HANDLER-DROP] {context} (background queue full)")
+                return None
+
             logger.info(f"[HANDLER-START] {context}")
-            result = func(*args, **kwargs)
-            logger.info(f"[HANDLER-DONE] {context}")
-            return result
+
+            def _run():
+                try:
+                    result = func(*args, **kwargs)
+                    logger.info(f"[HANDLER-DONE] {context}")
+                    return result
+                except Exception:
+                    logger.exception(f"[HANDLER-CRASH] {context}")
+                    raise
+                finally:
+                    try:
+                        _BG_INFLIGHT_SEM.release()
+                    except Exception:
+                        pass
+
+            _BG_EXECUTOR.submit(_run)
+            # Important: return immediately so Pyrogram handler threads remain free.
+            return None
         except Exception:
+            # If we acquired but failed before submit, release to avoid capacity leak.
+            if acquired:
+                try:
+                    _BG_INFLIGHT_SEM.release()
+                except Exception:
+                    pass
             logger.exception(f"[HANDLER-CRASH] {context}")
             raise
 
