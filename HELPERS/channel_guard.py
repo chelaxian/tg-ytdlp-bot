@@ -569,7 +569,10 @@ class ChannelGuard:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for admin_id in admins:
             try:
-                await safe_send_message(
+                # safe_send_message() is sync and internally waits on the Pyrogram loop.
+                # Calling it directly (or awaiting it) from inside the same loop can deadlock.
+                await asyncio.to_thread(
+                    safe_send_message,
                     admin_id,
                     safe_get_messages(admin_id).BAN_TIME_REPORT_MSG.format(
                         run_ts=ts,
