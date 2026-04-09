@@ -5,6 +5,7 @@ import logging
 import threading
 import asyncio
 import concurrent.futures
+import inspect
 from types import SimpleNamespace
 from HELPERS.app_instance import get_app
 from CONFIG.messages import Messages, safe_get_messages
@@ -30,9 +31,24 @@ def get_app_safe():
 
 def run_pyrogram_client_coroutine(app, coro, timeout=120):
     """Выполнить async-метод Pyrogram Client из sync-кода (обработчики в executor)."""
+    # В некоторых окружениях используется sync-Client (методы возвращают Message/результат сразу),
+    # а не coroutine. В таком случае не трогаем asyncio вовсе.
+    try:
+        if not inspect.isawaitable(coro):
+            return coro
+    except Exception:
+        # Если не смогли определить awaitable — лучше не падать.
+        return coro
+
     loop = getattr(app, "loop", None)
     if loop is None:
-        raise RuntimeError("Pyrogram client event loop is not available")
+        # Если это awaitable, но loop почему-то недоступен — попробуем выполнить в отдельном loop,
+        # чтобы не блокировать основную логику.
+        try:
+            return asyncio.run(coro)
+        except RuntimeError:
+            # Уже внутри event loop (не наш случай для sync-хендлеров) — просто пробросим.
+            raise RuntimeError("Pyrogram client event loop is not available")
     fut = asyncio.run_coroutine_threadsafe(coro, loop)
     try:
         return fut.result(timeout=timeout)
