@@ -47,38 +47,42 @@ def is_playlist_from_info_dict(info_dict: dict) -> bool:
     Returns:
         True if playlist, False otherwise
     """
-    if not isinstance(info_dict, dict):
-        return False
-    
-    # Check for playlist type indicator
-    if info_dict.get('_type') == 'playlist':
-        return True
-    
-    # Check for entries list (playlists have entries)
-    if 'entries' in info_dict:
-        entries = info_dict.get('entries')
-        # If entries is a list with more than 1 item, it's a playlist
-        if isinstance(entries, list) and len(entries) > 1:
+    try:
+        if not isinstance(info_dict, dict):
+            return False
+        
+        # Check for playlist type indicator
+        if info_dict.get('_type') == 'playlist':
             return True
-        # If entries is a list with 1 item, it might be a playlist or single video
-        # Check if there's a playlist_count or playlist_id to confirm
-        if isinstance(entries, list) and len(entries) == 1:
-            if 'playlist_count' in info_dict or 'playlist_id' in info_dict:
+        
+        # Check for entries list (playlists have entries)
+        if 'entries' in info_dict:
+            entries = info_dict.get('entries')
+            # If entries is a list with more than 1 item, it's a playlist
+            if isinstance(entries, list) and len(entries) > 1:
                 return True
-    
-    # Check for _playlist_entries (alternative key used in some cases)
-    if '_playlist_entries' in info_dict:
-        playlist_entries = info_dict.get('_playlist_entries')
-        if isinstance(playlist_entries, list) and len(playlist_entries) > 1:
+            # If entries is a list with 1 item, it might be a playlist or single video
+            # Check if there's a playlist_count or playlist_id to confirm
+            if isinstance(entries, list) and len(entries) == 1:
+                if 'playlist_count' in info_dict or 'playlist_id' in info_dict:
+                    return True
+        
+        # Check for _playlist_entries (alternative key used in some cases)
+        if '_playlist_entries' in info_dict:
+            playlist_entries = info_dict.get('_playlist_entries')
+            if isinstance(playlist_entries, list) and len(playlist_entries) > 1:
+                return True
+        
+        # Check for playlist_count (indicates playlist)
+        playlist_count = info_dict.get('playlist_count')
+        if playlist_count is not None and playlist_count > 1:
             return True
-    
-    # Check for playlist_count (indicates playlist)
-    playlist_count = info_dict.get('playlist_count')
-    if playlist_count is not None and playlist_count > 1:
-        return True
-    
-    # Check for playlist_id (indicates playlist, even if only 1 entry)
-    if 'playlist_id' in info_dict and info_dict.get('playlist_id'):
-        return True
-    
-    return False 
+        
+        # Check for playlist_id (indicates playlist, even if only 1 entry)
+        if 'playlist_id' in info_dict and info_dict.get('playlist_id'):
+            return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"Error in is_playlist_from_info_dict: {e}", exc_info=True)
+        return False 
