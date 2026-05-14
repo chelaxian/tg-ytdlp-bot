@@ -2409,7 +2409,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 return None
             except Exception as e:
                 error_message = str(e)
-                logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}")
+                logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}", exc_info=True)
                 logger.debug(f"Error message for geo-check: {error_message[:500]}")
                 
                 # Если все прокси уже провалились - сразу прерываем все операции
