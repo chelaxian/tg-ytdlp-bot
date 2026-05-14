@@ -73,7 +73,8 @@ def is_playlist_from_info_dict(info_dict: dict) -> bool:
             return True
     
     # Check for playlist_count (indicates playlist)
-    if 'playlist_count' in info_dict and info_dict.get('playlist_count', 0) > 1:
+    playlist_count = info_dict.get('playlist_count')
+    if playlist_count is not None and playlist_count > 1:
         return True
     
     # Check for playlist_id (indicates playlist, even if only 1 entry)
