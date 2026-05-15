@@ -74,10 +74,10 @@ def _save_to_disk():
 
 
 def _cleanup_old_entries(user_id: int, current_time: float):
-    """Remove old entries outside the time windows"""
+    """Remove old entries outside the time windows and delete user if all windows are empty."""
     with _rate_limits_lock:
         if user_id not in _rate_limits:
-            _rate_limits[user_id] = {'minute': [], 'hour': [], 'day': []}
+            return
         
         user_data = _rate_limits[user_id]
         
@@ -89,6 +89,10 @@ def _cleanup_old_entries(user_id: int, current_time: float):
         
         # Clean day entries (older than 86400 seconds)
         user_data['day'] = [ts for ts in user_data['day'] if current_time - ts < 86400]
+        
+        # Remove user entry if all windows are empty to prevent unbounded dict growth
+        if not user_data['minute'] and not user_data['hour'] and not user_data['day']:
+            del _rate_limits[user_id]
 
 
 def _check_cooldown(user_id: int, current_time: float) -> Optional[Tuple[str, float]]:

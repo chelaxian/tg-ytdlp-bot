@@ -13,6 +13,7 @@ from DOWN_AND_UP.sender import send_videos
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, split_video_2
 from DOWN_AND_UP.down_and_up import _save_video_cache_with_logging
 from COMMANDS.split_sizer import get_user_split_size
+from HELPERS.download_status import register_download_cancel_event, unregister_download_cancel_event
 
 
 def download_live_stream_chunked(
@@ -40,6 +41,8 @@ def download_live_stream_chunked(
     Returns:
         bool: True if successful, False otherwise
     """
+    # Register cancel event for this user's download
+    _cancel_ev = register_download_cancel_event(user_id)
     try:
         messages = safe_get_messages(user_id)
         
@@ -218,6 +221,21 @@ def download_live_stream_chunked(
         cache_message_ids = []
         
         while True:
+            # Check if /clean was called → abort live stream download
+            if _cancel_ev.is_set():
+                logger.info(f"Live stream download cancelled by user ({user_id}) via /clean")
+                try:
+                    from HELPERS.safe_messeger import safe_edit_message_text
+                    final_text = (
+                        f"{current_total_process}\n"
+                        f"{messages.LIVE_STREAM_DOWNLOAD_STOPPED_MSG}\n"
+                        f"⏹ Cancelled by user (/clean)"
+                    )
+                    safe_edit_message_text(user_id, proc_msg_id, final_text)
+                except Exception as e:
+                    logger.error(f"Error updating progress on cancel: {e}")
+                break
+
             elapsed_time = time.time() - start_time
             if max_duration is not None and elapsed_time >= max_duration:
                 logger.info(f"Reached max duration limit ({max_duration}s), stopping live stream download")
@@ -905,4 +923,10 @@ def download_live_stream_chunked(
         import traceback
         logger.error(traceback.format_exc())
         return False
+    finally:
+        # Always unregister cancel event to prevent memory leaks
+        try:
+            unregister_download_cancel_event(user_id, _cancel_ev)
+        except Exception:
+            pass
 

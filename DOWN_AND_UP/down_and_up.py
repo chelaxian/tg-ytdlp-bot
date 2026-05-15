@@ -17,7 +17,7 @@ from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, se
 from CONFIG.logger_msg import LoggerMsg
 from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user, check_file_size_limit, check_subs_limits
-from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, playlist_errors_lock, playlist_errors
+from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, playlist_errors_lock, playlist_errors, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, cleanup_user_temp_files, cleanup_subtitle_files, create_directory, check_disk_space
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, embed_subs_to_video, create_default_thumbnail, split_video_2
@@ -660,6 +660,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     download_started_msg_id = None
     proc_msg = None
     proc_msg_id = None
+    # Per-user cancel event: /clean sets this to abort the download
+    _cancel_ev = register_download_cancel_event(user_id)
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
@@ -1077,6 +1079,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         def progress_func(d):
             messages = safe_get_messages(message.chat.id)
             nonlocal last_update, first_progress_update, is_hls
+            # Check if /clean was called for this user → abort download
+            if _cancel_ev.is_set():
+                raise Exception("Download cancelled by user (/clean)")
             # Check the timeout
             if check_download_timeout(user_id):
                 raise Exception(f"Download timeout exceeded ({safe_get_messages(user_id).DOWNLOAD_TIMEOUT // 3600} hours)")
@@ -4877,6 +4882,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         except Exception as cleanup_error:
             logger.error(f"Error cleaning up temp files after error for user {user_id}: {cleanup_error}")
     finally:
+        # Always unregister cancel event to prevent memory leaks
+        try:
+            unregister_download_cancel_event(user_id, _cancel_ev)
+        except Exception:
+            pass
         # Always stop hourglass animation to prevent resource leaks
         try:
             stop_anim.set()

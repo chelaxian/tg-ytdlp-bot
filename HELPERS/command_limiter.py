@@ -73,15 +73,19 @@ def _save_to_disk():
 
 
 def _cleanup_old_entries(user_id: int, current_time: float):
-    """Remove old command entries outside the time window"""
+    """Remove old command entries outside the time window and delete user if empty."""
     with _command_limits_lock:
         if user_id not in _command_limits:
-            _command_limits[user_id] = {'commands': [], 'violations': 0}
+            return
         
         user_data = _command_limits[user_id]
         
         # Clean commands older than 60 seconds
         user_data['commands'] = [ts for ts in user_data['commands'] if current_time - ts < 60]
+        
+        # Remove user entry if commands list is empty and no violations worth keeping
+        if not user_data['commands'] and user_data.get('violations', 0) == 0:
+            del _command_limits[user_id]
 
 
 def _check_cooldown(user_id: int, current_time: float) -> Optional[Tuple[float, int]]:
