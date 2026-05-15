@@ -1233,7 +1233,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # long Unicode titles and yt-dlp suffixes like dash/fdash, .part, etc.)
             # We intentionally avoid using the video title in the filename here;
             # the human‑readable title is still preserved separately in captions.
-            original_outtmpl = os.path.join(user_dir_name, "%(id)s.%(ext)s")
+            # NOTE: We use "vid_" prefix instead of raw "%(id)s" because some platforms
+            # (VK, etc.) produce IDs starting with "-" which causes file rename failures
+            # during DASH fragment assembly (e.g. "-222033079_456241862.fdash_sep-6.mp4").
+            original_outtmpl = os.path.join(user_dir_name, "vid_%(id)s.%(ext)s")
             
             # First try with original filename
             # Для отрицательных индексов используем весь диапазон сразу
@@ -2224,6 +2227,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Format not available error: {error_message}")
                     return "FORMAT_NOT_AVAILABLE"
                 
+                # Check for rename errors (common with DASH downloads when .part file is missing)
+                # This often happens with VK videos where IDs start with "-"
+                if "Unable to rename file" in error_message:
+                    logger.warning(f"File rename error detected: {error_message}")
+                    # Check if the destination file already exists (rename succeeded despite error)
+                    import re as _re
+                    dest_match = _re.search(r"-> '([^']+)'", error_message)
+                    if dest_match:
+                        dest_path = dest_match.group(1)
+                        if os.path.exists(dest_path):
+                            logger.info(f"Destination file exists despite rename error: {dest_path}")
+                            # Re-run extract_info to get proper info_dict with the file path
+                            return info_dict
+                    # Check if source .part file still exists
+                    src_match = _re.search(r"'([^']+\.part)'", error_message)
+                    if src_match:
+                        src_path = src_match.group(1)
+                        if os.path.exists(src_path):
+                            # Try to rename it ourselves
+                            dest_path = src_path[:-5]  # Remove .part extension
+                            try:
+                                os.rename(src_path, dest_path)
+                                logger.info(f"Manually renamed {src_path} -> {dest_path}")
+                                return info_dict
+                            except Exception as rename_err:
+                                logger.error(f"Manual rename also failed: {rename_err}")
+                    # Return None to trigger retry with next attempt
+                    logger.error(f"File rename error, retrying with next attempt: {error_message}")
+                    return None
+                
                 # Check for --live-from-start error and retry with --no-live-from-start
                 if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_message and not did_live_from_start_retry:
                     logger.info(f"Live-from-start error detected for user {user_id}, retrying with --no-live-from-start")
@@ -2441,6 +2474,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "bytes read," in error_message and "more expected" in error_message:
                         error_code = "INCOMPLETE_DOWNLOAD"
                         error_description = "Download was interrupted — network connection unstable. Please try again."
+                    elif "Unable to rename file" in error_message:
+                        error_code = "FILE_RENAME_ERROR"
+                        error_description = "Failed to finalize download file. This may be a temporary issue — please try again."
                     elif "ffmpeg exited with code" in error_message or "ERROR: ffmpeg" in error_message:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message
@@ -2980,8 +3016,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 video_id = info_dict.get('id') or ''
                 if video_id and is_hls:
                     logger.info(f"[HLS] Searching for files matching video ID: {video_id}")
-                    # Check for files starting with video ID (common pattern for HLS downloads)
-                    id_matching_files = [fname for fname in allfiles if fname.startswith(video_id) and not fname.endswith(('.txt', '.json', '.jpg', '.jpeg', '.png'))]
+                    # Check for files starting with "vid_" prefix + video ID (outtmpl uses vid_%(id)s)
+                    id_prefix = f"vid_{video_id}"
+                    id_matching_files = [fname for fname in allfiles if fname.startswith(id_prefix) and not fname.endswith(('.txt', '.json', '.jpg', '.jpeg', '.png'))]
                     if id_matching_files:
                         logger.info(f"[HLS] Found files matching video ID: {id_matching_files}")
                         # Prefer .mpegts or .ts files for HLS
