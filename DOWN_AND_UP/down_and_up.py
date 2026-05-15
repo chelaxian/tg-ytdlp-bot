@@ -1253,8 +1253,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'postprocessors': postprocessors,
                 # Only use ignoreerrors if user explicitly enabled it via /args
                 'ignoreerrors': ignore_errors,
-                # Allow Unicode characters in filenames
-                'restrictfilenames': False,
+                # Restrict filenames to ASCII-safe characters to prevent postprocessing errors
+                # with special Unicode chars (Turkish, Arabic, etc.) from archive.org CDN.
+                # Captions still use the original title — this only affects file paths.
+                'restrictfilenames': True,
                 # YouTube extraction increasingly requires an explicit JS runtime.
                 # We ship Node.js in Docker and allow it here to avoid missing formats.
                 'js_runtimes': {'node': {}},
@@ -2167,6 +2169,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Read timeout error - download failed: {error_message}")
                     return None
                 
+                # Check for HTTP 429 Too Many Requests - sleep and retry
+                if "HTTP Error 429" in error_message or "Too Many Requests" in error_message:
+                    logger.warning(f"HTTP 429 rate limit detected: {error_message}")
+                    if not hasattr(try_download, '_429_count'):
+                        try_download._429_count = 0
+                    try_download._429_count += 1
+                    if try_download._429_count <= 2:
+                        sleep_time = 10 * try_download._429_count  # 10s, 20s
+                        logger.info(f"Rate limited, sleeping {sleep_time}s before retry (attempt {try_download._429_count}/2)")
+                        time.sleep(sleep_time)
+                        retry_result = try_download(url, attempt_opts)
+                        if retry_result is not None:
+                            logger.info(f"Rate limit retry successful for user {user_id}")
+                            try_download._429_count = 0
+                            return retry_result
+                    logger.error(f"HTTP 429 rate limit persisted after retries: {error_message}")
+                    try_download._429_count = 0
+                    return None
+                
                 # Check for format not available error
                 if "Requested format is not available" in error_message:
                     logger.error(f"Format not available error: {error_message}")
@@ -2430,16 +2451,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}", exc_info=True)
                 logger.debug(f"Error message for geo-check: {error_message[:500]}")
                 
-                # Если все прокси уже провалились - сразу прерываем все операции
+                # Если все прокси уже провалились - пробуем без прокси как последний fallback
                 if "Failed to download video with all available proxies" in error_message:
-                    logger.warning(f"All proxies failed, error already sent to user - aborting all operations immediately")
+                    logger.warning(f"All proxies failed, attempting direct download without proxy as fallback")
+                    try:
+                        direct_opts = attempt_opts.copy()
+                        direct_opts.pop('proxy', None)
+                        # Also remove cookiefile to avoid cookie-related issues
+                        direct_result = try_download(url, direct_opts)
+                        if direct_result is not None and isinstance(direct_result, dict):
+                            logger.info(f"Direct download (no proxy) succeeded for user {user_id}")
+                            return direct_result
+                    except Exception as direct_e:
+                        logger.warning(f"Direct download fallback also failed: {direct_e}")
+                    
                     if not error_message_sent:
                         send_error_to_user(
                             message,
                             safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
                         )
                         error_message_sent = True
-                    # Прерываем все дальнейшие операции
                     return None
                 
                 # Auto-fallback to gallery-dl for obvious non-video cases
@@ -2761,12 +2792,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             "**Possible causes:**\n"
                             "• The video doesn't have the requested format (e.g., webm, mp4)\n"
                             "• The video quality is not available in the requested format\n"
-                            "• The video source has limited format options\n\n"
+                            "• The video source has limited format options\n"
+                            "• Live streams may not have all format variants\n\n"
                             "**Solutions:**\n"
                             "• Try downloading with a different quality setting\n"
                             "• Use the 'Always Ask' menu to see available formats\n"
                             "• Try changing your format preferences in /args settings\n"
-                            "• The system will automatically try alternative formats"
+                            "• The system already tried alternative formats automatically\n"
+                            "• For live streams, try again after the stream ends"
                         )
                         send_error_to_user(message, format_error_message)
                         error_message_sent = True

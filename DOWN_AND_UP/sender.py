@@ -5,7 +5,7 @@ from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
 from HELPERS.logger import get_log_channel
 from HELPERS.download_status import progress_bar
-from HELPERS.limitter import TimeFormatter
+from HELPERS.limitter import TimeFormatter, humanbytes
 from HELPERS.caption import truncate_caption
 from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
 import os
@@ -100,6 +100,20 @@ def send_videos(
     video_url = m.group(0) if m else ""
     temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
     was_truncated = False
+
+    # Validate file exists and is readable before attempting to send
+    if not os.path.exists(video_abs_path):
+        logger.error(f"File not found before sending: {video_abs_path}")
+        from HELPERS.logger import send_error_to_user
+        send_error_to_user(message, messages.ERROR_SENDING_VIDEO_MSG.format(error=f"File not found: {os.path.basename(video_abs_path)}"))
+        return None
+    file_size = os.path.getsize(video_abs_path)
+    if file_size == 0:
+        logger.error(f"File is empty (0 bytes) before sending: {video_abs_path}")
+        from HELPERS.logger import send_error_to_user
+        send_error_to_user(message, messages.ERROR_SENDING_VIDEO_MSG.format(error=f"File is empty (0 bytes): {os.path.basename(video_abs_path)}"))
+        return None
+    logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
     # Check if user has send_as_file enabled
     user_args = get_user_args(user_id)
@@ -789,7 +803,26 @@ def send_videos(
                             logger.warning(f"Failed to decode error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
-                        
+
+                        # Handle Telegram RPC errors (500 RPC_CALL_FAIL) with exponential backoff retry
+                        if "RPC_CALL_FAIL" in error_str or "500" in error_str or "internal problems" in error_str.lower():
+                            attempts_left -= 1
+                            if attempts_left and attempts_left <= 0:
+                                logger.warning(f"Telegram RPC error persisted after retries, trying as document: {e}")
+                                video_msg = _fallback_send_document(cap)
+                                break
+                            backoff = 3 * (4 - attempts_left)  # 3s, 6s, 9s
+                            logger.warning(f"Telegram RPC error (500), retrying in {backoff}s... ({attempts_left} left): {e}")
+                            time.sleep(backoff)
+                            continue
+
+                        # Handle FloodWait with automatic sleep
+                        if isinstance(e, FloodWait):
+                            wait_time = min(e.value + 1, 30)  # Cap at 30s to avoid hung uploads
+                            logger.warning(f"FloodWait received, waiting {wait_time}s...")
+                            time.sleep(wait_time)
+                            continue
+
                         if "Request timed out" in error_str or isinstance(e, TimeoutError):
                             attempts_left -= 1
                             if attempts_left and attempts_left <= 0:
@@ -839,7 +872,26 @@ def send_videos(
                                     logger.warning(f"Failed to decode error with minimal caption, trying as document: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
-                                
+
+                                # Handle Telegram RPC errors (500) with retry
+                                if "RPC_CALL_FAIL" in error_str2 or "500" in error_str2 or "internal problems" in error_str2.lower():
+                                    attempts_left -= 1
+                                    if attempts_left and attempts_left <= 0:
+                                        logger.warning(f"Telegram RPC error persisted after retries (minimal cap), trying as document")
+                                        video_msg = _fallback_send_document(minimal_cap)
+                                        break
+                                    backoff = 3 * (3 - attempts_left)
+                                    logger.warning(f"Telegram RPC error (minimal cap), retrying in {backoff}s... ({attempts_left} left)")
+                                    time.sleep(backoff)
+                                    continue
+
+                                # Handle FloodWait
+                                if isinstance(e2, FloodWait):
+                                    wait_time = min(e2.value + 1, 30)
+                                    logger.warning(f"FloodWait received (minimal cap), waiting {wait_time}s...")
+                                    time.sleep(wait_time)
+                                    continue
+
                                 if "Request timed out" in error_str2 or isinstance(e2, TimeoutError):
                                     attempts_left -= 1
                                     if attempts_left and attempts_left <= 0:
