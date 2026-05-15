@@ -25,7 +25,7 @@ from URL_PARSERS.filter_check import is_no_filter_domain
 from URL_PARSERS.filter_utils import create_smart_match_filter, create_legacy_match_filter
 from URL_PARSERS.youtube import is_youtube_url, download_thumbnail
 from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail
-from HELPERS.pot_helper import add_pot_to_ytdl_opts
+from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
 import subprocess
@@ -1203,9 +1203,27 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             
             # Add PO token provider for YouTube domains
             ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
-            
+
+            # Force web_creator client for age restriction retry (thread-local flag)
+            import threading
+            if getattr(threading.current_thread(), 'force_web_creator_for_audio', False):
+                yt_args = ytdl_opts.get('extractor_args', {}).get('youtube', {})
+                current_clients = yt_args.get('player_client', [])
+                if 'web_creator' not in (current_clients or []):
+                    if current_clients:
+                        current_clients = list(current_clients) + ['web_creator']
+                    else:
+                        current_clients = ['web_creator']
+                    if 'extractor_args' not in ytdl_opts:
+                        ytdl_opts['extractor_args'] = {}
+                    if 'youtube' not in ytdl_opts['extractor_args']:
+                        ytdl_opts['extractor_args']['youtube'] = {}
+                    ytdl_opts['extractor_args']['youtube']['player_client'] = current_clients
+                    logger.info(f"🔓 Forced web_creator player_client for audio age restriction retry")
+                threading.current_thread().force_web_creator_for_audio = False
+
             # match_filter will be added later for domain filtering only
-            
+
             try:
                 with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
                     info_dict = ydl.extract_info(url, download=False)
@@ -1631,6 +1649,23 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 did_proxy_retry = True
                     elif is_youtube_geo_error(error_text):
                         logger.info(f"Geo-error detected in audio but proxy retry already attempted, skipping")
+                    
+                    # Age restriction retry с web_creator client
+                    if is_age_restriction_error(error_text):
+                        logger.info(f"YouTube age restriction detected in audio download for user {user_id}, attempting retry with web_creator client")
+                        try:
+                            import threading
+                            threading.current_thread().force_web_creator_for_audio = True
+                            retry_result = try_download_audio(url, current_index)
+                        except Exception as age_retry_error:
+                            logger.warning(f"web_creator audio retry failed for user {user_id}: {age_retry_error}")
+                            retry_result = None
+                        
+                        if retry_result is not None:
+                            logger.info(f"Audio download retry with web_creator successful for user {user_id}")
+                            return retry_result
+                        else:
+                            logger.warning(f"web_creator audio retry failed for user {user_id}, continuing with other retry methods")
                 else:
                     # Для не-YouTube сайтов пробуем перебор куки
                     logger.info(f"Non-YouTube audio download error detected for user {user_id}, attempting cookie fallback")

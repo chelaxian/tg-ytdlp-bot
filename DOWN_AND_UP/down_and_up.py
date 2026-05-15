@@ -30,7 +30,7 @@ from URL_PARSERS.nocookie import is_no_cookie_domain
 from URL_PARSERS.filter_check import is_no_filter_domain
 from URL_PARSERS.filter_utils import create_smart_match_filter, create_legacy_match_filter
 from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail
-from HELPERS.pot_helper import add_pot_to_ytdl_opts
+from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error, add_web_creator_to_opts
 from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, get_user_subs_language, clear_subs_check_cache, is_subs_always_ask
@@ -2265,6 +2265,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             return retry_result
                         else:
                             logger.warning(f"All YouTube cookie retry attempts failed for user {user_id}")
+                    
+                    # 1.5) Age restriction retry с web_creator client
+                    # web_creator использует studio.youtube.com endpoint, который позволяет
+                    # скачивать age-restricted видео при наличии cookies + po_token
+                    if is_age_restriction_error(error_message):
+                        logger.info(f"YouTube age restriction detected for user {user_id}, attempting retry with web_creator client")
+                        try:
+                            web_creator_opts = add_web_creator_to_opts(attempt_opts)
+                            retry_result = try_download(url, web_creator_opts)
+                        except Exception as age_retry_error:
+                            logger.warning(f"web_creator retry failed for user {user_id}: {age_retry_error}")
+                            retry_result = None
+                        
+                        if retry_result is not None:
+                            logger.info(f"Download retry with web_creator successful for user {user_id}")
+                            return retry_result
+                        else:
+                            logger.warning(f"web_creator retry failed for user {user_id}, continuing with other retry methods")
                     
                     # 2) Гео‑ошибки (region blocked и т.п.) — пробуем через прокси из файла
                     # Не прерываем скачивание сразу, а пробуем все подходящие прокси
