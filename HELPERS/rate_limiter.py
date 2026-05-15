@@ -19,6 +19,11 @@ _rate_limits_lock = threading.Lock()
 _cooldowns: dict = {}
 _cooldowns_lock = threading.Lock()
 
+# Debounced save: avoid writing to disk on every single request
+_last_save_time = 0
+_save_interval = 30  # Save at most once every 30 seconds
+_save_lock = threading.Lock()
+
 # File for persistence
 _RATE_LIMITS_FILE = "CONFIG/.rate_limits.json"
 _COOLDOWNS_FILE = "CONFIG/.cooldowns.json"
@@ -54,7 +59,13 @@ def _load_from_disk():
 
 
 def _save_to_disk():
-    """Save rate limits and cooldowns to disk"""
+    """Save rate limits and cooldowns to disk (debounced)."""
+    global _last_save_time
+    with _save_lock:
+        now = time.time()
+        if now - _last_save_time < _save_interval:
+            return  # Skip: saved recently
+        _last_save_time = now
     try:
         os.makedirs(os.path.dirname(_RATE_LIMITS_FILE), exist_ok=True)
         

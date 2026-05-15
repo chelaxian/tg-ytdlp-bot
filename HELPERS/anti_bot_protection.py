@@ -33,6 +33,11 @@ _lock = threading.Lock()
 # Bot start time (set on first load)
 _bot_start_time: Optional[float] = None
 
+# Debounced save: avoid writing to disk on every single request
+_last_save_time_ab = 0
+_save_interval_ab = 60  # Save at most once every 60 seconds (less critical data)
+_save_lock_ab = threading.Lock()
+
 # File for persistence
 _ANTI_BOT_DATA_FILE = "CONFIG/.anti_bot_data.json"
 
@@ -118,8 +123,13 @@ def _load_from_disk():
 
 
 def _save_to_disk():
-    """Save anti-bot data to disk"""
-    global _bot_start_time
+    """Save anti-bot data to disk (debounced)."""
+    global _bot_start_time, _last_save_time_ab
+    with _save_lock_ab:
+        now = time.time()
+        if now - _last_save_time_ab < _save_interval_ab:
+            return  # Skip: saved recently
+        _last_save_time_ab = now
     try:
         os.makedirs(os.path.dirname(_ANTI_BOT_DATA_FILE), exist_ok=True)
         

@@ -18,8 +18,10 @@ from pyrogram import enums
 logger = logging.getLogger(__name__)
 
 # Global message sending throttle to prevent msg_seqno issues
+# Per-chat throttling: each chat has its own timing, no cross-chat blocking
 _last_message_sent = {}
-_message_send_lock = threading.Lock()
+_message_send_locks = {}  # {chat_id: threading.Lock()}
+_message_send_locks_lock = threading.Lock()
 
 # Periodic cleanup for _last_message_sent to prevent unbounded growth
 _last_msg_ts_cleanup = 0
@@ -37,7 +39,7 @@ def get_app_safe():
     return app
 
 
-def run_pyrogram_client_coroutine(app, coro, timeout=120):
+def run_pyrogram_client_coroutine(app, coro, timeout=30):
     """Выполнить async-метод Pyrogram Client из sync-кода (обработчики в executor)."""
     # В некоторых окружениях используется sync-Client (методы возвращают Message/результат сразу),
     # а не coroutine. В таком случае не трогаем asyncio вовсе.
@@ -241,8 +243,14 @@ def safe_send_message(chat_id, text, **kwargs):
         if isinstance(k, str) and k.startswith('_'):
             kwargs.pop(k, None)
 
-    # Throttle message sending to prevent msg_seqno issues
-    with _message_send_lock:
+    # Throttle message sending per-chat to prevent msg_seqno issues
+    # Per-chat lock: different users don't block each other
+    with _message_send_locks_lock:
+        if chat_id not in _message_send_locks:
+            _message_send_locks[chat_id] = threading.Lock()
+        chat_lock = _message_send_locks[chat_id]
+
+    with chat_lock:
         last_sent = _last_message_sent.get(chat_id, 0)
         now = time.time()
         # Increase minimum spacing to reduce RANDOM_ID_DUPLICATE in high-throughput chats
@@ -256,9 +264,11 @@ def safe_send_message(chat_id, text, **kwargs):
         if now - _last_msg_ts_cleanup > _MSG_TS_CLEANUP_INTERVAL:
             _last_msg_ts_cleanup = now
             cutoff = now - 600
+            # Clean stale timestamps
             stale = [cid for cid, ts in _last_message_sent.items() if ts < cutoff]
             for cid in stale:
                 del _last_message_sent[cid]
+                _message_send_locks.pop(cid, None)
 
     for attempt in range(max_retries):
         try:
