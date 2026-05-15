@@ -783,7 +783,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         from DOWN_AND_UP.always_ask_menu import get_user_download_dir, generate_download_dir_name
         user_dir_name = get_user_download_dir(user_id)
         
-        # If no download directory from ask_quality_menu, create one
+        # If no download directory from ask_quality_menu, create one based on URL
         if not user_dir_name or not os.path.exists(user_dir_name):
             try:
                 # Generate download directory name based on URL
@@ -799,40 +799,64 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.warning(f"Failed to create download directory, using default: {e}")
                 # Fallback to original behavior
                 user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
+        
+        # For parallel downloads: each URL gets its own unique subdirectory
+        # to prevent file conflicts between concurrent downloads.
+        # This ensures thread A downloading video X won't overwrite or delete
+        # thread B's files for video Y in the same directory.
+        from HELPERS.filesystem_hlp import is_parallel_download_allowed
+        if is_parallel_download_allowed(message):
+            try:
+                # Generate a URL-specific subdirectory name
+                url_dir_name = generate_download_dir_name(url)
+                # Add thread-safe unique suffix using URL hash to avoid collisions
+                import hashlib
+                url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()[:8]
+                unique_thread_dir = os.path.join(user_dir, "downloads", f"{url_dir_name}_{url_hash}")
+                os.makedirs(unique_thread_dir, exist_ok=True)
+                logger.info(f"Parallel download: created unique thread directory: {unique_thread_dir}")
+                user_dir_name = unique_thread_dir
+            except Exception as e:
+                logger.warning(f"Failed to create unique thread directory, using shared directory: {e}")
 
 
         # Pre-cleanup: remove all media files from unique download directory before starting
+        # CRITICAL: Skip pre-cleanup if directory is already in use by another parallel download
+        # (protection file present) to prevent deleting files belonging to other threads.
         try:
-            logger.info(f"Pre-cleanup: removing old media files from unique directory {user_dir_name}")
-            if os.path.exists(user_dir_name):
-                for root, dirs, files in os.walk(user_dir_name):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        try:
-                            # Remove all media files (keep .txt and .json files)
-                            if file.lower().endswith((
-                                '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff',
-                                '.mp4', '.m4v', '.avi', '.mov', '.mkv', '.webm', '.flv',
-                                '.mp3', '.wav', '.ogg', '.m4a',
-                                '.pdf', '.doc', '.docx', '.zip', '.rar', '.7z'
-                            )):
-                                os.remove(file_path)
-                                logger.info(f"Pre-cleanup: removed file {file_path}")
-                        except Exception as e:
-                            logger.warning(f"Pre-cleanup: failed to remove file {file_path}: {e}")
-                    
-                    # Remove empty directories (except unique download root)
-                    for dir_name in dirs:
-                        dir_path = os.path.join(root, dir_name)
-                        try:
-                            if os.path.exists(dir_path) and not os.listdir(dir_path) and dir_path != user_dir_name:
-                                os.rmdir(dir_path)
-                                logger.info(f"Pre-cleanup: removed empty directory {dir_path}")
-                        except Exception as e:
-                            logger.warning(f"Pre-cleanup: failed to remove directory {dir_path}: {e}")
-            
+            from HELPERS.filesystem_hlp import is_parallel_download_allowed, is_directory_protected
+            if is_directory_protected(user_dir_name):
+                logger.warning(f"Skipping pre-cleanup: directory {user_dir_name} is protected (parallel download in progress)")
+            else:
+                logger.info(f"Pre-cleanup: removing old media files from unique directory {user_dir_name}")
+                if os.path.exists(user_dir_name):
+                    for root, dirs, files in os.walk(user_dir_name):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            try:
+                                # Remove all media files (keep .txt and .json files)
+                                if file.lower().endswith((
+                                    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff',
+                                    '.mp4', '.m4v', '.avi', '.mov', '.mkv', '.webm', '.flv',
+                                    '.mp3', '.wav', '.ogg', '.m4a',
+                                    '.pdf', '.doc', '.docx', '.zip', '.rar', '.7z'
+                                )):
+                                    os.remove(file_path)
+                                    logger.info(f"Pre-cleanup: removed file {file_path}")
+                            except Exception as e:
+                                logger.warning(f"Pre-cleanup: failed to remove file {file_path}: {e}")
+                        
+                        # Remove empty directories (except unique download root)
+                        for dir_name in dirs:
+                            dir_path = os.path.join(root, dir_name)
+                            try:
+                                if os.path.exists(dir_path) and not os.listdir(dir_path) and dir_path != user_dir_name:
+                                    os.rmdir(dir_path)
+                                    logger.info(f"Pre-cleanup: removed empty directory {dir_path}")
+                            except Exception as e:
+                                logger.warning(f"Pre-cleanup: failed to remove directory {dir_path}: {e}")
+                
             # Create protection file for parallel downloads
-            from HELPERS.filesystem_hlp import is_parallel_download_allowed, create_protection_file
             if is_parallel_download_allowed(message):
                 create_protection_file(user_dir_name)
             
@@ -1267,16 +1291,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'referer': url,
                 'geo_bypass': True,
                 # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
-                'live_from_start': True if not did_live_from_start_retry else False
-                #'socket_timeout': 60,  # Increase socket timeout
-                #'retries': 15,  # Increase retries
-                #'fragment_retries': 15,  # Increase fragment retries
-                #'http_chunk_size': 5242880,  # 5MB chunks for better stability
-                #'buffersize': 2048,  # Increase buffer size
-                #'sleep_interval': 2,  # Sleep between requests
-                #'max_sleep_interval': 10,  # Max sleep between requests
-                #'read_timeout': 60,  # Read timeout
-                #'connect_timeout': 30  # Connect timeout
+                'live_from_start': True if not did_live_from_start_retry else False,
+                # Network resilience: retry on transient failures (incomplete downloads, timeouts)
+                'retries': 10,
+                'fragment_retries': 10,
+                'file_access_retries': 3,
             }
             
             # Add download_sections if trim is enabled
@@ -4728,14 +4747,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.error(f"Error sending playlist auto-range hint: {hint_error}")
             
             # Clean up download subdirectory after successful upload
+            # CRITICAL: Only remove directory if no other parallel downloads are using it
             try:
                 from DOWN_AND_UP.always_ask_menu import get_user_download_dir
+                from HELPERS.filesystem_hlp import is_directory_protected, remove_protection_file
                 download_dir = get_user_download_dir(user_id)
                 if download_dir and os.path.exists(download_dir):
-                    logger.info(f"Cleaning up download subdirectory after successful upload: {download_dir}")
-                    import shutil
-                    shutil.rmtree(download_dir)
-                    logger.info(f"Successfully removed download subdirectory: {download_dir}")
+                    # Remove protection file first (our download is done)
+                    remove_protection_file(download_dir)
+                    
+                    # Check if other parallel downloads are still active
+                    if is_directory_protected(download_dir):
+                        logger.info(f"Skipping directory cleanup: other parallel downloads still active in {download_dir}")
+                    else:
+                        # Check if any media files remain (other threads may still need them)
+                        remaining_media = False
+                        try:
+                            for f in os.listdir(download_dir):
+                                if f.lower().endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts', '.mp3', '.m4a')):
+                                    remaining_media = True
+                                    break
+                        except Exception:
+                            pass
+                        
+                        if remaining_media:
+                            logger.info(f"Skipping directory cleanup: media files still present in {download_dir} (other downloads may be in progress)")
+                        else:
+                            logger.info(f"Cleaning up download subdirectory after successful upload: {download_dir}")
+                            import shutil
+                            shutil.rmtree(download_dir)
+                            logger.info(f"Successfully removed download subdirectory: {download_dir}")
             except Exception as cleanup_error:
                 logger.error(f"Error cleaning up download subdirectory for user {user_id}: {cleanup_error}")
 
