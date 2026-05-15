@@ -2169,6 +2169,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Read timeout error - download failed: {error_message}")
                     return None
                 
+                # Check for incomplete download errors ("Got error: N bytes read, M more expected")
+                # This is a network interruption during download — retry with same format
+                if "bytes read," in error_message and "more expected" in error_message:
+                    logger.warning(f"Incomplete download detected (network interruption): {error_message}")
+                    # Check if a partial file exists — yt-dlp may resume from it
+                    if info_dict:
+                        logger.info("Partial download exists, attempting to continue")
+                        return info_dict
+                    # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
+                    logger.error(f"Incomplete download failed: {error_message}")
+                    return None
+                
                 # Check for HTTP 429 Too Many Requests - sleep and retry
                 if "HTTP Error 429" in error_message or "Too Many Requests" in error_message:
                     logger.warning(f"HTTP 429 rate limit detected: {error_message}")
@@ -2407,6 +2419,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Network error" in error_message:
                         error_code = "NETWORK_ERROR"
                         error_description = "Network connection failed"
+                    elif "bytes read," in error_message and "more expected" in error_message:
+                        error_code = "INCOMPLETE_DOWNLOAD"
+                        error_description = "Download was interrupted — network connection unstable. Please try again."
                     elif "ffmpeg exited with code" in error_message or "ERROR: ffmpeg" in error_message:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message
