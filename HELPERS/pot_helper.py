@@ -132,7 +132,25 @@ def add_pot_to_ytdl_opts(ytdl_opts: dict, url: str) -> dict:
     if disable_innertube:
         pot_args['disable_innertube'] = ["1"]
     ytdl_opts['extractor_args']['youtubepot'] = pot_args
-    
+
+    # Добавляем web_creator client для обхода возрастных ограничений YouTube
+    # web_creator использует studio.youtube.com endpoint, который позволяет скачивать
+    # age-restricted видео при наличии cookies (даже от бесплатного аккаунта)
+    # Требует: cookies + po_token
+    has_cookies = bool(ytdl_opts.get('cookiefile'))
+    if has_cookies:
+        yt_args = ytdl_opts['extractor_args'].get('youtube', {})
+        current_clients = yt_args.get('player_client', [])
+        if current_clients:
+            # Добавляем web_creator к существующим клиентам, если его ещё нет
+            if 'web_creator' not in current_clients:
+                current_clients = list(current_clients) + ['web_creator']
+                yt_args['player_client'] = current_clients
+        else:
+            yt_args['player_client'] = ['web_creator']
+        ytdl_opts['extractor_args']['youtube'] = yt_args
+        logger.info(f"🔓 Added web_creator player_client for age restriction bypass (cookies present)")
+
     # Добавляем verbose режим для детального логирования PO токенов
     ytdl_opts['verbose'] = True
     
@@ -285,3 +303,60 @@ def build_cli_extractor_args(url: str) -> list[str]:
     except Exception as e:
         logger.warning(f"Failed to build CLI extractor-args for POT: {e}")
         return []
+
+
+def is_age_restriction_error(error_message: str) -> bool:
+    """
+    Определяет, связана ли ошибка с возрастными ограничениями YouTube.
+
+    Args:
+        error_message (str): Сообщение об ошибке от yt-dlp
+
+    Returns:
+        bool: True если ошибка связана с возрастным ограничением
+    """
+    error_lower = error_message.lower()
+    age_keywords = [
+        'sign in to confirm your age',
+        'inappropriate for some users',
+        'age restricted',
+        'age-restricted',
+        'age gate',
+    ]
+    return any(keyword in error_lower for keyword in age_keywords)
+
+
+def add_web_creator_to_opts(ytdl_opts: dict) -> dict:
+    """
+    Принудительно добавляет web_creator client в extractor_args для повторной попытки
+    скачивания age-restricted видео.
+
+    Используется как fallback, когда стандартные клиенты не смогли обойти age restriction.
+
+    Args:
+        ytdl_opts (dict): Словарь опций yt-dlp
+
+    Returns:
+        dict: Обновленный словарь опций yt-dlp
+    """
+    import copy
+    opts = copy.deepcopy(ytdl_opts)
+
+    if 'extractor_args' not in opts:
+        opts['extractor_args'] = {}
+
+    yt_args = opts['extractor_args'].get('youtube', {})
+    current_clients = yt_args.get('player_client', [])
+
+    # Добавляем web_creator (использует studio.youtube.com)
+    if isinstance(current_clients, list):
+        if 'web_creator' not in current_clients:
+            current_clients = list(current_clients) + ['web_creator']
+    else:
+        current_clients = ['web_creator']
+
+    yt_args['player_client'] = current_clients
+    opts['extractor_args']['youtube'] = yt_args
+
+    logger.info(f"🔓 RETRY with web_creator player_client: {current_clients}")
+    return opts
