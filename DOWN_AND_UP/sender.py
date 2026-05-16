@@ -1,5 +1,6 @@
 # @reply_with_keyboard
 from pyrogram import enums
+from pyrogram.errors import FloodWait
 from pyrogram.types import ReplyParameters, InputPaidMediaVideo
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
