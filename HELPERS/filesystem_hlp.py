@@ -151,6 +151,16 @@ def cleanup_media_in_download_folder(folder_path):
     """Clean up media files in download folder, keeping txt, json, jpg, jpeg, png files"""
     try:
         for root, dirs, files in os.walk(folder_path):
+            # Skip subdirectories that are protected (parallel downloads in progress)
+            protected_dirs = []
+            for d in dirs:
+                sub_path = os.path.join(root, d)
+                if is_directory_protected(sub_path):
+                    protected_dirs.append(d)
+                    logger.info(f"Skipping protected subdirectory: {sub_path}")
+            for d in protected_dirs:
+                dirs.remove(d)
+            
             for filename in files:
                 file_path = os.path.join(root, filename)
 

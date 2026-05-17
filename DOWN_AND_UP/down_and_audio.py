@@ -14,7 +14,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, log_error_to_channel
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user
-from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock
+from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, create_directory, check_disk_space, cleanup_user_temp_files
 from DATABASE.firebase_init import write_logs
@@ -607,6 +607,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     hourglass_msg_id = None
     download_started_msg_id = None
     audio_files = []
+    # Per-user cancel event: /clean sets this to abort the download
+    _cancel_ev = register_download_cancel_event(user_id)
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
@@ -883,6 +885,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         def progress_hook(d):
             messages = safe_get_messages(message.chat.id)
             nonlocal last_update, is_hls
+            # Check if /clean was called for this user → abort download
+            if _cancel_ev.is_set():
+                raise Exception("Download cancelled by user (/clean)")
             # Check the timeout
             if check_download_timeout(user_id):
                 raise Exception(f"Download timeout exceeded ({Config.DOWNLOAD_TIMEOUT // 3600} hours)")
@@ -2713,6 +2718,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         except Exception:
             pass
     finally:
+        # Always unregister cancel event to prevent memory leaks
+        try:
+            unregister_download_cancel_event(user_id, _cancel_ev)
+        except Exception:
+            pass
         # Always clean up resources
         stop_anim.set()
         if anim_thread:

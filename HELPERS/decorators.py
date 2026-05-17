@@ -32,6 +32,8 @@ app = get_app()
 
 # eternal reply-keyboard and reliable work with files
 reply_keyboard_msg_ids = {}  # user_id: message_id
+_reply_kb_cleanup_counter = 0
+_REPLY_KB_CLEANUP_INTERVAL = 500  # Clean every 500 calls
 
 def get_main_reply_keyboard(mode="2x3"):
     messages = safe_get_messages(None)
@@ -62,8 +64,16 @@ def get_main_reply_keyboard(mode="2x3"):
 
 def send_reply_keyboard_always(user_id, mode="2x3"):
     """Send persistent reply keyboard to user"""
-    global reply_keyboard_msg_ids
+    global reply_keyboard_msg_ids, _reply_kb_cleanup_counter
     try:
+        # Periodic cleanup: limit dict size to prevent unbounded growth
+        _reply_kb_cleanup_counter += 1
+        if _reply_kb_cleanup_counter >= _REPLY_KB_CLEANUP_INTERVAL:
+            _reply_kb_cleanup_counter = 0
+            # Keep only last 2000 users
+            if len(reply_keyboard_msg_ids) > 2000:
+                reply_keyboard_msg_ids = dict(list(reply_keyboard_msg_ids.items())[-2000:])
+                logger.debug(f"[KB-CLEANUP] Trimmed reply_keyboard_msg_ids to 2000 entries")
         msg_id = reply_keyboard_msg_ids.get(user_id)
         if msg_id:
             try:

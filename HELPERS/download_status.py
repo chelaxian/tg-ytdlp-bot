@@ -24,6 +24,62 @@ playlist_errors_lock = threading.Lock()
 download_start_times = {}
 download_start_times_lock = threading.Lock()
 
+# Per-user download cancellation registry.
+# Structure: {user_id: [threading.Event, ...]}
+# Each active download for a user registers its own Event.
+# When /clean is called, all events for that user are set → downloads check and abort.
+_user_cancel_events = {}
+_user_cancel_events_lock = threading.Lock()
+
+
+def register_download_cancel_event(user_id):
+    """
+    Create and register a new threading.Event for a user's download.
+    Returns the event so the download loop can check it.
+
+    This is per-download: each download gets its own event.
+    Other users are completely unaffected.
+    """
+    ev = threading.Event()
+    with _user_cancel_events_lock:
+        if user_id not in _user_cancel_events:
+            _user_cancel_events[user_id] = []
+        _user_cancel_events[user_id].append(ev)
+    return ev
+
+
+def unregister_download_cancel_event(user_id, ev):
+    """
+    Remove a specific event from the user's list after download finishes.
+    """
+    with _user_cancel_events_lock:
+        if user_id in _user_cancel_events:
+            try:
+                _user_cancel_events[user_id].remove(ev)
+            except ValueError:
+                pass
+            if not _user_cancel_events[user_id]:
+                del _user_cancel_events[user_id]
+
+
+def cancel_user_downloads(user_id):
+    """
+    Signal all active downloads for a specific user to stop.
+    Sets all registered events for this user_id only.
+    Returns the number of cancelled tasks.
+    Other users are NEVER affected.
+    """
+    count = 0
+    with _user_cancel_events_lock:
+        events = _user_cancel_events.pop(user_id, [])
+        for ev in events:
+            ev.set()
+            count += 1
+    if count:
+        logger.info(f"[CANCEL] Cancelled {count} active download(s) for user {user_id}")
+    return count
+
+
 # Get app instance for decorators
 app = get_app()
 
@@ -78,14 +134,14 @@ def get_active_download(user_id):
 # Helper function to safely set active download status
 def set_active_download(user_id, status):
     """
-    Thread-safe function to set the active download status for a user
-
-    Args:
-        user_id: The user ID
-        status (bool): Whether the user has an active download
+    Thread-safe function to set the active download status for a user.
+    When status is False, removes the entry entirely to prevent dict bloat.
     """
     with active_downloads_lock:
-        active_downloads[user_id] = status
+        if status:
+            active_downloads[user_id] = status
+        else:
+            active_downloads.pop(user_id, None)
 
 # Helper function to start the hourglass animation
 def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
@@ -161,10 +217,16 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
     return hourglass_thread
 
 # Cache for throttling upload progress edits per message
+# Periodically cleaned to prevent unbounded growth
 _last_upload_update_ts = {}
+_last_upload_ts_lock = threading.Lock()
 
 # Cache for upload logging to prevent watchdog false positives
 _last_upload_log_ts = {}
+
+# Timestamp of last cache cleanup
+_last_ts_cleanup = time.time()
+_TS_CLEANUP_INTERVAL = 300  # Clean every 5 minutes
 
 # Helper function to start cycle progress animation
 def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop, progress_data=None):
@@ -266,6 +328,27 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
     cycle_thread.start()
     return cycle_thread
 
+def _cleanup_upload_ts_cache():
+    """Remove stale entries from upload timestamp caches to prevent memory leaks.
+    Called periodically from progress_bar (every ~5 minutes)."""
+    global _last_ts_cleanup
+    now = time.time()
+    if now - _last_ts_cleanup < _TS_CLEANUP_INTERVAL:
+        return
+    _last_ts_cleanup = now
+    with _last_upload_ts_lock:
+        # Remove entries older than 10 minutes (upload shouldn't be idle that long)
+        cutoff = now - 600
+        stale_keys = [k for k, ts in _last_upload_update_ts.items() if ts < cutoff]
+        for k in stale_keys:
+            del _last_upload_update_ts[k]
+        stale_log_keys = [k for k, ts in _last_upload_log_ts.items() if ts < cutoff]
+        for k in stale_log_keys:
+            del _last_upload_log_ts[k]
+    if stale_keys or stale_log_keys:
+        logger.debug(f"[TS-CLEANUP] Removed {len(stale_keys)} upload + {len(stale_log_keys)} log entries")
+
+
 def progress_bar(*args):
     # Pyrogram/pyrotgfork pass (current, total, *progress_args).
     # progress_args is (user_id, msg_id, status_text) → 5 args total.
@@ -281,16 +364,21 @@ def progress_bar(*args):
     # Throttle to avoid flood: update at most once per second per message
     now = time.time()
     key = (user_id, msg_id)
-    last_ts = _last_upload_update_ts.get(key, 0)
+    with _last_upload_ts_lock:
+        last_ts = _last_upload_update_ts.get(key, 0)
     if now - last_ts < 1.0 and current < total:
         return
-    
+
     # Log upload activity every 10 seconds to prevent watchdog false positives
-    last_log_ts = _last_upload_log_ts.get(key, 0)
-    if now - last_log_ts >= 10.0:
-        logger.info("[Upload] Uploading video to Telegram")
-        _last_upload_log_ts[key] = now
-    
+    with _last_upload_ts_lock:
+        last_log_ts = _last_upload_log_ts.get(key, 0)
+        if now - last_log_ts >= 10.0:
+            logger.info("[Upload] Uploading video to Telegram")
+            _last_upload_log_ts[key] = now
+
+    # Periodically clean stale entries to prevent unbounded memory growth
+    _cleanup_upload_ts_cache()
+
     # Build upload progress bar (same style as download: 🟩/⬜️ cubes)
     try:
         percent = (current / total * 100) if total else 0
@@ -298,6 +386,7 @@ def progress_bar(*args):
         bar = "🟩" * blocks + "⬜️" * (10 - blocks)
         text = f"{status_text}\n{bar}   {percent:.1f}%"
         safe_edit_message_text(user_id, msg_id, text)
-        _last_upload_update_ts[key] = now
+        with _last_upload_ts_lock:
+            _last_upload_update_ts[key] = now
     except Exception as e:
         logger.error(f"Error updating upload progress: {e}")

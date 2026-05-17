@@ -33,6 +33,11 @@ _lock = threading.Lock()
 # Bot start time (set on first load)
 _bot_start_time: Optional[float] = None
 
+# Debounced save: avoid writing to disk on every single request
+_last_save_time_ab = 0
+_save_interval_ab = 60  # Save at most once every 60 seconds (less critical data)
+_save_lock_ab = threading.Lock()
+
 # File for persistence
 _ANTI_BOT_DATA_FILE = "CONFIG/.anti_bot_data.json"
 
@@ -118,8 +123,13 @@ def _load_from_disk():
 
 
 def _save_to_disk():
-    """Save anti-bot data to disk"""
-    global _bot_start_time
+    """Save anti-bot data to disk (debounced)."""
+    global _bot_start_time, _last_save_time_ab
+    with _save_lock_ab:
+        now = time.time()
+        if now - _last_save_time_ab < _save_interval_ab:
+            return  # Skip: saved recently
+        _last_save_time_ab = now
     try:
         os.makedirs(os.path.dirname(_ANTI_BOT_DATA_FILE), exist_ok=True)
         
@@ -170,7 +180,7 @@ def _save_to_disk():
 
 
 def _cleanup_old_data(user_id: int, current_time: float):
-    """Remove old entries outside time windows"""
+    """Remove old entries outside time windows and delete user entries if all data is stale."""
     with _lock:
         # Clean URL history
         if user_id in _user_url_history:
@@ -179,6 +189,8 @@ def _cleanup_old_data(user_id: int, current_time: float):
                 (url, ts) for url, ts in _user_url_history[user_id]
                 if current_time - ts < window
             ]
+            if not _user_url_history[user_id]:
+                del _user_url_history[user_id]
         
         # Clean command history
         if user_id in _user_command_history:
@@ -187,6 +199,8 @@ def _cleanup_old_data(user_id: int, current_time: float):
                 (cmd, ts) for cmd, ts in _user_command_history[user_id]
                 if current_time - ts < window
             ]
+            if not _user_command_history[user_id]:
+                del _user_command_history[user_id]
         
         # Clean message history
         if user_id in _user_message_history:
@@ -195,6 +209,8 @@ def _cleanup_old_data(user_id: int, current_time: float):
                 (msg, ts) for msg, ts in _user_message_history[user_id]
                 if current_time - ts < window
             ]
+            if not _user_message_history[user_id]:
+                del _user_message_history[user_id]
         
         # Clean activity hours (keep only last 24 hours)
         if user_id in _user_activity_hours:
@@ -203,6 +219,18 @@ def _cleanup_old_data(user_id: int, current_time: float):
                 hour: ts for hour, ts in _user_activity_hours[user_id].items()
                 if current_time - ts < window
             }
+            if not _user_activity_hours[user_id]:
+                del _user_activity_hours[user_id]
+        
+        # Clean message timestamps for flood detection
+        if user_id in _user_message_timestamps:
+            window = LimitsConfig.ANTI_BOT_FLOOD_WINDOW
+            _user_message_timestamps[user_id] = [
+                ts for ts in _user_message_timestamps[user_id]
+                if current_time - ts <= window
+            ]
+            if not _user_message_timestamps[user_id]:
+                del _user_message_timestamps[user_id]
 
 
 def _check_duplicate_urls(user_id: int, url: str, current_time: float) -> Optional[str]:

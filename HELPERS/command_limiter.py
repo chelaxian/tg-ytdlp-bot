@@ -18,6 +18,11 @@ _command_limits_lock = threading.Lock()
 _command_cooldowns: dict = {}
 _command_cooldowns_lock = threading.Lock()
 
+# Debounced save: avoid writing to disk on every single request
+_last_save_time_cmd = 0
+_save_interval_cmd = 30  # Save at most once every 30 seconds
+_save_lock_cmd = threading.Lock()
+
 # File for persistence
 _COMMAND_LIMITS_FILE = "CONFIG/.command_limits.json"
 _COMMAND_COOLDOWNS_FILE = "CONFIG/.command_cooldowns.json"
@@ -53,7 +58,13 @@ def _load_from_disk():
 
 
 def _save_to_disk():
-    """Save command limits and cooldowns to disk"""
+    """Save command limits and cooldowns to disk (debounced)."""
+    global _last_save_time_cmd
+    with _save_lock_cmd:
+        now = time.time()
+        if now - _last_save_time_cmd < _save_interval_cmd:
+            return  # Skip: saved recently
+        _last_save_time_cmd = now
     try:
         os.makedirs(os.path.dirname(_COMMAND_LIMITS_FILE), exist_ok=True)
         
@@ -73,15 +84,19 @@ def _save_to_disk():
 
 
 def _cleanup_old_entries(user_id: int, current_time: float):
-    """Remove old command entries outside the time window"""
+    """Remove old command entries outside the time window and delete user if empty."""
     with _command_limits_lock:
         if user_id not in _command_limits:
-            _command_limits[user_id] = {'commands': [], 'violations': 0}
+            return
         
         user_data = _command_limits[user_id]
         
         # Clean commands older than 60 seconds
         user_data['commands'] = [ts for ts in user_data['commands'] if current_time - ts < 60]
+        
+        # Remove user entry if commands list is empty and no violations worth keeping
+        if not user_data['commands'] and user_data.get('violations', 0) == 0:
+            del _command_limits[user_id]
 
 
 def _check_cooldown(user_id: int, current_time: float) -> Optional[Tuple[float, int]]:
