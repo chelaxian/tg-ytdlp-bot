@@ -73,7 +73,7 @@ def keyboard_command(app, message):
                     current_setting = setting
                 else:
                     current_setting = "2x3"  # Fallback to default
-        except:
+        except Exception:
             current_setting = "2x3"  # Fallback to default
     
     # Create inline keyboard for options in 2 rows

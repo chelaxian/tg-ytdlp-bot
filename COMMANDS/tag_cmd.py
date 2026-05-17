@@ -69,7 +69,7 @@ def tags_command(app, message):
 
 @app.on_callback_query(filters.regex(r"^tags_close\|"))
 def tags_close_callback(app, callback_query):
-    messages = safe_get_messages(None)
+    user_id = callback_query.from_user.id
     data = callback_query.data.split("|")[1]
     if data == "close":
         try:
@@ -78,14 +78,3 @@ def tags_close_callback(app, callback_query):
             callback_query.edit_message_reply_markup(reply_markup=None)
         callback_query.answer(safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
-        return
-
-    data = callback_query.data.split("|")[1]
-    if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
-        send_to_logger(callback_query.message, safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
-        return

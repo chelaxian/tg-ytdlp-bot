@@ -28,7 +28,7 @@ def is_tiktok_url(url: str) -> bool:
         clean_url = get_clean_url_for_tagging(url)
         parsed_url = urlparse(clean_url)
         return any(domain in parsed_url.netloc for domain in Config.TIKTOK_DOMAINS)
-    except:
+    except Exception:
         return False
 
 
