@@ -12,22 +12,19 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
     from CONFIG.domains import DomainsConfig
     from urllib.parse import urlparse
     
-    try:
-        parsed_url = urlparse(url)
-        domain = parsed_url.netloc.lower()
-        
-        # Убираем www. префикс для сравнения
-        if domain.startswith('www.'):
-            domain = domain[4:]
-            
-        # Проверяем, не входит ли домен в YTDLP_ONLY_DOMAINS
-        for ytdlp_domain in DomainsConfig.YTDLP_ONLY_DOMAINS:
-            if domain == ytdlp_domain or domain.endswith('.' + ytdlp_domain):
-                return False  # Не переключаемся на gallery-dl для yt-dlp только доменов
-    except Exception:
-        # Если не удалось распарсить URL, продолжаем обычную проверку
-        pass
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc.lower()
+    tiktok_hostname = (parsed_url.hostname or '').lower()
     
+    # Убираем www. префикс для сравнения
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    
+    # Проверяем, не входит ли домен в YTDLP_ONLY_DOMAINS
+    for ytdlp_domain in DomainsConfig.YTDLP_ONLY_DOMAINS:
+        if domain == ytdlp_domain or domain.endswith('.' + ytdlp_domain):
+            return False
+
     error_lower = error_message.lower()
     
     # Ошибки, которые указывают на то, что yt-dlp не может обработать контент
@@ -106,9 +103,8 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
     ]
     
     # Проверяем наличие индикаторов fallback
-    for indicator in fallback_indicators:
-        if indicator in error_lower:
-            return True
+    if any(indicator in error_lower for indicator in fallback_indicators):
+        return True
     
     # Дополнительная проверка для Instagram ошибок
     if "instagram" in error_lower and any(err in error_lower for err in ["429", "403", "401", "unable to download"]):
@@ -119,16 +115,8 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
         return True
         
     # Дополнительная проверка для TikTok ошибок
-    # Безопасная проверка домена через urlparse
-    is_tiktok = False
-    try:
-        from urllib.parse import urlparse
-        parsed_url = urlparse(url)
-        tiktok_hostname = (parsed_url.hostname or '').lower()
-        is_tiktok = tiktok_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
-                   tiktok_hostname.endswith('.tiktok.com')
-    except Exception:
-        pass
+    is_tiktok = tiktok_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
+               tiktok_hostname.endswith('.tiktok.com')
     
     if is_tiktok and any(err in error_lower for err in ["429", "403", "401", "unable to download"]):
         return True
