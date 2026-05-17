@@ -21,9 +21,7 @@ from pyrogram import enums
 app = get_app()
 
 def get_ffmpeg_path():
-    messages = safe_get_messages(None)
     """Get FFmpeg path - first try system PATH, then fallback to local binary"""
-    import shutil
     
     # Get the directory where the script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
