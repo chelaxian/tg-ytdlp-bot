@@ -116,6 +116,17 @@ def check_download_timeout(user_id):
     return False
 
 # Helper function to safely get active download status
+def _adaptive_interval(elapsed_seconds):
+    """Calculate adaptive update interval based on elapsed time.
+    
+    0-4 min: 3s, 5-9: 4s, 10-14: 5s, ... 55-59: 14s, 60+: 90s.
+    """
+    minutes_passed = int(elapsed_seconds // 60)
+    if minutes_passed >= 60:
+        return 90.0
+    return 3.0 + max(0, minutes_passed // 5)
+
+
 def get_active_download(user_id):
     """
     Thread-safe function to get the active download status for a user
@@ -180,12 +191,7 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
                 
                 minutes_passed = int(elapsed // 60)
                 
-                # Adaptive animation interval (linear slow-down every 5 minutes)
-                if minutes_passed and minutes_passed >= 60:
-                    interval = 90.0  # After 1 hour, update once per 90 seconds
-                else:
-                    # 0-4 min: 3s, 5-9: 4s, 10-14: 5s, ... up to 55-59: 14s
-                    interval = 3.0 + max(0, minutes_passed // 5)
+                interval = _adaptive_interval(elapsed)
                 
                 if current_time - last_update < interval:
                     time.sleep(1.0)
@@ -267,11 +273,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
                 
                 minutes_passed = int(elapsed // 60)
                 
-                # Adaptive update interval (linear; after 1h fixed 90s)
-                if minutes_passed and minutes_passed >= 60:
-                    interval = 90.0
-                else:
-                    interval = 3.0 + max(0, minutes_passed // 5)
+                interval = _adaptive_interval(elapsed)
                 
                 if current_time - last_update < interval:
                     time.sleep(1.0)

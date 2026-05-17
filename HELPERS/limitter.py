@@ -110,8 +110,30 @@ def TimeFormatter(milliseconds: int) -> str:
 
 # Check the USAGE of the BOT
 
+_VALID_MEMBER_STATUSES = (ChatMemberStatus.MEMBER, ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR)
+
+
+def _send_subscribe_prompt(chat_id):
+    """Send the subscription prompt with channel join + language keyboard."""
+    _messages = safe_get_messages(chat_id)
+    text = f"{_messages.TO_USE_MSG}\n \n{_messages.CREDITS_MSG}"
+
+    channel_button = InlineKeyboardButton(
+        _messages.CHANNEL_JOIN_BUTTON_MSG, url=Config.SUBSCRIBE_CHANNEL_URL
+    )
+    language_keyboard = create_language_keyboard()
+    keyboard_buttons = [[channel_button]]
+    keyboard_buttons.extend(language_keyboard.inline_keyboard)
+
+    safe_send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard_buttons),
+    )
+
+
 def is_user_in_channel(app, message):
-    messages = safe_get_messages(message.chat.id)
+    _messages = safe_get_messages(message.chat.id)
     # Bypass subscription checks for explicitly allowed groups and admin groups
     try:
         chat_id = int(getattr(message.chat, 'id', 0))
@@ -120,59 +142,25 @@ def is_user_in_channel(app, message):
     except Exception:
         pass
     try:
-        logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_MEMBERSHIP_LOG_MSG.format(user_id=message.chat.id, channel=Config.SUBSCRIBE_CHANNEL))
-        cht_member = app.get_chat_member(
-            Config.SUBSCRIBE_CHANNEL, message.chat.id)
-        logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_STATUS_LOG_MSG.format(user_id=message.chat.id, status=cht_member.status))
-        if cht_member.status == ChatMemberStatus.MEMBER or cht_member.status == ChatMemberStatus.OWNER or cht_member.status == ChatMemberStatus.ADMINISTRATOR:
+        logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_MEMBERSHIP_LOG_MSG.format(
+            user_id=message.chat.id, channel=Config.SUBSCRIBE_CHANNEL))
+        cht_member = app.get_chat_member(Config.SUBSCRIBE_CHANNEL, message.chat.id)
+        logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_STATUS_LOG_MSG.format(
+            user_id=message.chat.id, status=cht_member.status))
+
+        if cht_member.status in _VALID_MEMBER_STATUSES:
             logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_IS_MEMBER_LOG_MSG.format(user_id=message.chat.id))
             return True
-        else:
-            logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_NOT_MEMBER_LOG_MSG.format(user_id=message.chat.id))
-            return False
+
+        logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_NOT_MEMBER_LOG_MSG.format(user_id=message.chat.id))
+        _send_subscribe_prompt(message.chat.id)
+        return False
 
     except Exception as e:
-        logger.error(LoggerMsg.LIMITTER_CHANNEL_CHECK_ERROR_LOG_MSG.format(user_id=message.chat.id, error=e))
-        text = f"{safe_get_messages(message.chat.id).TO_USE_MSG}\n \n{safe_get_messages(message.chat.id).CREDITS_MSG}"
-        
-        # Create keyboard with channel join button and language selection
-        channel_button = InlineKeyboardButton(
-            safe_get_messages(message.chat.id).CHANNEL_JOIN_BUTTON_MSG, url=Config.SUBSCRIBE_CHANNEL_URL)
-        language_keyboard = create_language_keyboard()
-        
-        # Combine channel button with language buttons
-        keyboard_buttons = [[channel_button]]
-        keyboard_buttons.extend(language_keyboard.inline_keyboard)
-        keyboard = InlineKeyboardMarkup(keyboard_buttons)
-        
-        # Use safe send to avoid FloodWait on texts
-        safe_send_message(
-            chat_id=message.chat.id,
-            text=text,
-            reply_markup=keyboard
-        )
+        logger.error(LoggerMsg.LIMITTER_CHANNEL_CHECK_ERROR_LOG_MSG.format(
+            user_id=message.chat.id, error=e))
+        _send_subscribe_prompt(message.chat.id)
         return False
-    
-    # If user is not a member, send subscription message
-    text = f"{safe_get_messages(message.chat.id).TO_USE_MSG}\n \n{safe_get_messages(message.chat.id).CREDITS_MSG}"
-    
-    # Create keyboard with channel join button and language selection
-    channel_button = InlineKeyboardButton(
-        safe_get_messages(message.chat.id).CHANNEL_JOIN_BUTTON_MSG, url=Config.SUBSCRIBE_CHANNEL_URL)
-    language_keyboard = create_language_keyboard()
-    
-    # Combine channel button with language buttons
-    keyboard_buttons = [[channel_button]]
-    keyboard_buttons.extend(language_keyboard.inline_keyboard)
-    keyboard = InlineKeyboardMarkup(keyboard_buttons)
-    
-    # Use safe send to avoid FloodWait on texts
-    safe_send_message(
-        chat_id=message.chat.id,
-        text=text,
-        reply_markup=keyboard
-    )
-    return False
 
 
 def check_user(message):
@@ -419,17 +407,20 @@ def check_playlist_range_limits(url, video_start_with, video_end_with, app, mess
     is_tiktok_url = False
     is_instagram_url = False
     try:
-        from urllib.parse import urlparse
-        parsed_url = urlparse(str(url) if url else '')
+        from urllib.parse import urlparse as _urlparse
+        parsed_url = _urlparse(str(url) if url else '')
         url_hostname = (parsed_url.hostname or '').lower()
-        is_tiktok_url = url_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com') or \
-                       url_hostname.endswith('.tiktok.com')
-        is_instagram_url = url_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
-                          url_hostname.endswith('.instagram.com') or url_hostname.endswith('.instagr.am')
+        is_tiktok_url = (
+            url_hostname in ('tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com')
+            or url_hostname.endswith('.tiktok.com')
+        )
+        is_instagram_url = (
+            url_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am')
+            or url_hostname.endswith('.instagram.com')
+            or url_hostname.endswith('.instagr.am')
+        )
     except Exception:
         pass
-    
-    url_l = str(url).lower() if url else ''
     if is_tiktok_url:
         max_count = Config.MAX_TIKTOK_COUNT
         service = 'TikTok'
