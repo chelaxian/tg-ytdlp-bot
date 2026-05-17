@@ -135,14 +135,6 @@ def url_distractor(app, message):
     # If user sends a URL or command while in trim mode, clear trim mode
     from DOWN_AND_UP.always_ask_menu import is_trim_mode, clear_trim_input_state
     if is_trim_mode(user_id):
-        # User sent a URL or command while in trim mode - clear trim mode
-        clear_trim_input_state(user_id)
-        # Continue with normal URL processing
-    
-    # Check if this is a command (starts with / or is an emoji command)
-    # If user sends a command while in trim mode, clear trim mode
-    from DOWN_AND_UP.always_ask_menu import is_trim_mode, clear_trim_input_state
-    if is_trim_mode(user_id):
         clear_trim_input_state(user_id)
     
     is_command = text.startswith('/') or text in [

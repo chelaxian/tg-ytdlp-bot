@@ -1,5 +1,3 @@
-from CONFIG.messages import Messages, safe_get_messages
-
 class LoggerMsg(object):
     # Generic user/admin/access - removed unused variables
 
@@ -142,25 +140,6 @@ class LoggerMsg(object):
     COOKIES_YOUTUBE_RETRY_ALL_SOURCES_FAILED_LOG_MSG = "All cookie sources failed for retry download for user {user_id}"
     COOKIES_YOUTUBE_CACHE_CLEARED_LOG_MSG = "Cleared YouTube cookie validation cache for user {user_id}"
     COOKIES_YOUTUBE_CACHE_NO_ENTRY_LOG_MSG = "No cache entry found for user {user_id}"
-    COOKIES_YOUTUBE_TEST_FAILED_MISSING_FIELDS_LOG_MSG = "YouTube cookies test failed - missing fields: {missing_fields} for {cookie_file_path}"
-    COOKIES_YOUTUBE_TEST_FAILED_NO_FORMATS_LOG_MSG = "YouTube cookies test failed - no formats available for {cookie_file_path}"
-    COOKIES_YOUTUBE_TEST_FAILED_INVALID_DURATION_LOG_MSG = "YouTube cookies test failed - invalid duration: {duration} for {cookie_file_path}"
-    COOKIES_YOUTUBE_TEST_FAILED_TOO_FEW_FORMATS_LOG_MSG = "YouTube cookies test failed - too few formats: {formats_count} for {cookie_file_path}"
-    COOKIES_YOUTUBE_TEST_PASSED_LOG_MSG = "YouTube cookies test passed for {cookie_file_path} - {formats_count} formats available"
-    COOKIES_YOUTUBE_TEST_TITLE_LOG_MSG = "Title: '{title}'"
-    COOKIES_YOUTUBE_TEST_DURATION_LOG_MSG = "Duration: {duration}s"
-    COOKIES_YOUTUBE_TEST_UPLOADER_LOG_MSG = "Uploader: {uploader}"
-    COOKIES_YOUTUBE_TEST_VIEW_COUNT_LOG_MSG = "View count: {view_count}"
-    COOKIES_YOUTUBE_TEST_UPLOAD_DATE_LOG_MSG = "Upload date: {upload_date}"
-    COOKIES_YOUTUBE_TEST_LIKE_COUNT_LOG_MSG = "Like count: {like_count}"
-    COOKIES_YOUTUBE_TEST_FORMAT_IDS_LOG_MSG = "Format IDs: {format_ids}"
-    COOKIES_YOUTUBE_TEST_AUTH_ERROR_LOG_MSG = "YouTube cookies test failed - authentication/format error: {e}"
-    COOKIES_YOUTUBE_TEST_OTHER_ERROR_LOG_MSG = "YouTube cookies test - other error (may not be cookie-related): {e}"
-    COOKIES_YOUTUBE_TEST_EXCEPTION_TYPE_LOG_MSG = "Exception type: {exception_type}"
-    COOKIES_ERROR_SENDING_MESSAGE_LOG_MSG = "Error sending message to user: {e}"
-    COOKIES_FINAL_FALLBACK_SEND_FAILED_LOG_MSG = "Final fallback send failed: {e}"
-    COOKIES_YOUTUBE_URLS_EMPTY_LOG_MSG = "YouTube cookie URLs are empty for user {user_id}"
-    COOKIES_ERROR_UPDATING_MESSAGE_LOG_MSG = "Error updating message: {e}"
     
     # Image command specific logs
     IMG_PAID_EMBEDDED_COVER_LOG_MSG = "[IMG PAID] Embedded cover into video: {video_path}"
@@ -509,7 +488,6 @@ class LoggerMsg(object):
     # File Operations Log Messages
     URL_EXTRACTOR_REMOVED_DIRECTORY_LOG_MSG = "Removed directory: {path}"
     URL_EXTRACTOR_ERROR_SCANNING_DIRECTORY_LOG_MSG = "Error scanning directory {path}: {e}"
-    URL_EXTRACTOR_FAILED_CLEAR_YOUTUBE_CACHE_LOG_MSG = "Failed to clear YouTube cookie cache: {e}"
     URL_EXTRACTOR_GALLERY_DL_FALLBACK_LOG_MSG = "Gallery-dl fallback executed: {fallback_text}"
     URL_EXTRACTOR_LANGUAGE_CALLBACK_ERROR_LOG_MSG = "Language callback error: {e}"
     URL_EXTRACTOR_AUDIO_HINT_CALLBACK_ERROR_LOG_MSG = "Audio hint callback error: {e}"

@@ -161,7 +161,7 @@ def fake_message_with_context(text, user_id, context_message=None, command=None)
         fake_message с правильным message_thread_id
     """
     if context_message:
-        original_chat_id = getattr(context_message, 'chat', {}).id if hasattr(context_message, 'chat') else user_id
+        original_chat_id = getattr(getattr(context_message, 'chat', None), 'id', user_id)
         message_thread_id = getattr(context_message, 'message_thread_id', None)
         return fake_message(text, user_id, command=command, original_chat_id=original_chat_id, 
                           message_thread_id=message_thread_id, original_message=context_message)

@@ -37,7 +37,7 @@ def route_if_gallerydl_only(app, message) -> bool:
                     if tags_text:
                         fallback_text += f" {tags_text}"
                     # For groups, preserve original chat_id and message_thread_id
-                    original_chat_id = message.chat.id if hasattr(message, 'chat') else message.chat.id
+                    original_chat_id = getattr(getattr(message, 'chat', None), 'id', user_id)
                     message_thread_id = getattr(message, 'message_thread_id', None) if hasattr(message, 'message_thread_id') else None
                     fake_msg = fake_message(fallback_text, message.chat.id, original_chat_id=original_chat_id, message_thread_id=message_thread_id, original_message=message)
                     image_command(app, fake_msg)
@@ -61,7 +61,7 @@ def route_if_gallerydl_only(app, message) -> bool:
                     if tags_text:
                         fallback_text += f" {tags_text}"
                     # For groups, preserve original chat_id and message_thread_id
-                    original_chat_id = message.chat.id if hasattr(message, 'chat') else message.chat.id
+                    original_chat_id = getattr(getattr(message, 'chat', None), 'id', user_id)
                     message_thread_id = getattr(message, 'message_thread_id', None) if hasattr(message, 'message_thread_id') else None
                     fake_msg = fake_message(fallback_text, message.chat.id, original_chat_id=original_chat_id, message_thread_id=message_thread_id, original_message=message)
                     image_command(app, fake_msg)

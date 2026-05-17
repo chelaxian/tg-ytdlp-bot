@@ -1,4 +1,3 @@
-from CONFIG.messages import Messages
 # Domains Configuration
 
 class DomainsConfig(object):
