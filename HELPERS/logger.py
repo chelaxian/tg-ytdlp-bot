@@ -125,65 +125,22 @@ def _extract_url_from_message(message) -> str:
     except Exception:
         return ""
 
+_PROXY_CREDS_PATTERN = re.compile(
+    r'((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\),]+)',
+    flags=re.IGNORECASE,
+)
+
+
 def sanitize_error_message(error_text: str) -> str:
     """
-    Маскирует секретные данные в тексте ошибки перед отправкой пользователю.
-    Маскирует:
-    - Прокси с логином/паролем: http://user:pass@host:port -> http://***:***@host:port
-    - Прокси в разных форматах (http, https, socks4, socks5, socks5h)
-    - Пароли в других местах
+    Masks proxy credentials (user:pass@host) in error text before sending to user.
+    All proxy types: http, https, socks4, socks5, socks5h.
     """
     if not error_text:
         return error_text
-    
     try:
-        # Маскируем прокси с логином/паролем в формате protocol://user:pass@host:port
-        # Паттерн: protocol://user:pass@host:port или protocol://user:pass@host
-        # Поддерживаемые протоколы: http, https, socks4, socks5, socks5h
-        proxy_pattern = r'((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\),]+)'
-        
-        def mask_proxy(match):
-            protocol = match.group(1)
-            user = match.group(2)
-            password = match.group(3)
-            host_port = match.group(4)
-            # Маскируем логин и пароль, оставляем протокол и хост:порт
-            return f"{protocol}***:***@{host_port}"
-        
-        sanitized = re.sub(proxy_pattern, mask_proxy, error_text, flags=re.IGNORECASE)
-        
-        # Также маскируем прокси в одинарных/двойных кавычках (для командных строк)
-        # Паттерн: '--proxy', 'http://user:pass@host:port'
-        proxy_in_quotes_pattern = r'([\'"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)\1'
-        
-        def mask_proxy_in_quotes(match):
-            quote = match.group(1)
-            protocol = match.group(2)
-            user = match.group(3)
-            password = match.group(4)
-            host_port = match.group(5)
-            return f"{quote}{protocol}***:***@{host_port}{quote}"
-        
-        sanitized = re.sub(proxy_in_quotes_pattern, mask_proxy_in_quotes, sanitized, flags=re.IGNORECASE)
-        
-        # Маскируем прокси в квадратных скобках (для списков/массивов)
-        proxy_in_brackets_pattern = r'(\[\'--proxy\',\s*[\'"])((?:http|https|socks4|socks5|socks5h)://)([^:@\s]+):([^@\s]+)@([^\s\'"\)]+)([\'"])'
-        
-        def mask_proxy_in_brackets(match):
-            prefix = match.group(1)
-            protocol = match.group(2)
-            user = match.group(3)
-            password = match.group(4)
-            host_port = match.group(5)
-            quote = match.group(6)
-            return f"{prefix}{protocol}***:***@{host_port}{quote}"
-        
-        sanitized = re.sub(proxy_in_brackets_pattern, mask_proxy_in_brackets, sanitized, flags=re.IGNORECASE)
-        
-        return sanitized
+        return _PROXY_CREDS_PATTERN.sub(r'\1***:***@\4', error_text)
     except Exception as e:
-        # Если что-то пошло не так с маскировкой, возвращаем оригинал
-        # но логируем ошибку
         logger.error(f"Error sanitizing error message: {e}")
         return error_text
 
