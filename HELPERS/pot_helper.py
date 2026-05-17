@@ -133,24 +133,6 @@ def add_pot_to_ytdl_opts(ytdl_opts: dict, url: str) -> dict:
         pot_args['disable_innertube'] = ["1"]
     ytdl_opts['extractor_args']['youtubepot'] = pot_args
 
-    # Добавляем web_creator client для обхода возрастных ограничений YouTube
-    # web_creator использует studio.youtube.com endpoint, который позволяет скачивать
-    # age-restricted видео при наличии cookies (даже от бесплатного аккаунта)
-    # Требует: cookies + po_token
-    has_cookies = bool(ytdl_opts.get('cookiefile'))
-    if has_cookies:
-        yt_args = ytdl_opts['extractor_args'].get('youtube', {})
-        current_clients = yt_args.get('player_client', [])
-        if current_clients:
-            # Добавляем web_creator к существующим клиентам, если его ещё нет
-            if 'web_creator' not in current_clients:
-                current_clients = list(current_clients) + ['web_creator']
-                yt_args['player_client'] = current_clients
-        else:
-            yt_args['player_client'] = ['web_creator']
-        ytdl_opts['extractor_args']['youtube'] = yt_args
-        logger.info(f"🔓 Added web_creator player_client for age restriction bypass (cookies present)")
-
     # Добавляем verbose режим для детального логирования PO токенов
     ytdl_opts['verbose'] = True
     

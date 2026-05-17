@@ -277,6 +277,14 @@ def url_distractor(app, message):
             import os
             import shutil
             
+            # Cancel any active downloads for this user
+            from HELPERS.download_status import cancel_user_downloads
+            _cancelled = cancel_user_downloads(user_id)
+            if _cancelled:
+                logger.info(f"Emoji clean: cancelled {_cancelled} active download(s) for user {user_id}")
+                import time
+                time.sleep(0.5)  # Give download threads a moment to abort
+            
             logger.info(get_logger_msg().EMOJI_CLEAN_TRIGGERED_LOG_MSG.format(user_id=user_id))
             
             # EXACT SAME LOGIC as /clean without arguments
@@ -844,6 +852,14 @@ def url_distractor(app, message):
 
         # /Clean Command
     if text.startswith(Config.CLEAN_COMMAND):
+        # First, cancel any active downloads for this user
+        from HELPERS.download_status import cancel_user_downloads
+        _cancelled = cancel_user_downloads(user_id)
+        if _cancelled:
+            logger.info(f"/clean: cancelled {_cancelled} active download(s) for user {user_id}")
+            import time
+            time.sleep(0.5)  # Give download threads a moment to abort
+
         clean_args = text[len(Config.CLEAN_COMMAND):].strip().lower()
         if clean_args in ["cookie", "cookies"]:
             remove_media(message, only=["cookie.txt"])

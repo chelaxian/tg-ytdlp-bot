@@ -166,9 +166,10 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
             if not check_playlist_range_limits(url_parsed, video_start_with, video_end_with, app, message):
                 continue
             
-            # Wait if there's an active download
-            while get_active_download(user_id):
-                import time
+            # Wait if there's an active download (with timeout to prevent infinite blocking)
+            max_wait = 300  # 5 minutes max wait
+            wait_start = time.time()
+            while get_active_download(user_id) and (time.time() - wait_start) < max_wait:
                 time.sleep(1)
             
             # Process tags

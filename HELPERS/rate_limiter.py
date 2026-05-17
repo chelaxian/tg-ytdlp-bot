@@ -19,6 +19,11 @@ _rate_limits_lock = threading.Lock()
 _cooldowns: dict = {}
 _cooldowns_lock = threading.Lock()
 
+# Debounced save: avoid writing to disk on every single request
+_last_save_time = 0
+_save_interval = 30  # Save at most once every 30 seconds
+_save_lock = threading.Lock()
+
 # File for persistence
 _RATE_LIMITS_FILE = "CONFIG/.rate_limits.json"
 _COOLDOWNS_FILE = "CONFIG/.cooldowns.json"
@@ -54,7 +59,13 @@ def _load_from_disk():
 
 
 def _save_to_disk():
-    """Save rate limits and cooldowns to disk"""
+    """Save rate limits and cooldowns to disk (debounced)."""
+    global _last_save_time
+    with _save_lock:
+        now = time.time()
+        if now - _last_save_time < _save_interval:
+            return  # Skip: saved recently
+        _last_save_time = now
     try:
         os.makedirs(os.path.dirname(_RATE_LIMITS_FILE), exist_ok=True)
         
@@ -74,10 +85,10 @@ def _save_to_disk():
 
 
 def _cleanup_old_entries(user_id: int, current_time: float):
-    """Remove old entries outside the time windows"""
+    """Remove old entries outside the time windows and delete user if all windows are empty."""
     with _rate_limits_lock:
         if user_id not in _rate_limits:
-            _rate_limits[user_id] = {'minute': [], 'hour': [], 'day': []}
+            return
         
         user_data = _rate_limits[user_id]
         
@@ -89,6 +100,10 @@ def _cleanup_old_entries(user_id: int, current_time: float):
         
         # Clean day entries (older than 86400 seconds)
         user_data['day'] = [ts for ts in user_data['day'] if current_time - ts < 86400]
+        
+        # Remove user entry if all windows are empty to prevent unbounded dict growth
+        if not user_data['minute'] and not user_data['hour'] and not user_data['day']:
+            del _rate_limits[user_id]
 
 
 def _check_cooldown(user_id: int, current_time: float) -> Optional[Tuple[str, float]]:

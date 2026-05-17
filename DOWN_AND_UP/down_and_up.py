@@ -17,7 +17,7 @@ from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, se
 from CONFIG.logger_msg import LoggerMsg
 from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user, check_file_size_limit, check_subs_limits
-from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, playlist_errors_lock, playlist_errors
+from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, playlist_errors_lock, playlist_errors, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, cleanup_user_temp_files, cleanup_subtitle_files, create_directory, check_disk_space
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, embed_subs_to_video, create_default_thumbnail, split_video_2
@@ -660,6 +660,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     download_started_msg_id = None
     proc_msg = None
     proc_msg_id = None
+    # Per-user cancel event: /clean sets this to abort the download
+    _cancel_ev = register_download_cancel_event(user_id)
     try:
         # Check if there is a saved waiting time
         user_dir = os.path.join("users", str(user_id))
@@ -783,7 +785,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         from DOWN_AND_UP.always_ask_menu import get_user_download_dir, generate_download_dir_name
         user_dir_name = get_user_download_dir(user_id)
         
-        # If no download directory from ask_quality_menu, create one
+        # If no download directory from ask_quality_menu, create one based on URL
         if not user_dir_name or not os.path.exists(user_dir_name):
             try:
                 # Generate download directory name based on URL
@@ -799,40 +801,64 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.warning(f"Failed to create download directory, using default: {e}")
                 # Fallback to original behavior
                 user_dir_name = os.path.abspath(os.path.join("users", str(user_id)))
+        
+        # For parallel downloads: each URL gets its own unique subdirectory
+        # to prevent file conflicts between concurrent downloads.
+        # This ensures thread A downloading video X won't overwrite or delete
+        # thread B's files for video Y in the same directory.
+        from HELPERS.filesystem_hlp import is_parallel_download_allowed
+        if is_parallel_download_allowed(message):
+            try:
+                # Generate a URL-specific subdirectory name
+                url_dir_name = generate_download_dir_name(url)
+                # Add thread-safe unique suffix using URL hash to avoid collisions
+                import hashlib
+                url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()[:8]
+                unique_thread_dir = os.path.join(user_dir, "downloads", f"{url_dir_name}_{url_hash}")
+                os.makedirs(unique_thread_dir, exist_ok=True)
+                logger.info(f"Parallel download: created unique thread directory: {unique_thread_dir}")
+                user_dir_name = unique_thread_dir
+            except Exception as e:
+                logger.warning(f"Failed to create unique thread directory, using shared directory: {e}")
 
 
         # Pre-cleanup: remove all media files from unique download directory before starting
+        # CRITICAL: Skip pre-cleanup if directory is already in use by another parallel download
+        # (protection file present) to prevent deleting files belonging to other threads.
         try:
-            logger.info(f"Pre-cleanup: removing old media files from unique directory {user_dir_name}")
-            if os.path.exists(user_dir_name):
-                for root, dirs, files in os.walk(user_dir_name):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        try:
-                            # Remove all media files (keep .txt and .json files)
-                            if file.lower().endswith((
-                                '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff',
-                                '.mp4', '.m4v', '.avi', '.mov', '.mkv', '.webm', '.flv',
-                                '.mp3', '.wav', '.ogg', '.m4a',
-                                '.pdf', '.doc', '.docx', '.zip', '.rar', '.7z'
-                            )):
-                                os.remove(file_path)
-                                logger.info(f"Pre-cleanup: removed file {file_path}")
-                        except Exception as e:
-                            logger.warning(f"Pre-cleanup: failed to remove file {file_path}: {e}")
-                    
-                    # Remove empty directories (except unique download root)
-                    for dir_name in dirs:
-                        dir_path = os.path.join(root, dir_name)
-                        try:
-                            if os.path.exists(dir_path) and not os.listdir(dir_path) and dir_path != user_dir_name:
-                                os.rmdir(dir_path)
-                                logger.info(f"Pre-cleanup: removed empty directory {dir_path}")
-                        except Exception as e:
-                            logger.warning(f"Pre-cleanup: failed to remove directory {dir_path}: {e}")
-            
+            from HELPERS.filesystem_hlp import is_parallel_download_allowed, is_directory_protected
+            if is_directory_protected(user_dir_name):
+                logger.warning(f"Skipping pre-cleanup: directory {user_dir_name} is protected (parallel download in progress)")
+            else:
+                logger.info(f"Pre-cleanup: removing old media files from unique directory {user_dir_name}")
+                if os.path.exists(user_dir_name):
+                    for root, dirs, files in os.walk(user_dir_name):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            try:
+                                # Remove all media files (keep .txt and .json files)
+                                if file.lower().endswith((
+                                    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff',
+                                    '.mp4', '.m4v', '.avi', '.mov', '.mkv', '.webm', '.flv',
+                                    '.mp3', '.wav', '.ogg', '.m4a',
+                                    '.pdf', '.doc', '.docx', '.zip', '.rar', '.7z'
+                                )):
+                                    os.remove(file_path)
+                                    logger.info(f"Pre-cleanup: removed file {file_path}")
+                            except Exception as e:
+                                logger.warning(f"Pre-cleanup: failed to remove file {file_path}: {e}")
+                        
+                        # Remove empty directories (except unique download root)
+                        for dir_name in dirs:
+                            dir_path = os.path.join(root, dir_name)
+                            try:
+                                if os.path.exists(dir_path) and not os.listdir(dir_path) and dir_path != user_dir_name:
+                                    os.rmdir(dir_path)
+                                    logger.info(f"Pre-cleanup: removed empty directory {dir_path}")
+                            except Exception as e:
+                                logger.warning(f"Pre-cleanup: failed to remove directory {dir_path}: {e}")
+                
             # Create protection file for parallel downloads
-            from HELPERS.filesystem_hlp import is_parallel_download_allowed, create_protection_file
             if is_parallel_download_allowed(message):
                 create_protection_file(user_dir_name)
             
@@ -1053,6 +1079,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         def progress_func(d):
             messages = safe_get_messages(message.chat.id)
             nonlocal last_update, first_progress_update, is_hls
+            # Check if /clean was called for this user → abort download
+            if _cancel_ev.is_set():
+                raise Exception("Download cancelled by user (/clean)")
             # Check the timeout
             if check_download_timeout(user_id):
                 raise Exception(f"Download timeout exceeded ({safe_get_messages(user_id).DOWNLOAD_TIMEOUT // 3600} hours)")
@@ -1209,7 +1238,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # long Unicode titles and yt-dlp suffixes like dash/fdash, .part, etc.)
             # We intentionally avoid using the video title in the filename here;
             # the human‑readable title is still preserved separately in captions.
-            original_outtmpl = os.path.join(user_dir_name, "%(id)s.%(ext)s")
+            # NOTE: We use "vid_" prefix instead of raw "%(id)s" because some platforms
+            # (VK, etc.) produce IDs starting with "-" which causes file rename failures
+            # during DASH fragment assembly (e.g. "-222033079_456241862.fdash_sep-6.mp4").
+            original_outtmpl = os.path.join(user_dir_name, "vid_%(id)s.%(ext)s")
             
             # First try with original filename
             # Для отрицательных индексов используем весь диапазон сразу
@@ -1253,8 +1285,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'postprocessors': postprocessors,
                 # Only use ignoreerrors if user explicitly enabled it via /args
                 'ignoreerrors': ignore_errors,
-                # Allow Unicode characters in filenames
-                'restrictfilenames': False,
+                # Restrict filenames to ASCII-safe characters to prevent postprocessing errors
+                # with special Unicode chars (Turkish, Arabic, etc.) from archive.org CDN.
+                # Captions still use the original title — this only affects file paths.
+                'restrictfilenames': True,
                 # YouTube extraction increasingly requires an explicit JS runtime.
                 # We ship Node.js in Docker and allow it here to avoid missing formats.
                 'js_runtimes': {'node': {}},
@@ -1265,16 +1299,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'referer': url,
                 'geo_bypass': True,
                 # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
-                'live_from_start': True if not did_live_from_start_retry else False
-                #'socket_timeout': 60,  # Increase socket timeout
-                #'retries': 15,  # Increase retries
-                #'fragment_retries': 15,  # Increase fragment retries
-                #'http_chunk_size': 5242880,  # 5MB chunks for better stability
-                #'buffersize': 2048,  # Increase buffer size
-                #'sleep_interval': 2,  # Sleep between requests
-                #'max_sleep_interval': 10,  # Max sleep between requests
-                #'read_timeout': 60,  # Read timeout
-                #'connect_timeout': 30  # Connect timeout
+                'live_from_start': True if not did_live_from_start_retry else False,
+                # Network resilience: retry on transient failures (incomplete downloads, timeouts)
+                'retries': 10,
+                'fragment_retries': 10,
+                'file_access_retries': 3,
             }
             
             # Add download_sections if trim is enabled
@@ -2167,10 +2196,71 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.error(f"Read timeout error - download failed: {error_message}")
                     return None
                 
+                # Check for incomplete download errors ("Got error: N bytes read, M more expected")
+                # This is a network interruption during download — retry with same format
+                if "bytes read," in error_message and "more expected" in error_message:
+                    logger.warning(f"Incomplete download detected (network interruption): {error_message}")
+                    # Check if a partial file exists — yt-dlp may resume from it
+                    if info_dict:
+                        logger.info("Partial download exists, attempting to continue")
+                        return info_dict
+                    # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
+                    logger.error(f"Incomplete download failed: {error_message}")
+                    return None
+                
+                # Check for HTTP 429 Too Many Requests - sleep and retry
+                if "HTTP Error 429" in error_message or "Too Many Requests" in error_message:
+                    logger.warning(f"HTTP 429 rate limit detected: {error_message}")
+                    if not hasattr(try_download, '_429_count'):
+                        try_download._429_count = 0
+                    try_download._429_count += 1
+                    if try_download._429_count <= 2:
+                        sleep_time = 10 * try_download._429_count  # 10s, 20s
+                        logger.info(f"Rate limited, sleeping {sleep_time}s before retry (attempt {try_download._429_count}/2)")
+                        time.sleep(sleep_time)
+                        retry_result = try_download(url, attempt_opts)
+                        if retry_result is not None:
+                            logger.info(f"Rate limit retry successful for user {user_id}")
+                            try_download._429_count = 0
+                            return retry_result
+                    logger.error(f"HTTP 429 rate limit persisted after retries: {error_message}")
+                    try_download._429_count = 0
+                    return None
+                
                 # Check for format not available error
                 if "Requested format is not available" in error_message:
                     logger.error(f"Format not available error: {error_message}")
                     return "FORMAT_NOT_AVAILABLE"
+                
+                # Check for rename errors (common with DASH downloads when .part file is missing)
+                # This often happens with VK videos where IDs start with "-"
+                if "Unable to rename file" in error_message:
+                    logger.warning(f"File rename error detected: {error_message}")
+                    # Check if the destination file already exists (rename succeeded despite error)
+                    import re as _re
+                    dest_match = _re.search(r"-> '([^']+)'", error_message)
+                    if dest_match:
+                        dest_path = dest_match.group(1)
+                        if os.path.exists(dest_path):
+                            logger.info(f"Destination file exists despite rename error: {dest_path}")
+                            # Re-run extract_info to get proper info_dict with the file path
+                            return info_dict
+                    # Check if source .part file still exists
+                    src_match = _re.search(r"'([^']+\.part)'", error_message)
+                    if src_match:
+                        src_path = src_match.group(1)
+                        if os.path.exists(src_path):
+                            # Try to rename it ourselves
+                            dest_path = src_path[:-5]  # Remove .part extension
+                            try:
+                                os.rename(src_path, dest_path)
+                                logger.info(f"Manually renamed {src_path} -> {dest_path}")
+                                return info_dict
+                            except Exception as rename_err:
+                                logger.error(f"Manual rename also failed: {rename_err}")
+                    # Return None to trigger retry with next attempt
+                    logger.error(f"File rename error, retrying with next attempt: {error_message}")
+                    return None
                 
                 # Check for --live-from-start error and retry with --no-live-from-start
                 if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_message and not did_live_from_start_retry:
@@ -2386,6 +2476,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Network error" in error_message:
                         error_code = "NETWORK_ERROR"
                         error_description = "Network connection failed"
+                    elif "bytes read," in error_message and "more expected" in error_message:
+                        error_code = "INCOMPLETE_DOWNLOAD"
+                        error_description = "Download was interrupted — network connection unstable. Please try again."
+                    elif "Unable to rename file" in error_message:
+                        error_code = "FILE_RENAME_ERROR"
+                        error_description = "Failed to finalize download file. This may be a temporary issue — please try again."
                     elif "ffmpeg exited with code" in error_message or "ERROR: ffmpeg" in error_message:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message
@@ -2430,16 +2526,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.error(f"Attempt with format {ytdl_opts.get('format', 'default')} failed: {e}", exc_info=True)
                 logger.debug(f"Error message for geo-check: {error_message[:500]}")
                 
-                # Если все прокси уже провалились - сразу прерываем все операции
+                # Если все прокси уже провалились - пробуем без прокси как последний fallback
                 if "Failed to download video with all available proxies" in error_message:
-                    logger.warning(f"All proxies failed, error already sent to user - aborting all operations immediately")
+                    logger.warning(f"All proxies failed, attempting direct download without proxy as fallback")
+                    try:
+                        direct_opts = attempt_opts.copy()
+                        direct_opts.pop('proxy', None)
+                        # Also remove cookiefile to avoid cookie-related issues
+                        direct_result = try_download(url, direct_opts)
+                        if direct_result is not None and isinstance(direct_result, dict):
+                            logger.info(f"Direct download (no proxy) succeeded for user {user_id}")
+                            return direct_result
+                    except Exception as direct_e:
+                        logger.warning(f"Direct download fallback also failed: {direct_e}")
+                    
                     if not error_message_sent:
                         send_error_to_user(
                             message,
                             safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
                         )
                         error_message_sent = True
-                    # Прерываем все дальнейшие операции
                     return None
                 
                 # Auto-fallback to gallery-dl for obvious non-video cases
@@ -2761,12 +2867,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             "**Possible causes:**\n"
                             "• The video doesn't have the requested format (e.g., webm, mp4)\n"
                             "• The video quality is not available in the requested format\n"
-                            "• The video source has limited format options\n\n"
+                            "• The video source has limited format options\n"
+                            "• Live streams may not have all format variants\n\n"
                             "**Solutions:**\n"
                             "• Try downloading with a different quality setting\n"
                             "• Use the 'Always Ask' menu to see available formats\n"
                             "• Try changing your format preferences in /args settings\n"
-                            "• The system will automatically try alternative formats"
+                            "• The system already tried alternative formats automatically\n"
+                            "• For live streams, try again after the stream ends"
                         )
                         send_error_to_user(message, format_error_message)
                         error_message_sent = True
@@ -2913,8 +3021,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 video_id = info_dict.get('id') or ''
                 if video_id and is_hls:
                     logger.info(f"[HLS] Searching for files matching video ID: {video_id}")
-                    # Check for files starting with video ID (common pattern for HLS downloads)
-                    id_matching_files = [fname for fname in allfiles if fname.startswith(video_id) and not fname.endswith(('.txt', '.json', '.jpg', '.jpeg', '.png'))]
+                    # Check for files starting with "vid_" prefix + video ID (outtmpl uses vid_%(id)s)
+                    id_prefix = f"vid_{video_id}"
+                    id_matching_files = [fname for fname in allfiles if fname.startswith(id_prefix) and not fname.endswith(('.txt', '.json', '.jpg', '.jpeg', '.png'))]
                     if id_matching_files:
                         logger.info(f"[HLS] Found files matching video ID: {id_matching_files}")
                         # Prefer .mpegts or .ts files for HLS
@@ -4680,14 +4789,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.error(f"Error sending playlist auto-range hint: {hint_error}")
             
             # Clean up download subdirectory after successful upload
+            # CRITICAL: Only remove directory if no other parallel downloads are using it
             try:
                 from DOWN_AND_UP.always_ask_menu import get_user_download_dir
+                from HELPERS.filesystem_hlp import is_directory_protected, remove_protection_file
                 download_dir = get_user_download_dir(user_id)
                 if download_dir and os.path.exists(download_dir):
-                    logger.info(f"Cleaning up download subdirectory after successful upload: {download_dir}")
-                    import shutil
-                    shutil.rmtree(download_dir)
-                    logger.info(f"Successfully removed download subdirectory: {download_dir}")
+                    # Remove protection file first (our download is done)
+                    remove_protection_file(download_dir)
+                    
+                    # Check if other parallel downloads are still active
+                    if is_directory_protected(download_dir):
+                        logger.info(f"Skipping directory cleanup: other parallel downloads still active in {download_dir}")
+                    else:
+                        # Check if any media files remain (other threads may still need them)
+                        remaining_media = False
+                        try:
+                            for f in os.listdir(download_dir):
+                                if f.lower().endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts', '.mp3', '.m4a')):
+                                    remaining_media = True
+                                    break
+                        except Exception:
+                            pass
+                        
+                        if remaining_media:
+                            logger.info(f"Skipping directory cleanup: media files still present in {download_dir} (other downloads may be in progress)")
+                        else:
+                            logger.info(f"Cleaning up download subdirectory after successful upload: {download_dir}")
+                            import shutil
+                            shutil.rmtree(download_dir)
+                            logger.info(f"Successfully removed download subdirectory: {download_dir}")
             except Exception as cleanup_error:
                 logger.error(f"Error cleaning up download subdirectory for user {user_id}: {cleanup_error}")
 
@@ -4751,6 +4882,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         except Exception as cleanup_error:
             logger.error(f"Error cleaning up temp files after error for user {user_id}: {cleanup_error}")
     finally:
+        # Always unregister cancel event to prevent memory leaks
+        try:
+            unregister_download_cancel_event(user_id, _cancel_ev)
+        except Exception:
+            pass
         # Always stop hourglass animation to prevent resource leaks
         try:
             stop_anim.set()
