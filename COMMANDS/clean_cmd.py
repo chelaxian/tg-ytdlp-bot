@@ -5,7 +5,7 @@ from pyrogram import enums
 from HELPERS.app_instance import get_app
 from HELPERS.safe_messeger import fake_message
 from HELPERS.logger import logger
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 
 app = get_app()
 

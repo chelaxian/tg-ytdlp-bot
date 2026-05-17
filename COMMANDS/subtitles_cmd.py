@@ -19,7 +19,7 @@ import math
 from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 import os
 import glob
@@ -323,7 +323,6 @@ def get_flag(lang_code: str, use_second_part: bool = False) -> str:
 @reply_with_keyboard
 @background_handler(label="subs_command")
 def subs_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     """Handle /subs command - show language selection menu"""
     user_id = message.from_user.id
     is_admin = int(user_id) in Config.ADMIN
@@ -443,7 +442,6 @@ def subs_command(app, message):
 def subs_page_callback(app, callback_query):
     """Handle page navigation in subtitle language selection menu"""
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     page = int(callback_query.data.split("|")[1])
     current_lang = get_user_subs_language(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)
@@ -472,7 +470,6 @@ def subs_page_callback(app, callback_query):
 def subs_lang_callback(app, callback_query):
     """Handle language selection in subtitle language menu"""
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     lang_code = callback_query.data.split("|")[1]
     
     save_user_subs_language(user_id, lang_code)
@@ -490,7 +487,6 @@ def subs_lang_callback(app, callback_query):
 def subs_auto_callback(app, callback_query):
     """Handle AUTO/TRANS mode toggle in subtitle language menu"""
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     parts = callback_query.data.split("|")
     action = parts[1]
     page = int(parts[2]) if len(parts) > 2 else 0  # <- Here!
@@ -532,7 +528,6 @@ def subs_auto_callback(app, callback_query):
 def subs_always_ask_callback(app, callback_query):
     """Handle Always Ask mode toggle in subtitle language menu"""
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     parts = callback_query.data.split("|")
     action = parts[1]
     page = int(parts[2]) if len(parts) > 2 else 0
@@ -559,7 +554,6 @@ def subs_always_ask_callback(app, callback_query):
 @app.on_callback_query(filters.regex(r"^subs_lang_close\|"))
 def subs_lang_close_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     data = callback_query.data.split("|")[1]
     if data == "close":
         try:
@@ -598,7 +592,6 @@ def clear_subs_check_cache():
     logger.info("Subs check cache cleared")
 
 def check_subs_availability(url, user_id, quality_key=None, return_type=False):
-    messages = safe_get_messages(user_id)
     """
     Checks the availability of subtitles for the language chosen by the user.
     If Return_type = True, returns "Normal", "Auto" or None.
@@ -785,7 +778,6 @@ def ensure_utf8_srt(srt_path):
         return None
 
 def get_user_subs_language(user_id):
-    messages = safe_get_messages(user_id)
     """Get user's preferred subtitle language"""
     user_dir = os.path.join("users", str(user_id))
     subs_file = os.path.join(user_dir, "subs.txt")
@@ -795,7 +787,6 @@ def get_user_subs_language(user_id):
     return None
 
 def is_subs_enabled(user_id):
-    messages = safe_get_messages(user_id)
     # Check if Always Ask mode is enabled and subtitles are selected in Always Ask menu
     try:
         if is_subs_always_ask(user_id):
@@ -813,7 +804,6 @@ def is_subs_enabled(user_id):
     return lang is not None and lang != "OFF"
 
 def save_subs_always_ask(user_id, enabled: bool):
-    messages = safe_get_messages(user_id)
     """Persist Always Ask mode for subtitles (controls 💬 SUBS button in Always Ask)."""
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
@@ -837,7 +827,6 @@ def is_subs_always_ask(user_id) -> bool:
     return False
 
 def save_user_subs_language(user_id, lang_code):
-    messages = safe_get_messages(user_id)
     """Save user's subtitle language preference"""
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
@@ -855,7 +844,6 @@ def save_user_subs_language(user_id, lang_code):
     clear_subs_check_cache()
 
 def get_user_subs_auto_mode(user_id):
-    messages = safe_get_messages(user_id)
     """Get user's AUTO mode setting for subtitles"""
     user_dir = os.path.join("users", str(user_id))
     auto_file = os.path.join(user_dir, "subs_auto.txt")
@@ -865,7 +853,6 @@ def get_user_subs_auto_mode(user_id):
     return False
 
 def save_user_subs_auto_mode(user_id, auto_enabled):
-    messages = safe_get_messages(user_id)
     """Save user's AUTO mode setting for subtitles"""
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
@@ -880,7 +867,6 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
 
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
-    messages = safe_get_messages(user_id)
     """Returns a list of available languages of subtitles. Circrats 429 and 'Requested Format ...'."""
     # import os, random, time, yt_dlp
 
@@ -1325,7 +1311,6 @@ def _convert_ttml_to_srt(path: str) -> str:
 
 
 def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
-    messages = safe_get_messages(user_id)
     """
     One income Info, select 1 track. For URL with auto transmission (tlang =)
     We do not sort out the FMT so as not to catch 429. Json3/SRV3 convertibly locally.
@@ -1750,7 +1735,6 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
 
 def download_subtitles_only(app, message, url, tags, available_langs, playlist_name=None, video_count=1, video_start_with=1):
-    messages = safe_get_messages(message.chat.id)
     """
     Downloads and sends only a subtitle file without a video
     """
@@ -1886,7 +1870,6 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
 
 
 def get_language_keyboard(page=0, user_id=None, langs_override=None, per_page_rows=8):
-    messages = safe_get_messages(user_id)
     """Generate keyboard with language buttons in 3 columns. Supports paging and optional language override."""
     keyboard = []
     LANGS_PER_ROW = 3
@@ -1957,7 +1940,6 @@ def get_language_keyboard(page=0, user_id=None, langs_override=None, per_page_ro
     return InlineKeyboardMarkup(keyboard)
 
 def get_language_keyboard_always_ask(page=0, user_id=None, langs_override=None, per_page_rows=8, normal_langs=None, auto_langs=None):
-    messages = safe_get_messages(user_id)
     """Generate keyboard for Always Ask mode with (auto)/(trans) indicators."""
     keyboard = []
     LANGS_PER_ROW = 3

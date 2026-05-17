@@ -7,14 +7,14 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyPara
 from HELPERS.safe_messeger import safe_send_message
 
 from HELPERS.app_instance import get_app
-from HELPERS.decorators import reply_with_keyboard, send_reply_keyboard_always, background_handler
+from HELPERS.decorators import send_reply_keyboard_always, background_handler
 from HELPERS.logger import send_to_logger, send_to_user
 from HELPERS.limitter import is_user_in_channel, check_user, check_playlist_range_limits
 from HELPERS.download_status import get_active_download
 from HELPERS.filesystem_hlp import create_directory
 
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 
 from URL_PARSERS.tags import extract_url_range_tags, save_user_tags
 
@@ -77,7 +77,6 @@ def help_msg_callback(app, callback_query):
 
 # Command to Download Audio from a Video url
 @app.on_message(filters.command("audio") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="audio_command")
 def audio_command_handler(app, message):
     user_id = message.chat.id
@@ -171,7 +170,6 @@ def proxy_command_handler(app, message):
 
 # /Playlist Command
 @app.on_message(filters.command("playlist") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="playlist_command")
 def playlist_command(app, message):
     user_id = message.chat.id

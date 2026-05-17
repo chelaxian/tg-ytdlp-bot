@@ -7,16 +7,14 @@ from HELPERS.decorators import background_handler
 from CONFIG.config import Config
 from HELPERS.logger import send_to_logger
 from HELPERS.limitter import is_user_in_channel
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 
 # Get app instance for decorators
 app = get_app()
 
 @app.on_message(filters.command("tags") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="tags_command")
 def tags_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     

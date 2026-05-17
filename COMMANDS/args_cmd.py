@@ -18,7 +18,7 @@ from HELPERS.limitter import check_user, is_user_in_channel
 from HELPERS.safe_messeger import safe_send_message
 from HELPERS.decorators import background_handler
 from CONFIG.config import Config
-from CONFIG.messages import Messages, get_messages_instance, safe_get_messages
+from CONFIG.messages import get_messages_instance, safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 
 # Initialize messages for global use (will be overridden in functions)
