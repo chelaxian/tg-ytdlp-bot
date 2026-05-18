@@ -2442,6 +2442,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     else:
                         logger.info(f"Error appears to be non-cookie-related for {url}, skipping cookie fallback")
                 
+                # Retry without postprocessors when ffmpeg fails
+                # (e.g. X/Twitter videos that fail during FFmpegMetadata embedding)
+                if "ffmpeg exited with code" in error_message or ("ERROR: ffmpeg" in error_message and "Postprocessing" not in error_message):
+                    logger.warning(f"FFmpeg error detected, retrying without postprocessors: {error_message[:200]}")
+                    no_pp_opts = attempt_opts.copy()
+                    no_pp_opts['postprocessors'] = []
+                    try:
+                        no_pp_result = try_download(url, no_pp_opts)
+                        if no_pp_result is not None and isinstance(no_pp_result, dict):
+                            logger.info(f"Successfully downloaded without postprocessors after ffmpeg error")
+                            return no_pp_result
+                        logger.warning(f"Retry without postprocessors returned non-dict: {no_pp_result}")
+                    except Exception as no_pp_e:
+                        logger.warning(f"Retry without postprocessors also failed: {no_pp_e}")
+                
                 # Check if this is a skippable video error (private error for specific video in playlist)
                 # This check should be done before sending error message to avoid stopping entire playlist
                 if is_playlist and is_skippable_video_error(error_message):
