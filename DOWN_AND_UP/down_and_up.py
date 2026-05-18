@@ -2017,6 +2017,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
+                # Handle "File name too long" (Errno 36) — retry with a short hashed filename
+                if "File name too long" in error_message or "Errno 36" in error_message:
+                    logger.warning(f"Filename too long, retrying with short hashed filename")
+                    import hashlib as _hl
+                    _short_hash = _hl.md5(url.encode('utf-8')).hexdigest()[:12]
+                    _short_outtmpl = os.path.join(user_dir_name, f"vid_{_short_hash}.%(ext)s")
+                    short_opts = attempt_opts.copy()
+                    short_opts['outtmpl'] = _short_outtmpl
+                    try:
+                        short_info = ytdl.extract_info(url, download=True)
+                        if short_info:
+                            logger.info(f"Successfully downloaded with short filename: {_short_outtmpl}")
+                            return short_info
+                    except Exception as short_e:
+                        logger.error(f"Short filename retry also failed: {short_e}")
+                    return None
+                
                 # Special handling for HLS streams: check if file was actually created despite the error
                 hls_file_found = False
                 if is_hls and "No such file or directory" in error_message and (".part" in error_message or ".mp4" in error_message):
