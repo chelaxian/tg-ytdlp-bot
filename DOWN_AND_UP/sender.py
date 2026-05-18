@@ -116,6 +116,32 @@ def send_videos(
         return None
     logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
+    # Convert unsupported formats to MP4 before sending.
+    # Telegram doesn't support FLV, some TS variants — remux via ffmpeg.
+    unsupported_extensions = ('.flv', '.f4v')
+    if video_abs_path.lower().endswith(unsupported_extensions):
+        try:
+            mp4_path = os.path.splitext(video_abs_path)[0] + "_remuxed.mp4"
+            if not os.path.exists(mp4_path):
+                logger.info(f"Remuxing unsupported format ({os.path.splitext(video_abs_path)[1]}) to MP4: {video_abs_path}")
+                import subprocess
+                result = subprocess.run(
+                    ['ffmpeg', '-y', '-i', video_abs_path, '-c', 'copy', '-movflags', '+faststart', mp4_path],
+                    capture_output=True, text=True, timeout=120
+                )
+                if result.returncode == 0 and os.path.exists(mp4_path):
+                    logger.info(f"Remuxed successfully: {mp4_path} ({humanbytes(os.path.getsize(mp4_path))})")
+                    video_abs_path = mp4_path
+                else:
+                    logger.warning(f"Remux failed (code {result.returncode}), will try sending as document: {result.stderr[:200]}")
+                    send_as_file = True  # Fallback to document send
+            else:
+                logger.info(f"Using existing remuxed file: {mp4_path}")
+                video_abs_path = mp4_path
+        except Exception as remux_err:
+            logger.warning(f"Remux error, falling back to document send: {remux_err}")
+            send_as_file = True
+    
     # Check if user has send_as_file enabled
     user_args = get_user_args(user_id)
     send_as_file = user_args.get("send_as_file", False)
@@ -819,10 +845,38 @@ def send_videos(
 
                         # Handle FloodWait with automatic sleep
                         if isinstance(e, FloodWait):
-                            wait_time = min(e.value + 1, 30)  # Cap at 30s to avoid hung uploads
-                            logger.warning(f"FloodWait received, waiting {wait_time}s...")
-                            time.sleep(wait_time)
-                            continue
+                            wait_time = e.value
+                            if wait_time <= 120:
+                                # Short wait: sleep and retry automatically
+                                wait_time_safe = wait_time + 1
+                                logger.warning(f"FloodWait received ({wait_time}s), waiting {wait_time_safe}s...")
+                                try:
+                                    safe_edit_message_text(user_id, msg_id,
+                                        f"⏳ FloodWait {wait_time}s — auto-retrying...")
+                                except Exception:
+                                    pass
+                                time.sleep(wait_time_safe)
+                                continue
+                            else:
+                                # Long wait: notify user and save for next attempt
+                                hours = wait_time // 3600
+                                minutes = (wait_time % 3600) // 60
+                                seconds = wait_time % 60
+                                time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
+                                logger.warning(f"FloodWait too long ({wait_time}s / {time_str}), saving and notifying user")
+                                # Save flood wait time for next download attempt
+                                user_dir = os.path.join("users", str(user_id))
+                                try:
+                                    os.makedirs(user_dir, exist_ok=True)
+                                    with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as fw_f:
+                                        fw_f.write(str(wait_time))
+                                except Exception:
+                                    pass
+                                send_error_to_user(message,
+                                    f"⏳ **Telegram FloodWait**: {time_str}\n\n"
+                                    f"Telegram требует подождать перед следующей отправкой. "
+                                    f"Бот автоматически продолжит после истечения таймера.")
+                                return None
 
                         if "Request timed out" in error_str or isinstance(e, TimeoutError):
                             attempts_left -= 1
