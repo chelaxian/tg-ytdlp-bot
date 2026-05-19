@@ -4360,6 +4360,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
                         
+                        # Send MKV/AV1/VP9 playback hint if non-default format
+                        if video_msg and after_rename_abs_path:
+                            try:
+                                _is_mkv_file = after_rename_abs_path.lower().endswith('.mkv')
+                                _is_non_avc = video_quality_codec and ('av1' in video_quality_codec.lower() or 'vp9' in video_quality_codec.lower())
+                                if _is_mkv_file or _is_non_avc:
+                                    safe_send_message(user_id, safe_get_messages(user_id).MKV_PLAYER_HINT_SENT_MSG, reply_parameters=ReplyParameters(message_id=video_msg.id), parse_mode=enums.ParseMode.HTML)
+                                    logger.info(f"Sent MKV/AV1/VP9 player hint to user {user_id}")
+                            except Exception as _e:
+                                logger.debug(f"Failed to send MKV player hint: {_e}")
+                        
                         # Save video message ID for caching purposes
                         last_video_msg_id = video_msg.id
                         

@@ -1365,6 +1365,7 @@ class Messages(object):
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — 사용 가능한 형식 목록 표시"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — 비디오 확장자/코덱 변경"
     ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: 인라인 재생을 위해 Telegram 디버그 메뉴에서 PlayerV2 활성화\niOS: Settings 10번 탭 → 아래로 스크롤 → PlayerV2 토글\nAndroid: Settings → \"Telegram v X.X.X\" 길게 두 번 누름 → 디버그 메뉴"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>MKV/AV1/VP9 동영상</b>\n이 동영상을 재생하려면 Telegram 디버그 메뉴에서 <b>PlayerV2</b>를 활성화하세요:\n\n📱 <b>iOS</b>: Settings → 10번 탭 → 아래로 스크롤 → PlayerV2 활성화\n🤖 <b>Android</b>: Settings → 아래로 스크롤 → \"Telegram v X.X.X\" 길게 두 번 누름 → PlayerV2 활성화"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀임베드"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — 오디오만 추출"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW는 유료입니다 (⭐️$0.02)"

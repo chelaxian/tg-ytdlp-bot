@@ -1366,6 +1366,7 @@ Use:
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — دستیاب فارمیٹس کی فہرست دکھائیں"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — ویڈیو ext/codec تبدیل کریں"
     ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: ان لائن پلے بیک کے لیے ٹیلیگرام ڈی بگ مینو میں PlayerV2 فعال کریں\niOS: Settings پر 10 بار ٹیپ کریں → نیچے سکرول کریں → PlayerV2 ٹوگل کریں\nAndroid: Settings → \"Telegram v X.X.X\" پر دو بار دیر تک دبائیں → ڈی بگ مینو"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>MKV/AV1/VP9 ویڈیو</b>\nاس ویڈیو کو چلانے کے لیے، ٹیلیگرام ڈی بگ مینو میں <b>PlayerV2</b> فعال کریں:\n\n📱 <b>iOS</b>: Settings → 10 بار ٹیپ کریں → نیچے سکرول کریں → PlayerV2 فعال کریں\n🤖 <b>Android</b>: Settings → نیچے سکرول کریں → \"Telegram v X.X.X\" پر دو بار دیر تک دبائیں → PlayerV2 فعال کریں"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "membed"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — صرف آڈیو نکالیں"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW ادائیگی شدہ ہے (⭐️$0.02)"
