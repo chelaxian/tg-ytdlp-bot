@@ -1,7 +1,7 @@
 # URL Extractor
 from HELPERS.app_instance import get_app
 from HELPERS.limitter import check_playlist_range_limits
-from HELPERS.download_status import get_active_download
+from HELPERS.download_status import get_active_download, can_start_download
 from HELPERS.logger import send_to_logger, send_error_to_user, logger
 from URL_PARSERS.tags import extract_url_range_tags, save_user_tags, get_auto_tags
 from URL_PARSERS.tiktok import is_tiktok_url
@@ -166,10 +166,10 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
             if not check_playlist_range_limits(url_parsed, video_start_with, video_end_with, app, message):
                 continue
             
-            # Wait if there's an active download (with timeout to prevent infinite blocking)
+            # Wait if concurrent download limit reached (with timeout to prevent infinite blocking)
             max_wait = 300  # 5 minutes max wait
             wait_start = time.time()
-            while get_active_download(user_id) and (time.time() - wait_start) < max_wait:
+            while not can_start_download(user_id) and (time.time() - wait_start) < max_wait:
                 time.sleep(1)
             
             # Process tags
@@ -324,11 +324,7 @@ def video_url_extractor(app, message):
         keys_to_remove = [k for k in playlist_errors if k.startswith(f"{user_id}_")]
         for key in keys_to_remove:
             del playlist_errors[key]
-            
-    if get_active_download(user_id):
-        app.send_message(user_id, safe_get_messages(user_id).VIDEO_EXTRACTOR_WAIT_DOWNLOAD_MSG, reply_parameters=ReplyParameters(message_id=message.id))
-        return
-        
+    
     full_string = message.text
     
     # Check if this is a group chat
@@ -337,6 +333,15 @@ def video_url_extractor(app, message):
     
     # Extract multiple URLs if in non-Always Ask mode
     all_urls = extract_multiple_urls(full_string)
+    
+    # Determine download type for concurrency check
+    is_multi_url_request = len(all_urls) > 1
+    # Check if any URL looks like a playlist
+    is_playlist_request = any(is_playlist_url(url) for url in all_urls) if all_urls else False
+    
+    if not can_start_download(user_id, is_playlist=is_playlist_request, is_multi_url=is_multi_url_request):
+        app.send_message(user_id, safe_get_messages(user_id).AUDIO_WAIT_MSG, reply_parameters=ReplyParameters(message_id=message.id))
+        return
     
     # If multiple URLs found, check for range syntax and process them in queue
     if len(all_urls) > 1:

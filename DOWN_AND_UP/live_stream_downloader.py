@@ -8,12 +8,16 @@ from datetime import datetime
 from CONFIG.limits import LimitsConfig
 from CONFIG.messages import safe_get_messages
 from HELPERS.logger import logger, get_log_channel
-from HELPERS.safe_messeger import safe_forward_messages
+from HELPERS.safe_messeger import safe_forward_messages, safe_send_message
 from DOWN_AND_UP.sender import send_videos
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, split_video_2
 from DOWN_AND_UP.down_and_up import _save_video_cache_with_logging
 from COMMANDS.split_sizer import get_user_split_size
 from HELPERS.download_status import register_download_cancel_event, unregister_download_cancel_event
+from pyrogram.errors import FloodWait
+from HELPERS.app_instance import get_app
+
+app = get_app()
 
 
 def download_live_stream_chunked(
@@ -45,6 +49,51 @@ def download_live_stream_chunked(
     _cancel_ev = register_download_cancel_event(user_id)
     try:
         messages = safe_get_messages(user_id)
+        
+        # ─── FloodWait early-warning (same pattern as down_and_up) ───
+        # Send a "rate limit" message FIRST. If there's no FloodWait, we immediately
+        # replace it with the real progress message. If FloodWait IS active, the replace
+        # fails and the user sees the rate-limit notice instead of silence.
+        user_dir = os.path.join("users", str(user_id))
+        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
+        
+        if os.path.exists(flood_time_file):
+            with open(flood_time_file, 'r') as f:
+                wait_time = int(f.read().strip())
+                hours = wait_time // 3600
+                minutes = (wait_time % 3600) // 60
+                seconds = wait_time % 60
+                time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
+                flood_msg = safe_send_message(user_id, messages.RATE_LIMIT_WITH_TIME_MSG.format(time=time_str), message=message)
+        else:
+            flood_msg = safe_send_message(user_id, messages.RATE_LIMIT_NO_TIME_MSG, message=message)
+        
+        # Try to replace the flood-warning with "live stream starting" to confirm no FloodWait
+        if flood_msg:
+            try:
+                app.edit_message_text(
+                    chat_id=user_id,
+                    message_id=flood_msg.id,
+                    text=f"📡 {messages.DOWNLOAD_STARTED_MSG}",
+                    parse_mode=enums.ParseMode.HTML
+                )
+                # Successfully replaced → no FloodWait, delete the temp message
+                try:
+                    app.delete_messages(user_id, flood_msg.id)
+                except Exception:
+                    pass
+                if os.path.exists(flood_time_file):
+                    os.remove(flood_time_file)
+            except FloodWait as e:
+                # FloodWait IS active — the warning message stays visible for the user
+                wait_time = e.value
+                os.makedirs(user_dir, exist_ok=True)
+                with open(flood_time_file, 'w') as f:
+                    f.write(str(wait_time))
+                logger.warning(f"FloodWait {wait_time}s during live stream start — user notified")
+                return False
+            except Exception:
+                pass  # Non-FloodWait error, continue normally
         
         # Get configuration
         # Проверяем, должны ли применяться ограничения к админу

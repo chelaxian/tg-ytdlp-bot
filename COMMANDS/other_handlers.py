@@ -1,19 +1,20 @@
 # #############################################################################################################################
 
 import os
+import re
 from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters
 from HELPERS.safe_messeger import safe_send_message
 
 from HELPERS.app_instance import get_app
-from HELPERS.decorators import reply_with_keyboard, send_reply_keyboard_always, background_handler
+from HELPERS.decorators import send_reply_keyboard_always, background_handler
 from HELPERS.logger import send_to_logger, send_to_user
 from HELPERS.limitter import is_user_in_channel, check_user, check_playlist_range_limits
-from HELPERS.download_status import get_active_download
+from HELPERS.download_status import get_active_download, can_start_download
 from HELPERS.filesystem_hlp import create_directory
 
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 
 from URL_PARSERS.tags import extract_url_range_tags, save_user_tags
 
@@ -24,54 +25,68 @@ from COMMANDS.proxy_cmd import proxy_command
 # Get app instance for decorators
 app = get_app()
 
-# Command handlers moved to URL_PARSERS/url_extractor.py url_distractor function
-# to avoid conflicts with the main text handler
+
+def _check_access(message, *, require_channel: bool = True) -> bool:
+    """Common access check for private-chat command handlers.
+    
+    Returns True if the user is allowed to proceed, False if a guard
+    already sent a response or the user should be silently dropped.
+    """
+    user_id = message.chat.id
+    is_admin = int(user_id) in Config.ADMIN
+    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+
+    if not is_ignore_command:
+        from DATABASE.firebase_init import is_user_ignored
+        if is_user_ignored(message):
+            return False
+
+    if not is_admin:
+        from DATABASE.firebase_init import is_user_blocked
+        if is_user_blocked(message):
+            return False
+
+    if require_channel and not is_admin and not is_user_in_channel(app, message):
+        return False
+
+    return True
+
+
+def _close_callback(callback_query, answer_msg_key: str, log_msg_key: str) -> None:
+    """Handle a generic 'close' callback: delete message (or clear markup), answer, and log."""
+    user_id = callback_query.from_user.id
+    _messages = safe_get_messages(user_id)
+    try:
+        callback_query.message.delete()
+    except Exception:
+        callback_query.edit_message_reply_markup(reply_markup=None)
+    callback_query.answer(getattr(_messages, answer_msg_key, ""))
+    send_to_logger(callback_query.message, getattr(_messages, log_msg_key, ""))
+
 
 # Keep only the callback handler for help close button
 @app.on_callback_query(filters.regex(r"^help_msg\|"))
 def help_msg_callback(app, callback_query):
-    messages = safe_get_messages(None)
     data = callback_query.data.split("|")[1]
     if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).OTHER_HELP_CLOSED_MSG)
-        send_to_logger(callback_query.message, safe_get_messages(user_id).HELP_MESSAGE_CLOSED_LOG_MSG)
-        return
+        _close_callback(callback_query, "OTHER_HELP_CLOSED_MSG", "HELP_MESSAGE_CLOSED_LOG_MSG")
 
 
 #############################################################################################################################
 
 # Command to Download Audio from a Video url
 @app.on_message(filters.command("audio") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="audio_command")
 def audio_command_handler(app, message):
-    messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
-    
-    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
-    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
-    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
-    
-    if not is_ignore_command:
-        from DATABASE.firebase_init import is_user_ignored
-        if is_user_ignored(message):
-            return  # User is ignored, no response at all (even for admins)
-    
-    # Check if user is blocked (except for admins)
-    if not is_admin:
-        from DATABASE.firebase_init import is_user_blocked
-        if is_user_blocked(message):
-            return  # User is blocked, message already sent by is_user_blocked
-    
-    if get_active_download(user_id):
-        safe_send_message(user_id, safe_get_messages(user_id).AUDIO_WAIT_MSG, reply_parameters=ReplyParameters(message_id=message.id))
+
+    if not _check_access(message):
         return
-    if not is_admin and not is_user_in_channel(app, message):
+
+    if not can_start_download(user_id):
+        safe_send_message(user_id, safe_get_messages(user_id).AUDIO_WAIT_MSG, reply_parameters=ReplyParameters(message_id=message.id))
         return
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
@@ -81,7 +96,6 @@ def audio_command_handler(app, message):
     try:
         parts = (text or '').split()
         if len(parts) >= 3 and parts[0].lower().startswith('/audio'):
-            import re
             if re.match(r"^\d+-\d*$", parts[1]):
                 rng = parts[1]
                 start_str, end_str = rng.split('-')
@@ -141,25 +155,7 @@ def audio_command_handler(app, message):
 @app.on_message(filters.command("link") & filters.private)
 @background_handler(label="link_command")
 def link_command_handler(app, message):
-    user_id = message.chat.id
-    is_admin = int(user_id) in Config.ADMIN
-    
-    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
-    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
-    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
-    
-    if not is_ignore_command:
-        from DATABASE.firebase_init import is_user_ignored
-        if is_user_ignored(message):
-            return  # User is ignored, no response at all (even for admins)
-    
-    # Check if user is blocked (except for admins)
-    if not is_admin:
-        from DATABASE.firebase_init import is_user_blocked
-        if is_user_blocked(message):
-            return  # User is blocked, message already sent by is_user_blocked
-    
-    if not is_admin and not is_user_in_channel(app, message):
+    if not _check_access(message):
         return
     link_command(app, message)
 
@@ -167,45 +163,18 @@ def link_command_handler(app, message):
 @app.on_message(filters.command("proxy") & filters.private)
 @background_handler(label="proxy_command")
 def proxy_command_handler(app, message):
-    user_id = message.chat.id
-    is_admin = int(user_id) in Config.ADMIN
-    
-    # Check if user is blocked (except for admins)
-    if not is_admin:
-        from DATABASE.firebase_init import is_user_blocked
-        if is_user_blocked(message):
-            return  # User is blocked, message already sent by is_user_blocked
-    
-    if not is_admin and not is_user_in_channel(app, message):
+    if not _check_access(message, require_channel=False):
         return
     proxy_command(app, message)
 
 
 # /Playlist Command
 @app.on_message(filters.command("playlist") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="playlist_command")
 def playlist_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
-    is_admin = int(user_id) in Config.ADMIN
-    
-    # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
-    text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
-    is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
-    
-    if not is_ignore_command:
-        from DATABASE.firebase_init import is_user_ignored
-        if is_user_ignored(message):
-            return  # User is ignored, no response at all (even for admins)
-    
-    # Check if user is blocked (except for admins)
-    if not is_admin:
-        from DATABASE.firebase_init import is_user_blocked
-        if is_user_blocked(message):
-            return  # User is blocked, message already sent by is_user_blocked
-    
-    if not is_admin and not is_user_in_channel(app, message):
+
+    if not _check_access(message):
         return
 
     keyboard = InlineKeyboardMarkup([
@@ -216,43 +185,21 @@ def playlist_command(app, message):
 
 @app.on_callback_query(filters.regex(r"^playlist_help\|"))
 def playlist_help_callback(app, callback_query):
-    messages = safe_get_messages(None)
     data = callback_query.data.split("|")[1]
     if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).PLAYLIST_HELP_CLOSED_MSG)
-        send_to_logger(callback_query.message, safe_get_messages(user_id).PLAYLIST_HELP_CLOSED_LOG_MSG)
-        return
-
+        _close_callback(callback_query, "PLAYLIST_HELP_CLOSED_MSG", "PLAYLIST_HELP_CLOSED_LOG_MSG")
 
 @app.on_callback_query(filters.regex(r"^userlogs_close\|"))
 def userlogs_close_callback(app, callback_query):
-    messages = safe_get_messages(None)
     data = callback_query.data.split("|")[1]
     if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).OTHER_LOGS_MESSAGE_CLOSED_MSG)
-        send_to_logger(callback_query.message, safe_get_messages(user_id).USERLOGS_CLOSED_MSG)
-        return
+        _close_callback(callback_query, "OTHER_LOGS_MESSAGE_CLOSED_MSG", "USERLOGS_CLOSED_MSG")
 
 @app.on_callback_query(filters.regex(r"^audio_hint\|"))
 def audio_hint_callback(app, callback_query):
-    messages = safe_get_messages(None)
     data = callback_query.data.split("|")[1]
     if data == "close":
-        try:
-            callback_query.message.delete()
-        except Exception:
-            callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).AUDIO_HELP_CLOSED_MSG)
-        send_to_logger(callback_query.message, safe_get_messages(user_id).AUDIO_HINT_CLOSED_LOG_MSG)
-        return
+        _close_callback(callback_query, "AUDIO_HELP_CLOSED_MSG", "AUDIO_HINT_CLOSED_LOG_MSG")
 
 
 

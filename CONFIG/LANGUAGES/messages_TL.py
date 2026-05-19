@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Pinamamahalaan ni</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Baguhin ang wika: /lang</b>"
-    TO_USE_MSG = "<i>Upang magamit ang bot na ito, kailangan mong mag-subscribe sa @tg_ytdlp Telegram channel.</i>\nPagkatapos sumali sa channel, <b>ipadala ulit ang iyong video link at i-download ito ng bot para sa iyo</b> ❤️\n\n<blockquote>P.S. Dahil sa posibleng 🔞NSFW content - ang pag-download mula sa ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> at 🔞<b>Porn sites</b> ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ HUWAG 🗑<b>tanggalin/i-unsubscribe ang @tg_ytdlp channel</b> at HUWAG 🤖<b>mag-SPAM ng sobrang URL/commands sa bot</b> - mababan ka nang awtomatiko ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Upang magamit ang bot na ito, kailangan mong mag-subscribe sa @tg_ytdlp Telegram channel.</i>\nPagkatapos sumali sa channel, <b>ipadala ulit ang iyong video link at i-download ito ng bot para sa iyo</b> ❤️\n\n<blockquote>P.S. Dahil sa posibleng 🔞NSFW content - ang pag-download mula sa ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> at 🔞<b>Porn sites</b> ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ HUWAG 🗑<b>tanggalin/i-unsubscribe ang @tg_ytdlp channel</b> at HUWAG 🤖<b>mag-SPAM ng sobrang URL/commands sa bot</b> - mababan ka nang awtomatiko ⛔️</blockquote>"
 
     ERROR1 = "Hindi nahanap ang url link. Mangyaring maglagay ng url na may <b>https://</b> o <b>http://</b>"
 
@@ -154,6 +154,10 @@ Gamitin ang <code>/img URL</code> upang mag-download ng mga larawan/photo/album 
 
 👨‍💻 <i>Developer:</i> @upekshaip
 🤝 <i>Contributor:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
 </blockquote>
     """
     
@@ -232,6 +236,7 @@ Magdagdag ng aking mga bot sa inyong mga grupo upang makakuha ng mas mahusay na 
 • Command limit: <b>20/min</b>
 • 1 Download max time: <b>2 oras</b>
 • 🔞 NSFW content ay may bayad! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 LAHAT NG IBA PANG MEDIA AY TOTALLY LIBRE
 • 📝 Lahat ng content logs & caching sa aking log-channels para sa instant repost kapag muling nag-download</blockquote>
 
@@ -527,7 +532,9 @@ Matuto pa: /playlist"""
         "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
         "- 720p max quality\n"
         "- 1.5 hour max duration\n"
-        "- 500mb max video size</blockquote>\n\n"
+        "- 500mb max video size\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Mabilisang mga utos:</b>\n"
@@ -763,7 +770,7 @@ Matuto pa: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Palitan ang <code>bestvideo+bestaudio/best</code> ng iyong nais na format string."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Pumili ng iyong nais na resolution at codec:"
+    FORMAT_RESOLUTION_MENU_MSG = "Pumili ng iyong nais na resolution at codec:\n\n⚠️ <b>MKV/AV1/VP9:</b> Para mapanood, i-enable ang <b>PlayerV2</b> sa Telegram Debug menu:\n📱 iOS: Settings → i-tap 10 beses → PlayerV2 toggle\n🤖 Android: Settings → pindutin nang matagal ang \"Telegram v X.X.X\" nang dalawang beses → Debug menu"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Nakatakda ang format sa: Always Ask. Ngayon ay tatanungin ka para sa kalidad sa bawat pagpapadala ng URL."
     FORMAT_UPDATED_MSG = "✅ Na-update ang format sa:\n{format}"
     FORMAT_SAVED_MSG = "✅ Na-save ang format."
@@ -1351,12 +1358,15 @@ Matuto pa: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Instant repost mula sa cache"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Pumili ng wikang audio"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞Bayaran ang NSFW (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Ang hard-burn na subtitle ay bayarin: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: admin lang"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Piliin ang kalidad ng pag-download"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Mag-download ng larawan (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Kumuha ng direktang link sa video"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Ipakita ang listahan ng mga available na format"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Baguhin ang ext/codec ng video"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: i-enable ang PlayerV2 sa Telegram Debug menu para sa inline playback\niOS: I-tap ang Settings nang 10 beses → mag-scroll pababa → i-toggle ang PlayerV2\nAndroid: Settings → pindutin nang matagal nang dalawang beses ang \"Telegram v X.X.X\" → Debug menu"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>Video ng MKV/AV1/VP9</b>\nUpang i-play ang video na ito, i-enable ang <b>PlayerV2</b> sa Telegram Debug menu:\n\n📱 <b>iOS</b>: Settings → i-tap nang 10 beses → mag-scroll pababa → i-enable ang PlayerV2\n🤖 <b>Android</b>: Settings → mag-scroll pababa → pindutin nang matagal nang dalawang beses ang \"Telegram v X.X.X\" → i-enable ang PlayerV2"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀I-embed"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — I-extract lang ang audio"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞Bayaran ang NSFW (⭐️$0.02)"
@@ -2022,7 +2032,7 @@ Matuto pa: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Para sa pagtatrabaho sa grupo, kailangan ng bot ang mga karapatan ng administrator. Mangyaring gawing admin ang bot sa grupong ito."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Kamusta {first_name},\n \n<i>Ang bot na ito🤖 ay maaaring mag-download ng anumang video sa telegram nang direkta.😊 Para sa karagdagang impormasyon pindutin ang <b>/help</b></i> 👈\n\n<blockquote>P.S. Dahil sa posibleng 🔞NSFW content - ang pag-download mula sa ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> at 🔞<b>Porn sites</b> ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ HUWAG 🗑<b>tanggalin/i-unsubscribe ang @tg_ytdlp channel</b> at HUWAG 🤖<b>mag-SPAM ng sobrang URL/commands sa bot</b> - mababan ka nang awtomatiko ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Kamusta {first_name},\n \n<i>Ang bot na ito🤖 ay maaaring mag-download ng anumang video sa telegram nang direkta.😊 Para sa karagdagang impormasyon pindutin ang <b>/help</b></i> 👈\n\n<blockquote>P.S. Dahil sa posibleng 🔞NSFW content - ang pag-download mula sa ☁️<b>Cloud Storage</b>, 📁<b>File Shares</b>, 🔗<b>URL shorteners</b> at 🔞<b>Porn sites</b> ay may bayad! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ HUWAG 🗑<b>tanggalin/i-unsubscribe ang @tg_ytdlp channel</b> at HUWAG 🤖<b>mag-SPAM ng sobrang URL/commands sa bot</b> - mababan ka nang awtomatiko ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Walang mga file na aalisin."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Matagumpay na naalis ang lahat ng file!\n\nMga naalis na file:\n{files_list}"
     
@@ -2289,7 +2299,7 @@ Matuto pa: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Panoorin"  # PANSAMANTALANG NAKA-DISABLE: down ang poketube service
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ TRIM"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Trim</b>\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nMangyaring ipadala ang nais na time range sa format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Trim</b>\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nMangyaring ipadala ang nais na time range sa format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Hindi wastong format. Mangyaring gamitin: <code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Hindi wastong range. Ang start time ay dapat na mas mababa kaysa sa end time."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Ang time range ay nasa labas ng mga hangganan ng video.\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nAng iyong range ay dapat na nasa loob ng mga limitasyong ito."

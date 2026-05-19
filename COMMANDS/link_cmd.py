@@ -12,7 +12,7 @@ from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all
 from HELPERS.limitter import check_user, is_user_in_channel
 from HELPERS.filesystem_hlp import create_directory
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from URL_PARSERS.nocookie import is_no_cookie_domain
 from URL_PARSERS.youtube import is_youtube_url
@@ -23,40 +23,7 @@ from COMMANDS.cookies_cmd import ensure_working_youtube_cookies
 # Get app instance for decorators
 app = get_app()
 
-def parse_quality_argument(quality_arg):
-    """
-    Parses quality argument and returns format for yt-dlp
-    
-    Args:
-        quality_arg (str): Quality argument (e.g., "720", "720p", "4k", "8K")
-        
-    Returns:
-        str: Format for yt-dlp
-    """
-    if not quality_arg:
-        return "best"
-    
-    quality_arg = quality_arg.lower().strip()
-    
-    # Remove 'p' or 'P' if present
-    if quality_arg.endswith('p'):
-        quality_arg = quality_arg[:-1]
-    
-    # Special cases for 4K and 8K
-    if quality_arg in ['4k', '4']:
-        return "bv*[height<=2160]+ba/bv*[height<=2160]/bv+ba/best"
-    elif quality_arg in ['8k', '8']:
-        return "bv*[height<=4320]+ba/bv*[height<=4320]/bv+ba/best"
-    
-    # Check if this is a number from 1 to 10000
-    try:
-        quality_num = int(quality_arg)
-        if 1 <= quality_num <= 10000:
-            return f"bv*[height<={quality_num}]+ba/bv*[height<={quality_num}]/bv+ba/best"
-        else:
-            return "best"
-    except ValueError:
-        return "best"
+from COMMANDS.format_cmd import parse_quality_argument
 
 def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=False, use_proxy=False):
     # Сбрасываем кеш проверенных источников куки для новой задачи получения ссылки
@@ -64,7 +31,6 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
     reset_checked_cookie_sources(user_id)
     logger.info(f"🔄 [DEBUG] Reset checked cookie sources for new link task for user {user_id}")
     
-    messages = safe_get_messages(user_id)
     """
     Gets direct link to video using yt-dlp
     
@@ -317,7 +283,6 @@ def link_command(app, message):
     """
     try:
         user_id = message.chat.id
-        messages = safe_get_messages(user_id)
         
         # Subscription check for non-admins
         if not is_user_in_channel(app, message):

@@ -3,7 +3,7 @@ import os
 import subprocess
 from pyrogram import filters
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters
 
 from HELPERS.app_instance import get_app
@@ -17,10 +17,8 @@ from HELPERS.limitter import is_user_in_channel
 app = get_app()
 
 @app.on_message(filters.command("mediainfo") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="mediainfo_command")
 def mediainfo_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     
@@ -81,10 +79,8 @@ safe_get_messages(user_id).MEDIAINFO_MENU_TITLE_MSG,
 
 
 @app.on_callback_query(filters.regex(r"^mediainfo_option\|"))
-# @reply_with_keyboard
 def mediainfo_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     logger.info(safe_get_messages(user_id).MEDIAINFO_CALLBACK_MSG.format(callback_data=callback_query.data))
     data = callback_query.data.split("|")[1]
     user_dir = os.path.join("users", str(user_id))
@@ -124,7 +120,6 @@ def mediainfo_option_callback(app, callback_query):
 
 
 def is_mediainfo_enabled(user_id):
-    messages = safe_get_messages(user_id)
     user_dir = os.path.join("users", str(user_id))
     mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
     if not os.path.exists(mediainfo_file):
@@ -152,7 +147,6 @@ def get_mediainfo_cli(file_path):
 
 
 def send_mediainfo_if_enabled(user_id, file_path, message):
-    messages = safe_get_messages(user_id)
     if is_mediainfo_enabled(user_id):
         try:
             # Extract msg_id safely

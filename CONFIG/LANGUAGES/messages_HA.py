@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Ana gudanar da shi ta</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Canza harshe: /lang</b>"
-    TO_USE_MSG = "<i>Don amfani da wannan bot kuna buƙatar yin rajista zuwa tashar Telegram @tg_ytdlp.</i>\nBayan kun shiga tashar, <b>sake aika hanyar bidiyon ku kuma bot zai sauke shi gare ku</b> ❤️\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Don amfani da wannan bot kuna buƙatar yin rajista zuwa tashar Telegram @tg_ytdlp.</i>\nBayan kun shiga tashar, <b>sake aika hanyar bidiyon ku kuma bot zai sauke shi gare ku</b> ❤️\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>"
 
     ERROR1 = "Ba a sami hanyar url ba. Da fatan za a shigar da url tare da <b>https://</b> ko <b>http://</b>"
 
@@ -154,6 +154,10 @@ Yi amfani da <code>/img URL</code> don sauke hotuna/hoto/kundin hotuna daga dand
 
 👨‍💻 <i>Mai Haɓakawa:</i> @upekshaip
 🤝 <i>Mai Ba da Gudummawa:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
 </blockquote>
     """
     
@@ -232,6 +236,7 @@ Danna maɓallin da ke ƙasa don kunna bincike na cikin layi ta hanyar @vid.
 • Iyakar umarni: <b>20/min</b>
 • 1 Saukewa matsakaicin lokaci: <b>sa'o'i 2</b>
 • 🔞 Abun ciki na NSFW ana biya! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 DUK SAURAN KAFOFIN WATSAN LABARAI SUNA KYAU GABAN ɗAYA
 • 📝 Duk tarihin abun ciki & caching zuwa tashoshin log dina don sake bugawa nan take lokacin sake saukewa</blockquote>
 
@@ -527,7 +532,9 @@ Koyi ƙari: /playlist"""
         "<blockquote>❗️GARGADI: saboda tasirin CPU mai girma wannan aikin yana da sannu a hankali (kusa da lokaci na gaske) kuma an iyakance shi zuwa:\n"
         "- Matsakaicin inganci 720p\n"
         "- Matsakaicin tsawon lokaci sa'o'i 1.5\n"
-        "- Matsakaicin girman bidiyo 500mb</blockquote>\n\n"
+        "- Matsakaicin girman bidiyo 500mb\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Umarni masu sauri:</b>\n"
@@ -763,7 +770,7 @@ Koyi ƙari: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Maye gurbin <code>bestvideo+bestaudio/best</code> da kirtar tsari da kake so."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Zaɓi ƙuduri da codec da kake so:"
+    FORMAT_RESOLUTION_MENU_MSG = "Zaɓi ƙuduri da codec da kake so:\n\n⚠️ <b>MKV/AV1/VP9:</b> Don kunnawa, kunna <b>PlayerV2</b> a cikin menu na Debug na Telegram:\n📱 iOS: Settings → taɓa sau 10 → maɓallin PlayerV2\n🤖 Android: Settings → danna tsawo \"Telegram v X.X.X\" sau biyu → menu na Debug"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ An saita tsari zuwa: Luôn Tambayi. Yanzu za a tambaye ka inganci a kowane lokacin da ka aika URL."
     FORMAT_UPDATED_MSG = "✅ An sabunta tsari zuwa:\n{format}"
     FORMAT_SAVED_MSG = "✅ An adana tsari."
@@ -1351,12 +1358,15 @@ Koyi ƙari: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 - Maimaita kai tsaye daga cache"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 - Zaɓi yaren mai jiwuwa"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ - Ana biyan 🔞NSFW (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ - Hard-burned subtitles ana biyan su: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: admin kawai"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 - Zaɓi ingancin zazzagewa"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 - Zazzage hoto (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 - Samun hanyar haɗi kai tsaye zuwa bidiyo"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 - Nuna jerin abubuwan da ake samuwa"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 - Canza bidiyo ext/codec"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: kunna PlayerV2 a cikin Telegram Debug menu don kunna layi\niOS: Danna Settings sau 10 → koma kasa → kunna PlayerV2\nAndroid: Settings → danna doguwa sau biyu a kan \"Telegram v X.X.X\" → Debug menu"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>Bidiyo na MKV/AV1/VP9</b>\nDon kunna wannan bidiyon, kunna <b>PlayerV2</b> a cikin Telegram Debug menu:\n\n📱 <b>iOS</b>: Settings → danna sau 10 → koma kasa → kunna PlayerV2\n🤖 <b>Android</b>: Settings → koma kasa → danna doguwa sau biyu a kan \"Telegram v X.X.X\" → kunna PlayerV2"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Embed"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 - Cire sauti kawai"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ - Ana biyan 🔞NSFW (⭐️$0.02)"
@@ -2022,7 +2032,7 @@ Koyi ƙari: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйsta, sdelayte bota adminom эtoy ruppy."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Sannu {first_name},\n \n<i>Wannan bot🤖 na iya zazzage kowane bidiyo zuwa telegram kai tsaye.😊 Don ƙarin bayani danna <b>/help</b></i> 👈\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Sannu {first_name},\n \n<i>Wannan bot🤖 na iya zazzage kowane bidiyo zuwa telegram kai tsaye.😊 Don ƙarin bayani danna <b>/help</b></i> 👈\n\n<blockquote>P.S. Saboda yuwuwar 🔞NSFW abun ciki - saukewa daga ☁️<b>Ajiyar Girgije</b>, 📁<b>Raba Fayiloli</b>, 🔗<b>Gajeriyar URL</b> da 🔞<b>Shafukan batsa</b> ana biya! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ Kada ku 🗑<b>share/i-unsubscribe tashar @tg_ytdlp</b> kuma kada ku 🤖<b>yi spam da URL/umarni da yawa ga bot</b> - za a hana ku amfani da bot ta atomatik ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Babu fayilolin da za a cire."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     
@@ -2289,7 +2299,7 @@ Koyi ƙari: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Taken"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ YANKE"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Yanke Bidiyo</b>\n\nTsawon bidiyo: <b>{start_time} - {end_time}</b>\n\nDa fatan za a aika lokacin da ake so a cikin tsari:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisali: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Yanke Bidiyo</b>\n\nTsawon bidiyo: <b>{start_time} - {end_time}</b>\n\nDa fatan za a aika lokacin da ake so a cikin tsari:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisali: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Tsari mara inganci. Da fatan za a yi amfani: <code>HH:MM:SS-HH:MM:SS</code>\n\nMisali: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Range mara inganci. Lokacin farawa dole ne ya zama ƙasa da lokacin ƙarshe."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Lokacin lokaci yana waje da iyakokin bidiyo.\n\nTsawon bidiyo: <b>{start_time} - {end_time}</b>\n\nDole ne kewayon ku ya kasance cikin waɗannan iyakoki."

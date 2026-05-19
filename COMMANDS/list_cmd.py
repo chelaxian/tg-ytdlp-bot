@@ -16,7 +16,7 @@ from HELPERS.limitter import is_user_in_channel
 from HELPERS.safe_messeger import safe_send_message
 from HELPERS.decorators import background_handler
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.pot_helper import build_cli_extractor_args
 from COMMANDS.proxy_cmd import get_proxy_url, get_proxy_url_for_user_country, get_user_selected_country, is_proxy_enabled
@@ -104,7 +104,6 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
 @app.on_message(filters.command("list") & filters.private)
 @background_handler(label="list_command")
 def list_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     """Handle /list command"""
     user_id = message.chat.id
     
@@ -244,7 +243,6 @@ safe_get_messages(user_id).LIST_PROCESSING_MSG,
 @app.on_callback_query(filters.regex("^list_help\\|"))
 def list_help_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(None)
     """Handle list help callback"""
     try:
         data = callback_query.data.split("|")[1]

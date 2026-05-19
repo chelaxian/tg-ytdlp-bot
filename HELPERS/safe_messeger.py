@@ -91,7 +91,7 @@ def run_pyrogram_client_coroutine(app, coro, timeout=30):
         raise
 
 def fake_message(text, user_id, command=None, original_chat_id=None, message_thread_id=None, original_message=None):
-    messages = safe_get_messages(user_id)
+    _messages = safe_get_messages(user_id)
     m = SimpleNamespace()
     m.chat = SimpleNamespace()
     # Ensure user_id is int (convert from string if needed)
@@ -161,16 +161,59 @@ def fake_message_with_context(text, user_id, context_message=None, command=None)
         fake_message с правильным message_thread_id
     """
     if context_message:
-        original_chat_id = getattr(context_message, 'chat', {}).id if hasattr(context_message, 'chat') else user_id
+        original_chat_id = getattr(getattr(context_message, 'chat', None), 'id', user_id)
         message_thread_id = getattr(context_message, 'message_thread_id', None)
         return fake_message(text, user_id, command=command, original_chat_id=original_chat_id, 
                           message_thread_id=message_thread_id, original_message=context_message)
     else:
         return fake_message(text, user_id, command=command)
 
+def _handle_flood_wait(error_obj, user_id, retry_delay=5):
+    """Extract flood wait seconds, sleep, and return True if we should retry."""
+    err_str = str(error_obj)
+    wait_match = re.search(r'A wait of (\d+) seconds is required', err_str)
+    _messages = safe_get_messages(user_id)
+    if wait_match:
+        wait_seconds = int(wait_match.group(1))
+        logger.warning(_messages.HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG.format(wait_seconds=wait_seconds))
+        time.sleep(min(wait_seconds + 1, 30))
+    else:
+        logger.warning(_messages.HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG.format(retry_delay=retry_delay))
+        time.sleep(retry_delay)
+
+
+def _should_retry(error, user_id, retry_delay=5):
+    """Check if an error is retryable (flood/seqno/random_id) and handle delay. Returns True if retryable."""
+    err_str = str(error)
+    _messages = safe_get_messages(user_id)
+    if "FLOOD_WAIT" in err_str:
+        _handle_flood_wait(error, user_id, retry_delay)
+        return True
+    if "msg_seqno is too high" in err_str:
+        logger.warning(_messages.HELPER_MSG_SEQNO_ERROR_DETECTED_MSG.format(retry_delay=retry_delay))
+        time.sleep(retry_delay)
+        return True
+    if "RANDOM_ID_DUPLICATE" in err_str:
+        logger.warning("RANDOM_ID_DUPLICATE detected, backing off briefly and retrying")
+        time.sleep(0.5)
+        return True
+    return False
+
+
+def _write_flood_wait_file(chat_id, value):
+    """Persist FloodWait seconds to user's flood_wait.txt file."""
+    try:
+        user_dir = os.path.join("users", str(chat_id))
+        os.makedirs(user_dir, exist_ok=True)
+        with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
+            f.write(str(value))
+    except Exception:
+        pass
+
+
 # Helper function for safe message sending with flood wait handling
 def safe_send_message(chat_id, text, **kwargs):
-    messages = safe_get_messages(None)
+    _messages = safe_get_messages(None)
     user_id = chat_id
     # Normalize reply parameters and preserve topic/thread info
     original_message = kwargs.get('message')
@@ -275,72 +318,23 @@ def safe_send_message(chat_id, text, **kwargs):
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.send_message(chat_id, text, **kwargs))
         except FloodWait as e:
-            # Write FloodWait seconds to per-user file and do not spin retries for huge waits
-            try:
-                user_dir = os.path.join("users", str(chat_id))
-                os.makedirs(user_dir, exist_ok=True)
-                with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                    f.write(str(e.value))
-            except Exception:
-                pass
+            _write_flood_wait_file(chat_id, e.value)
             logger.warning(f"Flood wait detected ({e.value}s) while sending message to {chat_id}")
-            # Try to fall back to answering the callback (if provided) to give user feedback
             try:
                 if cb is not None:
-                    try:
-                        cb.answer(notice or safe_get_messages(user_id).HELPER_FLOOD_LIMIT_TRY_LATER_MSG, show_alert=False)
-                    except Exception:
-                        pass
+                    cb.answer(notice or safe_get_messages(user_id).HELPER_FLOOD_LIMIT_TRY_LATER_MSG, show_alert=False)
             except Exception:
                 pass
             return None
         except Exception as e:
-            if "FLOOD_WAIT" in str(e):
-                # Extract wait time
-                wait_match = re.search(r'A wait of (\d+) seconds is required', str(e))
-                if wait_match:
-                    wait_seconds = int(wait_match.group(1))
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG.format(wait_seconds=wait_seconds))
-                    time.sleep(min(wait_seconds + 1, 5))  # short backoff
-                else:
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG.format(retry_delay=retry_delay))
-                    time.sleep(retry_delay)
-                if attempt and attempt < max_retries - 1:
-                    continue
-            
-            # Handle msg_seqno errors
-            elif "msg_seqno is too high" in str(e):
-                logger.warning(safe_get_messages(user_id).HELPER_MSG_SEQNO_ERROR_DETECTED_MSG.format(retry_delay=retry_delay))
-                time.sleep(retry_delay)
-                if attempt and attempt < max_retries - 1:
-                    continue
-            # Handle RANDOM_ID_DUPLICATE errors by brief backoff and retry
-            elif "RANDOM_ID_DUPLICATE" in str(e):
-                try:
-                    logger.warning("RANDOM_ID_DUPLICATE detected, backing off briefly and retrying")
-                except Exception:
-                    pass
-                time.sleep(0.5)
-                if attempt and attempt < max_retries - 1:
-                    continue
+            if _should_retry(e, user_id, retry_delay) and attempt < max_retries - 1:
+                continue
             logger.error(f"Failed to send message after {max_retries} attempts: {e}")
             return None
 
 # Helper function for safe message forwarding with flood wait handling
 def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
-    """
-    Safely forward messages with flood wait handling
-
-    Args:
-        chat_id: The chat ID to forward to
-        from_chat_id: The chat ID to forward from
-        message_ids: The message IDs to forward
-        **kwargs: Additional arguments for forward_messages
-
-    Returns:
-        The message objects or None if forwarding failed
-    """
-    messages = safe_get_messages(None)
+    _messages = safe_get_messages(None)
     user_id = chat_id
     max_retries = 3
     retry_delay = 5
@@ -350,41 +344,16 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.forward_messages(chat_id, from_chat_id, message_ids, **kwargs))
         except Exception as e:
-            if "FLOOD_WAIT" in str(e):
-                # Extract wait time
-                wait_match = re.search(r'A wait of (\d+) seconds is required', str(e))
-                if wait_match:
-                    wait_seconds = int(wait_match.group(1))
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG.format(wait_seconds=wait_seconds))
-                    time.sleep(min(wait_seconds + 1, 30))  # Wait the required time (max 30 sec)
-                else:
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG.format(retry_delay=retry_delay))
-                    time.sleep(retry_delay)
-
-                if attempt and attempt < max_retries - 1:
-                    continue
-
+            if _should_retry(e, user_id, retry_delay) and attempt < max_retries - 1:
+                continue
             logger.error(f"Failed to forward messages after {max_retries} attempts: {e}")
             return None
 
 # Helper function for safely editing message text with flood wait handling
 def safe_edit_message_text(chat_id, message_id, text, **kwargs):
-    """
-    Safely edit message text with flood wait handling
-
-    Args:
-        chat_id: The chat ID
-        message_id: The message ID to edit
-        text: The new text
-        **kwargs: Additional arguments for edit_message_text
-
-    Returns:
-        The message object or None if editing failed
-    """
-    messages = safe_get_messages(None)
+    _messages = safe_get_messages(None)
     user_id = chat_id
     max_retries = 3
-    retry_delay = 5
 
     # Throttle edits in groups to no more than once per 5 seconds per chat
     try:
@@ -392,19 +361,18 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
     except Exception:
         is_group = False
 
-    # Module-level storage for last edit timestamps
     if is_group:
         now = time.time()
         last_ts = _last_edit_ts_per_chat.get(chat_id, 0.0)
         elapsed = now - last_ts
-        if elapsed and elapsed < 5.0:
+        if 0 < elapsed < 5.0:
             try:
                 time.sleep(5.0 - elapsed)
             except Exception:
                 pass
         _last_edit_ts_per_chat[chat_id] = time.time()
 
-        # Periodic cleanup: remove stale entries (older than 10 minutes)
+        # Periodic cleanup
         global _last_edit_cleanup_ts
         if now - _last_edit_cleanup_ts > 300:
             _last_edit_cleanup_ts = now
@@ -418,33 +386,18 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.edit_message_text(chat_id, message_id, text, **kwargs))
         except FloodWait as e:
-            # Persist FloodWait info and stop
-            try:
-                user_dir = os.path.join("users", str(chat_id))
-                os.makedirs(user_dir, exist_ok=True)
-                with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                    f.write(str(e.value))
-            except Exception:
-                pass
+            _write_flood_wait_file(chat_id, e.value)
             logger.warning(f"Flood wait detected ({e.value}s) while editing message for {chat_id}")
             return None
         except Exception as e:
-            # If message ID is invalid, it means the message was deleted
-            # No need to retry, just return immediately
-            if safe_get_messages().HELPER_MESSAGE_ID_INVALID_MSG in str(e):
-                # We only log this once, not for every retry
+            if _messages.HELPER_MESSAGE_ID_INVALID_MSG in str(e):
                 if attempt == 0:
                     logger.debug(f"Tried to edit message that was already deleted: {message_id}")
                 return None
 
 # Helper function for safely clearing reply markup (inline keyboard)
 def safe_edit_reply_markup(chat_id, message_id, reply_markup=None, **kwargs):
-    """
-    Safely edit message reply markup (e.g., clear inline keyboard) with flood wait handling
-
-    Inherits message_thread_id from provided message or _callback_query for topics.
-    """
-    messages = safe_get_messages(None)
+    _messages = safe_get_messages(None)
     user_id = chat_id
     max_retries = 3
     retry_delay = 5
@@ -454,66 +407,33 @@ def safe_edit_reply_markup(chat_id, message_id, reply_markup=None, **kwargs):
     cb_peek = kwargs.get('_callback_query', None)
     try:
         if 'message_thread_id' not in kwargs:
-            if original_message is not None and getattr(original_message, 'message_thread_id', None):
+            if original_message and getattr(original_message, 'message_thread_id', None):
                 kwargs['message_thread_id'] = original_message.message_thread_id
-            elif cb_peek is not None and getattr(getattr(cb_peek, 'message', None), 'message_thread_id', None):
+            elif cb_peek and getattr(getattr(cb_peek, 'message', None), 'message_thread_id', None):
                 kwargs['message_thread_id'] = cb_peek.message.message_thread_id
     except Exception:
         pass
-    if 'message' in kwargs:
-        del kwargs['message']
-    if '_callback_query' in kwargs:
-        kwargs.pop('_callback_query', None)
+    kwargs.pop('message', None)
+    kwargs.pop('_callback_query', None)
 
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.edit_message_reply_markup(chat_id, message_id, reply_markup=reply_markup, **kwargs))
         except FloodWait as e:
-            try:
-                user_dir = os.path.join("users", str(chat_id))
-                os.makedirs(user_dir, exist_ok=True)
-                with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                    f.write(str(e.value))
-            except Exception:
-                pass
+            _write_flood_wait_file(chat_id, e.value)
             logger.warning(f"Flood wait detected ({e.value}s) while editing reply markup for {chat_id}")
             return None
         except Exception as e:
-            if "FLOOD_WAIT" in str(e):
-                wait_match = re.search(r'A wait of (\d+) seconds is required', str(e))
-                if wait_match:
-                    wait_seconds = int(wait_match.group(1))
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG.format(wait_seconds=wait_seconds))
-                    time.sleep(min(wait_seconds + 1, 5))
-                else:
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG.format(retry_delay=retry_delay))
-                    time.sleep(retry_delay)
-                if attempt and attempt < max_retries - 1:
-                    continue
-            elif "msg_seqno is too high" in str(e):
-                logger.warning(safe_get_messages(user_id).HELPER_MSG_SEQNO_ERROR_DETECTED_MSG.format(retry_delay=retry_delay))
-                time.sleep(retry_delay)
-                if attempt and attempt < max_retries - 1:
-                    continue
+            if _should_retry(e, user_id, retry_delay) and attempt < max_retries - 1:
+                continue
             if attempt == max_retries - 1:
                 logger.error(f"Failed to edit reply markup after {max_retries} attempts: {e}")
             return None
 
 # Helper function for safely deleting messages with flood wait handling
 def safe_delete_messages(chat_id, message_ids, **kwargs):
-    """
-    Safely delete messages with flood wait handling
-
-    Args:
-        chat_id: The chat ID
-        message_ids: List of message IDs to delete
-        **kwargs: Additional arguments for delete_messages
-
-    Returns:
-        True on success or None if deletion failed
-    """
-    messages = safe_get_messages(None)
+    _messages = safe_get_messages(None)
     user_id = chat_id
     max_retries = 3
     retry_delay = 5
@@ -523,30 +443,13 @@ def safe_delete_messages(chat_id, message_ids, **kwargs):
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.delete_messages(chat_id=chat_id, message_ids=message_ids, **kwargs))
         except Exception as e:
-            # Если сообщение уже удалено/невалидно — не считаем это ошибкой
-            try:
-                msg = str(e)
-            except Exception:
-                msg = f"{type(e).__name__}"
-            if safe_get_messages(user_id).HELPER_MESSAGE_ID_INVALID_MSG in msg or safe_get_messages(user_id).HELPER_MESSAGE_DELETE_FORBIDDEN_MSG in msg:
+            err_str = str(e)
+            if _messages.HELPER_MESSAGE_ID_INVALID_MSG in err_str or _messages.HELPER_MESSAGE_DELETE_FORBIDDEN_MSG in err_str:
                 if attempt == 0:
                     logger.debug(f"Tried to delete non-existent message(s): {message_ids}")
                 return None
-            if "FLOOD_WAIT" in str(e):
-                # Extract wait time
-                wait_match = re.search(r'A wait of (\d+) seconds is required', str(e))
-                if wait_match:
-                    wait_seconds = int(wait_match.group(1))
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_SLEEPING_MSG.format(wait_seconds=wait_seconds))
-                    time.sleep(min(wait_seconds + 1, 30))  # Wait the required time (max 30 sec)
-                else:
-                    logger.warning(safe_get_messages(user_id).HELPER_FLOOD_WAIT_DETECTED_COULDNT_EXTRACT_MSG.format(retry_delay=retry_delay))
-                    time.sleep(retry_delay)
-
-                if attempt and attempt < max_retries - 1:
-                    continue
-
-            # Избегаем внутренних атрибутов исключения (например, pts_count)
+            if _should_retry(e, user_id, retry_delay) and attempt < max_retries - 1:
+                continue
             logger.error(f"Failed to delete messages after {max_retries} attempts: {type(e).__name__}")
             return None
 
@@ -621,16 +524,8 @@ def schedule_delete_message(chat_id, message_id, delete_after_seconds=60):
         return False
 
 def schedule_delete_processing_messages(chat_id, delete_after_seconds=5):
-    messages = safe_get_messages(None)
     """
     Schedule deletion of all "Processing..." messages for a user after a delay.
-    This helps clean up duplicate processing messages.
-
-    Args:
-        chat_id: The chat ID
-        delete_after_seconds: Seconds to wait before deleting
-    Returns:
-        True if scheduled, False otherwise
     """
     try:
         if not chat_id:

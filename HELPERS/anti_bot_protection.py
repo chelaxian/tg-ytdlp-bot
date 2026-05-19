@@ -9,6 +9,7 @@ import time
 import threading
 import json
 import os
+import string
 from typing import Optional, Tuple, Dict, List
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -475,7 +476,6 @@ def _check_suspicious_patterns(message_text: str) -> Optional[str]:
     
     # Check if message is only special characters
     if LimitsConfig.ANTI_BOT_BLOCK_SPECIAL_ONLY:
-        import string
         if message_text.strip() and all(c in string.punctuation + string.whitespace for c in message_text.strip()):
             reason = "Подозрительный паттерн: сообщение состоит только из спецсимволов"
             return reason
@@ -714,101 +714,74 @@ def _notify_admins(user_id: int, reason: str):
         logger.error(f"Failed to notify admins: {e}")
 
 
+def _do_ban(user_id: int, ban_reason: str) -> Tuple[bool, Optional[str]]:
+    """Execute ban: block user, ban from channel, notify admins."""
+    try:
+        block_user(user_id, reason=f"auto_bot_protection: {ban_reason}")
+        logger.warning(f"User {user_id} banned by anti-bot protection: {ban_reason}")
+        ban_user_from_channel(user_id, ban_reason)
+        _notify_admins(user_id, ban_reason)
+        return (True, ban_reason)
+    except Exception as e:
+        logger.error(f"Failed to ban user {user_id}: {e}")
+        return (False, None)
+
+
 def check_and_ban_user(user_id: int, content: str, is_command: bool = False, is_admin: bool = False, full_message_text: Optional[str] = None) -> Tuple[bool, Optional[str]]:
     """
     Check if user should be banned based on anti-bot patterns.
-    
-    Args:
-        user_id: User ID to check
-        content: URL or command text
-        is_command: True if content is a command, False if URL
-        is_admin: True if user is admin (admins are not checked)
-        full_message_text: Full message text for duplicate message and pattern checks
-    
+
     Returns:
         (should_ban: bool, reason: Optional[str])
     """
     # Skip check for admins if limits are turned off
     if is_admin and LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
         return (False, None)
-    
+
     if not LimitsConfig.ANTI_BOT_PROTECTION_ENABLED:
         return (False, None)
-    
+
     current_time = time.time()
     ban_reason = None
-    
+
     # Check flood first (fastest check)
     ban_reason = _check_flood(user_id, current_time)
     if ban_reason:
-        # Ban immediately for flood
-        try:
-            block_user(user_id, reason=f"auto_bot_protection: {ban_reason}")
-            logger.warning(f"User {user_id} banned by anti-bot protection: {ban_reason}")
-            ban_user_from_channel(user_id, ban_reason)
-            _notify_admins(user_id, ban_reason)
-            return (True, ban_reason)
-        except Exception as e:
-            logger.error(f"Failed to ban user {user_id}: {e}")
-            return (False, None)
-    
+        return _do_ban(user_id, ban_reason)
+
     # Check suspicious patterns if full message text is provided
     if full_message_text:
         ban_reason = _check_suspicious_patterns(full_message_text)
         if ban_reason:
-            try:
-                block_user(user_id, reason=f"auto_bot_protection: {ban_reason}")
-                logger.warning(f"User {user_id} banned by anti-bot protection: {ban_reason}")
-                ban_user_from_channel(user_id, ban_reason)
-                _notify_admins(user_id, ban_reason)
-                return (True, ban_reason)
-            except Exception as e:
-                logger.error(f"Failed to ban user {user_id}: {e}")
-                return (False, None)
-        
+            return _do_ban(user_id, ban_reason)
+
         # Check for duplicate messages
         ban_reason = _check_duplicate_messages(user_id, full_message_text, current_time)
         if ban_reason:
-            try:
-                block_user(user_id, reason=f"auto_bot_protection: {ban_reason}")
-                logger.warning(f"User {user_id} banned by anti-bot protection: {ban_reason}")
-                ban_user_from_channel(user_id, ban_reason)
-                _notify_admins(user_id, ban_reason)
-                return (True, ban_reason)
-            except Exception as e:
-                logger.error(f"Failed to ban user {user_id}: {e}")
-                return (False, None)
-        
+            return _do_ban(user_id, ban_reason)
+
         # Check for timer interval pattern (for all messages, not just URLs/commands)
         ban_reason = _check_timer_interval(user_id, current_time)
         if ban_reason:
-            try:
-                block_user(user_id, reason=f"auto_bot_protection: {ban_reason}")
-                logger.warning(f"User {user_id} banned by anti-bot protection: {ban_reason}")
-                ban_user_from_channel(user_id, ban_reason)
-                _notify_admins(user_id, ban_reason)
-                return (True, ban_reason)
-            except Exception as e:
-                logger.error(f"Failed to ban user {user_id}: {e}")
-                return (False, None)
-    
+            return _do_ban(user_id, ban_reason)
+
     if is_command:
         # Check for duplicate commands
         ban_reason = _check_duplicate_commands(user_id, content, current_time)
     else:
         # Check for duplicate URLs
         ban_reason = _check_duplicate_urls(user_id, content, current_time)
-    
+
     # Always check 24/7 activity
     if not ban_reason:
         ban_reason = _check_24h_activity(user_id, current_time)
-    
+
     if ban_reason:
         # Ban the user
         try:
             block_user(user_id, reason=f"auto_bot_protection: {ban_reason}")
             logger.warning(f"User {user_id} banned by anti-bot protection: {ban_reason}")
-            
+
             # Update local cache immediately if not using Firebase
             use_firebase = getattr(Config, 'USE_FIREBASE', True)
             if not use_firebase:
@@ -821,35 +794,35 @@ def check_and_ban_user(user_id: int, content: str, is_command: bool = False, is_
                         firebase_cache["bot"][Config.BOT_NAME_FOR_USERS] = {}
                     if "blocked_users" not in firebase_cache["bot"][Config.BOT_NAME_FOR_USERS]:
                         firebase_cache["bot"][Config.BOT_NAME_FOR_USERS]["blocked_users"] = {}
-                    
+
                     # Add user to blocked list
                     firebase_cache["bot"][Config.BOT_NAME_FOR_USERS]["blocked_users"][str(user_id)] = {
                         "ID": str(user_id),
                         "timestamp": str(int(time.time())),
                         "blocked_reason": f"auto_bot_protection: {ban_reason}"
                     }
-                    
+
                     # Remove from unblocked_users if exists
                     if "unblocked_users" in firebase_cache["bot"][Config.BOT_NAME_FOR_USERS]:
                         firebase_cache["bot"][Config.BOT_NAME_FOR_USERS]["unblocked_users"].pop(str(user_id), None)
-                    
+
                     # Sync to file
                     _sync_local_cache_to_file()
                     logger.info(f"Local cache updated: user {user_id} added to blocked_users")
                 except Exception as cache_error:
                     logger.error(f"Failed to update local cache after ban: {cache_error}")
-            
+
             # Ban user from subscribe channel
             ban_user_from_channel(user_id, ban_reason)
-            
+
             # Notify admins
             _notify_admins(user_id, ban_reason)
-            
+
             return (True, ban_reason)
         except Exception as e:
             logger.error(f"Failed to ban user {user_id}: {e}")
             return (False, None)
-    
+
     return (False, None)
 
 

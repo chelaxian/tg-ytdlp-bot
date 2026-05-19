@@ -13,6 +13,7 @@ from HELPERS.safe_messeger import safe_edit_message_text
 from HELPERS.filesystem_hlp import create_directory, cleanup_user_temp_files
 
 # Global dictionary to track active downloads and lock for thread-safe access
+# Now stores download count (int) per user instead of bool
 active_downloads = {}
 active_downloads_lock = threading.Lock()
 
@@ -116,18 +117,59 @@ def check_download_timeout(user_id):
     return False
 
 # Helper function to safely get active download status
+def _adaptive_interval(elapsed_seconds):
+    """Calculate adaptive update interval based on elapsed time.
+    
+    0-4 min: 3s, 5-9: 4s, 10-14: 5s, ... 55-59: 14s, 60+: 90s.
+    """
+    minutes_passed = int(elapsed_seconds // 60)
+    if minutes_passed >= 60:
+        return 90.0
+    return 3.0 + max(0, minutes_passed // 5)
+
+
 def get_active_download(user_id):
     """
-    Thread-safe function to get the active download status for a user
+    Thread-safe function to get the active download count for a user
 
     Args:
         user_id: The user ID
 
     Returns:
-        bool: Whether the user has an active download
+        int: Number of active downloads for this user (0 if none)
     """
     with active_downloads_lock:
-        return active_downloads.get(user_id, False)
+        return active_downloads.get(user_id, 0)
+
+
+def can_start_download(user_id, is_playlist=False, is_multi_url=False):
+    """
+    Check if a new download can be started for this user.
+    
+    Rules:
+    - Single URL: up to MAX_CONCURRENT_DOWNLOADS per user
+    - Playlist: only 1 at a time
+    - Multi-URL: only 1 at a time
+    
+    Returns:
+        bool: True if download can start, False if limit reached
+    """
+    current_count = get_active_download(user_id)
+    
+    if is_playlist or is_multi_url:
+        # Playlists and multi-URLs: only 1 at a time
+        return current_count == 0
+    
+    # Single URLs: up to MAX_CONCURRENT_DOWNLOADS
+    return current_count < LimitsConfig.MAX_CONCURRENT_DOWNLOADS
+
+
+def get_download_limit_msg(user_id, is_playlist=False, is_multi_url=False):
+    """Return appropriate wait message based on download type"""
+    msgs = safe_get_messages(user_id)
+    if is_playlist or is_multi_url:
+        return msgs.AUDIO_WAIT_MSG
+    return msgs.AUDIO_WAIT_MSG
 
 
 
@@ -135,13 +177,19 @@ def get_active_download(user_id):
 def set_active_download(user_id, status):
     """
     Thread-safe function to set the active download status for a user.
-    When status is False, removes the entry entirely to prevent dict bloat.
+    Now manages a reference count instead of bool.
+    When status=True, increments the counter.
+    When status=False, decrements the counter (removes entry at 0).
     """
     with active_downloads_lock:
         if status:
-            active_downloads[user_id] = status
+            active_downloads[user_id] = active_downloads.get(user_id, 0) + 1
         else:
-            active_downloads.pop(user_id, None)
+            count = active_downloads.get(user_id, 0)
+            if count <= 1:
+                active_downloads.pop(user_id, None)
+            else:
+                active_downloads[user_id] = count - 1
 
 # Helper function to start the hourglass animation
 def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
@@ -180,12 +228,7 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
                 
                 minutes_passed = int(elapsed // 60)
                 
-                # Adaptive animation interval (linear slow-down every 5 minutes)
-                if minutes_passed and minutes_passed >= 60:
-                    interval = 90.0  # After 1 hour, update once per 90 seconds
-                else:
-                    # 0-4 min: 3s, 5-9: 4s, 10-14: 5s, ... up to 55-59: 14s
-                    interval = 3.0 + max(0, minutes_passed // 5)
+                interval = _adaptive_interval(elapsed)
                 
                 if current_time - last_update < interval:
                     time.sleep(1.0)
@@ -267,11 +310,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
                 
                 minutes_passed = int(elapsed // 60)
                 
-                # Adaptive update interval (linear; after 1h fixed 90s)
-                if minutes_passed and minutes_passed >= 60:
-                    interval = 90.0
-                else:
-                    interval = 3.0 + max(0, minutes_passed // 5)
+                interval = _adaptive_interval(elapsed)
                 
                 if current_time - last_update < interval:
                     time.sleep(1.0)

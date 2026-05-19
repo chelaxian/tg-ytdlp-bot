@@ -1,7 +1,7 @@
 # ===================== /settings =====================
 from pyrogram import filters
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.LANGUAGES.language_router import get_messages
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyParameters
 from pyrogram import enums
@@ -28,7 +28,6 @@ def command2(app, message):
     from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     from pyrogram import enums
     user_id = message.chat.id
-    messages = safe_get_messages(user_id)
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_DEV_GITHUB_BUTTON_MSG, url="https://github.com/upekshaip/tg-ytdlp-bot"),
@@ -48,7 +47,6 @@ def command2(app, message):
 app = get_app()
 
 @app.on_message(filters.command("settings") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="settings_command")
 def settings_command(app, message):
     user_id = message.chat.id
@@ -73,7 +71,6 @@ def settings_command(app, message):
     if not is_admin and not is_user_in_channel(app, message):
         return
     # Main settings menu
-    messages = safe_get_messages(user_id)
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_LANGUAGE_BUTTON_MSG, callback_data="settings__menu__language"),
@@ -102,10 +99,8 @@ def settings_command(app, message):
 
 
 @app.on_callback_query(filters.regex(r"^settings__menu__"))
-# @reply_with_keyboard
 def settings_menu_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     data = callback_query.data.split("__")[-1]
     if data == "close":
         try:
@@ -298,10 +293,8 @@ safe_get_messages(user_id).SETTINGS_MORE_TITLE_MSG,
         return
 
 @app.on_callback_query(filters.regex(r"^settings__cmd__"))
-# @reply_with_keyboard
 def settings_cmd_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     # Lazy import to avoid circular dependency
     from URL_PARSERS.url_extractor import url_distractor
     data = callback_query.data.split("__")[2]
@@ -750,7 +743,6 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
 @app.on_callback_query(filters.regex(r"^(img_hint|link_hint|search_hint|search_msg)\|"))
 def hint_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     """Handle hint callback close buttons"""
     data = callback_query.data.split("|")[-1]
     

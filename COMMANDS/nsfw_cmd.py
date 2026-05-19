@@ -2,7 +2,7 @@
 import os
 from pyrogram import filters, enums
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from HELPERS.app_instance import get_app
@@ -20,7 +20,6 @@ app = get_app()
 @app.on_message(filters.command("nsfw"))
 @background_handler(label="nsfw_command")
 def nsfw_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     chat_id = message.chat.id
     chat_type = getattr(message.chat, "type", None)
     # Store setting per-chat: in groups/channels use chat_id (negative), in private use user id (== chat_id)
@@ -109,7 +108,6 @@ safe_get_messages(user_id).NSFW_BLUR_SETTINGS_TITLE_MSG.format(status=status_tex
 @app.on_callback_query(filters.regex(r"^nsfw_option\|"))
 def nsfw_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     logger.info(f"[NSFW] callback: {callback_query.data}")
     data = callback_query.data.split("|")[1]
     chat = getattr(callback_query, "message", None).chat if getattr(callback_query, "message", None) else None
@@ -156,7 +154,6 @@ def nsfw_option_callback(app, callback_query):
 
 
 def is_nsfw_blur_enabled(user_id):
-    messages = safe_get_messages(user_id)
     """
     Check if NSFW blur is enabled for user.
     Returns True if blur should be applied (default behavior).
@@ -176,7 +173,6 @@ def is_nsfw_blur_enabled(user_id):
 
 
 def should_apply_spoiler(user_id, is_nsfw, is_private_chat):
-    messages = safe_get_messages(user_id)
     """
     Determine if spoiler should be applied based on user settings and context.
     

@@ -9,7 +9,7 @@ from HELPERS.logger import send_to_logger, logger
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
 from HELPERS.decorators import background_handler
 from HELPERS.limitter import humanbytes, is_user_in_channel
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 import re
 
 def parse_size_argument(arg):
@@ -59,10 +59,8 @@ def parse_size_argument(arg):
 app = get_app()
 
 @app.on_message(filters.command("split") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="split_command")
 def split_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     
@@ -135,10 +133,8 @@ safe_get_messages(user_id).SPLIT_MENU_TITLE_MSG,
     send_to_logger(message, safe_get_messages(user_id).SPLIT_MENU_OPENED_LOG_MSG)
 
 @app.on_callback_query(filters.regex(r"^split_size\|"))
-# @reply_with_keyboard
 def split_size_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     logger.info(f"[SPLIT] callback: {callback_query.data}")
     data = callback_query.data.split("|")[1]
     if data == "close":
@@ -175,7 +171,6 @@ def split_size_callback(app, callback_query):
 
 # --- Function for reading split.txt ---
 def get_user_split_size(user_id):
-    messages = safe_get_messages(user_id)
     user_dir = os.path.join("users", str(user_id))
     split_file = os.path.join(user_dir, "split.txt")
     if os.path.exists(split_file):

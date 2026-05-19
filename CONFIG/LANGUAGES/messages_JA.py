@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>管理：</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 言語を変更: /lang</b>"
-    TO_USE_MSG = "<i>このボットを使用するには、@tg_ytdlp Telegramチャンネルに登録する必要があります。</i>\nチャンネルに参加した後、<b>動画リンクを再度送信するとボットがダウンロードします</b> ❤️\n\n<blockquote>P.S. 🔞NSFWコンテンツの可能性のため - ☁️<b>クラウドストレージ</b>、📁<b>ファイル共有</b>、🔗<b>URL短縮</b>、🔞<b>ポルノサイト</b>からのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlpチャンネルを🗑<b>削除/登録解除しない</b>こと、ボットに🤖<b>URL/コマンドを過度にスパムしない</b>こと - ボット使用から自動的にBANされます ⛔️</blockquote>"
+    TO_USE_MSG = "<i>このボットを使用するには、@tg_ytdlp Telegramチャンネルに登録する必要があります。</i>\nチャンネルに参加した後、<b>動画リンクを再度送信するとボットがダウンロードします</b> ❤️\n\n<blockquote>P.S. 🔞NSFWコンテンツの可能性のため - ☁️<b>クラウドストレージ</b>、📁<b>ファイル共有</b>、🔗<b>URL短縮</b>、🔞<b>ポルノサイト</b>からのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlpチャンネルを🗑<b>削除/登録解除しない</b>こと、ボットに🤖<b>URL/コマンドを過度にスパムしない</b>こと - ボット使用から自動的にBANされます ⛔️</blockquote>"
 
     ERROR1 = "URLリンクが見つかりませんでした。<b>https://</b>または<b>http://</b>を含むURLを入力してください"
 
@@ -154,7 +154,10 @@ class Messages(object):
 
 👨‍💻 <i>開発者：</i> @upekshaip
 🤝 <i>貢献者：</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ class Messages(object):
 • コマンド制限：<b>20/分</b>
 • 1ダウンロード最大時間：<b>2時間</b>
 • 🔞 NSFWコンテンツは有料です！1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 その他すべてのメディアは完全に無料
 • 📝 すべてのコンテンツログとキャッシュをログチャンネルに保存し、再ダウンロード時に即座に再投稿</blockquote>
 
@@ -527,7 +531,9 @@ class Messages(object):
         "<blockquote>❗️警告：高いCPU負荷により、この機能は非常に遅く（ほぼリアルタイム）、以下の制限があります：\n"
         "- 最大品質720p\n"
         "- 最大時間1.5時間\n"
-        "- 最大動画サイズ500mb</blockquote>\n\n"
+        "- 最大動画サイズ500mb\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>クイックコマンド：</b>\n"
@@ -763,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code>を希望のフォーマット文字列に置き換えてください。"
     )
-    FORMAT_RESOLUTION_MENU_MSG = "希望の解像度とコーデックを選択："
+    FORMAT_RESOLUTION_MENU_MSG = "希望の解像度とコーデックを選択：\n\n⚠️ <b>MKV/AV1/VP9 再生について：</b> インライン再生には Telegram のデバッグメニューで <b>PlayerV2</b> を有効にしてください：\n📱 iOS: Settings → 10回タップ → PlayerV2 トグル\n🤖 Android: Settings → 「Telegram v X.X.X」を2回長押し → デバッグメニュー"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ フォーマットが設定されました：常に尋ねる。URLを送信するたびに品質を尋ねられます。"
     FORMAT_UPDATED_MSG = "✅ フォーマットが更新されました：\n{format}"
     FORMAT_SAVED_MSG = "✅ フォーマットが保存されました。"
@@ -1351,12 +1357,15 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — キャッシュから即座に再投稿"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — オーディオ言語を選択"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFWは有料です（⭐️$0.02）"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — 焼き込み字幕は有料です：144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: 管理者のみ"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — ダウンロード品質を選択"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — 画像をダウンロード（gallery-dl）"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketubeでビデオを視聴"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — ビデオへの直接リンクを取得"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — 利用可能なフォーマットリストを表示"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — ビデオ拡張子/コーデックを変更"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: インライン再生にはTelegramのデバッグメニューでPlayerV2を有効化\niOS: Settingsを10回タップ → 下にスクロール → PlayerV2をオン\nAndroid: Settings → \"Telegram v X.X.X\"を2回長押し → デバッグメニュー"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>MKV/AV1/VP9動画</b>\nこの動画を再生するには、Telegramのデバッグメニューで<b>PlayerV2</b>を有効にしてください：\n\n📱 <b>iOS</b>: Settings → 10回タップ → 下にスクロール → PlayerV2を有効化\n🤖 <b>Android</b>: Settings → 下にスクロール → \"Telegram v X.X.X\"を2回長押し → PlayerV2を有効化"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀埋め込み"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — オーディオのみ抽出"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFWは有料です（⭐️$0.02）"
@@ -2022,7 +2031,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ 問題は解決しました。 Пожалуйста、сделайте бота админом этой группы。"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "こんにちは {first_name}、\n \n<i>このボット🤖は任意の動画をtelegramに直接ダウンロードできます。😊 詳細は <b>/help</b> を押してください</i> 👈\n\n<blockquote>P.S. 🔞NSFWコンテンツの可能性のため - ☁️<b>クラウドストレージ</b>、📁<b>ファイル共有</b>、🔗<b>URL短縮</b>、🔞<b>ポルノサイト</b>からのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlpチャンネルを🗑<b>削除/登録解除しない</b>こと、ボットに🤖<b>URL/コマンドを過度にスパムしない</b>こと - ボット使用から自動的にBANされます ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "こんにちは {first_name}、\n \n<i>このボット🤖は任意の動画をtelegramに直接ダウンロードできます。😊 詳細は <b>/help</b> を押してください</i> 👈\n\n<blockquote>P.S. 🔞NSFWコンテンツの可能性のため - ☁️<b>クラウドストレージ</b>、📁<b>ファイル共有</b>、🔗<b>URL短縮</b>、🔞<b>ポルノサイト</b>からのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlpチャンネルを🗑<b>削除/登録解除しない</b>こと、ボットに🤖<b>URL/コマンドを過度にスパムしない</b>こと - ボット使用から自動的にBANされます ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 削除するファイルはありません。"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     
@@ -2289,7 +2298,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝キャプション"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ トリム"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>動画トリム</b>\n\n動画の長さ: <b>{start_time} - {end_time}</b>\n\n希望の時間範囲を次の形式で送信してください:\n<code>HH:MM:SS-HH:MM:SS</code>\n\n例: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>動画トリム</b>\n\n動画の長さ: <b>{start_time} - {end_time}</b>\n\n希望の時間範囲を次の形式で送信してください:\n<code>HH:MM:SS-HH:MM:SS</code>\n\n例: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ 無効な形式。次を使用してください: <code>HH:MM:SS-HH:MM:SS</code>\n\n例: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ 無効な範囲。開始時間は終了時間より小さくする必要があります。"
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ 時間範囲が動画の境界を超えています。\n\n動画の長さ: <b>{start_time} - {end_time}</b>\n\n範囲はこれらの制限内である必要があります。"
