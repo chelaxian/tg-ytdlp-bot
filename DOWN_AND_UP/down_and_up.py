@@ -33,6 +33,7 @@ from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_univ
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error, add_web_creator_to_opts
 from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
+from CONFIG.errors import is_cookie_error
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, get_user_subs_language, clear_subs_check_cache, is_subs_always_ask
 from COMMANDS.split_sizer import get_user_split_size
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
@@ -2553,14 +2554,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     )
                     error_message_sent = True
                     # Send cookie hint if this is a cookie-related error
-                    try:
-                        from CONFIG.errors import is_cookie_error
-                        if is_cookie_error(error_message):
-                            from pyrogram.types import ReplyParameters as _RP2
-                            safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=_RP2(message_id=message.id), parse_mode="HTML")
+                    if is_cookie_error(error_message):
+                        try:
+                            safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
                             logger.info(f"Sent cookie hint to user {user_id} after cookie-related error")
-                    except Exception as _cookie_hint_err:
-                        logger.debug(f"Failed to send cookie hint: {_cookie_hint_err}")
+                        except Exception as _cookie_hint_err:
+                            logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                 return None
             except Exception as e:
                 error_message = str(e)
@@ -2588,14 +2587,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         )
                         error_message_sent = True
                         # Send cookie hint if this is a cookie-related error
-                        try:
-                            from CONFIG.errors import is_cookie_error
-                            if is_cookie_error(error_message):
-                                from pyrogram.types import ReplyParameters as _RP2
-                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=_RP2(message_id=message.id), parse_mode="HTML")
+                        if is_cookie_error(error_message):
+                            try:
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
                                 logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (proxy failure path)")
-                        except Exception as _cookie_hint_err:
-                            logger.debug(f"Failed to send cookie hint: {_cookie_hint_err}")
+                            except Exception as _cookie_hint_err:
+                                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return None
                 
                 # Auto-fallback to gallery-dl for obvious non-video cases
@@ -2688,14 +2685,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
                         error_message_sent = True
                         # Send cookie hint if this is a cookie-related error
-                        try:
-                            from CONFIG.errors import is_cookie_error
-                            if is_cookie_error(str(e)):
-                                from pyrogram.types import ReplyParameters as _RP2
-                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=_RP2(message_id=message.id), parse_mode="HTML")
+                        if is_cookie_error(str(e)):
+                            try:
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
                                 logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (generic exception path)")
-                        except Exception as _cookie_hint_err:
-                            logger.debug(f"Failed to send cookie hint: {_cookie_hint_err}")
+                            except Exception as _cookie_hint_err:
+                                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return None
 
         # Для отрицательных индексов используем весь диапазон сразу, а не цикл
