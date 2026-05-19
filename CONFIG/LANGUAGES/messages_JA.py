@@ -1351,6 +1351,7 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — キャッシュから即座に再投稿"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — オーディオ言語を選択"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFWは有料です（⭐️$0.02）"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — 焼き込み字幕は有料です：144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: 管理者のみ"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — ダウンロード品質を選択"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — 画像をダウンロード（gallery-dl）"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketubeでビデオを視聴"  # TEMPORARILY DISABLED: poketube service is down

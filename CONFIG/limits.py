@@ -109,6 +109,34 @@ class LimitsConfig(object):
     #######################################################
     NSFW_STAR_COST = 1
     #######################################################
+    # Subtitle burn-in (hard embed) star costs by quality
+    # Only applies to MP4/AVC1 (hard burn via ffmpeg)
+    # MKV/AV1/VP9 soft embed is free (no CPU cost)
+    SUB_BURN_STAR_COSTS = {
+        144: 1,
+        240: 2,
+        360: 3,
+        480: 4,
+        720: 5,
+        1080: 10,
+        1440: 15,
+        2160: 20,
+        4320: 40,
+    }
+
+    @staticmethod
+    def get_sub_burn_star_cost(height: int) -> int:
+        """Return star cost for subtitle hard-burn at given resolution height.
+        Returns the cost for the closest quality <= height from SUB_BURN_STAR_COSTS.
+        """
+        if height <= 0:
+            return 1
+        best = 1
+        for q, cost in LimitsConfig.SUB_BURN_STAR_COSTS.items():
+            if q <= height:
+                best = cost
+        return best
+    #######################################################
     # Anti-bot protection limits
     #######################################################
     # Включить/выключить защиту от ботов

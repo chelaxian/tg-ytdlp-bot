@@ -1351,6 +1351,7 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — кэштен лезде репост жасау"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Аудио тілін таңдаңыз"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW төленеді (⭐️$0,02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Күйдірілген субтитрлер төлемді: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: тек әкімші"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Жүктеп алу сапасын таңдаңыз"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Суретті жүктеп алу (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down

@@ -1351,6 +1351,7 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — 从缓存即时重新发布"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — 选择音频语言"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW是付费的（⭐️$0.02）"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — 硬字幕烧录是付费的：144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: 仅限管理员"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — 选择下载质量"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — 下载图片（gallery-dl）"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — 在poketube中观看视频"  # 暂时禁用：poketube服务已关闭

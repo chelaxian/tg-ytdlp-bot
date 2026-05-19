@@ -1350,6 +1350,7 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — कैश से तुरंत रीपोस्ट"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — ऑडियो भाषा चुनें"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW पेड है (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — हार्ड-बर्न सबटाइटल पेड हैं: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: केवल एडमिन"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — डाउनलोड गुणवत्ता चुनें"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — छवि डाउनलोड करें (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketube में वीडियो देखें"  # अस्थायी रूप से अक्षम: poketube सेवा डाउन है

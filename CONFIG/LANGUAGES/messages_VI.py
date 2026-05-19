@@ -1351,6 +1351,7 @@ Tìm hiểu thêm: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Đăng lại ngay từ cache"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Chọn ngôn ngữ âm thanh"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW là có phí (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Phụ đề hard-burn có phí: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: chỉ dành cho quản trị viên"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Chọn chất lượng tải xuống"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Tải hình ảnh (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down

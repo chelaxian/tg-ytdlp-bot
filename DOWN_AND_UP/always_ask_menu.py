@@ -6269,6 +6269,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             logger.info(f"Always Ask menu: subs_enabled={subs_enabled}, auto_mode={auto_mode}, found_type={found_type}, is_always_ask={is_always_ask_mode}, need_subs={need_subs}")
             if need_subs:
                 subs_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_SUBTITLES_ARE_AVAILABLE_MSG}"
+                # Add paid hint for hard-burn subs (MP4/AVC1 only, not MKV soft embed)
+                try:
+                    sel_ext = get_filters(user_id).get("ext", "mp4")
+                except Exception:
+                    sel_ext = "mp4"
+                if sel_ext != "mkv" and should_apply_limits_to_admin(user_id=user_id, message=message):
+                    subs_hint += f"\n{safe_get_messages(user_id).ALWAYS_ASK_SUB_BURN_PAID_MSG}"
                 show_repost_hint = False  # 🚀 we don't show if subs really exist and are needed
             elif is_always_ask_mode and not need_subs:
                 # In Always Ask mode, show subs hint even if not found (user can still try)

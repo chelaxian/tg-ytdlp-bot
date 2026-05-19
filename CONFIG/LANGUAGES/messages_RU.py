@@ -1350,6 +1350,7 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Мгновенный репост из кэша"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Выберите язык аудио"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW платный (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Прожжённые субтитры платные: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: только админ"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Выберите качество загрузки"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Скачать изображение (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Смотреть видео в poketube"  # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал

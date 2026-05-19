@@ -1351,6 +1351,7 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — ক্যাশ থেকে তাত্ক্ষণিক রিপোস্ট"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — অডিও ভাষা নির্বাচন করুন"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW পেইড (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — হার্ড-বার্ন সাবটাইটেল পেইড: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: শুধুমাত্র অ্যাডমিন"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — ডাউনলোড মান নির্বাচন করুন"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — ছবি ডাউনলোড করুন (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketube এ ভিডিও দেখুন"  # সাময়িকভাবে নিষ্ক্রিয়: poketube পরিষেবা ডাউন

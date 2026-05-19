@@ -1351,6 +1351,7 @@ Pelajari lebih lanjut: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Repost instan dari cache"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Pilih bahasa audio"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW berbayar (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Subtitle hard-burn berbayar: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: hanya admin"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Pilih kualitas unduhan"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Unduh gambar (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Tonton video di poketube"  # SEMENTARA DINONAKTIFKAN: layanan poketube sedang down

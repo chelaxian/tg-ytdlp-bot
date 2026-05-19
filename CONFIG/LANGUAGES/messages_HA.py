@@ -1351,6 +1351,7 @@ Koyi ƙari: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 - Maimaita kai tsaye daga cache"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 - Zaɓi yaren mai jiwuwa"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ - Ana biyan 🔞NSFW (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ - Hard-burned subtitles ana biyan su: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: admin kawai"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 - Zaɓi ingancin zazzagewa"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 - Zazzage hoto (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down

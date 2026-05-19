@@ -1357,6 +1357,7 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — إعادة نشر فورية من التخزين المؤقت"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — اختر لغة الصوت"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞المحتوى غير المناسب مدفوع (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — الترجمات المدمجة مدفوعة: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: للمشرف فقط"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — اختر جودة التحميل"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — تحميل الصورة (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — مشاهدة الفيديو في poketube"  # معطل مؤقتًا: خدمة poketube معطلة

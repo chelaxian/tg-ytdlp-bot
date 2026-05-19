@@ -1351,6 +1351,7 @@ Saiba mais: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Repostagem instantânea do cache"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Escolher idioma do áudio"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW é pago (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Legendas gravadas são pagas: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: somente admin"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Escolher qualidade de download"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Baixar imagem (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Assistir vídeo no poketube"  # TEMPORARIAMENTE DESABILITADO: o serviço poketube está fora do ar

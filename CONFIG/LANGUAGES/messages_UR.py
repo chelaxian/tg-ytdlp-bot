@@ -1351,6 +1351,7 @@ Use:
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — cache سے فوری ری پوسٹ"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — آڈیو زبان منتخب کریں"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW ادائیگی شدہ ہے (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — ہارڈ برن سب ٹائٹلز ادائیگی شدہ ہیں: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: صرف ایڈمن"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — ڈاؤن لوڈ کوالٹی منتخب کریں"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — تصویر ڈاؤن لوڈ کریں (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — poketube میں ویڈیو دیکھیں"  # عارضی طور پر غیر فعال: poketube سروس ڈاؤن ہے

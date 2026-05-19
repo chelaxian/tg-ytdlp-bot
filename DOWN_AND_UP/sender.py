@@ -85,6 +85,7 @@ def send_videos(
     tags_text: str = '',
     skip_size_check: bool = False,
     video_quality_codec: str = '',
+    paid_star_count: int = 0,
 ):
     class PaidMediaSendError(RuntimeError):
         """Paid NSFW media failed to send.
@@ -544,7 +545,11 @@ def send_videos(
             # Проверяем, должен ли админ получать платный контент
             from HELPERS.limitter import should_apply_limits_to_admin
             should_send_paid = is_spoiler and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
-            if should_send_paid:
+            # Also paid if subtitle hard-burn with star cost > 0
+            is_sub_paid = (paid_star_count > 0) and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            effective_paid = should_send_paid or is_sub_paid
+            effective_star_count = paid_star_count if is_sub_paid else (LimitsConfig.NSFW_STAR_COST if should_send_paid else 0)
+            if effective_paid:
                 try:
                     # Пробиваем метаданные и добавляем корректный cover и параметры
                     try:
@@ -599,7 +604,7 @@ def send_videos(
                         result = app.send_paid_media(
                             chat_id=user_id,
                             media=[paid_media],
-                            star_count=LimitsConfig.NSFW_STAR_COST,
+                            star_count=effective_star_count,
                             **({"allow_paid_broadcast": True} if allow_broadcast else {}),
                             payload=str(Config.STAR_RECEIVER),
                             reply_parameters=ReplyParameters(message_id=message.id),
@@ -693,7 +698,11 @@ def send_videos(
             # Проверяем, должен ли админ получать платный контент
             from HELPERS.limitter import should_apply_limits_to_admin
             should_send_paid = is_spoiler and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
-            if should_send_paid:
+            # Also paid if subtitle hard-burn with star cost > 0
+            is_sub_paid = (paid_star_count > 0) and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
+            effective_paid = should_send_paid or is_sub_paid
+            effective_star_count = paid_star_count if is_sub_paid else (LimitsConfig.NSFW_STAR_COST if should_send_paid else 0)
+            if effective_paid:
                 try:
                     try:
                         v_w, v_h, v_dur = get_video_info_ffprobe(video_abs_path)
@@ -747,7 +756,7 @@ def send_videos(
                         result = app.send_paid_media(
                             chat_id=user_id,
                             media=[paid_media],
-                            star_count=LimitsConfig.NSFW_STAR_COST,
+                            star_count=effective_star_count,
                             **({"allow_paid_broadcast": True} if allow_broadcast else {}),
                             payload=str(Config.STAR_RECEIVER),
                             reply_parameters=ReplyParameters(message_id=message.id),

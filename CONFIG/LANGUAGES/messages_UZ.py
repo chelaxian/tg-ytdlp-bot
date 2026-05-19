@@ -1351,6 +1351,7 @@ Ko'proq ma'lumot: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Keshdan darhol qayta post qilish"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Audio tilini tanlang"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW pullik (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Kuydirilgan subtitrlar pullik: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: faqat admin"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Yuklab olish sifatini tanlang"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Rasmni yuklab olish (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Videoni poketube'da tomosha qilish"  # TEMPORARILY DISABLED: poketube service is down

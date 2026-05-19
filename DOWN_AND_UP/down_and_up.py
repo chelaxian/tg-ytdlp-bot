@@ -4013,6 +4013,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     try:
                         # --- TikTok: Don't Pass Title ---
+                        # Track subtitle hard-burn star cost (0 = free / no burn)
+                        sub_burn_star_count = 0
                         # Embed subtitles if needed (only for single videos, not playlists)
                         is_playlist_mode = video_count > 1 or is_playlist_with_range(original_text)
                         if not is_playlist_mode:
@@ -4112,6 +4114,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         logger.info(f"Original video path for subtitle search: {original_video_path}")
                                         # Use renamed path for video processing
                                         embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback, app=app, message=message)
+                                        # If hard burn succeeded, calculate star cost based on video height
+                                        if embed_result:
+                                            sub_burn_star_count = LimitsConfig.get_sub_burn_star_cost(height)
+                                            logger.info(f"[SUB_BURN] Hard burn succeeded, star cost: {sub_burn_star_count} for height={height}")
                                         try:
                                             if embed_result:
                                                 app.edit_message_text(
@@ -4348,7 +4354,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # States are needed for all videos in playlist (if it's a playlist)
                         # States will be cleared at the end of the function after ALL videos are processed
                         
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
+                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
                         if not video_msg:
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
@@ -4393,27 +4399,34 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Важно: используем is_nsfw and is_private_chat, а не msg_is_paid,
                             # так как админы с TURN_OFF_LIMITS_FOR_ADMINS = True получают открытый контент
                             is_paid_for_logging = is_nsfw and is_private_chat
+                            # Also paid for subtitle hard-burn (non-zero sub_burn_star_count)
+                            is_sub_paid_for_logging = (sub_burn_star_count > 0) and is_private_chat
+                            is_any_paid_for_logging = is_paid_for_logging or is_sub_paid_for_logging
                             # Для отправки пользователю проверяем админа
                             from HELPERS.limitter import should_apply_limits_to_admin
                             is_paid_for_user = is_paid_for_logging and should_apply_limits_to_admin(user_id=user_id, message=message)
                             
                             # Handle different content types according to new logic
                             # Используем is_paid_for_logging для логирования (чтобы логирование было как для всех)
-                            if is_paid_for_logging:
-                                # For NSFW content in private chat, send_videos already sent paid media to user
-                                # Send paid copy to LOGS_PAID_ID and open copy to LOGS_NSFW_ID for history
+                            if is_any_paid_for_logging:
+                                # For paid content in private chat, send_videos already sent paid media to user
+                                # Send paid copy to LOGS_PAID_ID and open copy for history
                                 
                                 # Send paid copy to LOGS_PAID_ID
                                 log_channel_paid = get_log_channel("video", paid=True)
                                 try:
                                     # Forward the paid video to LOGS_PAID_ID
                                     safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
-                                    logger.info(f"down_and_up: NSFW content paid copy sent to PAID channel")
+                                    logger.info(f"down_and_up: paid content (nsfw={is_paid_for_logging}, sub_burn={is_sub_paid_for_logging}) paid copy sent to PAID channel")
                                 except Exception as e:
                                     logger.error(f"down_and_up: failed to send paid copy to PAID channel: {e}")
                                 
-                                # Send open copy to LOGS_NSFW_ID for history
-                                log_channel_nsfw = get_log_channel("video", nsfw=True)
+                                # Send open copy for history
+                                # NSFW -> LOGS_NSFW_ID, subtitle hard-burn -> LOGS_VIDEO_ID
+                                if is_paid_for_logging:
+                                    open_log_channel = get_log_channel("video", nsfw=True)
+                                else:
+                                    open_log_channel = get_log_channel("video")
                                 try:
                                     # Get video dimensions for proper aspect ratio
                                     try:
@@ -4421,9 +4434,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     except Exception:
                                         v_w, v_h, v_dur = width, height, duration
                                     
-                                    # Create open copy for history (without stars) - send directly to NSFW channel
+                                    # Create open copy for history (without stars) - send directly to channel
                                     open_video_msg = app.send_video(
-                                        chat_id=log_channel_nsfw,
+                                        chat_id=open_log_channel,
                                         video=after_rename_abs_path,
                                         caption='' if force_no_title else original_video_title,
                                         duration=int(v_dur) if v_dur else duration,
@@ -4432,13 +4445,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         thumb=thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
                                     )
-                                    logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history")
+                                    logger.info(f"down_and_up: paid content open copy sent to log channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
-                                    logger.error(f"down_and_up: failed to send open copy to NSFW channel: {e}")
+                                    logger.error(f"down_and_up: failed to send open copy to log channel: {e}")
                                 
-                                # Don't cache NSFW content
-                                logger.info(f"down_and_up: NSFW content sent to user (paid), PAID channel (paid copy), and NSFW channel (open copy), not cached")
+                                # Don't cache paid content
+                                logger.info(f"down_and_up: paid content sent to user (paid), PAID channel (paid copy), and log channel (open copy), not cached")
                                 forwarded_msgs = None
                                 
                             elif is_nsfw:
