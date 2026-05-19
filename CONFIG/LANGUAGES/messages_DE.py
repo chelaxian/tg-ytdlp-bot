@@ -531,7 +531,9 @@ Mehr erfahren: /playlist"""
         "<blockquote>❗️WARNUNG: Aufgrund hoher CPU-Belastung ist diese Funktion sehr langsam (nahezu Echtzeit) und begrenzt auf:\n"
         "- Max. Qualität 720p\n"
         "- Max. Dauer 1.5 Stunden\n"
-        "- Max. Videogröße 500mb</blockquote>\n\n"
+        "- Max. Videogröße 500mb\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Schnellbefehle:</b>\n"
