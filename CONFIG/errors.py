@@ -23,6 +23,11 @@ COOKIE_ERRORS = [
     "rate-limit reached",
     "login required",
     "Sign in to confirm",
+    # Twitter/X errors — cookie often needed to access tweets
+    "No video could be found in this tweet",
+    "[twitter][error]",
+    "tweet is not available",
+    "content is not available",
 ]
 
 
