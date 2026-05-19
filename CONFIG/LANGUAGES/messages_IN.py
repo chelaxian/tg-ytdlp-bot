@@ -1363,6 +1363,7 @@ class Messages(object):
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — वीडियो के लिए प्रत्यक्ष लिंक प्राप्त करें"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — उपलब्ध प्रारूप सूची दिखाएं"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — वीडियो एक्सटेंशन/कोडेक बदलें"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: इनलाइन प्लेबैक के लिए Telegram डीबग मेनू में PlayerV2 सक्षम करें\niOS: Settings पर 10 बार टैप करें → नीचे स्क्रॉल करें → PlayerV2 टॉगल करें\nAndroid: Settings → \"Telegram v X.X.X\" पर दो बार देर तक दबाएं → डीबग मेनू"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀एम्बेड"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — केवल ऑडियो निकालें"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW भुगतान योग्य है (⭐️$0.02)"

@@ -1365,6 +1365,7 @@ class Messages(object):
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Бейнеге тікелей сілтеме алыңыз"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Қол жетімді пішімдердің тізімін көрсету"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Бейненің ішкі/кодекін өзгерту"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: көрсету үшін Telegram Debug мәзірінде PlayerV2-ні қосыңыз\niOS: Settings-ке 10 рет түртіңіз → төменге жылжыңыз → PlayerV2 қосқышын басыңыз\nAndroid: Settings → \"Telegram v X.X.X\" жолын екі рет ұстап тұрып басыңыз → Debug мәзірі"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Ендіру"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Тек аудионы шығарып алу"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW төленеді (⭐️$0,02)"

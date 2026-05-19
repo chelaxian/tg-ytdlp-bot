@@ -1364,6 +1364,7 @@ class Messages(object):
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — دریافت لینک مستقیم به ویدیو"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — نمایش لیست فرمت‌های موجود"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — تغییر پسوند/کدک ویدیو"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: برای پخش مستقیم، PlayerV2 را در منوی دیباگ تلگرام فعال کنید\niOS: ۱۰ بار روی Settings بزنید → به پایین بروید → PlayerV2 را فعال کنید\nAndroid: Settings → دو بار روی \"Telegram v X.X.X\" نگه دارید → منوی دیباگ"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀جاسازی"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — استخراج فقط صدا"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW پولی است (⭐️$0.02)"

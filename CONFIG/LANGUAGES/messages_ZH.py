@@ -1364,6 +1364,7 @@ class Messages(object):
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — 获取视频的直接链接"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — 显示可用格式列表"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — 更改视频扩展名/编解码器"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9：在Telegram调试菜单中启用PlayerV2以进行内联播放\niOS：点击Settings 10次 → 滚动到底部 → 开启PlayerV2\nAndroid：Settings → 长按两次\"Telegram v X.X.X\" → 调试菜单"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀嵌入"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — 仅提取音频"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW是付费的（⭐️$0.02）"

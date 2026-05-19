@@ -1364,6 +1364,7 @@ class Messages(object):
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — ビデオへの直接リンクを取得"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — 利用可能なフォーマットリストを表示"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — ビデオ拡張子/コーデックを変更"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: インライン再生にはTelegramのデバッグメニューでPlayerV2を有効化\niOS: Settingsを10回タップ → 下にスクロール → PlayerV2をオン\nAndroid: Settings → \"Telegram v X.X.X\"を2回長押し → デバッグメニュー"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀埋め込み"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — オーディオのみ抽出"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFWは有料です（⭐️$0.02）"

@@ -6306,6 +6306,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # Always show format change hint (📼) - this is always available
             hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG}")
             
+            # Show MKV/AV1/VP9 player hint when non-default codec/ext is selected
+            try:
+                _fs = get_filters(user_id)
+                _sel_ext = _fs.get("ext", "mp4")
+                _sel_codec = _fs.get("codec", "avc1")
+            except Exception:
+                _sel_ext = "mp4"
+                _sel_codec = "avc1"
+            if _sel_ext == "mkv" or _sel_codec != "avc1":
+                hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_MKV_PLAYER_HINT_MSG}")
+            
             # Quality hint (📹) - always shown unless NSFW (только если админ не имеет отключенных ограничений)
             should_show_paid_hint = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
             if should_show_paid_hint:
@@ -6347,8 +6358,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # This will be done later in the code, so for now we'll use the old logic
         # but we'll replace it after action_buttons are created
         # Temporary hint for now - will be replaced later
+        try:
+            _fstate = get_filters(user_id)
+            _sel_ext = _fstate.get("ext", "mp4")
+            _sel_codec = _fstate.get("codec", "avc1")
+        except Exception:
+            _sel_ext = "mp4"
+            _sel_codec = "avc1"
+        _mkv_player_hint_line = f"\n{safe_get_messages(user_id).ALWAYS_ASK_MKV_PLAYER_HINT_MSG}" if _sel_ext == "mkv" or _sel_codec != "avc1" else ""
         temp_hint = (
             f"<pre language=\"info\">{safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG}"
+            + _mkv_player_hint_line
             + paid_hint
             + repost_line
             + watch_hint
@@ -6795,6 +6815,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         
         # Always show format change hint (📼) - this is always available
         dynamic_hints.append(safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG)
+        
+        # Show MKV/AV1/VP9 player hint when non-default codec/ext is selected
+        try:
+            _fs3 = get_filters(user_id)
+            _sel_ext3 = _fs3.get("ext", "mp4")
+            _sel_codec3 = _fs3.get("codec", "avc1")
+        except Exception:
+            _sel_ext3 = "mp4"
+            _sel_codec3 = "avc1"
+        if _sel_ext3 == "mkv" or _sel_codec3 != "avc1":
+            dynamic_hints.append(safe_get_messages(user_id).ALWAYS_ASK_MKV_PLAYER_HINT_MSG)
         
         # Quality hint (📹) - always sh
         # own unless NSFW

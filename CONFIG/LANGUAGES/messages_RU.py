@@ -1363,6 +1363,7 @@ class Messages(object):
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Получить прямую ссылку на видео"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Показать список доступных форматов"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Изменить расширение/кодек видео"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: включите PlayerV2 в меню отладки Telegram для воспроизведения\niOS: 10 тапов по Settings → лист вниз → тумблер PlayerV2\nAndroid: Settings → зажать дважды \"Telegram v X.X.X\" → меню отладки"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Встроить"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Извлечь только аудио"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW платный (⭐️$0.02)"
