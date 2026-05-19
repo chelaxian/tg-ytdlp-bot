@@ -4114,8 +4114,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         logger.info(f"Original video path for subtitle search: {original_video_path}")
                                         # Use renamed path for video processing
                                         embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback, app=app, message=message)
-                                        # If hard burn succeeded, calculate star cost based on video height
-                                        if embed_result:
+                                        # Only charge for hard burn (MP4/AVC1), not soft embed (MKV)
+                                        # embed_subs_to_video returns True for both modes, so check file extension
+                                        if embed_result and not after_rename_abs_path.lower().endswith('.mkv'):
                                             sub_burn_star_count = LimitsConfig.get_sub_burn_star_cost(height)
                                             logger.info(f"[SUB_BURN] Hard burn succeeded, star cost: {sub_burn_star_count} for height={height}")
                                         try:

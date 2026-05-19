@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>পরিচালিত</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 ভাষা পরিবর্তন করুন: /lang</b>"
-    TO_USE_MSG = "<i>এই বট ব্যবহার করতে আপনাকে @tg_ytdlp Telegram চ্যানেলে সাবস্ক্রাইব করতে হবে।</i>\nচ্যানেলে যোগদানের পর <b>আপনার ভিডিও লিঙ্কটি আবার পাঠান এবং বট এটি আপনার জন্য ডাউনলোড করবে</b> ❤️\n\n<blockquote>P.S. সম্ভাব্য 🔞NSFW কন্টেন্টের কারণে - ☁️<b>ক্লাউড স্টোরেজ</b>, 📁<b>ফাইল শেয়ার</b>, 🔗<b>URL শর্টনার</b> এবং 🔞<b>পর্ন সাইট</b> থেকে ডাউনলোড অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp চ্যানেল 🗑<b>মুছবেন না/আনসাবস্ক্রাইব করবেন না</b> এবং বটে 🤖<b>অতিরিক্ত URL/কমান্ড স্প্যাম করবেন না</b> - বট ব্যবহার থেকে স্বয়ংক্রিয়ভাবে নিষিদ্ধ হবেন ⛔️</blockquote>"
+    TO_USE_MSG = "<i>এই বট ব্যবহার করতে আপনাকে @tg_ytdlp Telegram চ্যানেলে সাবস্ক্রাইব করতে হবে।</i>\nচ্যানেলে যোগদানের পর <b>আপনার ভিডিও লিঙ্কটি আবার পাঠান এবং বট এটি আপনার জন্য ডাউনলোড করবে</b> ❤️\n\n<blockquote>P.S. সম্ভাব্য 🔞NSFW কন্টেন্টের কারণে - ☁️<b>ক্লাউড স্টোরেজ</b>, 📁<b>ফাইল শেয়ার</b>, 🔗<b>URL শর্টনার</b> এবং 🔞<b>পর্ন সাইট</b> থেকে ডাউনলোড অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlp চ্যানেল 🗑<b>মুছবেন না/আনসাবস্ক্রাইব করবেন না</b> এবং বটে 🤖<b>অতিরিক্ত URL/কমান্ড স্প্যাম করবেন না</b> - বট ব্যবহার থেকে স্বয়ংক্রিয়ভাবে নিষিদ্ধ হবেন ⛔️</blockquote>"
 
     ERROR1 = "URL লিঙ্ক পাওয়া যায়নি। অনুগ্রহ করে <b>https://</b> বা <b>http://</b> সহ একটি URL লিখুন"
 
@@ -154,7 +154,10 @@ class Messages(object):
 
 👨‍💻 <i>ডেভেলপার:</i> @upekshaip
 🤝 <i>অবদানকারী:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ class Messages(object):
 • কমান্ড সীমা: <b>20/মিনিট</b>
 • 1 ডাউনলোড সর্বোচ্চ সময়: <b>2 ঘন্টা</b>
 • 🔞 NSFW কন্টেন্ট অর্থপ্রদানযোগ্য! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 অন্যান্য সমস্ত মিডিয়া সম্পূর্ণ বিনামূল্যে
 • 📝 সমস্ত কন্টেন্ট লগ এবং আমার লগ-চ্যানেলে ক্যাশিং পুনরায় ডাউনলোড করার সময় তাৎক্ষণিক রিপোস্টের জন্য</blockquote>
 
@@ -527,7 +531,9 @@ class Messages(object):
         "<blockquote>❗️সতর্কতা: উচ্চ CPU প্রভাবের কারণে এই ফাংশনটি খুব ধীর (প্রায় রিয়েল-টাইম) এবং সীমাবদ্ধ:\n"
         "- 720p সর্বোচ্চ গুণমান\n"
         "- 1.5 ঘন্টা সর্বোচ্চ সময়কাল\n"
-        "- 500mb সর্বোচ্চ ভিডিও আকার</blockquote>\n\n"
+        "- 500mb সর্বোচ্চ ভিডিও আকার\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>দ্রুত কমান্ড:</b>\n"
@@ -2023,7 +2029,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ গ্রুপে কাজ করার জন্য বটের জন্য প্রশাসক অধিকার প্রয়োজন। অনুগ্রহ করে এই গ্রুপে বটকে অ্যাডমিন করুন।"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "হ্যালো {first_name},\n \n<i>এই বট🤖 সরাসরি telegram এ যেকোনো ভিডিও ডাউনলোড করতে পারে।😊 আরও তথ্যের জন্য <b>/help</b> চাপুন</i> 👈\n\n<blockquote>P.S. সম্ভাব্য 🔞NSFW কন্টেন্টের কারণে - ☁️<b>ক্লাউড স্টোরেজ</b>, 📁<b>ফাইল শেয়ার</b>, 🔗<b>URL শর্টনার</b> এবং 🔞<b>পর্ন সাইট</b> থেকে ডাউনলোড অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp চ্যানেল 🗑<b>মুছবেন না/আনসাবস্ক্রাইব করবেন না</b> এবং বটে 🤖<b>অতিরিক্ত URL/কমান্ড স্প্যাম করবেন না</b> - বট ব্যবহার থেকে স্বয়ংক্রিয়ভাবে নিষিদ্ধ হবেন ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "হ্যালো {first_name},\n \n<i>এই বট🤖 সরাসরি telegram এ যেকোনো ভিডিও ডাউনলোড করতে পারে।😊 আরও তথ্যের জন্য <b>/help</b> চাপুন</i> 👈\n\n<blockquote>P.S. সম্ভাব্য 🔞NSFW কন্টেন্টের কারণে - ☁️<b>ক্লাউড স্টোরেজ</b>, 📁<b>ফাইল শেয়ার</b>, 🔗<b>URL শর্টনার</b> এবং 🔞<b>পর্ন সাইট</b> থেকে ডাউনলোড অর্থপ্রদানযোগ্য! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlp চ্যানেল 🗑<b>মুছবেন না/আনসাবস্ক্রাইব করবেন না</b> এবং বটে 🤖<b>অতিরিক্ত URL/কমান্ড স্প্যাম করবেন না</b> - বট ব্যবহার থেকে স্বয়ংক্রিয়ভাবে নিষিদ্ধ হবেন ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 সরানোর জন্য কোন ফাইল নেই।"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 সমস্ত ফাইল সফলভাবে সরানো হয়েছে!\n\nসরানো ফাইল:\n{files_list}"
     

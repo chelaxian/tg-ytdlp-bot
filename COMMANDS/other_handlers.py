@@ -10,7 +10,7 @@ from HELPERS.app_instance import get_app
 from HELPERS.decorators import send_reply_keyboard_always, background_handler
 from HELPERS.logger import send_to_logger, send_to_user
 from HELPERS.limitter import is_user_in_channel, check_user, check_playlist_range_limits
-from HELPERS.download_status import get_active_download
+from HELPERS.download_status import get_active_download, can_start_download
 from HELPERS.filesystem_hlp import create_directory
 
 from CONFIG.config import Config
@@ -85,7 +85,7 @@ def audio_command_handler(app, message):
     if not _check_access(message):
         return
 
-    if get_active_download(user_id):
+    if not can_start_download(user_id):
         safe_send_message(user_id, safe_get_messages(user_id).AUDIO_WAIT_MSG, reply_parameters=ReplyParameters(message_id=message.id))
         return
     user_dir = os.path.join("users", str(user_id))

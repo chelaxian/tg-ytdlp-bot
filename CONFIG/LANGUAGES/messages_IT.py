@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Gestito da</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Cambia lingua: /lang</b>"
-    TO_USE_MSG = "<i>Per usare questo bot devi iscriverti al canale Telegram @tg_ytdlp.</i>\nDopo esserti unito al canale, <b>reinvia il tuo link video e il bot lo scaricherà per te</b> ❤️\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Per usare questo bot devi iscriverti al canale Telegram @tg_ytdlp.</i>\nDopo esserti unito al canale, <b>reinvia il tuo link video e il bot lo scaricherà per te</b> ❤️\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>"
 
     ERROR1 = "Link URL non trovato. Inserisci un URL con <b>https://</b> o <b>http://</b>"
 
@@ -154,7 +154,10 @@ Usa <code>/img URL</code> per scaricare immagini/foto/album da molte piattaforme
 
 👨‍💻 <i>Sviluppatore:</i> @upekshaip
 🤝 <i>Collaboratore:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ Aggiungi i miei bot ai tuoi gruppi per ottenere funzionalità avanzate e limiti 
 • Limite comandi: <b>20/min</b>
 • 1 Download tempo max: <b>2 ore</b>
 • 🔞 I contenuti NSFW sono a pagamento! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 TUTTI GLI ALTRI MEDIA SONO TOTALMENTE GRATUITI
 • 📝 Tutti i log dei contenuti e cache ai miei log-channels per repost istantaneo quando si ri-scarica</blockquote>
 
@@ -527,7 +531,9 @@ Scopri di più: /playlist"""
         "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
         "- 720p max quality\n"
         "- 1.5 hour max duration\n"
-        "- 500mb max video size</blockquote>\n\n"
+        "- 500mb max video size\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Comandi rapidi:</b>\n"
@@ -2023,7 +2029,7 @@ Scopri di più: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Per il lavoro di gruppo, è necessario un lavoro da parte dell'amministratore. Quindi, seleziona l'amministratore di questo gruppo."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Ciao {first_name},\n \n<i>Questo bot🤖 può scaricare qualsiasi video direttamente in telegram.😊 Per maggiori informazioni premi <b>/help</b></i> 👈\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Ciao {first_name},\n \n<i>Questo bot🤖 può scaricare qualsiasi video direttamente in telegram.😊 Per maggiori informazioni premi <b>/help</b></i> 👈\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Nessun file da rimuovere."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

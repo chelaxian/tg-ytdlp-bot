@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>由</i> @iilililiiillliiliililliilliliiil <i>管理</i>\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 更改语言: /lang</b>"
-    TO_USE_MSG = "<i>要使用此机器人，您需要订阅 @tg_ytdlp Telegram 频道。</i>\n加入频道后，<b>重新发送您的视频链接，机器人将为您下载</b> ❤️\n\n<blockquote>P.S. 因可能含🔞NSFW内容 - 从☁️<b>云存储</b>、📁<b>文件分享</b>、🔗<b>短链接</b>和🔞<b>色情网站</b>下载需付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 请勿🗑<b>删除/取消订阅 @tg_ytdlp 频道</b>，请勿🤖<b>向机器人过度发送 URL/命令</b> - 否则将被自动封禁 ⛔️</blockquote>"
+    TO_USE_MSG = "<i>要使用此机器人，您需要订阅 @tg_ytdlp Telegram 频道。</i>\n加入频道后，<b>重新发送您的视频链接，机器人将为您下载</b> ❤️\n\n<blockquote>P.S. 因可能含🔞NSFW内容 - 从☁️<b>云存储</b>、📁<b>文件分享</b>、🔗<b>短链接</b>和🔞<b>色情网站</b>下载需付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ 请勿🗑<b>删除/取消订阅 @tg_ytdlp 频道</b>，请勿🤖<b>向机器人过度发送 URL/命令</b> - 否则将被自动封禁 ⛔️</blockquote>"
 
     ERROR1 = "未找到URL链接。请输入带有 <b>https://</b> 或 <b>http://</b> 的URL"
 
@@ -154,7 +154,10 @@ class Messages(object):
 
 👨‍💻 <i>开发者：</i> @upekshaip
 🤝 <i>贡献者：</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ class Messages(object):
 • 命令限制：<b>20/分钟</b>
 • 1次下载最大时间：<b>2小时</b>
 • 🔞 NSFW内容是付费的！1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 所有其他媒体完全免费
 • 📝 所有内容日志和缓存到我的日志频道，以便在重新下载时即时重新发布</blockquote>
 
@@ -527,7 +531,9 @@ class Messages(object):
         "<blockquote>❗️警告：由于CPU影响高，此功能非常慢（接近实时）并限制为：\n"
         "- 最大质量720p\n"
         "- 最大时长1.5小时\n"
-        "- 最大视频大小500mb</blockquote>\n\n"
+        "- 最大视频大小500mb\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>快速命令：</b>\n"
@@ -2023,7 +2029,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ 机器人在群组中工作需要管理员权限。请将机器人设为该群组的管理员。"
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "你好 {first_name}，\n \n<i>这个机器人🤖可以直接将任何视频下载到telegram。😊 更多信息请按 <b>/help</b></i> 👈\n\n<blockquote>P.S. 因可能含🔞NSFW内容 - 从☁️<b>云存储</b>、📁<b>文件分享</b>、🔗<b>短链接</b>和🔞<b>色情网站</b>下载需付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ 请勿🗑<b>删除/取消订阅 @tg_ytdlp 频道</b>，请勿🤖<b>向机器人过度发送 URL/命令</b> - 否则将被自动封禁 ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "你好 {first_name}，\n \n<i>这个机器人🤖可以直接将任何视频下载到telegram。😊 更多信息请按 <b>/help</b></i> 👈\n\n<blockquote>P.S. 因可能含🔞NSFW内容 - 从☁️<b>云存储</b>、📁<b>文件分享</b>、🔗<b>短链接</b>和🔞<b>色情网站</b>下载需付费！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ 请勿🗑<b>删除/取消订阅 @tg_ytdlp 频道</b>，请勿🤖<b>向机器人过度发送 URL/命令</b> - 否则将被自动封禁 ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 没有要删除的文件。"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 所有文件已成功删除！\n\n已删除的文件：\n{files_list}"
     
