@@ -2552,6 +2552,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         f"🔧 <b>Full Error:</b> <code>{error_message}</code>"
                     )
                     error_message_sent = True
+                    # Send cookie hint if this is a cookie-related error
+                    try:
+                        from CONFIG.errors import is_cookie_error
+                        if is_cookie_error(error_message):
+                            from pyrogram.types import ReplyParameters as _RP2
+                            safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=_RP2(message_id=message.id), parse_mode="HTML")
+                            logger.info(f"Sent cookie hint to user {user_id} after cookie-related error")
+                    except Exception as _cookie_hint_err:
+                        logger.debug(f"Failed to send cookie hint: {_cookie_hint_err}")
                 return None
             except Exception as e:
                 error_message = str(e)

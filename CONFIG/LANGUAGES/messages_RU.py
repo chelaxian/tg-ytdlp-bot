@@ -1365,6 +1365,7 @@ class Messages(object):
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Изменить расширение/кодек видео"
     ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: включите PlayerV2 в меню отладки Telegram для воспроизведения\niOS: 10 тапов по Settings → лист вниз → тумблер PlayerV2\nAndroid: Settings → зажать дважды \"Telegram v X.X.X\" → меню отладки"
     MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>Видео MKV/AV1/VP9</b>\nДля воспроизведения включите <b>PlayerV2</b> в меню отладки Telegram:\n\n📱 <b>iOS</b>: Settings → 10 тапов → лист вниз → тумблер PlayerV2\n🤖 <b>Android</b>: Settings → лист вниз → зажать дважды \"Telegram v X.X.X\" → включить PlayerV2"
+    SAVE_AS_COOKIE_HINT_MSG = "🔐 <b>Ошибка авторизации</b>\nЭто видео требует куки для входа. Вы можете предоставить куки браузера через команду /cookie:\n\n1️⃣ Отправьте <code>/cookie</code> для получения инструкции\n2️⃣ Экспортируйте куки из браузера\n3️⃣ Отправьте файл куки боту\n\nЭто поможет обойти проверку возраста и обнаружение ботов."
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Встроить"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Извлечь только аудио"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW платный (⭐️$0.02)"
