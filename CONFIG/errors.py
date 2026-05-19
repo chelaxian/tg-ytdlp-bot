@@ -23,6 +23,25 @@ COOKIE_ERRORS = [
     "rate-limit reached",
     "login required",
     "Sign in to confirm",
+    # Twitter/X errors — cookie often needed to access tweets
+    "No video could be found in this tweet",
+    "[twitter][error]",
+    "tweet is not available",
+    "content is not available",
+    # Gallery-dl errors — cookie/auth required
+    "authentication failed",
+    "http redirect to login page",
+    "redirect to login",
+    "login page",
+    "account suspended",
+    "account banned",
+    "account private",
+    "profile private",
+    "captcha required",
+    "verification required",
+    "age verification required",
+    "no media found",
+    "no content available",
 ]
 
 
