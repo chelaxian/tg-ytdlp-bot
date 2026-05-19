@@ -2299,7 +2299,7 @@ Matuto pa: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Panoorin"  # PANSAMANTALANG NAKA-DISABLE: down ang poketube service
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Caption"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ TRIM"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Trim</b>\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nMangyaring ipadala ang nais na time range sa format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Trim</b>\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nMangyaring ipadala ang nais na time range sa format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Hindi wastong format. Mangyaring gamitin: <code>HH:MM:SS-HH:MM:SS</code>\n\nHalimbawa: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Hindi wastong range. Ang start time ay dapat na mas mababa kaysa sa end time."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Ang time range ay nasa labas ng mga hangganan ng video.\n\nVideo duration: <b>{start_time} - {end_time}</b>\n\nAng iyong range ay dapat na nasa loob ng mga limitasyong ito."

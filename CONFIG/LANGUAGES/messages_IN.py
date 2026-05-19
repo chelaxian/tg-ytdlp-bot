@@ -2297,7 +2297,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁देखें"  # अस्थायी रूप से अक्षम: poketube सेवा डाउन है
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝विवरण"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ ट्रिम"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>वीडियो ट्रिम</b>\n\nवीडियो अवधि: <b>{start_time} - {end_time}</b>\n\nकृपया वांछित समय सीमा प्रारूप में भेजें:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nउदाहरण: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>वीडियो ट्रिम</b>\n\nवीडियो अवधि: <b>{start_time} - {end_time}</b>\n\nकृपया वांछित समय सीमा प्रारूप में भेजें:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nउदाहरण: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ अमान्य प्रारूप। कृपया उपयोग करें: <code>HH:MM:SS-HH:MM:SS</code>\n\nउदाहरण: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ अमान्य सीमा। प्रारंभ समय अंत समय से कम होना चाहिए।"
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ समय सीमा वीडियो की सीमाओं से बाहर है।\n\nवीडियो अवधि: <b>{start_time} - {end_time}</b>\n\nआपकी सीमा इन सीमाओं के भीतर होनी चाहिए।"

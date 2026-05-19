@@ -2298,7 +2298,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Дивитися"  # ТИМЧАСОВО ВИМКНЕНО: сервіс poketube не працює
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Опис"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ ОБРІЗКА"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Обрізка відео</b>\n\nТривалість відео: <b>{start_time} - {end_time}</b>\n\nБудь ласка, надішліть бажаний діапазон часу у форматі:\n<code>ГГ:ХХ:СС-ГГ:ХХ:СС</code>\n\nПриклад: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Обрізка відео</b>\n\nТривалість відео: <b>{start_time} - {end_time}</b>\n\nБудь ласка, надішліть бажаний діапазон часу у форматі:\n<code>ГГ:ХХ:СС-ГГ:ХХ:СС</code>\n\nПриклад: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Невірний формат. Будь ласка, використовуйте: <code>ГГ:ХХ:СС-ГГ:ХХ:СС</code>\n\nПриклад: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Невірний діапазон. Час початку повинен бути меншим за час закінчення."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Діапазон часу виходить за межі відео.\n\nТривалість відео: <b>{start_time} - {end_time}</b>\n\nВаш діапазон повинен бути в межах цих обмежень."

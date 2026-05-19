@@ -1243,7 +1243,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # (VK, etc.) produce IDs starting with "-" which causes file rename failures
             # during DASH fragment assembly (e.g. "-222033079_456241862.fdash_sep-6.mp4").
             original_outtmpl = os.path.join(user_dir_name, "vid_%(id)s.%(ext)s")
-            
+
+            # When TRIM is active, use a unique filename to force re-download from scratch
+            # instead of reusing an existing cached file on disk
+            if download_sections:
+                _trim_ts = int(time.time() * 1000)
+                original_outtmpl = os.path.join(user_dir_name, f"vid_%(id)s_trim_{_trim_ts}.%(ext)s")
+                logger.info(f"[TRIM] Using unique outtmpl to force fresh download: {original_outtmpl}")
+
             # First try with original filename
             # Для отрицательных индексов используем весь диапазон сразу
             if current_playlist_items_override:

@@ -2298,7 +2298,7 @@ Más información: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Ver"  # TEMPORALMENTE DESHABILITADO: el servicio poketube está caído
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Descripción"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ RECORTAR"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Recortar Video</b>\n\nDuración del video: <b>{start_time} - {end_time}</b>\n\nPor favor, envía el rango de tiempo deseado en formato:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nEjemplo: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Recortar Video</b>\n\nDuración del video: <b>{start_time} - {end_time}</b>\n\nPor favor, envía el rango de tiempo deseado en formato:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nEjemplo: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Formato inválido. Por favor usa: <code>HH:MM:SS-HH:MM:SS</code>\n\nEjemplo: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Rango inválido. El tiempo de inicio debe ser menor que el tiempo de finalización."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ El rango de tiempo está fuera de los límites del video.\n\nDuración del video: <b>{start_time} - {end_time}</b>\n\nTu rango debe estar dentro de estos límites."

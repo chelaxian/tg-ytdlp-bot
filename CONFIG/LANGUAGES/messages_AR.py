@@ -2301,7 +2301,7 @@ class Messages(object):
 
     # Always Ask menu button messages
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ قص"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>قص الفيديو</b>\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيرجى إرسال النطاق الزمني المطلوب بالتنسيق:\n<code>س:د:ث-س:د:ث</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>قص الفيديو</b>\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيرجى إرسال النطاق الزمني المطلوب بالتنسيق:\n<code>س:د:ث-س:د:ث</code>\n\nمثال: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ تنسيق غير صحيح. يرجى استخدام: <code>س:د:ث-س:د:ث</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ نطاق غير صحيح. يجب أن يكون وقت البداية أقل من وقت النهاية."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ النطاق الزمني خارج حدود الفيديو.\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيجب أن يكون النطاق الخاص بك ضمن هذه الحدود."

@@ -2299,7 +2299,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Сипаттама"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ КЕСУ"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Бейне кесу</b>\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nӨтінеміз, қалаған уақыт аралығын форматта жіберіңіз:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Бейне кесу</b>\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nӨтінеміз, қалаған уақыт аралығын форматта жіберіңіз:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Жарамсыз формат. Өтінеміз, пайдаланыңыз: <code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Жарамсыз аралық. Басталу уақыты аяқталу уақытынан кіші болуы керек."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Уақыт аралығы бейненің шекараларынан тыс.\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nСіздің аралығыңыз осы шектеулер ішінде болуы керек."

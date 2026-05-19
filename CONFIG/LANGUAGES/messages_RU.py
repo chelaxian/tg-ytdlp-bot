@@ -2300,7 +2300,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Смотреть"  # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Описание"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ ОБРЕЗКА"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Обрезка видео</b>\n\nДлительность видео: <b>{start_time} - {end_time}</b>\n\nПожалуйста, отправьте желаемый диапазон времени в формате:\n<code>ЧЧ:ММ:СС-ЧЧ:ММ:СС</code>\n\nПример: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Обрезка видео</b>\n\nДлительность видео: <b>{start_time} - {end_time}</b>\n\nПожалуйста, отправьте желаемый диапазон времени в формате:\n<code>ЧЧ:ММ:СС-ЧЧ:ММ:СС</code>\n\nПример: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Неверный формат. Используйте: <code>ЧЧ:ММ:СС-ЧЧ:ММ:СС</code>\n\nПример: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Неверный диапазон. Время начала должно быть меньше времени окончания."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Диапазон времени выходит за границы видео.\n\nДлительность видео: <b>{start_time} - {end_time}</b>\n\nВаш диапазон должен быть в пределах этих границ."

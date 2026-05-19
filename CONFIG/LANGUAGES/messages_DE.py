@@ -2299,7 +2299,7 @@ Mehr erfahren: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Ansehen"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Beschriftung"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ SCHNEIDEN"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Schneiden</b>\n\nVideodauer: <b>{start_time} - {end_time}</b>\n\nBitte senden Sie den gewünschten Zeitbereich im Format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nBeispiel: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Schneiden</b>\n\nVideodauer: <b>{start_time} - {end_time}</b>\n\nBitte senden Sie den gewünschten Zeitbereich im Format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nBeispiel: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Ungültiges Format. Bitte verwenden Sie: <code>HH:MM:SS-HH:MM:SS</code>\n\nBeispiel: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Ungültiger Bereich. Die Startzeit muss kleiner als die Endzeit sein."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Der Zeitbereich liegt außerhalb der Videogrenzen.\n\nVideodauer: <b>{start_time} - {end_time}</b>\n\nIhr Bereich muss innerhalb dieser Grenzen liegen."

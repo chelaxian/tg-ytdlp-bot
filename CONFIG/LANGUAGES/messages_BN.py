@@ -2298,7 +2298,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # সাময়িকভাবে নিষ্ক্রিয়: poketube পরিষেবা ডাউন
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝বিবরণ"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ ট্রিম"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>ভিডিও ট্রিম</b>\n\nভিডিওর সময়কাল: <b>{start_time} - {end_time}</b>\n\nঅনুগ্রহ করে পছন্দসই সময় পরিসীমা ফরম্যাটে পাঠান:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nউদাহরণ: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>ভিডিও ট্রিম</b>\n\nভিডিওর সময়কাল: <b>{start_time} - {end_time}</b>\n\nঅনুগ্রহ করে পছন্দসই সময় পরিসীমা ফরম্যাটে পাঠান:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nউদাহরণ: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ অবৈধ ফরম্যাট। অনুগ্রহ করে ব্যবহার করুন: <code>HH:MM:SS-HH:MM:SS</code>\n\nউদাহরণ: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ অবৈধ পরিসীমা। শুরুর সময় শেষ সময়ের চেয়ে কম হতে হবে।"
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ সময় পরিসীমা ভিডিওর সীমানার বাইরে।\n\nভিডিওর সময়কাল: <b>{start_time} - {end_time}</b>\n\nআপনার পরিসীমা এই সীমার মধ্যে হতে হবে।"

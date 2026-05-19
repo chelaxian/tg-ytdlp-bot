@@ -2298,7 +2298,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁تماشا"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝عنوان"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ برش"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>برش ویدیو</b>\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nلطفاً محدوده زمانی مورد نظر را در قالب ارسال کنید:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>برش ویدیو</b>\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nلطفاً محدوده زمانی مورد نظر را در قالب ارسال کنید:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ فرمت نامعتبر. لطفاً استفاده کنید: <code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ محدوده نامعتبر. زمان شروع باید کمتر از زمان پایان باشد."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ محدوده زمانی خارج از مرزهای ویدیو است.\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nمحدوده شما باید در این محدودیت‌ها باشد."

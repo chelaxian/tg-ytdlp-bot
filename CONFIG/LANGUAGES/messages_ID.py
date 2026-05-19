@@ -2298,7 +2298,7 @@ Pelajari lebih lanjut: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Tonton"  # SEMENTARA DINONAKTIFKAN: layanan poketube sedang down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Deskripsi"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ POTONG"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Potong Video</b>\n\nDurasi video: <b>{start_time} - {end_time}</b>\n\nSilakan kirim rentang waktu yang diinginkan dalam format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nContoh: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Potong Video</b>\n\nDurasi video: <b>{start_time} - {end_time}</b>\n\nSilakan kirim rentang waktu yang diinginkan dalam format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nContoh: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Format tidak valid. Silakan gunakan: <code>HH:MM:SS-HH:MM:SS</code>\n\nContoh: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Rentang tidak valid. Waktu mulai harus kurang dari waktu akhir."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Rentang waktu berada di luar batas video.\n\nDurasi video: <b>{start_time} - {end_time}</b>\n\nRentang Anda harus berada dalam batas ini."

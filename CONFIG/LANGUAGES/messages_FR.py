@@ -2299,7 +2299,7 @@ En savoir plus : /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Regarder"  # TEMPORAIREMENT DÉSACTIVÉ: le service poketube est en panne
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Description"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ COUPER"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Découpage Vidéo</b>\n\nDurée de la vidéo: <b>{start_time} - {end_time}</b>\n\nVeuillez envoyer la plage horaire souhaitée au format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nExemple: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Découpage Vidéo</b>\n\nDurée de la vidéo: <b>{start_time} - {end_time}</b>\n\nVeuillez envoyer la plage horaire souhaitée au format:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nExemple: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Format invalide. Veuillez utiliser: <code>HH:MM:SS-HH:MM:SS</code>\n\nExemple: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Plage invalide. L'heure de début doit être inférieure à l'heure de fin."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ La plage horaire est en dehors des limites de la vidéo.\n\nDurée de la vidéo: <b>{start_time} - {end_time}</b>\n\nVotre plage doit être dans ces limites."
