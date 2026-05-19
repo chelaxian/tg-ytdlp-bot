@@ -2587,6 +2587,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
                         )
                         error_message_sent = True
+                        # Send cookie hint if this is a cookie-related error
+                        try:
+                            from CONFIG.errors import is_cookie_error
+                            if is_cookie_error(error_message):
+                                from pyrogram.types import ReplyParameters as _RP2
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=_RP2(message_id=message.id), parse_mode="HTML")
+                                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (proxy failure path)")
+                        except Exception as _cookie_hint_err:
+                            logger.debug(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return None
                 
                 # Auto-fallback to gallery-dl for obvious non-video cases
@@ -2678,6 +2687,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if not error_message_sent:
                         send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
                         error_message_sent = True
+                        # Send cookie hint if this is a cookie-related error
+                        try:
+                            from CONFIG.errors import is_cookie_error
+                            if is_cookie_error(str(e)):
+                                from pyrogram.types import ReplyParameters as _RP2
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=_RP2(message_id=message.id), parse_mode="HTML")
+                                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (generic exception path)")
+                        except Exception as _cookie_hint_err:
+                            logger.debug(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return None
 
         # Для отрицательных индексов используем весь диапазон сразу, а не цикл

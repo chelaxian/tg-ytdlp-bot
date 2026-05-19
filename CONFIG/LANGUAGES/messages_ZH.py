@@ -769,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "将 <code>bestvideo+bestaudio/best</code> 替换为您想要的格式字符串。"
     )
-    FORMAT_RESOLUTION_MENU_MSG = "选择您想要的分辨率和编解码器："
+    FORMAT_RESOLUTION_MENU_MSG = "选择您想要的分辨率和编解码器：\n\n⚠️ <b>MKV/AV1/VP9 播放提示：</b> 要内联播放这些格式，请在 Telegram 调试菜单中启用 <b>PlayerV2</b>：\n📱 iOS：设置 → 连点10次 → PlayerV2 开关\n🤖 Android：设置 → 长按两次 \"Telegram v X.X.X\" → 调试菜单"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ 格式设置为：始终询问。现在每次发送URL时都会提示您选择质量。"
     FORMAT_UPDATED_MSG = "✅ 格式已更新为：\n{format}"
     FORMAT_SAVED_MSG = "✅ 格式已保存。"

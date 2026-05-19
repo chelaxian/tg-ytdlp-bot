@@ -769,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> কে আপনার পছন্দের ফরম্যাট স্ট্রিং দিয়ে প্রতিস্থাপন করুন।"
     )
-    FORMAT_RESOLUTION_MENU_MSG = "আপনার পছন্দের রেজোলিউশন এবং কোডেক নির্বাচন করুন:"
+    FORMAT_RESOLUTION_MENU_MSG = "আপনার পছন্দের রেজোলিউশন এবং কোডেক নির্বাচন করুন:\n\n⚠️ <b>MKV/AV1/VP9:</b> প্লে করতে Telegram ডিবাগ মেনুতে <b>PlayerV2</b> সক্রিয় করুন:\n📱 iOS: Settings → ১০ বার ট্যাপ → PlayerV2 টগল\n🤖 Android: Settings → \"Telegram v X.X.X\" দুইবার দীর্ঘ চাপ → ডিবাগ মেনু"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ ফরম্যাট সেট করা হয়েছে: Always Ask। এখন আপনি প্রতিবার URL পাঠালে গুণমানের জন্য জিজ্ঞাসা করা হবে।"
     FORMAT_UPDATED_MSG = "✅ ফরম্যাট আপডেট করা হয়েছে:\n{format}"
     FORMAT_SAVED_MSG = "✅ ফরম্যাট সংরক্ষণ করা হয়েছে।"

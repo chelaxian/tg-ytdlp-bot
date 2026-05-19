@@ -769,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "استبدل <code>bestvideo+bestaudio/best</code> بسلسلة التنسيق المطلوبة."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "اختر الدقة وترميز الفيديو المطلوبين:"
+    FORMAT_RESOLUTION_MENU_MSG = "اختر الدقة وترميز الفيديو المطلوبين:\n\n⚠️ <b>MKV/AV1/VP9:</b> للتشغيل، فعّل <b>PlayerV2</b> من قائمة تصحيح تلغرام:\n📱 iOS: الإعدادات → انقر 10 مرات → مفتاح PlayerV2\n🤖 Android: الإعدادات → اضغط مطولاً مرتين على \"Telegram v X.X.X\" → قائمة التصحيح"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ تم تعيين التنسيق إلى: السؤال دائماً. الآن سيتم سؤالك عن الجودة في كل مرة ترسل رابط."
     FORMAT_UPDATED_MSG = "✅ تم تحديث التنسيق إلى:\n{format}"
     FORMAT_SAVED_MSG = "✅ تم حفظ التنسيق."

@@ -769,7 +769,7 @@ Mehr erfahren: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Ersetzen Sie <code>bestvideo+bestaudio/best</code> mit Ihrer gewünschten Format-Zeichenkette."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Wählen Sie Ihre gewünschte Auflösung und Codec:"
+    FORMAT_RESOLUTION_MENU_MSG = "Wählen Sie Ihre gewünschte Auflösung und Codec:\n\n⚠️ <b>MKV/AV1/VP9:</b> Zur Wiedergabe aktivieren Sie <b>PlayerV2</b> im Telegram-Debug-Menü:\n📱 iOS: Settings → 10-mal tippen → PlayerV2-Schalter\n🤖 Android: Settings → \"Telegram v X.X.X\" zweimal lang drücken → Debug-Menü"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format auf gesetzt: Always Ask. Jetzt werden Sie jedes Mal nach der Qualität gefragt, wenn Sie eine URL senden."
     FORMAT_UPDATED_MSG = "✅ Format aktualisiert auf:\n{format}"
     FORMAT_SAVED_MSG = "✅ Format gespeichert."

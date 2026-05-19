@@ -770,7 +770,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> орнына қалаған формат жолын қойыңыз."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Қалаған ажыратымдылық пен кодекті таңдаңыз:"
+    FORMAT_RESOLUTION_MENU_MSG = "Қалаған ажыратымдылық пен кодекті таңдаңыз:\n\n⚠️ <b>MKV/AV1/VP9:</b> Ойнату үшін Telegram Debug мәзірінен <b>PlayerV2</b> іске қосыңыз:\n📱 iOS: Settings → 10 рет басыңыз → PlayerV2 ауыстырғышы\n🤖 Android: Settings → \"Telegram v X.X.X\" екі рет ұзақ басыңыз → Debug мәзірі"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Пішім: Әрқашан сұрау. Енді URL мекенжайын жіберген сайын сізге сапа сұралады."
     FORMAT_UPDATED_MSG = "✅ Формат жаңартылды:\n{format}"
     FORMAT_SAVED_MSG = "✅ Формат сақталды."

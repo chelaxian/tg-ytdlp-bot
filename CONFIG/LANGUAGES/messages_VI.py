@@ -769,7 +769,7 @@ Tìm hiểu thêm: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Thay thế <code>bestvideo+bestaudio/best</code> bằng chuỗi định dạng mong muốn của bạn."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Chọn độ phân giải và codec mong muốn của bạn:"
+    FORMAT_RESOLUTION_MENU_MSG = "Chọn độ phân giải và codec mong muốn của bạn:\n\n⚠️ <b>MKV/AV1/VP9:</b> Để phát định dạng này, hãy bật <b>PlayerV2</b> trong menu Debug của Telegram:\n📱 iOS: Settings → nhấn 10 lần → bật PlayerV2\n🤖 Android: Settings → nhấn giữ \"Telegram v X.X.X\" hai lần → menu Debug"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Định dạng đã đặt thành: Luôn Hỏi. Bây giờ bạn sẽ được nhắc về chất lượng mỗi khi gửi URL."
     FORMAT_UPDATED_MSG = "✅ Định dạng đã được cập nhật thành:\n{format}"
     FORMAT_SAVED_MSG = "✅ Định dạng đã được lưu."

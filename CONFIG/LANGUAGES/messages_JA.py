@@ -769,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code>を希望のフォーマット文字列に置き換えてください。"
     )
-    FORMAT_RESOLUTION_MENU_MSG = "希望の解像度とコーデックを選択："
+    FORMAT_RESOLUTION_MENU_MSG = "希望の解像度とコーデックを選択：\n\n⚠️ <b>MKV/AV1/VP9 再生について：</b> インライン再生には Telegram のデバッグメニューで <b>PlayerV2</b> を有効にしてください：\n📱 iOS: Settings → 10回タップ → PlayerV2 トグル\n🤖 Android: Settings → 「Telegram v X.X.X」を2回長押し → デバッグメニュー"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ フォーマットが設定されました：常に尋ねる。URLを送信するたびに品質を尋ねられます。"
     FORMAT_UPDATED_MSG = "✅ フォーマットが更新されました：\n{format}"
     FORMAT_SAVED_MSG = "✅ フォーマットが保存されました。"

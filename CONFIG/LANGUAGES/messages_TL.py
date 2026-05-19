@@ -770,7 +770,7 @@ Matuto pa: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Palitan ang <code>bestvideo+bestaudio/best</code> ng iyong nais na format string."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Pumili ng iyong nais na resolution at codec:"
+    FORMAT_RESOLUTION_MENU_MSG = "Pumili ng iyong nais na resolution at codec:\n\n⚠️ <b>MKV/AV1/VP9:</b> Para mapanood, i-enable ang <b>PlayerV2</b> sa Telegram Debug menu:\n📱 iOS: Settings → i-tap 10 beses → PlayerV2 toggle\n🤖 Android: Settings → pindutin nang matagal ang \"Telegram v X.X.X\" nang dalawang beses → Debug menu"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Nakatakda ang format sa: Always Ask. Ngayon ay tatanungin ka para sa kalidad sa bawat pagpapadala ng URL."
     FORMAT_UPDATED_MSG = "✅ Na-update ang format sa:\n{format}"
     FORMAT_SAVED_MSG = "✅ Na-save ang format."

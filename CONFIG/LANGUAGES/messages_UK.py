@@ -769,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Замініть <code>bestvideo+bestaudio/best</code> на потрібний рядок формату."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Виберіть бажану роздільну здатність та кодек:"
+    FORMAT_RESOLUTION_MENU_MSG = "Виберіть бажану роздільну здатність та кодек:\n\n⚠️ <b>MKV/AV1/VP9:</b> Для відтворення ввімкніть <b>PlayerV2</b> у меню налагодження Telegram:\n📱 iOS: Settings → 10 тапів → перемикач PlayerV2\n🤖 Android: Settings → двічі натиснути \"Telegram v X.X.X\" → меню налагодження"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Формат встановлено на: Always Ask. Тепер вас запитують про якість кожного разу, коли ви надсилаєте URL."
     FORMAT_UPDATED_MSG = "✅ Формат оновлено до:\n{format}"
     FORMAT_SAVED_MSG = "✅ Формат збережено."

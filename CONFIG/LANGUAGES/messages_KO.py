@@ -769,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code>를 원하는 형식 문자열로 교체하세요."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "원하는 해상도와 코덱을 선택하세요:"
+    FORMAT_RESOLUTION_MENU_MSG = "원하는 해상도와 코덱을 선택하세요:\n\n⚠️ <b>MKV/AV1/VP9 재생:</b> 인라인 재생을 위해 Telegram 디버그 메뉴에서 <b>PlayerV2</b>를 활성화하세요:\n📱 iOS: Settings → 10번 탭 → PlayerV2 토글\n🤖 Android: Settings → \"Telegram v X.X.X\" 2번 길게 누르기 → 디버그 메뉴"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ 형식이 다음으로 설정되었습니다: Always Ask. 이제 URL을 보낼 때마다 품질을 묻습니다."
     FORMAT_UPDATED_MSG = "✅ 형식이 다음으로 업데이트되었습니다:\n{format}"
     FORMAT_SAVED_MSG = "✅ 형식이 저장되었습니다."

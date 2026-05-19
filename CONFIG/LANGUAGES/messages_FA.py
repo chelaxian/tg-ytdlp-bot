@@ -769,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> را با رشته فرمت مورد نظر خود جایگزین کنید."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "رزولوشن و کدک مورد نظر خود را انتخاب کنید:"
+    FORMAT_RESOLUTION_MENU_MSG = "رزولوشن و کدک مورد نظر خود را انتخاب کنید:\n\n⚠️ <b>MKV/AV1/VP9:</b> برای پخش، <b>PlayerV2</b> را در منوی اشکال‌زدایی تلگرام فعال کنید:\n📱 iOS: تنظیمات ← ۱۰ بار ضربه ← کلید PlayerV2\n🤖 Android: تنظیمات ← دو بار فشار طولانی روی \"Telegram v X.X.X\" ← منوی اشکال‌زدایی"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ فرمت به این تنظیم شد: Always Ask. اکنون هر بار که URL ارسال می‌کنید از شما کیفیت پرسیده می‌شود."
     FORMAT_UPDATED_MSG = "✅ فرمت به این به‌روزرسانی شد:\n{format}"
     FORMAT_SAVED_MSG = "✅ فرمت ذخیره شد."

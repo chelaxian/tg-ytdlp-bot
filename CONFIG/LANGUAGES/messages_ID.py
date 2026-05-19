@@ -769,7 +769,7 @@ Pelajari lebih lanjut: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Ganti <code>bestvideo+bestaudio/best</code> dengan string format yang Anda inginkan."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Pilih resolusi dan codec yang Anda inginkan:"
+    FORMAT_RESOLUTION_MENU_MSG = "Pilih resolusi dan codec yang Anda inginkan:\n\n⚠️ <b>MKV/AV1/VP9:</b> Untuk memutar format ini, aktifkan <b>PlayerV2</b> di menu Debug Telegram:\n📱 iOS: Settings → ketuk 10 kali → toggle PlayerV2\n🤖 Android: Settings → tahan lama \"Telegram v X.X.X\" dua kali → menu Debug"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format diatur ke: Selalu Tanya. Sekarang Anda akan diminta kualitas setiap kali mengirim URL."
     FORMAT_UPDATED_MSG = "✅ Format diperbarui ke:\n{format}"
     FORMAT_SAVED_MSG = "✅ Format disimpan."

@@ -770,7 +770,7 @@ Koyi ƙari: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Maye gurbin <code>bestvideo+bestaudio/best</code> da kirtar tsari da kake so."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Zaɓi ƙuduri da codec da kake so:"
+    FORMAT_RESOLUTION_MENU_MSG = "Zaɓi ƙuduri da codec da kake so:\n\n⚠️ <b>MKV/AV1/VP9:</b> Don kunnawa, kunna <b>PlayerV2</b> a cikin menu na Debug na Telegram:\n📱 iOS: Settings → taɓa sau 10 → maɓallin PlayerV2\n🤖 Android: Settings → danna tsawo \"Telegram v X.X.X\" sau biyu → menu na Debug"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ An saita tsari zuwa: Luôn Tambayi. Yanzu za a tambaye ka inganci a kowane lokacin da ka aika URL."
     FORMAT_UPDATED_MSG = "✅ An sabunta tsari zuwa:\n{format}"
     FORMAT_SAVED_MSG = "✅ An adana tsari."

@@ -770,7 +770,7 @@ Use:
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> کو اپنی مطلوبہ فارمیٹ سٹرنگ سے تبدیل کریں۔"
     )
-    FORMAT_RESOLUTION_MENU_MSG = "اپنی مطلوبہ ریزولوشن اور کوڈیک منتخب کریں:"
+    FORMAT_RESOLUTION_MENU_MSG = "اپنی مطلوبہ ریزولوشن اور کوڈیک منتخب کریں:\n\n⚠️ <b>MKV/AV1/VP9:</b> پلے کرنے کے لیے، ٹیلیگرام ڈیبگ مینو میں <b>PlayerV2</b> فعال کریں:\n📱 iOS: Settings → 10 بار ٹیپ کریں → PlayerV2 ٹوگل\n🤖 Android: Settings → \"Telegram v X.X.X\" کو دو بار دیر تک دبائیں → ڈیبگ مینو"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ فارمیٹ سیٹ کیا گیا: ہمیشہ پوچھیں۔ اب آپ کو ہر بار URL بھیجنے پر کوالٹی کے لیے پوچھا جائے گا۔"
     FORMAT_UPDATED_MSG = "✅ فارمیٹ اپ ڈیٹ کیا گیا:\n{format}"
     FORMAT_SAVED_MSG = "✅ فارمیٹ محفوظ کیا گیا۔"

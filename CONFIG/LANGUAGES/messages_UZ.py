@@ -769,7 +769,7 @@ Ko'proq ma'lumot: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> ni o'zingiz xohlagan format qatori bilan almashtiring."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Xohlagan piksellar soni va codec'ni tanlang:"
+    FORMAT_RESOLUTION_MENU_MSG = "Xohlagan piksellar soni va codec'ni tanlang:\n\n⚠️ <b>MKV/AV1/VP9:</b> Ko'rish uchun Telegram Debug menusida <b>PlayerV2</b> ni yoqing:\n📱 iOS: Settings → 10 marta bosing → PlayerV2 kaliti\n🤖 Android: Settings → \"Telegram v X.X.X\" ni ikki marta uzoq bosing → Debug menyusi"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format o'rnatildi: Har doim so'rash. Endi har safar URL yuborganingizda sifat so'raladi."
     FORMAT_UPDATED_MSG = "✅ Format yangilandi:\n{format}"
     FORMAT_SAVED_MSG = "✅ Format saqlandi."
