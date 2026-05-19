@@ -79,6 +79,58 @@ def get_user_args(user_id: int):
 from COMMANDS.image_cmd import image_command
 from HELPERS.safe_messeger import fake_message
 
+# Telegram caption limit is 1024 characters; text messages allow 4096.
+# When sending a photo with inline keyboard, caption must fit in 1024 chars.
+TELEGRAM_CAPTION_LIMIT = 1024
+
+def _truncate_caption(cap: str, limit: int = TELEGRAM_CAPTION_LIMIT) -> str:
+    """Truncate caption to fit within Telegram's limit.
+    
+    Strategy: remove info blocks (<pre>, <blockquote>) from the end first,
+    then trim lines from the bottom, preserving hints/buttons area.
+    """
+    if len(cap) <= limit:
+        return cap
+    
+    import re
+    logger.debug(f"Caption too long ({len(cap)} chars), truncating to {limit}")
+    
+    # Step 1: Remove <pre language="info">...</pre> blocks (dynamic hints)
+    result = re.sub(r'<pre language="info">.*?</pre>', '', cap, flags=re.DOTALL)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing <pre info> block: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 2: Remove <blockquote>...</blockquote> blocks (info parts)
+    result = re.sub(r'<blockquote>.*?</blockquote>', '', result, flags=re.DOTALL)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing <blockquote> blocks: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 3: Remove lines containing "📅", "👁", "❤️" etc. (metadata)
+    lines = result.split('\n')
+    metadata_patterns = ['📅', '👁', '❤️', '👥', '📺']
+    filtered_lines = [l for l in lines if not any(p in l for p in metadata_patterns)]
+    result = '\n'.join(filtered_lines)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing metadata lines: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 4: Remove size/dimension info lines (📹144p, etc.)
+    lines = result.split('\n')
+    filtered_lines = [l for l in lines if not re.match(r'^\s*📹\s*\d', l)]
+    result = '\n'.join(filtered_lines)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing size lines: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 5: Hard truncate from the end, keeping beginning
+    if len(result) > limit:
+        result = result[:limit - 3] + '...'
+        logger.warning(f"Hard-truncated caption: {len(cap)} -> {len(result)}")
+    
+    return result
+
 # Get app instance for decorators
 app = get_app()
 
@@ -3979,6 +4031,9 @@ def show_manual_quality_menu(app, callback_query):
     cap += f"\n<b>{safe_get_messages(user_id).ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG}</b>\n"
     cap += f"\n<i>{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG}</i>\n"
     
+    # Truncate caption to fit Telegram's 1024 char limit for photo captions
+    cap = _truncate_caption(cap)
+    
     # Update current menu; if MESSAGE_ID_INVALID, send new message
     if callback_query and getattr(callback_query, 'message', None):
         try:
@@ -4399,6 +4454,9 @@ def show_other_qualities_menu(app, callback_query, page=0):
         
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         
+        # Truncate caption to fit Telegram's 1024 char limit for photo captions
+        cap = _truncate_caption(cap)
+        
         # Update message
         try:
             if callback_query.message.photo:
@@ -4550,6 +4608,9 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
     ])
     
     keyboard = InlineKeyboardMarkup(keyboard_rows)
+    
+    # Truncate caption to fit Telegram's 1024 char limit for photo captions
+    cap = _truncate_caption(cap)
     
     # Update message
     try:
@@ -4848,6 +4909,9 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
         keyboard_rows.append([InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askq|close")])
         
         keyboard = InlineKeyboardMarkup(keyboard_rows)
+        
+        # Truncate caption to fit Telegram's 1024 char limit for photo captions
+        cap = _truncate_caption(cap)
         
         # Отправляем меню
         try:
@@ -6882,6 +6946,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         cap = re.sub(r'<pre language="info">.*?</pre>', '', cap, flags=re.DOTALL)
         # Add new dynamic hint with reduced spacing
         cap += f"{dynamic_hint_text}\n"
+        
+        # Truncate caption to fit Telegram's 1024 char limit for photo captions
+        cap = _truncate_caption(cap)
         
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap now contains dynamic hints based on actual buttons
