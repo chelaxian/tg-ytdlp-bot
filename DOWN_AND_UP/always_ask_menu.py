@@ -7125,6 +7125,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
                         url,
                     )
+                    # Send cookie hint if this is a cookie/authentication error
+                    from CONFIG.errors import is_cookie_error
+                    if is_cookie_error(str(e)):
+                        try:
+                            safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                            logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu)")
+                        except Exception as _cookie_hint_err:
+                            logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return
         except Exception as e2:
             logger.error(f"Error editing processing message: {e2}")
@@ -7140,6 +7148,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
             url,
         )
+        # Send cookie hint if this is a cookie/authentication error
+        from CONFIG.errors import is_cookie_error
+        if is_cookie_error(str(e)):
+            try:
+                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu fallback path)")
+            except Exception as _cookie_hint_err:
+                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
         return
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs, proc_msg=None):
