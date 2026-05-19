@@ -2588,10 +2588,22 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.warning(f"Direct download fallback also failed: {direct_e}")
                     
                     if not error_message_sent:
-                        send_error_to_user(
-                            message,
-                            safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
-                        )
+                        # Only show proxy-specific message if user actually has proxy enabled
+                        try:
+                            from COMMANDS.proxy_cmd import is_proxy_enabled
+                            _proxy_on = is_proxy_enabled(user_id)
+                        except Exception:
+                            _proxy_on = False
+                        if _proxy_on:
+                            send_error_to_user(
+                                message,
+                                safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
+                            )
+                        else:
+                            send_error_to_user(
+                                message,
+                                f"❌ <b>Video download failed</b>\n\n<code>{error_message[:500]}</code>"
+                            )
                         error_message_sent = True
                         # Send cookie hint if this is a cookie-related error
                         if is_cookie_error(error_message):
