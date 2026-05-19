@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>يديره</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 تغيير اللغة: /lang</b>"
-    TO_USE_MSG = "<i>لاستخدام هذا البوت تحتاج إلى الاشتراك في قناة تليجرام @tg_ytdlp.</i>\nبعد انضمامك إلى القناة، <b>أعد إرسال رابط الفيديو مرة أخرى وسيقوم البوت بتحميله لك</b> ❤️\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>"
+    TO_USE_MSG = "<i>لاستخدام هذا البوت تحتاج إلى الاشتراك في قناة تليجرام @tg_ytdlp.</i>\nبعد انضمامك إلى القناة، <b>أعد إرسال رابط الفيديو مرة أخرى وسيقوم البوت بتحميله لك</b> ❤️\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>"
 
     ERROR1 = "لم يتم العثور على رابط URL. يرجى إدخال رابط يحتوي على <b>https://</b> أو <b>http://</b>"
 
@@ -154,7 +154,10 @@ class Messages(object):
 
 👨‍💻 <i>Developer:</i> @upekshaip
 🤝 <i>Contributor:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ class Messages(object):
 • حد الأوامر: <b>20/دقيقة</b>
 • الحد الأقصى لوقت التحميل الواحد: <b>ساعتان</b>
 • 🔞 المحتوى غير المناسب مدفوع! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 جميع الوسائط الأخرى مجانية تمامًا
 • 📝 جميع سجلات المحتوى والتخزين المؤقت في قنوات السجل الخاصة بي لإعادة النشر الفوري عند إعادة التحميل</blockquote>
 
@@ -527,7 +531,9 @@ class Messages(object):
         "<blockquote>❗️تحذير: بسبب التأثير العالي على المعالج، هذه الوظيفة بطيئة جداً (قريب من الوقت الفعلي) ومحدودة إلى:\n"
         "- جودة قصوى 720p\n"
         "- مدة قصوى 1.5 ساعة\n"
-        "- حجم فيديو قصوى 500 ميجابايت</blockquote>\n\n"
+        "- حجم فيديو قصوى 500 ميجابايت\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>الأوامر السريعة:</b>\n"
@@ -763,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "استبدل <code>bestvideo+bestaudio/best</code> بسلسلة التنسيق المطلوبة."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "اختر الدقة وترميز الفيديو المطلوبين:"
+    FORMAT_RESOLUTION_MENU_MSG = "اختر الدقة وترميز الفيديو المطلوبين:\n\n⚠️ <b>MKV/AV1/VP9:</b> للتشغيل، فعّل <b>PlayerV2</b> من قائمة تصحيح تلغرام:\n📱 iOS: الإعدادات → انقر 10 مرات → مفتاح PlayerV2\n🤖 Android: الإعدادات → اضغط مطولاً مرتين على \"Telegram v X.X.X\" → قائمة التصحيح"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ تم تعيين التنسيق إلى: السؤال دائماً. الآن سيتم سؤالك عن الجودة في كل مرة ترسل رابط."
     FORMAT_UPDATED_MSG = "✅ تم تحديث التنسيق إلى:\n{format}"
     FORMAT_SAVED_MSG = "✅ تم حفظ التنسيق."
@@ -1357,12 +1363,15 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — إعادة نشر فورية من التخزين المؤقت"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — اختر لغة الصوت"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞المحتوى غير المناسب مدفوع (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — الترجمات المدمجة مدفوعة: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: للمشرف فقط"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — اختر جودة التحميل"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — تحميل الصورة (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — مشاهدة الفيديو في poketube"  # معطل مؤقتًا: خدمة poketube معطلة
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — الحصول على رابط مباشر للفيديو"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — عرض قائمة التنسيقات المتاحة"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — تغيير امتداد/ترميز الفيديو"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: فعّل PlayerV2 في قائمة تصحيح Telegram للتشغيل المباشر\niOS: اضغط 10 مرات على Settings → مرر للأسفل → فعّل PlayerV2\nAndroid: Settings → اضغط مطولاً مرتين على \"Telegram v X.X.X\" → قائمة التصحيح"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>فيديو MKV/AV1/VP9</b>\nلتشغيل هذا الفيديو، فعّل <b>PlayerV2</b> في قائمة تصحيح Telegram:\n\n📱 <b>iOS</b>: Settings → اضغط 10 مرات → مرر للأسفل → فعّل PlayerV2\n🤖 <b>Android</b>: Settings → مرر للأسفل → اضغط مطولاً مرتين على \"Telegram v X.X.X\" → فعّل PlayerV2"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀تضمين"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — استخراج الصوت فقط"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞المحتوى للبالغين مدفوع (⭐️$0.02)"
@@ -2028,7 +2037,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ للعمل في المجموعة يحتاج البوت إلى صلاحيات المدير. يرجى جعل البوت مديراً لهذه المجموعة."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "مرحباً {first_name}،\n \n<i>هذا البوت🤖 يمكنه تحميل أي فيديوهات إلى Telegram مباشرة.😊 لمزيد من المعلومات اضغط <b>/help</b></i> 👈\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "مرحباً {first_name}،\n \n<i>هذا البوت🤖 يمكنه تحميل أي فيديوهات إلى Telegram مباشرة.😊 لمزيد من المعلومات اضغط <b>/help</b></i> 👈\n\n<blockquote>P.S. بسبب المحتوى 🔞NSFW المحتمل - التحميل من ☁️<b>التخزين السحابي</b> و📁<b>مشاركة الملفات</b> و🔗<b>مختصري الروابط</b> و🔞<b>مواقع إباحية</b> مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ لا 🗑<b>تحذف/تلغي الاشتراك في قناة @tg_ytdlp</b> ولا 🤖<b>ترسل روابط/أوامر بشكل مفرط للبوت</b> - سيتم حظرك تلقائياً من استخدام البوت ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 لا توجد ملفات للحذف."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 تم حذف جميع الملفات بنجاح!\n\nالملفات المحذوفة:\n{files_list}"
     
@@ -2292,7 +2301,7 @@ class Messages(object):
 
     # Always Ask menu button messages
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ قص"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>قص الفيديو</b>\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيرجى إرسال النطاق الزمني المطلوب بالتنسيق:\n<code>س:د:ث-س:د:ث</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>قص الفيديو</b>\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيرجى إرسال النطاق الزمني المطلوب بالتنسيق:\n<code>س:د:ث-س:د:ث</code>\n\nمثال: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ تنسيق غير صحيح. يرجى استخدام: <code>س:د:ث-س:د:ث</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ نطاق غير صحيح. يجب أن يكون وقت البداية أقل من وقت النهاية."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ النطاق الزمني خارج حدود الفيديو.\n\nمدة الفيديو: <b>{start_time} - {end_time}</b>\n\nيجب أن يكون النطاق الخاص بك ضمن هذه الحدود."

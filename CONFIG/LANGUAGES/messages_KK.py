@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Басқарушы</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Тілді өзгерту: /lang</b>"
-    TO_USE_MSG = "<i>Бұл ботты пайдалану үшін @tg_ytdlp Telegram арнасына жазылуыңыз керек.</i>\nАрнаға қосылғаннан кейін <b>бейне сілтемеңізді қайта жіберіңіз, бот оны сіз үшін жүктейді</b> ❤️\n\n<blockquote>P.S. 🔞NSFW контент мүмкіндігіне байланысты - ☁️<b>Бұлттық сақтау</b>, 📁<b>Файл бөлісу</b>, 🔗<b>URL қысқартқыштар</b> және 🔞<b>Порно сайттары</b>нан жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp арнасын 🗑<b>жоймаңыз/жазылымнан шықпаңыз</b> және ботқа 🤖<b>URL/командаларды тым көп спамдамаңыз</b> - ботты пайдаланудан автоматты түрде тыйым салынасыз ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Бұл ботты пайдалану үшін @tg_ytdlp Telegram арнасына жазылуыңыз керек.</i>\nАрнаға қосылғаннан кейін <b>бейне сілтемеңізді қайта жіберіңіз, бот оны сіз үшін жүктейді</b> ❤️\n\n<blockquote>P.S. 🔞NSFW контент мүмкіндігіне байланысты - ☁️<b>Бұлттық сақтау</b>, 📁<b>Файл бөлісу</b>, 🔗<b>URL қысқартқыштар</b> және 🔞<b>Порно сайттары</b>нан жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlp арнасын 🗑<b>жоймаңыз/жазылымнан шықпаңыз</b> және ботқа 🤖<b>URL/командаларды тым көп спамдамаңыз</b> - ботты пайдаланудан автоматты түрде тыйым салынасыз ⛔️</blockquote>"
 
     ERROR1 = "URL сілтемесі табылмады. <b>https://</b> немесе <b>http://</b> бар URL енгізіңіз"
 
@@ -154,6 +154,10 @@ class Messages(object):
 
 👨‍💻 <i>Әзірлеуші:</i> @upekshaip
 🤝 <i>Үлес қосушы:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
 </blockquote>
     """
     
@@ -232,6 +236,7 @@ class Messages(object):
 • Команда лимиті: <b>20/мин</b>
 • 1 жүктеудің максималды уақыты: <b>2 сағат</b>
 • 🔞 NSFW контенті ақылы! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 БАСҚА БАРЛЫҚ МЕДИА ТОЛЫҚЫМЕН ТЕГІН
 • 📝 Барлық контент логтары және кэштеу қайта жүктеу кезінде лезде қайталау үшін менің лог-арналарыма</blockquote>
 
@@ -527,7 +532,9 @@ class Messages(object):
         "<blockquote>❗️ЕСКЕРТПЕ: жоғары CPU әсеріне байланысты бұл функция өте баяу (нақты уақытқа жақын) және мыналармен шектеледі:\n"
         "- 720p максималды сапа\n"
         "- 1.5 сағат максималды ұзақтық\n"
-        "- 500mb максималды бейне өлшемі</blockquote>\n\n"
+        "- 500mb максималды бейне өлшемі\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Жылдам командалар:</b>\n"
@@ -763,7 +770,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> орнына қалаған формат жолын қойыңыз."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Қалаған ажыратымдылық пен кодекті таңдаңыз:"
+    FORMAT_RESOLUTION_MENU_MSG = "Қалаған ажыратымдылық пен кодекті таңдаңыз:\n\n⚠️ <b>MKV/AV1/VP9:</b> Ойнату үшін Telegram Debug мәзірінен <b>PlayerV2</b> іске қосыңыз:\n📱 iOS: Settings → 10 рет басыңыз → PlayerV2 ауыстырғышы\n🤖 Android: Settings → \"Telegram v X.X.X\" екі рет ұзақ басыңыз → Debug мәзірі"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Пішім: Әрқашан сұрау. Енді URL мекенжайын жіберген сайын сізге сапа сұралады."
     FORMAT_UPDATED_MSG = "✅ Формат жаңартылды:\n{format}"
     FORMAT_SAVED_MSG = "✅ Формат сақталды."
@@ -1351,12 +1358,15 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — кэштен лезде репост жасау"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Аудио тілін таңдаңыз"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW төленеді (⭐️$0,02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Күйдірілген субтитрлер төлемді: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: тек әкімші"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Жүктеп алу сапасын таңдаңыз"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Суретті жүктеп алу (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Бейнеге тікелей сілтеме алыңыз"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Қол жетімді пішімдердің тізімін көрсету"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Бейненің ішкі/кодекін өзгерту"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: көрсету үшін Telegram Debug мәзірінде PlayerV2-ні қосыңыз\niOS: Settings-ке 10 рет түртіңіз → төменге жылжыңыз → PlayerV2 қосқышын басыңыз\nAndroid: Settings → \"Telegram v X.X.X\" жолын екі рет ұстап тұрып басыңыз → Debug мәзірі"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>MKV/AV1/VP9 бейне</b>\nБұл бейнені көрсету үшін Telegram Debug мәзірінде <b>PlayerV2</b>-ні қосыңыз:\n\n📱 <b>iOS</b>: Settings → 10 рет түртіңіз → төменге жылжыңыз → PlayerV2-ні қосыңыз\n🤖 <b>Android</b>: Settings → төменге жылжыңыз → \"Telegram v X.X.X\" жолын екі рет ұстап тұрып басыңыз → PlayerV2-ні қосыңыз"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Ендіру"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Тек аудионы шығарып алу"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW төленеді (⭐️$0,02)"
@@ -2022,7 +2032,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Топта жұмыс істеу үшін ботқа әкімші құқықтары қажет. Ботты осы топтың әкімшісі етіп тағайындаңыз."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Сәлем {first_name},\n \n<i>Бұл бот🤖 кез келген бейнелерді Telegram-ға тікелей жүктей алады.😊 Көбірек ақпарат алу үшін <b>/help</b> басыңыз</i> 👈\n\n<blockquote>P.S. 🔞NSFW контент мүмкіндігіне байланысты - ☁️<b>Бұлттық сақтау</b>, 📁<b>Файл бөлісу</b>, 🔗<b>URL қысқартқыштар</b> және 🔞<b>Порно сайттары</b>нан жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp арнасын 🗑<b>жоймаңыз/жазылымнан шықпаңыз</b> және ботқа 🤖<b>URL/командаларды тым көп спамдамаңыз</b> - ботты пайдаланудан автоматты түрде тыйым салынасыз ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Сәлем {first_name},\n \n<i>Бұл бот🤖 кез келген бейнелерді Telegram-ға тікелей жүктей алады.😊 Көбірек ақпарат алу үшін <b>/help</b> басыңыз</i> 👈\n\n<blockquote>P.S. 🔞NSFW контент мүмкіндігіне байланысты - ☁️<b>Бұлттық сақтау</b>, 📁<b>Файл бөлісу</b>, 🔗<b>URL қысқартқыштар</b> және 🔞<b>Порно сайттары</b>нан жүктеу ақылы! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlp арнасын 🗑<b>жоймаңыз/жазылымнан шықпаңыз</b> және ботқа 🤖<b>URL/командаларды тым көп спамдамаңыз</b> - ботты пайдаланудан автоматты түрде тыйым салынасыз ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Жойылатын файлдар жоқ."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Барлық файлдар сәтті жойылды!\n\nЖойылған файлдар:\n{files_list}"
     
@@ -2289,7 +2299,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Сипаттама"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ КЕСУ"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Бейне кесу</b>\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nӨтінеміз, қалаған уақыт аралығын форматта жіберіңіз:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Бейне кесу</b>\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nӨтінеміз, қалаған уақыт аралығын форматта жіберіңіз:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Жарамсыз формат. Өтінеміз, пайдаланыңыз: <code>HH:MM:SS-HH:MM:SS</code>\n\nМысал: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Жарамсыз аралық. Басталу уақыты аяқталу уақытынан кіші болуы керек."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Уақыт аралығы бейненің шекараларынан тыс.\n\nБейне ұзақтығы: <b>{start_time} - {end_time}</b>\n\nСіздің аралығыңыз осы шектеулер ішінде болуы керек."

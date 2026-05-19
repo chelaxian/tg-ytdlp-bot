@@ -33,6 +33,7 @@ from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_univ
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error, add_web_creator_to_opts
 from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
+from CONFIG.errors import is_cookie_error
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, get_user_subs_language, clear_subs_check_cache, is_subs_always_ask
 from COMMANDS.split_sizer import get_user_split_size
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
@@ -1242,7 +1243,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # (VK, etc.) produce IDs starting with "-" which causes file rename failures
             # during DASH fragment assembly (e.g. "-222033079_456241862.fdash_sep-6.mp4").
             original_outtmpl = os.path.join(user_dir_name, "vid_%(id)s.%(ext)s")
-            
+
+            # When TRIM is active, use a unique filename to force re-download from scratch
+            # instead of reusing an existing cached file on disk
+            if download_sections:
+                _trim_ts = int(time.time() * 1000)
+                original_outtmpl = os.path.join(user_dir_name, f"vid_%(id)s_trim_{_trim_ts}.%(ext)s")
+                logger.info(f"[TRIM] Using unique outtmpl to force fresh download: {original_outtmpl}")
+
             # First try with original filename
             # Для отрицательных индексов используем весь диапазон сразу
             if current_playlist_items_override:
@@ -2552,6 +2560,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         f"🔧 <b>Full Error:</b> <code>{error_message}</code>"
                     )
                     error_message_sent = True
+                    # Send cookie hint if this is a cookie-related error
+                    if is_cookie_error(error_message):
+                        try:
+                            safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                            logger.info(f"Sent cookie hint to user {user_id} after cookie-related error")
+                        except Exception as _cookie_hint_err:
+                            logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                 return None
             except Exception as e:
                 error_message = str(e)
@@ -2573,11 +2588,30 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.warning(f"Direct download fallback also failed: {direct_e}")
                     
                     if not error_message_sent:
-                        send_error_to_user(
-                            message,
-                            safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
-                        )
+                        # Only show proxy-specific message if user actually has proxy enabled
+                        try:
+                            from COMMANDS.proxy_cmd import is_proxy_enabled
+                            _proxy_on = is_proxy_enabled(user_id)
+                        except Exception:
+                            _proxy_on = False
+                        if _proxy_on:
+                            send_error_to_user(
+                                message,
+                                safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
+                            )
+                        else:
+                            send_error_to_user(
+                                message,
+                                f"❌ <b>Video download failed</b>\n\n<code>{error_message[:500]}</code>"
+                            )
                         error_message_sent = True
+                        # Send cookie hint if this is a cookie-related error
+                        if is_cookie_error(error_message):
+                            try:
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (proxy failure path)")
+                            except Exception as _cookie_hint_err:
+                                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return None
                 
                 # Auto-fallback to gallery-dl for obvious non-video cases
@@ -2669,6 +2703,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if not error_message_sent:
                         send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
                         error_message_sent = True
+                        # Send cookie hint if this is a cookie-related error
+                        if is_cookie_error(str(e)):
+                            try:
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (generic exception path)")
+                            except Exception as _cookie_hint_err:
+                                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return None
 
         # Для отрицательных индексов используем весь диапазон сразу, а не цикл
@@ -4013,6 +4054,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     try:
                         # --- TikTok: Don't Pass Title ---
+                        # Track subtitle hard-burn star cost (0 = free / no burn)
+                        sub_burn_star_count = 0
                         # Embed subtitles if needed (only for single videos, not playlists)
                         is_playlist_mode = video_count > 1 or is_playlist_with_range(original_text)
                         if not is_playlist_mode:
@@ -4112,6 +4155,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         logger.info(f"Original video path for subtitle search: {original_video_path}")
                                         # Use renamed path for video processing
                                         embed_result = embed_subs_to_video(after_rename_abs_path, user_id, tg_update_callback, app=app, message=message)
+                                        # Only charge for hard burn (MP4/AVC1), not soft embed (MKV)
+                                        # embed_subs_to_video returns True for both modes, so check file extension
+                                        if embed_result and not after_rename_abs_path.lower().endswith('.mkv'):
+                                            sub_burn_star_count = LimitsConfig.get_sub_burn_star_cost(height)
+                                            logger.info(f"[SUB_BURN] Hard burn succeeded, star cost: {sub_burn_star_count} for height={height}")
                                         try:
                                             if embed_result:
                                                 app.edit_message_text(
@@ -4348,10 +4396,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # States are needed for all videos in playlist (if it's a playlist)
                         # States will be cleared at the end of the function after ALL videos are processed
                         
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
+                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
                         if not video_msg:
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
+                        
+                        # Send MKV/AV1/VP9 playback hint if non-default format
+                        if video_msg and after_rename_abs_path:
+                            try:
+                                _is_mkv_file = after_rename_abs_path.lower().endswith('.mkv')
+                                _is_non_avc = video_quality_codec and ('av1' in video_quality_codec.lower() or 'vp9' in video_quality_codec.lower())
+                                if _is_mkv_file or _is_non_avc:
+                                    safe_send_message(user_id, safe_get_messages(user_id).MKV_PLAYER_HINT_SENT_MSG, reply_parameters=ReplyParameters(message_id=video_msg.id), parse_mode=enums.ParseMode.HTML)
+                                    logger.info(f"Sent MKV/AV1/VP9 player hint to user {user_id}")
+                            except Exception as _e:
+                                logger.debug(f"Failed to send MKV player hint: {_e}")
                         
                         # Save video message ID for caching purposes
                         last_video_msg_id = video_msg.id
@@ -4393,27 +4452,34 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Важно: используем is_nsfw and is_private_chat, а не msg_is_paid,
                             # так как админы с TURN_OFF_LIMITS_FOR_ADMINS = True получают открытый контент
                             is_paid_for_logging = is_nsfw and is_private_chat
+                            # Also paid for subtitle hard-burn (non-zero sub_burn_star_count)
+                            is_sub_paid_for_logging = (sub_burn_star_count > 0) and is_private_chat
+                            is_any_paid_for_logging = is_paid_for_logging or is_sub_paid_for_logging
                             # Для отправки пользователю проверяем админа
                             from HELPERS.limitter import should_apply_limits_to_admin
                             is_paid_for_user = is_paid_for_logging and should_apply_limits_to_admin(user_id=user_id, message=message)
                             
                             # Handle different content types according to new logic
                             # Используем is_paid_for_logging для логирования (чтобы логирование было как для всех)
-                            if is_paid_for_logging:
-                                # For NSFW content in private chat, send_videos already sent paid media to user
-                                # Send paid copy to LOGS_PAID_ID and open copy to LOGS_NSFW_ID for history
+                            if is_any_paid_for_logging:
+                                # For paid content in private chat, send_videos already sent paid media to user
+                                # Send paid copy to LOGS_PAID_ID and open copy for history
                                 
                                 # Send paid copy to LOGS_PAID_ID
                                 log_channel_paid = get_log_channel("video", paid=True)
                                 try:
                                     # Forward the paid video to LOGS_PAID_ID
                                     safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
-                                    logger.info(f"down_and_up: NSFW content paid copy sent to PAID channel")
+                                    logger.info(f"down_and_up: paid content (nsfw={is_paid_for_logging}, sub_burn={is_sub_paid_for_logging}) paid copy sent to PAID channel")
                                 except Exception as e:
                                     logger.error(f"down_and_up: failed to send paid copy to PAID channel: {e}")
                                 
-                                # Send open copy to LOGS_NSFW_ID for history
-                                log_channel_nsfw = get_log_channel("video", nsfw=True)
+                                # Send open copy for history
+                                # NSFW -> LOGS_NSFW_ID, subtitle hard-burn -> LOGS_VIDEO_ID
+                                if is_paid_for_logging:
+                                    open_log_channel = get_log_channel("video", nsfw=True)
+                                else:
+                                    open_log_channel = get_log_channel("video")
                                 try:
                                     # Get video dimensions for proper aspect ratio
                                     try:
@@ -4421,9 +4487,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     except Exception:
                                         v_w, v_h, v_dur = width, height, duration
                                     
-                                    # Create open copy for history (without stars) - send directly to NSFW channel
+                                    # Create open copy for history (without stars) - send directly to channel
                                     open_video_msg = app.send_video(
-                                        chat_id=log_channel_nsfw,
+                                        chat_id=open_log_channel,
                                         video=after_rename_abs_path,
                                         caption='' if force_no_title else original_video_title,
                                         duration=int(v_dur) if v_dur else duration,
@@ -4432,13 +4498,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         thumb=thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
                                     )
-                                    logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history")
+                                    logger.info(f"down_and_up: paid content open copy sent to log channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
-                                    logger.error(f"down_and_up: failed to send open copy to NSFW channel: {e}")
+                                    logger.error(f"down_and_up: failed to send open copy to log channel: {e}")
                                 
-                                # Don't cache NSFW content
-                                logger.info(f"down_and_up: NSFW content sent to user (paid), PAID channel (paid copy), and NSFW channel (open copy), not cached")
+                                # Don't cache paid content
+                                logger.info(f"down_and_up: paid content sent to user (paid), PAID channel (paid copy), and log channel (open copy), not cached")
                                 forwarded_msgs = None
                                 
                             elif is_nsfw:

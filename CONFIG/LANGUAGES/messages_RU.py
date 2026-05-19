@@ -9,7 +9,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Администрирует</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Сменить язык: /lang</b>"
-    TO_USE_MSG = "<i>Чтобы пользоваться этим ботом, нужно подписаться на канал Telegram @tg_ytdlp.</i>\nПосле вступления в канал <b>отправьте ссылку на видео снова — бот скачает её для вас</b> ❤️\n\n<blockquote>P.S. Из-за возможного 🔞NSFW контента — скачивание с ☁️<b>облачного хранилища</b>, 📁<b>файлообменников</b>, 🔗<b>сокращателей URL</b> и 🔞<b>порно-сайтов</b> платное! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ НЕ 🗑<b>удаляйте канал @tg_ytdlp и не отписывайтесь от него</b>, НЕ 🤖<b>спамьте боту ссылками/командами</b> — иначе будете автоматически заблокированы ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Чтобы пользоваться этим ботом, нужно подписаться на канал Telegram @tg_ytdlp.</i>\nПосле вступления в канал <b>отправьте ссылку на видео снова — бот скачает её для вас</b> ❤️\n\n<blockquote>P.S. Из-за возможного 🔞NSFW контента — скачивание с ☁️<b>облачного хранилища</b>, 📁<b>файлообменников</b>, 🔗<b>сокращателей URL</b> и 🔞<b>порно-сайтов</b> платное! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Прожиг субтитров (MP4) платный: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (бесплатно в режиме MKV)</blockquote>\n<blockquote>P.P.P.S. ‼️ НЕ 🗑<b>удаляйте канал @tg_ytdlp и не отписывайтесь от него</b>, НЕ 🤖<b>спамьте боту ссылками/командами</b> — иначе будете автоматически заблокированы ⛔️</blockquote>"
 
     ERROR1 = "Ссылка не найдена. Пожалуйста, введите URL с <b>https://</b> или <b>http://</b>"
 
@@ -153,7 +153,10 @@ class Messages(object):
 
 👨‍💻 <i>Developer:</i> @upekshaip
 🤝 <i>Contributor:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Платные функции:</b>
+• 🔞 NSFW контент - 1⭐️ ($0.02)
+• 🔥 Прожиг субтитров (MP4) - 1-5⭐️ в зависимости от качества (бесплатно в режиме MKV)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -231,6 +234,7 @@ class Messages(object):
 • Лимит команд: <b>20/мин</b>
 • 1 загрузка макс. время: <b>2 часа</b>
 • 🔞 NSFW контент платный! 1⭐️ = $0.02
+• 🔥 Прожиг субтитров (MP4) платный! 1-5⭐️ в зависимости от качества (бесплатно в режиме MKV)
 • 🆓 ВСЕ ОСТАЛЬНЫЕ МЕДИА ПОЛНОСТЬЮ БЕСПЛАТНЫ
 • 📝 Все логи контента и кэширование в мои лог-каналы для мгновенного репоста при повторной загрузке</blockquote>
 
@@ -526,7 +530,9 @@ class Messages(object):
         "<blockquote>❗️ПРЕДУПРЕЖДЕНИЕ: из-за высокой нагрузки на CPU эта функция очень медленная (почти в реальном времени) и ограничена:\n"
         "- 720p максимальное качество\n"
         "- 1.5 часа максимальная длительность\n"
-        "- 500мб максимальный размер видео</blockquote>\n\n"
+        "- 500мб максимальный размер видео\n\n"
+        "⭐️ Прожиг субтитров (MP4) платный: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Мягкое встраивание субтитров (MKV) БЕСПЛАТНО</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Быстрые команды:</b>\n"
@@ -762,7 +768,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Замените <code>bestvideo+bestaudio/best</code> на желаемую строку формата."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Выберите желаемое разрешение и кодек:"
+    FORMAT_RESOLUTION_MENU_MSG = "Выберите желаемое разрешение и кодек:\n\n⚠️ <b>MKV/AV1/VP9:</b> Для воспроизведения включите <b>PlayerV2</b> в меню отладки Telegram:\n📱 iOS: Settings → 10 тапов → тумблер PlayerV2\n🤖 Android: Settings → дважды зажать \"Telegram v X.X.X\" → меню отладки"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Формат установлен: Всегда спрашивать. Теперь вам будет предложено выбрать качество каждый раз при отправке URL."
     FORMAT_UPDATED_MSG = "✅ Формат обновлен до:\n{format}"
     FORMAT_SAVED_MSG = "✅ Формат сохранен."
@@ -1350,12 +1356,16 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Мгновенный репост из кэша"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Выберите язык аудио"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW платный (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Прожжённые субтитры платные: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: только админ"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Выберите качество загрузки"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Скачать изображение (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Смотреть видео в poketube"  # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Получить прямую ссылку на видео"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Показать список доступных форматов"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Изменить расширение/кодек видео"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: включите PlayerV2 в меню отладки Telegram для воспроизведения\niOS: 10 тапов по Settings → лист вниз → тумблер PlayerV2\nAndroid: Settings → зажать дважды \"Telegram v X.X.X\" → меню отладки"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>Видео MKV/AV1/VP9</b>\nДля воспроизведения включите <b>PlayerV2</b> в меню отладки Telegram:\n\n📱 <b>iOS</b>: Settings → 10 тапов → лист вниз → тумблер PlayerV2\n🤖 <b>Android</b>: Settings → лист вниз → зажать дважды \"Telegram v X.X.X\" → включить PlayerV2"
+    SAVE_AS_COOKIE_HINT_MSG = "🔐 <b>Ошибка авторизации</b>\nЭто видео требует куки для входа. Вы можете предоставить куки браузера через команду /cookie:\n\n1️⃣ Отправьте <code>/cookie</code> для получения инструкции\n2️⃣ Экспортируйте куки из браузера\n3️⃣ Отправьте файл куки боту\n\nЭто поможет обойти проверку возраста и обнаружение ботов."
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Встроить"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Извлечь только аудио"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW платный (⭐️$0.02)"
@@ -2023,7 +2033,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйста, сделайте бота админом этой группы."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Привет {first_name},\n \n<i>Этот бот🤖 может скачивать любые видео непосредственно в telegram.😊 Для большей информации нажмите <b>/help</b></i> 👈\n\n<blockquote>P.S. Из-за возможного 🔞NSFW контента — скачивание с ☁️<b>облачного хранилища</b>, 📁<b>файлообменников</b>, 🔗<b>сокращателей URL</b> и 🔞<b>порно-сайтов</b> платное! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ НЕ 🗑<b>удаляйте канал @tg_ytdlp и не отписывайтесь от него</b>, НЕ 🤖<b>спамьте боту ссылками/командами</b> — иначе будете автоматически заблокированы ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Привет {first_name},\n \n<i>Этот бот🤖 может скачивать любые видео непосредственно в telegram.😊 Для большей информации нажмите <b>/help</b></i> 👈\n\n<blockquote>P.S. Из-за возможного 🔞NSFW контента — скачивание с ☁️<b>облачного хранилища</b>, 📁<b>файлообменников</b>, 🔗<b>сокращателей URL</b> и 🔞<b>порно-сайтов</b> платное! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Прожиг субтитров (MP4) платный: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (бесплатно в режиме MKV)</blockquote>\n<blockquote>P.P.P.S. ‼️ НЕ 🗑<b>удаляйте канал @tg_ytdlp и не отписывайтесь от него</b>, НЕ 🤖<b>спамьте боту ссылками/командами</b> — иначе будете автоматически заблокированы ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Нет файлов для удаления."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Все файлы успешно удалены!\n\nУдаленные файлы:\n{files_list}"
     
@@ -2290,7 +2300,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Смотреть"  # ВРЕМЕННО ОТКЛЮЧЕНО: сервис poketube упал
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Описание"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ ОБРЕЗКА"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Обрезка видео</b>\n\nДлительность видео: <b>{start_time} - {end_time}</b>\n\nПожалуйста, отправьте желаемый диапазон времени в формате:\n<code>ЧЧ:ММ:СС-ЧЧ:ММ:СС</code>\n\nПример: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Обрезка видео</b>\n\nДлительность видео: <b>{start_time} - {end_time}</b>\n\nПожалуйста, отправьте желаемый диапазон времени в формате:\n<code>ЧЧ:ММ:СС-ЧЧ:ММ:СС</code>\n\nПример: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Неверный формат. Используйте: <code>ЧЧ:ММ:СС-ЧЧ:ММ:СС</code>\n\nПример: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Неверный диапазон. Время начала должно быть меньше времени окончания."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Диапазон времени выходит за границы видео.\n\nДлительность видео: <b>{start_time} - {end_time}</b>\n\nВаш диапазон должен быть в пределах этих границ."

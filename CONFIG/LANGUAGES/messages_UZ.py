@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Boshqaruvchi</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Tilni o'zgartirish: /lang</b>"
-    TO_USE_MSG = "<i>Ushbu botdan foydalanish uchun @tg_ytdlp Telegram kanaliga obuna bo'lishingiz kerak.</i>\nKanalga qo'shilgandan so'ng <b>video havolangizni qayta yuboring, bot uni siz uchun yuklab oladi</b> ❤️\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Ushbu botdan foydalanish uchun @tg_ytdlp Telegram kanaliga obuna bo'lishingiz kerak.</i>\nKanalga qo'shilgandan so'ng <b>video havolangizni qayta yuboring, bot uni siz uchun yuklab oladi</b> ❤️\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>"
 
     ERROR1 = "URL havolasi topilmadi. Iltimos, <b>https://</b> yoki <b>http://</b> bilan URL kiriting"
 
@@ -154,7 +154,10 @@ Ko'plab platformalardan rasmlar/fotolar/albomlarni yuklab olish uchun <code>/img
 
 👨‍💻 <i>Dasturchi:</i> @upekshaip
 🤝 <i>Hissa qo'shuvchi:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ Kengaytirilgan funksiyalar va yuqori chegaralarni olish uchun botlarimni guruhla
 • Buyruq chegarasi: <b>20/min</b>
 • 1 Yuklab olish maksimal vaqti: <b>2 soat</b>
 • 🔞 NSFW kontenti pullik! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 BOSHQA BARCHA MEDIA TO'LIQ BEPUL
 • 📝 Barcha kontent loglari va kesh log-kanallarimga qayta yuklab olishda darhol qayta post qilish uchun</blockquote>
 
@@ -527,7 +531,9 @@ Ko'proq ma'lumot: /playlist"""
         "<blockquote>❗️OGOHLANTIRISH: yuqori CPU ta'siri tufayli bu funksiya juda sekin (deyarli real-time) va quyidagilarga cheklangan:\n"
         "- 720p maksimal sifat\n"
         "- 1.5 soat maksimal davomiylik\n"
-        "- 500mb maksimal video hajmi</blockquote>\n\n"
+        "- 500mb maksimal video hajmi\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Tezkor buyruqlar:</b>\n"
@@ -763,7 +769,7 @@ Ko'proq ma'lumot: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> ni o'zingiz xohlagan format qatori bilan almashtiring."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Xohlagan piksellar soni va codec'ni tanlang:"
+    FORMAT_RESOLUTION_MENU_MSG = "Xohlagan piksellar soni va codec'ni tanlang:\n\n⚠️ <b>MKV/AV1/VP9:</b> Ko'rish uchun Telegram Debug menusida <b>PlayerV2</b> ni yoqing:\n📱 iOS: Settings → 10 marta bosing → PlayerV2 kaliti\n🤖 Android: Settings → \"Telegram v X.X.X\" ni ikki marta uzoq bosing → Debug menyusi"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format o'rnatildi: Har doim so'rash. Endi har safar URL yuborganingizda sifat so'raladi."
     FORMAT_UPDATED_MSG = "✅ Format yangilandi:\n{format}"
     FORMAT_SAVED_MSG = "✅ Format saqlandi."
@@ -1351,12 +1357,15 @@ Ko'proq ma'lumot: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Keshdan darhol qayta post qilish"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Audio tilini tanlang"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW pullik (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — Kuydirilgan subtitrlar pullik: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: faqat admin"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Yuklab olish sifatini tanlang"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Rasmni yuklab olish (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Videoni poketube'da tomosha qilish"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Videoga to'g'ridan-to'g'ri havola olish"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — Mavjud formatlar ro'yxatini ko'rsatish"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Video kengaytmasini/codec'ni o'zgartirish"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: ijro etish uchun Telegram Debug menusida PlayerV2'ni yoqing\niOS: Settings'ga 10 marta tegining → pastga aylantiring → PlayerV2'ni yoqing\nAndroid: Settings → \"Telegram v X.X.X\" qatorini ikki marta uzoq bosing → Debug menusi"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>MKV/AV1/VP9 video</b>\nBu videoni ijro etish uchun Telegram Debug menusida <b>PlayerV2</b>'ni yoqing:\n\n📱 <b>iOS</b>: Settings → 10 marta tegining → pastga aylantiring → PlayerV2'ni yoqing\n🤖 <b>Android</b>: Settings → pastga aylantiring → \"Telegram v X.X.X\" qatorini ikki marta uzoq bosing → PlayerV2'ni yoqing"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Kiritish"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Faqat audioni ajratish"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW pullik (⭐️$0.02)"
@@ -2022,7 +2031,7 @@ Ko'proq ma'lumot: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Guruhda ishlash uchun botga admin huquqlari kerak. Iltimos, botni bu guruhning admini qiling."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Salom {first_name},\n \n<i>Bu bot🤖 har qanday videolarni to'g'ridan-to'g'ri telegramga yuklab olishi mumkin.😊 Ko'proq ma'lumot uchun <b>/help</b> ni bosing</i> 👈\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Salom {first_name},\n \n<i>Bu bot🤖 har qanday videolarni to'g'ridan-to'g'ri telegramga yuklab olishi mumkin.😊 Ko'proq ma'lumot uchun <b>/help</b> ni bosing</i> 👈\n\n<blockquote>P.S. 🔞NSFW kontent ehtimoli tufayli - ☁️<b>Bulutli saqlash</b>, 📁<b>Fayl ulashish</b>, 🔗<b>URL qisqartirgichlar</b> va 🔞<b>Porno saytlardan</b> yuklab olish pullik! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlp kanalini 🗑<b>o'chirmang/obunani bekor qilmang</b> va botga 🤖<b>URL/buyruqlarni ortiqcha spam qilmang</b> - botdan foydalanishdan avtomatik chetlashtirilasiz ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Olib tashlash uchun fayllar yo'q."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 Barcha fayllar muvaffaqiyatli olib tashlandi!\n\nOlib tashlangan fayllar:\n{files_list}"
     
@@ -2289,7 +2298,7 @@ Ko'proq ma'lumot: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Tomosha qilish"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Sarlavha"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ KESISH"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Kesish</b>\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nIltimos, kerakli vaqt oralig'ini formatda yuboring:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Video Kesish</b>\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nIltimos, kerakli vaqt oralig'ini formatda yuboring:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Noto'g'ri format. Iltimos, ishlating: <code>HH:MM:SS-HH:MM:SS</code>\n\nMisol: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Noto'g'ri oraliq. Boshlanish vaqti tugash vaqtidan kichik bo'lishi kerak."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ Vaqt oralig'i video chegaralaridan tashqarida.\n\nVideo davomiyligi: <b>{start_time} - {end_time}</b>\n\nSizning oralig'ingiz bu chegaralar ichida bo'lishi kerak."

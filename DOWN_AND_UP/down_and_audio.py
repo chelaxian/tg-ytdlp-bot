@@ -1421,7 +1421,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 logger.warning(f"Audio download retry with proxy from file failed for user {user_id}")
                     
                     if result is None:
-                        raise Exception("Failed to download audio with all available proxies")
+                        # Use the actual download error instead of generic proxy message
+                        real_error = last_download_error if last_download_error else "Audio download failed"
+                        raise Exception(real_error)
                 
                 try:
                     full_bar = "🟩" * 10
@@ -1808,10 +1810,22 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 if "Failed to download audio with all available proxies" in error_text:
                     logger.warning(f"All proxies failed for audio, error already sent to user - aborting all operations immediately")
                     if not getattr(down_and_audio, '_error_message_sent', False):
-                        send_error_to_user(
-                            message,
-                            safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
-                        )
+                        # Only show proxy-specific message if user actually has proxy enabled
+                        try:
+                            from COMMANDS.proxy_cmd import is_proxy_enabled
+                            _proxy_on = is_proxy_enabled(user_id)
+                        except Exception:
+                            _proxy_on = False
+                        if _proxy_on:
+                            send_error_to_user(
+                                message,
+                                safe_get_messages(user_id).ERROR_ALL_PROXIES_FAILED_MSG
+                            )
+                        else:
+                            send_error_to_user(
+                                message,
+                                f"❌ <b>Audio download failed</b>\n\n<code>{error_text[:500]}</code>"
+                            )
                         down_and_audio._error_message_sent = True
                     # Прерываем все дальнейшие операции
                     return None
