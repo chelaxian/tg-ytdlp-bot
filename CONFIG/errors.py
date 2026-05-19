@@ -28,6 +28,20 @@ COOKIE_ERRORS = [
     "[twitter][error]",
     "tweet is not available",
     "content is not available",
+    # Gallery-dl errors — cookie/auth required
+    "authentication failed",
+    "http redirect to login page",
+    "redirect to login",
+    "login page",
+    "account suspended",
+    "account banned",
+    "account private",
+    "profile private",
+    "captcha required",
+    "verification required",
+    "age verification required",
+    "no media found",
+    "no content available",
 ]
 
 
