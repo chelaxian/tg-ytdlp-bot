@@ -2,7 +2,7 @@
 # Command /Format Handler
 from pyrogram import filters
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters
 
@@ -22,7 +22,6 @@ _SESSION_MKV_OVERRIDE = {}
 
 # Per-user format preferences (persisted in users/<id>/format_prefs.json)
 def _prefs_path(user_id):
-    messages = safe_get_messages(user_id)
     return os.path.join("users", str(user_id), "format_prefs.json")
 
 def _default_prefs():
@@ -66,7 +65,6 @@ def parse_quality_argument(quality_arg):
         return "best"
 
 def load_user_prefs(user_id):
-    messages = safe_get_messages(user_id)
     try:
         path = _prefs_path(user_id)
         if os.path.exists(path):
@@ -84,7 +82,6 @@ def load_user_prefs(user_id):
     return _default_prefs()
 
 def save_user_prefs(user_id, prefs):
-    messages = safe_get_messages(user_id)
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     try:
@@ -94,18 +91,15 @@ def save_user_prefs(user_id, prefs):
         pass
 
 def get_user_codec_preference(user_id):
-    messages = safe_get_messages(user_id)
     prefs = load_user_prefs(user_id)
     return prefs.get("codec", "avc1")
 
 def set_user_codec_preference(user_id, codec):
-    messages = safe_get_messages(user_id)
     prefs = load_user_prefs(user_id)
     prefs["codec"] = codec
     save_user_prefs(user_id, prefs)
 
 def get_user_mkv_preference(user_id):
-    messages = safe_get_messages(user_id)
     # Session override takes precedence
     key = str(user_id)
     if key in _SESSION_MKV_OVERRIDE:
@@ -114,32 +108,26 @@ def get_user_mkv_preference(user_id):
     return bool(prefs.get("mkv", False))
 
 def toggle_user_mkv_preference(user_id):
-    messages = safe_get_messages(user_id)
     prefs = load_user_prefs(user_id)
     prefs["mkv"] = not bool(prefs.get("mkv", False))
     save_user_prefs(user_id, prefs)
     return prefs["mkv"]
 
 def set_session_mkv_override(user_id, value):
-    messages = safe_get_messages(user_id)
     _SESSION_MKV_OVERRIDE[str(user_id)] = bool(value)
 
 def get_session_mkv_override(user_id):
-    messages = safe_get_messages(user_id)
     return _SESSION_MKV_OVERRIDE.get(str(user_id), None)
 
 def clear_session_mkv_override(user_id):
-    messages = safe_get_messages(user_id)
     _SESSION_MKV_OVERRIDE.pop(str(user_id), None)
 
 # Get app instance for decorators
 app = get_app()
 
 @app.on_message(filters.command("format") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="format_command")
 def set_format(app, message):
-    messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
     
@@ -265,10 +253,8 @@ safe_get_messages(user_id).FORMAT_MENU_MSG + "\n"
 
 # Callbackquery Handler for /Format Menu Selection
 @app.on_callback_query(filters.regex(r"^format_option\|"))
-# @reply_with_keyboard
 def format_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     logger.info(LoggerMsg.FORMAT_CALLBACK_LOG_MSG.format(callback_data=callback_query.data))
     data = callback_query.data.split("|")[1]
 
@@ -471,7 +457,7 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
 @app.on_callback_query(filters.regex(r"^format_codec\|"))
 def format_codec_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
+    pass
     data = callback_query.data.split("|")[1]
     
     if data in ["avc1", "av01", "vp9"]:
@@ -518,7 +504,7 @@ def format_codec_callback(app, callback_query):
 @app.on_callback_query(filters.regex(r"^format_container\|"))
 def format_container_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
+    pass
     data = callback_query.data.split("|")[1]
     if data == "mkv_toggle":
         mkv_on = toggle_user_mkv_preference(user_id)
@@ -548,7 +534,7 @@ def format_container_callback(app, callback_query):
 @app.on_callback_query(filters.regex(r"^format_custom\|"))
 def format_custom_callback(app, callback_query):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
+    pass
     data = callback_query.data.split("|")[1]
     if data == "close":
         try:

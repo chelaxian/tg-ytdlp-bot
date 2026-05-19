@@ -8,6 +8,8 @@ class LimitsConfig(object):
     MAX_FILE_SIZE_GB = 8  # GiB
     # Download timeout in seconds (2 hours = 7200 seconds)
     DOWNLOAD_TIMEOUT = 7200 # in seconds
+    # Maximum concurrent single-URL downloads per user (playlists/multi-URL: always 1)
+    MAX_CONCURRENT_DOWNLOADS = 3
     MAX_SUB_QUALITY = 720 # 720p
     MAX_SUB_DURATION = 5400 # in seconds
     MAX_SUB_SIZE = 500 # in MB      
@@ -108,6 +110,34 @@ class LimitsConfig(object):
     # Admins have no limit (0 means unlimited)
     #######################################################
     NSFW_STAR_COST = 1
+    #######################################################
+    # Subtitle burn-in (hard embed) star costs by quality
+    # Only applies to MP4/AVC1 (hard burn via ffmpeg)
+    # MKV/AV1/VP9 soft embed is free (no CPU cost)
+    SUB_BURN_STAR_COSTS = {
+        144: 1,
+        240: 2,
+        360: 3,
+        480: 4,
+        720: 5,
+        1080: 10,
+        1440: 15,
+        2160: 20,
+        4320: 40,
+    }
+
+    @staticmethod
+    def get_sub_burn_star_cost(height: int) -> int:
+        """Return star cost for subtitle hard-burn at given resolution height.
+        Returns the cost for the closest quality <= height from SUB_BURN_STAR_COSTS.
+        """
+        if height <= 0:
+            return 1
+        best = 1
+        for q, cost in LimitsConfig.SUB_BURN_STAR_COSTS.items():
+            if q <= height:
+                best = cost
+        return best
     #######################################################
     # Anti-bot protection limits
     #######################################################

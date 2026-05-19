@@ -2,6 +2,7 @@
 import sys
 import os
 import logging
+import traceback
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -27,11 +28,8 @@ class Messages(object):
         """
         self.user_id = user_id
         self.language_code = language_code
-        self._loading = False  # Flag to prevent infinite recursion
+        self._loading = False
         try:
-            if not hasattr(self, '_loading'):
-                self._loading = False
-            
             if self._loading:
                 # logger.warning(f"⚠️ [Messages.__init__] Recursive call detected, returning empty dict")
                 self._messages = {}
@@ -58,8 +56,7 @@ class Messages(object):
             self._loading = False
         except Exception as e:
             self._loading = False
-            logger.error(f"❌ Error getting messages for user_id={user_id}, language_code={language_code}: {e}")
-            import traceback
+            logger.error(f"Error getting messages for user_id={user_id}, language_code={language_code}: {e}")
             logger.error(traceback.format_exc())
             self._messages = {}
     
@@ -116,8 +113,7 @@ def safe_get_messages(user_id=None, language_code=None):
         
         return get_messages_instance(user_id, language_code)
     except Exception as e:
-        logger.error(f"❌ Error in safe_get_messages: {e}")
-        import traceback
+        logger.error(f"Error in safe_get_messages: {e}")
         logger.error(traceback.format_exc())
         # If everything fails, return a minimal Messages object
         return Messages(None, None)
@@ -129,10 +125,10 @@ def safe_messages(user_id=None):
     """
     try:
         return get_messages_instance(user_id)
-    except:
+    except Exception:
         try:
             return get_messages_instance(None)
-        except:
+        except Exception:
             # Last resort - return a dummy object
             class DummyMessages:
                 def __getattr__(self, name):

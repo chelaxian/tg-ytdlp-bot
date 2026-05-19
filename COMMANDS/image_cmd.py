@@ -11,7 +11,7 @@ from pyrogram import enums
 from pyrogram.errors import FloodWait
 from HELPERS.logger import send_to_logger, logger, get_log_channel, log_error_to_channel
 from CONFIG.logger_msg import LoggerMsg
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.domains import DomainsConfig
 from HELPERS.app_instance import get_app
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
@@ -254,7 +254,6 @@ def _stop_upload_logging(user_id, msg_id):
             del _active_img_uploads[key]
 
 def _send_open_copy_to_nsfw_channel(file_path: str, caption: str, user_id: int, message_id: int, is_video: bool = False):
-    messages = safe_get_messages(user_id)
     """Send open copy of media to NSFW channel for history"""
     try:
         # Use explicit NSFW channel to avoid any fallback to LOGS_ID
@@ -334,7 +333,6 @@ def get_emoji_number(index):
         return f"{index}."
 
 def get_file_date(file_path, original_url=None, user_id=None):
-    messages = safe_get_messages(user_id)
     """Get file creation date in DD.MM.YYYY format from EXIF data or filename"""
     try:
         from datetime import datetime
@@ -524,7 +522,6 @@ def get_file_date(file_path, original_url=None, user_id=None):
         return None
 
 def create_unique_download_path(user_id, url):
-    messages = safe_get_messages(user_id)
     """Create unique download path based on user ID and URL structure"""
     try:
         import time
@@ -566,7 +563,6 @@ def create_unique_download_path(user_id, url):
         return os.path.join("users", str(user_id), f"download_{int(time.time() * 1000000)}_{random.randint(1000, 9999)}")
 
 def create_album_caption_with_dates(media_group, url, tags_text_norm, profile_name, site_name, user_id=None):
-    messages = safe_get_messages(user_id)
     """Create album caption with emoji numbers and dates grouped by date"""
     try:
         # Group media by date
@@ -599,7 +595,6 @@ def create_album_caption_with_dates(media_group, url, tags_text_norm, profile_na
         
         # Sort dates chronologically
         def parse_date(date_str):
-            messages = safe_get_messages(user_id)
             try:
                 from datetime import datetime
                 return datetime.strptime(date_str, "%d.%m.%Y")
@@ -802,7 +797,6 @@ def get_reply_message_id(message):
 
 @background_handler(label="image_command")
 def image_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     """Handle /img command for downloading images"""
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -1651,7 +1645,6 @@ def image_command(app, message):
             pass
 
         def update_status():
-            messages = safe_get_messages(user_id)
             try:
                 safe_edit_message_text(
                     user_id,
@@ -1796,7 +1789,6 @@ def image_command(app, message):
         
         # helper to run one range and wait for files to appear
         def run_and_collect(next_end: int):
-            messages = safe_get_messages(user_id)
             # Use 1-1 ONLY when we explicitly want exactly one item (single-item gallery or range)
             # For small galleries (<=10), use full range 1-{next_end} to download batch in one call
             if current_start == next_end and current_start == 1:
@@ -1834,7 +1826,6 @@ def image_command(app, message):
         def run_and_collect_reverse(start: int, end: int, batch_size: int):
             """Скачивает диапазон в обратном порядке, по одному элементу
             ВАЖНО: start и end должны быть уже преобразованы в положительные индексы"""
-            messages = safe_get_messages(user_id)
             if start is None or end is None:
                 logger.warning("[IMG REVERSE] start or end is None, skipping reverse range")
                 return True
@@ -2771,7 +2762,6 @@ def image_command(app, message):
                                     logger.error(f"[IMG CACHE] Unexpected error while copying album to logs: {e_copy}")
                                 # Delete files immediately after sending (strict batching)
                                 def delete_file(path):
-                                    messages = safe_get_messages(user_id)
                                     try:
                                         if os.path.exists(path):
                                             # Delete file to prevent re-processing
@@ -4622,7 +4612,6 @@ def image_command(app, message):
 @app.on_callback_query(filters.regex(r"^img_help\|"))
 def img_help_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(None)
     """Handle img help callback"""
     data = callback_query.data.split("|")[-1]
     
@@ -4644,7 +4633,6 @@ def img_help_callback(app, callback_query: CallbackQuery):
 
 @app.on_callback_query(filters.regex(r"^img_range\|"))
 def img_range_callback(app, callback_query: CallbackQuery):
-    messages = safe_get_messages(None)
     """Handle img range selection callback"""
     try:
         user_id = callback_query.from_user.id

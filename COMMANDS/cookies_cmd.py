@@ -1,7 +1,7 @@
 # Command to Set Browser Cookies and Auto-Update YouTube Cookies
 from pyrogram import filters, enums
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters
 
@@ -619,7 +619,6 @@ def get_unchecked_cookie_sources(user_id: int, cookie_urls: list) -> list:
     return unchecked_indices
 
 @app.on_message(filters.command("cookies_from_browser") & filters.private)
-# @reply_with_keyboard
 @background_handler(label="cookies_from_browser")
 def cookies_from_browser(app, message):
     """
@@ -734,7 +733,6 @@ def cookies_from_browser(app, message):
 
 # Callback Handler for Browser Selection
 @app.on_callback_query(filters.regex(r"^browser_choice\|"))
-# @reply_with_keyboard
 def browser_choice_callback(app, callback_query):
     """
     Обрабатывает выбор браузера для извлечения куки.
@@ -907,7 +905,6 @@ def save_my_cookie(app, message):
     send_to_logger(message, safe_get_messages(user_id).COOKIES_FILE_SAVED_USER_LOG_MSG.format(user_id=user_id))
 
 @app.on_callback_query(filters.regex(r"^download_cookie\|"))
-# @reply_with_keyboard
 def download_cookie_callback(app, callback_query):
     """
     Обрабатывает выбор сервиса для скачивания куки.
@@ -1085,7 +1082,6 @@ def checking_cookie_file(app, message):
         send_to_logger(message, safe_get_messages(user_id).COOKIES_FILE_NOT_FOUND_LOG_MSG)
 
 
-# @reply_with_keyboard
 def download_cookie(app, message):
     """
     Показывает меню с кнопками для скачивания файлов куки с разных сервисов.
@@ -1324,7 +1320,6 @@ def download_and_save_cookie(app, callback_query, url, service):
         send_to_logger(callback_query.message, safe_get_messages(user_id).COOKIES_DOWNLOAD_UNEXPECTED_ERROR_LOG_MSG.format(service=service.capitalize(), error_type=type(e).__name__, error=e))
 
 # Updating The Cookie File.
-# @reply_with_keyboard
 def save_as_cookie_file(app, message):
     """
     Сохраняет куки, предоставленные пользователем в текстовом виде.

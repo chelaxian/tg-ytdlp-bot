@@ -22,8 +22,8 @@ NEED_BACKUP = 1
 # Configuration
 REPO_URL = "https://github.com/chelaxian/tg-ytdlp-bot.git"
 # Use explicit branch
-BRANCH = "newdesign2"
-# BRANCH = "main"
+# BRANCH = "newdesign2"
+BRANCH = "main"
 
 EXCLUDED_FILES = [
     "CONFIG/domains.py",

@@ -4,11 +4,10 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyb
 from pyrogram import enums
 from HELPERS.logger import send_to_all, send_to_logger
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
 
 def keyboard_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     """Handle keyboard settings command"""
     user_id = str(message.chat.id)
     user_dir = f'./users/{user_id}'
@@ -73,7 +72,7 @@ def keyboard_command(app, message):
                     current_setting = setting
                 else:
                     current_setting = "2x3"  # Fallback to default
-        except:
+        except Exception:
             current_setting = "2x3"  # Fallback to default
     
     # Create inline keyboard for options in 2 rows
@@ -115,7 +114,6 @@ def keyboard_command(app, message):
 def keyboard_callback_handler(app, callback_query):
     """Handle keyboard setting callbacks"""
     user_id = str(callback_query.from_user.id)
-    messages = safe_get_messages(user_id)
     setting = callback_query.data.split("|")[1]
     
     # Handle close button
@@ -216,7 +214,6 @@ safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
         logger.error(f"Error processing keyboard setting: {e}")
 
 def apply_keyboard_setting(app, chat_id, setting, message_id=None, user_id=None):
-    messages = safe_get_messages(user_id)
     """Apply keyboard setting immediately"""
     try:
         if setting == "OFF":

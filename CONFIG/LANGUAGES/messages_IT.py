@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>Gestito da</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Cambia lingua: /lang</b>"
-    TO_USE_MSG = "<i>Per usare questo bot devi iscriverti al canale Telegram @tg_ytdlp.</i>\nDopo esserti unito al canale, <b>reinvia il tuo link video e il bot lo scaricherà per te</b> ❤️\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>"
+    TO_USE_MSG = "<i>Per usare questo bot devi iscriverti al canale Telegram @tg_ytdlp.</i>\nDopo esserti unito al canale, <b>reinvia il tuo link video e il bot lo scaricherà per te</b> ❤️\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>"
 
     ERROR1 = "Link URL non trovato. Inserisci un URL con <b>https://</b> o <b>http://</b>"
 
@@ -154,7 +154,10 @@ Usa <code>/img URL</code> per scaricare immagini/foto/album da molte piattaforme
 
 👨‍💻 <i>Sviluppatore:</i> @upekshaip
 🤝 <i>Collaboratore:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ Aggiungi i miei bot ai tuoi gruppi per ottenere funzionalità avanzate e limiti 
 • Limite comandi: <b>20/min</b>
 • 1 Download tempo max: <b>2 ore</b>
 • 🔞 I contenuti NSFW sono a pagamento! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 TUTTI GLI ALTRI MEDIA SONO TOTALMENTE GRATUITI
 • 📝 Tutti i log dei contenuti e cache ai miei log-channels per repost istantaneo quando si ri-scarica</blockquote>
 
@@ -527,7 +531,9 @@ Scopri di più: /playlist"""
         "<blockquote>❗️WARNING: due to high CPU impact this function is very slow (near real-time) and limited to:\n"
         "- 720p max quality\n"
         "- 1.5 hour max duration\n"
-        "- 500mb max video size</blockquote>\n\n"
+        "- 500mb max video size\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>Comandi rapidi:</b>\n"
@@ -763,7 +769,7 @@ Scopri di più: /playlist"""
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Replace <code>bestvideo+bestaudio/best</code> with your desired format string."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "Select your desired resolution and codec:"
+    FORMAT_RESOLUTION_MENU_MSG = "Seleziona la risoluzione e il codec desiderati:\n\n⚠️ <b>MKV/AV1/VP9:</b> Per la riproduzione, attiva <b>PlayerV2</b> nel menu Debug di Telegram:\n📱 iOS: Settings → tocca 10 volte → interruttore PlayerV2\n🤖 Android: Settings → tieni premuto \"Telegram v X.X.X\" due volte → menu Debug"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ Format set to: Always Ask. Now you will be prompted for quality each time you send a URL."
     FORMAT_UPDATED_MSG = "✅ Format updated to:\n{format}"
     FORMAT_SAVED_MSG = "✅ Format saved."
@@ -1351,12 +1357,15 @@ Scopri di più: /playlist"""
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — Repost istantaneo dalla cache"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — Scegli la lingua dell'audio"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW viene pagato (⭐️$0,02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — I sottotitoli incorporati sono a pagamento: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: solo admin"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — Scegli la qualità del download"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — Scarica immagine (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — Ottieni il collegamento diretto al video"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃: mostra l'elenco dei formati disponibili"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — Modifica estensione/codec video"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: abilita PlayerV2 nel menu Debug di Telegram per la riproduzione\niOS: 10 tocchi su Settings → scorrere in basso → attiva PlayerV2\nAndroid: Settings → pressione lunga due volte su \"Telegram v X.X.X\" → menu Debug"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>Video MKV/AV1/VP9</b>\nPer riprodurre questo video, abilita <b>PlayerV2</b> nel menu Debug di Telegram:\n\n📱 <b>iOS</b>: Settings → 10 tocchi → scorrere in basso → abilita PlayerV2\n🤖 <b>Android</b>: Settings → scorrere in basso → pressione lunga due volte su \"Telegram v X.X.X\" → abilita PlayerV2"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀Incorpora"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — Estrai solo l'audio"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW viene pagato (⭐️$0,02)"
@@ -2022,7 +2031,7 @@ Scopri di più: /playlist"""
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Per il lavoro di gruppo, è necessario un lavoro da parte dell'amministratore. Quindi, seleziona l'amministratore di questo gruppo."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Ciao {first_name},\n \n<i>Questo bot🤖 può scaricare qualsiasi video direttamente in telegram.😊 Per maggiori informazioni premi <b>/help</b></i> 👈\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Ciao {first_name},\n \n<i>Questo bot🤖 può scaricare qualsiasi video direttamente in telegram.😊 Per maggiori informazioni premi <b>/help</b></i> 👈\n\n<blockquote>P.S. Per il possibile contenuto 🔞NSFW - il download da ☁️<b>Cloud Storage</b>, 📁<b>Condivisione file</b>, 🔗<b>Accorciatori URL</b> e 🔞<b>Siti per adulti</b> è a pagamento! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ NON 🗑<b>eliminare/disiscriversi dal canale @tg_ytdlp</b> e NON 🤖<b>inviare troppi URL/comandi spam al bot</b> - sarai bannato automaticamente ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 Nessun file da rimuovere."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     
@@ -2289,7 +2298,7 @@ Scopri di più: /playlist"""
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁Watch"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝Didascalia"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ TAGLIA"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Taglia Video</b>\n\nDurata video: <b>{start_time} - {end_time}</b>\n\nSi prega di inviare l'intervallo di tempo desiderato nel formato:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nEsempio: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>Taglia Video</b>\n\nDurata video: <b>{start_time} - {end_time}</b>\n\nSi prega di inviare l'intervallo di tempo desiderato nel formato:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nEsempio: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ Formato non valido. Si prega di utilizzare: <code>HH:MM:SS-HH:MM:SS</code>\n\nEsempio: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ Intervallo non valido. L'ora di inizio deve essere inferiore all'ora di fine."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ L'intervallo di tempo è fuori dai limiti del video.\n\nDurata video: <b>{start_time} - {end_time}</b>\n\nIl tuo intervallo deve essere entro questi limiti."

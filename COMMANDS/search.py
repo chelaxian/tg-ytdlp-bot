@@ -5,7 +5,7 @@ from HELPERS.app_instance import get_app
 from HELPERS.logger import send_to_all, send_to_logger
 from CONFIG.logger_msg import LoggerMsg
 from CONFIG.config import Config
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram import enums, filters
 
@@ -13,7 +13,6 @@ from pyrogram import enums, filters
 app = get_app()
 
 def search_command(app, message):
-    messages = safe_get_messages(message.chat.id)
     """
     Handle the /search command to activate inline search via @vid bot
     """
@@ -58,7 +57,6 @@ def search_command(app, message):
 def handle_search_callback(client, callback_query):
     """Handle search command callback queries"""
     user_id = callback_query.from_user.id
-    messages = safe_get_messages(user_id)
     try:
         data = callback_query.data
         

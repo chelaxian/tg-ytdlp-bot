@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>จัดการโดย</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 เปลี่ยนภาษา: /lang</b>"
-    TO_USE_MSG = "<i>เพื่อใช้บอทนี้คุณต้องสมัครสมาชิกช่อง Telegram @tg_ytdlp</i>\nหลังจากเข้าร่วมช่องแล้ว <b>ส่งลิงก์วิดีโอของคุณอีกครั้งและบอทจะดาวน์โหลดให้คุณ</b> ❤️\n\n<blockquote>P.S. เนื่องจากเนื้อหา 🔞NSFW ที่อาจเกิดขึ้น - การดาวน์โหลดจาก ☁️<b>คลาวด์สตอเรจ</b> 📁<b>แชร์ไฟล์</b> 🔗<b>ตัวย่อ URL</b> และ 🔞<b>เว็บโป๊</b> เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่า 🗑<b>ลบ/ยกเลิกสมัครช่อง @tg_ytdlp</b> และอย่า 🤖<b>สแปม URL/คำสั่งกับบอทมากเกินไป</b> - คุณจะถูกแบนจากการใช้บอทโดยอัตโนมัติ ⛔️</blockquote>"
+    TO_USE_MSG = "<i>เพื่อใช้บอทนี้คุณต้องสมัครสมาชิกช่อง Telegram @tg_ytdlp</i>\nหลังจากเข้าร่วมช่องแล้ว <b>ส่งลิงก์วิดีโอของคุณอีกครั้งและบอทจะดาวน์โหลดให้คุณ</b> ❤️\n\n<blockquote>P.S. เนื่องจากเนื้อหา 🔞NSFW ที่อาจเกิดขึ้น - การดาวน์โหลดจาก ☁️<b>คลาวด์สตอเรจ</b> 📁<b>แชร์ไฟล์</b> 🔗<b>ตัวย่อ URL</b> และ 🔞<b>เว็บโป๊</b> เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ อย่า 🗑<b>ลบ/ยกเลิกสมัครช่อง @tg_ytdlp</b> และอย่า 🤖<b>สแปม URL/คำสั่งกับบอทมากเกินไป</b> - คุณจะถูกแบนจากการใช้บอทโดยอัตโนมัติ ⛔️</blockquote>"
 
     ERROR1 = "ไม่พบลิงก์ URL กรุณาใส่ URL ที่มี <b>https://</b> หรือ <b>http://</b>"
 
@@ -154,7 +154,10 @@ class Messages(object):
 
 👨‍💻 <i>นักพัฒนา:</i> @upekshaip
 🤝 <i>ผู้มีส่วนร่วม:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ class Messages(object):
 • ขีดจำกัดคำสั่ง: <b>20/นาที</b>
 • เวลาสูงสุด 1 การดาวน์โหลด: <b>2 ชั่วโมง</b>
 • 🔞 เนื้อหา NSFW เป็นแบบเสียเงิน! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 สื่ออื่นๆ ทั้งหมดฟรีทั้งหมด
 • 📝 บันทึกเนื้อหาทั้งหมดและการแคชไปยังช่องบันทึกของฉันสำหรับการโพสต์ซ้ำทันทีเมื่อดาวน์โหลดซ้ำ</blockquote>
 
@@ -527,7 +531,9 @@ class Messages(object):
         "<blockquote>❗️คำเตือน: เนื่องจากผลกระทบต่อ CPU สูง ฟังก์ชันนี้ทำงานช้ามาก (ใกล้เคียงเวลาจริง) และจำกัดไว้ที่:\n"
         "- คุณภาพสูงสุด 720p\n"
         "- ระยะเวลาสูงสุด 1.5 ชั่วโมง\n"
-        "- ขนาดวิดีโอสูงสุด 500mb</blockquote>\n\n"
+        "- ขนาดวิดีโอสูงสุด 500mb\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>คำสั่งด่วน:</b>\n"
@@ -763,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "Replace <code>bestvideo+bestaudio/best</code> with your desired format string."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "เลือกความละเอียดและ codec ที่ต้องการ:"
+    FORMAT_RESOLUTION_MENU_MSG = "เลือกความละเอียดและ codec ที่ต้องการ:\n\n⚠️ <b>MKV/AV1/VP9:</b> หากต้องการเล่นในบรรทัด ให้เปิด <b>PlayerV2</b> ในเมนู Debug ของ Telegram:\n📱 iOS: Settings → แตะ 10 ครั้ง → สวิตช์ PlayerV2\n🤖 Android: Settings → กดค้าง \"Telegram v X.X.X\" สองครั้ง → เมนู Debug"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ ตั้งค่ารูปแบบเป็น: Always Ask ตอนนี้จะถามคุณเกี่ยวกับคุณภาพทุกครั้งที่ส่ง URL"
     FORMAT_UPDATED_MSG = "✅ อัปเดตรูปแบบเป็น:\n{format}"
     FORMAT_SAVED_MSG = "✅ บันทึกรูปแบบแล้ว"
@@ -1351,12 +1357,15 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — โพสต์ใหม่ทันทีจากแคช"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "😢 — เลือกภาษาของเสียง"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW จ่ายแล้ว (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — ซับไตเติลแบบฝังเป็นบริการเสียเงิน: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: สำหรับแอดมินเท่านั้น"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — เลือกคุณภาพการดาวน์โหลด"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — ดาวน์โหลดภาพ (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — รับลิงก์โดยตรงไปยังวิดีโอ"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — แสดงรายการรูปแบบที่ใช้ได้"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — เปลี่ยนวิดีโอต่อ/โคเดก"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: เปิด PlayerV2 ในเมนู Debug ของ Telegram เพื่อเล่นในบรรทัด\niOS: แตะ Settings 10 ครั้ง → เลื่อนลง → เปิด PlayerV2\nAndroid: Settings → กดค้างสองครั้งที่ \"Telegram v X.X.X\" → เมนู Debug"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>วิดีโอ MKV/AV1/VP9</b>\nหากต้องการเล่นวิดีโอนี้ ให้เปิด <b>PlayerV2</b> ในเมนู Debug ของ Telegram:\n\n📱 <b>iOS</b>: Settings → แตะ 10 ครั้ง → เลื่อนลง → เปิด PlayerV2\n🤖 <b>Android</b>: Settings → เลื่อนลง → กดค้างสองครั้งที่ \"Telegram v X.X.X\" → เปิด PlayerV2"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀ฝัง"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎶 — แยกเฉพาะเสียง"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW จ่ายแล้ว (⭐️$0.02)"
@@ -2022,7 +2031,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйста, сделайте бота дмином этой группы."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "สวัสดี {first_name},\n \n<i>บอทนี้🤖 สามารถดาวน์โหลดวิดีโอใดๆ เข้า telegram โดยตรง😊 สำหรับข้อมูลเพิ่มเติม กด <b>/help</b></i> 👈\n\n<blockquote>P.S. เนื่องจากเนื้อหา 🔞NSFW ที่อาจเกิดขึ้น - การดาวน์โหลดจาก ☁️<b>คลาวด์สตอเรจ</b> 📁<b>แชร์ไฟล์</b> 🔗<b>ตัวย่อ URL</b> และ 🔞<b>เว็บโป๊</b> เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ อย่า 🗑<b>ลบ/ยกเลิกสมัครช่อง @tg_ytdlp</b> และอย่า 🤖<b>สแปม URL/คำสั่งกับบอทมากเกินไป</b> - คุณจะถูกแบนจากการใช้บอทโดยอัตโนมัติ ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "สวัสดี {first_name},\n \n<i>บอทนี้🤖 สามารถดาวน์โหลดวิดีโอใดๆ เข้า telegram โดยตรง😊 สำหรับข้อมูลเพิ่มเติม กด <b>/help</b></i> 👈\n\n<blockquote>P.S. เนื่องจากเนื้อหา 🔞NSFW ที่อาจเกิดขึ้น - การดาวน์โหลดจาก ☁️<b>คลาวด์สตอเรจ</b> 📁<b>แชร์ไฟล์</b> 🔗<b>ตัวย่อ URL</b> และ 🔞<b>เว็บโป๊</b> เป็นแบบเสียเงิน! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ อย่า 🗑<b>ลบ/ยกเลิกสมัครช่อง @tg_ytdlp</b> และอย่า 🤖<b>สแปม URL/คำสั่งกับบอทมากเกินไป</b> - คุณจะถูกแบนจากการใช้บอทโดยอัตโนมัติ ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 ไม่มีไฟล์ที่จะลบ"
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     
@@ -2289,7 +2298,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁ดู"  # ปิดใช้งานชั่วคราว: บริการ poketube ไม่ทำงาน
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝คำอธิบาย"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ ตัด"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>ตัดวิดีโอ</b>\n\nระยะเวลาวิดีโอ: <b>{start_time} - {end_time}</b>\n\nกรุณาส่งช่วงเวลาที่ต้องการในรูปแบบ:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nตัวอย่าง: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>ตัดวิดีโอ</b>\n\nระยะเวลาวิดีโอ: <b>{start_time} - {end_time}</b>\n\nกรุณาส่งช่วงเวลาที่ต้องการในรูปแบบ:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nตัวอย่าง: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ รูปแบบไม่ถูกต้อง กรุณาใช้: <code>HH:MM:SS-HH:MM:SS</code>\n\nตัวอย่าง: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ ช่วงเวลาไม่ถูกต้อง เวลาเริ่มต้นต้องน้อยกว่าเวลาสิ้นสุด"
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ ช่วงเวลาอยู่นอกขอบเขตของวิดีโอ\n\nระยะเวลาวิดีโอ: <b>{start_time} - {end_time}</b>\n\nช่วงเวลาของคุณต้องอยู่ภายในขีดจำกัดเหล่านี้"

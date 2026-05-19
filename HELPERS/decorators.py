@@ -103,77 +103,62 @@ def send_reply_keyboard_always(user_id, mode="2x3"):
 # Удаляем конфликтующую функцию on_message из decorators.py
 # Она должна быть только в handler_registry.py 
 
+def _extract_user_id(args, kwargs):
+    """Extract user_id from handler args/kwargs (Pyrogram message object)."""
+    msg = _extract_message_arg(args, kwargs)
+    return getattr(getattr(msg, 'chat', None), 'id', None) if msg else None
+
+
+def _is_ignore_command(message):
+    """Check if message text is an ignore/unignore command."""
+    text = getattr(message, 'text', '')
+    if isinstance(text, str):
+        text = text.strip()
+        return text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
+    return False
+
+
+def _get_keyboard_mode(user_id):
+    """Read keyboard mode for user from file. Returns (enabled, mode)."""
+    keyboard_file = f'./users/{user_id}/keyboard.txt'
+    if os.path.exists(keyboard_file):
+        try:
+            with open(keyboard_file, 'r') as f:
+                setting = f.read().strip()
+                if setting == "OFF":
+                    return False, "2x3"
+                if setting in ("1x3", "2x3", "FULL"):
+                    return True, setting
+        except Exception:
+            pass
+    return True, "2x3"
+
+
 def reply_with_keyboard(func):
-    """Wrapper for any custom action that adds reply keyboard"""
+    """Wrapper for any custom action that adds reply keyboard."""
     def wrapper(*args, **kwargs):
-        # Check if user is ignored BEFORE executing function (highest priority)
-        message = None
-        if 'message' in kwargs:
-            message = kwargs['message']
-        elif len(args) > 1 and hasattr(args[1], 'chat'):
-            message = args[1]  # Pyrogram handlers: (app, message)
-        elif len(args) > 0 and hasattr(args[0], 'chat'):
-            message = args[0]
-        
-        if message:
-            user_id = message.chat.id
-            
-            # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed)
-            text_attr = getattr(message, 'text', None) if hasattr(message, 'text') else None
-            text = text_attr.strip() if text_attr else ''
-            is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
-            
-            if not is_ignore_command:
-                if is_user_ignored(message):
-                    return  # User is ignored, no response at all - don't execute function, don't send keyboard
-        
+        message = _extract_message_arg(args, kwargs)
+
+        if message and not _is_ignore_command(message) and is_user_ignored(message):
+            return
+
         result = func(*args, **kwargs)
-        # Determine user_id from arguments (Pyrogram message/chat)
-        user_id = None
-        if 'message' in kwargs:
-            user_id = getattr(kwargs['message'].chat, 'id', None)
-        elif len(args) > 0 and hasattr(args[0], 'chat'):
-            user_id = getattr(args[0].chat, 'id', None)
-        elif len(args) > 1 and hasattr(args[1], 'chat'):
-            user_id = getattr(args[1].chat, 'id', None)
-        
-        if user_id:
-            # Check if user is still not ignored (double check before sending keyboard)
-            if message:
-                if is_user_ignored(message):
-                    return result  # Don't send keyboard if user is ignored
-            
-            # Check if keyboard is enabled for this user
-            user_dir = f'./users/{user_id}'
-            keyboard_file = f'{user_dir}/keyboard.txt'
-            
-            keyboard_enabled = True
-            keyboard_mode = "2x3"  # Default mode
-            
-            if os.path.exists(keyboard_file):
-                try:
-                    with open(keyboard_file, 'r') as f:
-                        setting = f.read().strip()
-                        if setting == "OFF":
-                            keyboard_enabled = False
-                        elif setting in ["1x3", "2x3", "FULL"]:
-                            keyboard_enabled = True
-                            keyboard_mode = setting
-                except:
-                    pass
-            
-            # Only show keyboard if enabled and not /keyboard command
-            if keyboard_enabled:
-                # Check if this is a /keyboard command (exclude only /keyboard)
-                is_keyboard_command = False
-                if 'message' in kwargs and hasattr(kwargs['message'], 'text'):
-                    is_keyboard_command = kwargs['message'].text == "/keyboard"
-                elif len(args) > 1 and hasattr(args[1], 'text'):
-                    is_keyboard_command = args[1].text == "/keyboard"
-                
-                if not is_keyboard_command:
-                    send_reply_keyboard_always(user_id, keyboard_mode)
-        
+
+        user_id = _extract_user_id(args, kwargs)
+        if not user_id:
+            return result
+
+        if message and is_user_ignored(message):
+            return result
+
+        keyboard_enabled, keyboard_mode = _get_keyboard_mode(user_id)
+        if not keyboard_enabled:
+            return result
+
+        is_kb_cmd = getattr(message, 'text', '') == "/keyboard" if message else False
+        if not is_kb_cmd:
+            send_reply_keyboard_always(user_id, keyboard_mode)
+
         return result
 
     return wrapper 
@@ -285,40 +270,24 @@ def background_handler(func=None, *, label=None):
     return wrapper
 
 def check_user_not_blocked(func):
-    """Decorator to check if user is blocked before processing command"""
+    """Decorator to check if user is blocked before processing command."""
     @wraps(func)
     def wrapper(*args, **kwargs):
-        # Extract message from args or kwargs
-        message = None
-        if args and len(args) >= 2 and hasattr(args[1], 'chat'):
-            message = args[1]  # Pyrogram handlers: (app, message)
-        elif 'message' in kwargs:
-            message = kwargs['message']
-        elif args and len(args) >= 1 and hasattr(args[0], 'chat'):
-            message = args[0]  # Some handlers: (message,)
-        
+        message = _extract_message_arg(args, kwargs)
+
         if message:
             user_id = message.chat.id
             is_admin = int(user_id) in Config.ADMIN
-            
-            # First check if user is ignored (highest priority - ignored users get no response at all)
-            # Even admins can be ignored, but ignore/unignore commands are always allowed
-            text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
-            is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
-            
-            if not is_ignore_command:
-                if is_user_ignored(message):
-                    return  # User is ignored, no response at all (even for admins)
-            
-            # Skip block check for admins
+
+            if not _is_ignore_command(message) and is_user_ignored(message):
+                return
+
             if not is_admin:
-                # Check if this is a block/unblock command (should be allowed)
-                is_block_command = text.startswith(Config.BLOCK_USER_COMMAND) or text.startswith(Config.UNBLOCK_USER_COMMAND)
-                
-                if not is_block_command:
-                    if is_user_blocked(message):
-                        return  # User is blocked, message already sent by is_user_blocked
-        
+                text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
+                is_block_cmd = text.startswith(Config.BLOCK_USER_COMMAND) or text.startswith(Config.UNBLOCK_USER_COMMAND)
+                if not is_block_cmd and is_user_blocked(message):
+                    return
+
         return func(*args, **kwargs)
     return wrapper
 

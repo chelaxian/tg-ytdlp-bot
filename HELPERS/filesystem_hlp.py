@@ -1,9 +1,10 @@
-# Add signal processing for correct termination
 import signal
 import os
+import re
 import sys
 import shutil
 import threading
+import unicodedata
 
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
@@ -282,24 +283,19 @@ def remove_media(message, only=None, force_clean=False):
                     logger.error(LoggerMsg.FILESYSTEM_FAILED_REMOVE_FILE_LOG_MSG.format(file_path=file_path, error=e))
         return
     
-    # Check if parallel downloads are allowed and we're not forcing cleanup
-    if not force_clean and is_parallel_download_allowed(message):
-        # For parallel downloads, only clean files in root directory, skip protected subdirectories
-        allfiles = os.listdir(dir)
-        file_extensions = [
-            '.mp4', '.mkv', '.mp3', '.m4a', '.jpg', '.jpeg', '.part', '.ytdl',
-            '.txt', '.ts', '.m3u8', '.webm', '.wmv', '.avi', '.mpeg', '.wav',
-            '.json', '.jsonl', '.srt', '.vtt', '.ass', '.ssa',
-        ]
-        
-        # Clean files in root directory
+    # Common file extensions to remove
+    file_extensions = [
+        '.mp4', '.mkv', '.mp3', '.m4a', '.jpg', '.jpeg', '.part', '.ytdl',
+        '.txt', '.ts', '.m3u8', '.webm', '.wmv', '.avi', '.mpeg', '.wav',
+        '.json', '.jsonl', '.srt', '.vtt', '.ass', '.ssa',
+    ]
+    protected_txt_files = {'logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt', 'cookie.txt'}
+
+    def _remove_matching_files(file_list):
         for extension in file_extensions:
-            if isinstance(extension, tuple):
-                files = [fname for fname in allfiles if any(fname.endswith(ext) for ext in extension)]
-            else:
-                files = [fname for fname in allfiles if fname.endswith(extension)]
+            files = [f for f in file_list if f.endswith(extension)]
             for file in files:
-                if extension == '.txt' and file in ['logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt', 'cookie.txt']:
+                if extension == '.txt' and file in protected_txt_files:
                     continue
                 file_path = os.path.join(dir, file)
                 try:
@@ -307,9 +303,16 @@ def remove_media(message, only=None, force_clean=False):
                     logger.info(LoggerMsg.FILESYSTEM_REMOVED_FILE_LOG_MSG.format(file_path=file_path))
                 except Exception as e:
                     logger.error(LoggerMsg.FILESYSTEM_FAILED_REMOVE_FILE_LOG_MSG.format(file_path=file_path, error=e))
+
+    allfiles = os.listdir(dir)
+
+    # Check if parallel downloads are allowed and we're not forcing cleanup
+    if not force_clean and is_parallel_download_allowed(message):
+        # For parallel downloads, only clean files in root directory, skip protected subdirectories
+        _remove_matching_files(allfiles)
         
         # Clean unprotected subdirectories
-        for item in os.listdir(dir):
+        for item in allfiles:
             item_path = os.path.join(dir, item)
             if os.path.isdir(item_path):
                 if not is_directory_protected(item_path):
@@ -322,161 +325,83 @@ def remove_media(message, only=None, force_clean=False):
                     logger.info(LoggerMsg.FILESYSTEM_SKIPPED_PROTECTED_DIR_LOG_MSG.format(item_path=item_path))
     else:
         # For non-parallel downloads or force cleanup, clean everything
-        allfiles = os.listdir(dir)
-        file_extensions = [
-            '.mp4', '.mkv', '.mp3', '.m4a', '.jpg', '.jpeg', '.part', '.ytdl',
-            '.txt', '.ts', '.m3u8', '.webm', '.wmv', '.avi', '.mpeg', '.wav',
-            '.json', '.jsonl', '.srt', '.vtt', '.ass', '.ssa',
-        ]
-        for extension in file_extensions:
-            if isinstance(extension, tuple):
-                files = [fname for fname in allfiles if any(fname.endswith(ext) for ext in extension)]
-            else:
-                files = [fname for fname in allfiles if fname.endswith(extension)]
-            for file in files:
-                if extension == '.txt' and file in ['logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt', 'cookie.txt']:
-                    continue
-                file_path = os.path.join(dir, file)
-                try:
-                    os.remove(file_path)
-                    logger.info(LoggerMsg.FILESYSTEM_REMOVED_FILE_LOG_MSG.format(file_path=file_path))
-                except Exception as e:
-                    logger.error(LoggerMsg.FILESYSTEM_FAILED_REMOVE_FILE_LOG_MSG.format(file_path=file_path, error=e))
+        _remove_matching_files(allfiles)
     
     logger.info(LoggerMsg.FILESYSTEM_MEDIA_CLEANUP_COMPLETED_LOG_MSG.format(user_id=message.chat.id))
 
 # Helper function to sanitize and shorten filenames
+
+# Characters kept during sanitization: letters, numbers, spaces, safe symbols
+_SAFE_CHARS = set(".-_()")
+
+
+def _truncate_name(name, ext, max_total):
+    """Truncate name part so that name+ext fits within max_total chars."""
+    full_name = name + ext
+    if len(full_name) <= max_total:
+        return full_name
+    max_name_length = max_total - len(ext)
+    if max_name_length > 3:
+        name = name[:max_name_length - 3] + "..."
+    elif max_name_length > 0:
+        name = name[:max_name_length]
+    else:
+        name = ""
+    return name + ext
+
+
+def _clean_unicode_name(name):
+    """Normalize Unicode and keep only safe characters (letters, digits, spaces, .-_())."""
+    name = unicodedata.normalize("NFKC", name)
+    cleaned = []
+    for char in name:
+        if char.isalnum() or char.isspace() or char in _SAFE_CHARS:
+            cleaned.append(char)
+    return "".join(cleaned)
+
+
 def sanitize_filename(filename, max_length=150):
     """
-    Sanitize filename by removing invalid characters and shortening if needed
-    Only allows letters (any language), numbers, and Linux-safe symbols
-
-    Args:
-        filename (str): Original filename
-        max_length (int): Maximum allowed length for filename (excluding extension)
-
-    Returns:
-        str: Sanitized and shortened filename
+    Sanitize filename by removing invalid characters and shortening if needed.
+    Only allows letters (any language), numbers, and Linux-safe symbols.
     """
-    # Exit early if None
     if filename is None:
         return "untitled"
 
-    # Extract extension first
     name, ext = os.path.splitext(filename)
+    name = _clean_unicode_name(name)
 
-    # Remove all emoji and special Unicode characters
-    # Keep only letters (any language), numbers, spaces, dots, dashes, underscores
-    import unicodedata
-    
-    # Normalize Unicode characters
-    name = unicodedata.normalize('NFKC', name)
-    
-    # Remove all emoji and special symbols, keep only:
-    # - Letters (any language): \p{L}
-    # - Numbers: \p{N}
-    # - Spaces: \s
-    # - Safe symbols: .-_()
-    import re
-    
-    # Pattern to keep only safe characters
-    # Remove all non-alphanumeric characters except safe symbols
-    # \w includes [a-zA-Z0-9_] but we want to keep all Unicode letters
-    import unicodedata
-    
-    # Keep only letters, numbers, spaces, and safe symbols
-    cleaned_name = ''
-    for char in name:
-        if (char.isalnum() or  # letters and numbers
-            char.isspace() or  # spaces
-            char in '.-_()'):  # safe symbols
-            cleaned_name += char
-    
-    name = cleaned_name
-    
-    # Remove invalid filesystem characters (Windows and Linux safe)
-    invalid_chars = r'[<>:"/\\|?*\x00-\x1f]'
-    name = re.sub(invalid_chars, '', name)
-    
-    # Remove leading/trailing dots and spaces (not allowed in Linux)
+    # Remove invalid filesystem characters
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '', name)
     name = name.strip(' .')
-    
-    # Replace multiple spaces/dots with single ones
     name = re.sub(r'[\s.]+', ' ', name).strip()
-    
-    # If name is empty after cleaning, use default
+
     if not name:
         name = "untitled"
-    
-    # Shorten if too long
-    full_name = name + ext
-    max_total = 100
-    if len(full_name) > max_total:
-       max_name_length = max_total - len(ext)
-       if max_name_length and max_name_length > 3:
-          name = name[:max_name_length-3] + "..."
-       else:
-          name = name[:max_name_length]
-       full_name = name + ext
-    
-    return full_name
+
+    return _truncate_name(name, ext, 100)
+
 
 def sanitize_filename_strict(filename, max_length=100):
     """
     Strict sanitization for filenames - removes all characters except letters and numbers,
     replaces spaces with underscores. Used specifically for yt-dlp file downloads.
-    
-    Args:
-        filename (str): Original filename
-        max_length (int): Maximum allowed length for filename (excluding extension)
-    
-    Returns:
-        str: Strictly sanitized filename with only letters, numbers, and underscores
     """
-    # Exit early if None
     if filename is None:
         return "untitled"
-    
-    # Extract extension first
+
     name, ext = os.path.splitext(filename)
-    
-    # Normalize Unicode characters
-    import unicodedata
-    name = unicodedata.normalize('NFKC', name)
-    
-    # Keep only letters, numbers, and safe ASCII characters, replace everything else with underscores
-    import re
+    name = unicodedata.normalize("NFKC", name)
+
     # Keep letters, numbers, underscores, hyphens, dots, parentheses
-    # Replace all other characters (including spaces) with underscores
     name = re.sub(r'[^\w\-\.\(\)]', '_', name)
-    
-    # Remove multiple consecutive underscores
     name = re.sub(r'_+', '_', name)
-    
-    # Remove leading/trailing underscores
     name = name.strip('_')
-    
-    # If name is empty after cleaning, use default
+
     if not name:
         name = "untitled"
-    
-    # Shorten if too long. 
-    # NOTE: We keep a relatively small limit here because yt-dlp may append 
-    # additional suffixes to the filename (e.g. dash/fdash info, .part, etc.).
-    # Long Unicode titles (Cyrillic, Asian scripts, etc.) can easily exceed
-    # filesystem per‑component limits in bytes even if the character count
-    # looks safe, so we enforce an aggressive cap.
-    full_name = name + ext
-    max_total = max_length
-    if len(full_name) > max_total:
-        max_name_length = max_total - len(ext)
-        if max_name_length and max_name_length > 3:
-            name = name[:max_name_length-3] + "..."
-        else:
-            name = name[:max_name_length]
-        full_name = name + ext
-    
-    return full_name
+
+    return _truncate_name(name, ext, max_length)
 
 def is_parallel_download_allowed(message):
     """

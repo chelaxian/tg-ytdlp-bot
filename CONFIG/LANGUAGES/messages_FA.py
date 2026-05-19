@@ -10,7 +10,7 @@ class Messages(object):
     # Messages and errors
     #######################################################
     CREDITS_MSG = "<blockquote><i>مدیریت شده توسط</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 تغییر زبان: /lang</b>"
-    TO_USE_MSG = "<i>برای استفاده از این ربات باید به کانال تلگرام @tg_ytdlp مشترک شوید.</i>\nپس از پیوستن به کانال، <b>لینک ویدیوی خود را دوباره ارسال کنید و ربات آن را برای شما دانلود می‌کند</b> ❤️\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>"
+    TO_USE_MSG = "<i>برای استفاده از این ربات باید به کانال تلگرام @tg_ytdlp مشترک شوید.</i>\nپس از پیوستن به کانال، <b>لینک ویدیوی خود را دوباره ارسال کنید و ربات آن را برای شما دانلود می‌کند</b> ❤️\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>"
 
     ERROR1 = "لینک URL یافت نشد. لطفاً یک URL با <b>https://</b> یا <b>http://</b> وارد کنید"
 
@@ -154,7 +154,10 @@ class Messages(object):
 
 👨‍💻 <i>توسعه‌دهنده:</i> @upekshaip
 🤝 <i>مشارکت‌کننده:</i> @IIlIlIlIIIlllIIlIIlIllIIllIlIIIl
-</blockquote>
+
+⭐️ <b>Paid Features:</b>
+• 🔞 NSFW content - 1⭐️ ($0.02)
+• 🔥 Subtitle hard-burn (MP4) - 1-5⭐️ depending on quality (free in MKV mode)
     """
     
     # Version 1.0.0 - Добавлен SAVE_AS_COOKIE_HINT для подсказки по /save_as_cookie
@@ -232,6 +235,7 @@ class Messages(object):
 • محدودیت دستور: <b>20/دقیقه</b>
 • حداکثر زمان 1 دانلود: <b>2 ساعت</b>
 • 🔞 محتوای NSFW پولی است! 1⭐️ = $0.02
+• 🔥 Subtitle hard-burn (MP4) is paid! 1-5⭐️ depending on quality (free in MKV mode)
 • 🆓 همه رسانه‌های دیگر کاملاً رایگان هستند
 • 📝 همه لاگ‌های محتوا و کش به کانال‌های لاگ من برای بازنشر فوری هنگام دانلود مجدد</blockquote>
 
@@ -527,7 +531,9 @@ class Messages(object):
         "<blockquote>❗️هشدار: به دلیل تأثیر زیاد CPU این عملکرد بسیار کند است (نزدیک به زمان واقعی) و محدود به:\n"
         "- کیفیت حداکثر 720p\n"
         "- مدت زمان حداکثر 1.5 ساعت\n"
-        "- اندازه ویدیو حداکثر 500mb</blockquote>\n\n"
+        "- اندازه ویدیو حداکثر 500mb\n\n"
+        "⭐️ Hard-burn subtitles (MP4) are paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐\n"
+        "🆓 Soft-embed subtitles (MKV) are FREE</blockquote>\n\n"
     )
     SUBS_QUICK_COMMANDS_MSG = (
         "<b>دستورات سریع:</b>\n"
@@ -763,7 +769,7 @@ class Messages(object):
         "<code>/format bestvideo+bestaudio/best</code>\n\n"
         "<code>bestvideo+bestaudio/best</code> را با رشته فرمت مورد نظر خود جایگزین کنید."
     )
-    FORMAT_RESOLUTION_MENU_MSG = "رزولوشن و کدک مورد نظر خود را انتخاب کنید:"
+    FORMAT_RESOLUTION_MENU_MSG = "رزولوشن و کدک مورد نظر خود را انتخاب کنید:\n\n⚠️ <b>MKV/AV1/VP9:</b> برای پخش، <b>PlayerV2</b> را در منوی اشکال‌زدایی تلگرام فعال کنید:\n📱 iOS: تنظیمات ← ۱۰ بار ضربه ← کلید PlayerV2\n🤖 Android: تنظیمات ← دو بار فشار طولانی روی \"Telegram v X.X.X\" ← منوی اشکال‌زدایی"
     FORMAT_ALWAYS_ASK_CONFIRM_MSG = "✅ فرمت به این تنظیم شد: Always Ask. اکنون هر بار که URL ارسال می‌کنید از شما کیفیت پرسیده می‌شود."
     FORMAT_UPDATED_MSG = "✅ فرمت به این به‌روزرسانی شد:\n{format}"
     FORMAT_SAVED_MSG = "✅ فرمت ذخیره شد."
@@ -1351,12 +1357,15 @@ class Messages(object):
     ALWAYS_ASK_INSTANT_REPOST_MSG = "🚀 — بازنشر فوری از کش"
     ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG = "🗣 — زبان صوتی را انتخاب کنید"
     ALWAYS_ASK_NSFW_IS_PAID_MSG = "⭐️ — 🔞NSFW پولی است (⭐️$0.02)"
+    ALWAYS_ASK_SUB_BURN_PAID_MSG = "⭐️ — زیرنویس حک‌شده پولی است: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ | 1080p+: فقط ادمین"
     ALWAYS_ASK_CHOOSE_DOWNLOAD_QUALITY_MSG = "📹 — کیفیت دانلود را انتخاب کنید"
     ALWAYS_ASK_DOWNLOAD_IMAGE_MSG = "🖼 — دانلود تصویر (gallery-dl)"
     # ALWAYS_ASK_WATCH_VIDEO_MSG = "👁 — Watch video in poketube"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_GET_DIRECT_LINK_MSG = "🔗 — دریافت لینک مستقیم به ویدیو"
     ALWAYS_ASK_SHOW_AVAILABLE_FORMATS_MSG = "📃 — نمایش لیست فرمت‌های موجود"
     ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG = "📼 — تغییر پسوند/کدک ویدیو"
+    ALWAYS_ASK_MKV_PLAYER_HINT_MSG = "⚠️ MKV/AV1/VP9: برای پخش مستقیم، PlayerV2 را در منوی دیباگ تلگرام فعال کنید\niOS: ۱۰ بار روی Settings بزنید → به پایین بروید → PlayerV2 را فعال کنید\nAndroid: Settings → دو بار روی \"Telegram v X.X.X\" نگه دارید → منوی دیباگ"
+    MKV_PLAYER_HINT_SENT_MSG = "⚠️ <b>ویدیو MKV/AV1/VP9</b>\nبرای پخش این ویدیو، <b>PlayerV2</b> را در منوی دیباگ تلگرام فعال کنید:\n\n📱 <b>iOS</b>: Settings → ۱۰ بار بزنید → به پایین بروید → PlayerV2 را فعال کنید\n🤖 <b>Android</b>: Settings → به پایین بروید → دو بار روی \"Telegram v X.X.X\" نگه دارید → PlayerV2 را فعال کنید"
     ALWAYS_ASK_EMBED_BUTTON_MSG = "🚀جاسازی"
     ALWAYS_ASK_EXTRACT_AUDIO_MSG = "🎧 — استخراج فقط صدا"
     ALWAYS_ASK_NSFW_PAID_MSG = "⭐️ — 🔞NSFW پولی است (⭐️$0.02)"
@@ -2022,7 +2031,7 @@ class Messages(object):
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ برای کار در گروه، ربات به حقوق مدیر نیاز دارد. لطفاً ربات را مدیر این گروه کنید."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "سلام {first_name}،\n \n<i>این ربات🤖 می‌تواند هر ویدیویی را مستقیماً به تلگرام دانلود کند.😊 برای اطلاعات بیشتر <b>/help</b> را فشار دهید</i> 👈\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "سلام {first_name}،\n \n<i>این ربات🤖 می‌تواند هر ویدیویی را مستقیماً به تلگرام دانلود کند.😊 برای اطلاعات بیشتر <b>/help</b> را فشار دهید</i> 👈\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>\n \n {credits}"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 هیچ فایلی برای حذف وجود ندارد."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 همه فایل‌ها با موفقیت حذف شدند!\n\nفایل‌های حذف شده:\n{files_list}"
     
@@ -2289,7 +2298,7 @@ class Messages(object):
     # ALWAYS_ASK_WATCH_BUTTON_MSG = "👁تماشا"  # TEMPORARILY DISABLED: poketube service is down
     ALWAYS_ASK_CAPTION_BUTTON_MSG = "📝عنوان"
     ALWAYS_ASK_TRIM_BUTTON_MSG = "✂️ برش"
-    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>برش ویدیو</b>\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nلطفاً محدوده زمانی مورد نظر را در قالب ارسال کنید:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
+    ALWAYS_ASK_TRIM_PROMPT_MSG = "✂️ <b>برش ویدیو</b>\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nلطفاً محدوده زمانی مورد نظر را در قالب ارسال کنید:\n<code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>{start_time}-{end_time}</code>"
     ALWAYS_ASK_TRIM_INVALID_FORMAT_MSG = "❌ فرمت نامعتبر. لطفاً استفاده کنید: <code>HH:MM:SS-HH:MM:SS</code>\n\nمثال: <code>01:13:20-10:01:01</code>"
     ALWAYS_ASK_TRIM_INVALID_RANGE_MSG = "❌ محدوده نامعتبر. زمان شروع باید کمتر از زمان پایان باشد."
     ALWAYS_ASK_TRIM_OUT_OF_BOUNDS_MSG = "❌ محدوده زمانی خارج از مرزهای ویدیو است.\n\nمدت زمان ویدیو: <b>{start_time} - {end_time}</b>\n\nمحدوده شما باید در این محدودیت‌ها باشد."

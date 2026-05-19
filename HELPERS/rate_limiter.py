@@ -178,6 +178,8 @@ def check_rate_limit(user_id: int, is_admin: bool = False) -> Tuple[bool, Option
     
     # Check limits
     with _rate_limits_lock:
+        if user_id not in _rate_limits:
+            _rate_limits[user_id] = {'minute': [], 'hour': [], 'day': []}
         user_data = _rate_limits[user_id]
         
         # Check minute limit

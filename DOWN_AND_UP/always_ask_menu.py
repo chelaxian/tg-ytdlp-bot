@@ -79,6 +79,58 @@ def get_user_args(user_id: int):
 from COMMANDS.image_cmd import image_command
 from HELPERS.safe_messeger import fake_message
 
+# Telegram caption limit is 1024 characters; text messages allow 4096.
+# When sending a photo with inline keyboard, caption must fit in 1024 chars.
+TELEGRAM_CAPTION_LIMIT = 1024
+
+def _truncate_caption(cap: str, limit: int = TELEGRAM_CAPTION_LIMIT) -> str:
+    """Truncate caption to fit within Telegram's limit.
+    
+    Strategy: remove info blocks (<pre>, <blockquote>) from the end first,
+    then trim lines from the bottom, preserving hints/buttons area.
+    """
+    if len(cap) <= limit:
+        return cap
+    
+    import re
+    logger.debug(f"Caption too long ({len(cap)} chars), truncating to {limit}")
+    
+    # Step 1: Remove <pre language="info">...</pre> blocks (dynamic hints)
+    result = re.sub(r'<pre language="info">.*?</pre>', '', cap, flags=re.DOTALL)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing <pre info> block: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 2: Remove <blockquote>...</blockquote> blocks (info parts)
+    result = re.sub(r'<blockquote>.*?</blockquote>', '', result, flags=re.DOTALL)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing <blockquote> blocks: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 3: Remove lines containing "📅", "👁", "❤️" etc. (metadata)
+    lines = result.split('\n')
+    metadata_patterns = ['📅', '👁', '❤️', '👥', '📺']
+    filtered_lines = [l for l in lines if not any(p in l for p in metadata_patterns)]
+    result = '\n'.join(filtered_lines)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing metadata lines: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 4: Remove size/dimension info lines (📹144p, etc.)
+    lines = result.split('\n')
+    filtered_lines = [l for l in lines if not re.match(r'^\s*📹\s*\d', l)]
+    result = '\n'.join(filtered_lines)
+    if len(result) <= limit:
+        logger.info(f"Truncated caption by removing size lines: {len(cap)} -> {len(result)}")
+        return result
+    
+    # Step 5: Hard truncate from the end, keeping beginning
+    if len(result) > limit:
+        result = result[:limit - 3] + '...'
+        logger.warning(f"Hard-truncated caption: {len(cap)} -> {len(result)}")
+    
+    return result
+
 # Get app instance for decorators
 app = get_app()
 
@@ -3979,6 +4031,9 @@ def show_manual_quality_menu(app, callback_query):
     cap += f"\n<b>{safe_get_messages(user_id).ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG}</b>\n"
     cap += f"\n<i>{safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_QUALITY_MANUALLY_MSG}</i>\n"
     
+    # Truncate caption to fit Telegram's 1024 char limit for photo captions
+    cap = _truncate_caption(cap)
+    
     # Update current menu; if MESSAGE_ID_INVALID, send new message
     if callback_query and getattr(callback_query, 'message', None):
         try:
@@ -4399,6 +4454,9 @@ def show_other_qualities_menu(app, callback_query, page=0):
         
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         
+        # Truncate caption to fit Telegram's 1024 char limit for photo captions
+        cap = _truncate_caption(cap)
+        
         # Update message
         try:
             if callback_query.message.photo:
@@ -4550,6 +4608,9 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
     ])
     
     keyboard = InlineKeyboardMarkup(keyboard_rows)
+    
+    # Truncate caption to fit Telegram's 1024 char limit for photo captions
+    cap = _truncate_caption(cap)
     
     # Update message
     try:
@@ -4848,6 +4909,9 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
         keyboard_rows.append([InlineKeyboardButton(safe_get_messages(user_id).CLOSE_BUTTON_TEXT, callback_data="askq|close")])
         
         keyboard = InlineKeyboardMarkup(keyboard_rows)
+        
+        # Truncate caption to fit Telegram's 1024 char limit for photo captions
+        cap = _truncate_caption(cap)
         
         # Отправляем меню
         try:
@@ -6269,6 +6333,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             logger.info(f"Always Ask menu: subs_enabled={subs_enabled}, auto_mode={auto_mode}, found_type={found_type}, is_always_ask={is_always_ask_mode}, need_subs={need_subs}")
             if need_subs:
                 subs_hint = f"\n{safe_get_messages(user_id).ALWAYS_ASK_SUBTITLES_ARE_AVAILABLE_MSG}"
+                # Add paid hint for hard-burn subs (MP4/AVC1 only, not MKV soft embed)
+                try:
+                    sel_ext = get_filters(user_id).get("ext", "mp4")
+                except Exception:
+                    sel_ext = "mp4"
+                if sel_ext != "mkv" and should_apply_limits_to_admin(user_id=user_id, message=message):
+                    subs_hint += f"\n{safe_get_messages(user_id).ALWAYS_ASK_SUB_BURN_PAID_MSG}"
                 show_repost_hint = False  # 🚀 we don't show if subs really exist and are needed
             elif is_always_ask_mode and not need_subs:
                 # In Always Ask mode, show subs hint even if not found (user can still try)
@@ -6298,6 +6369,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             
             # Always show format change hint (📼) - this is always available
             hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG}")
+            
+            # Show MKV/AV1/VP9 player hint when non-default codec/ext is selected
+            try:
+                _fs = get_filters(user_id)
+                _sel_ext = _fs.get("ext", "mp4")
+                _sel_codec = _fs.get("codec", "avc1")
+            except Exception:
+                _sel_ext = "mp4"
+                _sel_codec = "avc1"
+            if _sel_ext == "mkv" or _sel_codec != "avc1":
+                hints.append(f"{safe_get_messages(user_id).ALWAYS_ASK_MKV_PLAYER_HINT_MSG}")
             
             # Quality hint (📹) - always shown unless NSFW (только если админ не имеет отключенных ограничений)
             should_show_paid_hint = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
@@ -6340,8 +6422,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # This will be done later in the code, so for now we'll use the old logic
         # but we'll replace it after action_buttons are created
         # Temporary hint for now - will be replaced later
+        try:
+            _fstate = get_filters(user_id)
+            _sel_ext = _fstate.get("ext", "mp4")
+            _sel_codec = _fstate.get("codec", "avc1")
+        except Exception:
+            _sel_ext = "mp4"
+            _sel_codec = "avc1"
+        _mkv_player_hint_line = f"\n{safe_get_messages(user_id).ALWAYS_ASK_MKV_PLAYER_HINT_MSG}" if _sel_ext == "mkv" or _sel_codec != "avc1" else ""
         temp_hint = (
             f"<pre language=\"info\">{safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG}"
+            + _mkv_player_hint_line
             + paid_hint
             + repost_line
             + watch_hint
@@ -6789,6 +6880,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # Always show format change hint (📼) - this is always available
         dynamic_hints.append(safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG)
         
+        # Show MKV/AV1/VP9 player hint when non-default codec/ext is selected
+        try:
+            _fs3 = get_filters(user_id)
+            _sel_ext3 = _fs3.get("ext", "mp4")
+            _sel_codec3 = _fs3.get("codec", "avc1")
+        except Exception:
+            _sel_ext3 = "mp4"
+            _sel_codec3 = "avc1"
+        if _sel_ext3 == "mkv" or _sel_codec3 != "avc1":
+            dynamic_hints.append(safe_get_messages(user_id).ALWAYS_ASK_MKV_PLAYER_HINT_MSG)
+        
         # Quality hint (📹) - always sh
         # own unless NSFW
         if is_nsfw and is_private_chat:
@@ -6844,6 +6946,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         cap = re.sub(r'<pre language="info">.*?</pre>', '', cap, flags=re.DOTALL)
         # Add new dynamic hint with reduced spacing
         cap += f"{dynamic_hint_text}\n"
+        
+        # Truncate caption to fit Telegram's 1024 char limit for photo captions
+        cap = _truncate_caption(cap)
         
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap now contains dynamic hints based on actual buttons
@@ -7087,6 +7192,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
                         url,
                     )
+                    # Send cookie hint if this is a cookie/authentication error
+                    from CONFIG.errors import is_cookie_error
+                    if is_cookie_error(str(e)):
+                        try:
+                            safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                            logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu)")
+                        except Exception as _cookie_hint_err:
+                            logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return
         except Exception as e2:
             logger.error(f"Error editing processing message: {e2}")
@@ -7102,6 +7215,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
             url,
         )
+        # Send cookie hint if this is a cookie/authentication error
+        from CONFIG.errors import is_cookie_error
+        if is_cookie_error(str(e)):
+            try:
+                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu fallback path)")
+            except Exception as _cookie_hint_err:
+                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
         return
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs, proc_msg=None):

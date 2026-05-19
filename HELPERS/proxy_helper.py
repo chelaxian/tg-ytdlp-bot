@@ -45,33 +45,13 @@ def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_i
         
         # Add proxy configuration
         if proxy_config and 'type' in proxy_config and 'ip' in proxy_config and 'port' in proxy_config:
-            if proxy_config['type'] == 'http':
-                if proxy_config.get('user') and proxy_config.get('password'):
-                    proxy_url = f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                else:
-                    proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
-            elif proxy_config['type'] == 'https':
-                if proxy_config.get('user') and proxy_config.get('password'):
-                    proxy_url = f"https://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                else:
-                    proxy_url = f"https://{proxy_config['ip']}:{proxy_config['port']}"
-            elif proxy_config['type'] in ['socks4', 'socks5', 'socks5h']:
-                if proxy_config.get('user') and proxy_config.get('password'):
-                    proxy_url = f"{proxy_config['type']}://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                else:
-                    proxy_url = f"{proxy_config['type']}://{proxy_config['ip']}:{proxy_config['port']}"
-            else:
-                if proxy_config.get('user') and proxy_config.get('password'):
-                    proxy_url = f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-                else:
-                    proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
-            
-            ydl_opts['proxy'] = proxy_url
-            # Avoid logging proxy URLs (even redacted) to reduce risk of credential leakage.
-            logger.info("Using proxy for yt-dlp")
+            proxy_url = build_proxy_url(proxy_config)
+            if proxy_url:
+                ydl_opts['proxy'] = proxy_url
+                logger.info("Using proxy for yt-dlp")
         else:
-            messages = safe_get_messages(user_id)
-            logger.warning(messages.HELPER_PROXY_CONFIG_INCOMPLETE_MSG)
+            _messages = safe_get_messages(user_id)
+            logger.warning(_messages.HELPER_PROXY_CONFIG_INCOMPLETE_MSG)
         
         # Add cookie file for YouTube if user_id is provided
         #if user_id and 'youtube.com' in url or 'youtu.be' in url:
@@ -138,30 +118,22 @@ def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_i
         }
 
 def build_proxy_url(proxy_config):
-    """Build proxy URL from configuration"""
+    """Build proxy URL from configuration dict.
+    
+    Supports: http, https, socks4, socks5, socks5h.
+    Format: <type>://[<user>:<password>@]<ip>:<port>
+    """
     if not proxy_config or 'type' not in proxy_config or 'ip' not in proxy_config or 'port' not in proxy_config:
         return None
     
-    if proxy_config['type'] == 'http':
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-        else:
-            return f"http://{proxy_config['ip']}:{proxy_config['port']}"
-    elif proxy_config['type'] == 'https':
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"https://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-        else:
-            return f"https://{proxy_config['ip']}:{proxy_config['port']}"
-    elif proxy_config['type'] in ['socks4', 'socks5', 'socks5h']:
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"{proxy_config['type']}://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-        else:
-            return f"{proxy_config['type']}://{proxy_config['ip']}:{proxy_config['port']}"
-    else:
-        if proxy_config.get('user') and proxy_config.get('password'):
-            return f"http://{proxy_config['user']}:{proxy_config['password']}@{proxy_config['ip']}:{proxy_config['port']}"
-        else:
-            return f"http://{proxy_config['ip']}:{proxy_config['port']}"
+    ptype = proxy_config['type']
+    ip = proxy_config['ip']
+    port = proxy_config['port']
+    user = proxy_config.get('user')
+    password = proxy_config.get('password')
+    
+    auth = f"{user}:{password}@" if user and password else ""
+    return f"{ptype}://{auth}{ip}:{port}"
 
 def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> dict:
     """Add proxy to yt-dlp options if proxy is enabled for user or domain requires it"""
