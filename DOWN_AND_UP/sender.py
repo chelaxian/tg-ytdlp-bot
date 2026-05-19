@@ -872,6 +872,7 @@ def send_videos(
                                         fw_f.write(str(wait_time))
                                 except Exception:
                                     pass
+                                from HELPERS.logger import send_error_to_user
                                 send_error_to_user(message,
                                     f"⏳ **Telegram FloodWait**: {time_str}\n\n"
                                     f"Telegram требует подождать перед следующей отправкой. "
@@ -1016,8 +1017,13 @@ def send_videos(
         # to avoid double forwarding and ensure proper channel routing
 
         if was_truncated and full_video_title:
-            with open(temp_desc_path, "w", encoding="utf-8") as f:
-                f.write(full_video_title)
+            try:
+                os.makedirs(os.path.dirname(temp_desc_path), exist_ok=True)
+                with open(temp_desc_path, "w", encoding="utf-8") as f:
+                    f.write(full_video_title)
+            except OSError as desc_err:
+                logger.warning(f"Could not write description file: {desc_err}")
+                was_truncated = False
         if was_truncated and os.path.exists(temp_desc_path):
             try:
                 user_doc_msg = app.send_document(
