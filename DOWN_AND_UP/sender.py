@@ -407,27 +407,58 @@ def send_videos(
             except Exception:
                 return None
 
-        def _resize_to_cover(src_path: str, dest_path: str) -> bool:
+        def _detect_crop(src_path: str) -> str | None:
+            """Run cropdetect to find non-black region, returns crop filter string or None."""
             try:
+                r = subprocess.run([
+                    'ffmpeg', '-i', src_path,
+                    '-vf', 'cropdetect=limit=24:round=2:reset=0',
+                    '-frames:v', '5', '-f', 'null', '-'
+                ], capture_output=True, text=True, timeout=15)
+                # Parse last crop= line from stderr
+                crops = re.findall(r'crop=(\d+:\d+:\d+:\d+)', r.stderr)
+                if crops:
+                    return crops[-1]
+            except Exception:
+                pass
+            return None
+
+        def _thumb_fit_ar(src_path: str, dest_path: str, target_w: int, target_h: int) -> bool:
+            """Crop black bars from thumbnail, then scale+pad to match target aspect ratio."""
+            try:
+                filters = []
+                # Step 1 — crop black bars if detected
+                crop_str = _detect_crop(src_path)
+                if crop_str:
+                    filters.append(f'crop={crop_str}')
+                # Step 2 — scale so the image fits inside target dims, preserving AR
+                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease')
+                # Step 3 — pad to exact target dims with black
+                filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
+                vf = ','.join(filters)
                 subprocess.run([
-                    'ffmpeg','-y','-i', src_path,
-                    '-vf','scale=if(gte(a,1),320,-2):if(gte(a,1),-2,320),pad=320:320:(320-iw)/2:(320-ih)/2:color=black',
-                    '-vframes','1','-q:v','4', dest_path
+                    'ffmpeg', '-y', '-i', src_path,
+                    '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
                 ], capture_output=True, text=True, timeout=30)
                 return os.path.exists(dest_path) and os.path.getsize(dest_path) > 0
             except Exception:
                 return False
 
+        def _resize_to_cover(src_path: str, dest_path: str) -> bool:
+            """Resize for paid media cover (320×320 square)."""
+            try:
+                return _thumb_fit_ar(src_path, dest_path, 320, 320)
+            except Exception:
+                return False
+
         def _gen_paid_cover(video_path: str) -> str | None:
             try:
-                if not _should_generate_cover(video_path, duration):
-                    return None
                 base_dir = os.path.dirname(video_path)
                 base_name = os.path.splitext(os.path.basename(video_path))[0]
                 cover_path = os.path.join(base_dir, base_name + '.__tgcover_paid.jpg')
                 if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
                     return cover_path
-                # 1) Попробовать скачать внешнюю миниатюру (приоритетно)
+                # 1) Try downloading external thumbnail
                 try:
                     tmp_dl = os.path.join(base_dir, base_name + '.__ext_thumb.jpg')
                     if video_url:
@@ -439,7 +470,6 @@ def send_videos(
                                 except Exception:
                                     pass
                                 return cover_path
-                    # удалить временный, если остался
                     try:
                         if os.path.exists(tmp_dl):
                             os.remove(tmp_dl)
@@ -447,55 +477,64 @@ def send_videos(
                         pass
                 except Exception:
                     pass
-                # 2) Фолбэк: кадр из видео, затем привести к нужному размеру без паддинга (с сохранением пропорций)
-                try:
-                    tmp_frame = os.path.join(base_dir, base_name + '.__frame.jpg')
-                    middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
-                    subprocess.run([
-                        'ffmpeg','-y','-ss', str(middle_sec), '-i', video_path,
-                        '-vframes','1','-q:v','4', tmp_frame
-                    ], capture_output=True, text=True, timeout=30)
-                    if os.path.exists(tmp_frame) and os.path.getsize(tmp_frame) > 0:
-                        if _resize_to_cover(tmp_frame, cover_path):
-                            try:
-                                if os.path.exists(tmp_frame):
-                                    os.remove(tmp_frame)
-                            except Exception:
-                                pass
-                            return cover_path
+                # 2) Fallback: use passed-in thumb_file_path (already downloaded by down_and_up)
+                if thumb_file_path and os.path.exists(thumb_file_path) and os.path.getsize(thumb_file_path) > 0:
+                    if _resize_to_cover(thumb_file_path, cover_path):
+                        logger.info(f"Using passed-in thumbnail for paid cover: {thumb_file_path}")
+                        return cover_path
+                # 3) Last resort: extract frame from video (only for large/long videos)
+                if _should_generate_cover(video_path, duration):
                     try:
-                        if os.path.exists(tmp_frame):
-                            os.remove(tmp_frame)
+                        tmp_frame = os.path.join(base_dir, base_name + '.__frame.jpg')
+                        middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
+                        subprocess.run([
+                            'ffmpeg','-y','-ss', str(middle_sec), '-i', video_path,
+                            '-vframes','1','-q:v','4', tmp_frame
+                        ], capture_output=True, text=True, timeout=30)
+                        if os.path.exists(tmp_frame) and os.path.getsize(tmp_frame) > 0:
+                            if _resize_to_cover(tmp_frame, cover_path):
+                                try:
+                                    if os.path.exists(tmp_frame):
+                                        os.remove(tmp_frame)
+                                except Exception:
+                                    pass
+                                return cover_path
+                        try:
+                            if os.path.exists(tmp_frame):
+                                os.remove(tmp_frame)
+                        except Exception:
+                            pass
                     except Exception:
                         pass
-                except Exception:
-                    pass
                 return cover_path if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0 else None
             except Exception:
                 return None
 
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
+            """Resize for free video thumbnail, matching the video's aspect ratio."""
             try:
-                subprocess.run([
-                    'ffmpeg','-y','-i', src_path,
-                    '-vf','scale=320:-1',
-                    '-vframes','1','-q:v','4', dest_path
-                ], capture_output=True, text=True, timeout=30)
-                return os.path.exists(dest_path) and os.path.getsize(dest_path) > 0
+                # Determine target dimensions matching video AR
+                tw, th = 320, 180  # default 16:9
+                try:
+                    if width and height and int(width) > 0 and int(height) > 0:
+                        tw = 320
+                        th = max(1, round(320 * int(height) / int(width)))
+                        # ensure even
+                        th = th + (th % 2)
+                except Exception:
+                    pass
+                return _thumb_fit_ar(src_path, dest_path, tw, th)
             except Exception:
                 return False
 
         def _gen_free_cover(video_path: str) -> str | None:
             try:
-                # Встраиваем миниатюру только если файл >10MB или длительность >=60 сек
-                if not _should_generate_cover(video_path, duration):
-                    return None
                 base_dir = os.path.dirname(video_path)
                 base_name = os.path.splitext(os.path.basename(video_path))[0]
                 cover_path = os.path.join(base_dir, base_name + '.__tgthumb_ext.jpg')
                 if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
                     return cover_path
-                # 1) Попробовать скачать внешнюю миниатюру (без паддинга, только масштаб до 640 по ширине)
+                # 1) Try downloading external thumbnail (scaled to 320px width)
                 try:
                     tmp_dl = os.path.join(base_dir, base_name + '.__ext_thumb.jpg')
                     if video_url and download_thumbnail(video_url, tmp_dl):
@@ -513,29 +552,71 @@ def send_videos(
                         pass
                 except Exception:
                     pass
-                # 2) Фолбэк: кадр из видео (как и раньше)
-                return _gen_thumb(video_path)
+                # 2) Fallback: use passed-in thumb_file_path (already downloaded by down_and_up)
+                if thumb_file_path and os.path.exists(thumb_file_path) and os.path.getsize(thumb_file_path) > 0:
+                    if _resize_to_thumb_free(thumb_file_path, cover_path):
+                        logger.info(f"Using passed-in thumbnail for free cover: {thumb_file_path}")
+                        return cover_path
+                    # If resize failed, return thumb_file_path as-is
+                    logger.info(f"Returning passed-in thumbnail directly (resize skipped): {thumb_file_path}")
+                    return thumb_file_path
+                # 3) Last resort: extract frame from video (only for large/long videos)
+                if _should_generate_cover(video_path, duration):
+                    return _gen_thumb(video_path)
+                return None
             except Exception:
-                return _gen_thumb(video_path)
+                return _gen_thumb(video_path) if _should_generate_cover(video_path, duration) else None
+
+        def _is_small_video() -> bool:
+            """Check if video is small enough for Telegram to auto-generate thumbnails."""
+            try:
+                size_mb = os.path.getsize(video_abs_path) / (1024 * 1024)
+            except Exception:
+                size_mb = 0.0
+            try:
+                dur = float(duration or 0)
+            except Exception:
+                dur = 0.0
+            return (dur < 60.0) and (size_mb < 10.0)
+
+        def _resolve_thumb() -> str | None:
+            """Pick the best available thumbnail respecting size rules.
+            
+            For small videos (<10MB, <60s): only use external/web thumbnails,
+            skip ffmpeg-generated frames — Telegram handles those itself.
+            For large videos: use any available thumbnail.
+            """
+            small = _is_small_video()
+            # 1) Try generated cover (external download → thumb_file_path → ffmpeg frame)
+            try:
+                gen = _gen_free_cover(video_abs_path)
+                if gen and os.path.exists(gen) and os.path.getsize(gen) > 0:
+                    # For small videos: skip ffmpeg-generated frames
+                    if small and gen.endswith('.__tgthumb.jpg'):
+                        logger.info(f"Skipping ffmpeg frame for small video: {gen}")
+                    else:
+                        logger.info(f"Using generated cover as thumbnail: {gen}")
+                        return gen
+            except Exception as thumb_error:
+                logger.warning(f"Error generating thumbnail: {thumb_error}")
+            # 2) Fallback to thumb_file_path passed from down_and_up
+            if thumb_file_path and os.path.exists(thumb_file_path) and os.path.getsize(thumb_file_path) > 0:
+                # For small videos: skip if it looks like an ffmpeg-generated thumbnail
+                if small and ('__tgthumb' in thumb_file_path or 'default_thumb' in thumb_file_path):
+                    logger.info(f"Skipping generated thumbnail for small video: {thumb_file_path}")
+                else:
+                    logger.info(f"Using passed-in thumbnail (thumb_file_path): {thumb_file_path}")
+                    return thumb_file_path
+            if not small:
+                logger.warning("No thumbnail available for large video (both generated and passed-in are missing/empty)")
+            else:
+                logger.info("Small video without external thumbnail — Telegram will auto-generate")
+            return None
 
         def _try_send_video(caption_text: str):
             messages = safe_get_messages(user_id)
             nonlocal was_paid
-            # Для бесплатных сообщений — внешний превью без паддинга; для платных — обложка 320x320
-            local_thumb_free = None
-            try:
-                local_thumb_free = _gen_free_cover(video_abs_path)
-                # Ensure thumbnail exists and is readable before using it
-                if local_thumb_free:
-                    if not os.path.exists(local_thumb_free):
-                        logger.warning(f"Thumbnail file does not exist: {local_thumb_free}")
-                        local_thumb_free = None
-                    elif os.path.getsize(local_thumb_free) == 0:
-                        logger.warning(f"Thumbnail file is empty: {local_thumb_free}")
-                        local_thumb_free = None
-            except Exception as thumb_error:
-                logger.warning(f"Error generating thumbnail, continuing without it: {thumb_error}")
-                local_thumb_free = None
+            local_thumb_free = _resolve_thumb()
             # Paid media only in private chats; in groups/channels send regular video
             try:
                 chat_type = getattr(message.chat, "type", None)
@@ -672,8 +753,7 @@ def send_videos(
         def _fallback_send_document(caption_text: str):
             messages = safe_get_messages(user_id)
             nonlocal was_paid
-            # Для бесплатных документов — внешний превью без паддинга
-            local_thumb = _gen_free_cover(video_abs_path) or thumb_file_path
+            local_thumb = _resolve_thumb()
             try:
                 if not local_thumb or not os.path.exists(local_thumb):
                     local_thumb = os.path.join(os.path.dirname(video_abs_path), os.path.splitext(os.path.basename(video_abs_path))[0] + ".jpg")

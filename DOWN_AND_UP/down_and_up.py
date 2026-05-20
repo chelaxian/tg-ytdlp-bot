@@ -3656,7 +3656,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # If not YouTube or YouTube thumb not found, try universal thumbnail downloader
             if not thumb_dir:
                 try:
-                    universal_thumb_path = os.path.join(dir_path, "universal_thumb.jpg")
+                    # Use video_id in filename to ensure unique thumbnail per playlist item
+                    _thumb_uid = video_id or ''
+                    universal_thumb_path = os.path.join(dir_path, f"universal_thumb_{_thumb_uid}.jpg" if _thumb_uid else "universal_thumb.jpg")
                     if download_universal_thumbnail(thumb_source_url, universal_thumb_path):
                         if os.path.exists(universal_thumb_path):
                             thumb_dir = universal_thumb_path
@@ -3689,27 +3691,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.warning(f"Failed to get video duration: {e}")
                 duration = 0
             
-            # Use ffmpeg thumbnail only as fallback (when both YouTube/universal thumbnails failed)
+            # Use ffmpeg thumbnail only as fallback for large/long videos
+            # (small videos <10MB and <60s can rely on Telegram's auto-thumbnail)
             if not thumb_dir:
-                result = get_duration_thumb(message, dir_path, user_vid_path, sanitize_filename_strict(caption_name))
-                if result is None:
-                    logger.warning("Failed to create ffmpeg thumbnail fallback")
-                    thumb_dir = None
+                _vid_size_mb = os.path.getsize(user_vid_path) / (1024 * 1024) if os.path.exists(user_vid_path) else 0
+                _needs_ffmpeg_thumb = (duration >= 60) or (_vid_size_mb >= 10)
+                if _needs_ffmpeg_thumb:
+                    result = get_duration_thumb(message, dir_path, user_vid_path, sanitize_filename_strict(caption_name))
+                    if result is None:
+                        logger.warning("Failed to create ffmpeg thumbnail fallback")
+                        thumb_dir = None
+                    else:
+                        duration_from_ffmpeg, thumb_dir_ffmpeg = result
+                        thumb_dir = thumb_dir_ffmpeg
+                        if duration == 0:
+                            duration = duration_from_ffmpeg
+                        logger.info(f"Using ffmpeg thumbnail fallback: {thumb_dir}")
                 else:
-                    duration_from_ffmpeg, thumb_dir_ffmpeg = result
-                    thumb_dir = thumb_dir_ffmpeg
-                    if duration == 0:  # Use duration from ffmpeg if we couldn't get it with ffprobe
-                        duration = duration_from_ffmpeg
-                    logger.info(f"Using ffmpeg thumbnail fallback: {thumb_dir}")
+                    logger.info(f"Skipping ffmpeg thumbnail for small video ({_vid_size_mb:.1f}MB, {duration}s) — Telegram will auto-generate")
             
-            # Check for the existence of a preview and create a default one if needed
-            if thumb_dir and not os.path.exists(thumb_dir):
+            # Check for the existence of a preview and create a default one only for large/long videos
+            if not thumb_dir and _needs_ffmpeg_thumb:
                 logger.warning(f"Thumbnail not found at {thumb_dir}, creating default")
                 create_default_thumbnail(os.path.join(dir_path, "default_thumb.jpg"))
                 thumb_dir = os.path.join(dir_path, "default_thumb.jpg")
                 if not os.path.exists(thumb_dir):
                     logger.warning("Failed to create default thumbnail, continuing without thumbnail")
                     thumb_dir = None
+            elif not thumb_dir and not _needs_ffmpeg_thumb:
+                logger.info("No external thumbnail for small video — Telegram will handle auto-thumbnail")
+                thumb_dir = None
 
             video_size_in_bytes = os.path.getsize(user_vid_path)
             video_size = humanbytes(int(video_size_in_bytes))
