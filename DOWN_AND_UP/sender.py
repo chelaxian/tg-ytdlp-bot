@@ -511,15 +511,29 @@ def send_videos(
                 return None
 
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
-            """Resize for free video thumbnail, matching the video's aspect ratio."""
+            """Resize for free video thumbnail, matching the video's aspect ratio.
+
+            Telegram thumbnail limits: width <= 320, height <= 320.
+            For horizontal videos (landscape): fit width to 320.
+            For vertical videos (portrait): fit height to 320.
+            Both dimensions always stay within 320x320.
+            """
             try:
-                # Determine target dimensions matching video AR
                 tw, th = 320, 180  # default 16:9
                 try:
                     if width and height and int(width) > 0 and int(height) > 0:
-                        tw = 320
-                        th = max(1, round(320 * int(height) / int(width)))
-                        # ensure even
+                        vw, vh = int(width), int(height)
+                        ar = vw / vh
+                        if ar >= 1:
+                            # Horizontal / square video: fit width to 320
+                            tw = 320
+                            th = max(2, round(320 / ar))
+                        else:
+                            # Vertical video: fit height to 320
+                            th = 320
+                            tw = max(2, round(320 * ar))
+                        # Ensure both dimensions are even (required by some encoders)
+                        tw = tw + (tw % 2)
                         th = th + (th % 2)
                 except Exception:
                     pass
