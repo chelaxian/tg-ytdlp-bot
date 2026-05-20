@@ -254,11 +254,12 @@ def get_duration_thumb_(dir, video_path, thumb_name):
             create_default_thumbnail(thumb_dir, thumb_w, thumb_h)
             return duration, thumb_dir
         
+        seek_sec = str(max(1, duration // 2)) if duration and duration > 2 else "2"
         ffmpeg_command = [
             ffmpeg_path,
             "-y",
+            "-ss", seek_sec,
             "-i", video_path,
-            "-ss", "2",         # Seek to 2 Seconds
             "-vframes", "1",    # Capture 1 Frame
             "-vf", f"scale={thumb_w}:{thumb_h}",  # Scale to exact thumbnail size
             thumb_dir
@@ -359,12 +360,31 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         thumb_w = max(thumb_w, 240)
         thumb_h = max(thumb_h, 240)
         
+        # Run ffprobe command to get duration FIRST so we can seek to the middle
+        duration = 0
+        try:
+            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, universal_newlines=True, encoding='utf-8', errors='replace')
+        except UnicodeDecodeError:
+            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, encoding='utf-8', errors='replace').decode('utf-8', errors='replace')
+
+        try:
+            text = str(result)
+            matches = re.findall(r"(\d+(?:\.\d+)?)", text)
+            if matches:
+                duration = int(float(matches[-1]))
+        except (ValueError, TypeError) as e:
+            logger.error(safe_get_messages(user_id).FFMPEG_ERROR_PARSING_DURATION_MSG.format(error=e, result=result))
+            duration = 0
+
+        # Seek to the middle of the video for a more representative thumbnail
+        seek_sec = str(max(1, duration // 2)) if duration and duration > 2 else "2"
+
         # FFMPEG Command to create thumbnail with calculated dimensions
         ffmpeg_command = [
             "ffmpeg",
             "-y",
+            "-ss", seek_sec,
             "-i", video_path,
-            "-ss", "2",         # Seek to 2 Seconds
             "-vframes", "1",    # Capture 1 Frame
             "-vf", f"scale={thumb_w}:{thumb_h}",  # Scale to exact thumbnail size
             thumb_dir
@@ -374,26 +394,6 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         ffmpeg_result = subprocess.run(ffmpeg_command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
         if ffmpeg_result.returncode != 0:
             logger.error(safe_get_messages(user_id).FFMPEG_ERROR_CREATING_THUMBNAIL_MSG.format(stderr=ffmpeg_result.stderr))
-
-        # Run ffprobe command to get duration
-        try:
-            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, universal_newlines=True, encoding='utf-8', errors='replace')
-        except UnicodeDecodeError:
-            # Fallback with error handling
-            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, encoding='utf-8', errors='replace').decode('utf-8', errors='replace')
-
-        try:
-            # Extract duration robustly from any stdout (handle proxychains noise)
-            text = str(result)
-            # Prefer last numeric in the output as ffprobe prints duration alone
-            matches = re.findall(r"(\d+(?:\.\d+)?)", text)
-            if matches:
-                duration = int(float(matches[-1]))
-            else:
-                raise ValueError("No numeric duration found in ffprobe output")
-        except (ValueError, TypeError) as e:
-            logger.error(safe_get_messages(user_id).FFMPEG_ERROR_PARSING_DURATION_MSG.format(error=e, result=result))
-            duration = 0
 
         # Verify thumbnail was created
         if not os.path.exists(thumb_dir):
