@@ -2522,6 +2522,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Unable to rename file" in error_message:
                         error_code = "FILE_RENAME_ERROR"
                         error_description = "Failed to finalize download file. This may be a temporary issue — please try again."
+                    elif "PhantomJS not found" in error_message:
+                        error_code = "EXTRACTOR_ERROR"
+                        error_description = "This site requires PhantomJS which is not installed. The video cannot be downloaded at this time."
+                    elif "Unable to extract" in error_message:
+                        error_code = "EXTRACTOR_ERROR"
+                        error_description = "Failed to extract video information. This may be a temporary issue or the site may have changed its format. Please try again later."
                     elif "ffmpeg exited with code" in error_message or "ERROR: ffmpeg" in error_message:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message
@@ -2701,10 +2707,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 else:
                     # Отправляем сообщение об ошибке только один раз, чтобы избежать спама
                     if not error_message_sent:
-                        send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
+                        error_str = str(e)
+                        # Check for geo-block error and add proxy hint
+                        from CONFIG.errors import is_geo_block_error, has_country_list_in_error
+                        if is_geo_block_error(error_str):
+                            if has_country_list_in_error(error_str):
+                                # Countries listed in error — proxy retry should have already been attempted
+                                send_to_user(message, f"❌ <b>Video is geo-blocked</b>\n\n<code>{error_str[:500]}</code>\n\n💡 The video is restricted to specific countries. Enable proxy (<code>/proxy</code>) so the bot can try proxies from those countries.")
+                            else:
+                                # No specific countries — generic geo-block
+                                send_to_user(message, f"❌ <b>Video is geo-blocked in your country</b>\n\n<code>{error_str[:500]}</code>\n\n💡 Try enabling proxy (<code>/proxy</code>) or use another bot to download this video.")
+                        else:
+                            send_to_user(message, safe_get_messages(user_id).UNKNOWN_ERROR_MSG.format(error=e))
                         error_message_sent = True
                         # Send cookie hint if this is a cookie-related error
-                        if is_cookie_error(str(e)):
+                        if is_cookie_error(error_str):
                             try:
                                 safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
                                 logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (generic exception path)")
