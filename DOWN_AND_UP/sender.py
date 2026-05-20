@@ -436,12 +436,16 @@ def send_videos(
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
                 vf = ','.join(filters)
-                subprocess.run([
+                r = subprocess.run([
                     'ffmpeg', '-y', '-i', src_path,
                     '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
                 ], capture_output=True, text=True, timeout=30)
+                if r.returncode != 0:
+                    logger.warning(f"_thumb_fit_ar ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}")
+                logger.info(f"_thumb_fit_ar: vf={vf}, exists={os.path.exists(dest_path)}")
                 return os.path.exists(dest_path) and os.path.getsize(dest_path) > 0
-            except Exception:
+            except Exception as e:
+                logger.warning(f"_thumb_fit_ar error: {e}")
                 return False
 
         def _resize_to_cover(src_path: str, dest_path: str) -> bool:
@@ -535,10 +539,15 @@ def send_videos(
                         # Ensure both dimensions are even (required by some encoders)
                         tw = tw + (tw % 2)
                         th = th + (th % 2)
-                except Exception:
-                    pass
-                return _thumb_fit_ar(src_path, dest_path, tw, th)
-            except Exception:
+                except Exception as e:
+                    logger.warning(f"_resize_to_thumb_free: AR calc error: {e}")
+                logger.info(f"_resize_to_thumb_free: video={vw}x{vh}, ar={ar:.2f}, target={tw}x{th}")
+                result = _thumb_fit_ar(src_path, dest_path, tw, th)
+                if not result:
+                    logger.warning(f"_resize_to_thumb_free: _thumb_fit_ar failed for {src_path} -> {dest_path} ({tw}x{th})")
+                return result
+            except Exception as e:
+                logger.warning(f"_resize_to_thumb_free: unexpected error: {e}")
                 return False
 
         def _gen_free_cover(video_path: str) -> str | None:
