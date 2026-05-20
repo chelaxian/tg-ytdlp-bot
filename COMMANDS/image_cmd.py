@@ -1951,6 +1951,14 @@ def image_command(app, message):
                             parse_mode=enums.ParseMode.HTML
                         )
                         log_error_to_channel(message, f"Fatal error in image download: {result}", url)
+                        # Send cookie hint if this is a cookie/authentication error
+                        from CONFIG.errors import is_cookie_error
+                        if is_cookie_error(result):
+                            try:
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                                logger.info(f"Sent cookie hint to user {user_id} after gallery-dl error")
+                            except Exception as _cookie_hint_err:
+                                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                         return
                     
                     # Wait for download to complete before processing files
