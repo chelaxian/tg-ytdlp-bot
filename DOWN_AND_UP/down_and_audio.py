@@ -1066,8 +1066,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                # Для обратного порядка используем формат START:STOP:-1, иначе просто номер
                'playlist_items': playlist_items_value,
                # outtmpl will be set later with sanitized title
-               # Allow Unicode characters in filenames
-               'restrictfilenames': False,
+               # Restrict filenames to ASCII-safe characters to prevent errors
+               'restrictfilenames': True,
                'progress_hooks': [progress_hook],
                'extractor_args': {
                   'generic': {
@@ -1080,6 +1080,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                'live_from_start': True if not did_live_from_start_retry else False,
                'writesubtitles': False,  # Disable subtitles for audio
                'writeautomaticsub': False,  # Disable auto subtitles for audio
+               # JS runtime for YouTube n-parameter challenge solving.
+               # Without this, yt-dlp can't extract formats ("Only images are available")
+               'js_runtimes': {'node': {}},
+               # Network resilience: retry on transient failures
+               'retries': 10,
+               'fragment_retries': 10,
+               'file_access_retries': 3,
             }
             
             # Add download_sections if trim is enabled
@@ -1855,8 +1862,23 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 else:
                     # Отправляем сообщение об ошибке только один раз, чтобы избежать спама
                     if not unknown_error_message_sent:
-                        send_to_user(message, safe_get_messages(user_id).ERROR_UNKNOWN_MSG.format(error=str(e)))
+                        error_str = str(e)
+                        from CONFIG.errors import is_geo_block_error, has_country_list_in_error, is_cookie_error
+                        if is_geo_block_error(error_str):
+                            if has_country_list_in_error(error_str):
+                                send_to_user(message, f"❌ <b>Audio is geo-blocked</b>\n\n<code>{error_str[:500]}</code>\n\n💡 Enable proxy (<code>/proxy</code>) so the bot can try proxies from those countries.")
+                            else:
+                                send_to_user(message, f"❌ <b>Audio is geo-blocked in your country</b>\n\n<code>{error_str[:500]}</code>\n\n💡 Try enabling proxy (<code>/proxy</code>) or use another bot.")
+                        else:
+                            send_to_user(message, safe_get_messages(user_id).ERROR_UNKNOWN_MSG.format(error=error_str))
                         unknown_error_message_sent = True
+                        # Send cookie hint if this is a cookie-related error
+                        if is_cookie_error(error_str):
+                            try:
+                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (audio download)")
+                            except Exception as _cookie_hint_err:
+                                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                 return None
 
         # Download thumbnail for embedding (only once for the URL)
@@ -2072,7 +2094,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                            # Для обратного порядка используем формат START:STOP:-1, иначе просто номер
                           'playlist_items': f"{playlist_item_index}:{playlist_item_index}:-1" if is_reverse_order and is_playlist else str(playlist_item_index),
                            'outtmpl': safe_outtmpl,  # Use safe filename
-                           'restrictfilenames': False,
+                           'restrictfilenames': True,
                            'progress_hooks': [progress_hook],
                            'extractor_args': {
                               'generic': {'impersonate': ['chrome']}
@@ -2083,6 +2105,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                            'live_from_start': True if not did_live_from_start_retry else False,
                            'writesubtitles': False,
                            'writeautomaticsub': False,
+                           # JS runtime for YouTube n-parameter challenge solving
+                           'js_runtimes': {'node': {}},
+                           # Network resilience
+                           'retries': 10,
+                           'fragment_retries': 10,
+                           'file_access_retries': 3,
                         }
                         
                         # Add match_filter only if domain is not in NO_FILTER_DOMAINS
