@@ -2522,6 +2522,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Unable to rename file" in error_message:
                         error_code = "FILE_RENAME_ERROR"
                         error_description = "Failed to finalize download file. This may be a temporary issue — please try again."
+                    elif "PhantomJS not found" in error_message:
+                        error_code = "EXTRACTOR_ERROR"
+                        error_description = "This site requires PhantomJS which is not installed. The video cannot be downloaded at this time."
+                    elif "Unable to extract" in error_message:
+                        error_code = "EXTRACTOR_ERROR"
+                        error_description = "Failed to extract video information. This may be a temporary issue or the site may have changed its format. Please try again later."
                     elif "ffmpeg exited with code" in error_message or "ERROR: ffmpeg" in error_message:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message
