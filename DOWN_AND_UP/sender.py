@@ -342,6 +342,7 @@ def send_videos(
         import traceback
         logger.error(traceback.format_exc())
         width, height = 0, 0
+    is_shorts = is_youtube and ('/shorts/' in video_url or 'youtube.com/shorts/' in video_url)
 
     try:
         # Logic simplified: use tags that were already generated in down_and_up.
@@ -511,6 +512,25 @@ def send_videos(
             except Exception:
                 return None
 
+        def _thumb_crop_center(src_path: str, dest_path: str, target_w: int, target_h: int) -> bool:
+            """Crop thumbnail to fill target dimensions (center crop, no padding)."""
+            import subprocess as _sp
+            try:
+                filters = []
+                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase')
+                filters.append(f'crop={target_w}:{target_h}')
+                vf = ','.join(filters)
+                r = _sp.run([
+                    'ffmpeg', '-y', '-i', src_path,
+                    '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
+                ], capture_output=True, text=True, timeout=30)
+                if r.returncode != 0:
+                    logger.warning(f'_thumb_crop_center ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}')
+                return os.path.exists(dest_path) and os.path.getsize(dest_path) > 0
+            except Exception as e:
+                logger.warning(f'_thumb_crop_center error: {e}')
+                return False
+
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
             """Resize for free video thumbnail, matching the video's aspect ratio.
 
@@ -538,8 +558,11 @@ def send_videos(
                         th = th + (th % 2)
                 except Exception as e:
                     logger.warning(f"_resize_to_thumb_free: AR calc error: {e}")
-                logger.info(f"_resize_to_thumb_free: video={vw}x{vh}, ar={ar:.2f}, target={tw}x{th}")
-                result = _thumb_fit_ar(src_path, dest_path, tw, th)
+                logger.info(f"_resize_to_thumb_free: video={vw}x{vh}, ar={ar:.2f}, target={tw}x{th}, shorts={is_shorts}")
+                if is_shorts:
+                    result = _thumb_crop_center(src_path, dest_path, tw, th)
+                else:
+                    result = _thumb_fit_ar(src_path, dest_path, tw, th)
                 if not result:
                     logger.warning(f"_resize_to_thumb_free: _thumb_fit_ar failed for {src_path} -> {dest_path} ({tw}x{th})")
                 return result
