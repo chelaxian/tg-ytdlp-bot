@@ -339,9 +339,9 @@ def send_videos(
         logger.info(f"Video dimensions from ffprobe: {width}x{height}")
     except Exception as e:
         logger.error(safe_get_messages(user_id).SENDER_FFPROBE_BYPASS_ERROR_MSG.format(video_path=video_abs_path, error=e))
-            import traceback
-            logger.error(traceback.format_exc())
-            width, height = 0, 0
+        import traceback
+        logger.error(traceback.format_exc())
+        width, height = 0, 0
 
     try:
         # Logic simplified: use tags that were already generated in down_and_up.
