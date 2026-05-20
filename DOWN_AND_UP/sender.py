@@ -332,17 +332,13 @@ def send_videos(
         except Exception:
             pass
     
-    if is_youtube:
-        if "youtube.com/shorts/" in video_url or "/shorts/" in video_url:
-            width, height = 360, 640
-        else:
-            width, height = 640, 360
-    else:
-        # For the rest - define the size of the video dynamically
-        try:
-            width, height, _ = get_video_info_ffprobe(video_abs_path)
-        except Exception as e:
-            logger.error(safe_get_messages(user_id).SENDER_FFPROBE_BYPASS_ERROR_MSG.format(video_path=video_abs_path, error=e))
+    # Determine actual video dimensions via ffprobe for ALL sources
+    # (YouTube videos can be vertical even without /shorts/ in URL)
+    try:
+        width, height, _ = get_video_info_ffprobe(video_abs_path)
+        logger.info(f"Video dimensions from ffprobe: {width}x{height}")
+    except Exception as e:
+        logger.error(safe_get_messages(user_id).SENDER_FFPROBE_BYPASS_ERROR_MSG.format(video_path=video_abs_path, error=e))
             import traceback
             logger.error(traceback.format_exc())
             width, height = 0, 0
@@ -410,7 +406,7 @@ def send_videos(
         def _detect_crop(src_path: str) -> str | None:
             """Run cropdetect to find non-black region, returns crop filter string or None."""
             try:
-                r = subprocess.run([
+                r = _sp.run([
                     'ffmpeg', '-i', src_path,
                     '-vf', 'cropdetect=limit=24:round=2:reset=0',
                     '-frames:v', '5', '-f', 'null', '-'
@@ -425,6 +421,7 @@ def send_videos(
 
         def _thumb_fit_ar(src_path: str, dest_path: str, target_w: int, target_h: int) -> bool:
             """Crop black bars from thumbnail, then scale+pad to match target aspect ratio."""
+            import subprocess as _sp  # needed due to nested function scope
             try:
                 filters = []
                 # Step 1 — crop black bars if detected
@@ -436,7 +433,7 @@ def send_videos(
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
                 vf = ','.join(filters)
-                r = subprocess.run([
+                r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
                     '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
                 ], capture_output=True, text=True, timeout=30)
