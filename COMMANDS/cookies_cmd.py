@@ -835,7 +835,7 @@ def browser_choice_callback(app, callback_query):
     # Build the command for cookie extraction using the same yt-dlp as Python API
     import sys
     cmd = [sys.executable, '-m', 'yt_dlp', '--cookies', str(cookie_file), '--cookies-from-browser', str(browser_option)]
-    result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120)
 
     if result.returncode != 0:
         if "You must provide at least one URL" in result.stderr:

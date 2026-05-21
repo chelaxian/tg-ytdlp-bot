@@ -184,7 +184,7 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
             logger.info(f"Converting cover to JPEG: {cover_path} -> {jpeg_path}")
             result = subprocess.run([
                 "ffmpeg", "-y", "-i", cover_path, jpeg_path
-            ], check=True, capture_output=True, text=True)
+            ], check=True, capture_output=True, text=True, timeout=120)
             cover_path = jpeg_path
         
         out_path = mp3_path.rsplit('.', 1)[0] + '_tagged.mp3'
@@ -216,7 +216,7 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
         
         # Run ffmpeg command
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=600)
         
         logger.info(f"FFmpeg stdout: {result.stdout}")
         if result.stderr:

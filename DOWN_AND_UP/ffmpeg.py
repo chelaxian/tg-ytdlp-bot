@@ -264,7 +264,7 @@ def get_duration_thumb_(dir, video_path, thumb_name):
             "-vf", f"scale={thumb_w}:{thumb_h}",  # Scale to exact thumbnail size
             thumb_dir
         ]
-        subprocess.run(ffmpeg_command, check=True, capture_output=True, encoding='utf-8', errors='replace')
+        subprocess.run(ffmpeg_command, check=True, capture_output=True, encoding='utf-8', errors='replace', timeout=120)
     except Exception as e:
         logger.error(safe_get_messages(None).FFMPEG_ERROR_CREATING_THUMBNAIL_WITH_FFMPEG_MSG.format(error=e))
         # Create default thumbnail as fallback
@@ -320,10 +320,10 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
 
         # Get video dimensions
         try:
-            size_result = subprocess.check_output(ffprobe_size_command, stderr=subprocess.STDOUT, universal_newlines=True, encoding='utf-8', errors='replace').strip()
+            size_result = subprocess.check_output(ffprobe_size_command, stderr=subprocess.STDOUT, universal_newlines=True, encoding='utf-8', errors='replace', timeout=60).strip()
         except UnicodeDecodeError:
             # Fallback with error handling
-            size_result = subprocess.check_output(ffprobe_size_command, stderr=subprocess.STDOUT, encoding='utf-8', errors='replace').decode('utf-8', errors='replace').strip()
+            size_result = subprocess.check_output(ffprobe_size_command, stderr=subprocess.STDOUT, encoding='utf-8', errors='replace', timeout=60).decode('utf-8', errors='replace').strip()
         # Robust parse of dimensions like "1920x1080"; tolerate any trailing garbage
         dims_match = re.search(r"(\d+)\s*x\s*(\d+)", size_result)
         if dims_match:
@@ -363,9 +363,9 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         # Run ffprobe command to get duration FIRST so we can seek to the middle
         duration = 0
         try:
-            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, universal_newlines=True, encoding='utf-8', errors='replace')
+            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, universal_newlines=True, encoding='utf-8', errors='replace', timeout=60)
         except UnicodeDecodeError:
-            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, encoding='utf-8', errors='replace').decode('utf-8', errors='replace')
+            result = subprocess.check_output(ffprobe_duration_command, stderr=subprocess.STDOUT, encoding='utf-8', errors='replace', timeout=60).decode('utf-8', errors='replace')
 
         try:
             text = str(result)
@@ -391,7 +391,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         ]
 
         # Run ffmpeg command to create thumbnail
-        ffmpeg_result = subprocess.run(ffmpeg_command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        ffmpeg_result = subprocess.run(ffmpeg_command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180)
         if ffmpeg_result.returncode != 0:
             logger.error(safe_get_messages(user_id).FFMPEG_ERROR_CREATING_THUMBNAIL_MSG.format(stderr=ffmpeg_result.stderr))
 
@@ -428,7 +428,7 @@ def create_default_thumbnail(thumb_path, width=480, height=480):
             "-frames:v", "1",
             thumb_path
         ]
-        subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60)
         logger.info(f"Created default {width}x{height} thumbnail at {thumb_path}")
     except Exception as e:
         logger.error(f"Failed to create default thumbnail: {e}")
@@ -621,7 +621,7 @@ def get_video_info_ffprobe(video_path):
             '-show_entries', 'stream=width,height',
             '-show_entries', 'format=duration',
             '-of', 'json', video_path
-        ], capture_output=True, text=True, encoding='utf-8', errors='replace')
+        ], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60)
         if result.returncode == 0:
             data = json.loads(result.stdout)
             width = data['streams'][0]['width'] if data['streams'] else 0
@@ -819,7 +819,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
 
             try:
                 logger.info(f"Running ffmpeg soft-mux (MKV) with {len(subs_paths)} subtitle tracks: {' '.join(cmd)}")
-                subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+                subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=1800)
             except Exception as e:
                 logger.error(f"FFmpeg soft-mux failed: {e}")
                 return False
@@ -912,7 +912,7 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                 result = subprocess.run([
                     'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
                     '-of', 'json', path
-                ], capture_output=True, text=True)
+                ], capture_output=True, text=True, timeout=60)
                 if result.returncode == 0:
                     data = json.loads(result.stdout)
                     return float(data['format']['duration'])
@@ -1405,7 +1405,7 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
                     '-select_streams', 'a:0',
                     '-show_entries', 'stream=tags:stream_tags=language',
                     '-of', 'json', video_path
-                ], capture_output=True, text=True, encoding='utf-8', errors='replace')
+                ], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60)
                 
                 if ffprobe_result.returncode == 0:
                     probe_data = json.loads(ffprobe_result.stdout)
@@ -1495,7 +1495,7 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
                 if proc.returncode != 0:
                     raise subprocess.CalledProcessError(proc.returncode, cmd)
             else:
-                subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+                subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=1800)
         except Exception as e:
             logger.error(f"FFmpeg audio mux failed: {e}")
             return False

@@ -133,12 +133,13 @@ def is_mediainfo_enabled(user_id):
 
 def get_mediainfo_cli(file_path):
     try:
-        result = subprocess.run(
+        result =         subprocess.run(
             ["mediainfo", file_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
+            timeout=60
         )
         return result.stdout
     except Exception as e:
