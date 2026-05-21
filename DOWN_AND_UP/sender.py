@@ -12,7 +12,7 @@ from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
 import os
 import subprocess
 import json
-from HELPERS.safe_messeger import safe_forward_messages, safe_send_message
+from HELPERS.safe_messeger import safe_forward_messages, safe_send_message, safe_edit_message_text
 from URL_PARSERS.thumbnail_downloader import download_thumbnail
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
@@ -117,6 +117,9 @@ def send_videos(
         return None
     logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
+    # Initialize send_as_file flag (may be set to True by remux fallback below)
+    send_as_file = False
+
     # Convert unsupported formats to MP4 before sending.
     # Telegram doesn't support FLV, some TS variants — remux via ffmpeg.
     unsupported_extensions = ('.flv', '.f4v')
@@ -145,7 +148,7 @@ def send_videos(
     
     # Check if user has send_as_file enabled
     user_args = get_user_args(user_id)
-    send_as_file = user_args.get("send_as_file", False)
+    send_as_file = send_as_file or user_args.get("send_as_file", False)
     
     # Check file size before sending (Telegram limit: 2000 MiB)
     # If file is too large, split it into parts
@@ -968,7 +971,7 @@ def send_videos(
                         # Handle Telegram RPC errors (500 RPC_CALL_FAIL) with exponential backoff retry
                         if "RPC_CALL_FAIL" in error_str or "500" in error_str or "internal problems" in error_str.lower():
                             attempts_left -= 1
-                            if attempts_left and attempts_left <= 0:
+                            if attempts_left <= 0:
                                 logger.warning(f"Telegram RPC error persisted after retries, trying as document: {e}")
                                 video_msg = _fallback_send_document(cap)
                                 break
@@ -1015,7 +1018,7 @@ def send_videos(
 
                         if "Request timed out" in error_str or isinstance(e, TimeoutError):
                             attempts_left -= 1
-                            if attempts_left and attempts_left <= 0:
+                            if attempts_left <= 0:
                                 logger.warning(safe_get_messages(user_id).SENDER_SEND_VIDEO_TIMED_OUT_MSG)
                                 video_msg = _fallback_send_document(cap)
                                 break
@@ -1066,7 +1069,7 @@ def send_videos(
                                 # Handle Telegram RPC errors (500) with retry
                                 if "RPC_CALL_FAIL" in error_str2 or "500" in error_str2 or "internal problems" in error_str2.lower():
                                     attempts_left -= 1
-                                    if attempts_left and attempts_left <= 0:
+                                    if attempts_left <= 0:
                                         logger.warning(f"Telegram RPC error persisted after retries (minimal cap), trying as document")
                                         video_msg = _fallback_send_document(minimal_cap)
                                         break
@@ -1084,7 +1087,7 @@ def send_videos(
 
                                 if "Request timed out" in error_str2 or isinstance(e2, TimeoutError):
                                     attempts_left -= 1
-                                    if attempts_left and attempts_left <= 0:
+                                    if attempts_left <= 0:
                                         logger.warning(safe_get_messages(user_id).SENDER_SEND_VIDEO_MINIMAL_CAPTION_TIMED_OUT_MSG)
                                         video_msg = _fallback_send_document(minimal_cap)
                                         break
