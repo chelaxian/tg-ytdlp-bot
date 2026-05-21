@@ -1963,6 +1963,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     
                                     # Проверяем, была ли обнаружена ошибка 403
                                     if hls_403_detected.is_set():
+                                        # Try to find downloaded file on disk before aborting
+                                        try:
+                                            if os.path.exists(user_dir_name):
+                                                files = os.listdir(user_dir_name)
+                                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts', '.part'))]
+                                                # Filter out .part files that are still being downloaded
+                                                non_part_files = [f for f in video_files if not f.endswith('.part') or (f.endswith('.part') and os.path.getsize(os.path.join(user_dir_name, f)) > 1024*1024)]  # Keep .part files larger than 1MB
+                                                if non_part_files:
+                                                    logger.warning(f"HLS 403 error detected, but found downloaded file(s): {non_part_files[0]}, continuing processing")
+                                                    return info_dict
+                                        except Exception as check_e:
+                                            logger.debug(f"Error checking for files after HLS 403 error: {check_e}")
+                                        
                                         logger.warning("HLS 403 error detected - aborting download immediately")
                                         raise yt_dlp.utils.DownloadError("HLS 403 error detected - proxy blocked. Please try another proxy.")
                                     
@@ -1985,6 +1998,37 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
                     if result is None:
                         raise Exception("Failed to download video with all available proxies")
+                    
+                    # If download_operation succeeded (result is True), we need to find the downloaded file
+                    # because info_dict might not be available yet
+                    if result is True and info_dict is None:
+                        # Try to find downloaded file on disk
+                        try:
+                            if os.path.exists(user_dir_name):
+                                allfiles = os.listdir(user_dir_name)
+                                # Look for video files matching our outtmpl pattern (vid_<id>)
+                                video_id = url.split('=')[-1] if '=' in url else ''
+                                if not video_id:
+                                    # Fallback: just find any video file
+                                    video_files = [f for f in allfiles if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts')) and not f.endswith('.part')]
+                                else:
+                                    # Look for files starting with vid_<id>
+                                    id_prefix = f"vid_{video_id[:12]}"  # Use first 12 chars of ID
+                                    video_files = [f for f in allfiles if f.startswith(id_prefix) and f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts')) and not f.endswith('.part')]
+                                
+                                if video_files:
+                                    logger.info(f"Found downloaded file after HLS 403 error recovery: {video_files[0]}")
+                                    # Create minimal info_dict from the file
+                                    downloaded_file = video_files[0]
+                                    downloaded_abs_path = os.path.join(user_dir_name, downloaded_file)
+                                    logger.info(f"Downloaded file path: {downloaded_abs_path}")
+                                    # info_dict will be populated later when searching for file
+                                    # Just continue to the file search logic below
+                                else:
+                                    logger.warning(f"No video files found after HLS 403 error recovery in {user_dir_name}")
+                                    # Let normal error handling continue
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for files after HLS 403 recovery: {check_e}")
                 finally:
                     # Always stop cycle animation, even if error occurred
                     if cycle_stop is not None:
