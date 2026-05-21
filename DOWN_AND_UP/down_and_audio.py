@@ -1516,6 +1516,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     
                     # Check for conversion failed errors (case-insensitive)
                     if "conversion failed" in error_lower:
+                        # Try to find downloaded audio file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                                if audio_files:
+                                    logger.info(f"Found audio file(s) despite conversion error: {audio_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for audio files after conversion error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Possible causes:**\n"
@@ -1533,6 +1546,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         logger.error(f"Postprocessing conversion error: {error_text}")
                         return "POSTPROCESSING_ERROR"
                     elif "error opening output files" in error_lower:
+                        # Try to find downloaded audio file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                                if audio_files:
+                                    logger.info(f"Found audio file(s) despite output file error: {audio_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for audio files after output file error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Solutions:**\n"
@@ -1547,6 +1573,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_text and "Invalid argument" in error_text:
+                    # Try to find downloaded audio file on disk before sending error
+                    try:
+                        if os.path.exists(user_dir_name):
+                            files = os.listdir(user_dir_name)
+                            audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                            if audio_files:
+                                logger.info(f"Found audio file(s) despite invalid argument error: {audio_files[0]}, continuing processing")
+                                if info_dict:
+                                    return info_dict
+                    except Exception as check_e:
+                        logger.debug(f"Error checking for audio files after invalid argument error: {check_e}")
+                    
                     logger.error(f"Postprocessing error (Invalid argument): {error_text}")
                     return "POSTPROCESSING_ERROR"
                 

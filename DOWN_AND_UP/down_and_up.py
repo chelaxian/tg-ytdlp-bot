@@ -2117,6 +2117,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Check for conversion failed errors (common with m3u8 streams)
                     if "Conversion failed" in error_message:
+                        # Try to find downloaded file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
+                                if video_files:
+                                    logger.info(f"Found video file(s) despite conversion error: {video_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for video files after conversion error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Possible causes:**\n"
@@ -2134,6 +2147,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Postprocessing conversion error: {error_message}")
                         return "POSTPROCESSING_ERROR"
                     elif "Error opening output files" in error_message:
+                        # Try to find downloaded file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
+                                if video_files:
+                                    logger.info(f"Found video file(s) despite output file error: {video_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for video files after output file error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Solutions:**\n"
@@ -2178,6 +2204,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_message and "Invalid argument" in error_message:
+                    # Try to find downloaded file on disk before sending error
+                    try:
+                        if os.path.exists(user_dir_name):
+                            files = os.listdir(user_dir_name)
+                            video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
+                            if video_files:
+                                logger.info(f"Found video file(s) despite invalid argument error: {video_files[0]}, continuing processing")
+                                if info_dict:
+                                    return info_dict
+                    except Exception as check_e:
+                        logger.debug(f"Error checking for video files after invalid argument error: {check_e}")
+                    
                     logger.error(f"Postprocessing error (Invalid argument): {error_message}")
                     return "POSTPROCESSING_ERROR"
                 
