@@ -332,20 +332,17 @@ def send_videos(
         except Exception:
             pass
     
-    if is_youtube:
-        if "youtube.com/shorts/" in video_url or "/shorts/" in video_url:
-            width, height = 360, 640
-        else:
-            width, height = 640, 360
-    else:
-        # For the rest - define the size of the video dynamically
-        try:
-            width, height, _ = get_video_info_ffprobe(video_abs_path)
-        except Exception as e:
-            logger.error(safe_get_messages(user_id).SENDER_FFPROBE_BYPASS_ERROR_MSG.format(video_path=video_abs_path, error=e))
-            import traceback
-            logger.error(traceback.format_exc())
-            width, height = 0, 0
+    # Determine actual video dimensions via ffprobe for ALL sources
+    # (YouTube videos can be vertical even without /shorts/ in URL)
+    try:
+        width, height, _ = get_video_info_ffprobe(video_abs_path)
+        logger.info(f"Video dimensions from ffprobe: {width}x{height}")
+    except Exception as e:
+        logger.error(safe_get_messages(user_id).SENDER_FFPROBE_BYPASS_ERROR_MSG.format(video_path=video_abs_path, error=e))
+        import traceback
+        logger.error(traceback.format_exc())
+        width, height = 0, 0
+    is_shorts = is_youtube and ('/shorts/' in video_url or 'youtube.com/shorts/' in video_url)
 
     try:
         # Logic simplified: use tags that were already generated in down_and_up.
@@ -410,7 +407,7 @@ def send_videos(
         def _detect_crop(src_path: str) -> str | None:
             """Run cropdetect to find non-black region, returns crop filter string or None."""
             try:
-                r = subprocess.run([
+                r = _sp.run([
                     'ffmpeg', '-i', src_path,
                     '-vf', 'cropdetect=limit=24:round=2:reset=0',
                     '-frames:v', '5', '-f', 'null', '-'
@@ -425,6 +422,7 @@ def send_videos(
 
         def _thumb_fit_ar(src_path: str, dest_path: str, target_w: int, target_h: int) -> bool:
             """Crop black bars from thumbnail, then scale+pad to match target aspect ratio."""
+            import subprocess as _sp  # needed due to nested function scope
             try:
                 filters = []
                 # Step 1 — crop black bars if detected
@@ -436,12 +434,16 @@ def send_videos(
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
                 vf = ','.join(filters)
-                subprocess.run([
+                r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
                     '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
                 ], capture_output=True, text=True, timeout=30)
+                if r.returncode != 0:
+                    logger.warning(f"_thumb_fit_ar ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}")
+                logger.info(f"_thumb_fit_ar: vf={vf}, exists={os.path.exists(dest_path)}")
                 return os.path.exists(dest_path) and os.path.getsize(dest_path) > 0
-            except Exception:
+            except Exception as e:
+                logger.warning(f"_thumb_fit_ar error: {e}")
                 return False
 
         def _resize_to_cover(src_path: str, dest_path: str) -> bool:
@@ -510,21 +512,62 @@ def send_videos(
             except Exception:
                 return None
 
-        def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
-            """Resize for free video thumbnail, matching the video's aspect ratio."""
+        def _thumb_crop_center(src_path: str, dest_path: str, target_w: int, target_h: int) -> bool:
+            """Crop thumbnail to fill target dimensions (center crop, no padding)."""
+            import subprocess as _sp
             try:
-                # Determine target dimensions matching video AR
+                filters = []
+                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase')
+                filters.append(f'crop={target_w}:{target_h}')
+                vf = ','.join(filters)
+                r = _sp.run([
+                    'ffmpeg', '-y', '-i', src_path,
+                    '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
+                ], capture_output=True, text=True, timeout=30)
+                if r.returncode != 0:
+                    logger.warning(f'_thumb_crop_center ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}')
+                return os.path.exists(dest_path) and os.path.getsize(dest_path) > 0
+            except Exception as e:
+                logger.warning(f'_thumb_crop_center error: {e}')
+                return False
+
+        def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
+            """Resize for free video thumbnail, matching the video's aspect ratio.
+
+            Telegram thumbnail limits: width <= 320, height <= 320.
+            For horizontal videos (landscape): fit width to 320.
+            For vertical videos (portrait): fit height to 320.
+            Both dimensions always stay within 320x320.
+            """
+            try:
                 tw, th = 320, 180  # default 16:9
                 try:
                     if width and height and int(width) > 0 and int(height) > 0:
-                        tw = 320
-                        th = max(1, round(320 * int(height) / int(width)))
-                        # ensure even
+                        vw, vh = int(width), int(height)
+                        ar = vw / vh
+                        if ar >= 1:
+                            # Horizontal / square video: fit width to 320
+                            tw = 320
+                            th = max(2, round(320 / ar))
+                        else:
+                            # Vertical video: fit height to 320
+                            th = 320
+                            tw = max(2, round(320 * ar))
+                        # Ensure both dimensions are even (required by some encoders)
+                        tw = tw + (tw % 2)
                         th = th + (th % 2)
-                except Exception:
-                    pass
-                return _thumb_fit_ar(src_path, dest_path, tw, th)
-            except Exception:
+                except Exception as e:
+                    logger.warning(f"_resize_to_thumb_free: AR calc error: {e}")
+                logger.info(f"_resize_to_thumb_free: video={vw}x{vh}, ar={ar:.2f}, target={tw}x{th}, shorts={is_shorts}")
+                if is_shorts:
+                    result = _thumb_crop_center(src_path, dest_path, tw, th)
+                else:
+                    result = _thumb_fit_ar(src_path, dest_path, tw, th)
+                if not result:
+                    logger.warning(f"_resize_to_thumb_free: _thumb_fit_ar failed for {src_path} -> {dest_path} ({tw}x{th})")
+                return result
+            except Exception as e:
+                logger.warning(f"_resize_to_thumb_free: unexpected error: {e}")
                 return False
 
         def _gen_free_cover(video_path: str) -> str | None:
