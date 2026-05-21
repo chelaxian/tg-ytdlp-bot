@@ -117,6 +117,25 @@ def send_videos(
         return None
     logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
+    # --- ASCII-safe path rename for Pyrogram compatibility ---
+    # Pyrogram's send_video uses os.path.isfile() which may fail for paths
+    # containing non-ASCII characters (accents, diacritics) on some Linux systems.
+    # If the path contains non-ASCII chars, rename to a safe temp name and
+    # rename back in the finally block after sending.
+    _original_video_path_for_rename = None  # set only if renamed
+    try:
+        video_abs_path.encode('ascii')
+    except UnicodeEncodeError:
+        _ascii_safe_name = f"_tg_send_{int(time.time() * 1000)}_{os.getpid()}{os.path.splitext(video_abs_path)[1]}"
+        _ascii_safe_path = os.path.join(os.path.dirname(video_abs_path), _ascii_safe_name)
+        try:
+            os.rename(video_abs_path, _ascii_safe_path)
+            logger.info(f"Renamed to ASCII-safe path for Pyrogram: {video_abs_path} -> {_ascii_safe_path}")
+            _original_video_path_for_rename = video_abs_path
+            video_abs_path = _ascii_safe_path
+        except Exception as _rename_err:
+            logger.warning(f"Failed to rename to ASCII-safe path (will try sending anyway): {_rename_err}")
+    
     # Initialize send_as_file flag (may be set to True by remux fallback below)
     send_as_file = False
 
@@ -1177,6 +1196,13 @@ def send_videos(
                 send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_DESCRIPTION_FILE_MSG.format(error=str(e)))
         return video_msg
     finally:
+        # Rename file back to original path if it was renamed for ASCII compatibility
+        if _original_video_path_for_rename and os.path.exists(video_abs_path):
+            try:
+                os.rename(video_abs_path, _original_video_path_for_rename)
+                logger.info(f"Renamed back to original path: {video_abs_path} -> {_original_video_path_for_rename}")
+            except Exception as _rename_back_err:
+                logger.warning(f"Failed to rename back to original path: {_rename_back_err}")
         if os.path.exists(temp_desc_path):
             try:
                 os.remove(temp_desc_path)
