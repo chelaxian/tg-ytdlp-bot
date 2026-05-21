@@ -406,6 +406,7 @@ def send_videos(
 
         def _detect_crop(src_path: str) -> str | None:
             """Run cropdetect to find non-black region, returns crop filter string or None."""
+            import subprocess as _sp  # local import — _sp is not visible from _thumb_fit_ar scope
             try:
                 r = _sp.run([
                     'ffmpeg', '-i', src_path,
@@ -541,6 +542,7 @@ def send_videos(
             """
             try:
                 tw, th = 320, 180  # default 16:9
+                vw, vh, ar = 0, 0, 1.0  # safe defaults in case ffprobe returned 0,0
                 try:
                     if width and height and int(width) > 0 and int(height) > 0:
                         vw, vh = int(width), int(height)
