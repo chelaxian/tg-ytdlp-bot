@@ -384,8 +384,9 @@ def sanitize_filename(filename, max_length=150):
 
 def sanitize_filename_strict(filename, max_length=100):
     """
-    Strict sanitization for filenames - removes all characters except letters and numbers,
-    replaces spaces with underscores. Used specifically for yt-dlp file downloads.
+    Strict sanitization for filenames - removes all characters except ASCII letters and numbers,
+    replaces spaces with underscores. Strips diacritics (accents) to ensure ASCII-only paths.
+    Used specifically for yt-dlp file downloads and must produce Pyrogram-safe file paths.
     """
     if filename is None:
         return "untitled"
@@ -393,8 +394,12 @@ def sanitize_filename_strict(filename, max_length=100):
     name, ext = os.path.splitext(filename)
     name = unicodedata.normalize("NFKC", name)
 
-    # Keep letters, numbers, underscores, hyphens, dots, parentheses
-    name = re.sub(r'[^\w\-\.\(\)]', '_', name)
+    # Strip diacritics/accent marks: ó→o, ñ→n, í→i, á→a, etc.
+    name = unicodedata.normalize('NFD', name)
+    name = ''.join(c for c in name if unicodedata.category(c) != 'Mn')
+
+    # Keep only ASCII letters, numbers, underscores, hyphens, dots, parentheses
+    name = re.sub(r'[^a-zA-Z0-9_\-\.\(\)]', '_', name)
     name = re.sub(r'_+', '_', name)
     name = name.strip('_')
 

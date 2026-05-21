@@ -12,7 +12,7 @@ from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
 import os
 import subprocess
 import json
-from HELPERS.safe_messeger import safe_forward_messages, safe_send_message
+from HELPERS.safe_messeger import safe_forward_messages, safe_send_message, safe_edit_message_text
 from URL_PARSERS.thumbnail_downloader import download_thumbnail
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
@@ -117,6 +117,28 @@ def send_videos(
         return None
     logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
+    # --- ASCII-safe path rename for Pyrogram compatibility ---
+    # Pyrogram's send_video uses os.path.isfile() which may fail for paths
+    # containing non-ASCII characters (accents, diacritics) on some Linux systems.
+    # If the path contains non-ASCII chars, rename to a safe temp name and
+    # rename back in the finally block after sending.
+    _original_video_path_for_rename = None  # set only if renamed
+    try:
+        video_abs_path.encode('ascii')
+    except UnicodeEncodeError:
+        _ascii_safe_name = f"_tg_send_{int(time.time() * 1000)}_{os.getpid()}{os.path.splitext(video_abs_path)[1]}"
+        _ascii_safe_path = os.path.join(os.path.dirname(video_abs_path), _ascii_safe_name)
+        try:
+            os.rename(video_abs_path, _ascii_safe_path)
+            logger.info(f"Renamed to ASCII-safe path for Pyrogram: {video_abs_path} -> {_ascii_safe_path}")
+            _original_video_path_for_rename = video_abs_path
+            video_abs_path = _ascii_safe_path
+        except Exception as _rename_err:
+            logger.warning(f"Failed to rename to ASCII-safe path (will try sending anyway): {_rename_err}")
+    
+    # Initialize send_as_file flag (may be set to True by remux fallback below)
+    send_as_file = False
+
     # Convert unsupported formats to MP4 before sending.
     # Telegram doesn't support FLV, some TS variants — remux via ffmpeg.
     unsupported_extensions = ('.flv', '.f4v')
@@ -145,7 +167,7 @@ def send_videos(
     
     # Check if user has send_as_file enabled
     user_args = get_user_args(user_id)
-    send_as_file = user_args.get("send_as_file", False)
+    send_as_file = send_as_file or user_args.get("send_as_file", False)
     
     # Check file size before sending (Telegram limit: 2000 MiB)
     # If file is too large, split it into parts
@@ -406,6 +428,7 @@ def send_videos(
 
         def _detect_crop(src_path: str) -> str | None:
             """Run cropdetect to find non-black region, returns crop filter string or None."""
+            import subprocess as _sp  # local import — _sp is not visible from _thumb_fit_ar scope
             try:
                 r = _sp.run([
                     'ffmpeg', '-i', src_path,
@@ -541,6 +564,7 @@ def send_videos(
             """
             try:
                 tw, th = 320, 180  # default 16:9
+                vw, vh, ar = 0, 0, 1.0  # safe defaults in case ffprobe returned 0,0
                 try:
                     if width and height and int(width) > 0 and int(height) > 0:
                         vw, vh = int(width), int(height)
@@ -966,7 +990,7 @@ def send_videos(
                         # Handle Telegram RPC errors (500 RPC_CALL_FAIL) with exponential backoff retry
                         if "RPC_CALL_FAIL" in error_str or "500" in error_str or "internal problems" in error_str.lower():
                             attempts_left -= 1
-                            if attempts_left and attempts_left <= 0:
+                            if attempts_left <= 0:
                                 logger.warning(f"Telegram RPC error persisted after retries, trying as document: {e}")
                                 video_msg = _fallback_send_document(cap)
                                 break
@@ -1013,7 +1037,7 @@ def send_videos(
 
                         if "Request timed out" in error_str or isinstance(e, TimeoutError):
                             attempts_left -= 1
-                            if attempts_left and attempts_left <= 0:
+                            if attempts_left <= 0:
                                 logger.warning(safe_get_messages(user_id).SENDER_SEND_VIDEO_TIMED_OUT_MSG)
                                 video_msg = _fallback_send_document(cap)
                                 break
@@ -1064,7 +1088,7 @@ def send_videos(
                                 # Handle Telegram RPC errors (500) with retry
                                 if "RPC_CALL_FAIL" in error_str2 or "500" in error_str2 or "internal problems" in error_str2.lower():
                                     attempts_left -= 1
-                                    if attempts_left and attempts_left <= 0:
+                                    if attempts_left <= 0:
                                         logger.warning(f"Telegram RPC error persisted after retries (minimal cap), trying as document")
                                         video_msg = _fallback_send_document(minimal_cap)
                                         break
@@ -1082,7 +1106,7 @@ def send_videos(
 
                                 if "Request timed out" in error_str2 or isinstance(e2, TimeoutError):
                                     attempts_left -= 1
-                                    if attempts_left and attempts_left <= 0:
+                                    if attempts_left <= 0:
                                         logger.warning(safe_get_messages(user_id).SENDER_SEND_VIDEO_MINIMAL_CAPTION_TIMED_OUT_MSG)
                                         video_msg = _fallback_send_document(minimal_cap)
                                         break
@@ -1172,6 +1196,13 @@ def send_videos(
                 send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_DESCRIPTION_FILE_MSG.format(error=str(e)))
         return video_msg
     finally:
+        # Rename file back to original path if it was renamed for ASCII compatibility
+        if _original_video_path_for_rename and os.path.exists(video_abs_path):
+            try:
+                os.rename(video_abs_path, _original_video_path_for_rename)
+                logger.info(f"Renamed back to original path: {video_abs_path} -> {_original_video_path_for_rename}")
+            except Exception as _rename_back_err:
+                logger.warning(f"Failed to rename back to original path: {_rename_back_err}")
         if os.path.exists(temp_desc_path):
             try:
                 os.remove(temp_desc_path)
