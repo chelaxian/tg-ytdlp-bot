@@ -19,7 +19,7 @@ def safe_callback_answer(callback_query, text, show_alert=False):
 from HELPERS.app_instance import get_app
 from HELPERS.decorators import get_main_reply_keyboard, background_handler
 from HELPERS.logger import send_to_logger, logger, send_error_to_user, log_error_to_channel
-from HELPERS.safe_messeger import safe_send_message, safe_delete_messages
+from HELPERS.safe_messeger import safe_send_message, safe_delete_messages, safe_edit_message_text
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.qualifier import get_quality_by_min_side, get_real_height_for_quality
