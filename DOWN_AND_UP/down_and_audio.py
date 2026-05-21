@@ -1371,6 +1371,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     
                                     # Проверяем, была ли обнаружена ошибка 403
                                     if hls_403_detected.is_set():
+                                        # Try to find downloaded audio file on disk before aborting
+                                        try:
+                                            if os.path.exists(user_dir_name):
+                                                files = os.listdir(user_dir_name)
+                                                audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus', '.part'))]
+                                                # Filter out .part files that are still being downloaded
+                                                non_part_files = [f for f in audio_files if not f.endswith('.part') or (f.endswith('.part') and os.path.getsize(os.path.join(user_dir_name, f)) > 512*1024)]  # Keep .part files larger than 512KB
+                                                if non_part_files:
+                                                    logger.warning(f"HLS 403 error detected, but found downloaded audio file(s): {non_part_files[0]}, continuing processing")
+                                                    return info_dict
+                                        except Exception as check_e:
+                                            logger.debug(f"Error checking for audio files after HLS 403 error: {check_e}")
+                                        
                                         logger.warning("HLS 403 error detected - aborting download immediately")
                                         raise yt_dlp.utils.DownloadError("HLS 403 error detected - proxy blocked. Please try another proxy.")
                                     
@@ -1391,6 +1404,24 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     
                     from HELPERS.proxy_helper import try_with_proxy_fallback
                     result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
+                    if result is not None:
+                        # If download_operation succeeded (result is True), we need to find the downloaded file
+                        # because info_dict might not be available yet
+                        if result is True and info_dict is None:
+                            # Try to find downloaded audio file on disk
+                            try:
+                                if os.path.exists(user_dir_name):
+                                    allfiles = os.listdir(user_dir_name)
+                                    # Look for audio files
+                                    audio_files = [f for f in allfiles if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus')) and not f.endswith('.part')]
+                                    if audio_files:
+                                        logger.info(f"Found downloaded audio file after HLS 403 error recovery: {audio_files[0]}")
+                                        # info_dict will be populated later when searching for file
+                                        # Just continue to the file search logic below
+                                    else:
+                                        logger.warning(f"No audio files found after HLS 403 error recovery in {user_dir_name}")
+                            except Exception as check_e:
+                                logger.debug(f"Error checking for audio files after HLS 403 recovery: {check_e}")
                 except Exception as proxy_error:
                     last_download_error = str(proxy_error)
                     result = None
@@ -1516,6 +1547,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     
                     # Check for conversion failed errors (case-insensitive)
                     if "conversion failed" in error_lower:
+                        # Try to find downloaded audio file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                                if audio_files:
+                                    logger.info(f"Found audio file(s) despite conversion error: {audio_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for audio files after conversion error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Possible causes:**\n"
@@ -1533,6 +1577,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         logger.error(f"Postprocessing conversion error: {error_text}")
                         return "POSTPROCESSING_ERROR"
                     elif "error opening output files" in error_lower:
+                        # Try to find downloaded audio file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                                if audio_files:
+                                    logger.info(f"Found audio file(s) despite output file error: {audio_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for audio files after output file error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).AUDIO_FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Solutions:**\n"
@@ -1547,6 +1604,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_text and "Invalid argument" in error_text:
+                    # Try to find downloaded audio file on disk before sending error
+                    try:
+                        if os.path.exists(user_dir_name):
+                            files = os.listdir(user_dir_name)
+                            audio_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                            if audio_files:
+                                logger.info(f"Found audio file(s) despite invalid argument error: {audio_files[0]}, continuing processing")
+                                if info_dict:
+                                    return info_dict
+                    except Exception as check_e:
+                        logger.debug(f"Error checking for audio files after invalid argument error: {check_e}")
+                    
                     logger.error(f"Postprocessing error (Invalid argument): {error_text}")
                     return "POSTPROCESSING_ERROR"
                 

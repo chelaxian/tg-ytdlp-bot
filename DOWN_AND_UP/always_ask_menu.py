@@ -5323,8 +5323,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 save_ask_info(user_id, url, info)
             except Exception:
                 pass
-        title = info.get('title', 'Video')
-        video_id = info.get('id')
+        title = (info.get('title', 'Video') if isinstance(info, dict) else 'Video')
+        video_id = (info.get('id') if isinstance(info, dict) else None)
         tags_text = generate_final_tags(url, tags, info)
         # Determine NSFW to hide preview under spoiler in Always Ask Menu too
         try:
@@ -5344,7 +5344,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             create_directory(thumb_dir)
         
         # Для плейлистов скачиваем обложки для всех видео
-        playlist_entries = info.get('_playlist_entries')
+        playlist_entries = (info.get('_playlist_entries') if isinstance(info, dict) else None)
         if is_playlist and playlist_entries and isinstance(playlist_entries, list):
             logger.info(f"🔍 [DEBUG] Плейлист обнаружен, скачиваем обложки для {len(playlist_entries)} видео")
             for entry in playlist_entries:
@@ -5426,7 +5426,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                             thumb_path = thumb_path
                         else:
                             # Fallback: попробуем скачать обложку из метаданных yt-dlp
-                            thumbnail_url = info.get('thumbnail')
+                            thumbnail_url = (info.get('thumbnail') if isinstance(info, dict) else None)
                             if thumbnail_url:
                                 try:
                                     # Валидация URL для предотвращения SSRF
@@ -5463,7 +5463,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # Build list of available audio languages from formats
         available_dubs = []
         lang_seen = set()
-        for f in info.get('formats', []):
+        for f in (info.get('formats', []) if isinstance(info, dict) else []):
             if (f.get('vcodec') == 'none' and f.get('acodec') and f.get('language')):
                 lang = f.get('language')
                 if lang and lang not in lang_seen:
@@ -5516,7 +5516,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         
         if is_youtube_domain_check:
             quality_map = {}
-            for f in info.get('formats', []):
+            for f in (info.get('formats', []) if isinstance(info, dict) else []):
                 if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
                     vcodec = f.get('vcodec') or ''
                     ext = f.get('ext') or ''
@@ -5593,7 +5593,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         # Для MP4 проверяем лимиты
                         if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                             temp_info = {
-                                'duration': info.get('duration'),
+                                'duration': (info.get('duration') if isinstance(info, dict) else None),
                                 'filesize': filesize,
                                 'filesize_approx': filesize
                             }
@@ -5749,7 +5749,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # --- Helpers for size estimation when FILESIZE is missing ---
             def best_audio_kbps() -> int:
                 kbps = 0
-                for af in info.get('formats', []):
+                for af in (info.get('formats', []) if isinstance(info, dict) else []):
                     if af.get('vcodec') == 'none':
                         # Prefer tbr, else abr
                         val = None
@@ -5795,7 +5795,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             def sibling_video_kbps_for_quality(qk: str) -> int:
                 # Try to find any sibling format with same quality and known tbr/vbr
                 best = 0
-                for sf in info.get('formats', []):
+                for sf in (info.get('formats', []) if isinstance(info, dict) else []):
                     if infer_quality_key(sf) != qk:
                         continue
                     val = 0.0
@@ -5832,7 +5832,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     except Exception:
                         pass
                 
-                duration = info.get('duration')
+                duration = (info.get('duration') if isinstance(info, dict) else None)
                 if not duration:
                     return 0
                 # 3) Use tbr/vbr/abr when available
@@ -5867,7 +5867,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 except Exception:
                     return 0
 
-            for f in info.get('formats', []):
+            for f in (info.get('formats', []) if isinstance(info, dict) else []):
                 # Skip audio-only
                 if f.get('vcodec') == 'none' and (f.get('audio_ext') or '') != 'none':
                     continue
@@ -5972,7 +5972,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # Universal fallback when no qualities were found for any service
             if not quality_map:
                 # Try to create default qualities based on available formats
-                video_formats = [f for f in info.get('formats', []) if f.get('vcodec') != 'none']
+                video_formats = [f for f in (info.get('formats', []) if isinstance(info, dict) else []) if f.get('vcodec') != 'none']
                 if video_formats:
                     # Group formats by resolution and create quality keys
                     resolution_groups = {}
@@ -7790,7 +7790,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
             info = get_video_formats(url, user_id, cookies_already_checked=True)
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info again - consider improving caching")
         
-        if quality_key and info and 'formats' in info:
+        if quality_key and isinstance(info, dict) and 'formats' in info:
             # Find the selected format
             selected_format = None
             for f in info['formats']:
@@ -7869,7 +7869,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
         
         # Build quality map from available formats (only if info is available)
         quality_map = {}
-        if info and 'formats' in info:
+        if isinstance(info, dict) and 'formats' in info:
             for f in info.get('formats', []):
                 if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
                     w = f['width']
