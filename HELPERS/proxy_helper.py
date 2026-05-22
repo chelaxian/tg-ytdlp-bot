@@ -607,7 +607,7 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
         curl_cffi_available = True
         try:
             curl_cffi_version = getattr(curl_cffi, '__version__', 'unknown')
-        except:
+        except Exception:
             pass
         
         # Try to check if curl_cffi actually works by checking available browser versions
@@ -624,7 +624,7 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                 # Check if we can access browser versions
                 if hasattr(const, 'BROWSERS') or hasattr(const, 'BrowserType'):
                     logger.debug("curl_cffi browser versions check available")
-            except:
+            except Exception:
                 pass
         except Exception as e:
             logger.warning(f"curl_cffi is installed but may not be working properly: {str(e)[:200]}")
@@ -657,9 +657,9 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                 minor = int(version_parts[1]) if len(version_parts) > 1 else 0
                 if major < 2024 or (major == 2024 and minor < 1):
                     logger.warning(f"yt-dlp version {ytdlp_version} may be too old for proper curl_cffi support. Consider updating: pip install --upgrade --pre yt-dlp")
-            except:
+            except Exception:
                 pass
-    except:
+    except Exception:
         pass
     
     # Build list: basic versions first, then specific if curl_cffi is available

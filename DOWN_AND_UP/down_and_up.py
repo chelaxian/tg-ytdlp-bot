@@ -21,7 +21,7 @@ from HELPERS.download_status import set_active_download, clear_download_start_ti
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, cleanup_user_temp_files, cleanup_subtitle_files, create_directory, check_disk_space
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, embed_subs_to_video, create_default_thumbnail, split_video_2
-from DOWN_AND_UP.sender import send_videos
+from DOWN_AND_UP.sender import send_videos, is_user_blocked_flagged, clear_user_blocked_flag
 from DATABASE.firebase_init import write_logs
 from URL_PARSERS.tags import generate_final_tags, save_user_tags
 from services.stats_events import update_download_progress
@@ -1748,7 +1748,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Try proxy fallback as last resort
                             try:
                                 info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_error_tracking)
-                            except:
+                            except Exception:
                                 pass
                             if info_dict is None:
                                 raise Exception("Failed to extract video information with all available proxies and impersonate versions")
@@ -1963,6 +1963,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     
                                     # Проверяем, была ли обнаружена ошибка 403
                                     if hls_403_detected.is_set():
+                                        # Try to find downloaded file on disk before aborting
+                                        try:
+                                            if os.path.exists(user_dir_name):
+                                                files = os.listdir(user_dir_name)
+                                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts', '.part'))]
+                                                # Filter out .part files that are still being downloaded
+                                                non_part_files = [f for f in video_files if not f.endswith('.part') or (f.endswith('.part') and os.path.getsize(os.path.join(user_dir_name, f)) > 1024*1024)]  # Keep .part files larger than 1MB
+                                                if non_part_files:
+                                                    logger.warning(f"HLS 403 error detected, but found downloaded file(s): {non_part_files[0]}, continuing processing")
+                                                    return info_dict
+                                        except Exception as check_e:
+                                            logger.debug(f"Error checking for files after HLS 403 error: {check_e}")
+                                        
                                         logger.warning("HLS 403 error detected - aborting download immediately")
                                         raise yt_dlp.utils.DownloadError("HLS 403 error detected - proxy blocked. Please try another proxy.")
                                     
@@ -1985,6 +1998,37 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     result = try_with_proxy_fallback(ytdl_opts, url, user_id, download_operation)
                     if result is None:
                         raise Exception("Failed to download video with all available proxies")
+                    
+                    # If download_operation succeeded (result is True), we need to find the downloaded file
+                    # because info_dict might not be available yet
+                    if result is True and info_dict is None:
+                        # Try to find downloaded file on disk
+                        try:
+                            if os.path.exists(user_dir_name):
+                                allfiles = os.listdir(user_dir_name)
+                                # Look for video files matching our outtmpl pattern (vid_<id>)
+                                video_id = url.split('=')[-1] if '=' in url else ''
+                                if not video_id:
+                                    # Fallback: just find any video file
+                                    video_files = [f for f in allfiles if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts')) and not f.endswith('.part')]
+                                else:
+                                    # Look for files starting with vid_<id>
+                                    id_prefix = f"vid_{video_id[:12]}"  # Use first 12 chars of ID
+                                    video_files = [f for f in allfiles if f.startswith(id_prefix) and f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts')) and not f.endswith('.part')]
+                                
+                                if video_files:
+                                    logger.info(f"Found downloaded file after HLS 403 error recovery: {video_files[0]}")
+                                    # Create minimal info_dict from the file
+                                    downloaded_file = video_files[0]
+                                    downloaded_abs_path = os.path.join(user_dir_name, downloaded_file)
+                                    logger.info(f"Downloaded file path: {downloaded_abs_path}")
+                                    # info_dict will be populated later when searching for file
+                                    # Just continue to the file search logic below
+                                else:
+                                    logger.warning(f"No video files found after HLS 403 error recovery in {user_dir_name}")
+                                    # Let normal error handling continue
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for files after HLS 403 recovery: {check_e}")
                 finally:
                     # Always stop cycle animation, even if error occurred
                     if cycle_stop is not None:
@@ -2117,6 +2161,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Check for conversion failed errors (common with m3u8 streams)
                     if "Conversion failed" in error_message:
+                        # Try to find downloaded file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
+                                if video_files:
+                                    logger.info(f"Found video file(s) despite conversion error: {video_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for video files after conversion error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Possible causes:**\n"
@@ -2134,6 +2191,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Postprocessing conversion error: {error_message}")
                         return "POSTPROCESSING_ERROR"
                     elif "Error opening output files" in error_message:
+                        # Try to find downloaded file on disk before sending error
+                        try:
+                            if os.path.exists(user_dir_name):
+                                files = os.listdir(user_dir_name)
+                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
+                                if video_files:
+                                    logger.info(f"Found video file(s) despite output file error: {video_files[0]}, continuing processing")
+                                    if info_dict:
+                                        return info_dict
+                        except Exception as check_e:
+                            logger.debug(f"Error checking for video files after output file error: {check_e}")
+                        
+                        # Only send error if no file found
                         postprocessing_message = (
                             safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
                             "**Solutions:**\n"
@@ -2178,6 +2248,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_message and "Invalid argument" in error_message:
+                    # Try to find downloaded file on disk before sending error
+                    try:
+                        if os.path.exists(user_dir_name):
+                            files = os.listdir(user_dir_name)
+                            video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
+                            if video_files:
+                                logger.info(f"Found video file(s) despite invalid argument error: {video_files[0]}, continuing processing")
+                                if info_dict:
+                                    return info_dict
+                    except Exception as check_e:
+                        logger.debug(f"Error checking for video files after invalid argument error: {check_e}")
+                    
                     logger.error(f"Postprocessing error (Invalid argument): {error_message}")
                     return "POSTPROCESSING_ERROR"
                 
@@ -2792,6 +2874,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         range_entries_metadata = None
         current_playlist_items_override = None
         logger.info(f"🔍 [DEBUG] Starting playlist download: indices_to_download={indices_to_download}, len={len(indices_to_download) if indices_to_download else 0}, use_range_download={use_range_download}, has_negative_indices_for_download={has_negative_indices_for_download}")
+        clear_user_blocked_flag(user_id)
         for idx, current_index in enumerate(indices_to_download):
             logger.info(f"🔍 [DEBUG] Processing video {idx + 1}/{len(indices_to_download)}: current_index={current_index}")
             messages = safe_get_messages(message.chat.id)
@@ -3776,6 +3859,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # --- TikTok: Don't Pass Title ---
                     video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
                     if not video_msg:
+                        if is_user_blocked_flagged(user_id):
+                            logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
+                            break
                         logger.error("send_videos returned None for split part; skipping cache save for this part")
                         continue
                     #found_type = None
@@ -4426,6 +4512,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
                         if not video_msg:
+                            if is_user_blocked_flagged(user_id):
+                                logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")
+                                break
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
                         
@@ -4890,6 +4979,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Error sending video: {e}")
                         import traceback as tb_module
                         logger.error(tb_module.format_exc())
+                        if "USER_IS_BLOCKED" in str(e):
+                            logger.warning(f"User {user_id} has blocked the bot, stopping playlist processing")
+                            break
                         send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)))
                         continue
         if successful_uploads == len(indices_to_download):

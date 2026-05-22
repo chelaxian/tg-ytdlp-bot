@@ -13,7 +13,6 @@ from HELPERS.logger import send_to_logger, logger, send_to_user, send_to_all
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_message_text
 from pyrogram.errors import FloodWait
-import subprocess
 import os
 import json
 import requests
@@ -832,22 +831,17 @@ def browser_choice_callback(app, callback_query):
         send_to_logger(callback_query.message, safe_get_messages(user_id).COOKIES_BROWSER_NOT_INSTALLED_LOG_MSG.format(browser=browser_option))
         return
 
-    # Build the command for cookie extraction using the same yt-dlp as Python API
-    import sys
-    cmd = [sys.executable, '-m', 'yt_dlp', '--cookies', str(cookie_file), '--cookies-from-browser', str(browser_option)]
-    result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
-
-    if result.returncode != 0:
-        if "You must provide at least one URL" in result.stderr:
-            safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).COOKIES_SAVED_USING_BROWSER_MSG.format(browser=browser_option))
-            send_to_logger(callback_query.message, safe_get_messages(user_id).COOKIES_SAVED_BROWSER_LOG_MSG.format(browser=browser_option))
-        else:
-            safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).COOKIES_FAILED_TO_SAVE_MSG.format(error=result.stderr))
-            send_to_logger(callback_query.message,
-                           f"Failed to save cookies using browser {browser_option}: {result.stderr}")
-    else:
+    # Extract cookies from browser using yt-dlp Python API
+    try:
+        from yt_dlp.cookies import extract_cookies_from_browser
+        cookie_jar = extract_cookies_from_browser(browser_option)
+        cookie_jar.save(cookie_file)
         safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).COOKIES_SAVED_USING_BROWSER_MSG.format(browser=browser_option))
         send_to_logger(callback_query.message, safe_get_messages(user_id).COOKIES_SAVED_BROWSER_LOG_MSG.format(browser=browser_option))
+    except Exception as e:
+        safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).COOKIES_FAILED_TO_SAVE_MSG.format(error=str(e)))
+        send_to_logger(callback_query.message,
+                       f"Failed to save cookies using browser {browser_option}: {e}")
 
     callback_query.answer(safe_get_messages(user_id).COOKIES_BROWSER_CHOICE_UPDATED_MSG)
 

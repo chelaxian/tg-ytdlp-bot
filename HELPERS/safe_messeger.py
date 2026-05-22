@@ -318,6 +318,10 @@ def safe_send_message(chat_id, text, **kwargs):
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.send_message(chat_id, text, **kwargs))
         except FloodWait as e:
+            if e.value <= 60 and attempt < max_retries - 1:
+                logger.warning(f"FloodWait ({e.value}s) while sending to {chat_id}, retrying ({attempt+1}/{max_retries})")
+                time.sleep(e.value + 1)
+                continue
             _write_flood_wait_file(chat_id, e.value)
             logger.warning(f"Flood wait detected ({e.value}s) while sending message to {chat_id}")
             try:
@@ -386,6 +390,10 @@ def safe_edit_message_text(chat_id, message_id, text, **kwargs):
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.edit_message_text(chat_id, message_id, text, **kwargs))
         except FloodWait as e:
+            if e.value <= 60 and attempt < max_retries - 1:
+                logger.warning(f"FloodWait ({e.value}s) while editing message for {chat_id}, retrying ({attempt+1}/{max_retries})")
+                time.sleep(e.value + 1)
+                continue
             _write_flood_wait_file(chat_id, e.value)
             logger.warning(f"Flood wait detected ({e.value}s) while editing message for {chat_id}")
             return None

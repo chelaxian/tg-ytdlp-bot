@@ -3,10 +3,7 @@
 # ####################################################################################
 
 import os
-import subprocess
-import sys
 import tempfile
-from typing import Optional
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -18,87 +15,109 @@ from HELPERS.decorators import background_handler
 from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
-from HELPERS.pot_helper import build_cli_extractor_args
-from COMMANDS.proxy_cmd import get_proxy_url, get_proxy_url_for_user_country, get_user_selected_country, is_proxy_enabled
 
 # Get app instance
 app = get_app()
 
-def get_user_cookie_path(user_id: int) -> Optional[str]:
-    """Get user's cookie file path if it exists"""
-    user_dir = os.path.join("users", str(user_id))
-    cookie_file = os.path.join(user_dir, "cookie.txt")
-    
-    if os.path.exists(cookie_file):
-        return cookie_file
-    return None
+def _format_filesize_list(filesize):
+    if not filesize:
+        return ''
+    if filesize >= 1024 * 1024 * 1024:
+        return f"{filesize / (1024*1024*1024):.2f}GiB"
+    elif filesize >= 1024 * 1024:
+        return f"{filesize / (1024*1024):.2f}MiB"
+    elif filesize >= 1024:
+        return f"{filesize / 1024:.2f}KiB"
+    else:
+        return f"{filesize:.0f}B"
 
 def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
     """
-    Run yt-dlp -F command to get available formats
-    Returns (success, output)
+    Get available formats using yt-dlp Python API (get_video_formats).
+    Uses the same engine as Always Ask Menu for consistent results
+    (PO token, js_runtimes, proxy, cookies with fallbacks).
+    Returns (success, formatted_output)
     """
     try:
-        # Get user's cookie file if available
-        cookie_file = get_user_cookie_path(user_id)
+        from DOWN_AND_UP.yt_dlp_hook import get_video_formats
         
-        # Build command: options BEFORE URL to ensure they apply
-        # Use the same yt-dlp as Python API: python -m yt_dlp
-        cmd = [sys.executable, "-m", "yt_dlp"]
-        # Add PO token extractor-args for CLI if applicable
-        cmd.extend(build_cli_extractor_args(url))
-        # Verbose for clearer diagnostics
-        cmd.extend(["-v", "-F"])
+        logger.info(f"Getting formats via Python API for user {user_id}, URL: {url}")
+        info = get_video_formats(url, user_id)
         
-        # Respect per-user proxy: country → proxy from file; AUTO → no proxy for initial request; domain → proxy if required
-        proxy_url = None
-        proxy_reason = None
-        if is_proxy_enabled(user_id):
-            proxy_url, _ = get_proxy_url_for_user_country(user_id)
-            if proxy_url:
-                proxy_reason = "country_file"
-        if not proxy_url:
-            proxy_url, proxy_reason = get_proxy_url(user_id=user_id, url=url)
-            if proxy_url and proxy_reason == "user" and not get_user_selected_country(user_id):
-                proxy_url = None  # AUTO: do not use config proxy on first request
-        if proxy_url:
-            cmd.extend(["--proxy", proxy_url])
-            logger.info(LoggerMsg.LIST_USING_PROXY_LOG_MSG.format(user_id=user_id, proxy_url=proxy_url, reason=proxy_reason or "user"))
+        if not info:
+            return False, "No video info returned"
         
-        if cookie_file:
-            cmd.extend(["--cookies", cookie_file])
-        # Append URL last
-        cmd.append(url)
+        if isinstance(info, dict) and 'error' in info:
+            error = info.get('error', 'Unknown error')
+            return False, f"Error: {error}"
         
-        # Маскируем прокси в логах для безопасности
-        log_cmd = cmd.copy()
-        if proxy_url and '--proxy' in log_cmd:
-            proxy_idx = log_cmd.index('--proxy')
-            if proxy_idx + 1 < len(log_cmd):
-                log_cmd[proxy_idx + 1] = sanitize_error_message(log_cmd[proxy_idx + 1])
-        logger.info(f"Running yt-dlp list command: {' '.join(log_cmd)}")
+        formats = info.get('formats', [])
+        if not formats:
+            return False, "No formats found"
         
-        # Run command
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,  # 60 second timeout
-            cwd=os.getcwd()
-        )
+        video_id = info.get('id', 'unknown')
+        title = info.get('title', 'Unknown')
         
-        if result.returncode == 0:
-            return True, result.stdout
-        else:
-            error_msg = result.stderr or "Unknown error"
-            logger.error(f"yt-dlp list failed: {error_msg}")
-            return False, error_msg
+        lines = []
+        lines.append(f"[info] Available formats for {video_id}:")
+        lines.append(f"Title: {title}")
+        lines.append("")
+        lines.append(f"{'ID':<12} {'EXT':<6} {'RESOLUTION':<14} {'FPS':>4} {'CH':>2} │ {'FILESIZE':>12} {'TBR':>7} {'PROTO':<8} │ {'VCODEC':<16} {'ACODEC':<14} {'MORE INFO'}")
+        lines.append("─" * 120)
+        
+        for fmt in formats:
+            fid = fmt.get('format_id', '')
+            if not fid or fid.startswith('[') or fid.startswith('('):
+                continue
             
-    except subprocess.TimeoutExpired:
-        logger.error("yt-dlp list command timed out")
-        return False, "Command timed out after 60 seconds"
+            ext = fmt.get('ext', 'unknown')
+            vcodec = fmt.get('vcodec', 'none')
+            acodec = fmt.get('acodec', 'none')
+            
+            if vcodec == 'none' and acodec != 'none':
+                resolution = 'audio only'
+            elif vcodec != 'none' and acodec == 'none':
+                resolution = 'video only'
+            else:
+                resolution = fmt.get('resolution', 'unknown')
+            
+            fps = fmt.get('fps')
+            fps_str = str(int(fps)) if fps else ''
+            
+            filesize = fmt.get('filesize') or fmt.get('filesize_approx')
+            filesize_str = _format_filesize_list(filesize)
+            
+            tbr = fmt.get('tbr')
+            tbr_str = f"{int(tbr)}k" if tbr else ''
+            
+            proto = fmt.get('protocol', '')
+            
+            more_info_parts = []
+            language = fmt.get('language')
+            if language:
+                more_info_parts.append(f"[{language}]")
+            format_note = fmt.get('format_note', '')
+            if format_note:
+                more_info_parts.append(format_note)
+            more_info = ' '.join(more_info_parts)
+            
+            ch = ''
+            if fmt.get('audio_channels'):
+                ch = str(fmt['audio_channels'])
+            
+            line = f"{fid:<12} {ext:<6} {resolution:<14} {fps_str:>4} {ch:>2} │ {filesize_str:>12} {tbr_str:>7} {proto:<8} │ {vcodec:<16} {acodec:<14} {more_info}"
+            lines.append(line)
+        
+        lines.append("─" * 120)
+        lines.append(f"Total: {len(formats)} formats")
+        
+        logger.info(f"Got {len(formats)} formats via Python API for user {user_id}")
+        return True, '\n'.join(lines)
+        
     except Exception as e:
-        logger.error(f"Error running yt-dlp list: {e}")
+        logger.error(f"Error getting formats via Python API: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False, str(e)
 
 @app.on_message(filters.command("list") & filters.private)

@@ -598,7 +598,7 @@ def create_album_caption_with_dates(media_group, url, tags_text_norm, profile_na
             try:
                 from datetime import datetime
                 return datetime.strptime(date_str, "%d.%m.%Y")
-            except:
+            except Exception:
                 return datetime.min
         
         sorted_dates.sort(key=parse_date)
@@ -3127,7 +3127,7 @@ def image_command(app, message):
                                                     try:
                                                         _cover = ensure_paid_cover_embedded(p, generate_video_thumbnail(p))
                                                         paid_media_list.append(InputPaidMediaVideo(media=p, cover=_cover))
-                                                    except:
+                                                    except Exception:
                                                         paid_media_list.append(InputPaidMediaVideo(media=p))
                                             
                                             # Start upload logging to prevent watchdog false positives
@@ -4557,7 +4557,7 @@ def image_command(app, message):
                                         if os.path.exists(root) and not os.listdir(root):
                                             os.rmdir(root)
                                             logger.info(f"Removed empty directory after general error: {root}")
-                                    except:
+                                    except Exception:
                                         pass  # Directory not empty or other error
                                 else:
                                     logger.info(f"File already removed after general error: {file_path}")
