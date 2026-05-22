@@ -134,6 +134,7 @@ def send_videos(
     # If the path contains non-ASCII chars, rename to a safe temp name and
     # rename back in the finally block after sending.
     _original_video_path_for_rename = None  # set only if renamed
+    _original_filename_before_rename = os.path.basename(video_abs_path)  # preserve for file_name param
     try:
         video_abs_path.encode('ascii')
     except UnicodeEncodeError:
@@ -933,8 +934,8 @@ def send_videos(
                 finally:
                     # Stop upload logging after upload completes or fails
                     _stop_upload_logging(user_id, msg_id)
-            # Get original filename for document
-            original_filename = os.path.basename(video_abs_path)
+            # Get original filename for document (use pre-rename name to preserve Unicode)
+            original_filename = _original_filename_before_rename
             # Sanitize filename to avoid Pyrogram decode errors with special characters
             from HELPERS.filesystem_hlp import sanitize_filename
             original_filename = sanitize_filename(original_filename)
