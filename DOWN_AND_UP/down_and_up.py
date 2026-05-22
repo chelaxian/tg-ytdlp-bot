@@ -1748,7 +1748,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Try proxy fallback as last resort
                             try:
                                 info_dict = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_with_error_tracking)
-                            except:
+                            except Exception:
                                 pass
                             if info_dict is None:
                                 raise Exception("Failed to extract video information with all available proxies and impersonate versions")

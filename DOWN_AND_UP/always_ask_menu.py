@@ -534,7 +534,7 @@ def generate_download_dir_name(url):
                 domain = domain[4:]
             url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
             return f"{domain}_{url_hash}"
-        except:
+        except Exception:
             return "unknown"
 
 def set_filter(user_id, kind, value):
@@ -3767,7 +3767,7 @@ def fallback_gallery_dl_callback(app, callback_query):
         logger.error(f"Error in fallback_gallery_dl_callback: {e}")
         try:
             callback_query.answer("❌ Error switching to gallery-dl", show_alert=True)
-        except:
+        except Exception:
             pass
 
 ###########################
@@ -4011,7 +4011,7 @@ def show_manual_quality_menu(app, callback_query):
             title = info.get('title', 'Video')
             video_title = title
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info for title")
-    except:
+    except Exception:
         video_title = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TITLE_MSG
     
     # Form caption
@@ -4195,7 +4195,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
             title = info.get('title', 'Video')
             video_title = title
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info for title")
-    except:
+    except Exception:
         video_title = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TITLE_MSG
     
     # Form caption
@@ -4489,7 +4489,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
                 callback_query.edit_message_caption(caption=error_cap, parse_mode=enums.ParseMode.HTML)
             else:
                 callback_query.edit_message_text(text=error_cap, parse_mode=enums.ParseMode.HTML)
-        except:
+        except Exception:
             pass
 
 def show_formats_from_cache(app, callback_query, format_lines, page, url):
@@ -4511,7 +4511,7 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
             title = info.get('title', 'Video')
             video_title = title
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info for title")
-    except:
+    except Exception:
         video_title = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TITLE_MSG
     
     # Form caption

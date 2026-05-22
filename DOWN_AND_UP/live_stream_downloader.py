@@ -137,7 +137,7 @@ def download_live_stream_chunked(
                 # Parse YYYYMMDD format
                 date_obj = datetime.strptime(upload_date, '%Y%m%d')
                 date_str = date_obj.strftime('%Y-%m-%d')
-            except:
+            except Exception:
                 date_str = datetime.now().strftime('%Y-%m-%d')
         else:
             date_str = datetime.now().strftime('%Y-%m-%d')

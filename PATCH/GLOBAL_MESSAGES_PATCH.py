@@ -26,7 +26,7 @@ def apply_global_messages_patch():
             try:
                 from CONFIG.messages import safe_get_messages
                 return safe_get_messages(user_id)
-            except:
+            except Exception:
                 return safe_messages(user_id)
         
         # Добавляем в глобальное пространство имен

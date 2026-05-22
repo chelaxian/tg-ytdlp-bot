@@ -35,13 +35,17 @@ _TIMEDTEXT_LOCK = threading.Lock()
 _TIMEDTEXT_NEXT_TS = 0.0
 
 def _timedtext_throttle(min_interval: float = 8.0, jitter: float = 3.0) -> None:
-    """Throttle timedtext requests globally to reduce 429 risk."""
+    """Throttle timedtext requests globally to reduce 429 risk.
+    Sleeps *outside* the lock so other users are not blocked."""
     global _TIMEDTEXT_NEXT_TS
+    wait_secs = 0.0
     with _TIMEDTEXT_LOCK:
         now = time.time()
         if now < _TIMEDTEXT_NEXT_TS:
-            time.sleep(_TIMEDTEXT_NEXT_TS - now)
-        _TIMEDTEXT_NEXT_TS = time.time() + min_interval + random.uniform(0, jitter)
+            wait_secs = _TIMEDTEXT_NEXT_TS - now
+        _TIMEDTEXT_NEXT_TS = now + min_interval + random.uniform(0, jitter)
+    if wait_secs > 0:
+        time.sleep(wait_secs)
 
 # Per-session helpers to manage subtitle cache for a specific user+URL
 def clear_subs_cache_for(user_id: int, url: str) -> int:
