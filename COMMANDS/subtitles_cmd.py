@@ -768,7 +768,7 @@ def ensure_utf8_srt(srt_path):
                         successful_encoding = encoding
                         logger.info(f"{LoggerMsg.SUBS_BEST_ENCODING_FOUND_LOG_MSG}")
                         break
-                except:
+                except Exception:
                     continue
 
     # Record the result in UTF-8
@@ -1228,7 +1228,7 @@ def _convert_ttml_to_srt(path: str) -> str:
             if time_str.endswith('s') or time_str.endswith('S'):
                 try:
                     return int(float(time_str[:-1]) * 1000)
-                except:
+                except Exception:
                     return 0
             # Handle clock format (e.g., "00:00:01.500" or "00:00:01,500")
             time_str = time_str.replace(',', '.')
@@ -1241,7 +1241,7 @@ def _convert_ttml_to_srt(path: str) -> str:
                     s = int(s_parts[0])
                     ms = int(s_parts[1]) if len(s_parts) > 1 else 0
                     return h * 3600000 + m * 60000 + s * 1000 + ms
-                except:
+                except Exception:
                     return 0
             return 0
         
@@ -1822,7 +1822,7 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
                         info = get_video_formats(url, user_id)
                         title = info.get('title', 'Video')
                         logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info for subtitles caption")
-                except:
+                except Exception:
                     title = "Video"
                 
                 # Form caption
@@ -1854,7 +1854,7 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
                 # Delete status message
                 try:
                     app.delete_messages(user_id, status_msg.id)
-                except:
+                except Exception:
                     pass
             else:
                 app.edit_message_text(user_id, status_msg.id, safe_get_messages(user_id).SUBS_ERROR_PROCESSING_MSG)
@@ -1865,7 +1865,7 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
         logger.error(f"Error downloading subtitles: {e}")
         try:
             app.edit_message_text(user_id, status_msg.id, safe_get_messages(user_id).ERROR_SUBTITLES_NOT_FOUND_MSG.format(error=str(e)))
-        except:
+        except Exception:
             from HELPERS.safe_messeger import safe_send_message
             error_msg = safe_get_messages(user_id).SUBS_ERROR_MSG.format(error=str(e))
             safe_send_message(user_id, error_msg)
