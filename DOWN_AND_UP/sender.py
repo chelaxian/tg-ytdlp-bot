@@ -962,14 +962,13 @@ def send_videos(
                 logger.info(safe_get_messages(user_id).SENDER_USER_SEND_AS_FILE_ENABLED_MSG.format(user_id=user_id))
                 video_msg = _fallback_send_document(cap)
             else:
-                # Первая попытка с полным описанием, с ограничением на количество ретраев по таймауту
                 attempts_left = 3
+                flood_wait_retries = 3
                 while True:
                     try:
                         video_msg = _try_send_video(cap)
                         break
                     except PaidMediaSendError as e:
-                        # Paid NSFW must not downgrade to free fallback.
                         from HELPERS.logger import send_error_to_user
                         send_error_to_user(
                             message,
@@ -978,37 +977,33 @@ def send_videos(
                         raise
                     except Exception as e:
                         error_str = str(e)
-                        # Handle thumbnail file errors
                         if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
                             logger.warning(f"Thumbnail file error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
                         
-                        # Handle "Failed to decode" errors
                         if "Failed to decode" in error_str:
                             logger.warning(f"Failed to decode error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
 
-                        # Handle Telegram RPC errors (500 RPC_CALL_FAIL) with exponential backoff retry
                         if "RPC_CALL_FAIL" in error_str or "500" in error_str or "internal problems" in error_str.lower():
                             attempts_left -= 1
                             if attempts_left <= 0:
                                 logger.warning(f"Telegram RPC error persisted after retries, trying as document: {e}")
                                 video_msg = _fallback_send_document(cap)
                                 break
-                            backoff = 3 * (4 - attempts_left)  # 3s, 6s, 9s
+                            backoff = 3 * (4 - attempts_left)
                             logger.warning(f"Telegram RPC error (500), retrying in {backoff}s... ({attempts_left} left): {e}")
                             time.sleep(backoff)
                             continue
 
-                        # Handle FloodWait with automatic sleep
                         if isinstance(e, FloodWait):
                             wait_time = e.value
-                            if wait_time <= 120:
-                                # Short wait: sleep and retry automatically
+                            flood_wait_retries -= 1
+                            if wait_time <= 120 and flood_wait_retries > 0:
                                 wait_time_safe = wait_time + 1
-                                logger.warning(f"FloodWait received ({wait_time}s), waiting {wait_time_safe}s...")
+                                logger.warning(f"FloodWait received ({wait_time}s), waiting {wait_time_safe}s... ({flood_wait_retries} retries left)")
                                 try:
                                     safe_edit_message_text(user_id, msg_id,
                                         f"⏳ FloodWait {wait_time}s — auto-retrying...")
@@ -1017,13 +1012,12 @@ def send_videos(
                                 time.sleep(wait_time_safe)
                                 continue
                             else:
-                                # Long wait: notify user and save for next attempt
                                 hours = wait_time // 3600
                                 minutes = (wait_time % 3600) // 60
                                 seconds = wait_time % 60
                                 time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
-                                logger.warning(f"FloodWait too long ({wait_time}s / {time_str}), saving and notifying user")
-                                # Save flood wait time for next download attempt
+                                reason = "too long" if wait_time > 120 else "max retries exceeded"
+                                logger.warning(f"FloodWait {reason} ({wait_time}s / {time_str}), saving and notifying user")
                                 user_dir = os.path.join("users", str(user_id))
                                 try:
                                     os.makedirs(user_dir, exist_ok=True)
@@ -1061,8 +1055,8 @@ def send_videos(
                         # If send_as_file is enabled, always use document
                         video_msg = _fallback_send_document(minimal_cap)
                     else:
-                        # Попытка с коротким описанием и ограниченными ретраями по таймауту
                         attempts_left = 2
+                        flood_wait_retries = 2
                         while True:
                             try:
                                 video_msg = _try_send_video(minimal_cap)
@@ -1076,19 +1070,16 @@ def send_videos(
                                 raise
                             except Exception as e2:
                                 error_str2 = str(e2)
-                                # Handle thumbnail file errors
                                 if "No such file or directory" in error_str2 and ("__tgthumb" in error_str2 or "thumb" in error_str2.lower()):
                                     logger.warning(f"Thumbnail file error with minimal caption, retrying without thumbnail: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
                                 
-                                # Handle "Failed to decode" errors
                                 if "Failed to decode" in error_str2:
                                     logger.warning(f"Failed to decode error with minimal caption, trying as document: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
 
-                                # Handle Telegram RPC errors (500) with retry
                                 if "RPC_CALL_FAIL" in error_str2 or "500" in error_str2 or "internal problems" in error_str2.lower():
                                     attempts_left -= 1
                                     if attempts_left <= 0:
@@ -1100,12 +1091,17 @@ def send_videos(
                                     time.sleep(backoff)
                                     continue
 
-                                # Handle FloodWait
                                 if isinstance(e2, FloodWait):
-                                    wait_time = min(e2.value + 1, 30)
-                                    logger.warning(f"FloodWait received (minimal cap), waiting {wait_time}s...")
-                                    time.sleep(wait_time)
-                                    continue
+                                    flood_wait_retries -= 1
+                                    if flood_wait_retries > 0:
+                                        wait_time = min(e2.value + 1, 30)
+                                        logger.warning(f"FloodWait received (minimal cap), waiting {wait_time}s... ({flood_wait_retries} retries left)")
+                                        time.sleep(wait_time)
+                                        continue
+                                    else:
+                                        logger.warning(f"FloodWait max retries exceeded (minimal cap), falling back to document")
+                                        video_msg = _fallback_send_document(minimal_cap)
+                                        break
 
                                 if "Request timed out" in error_str2 or isinstance(e2, TimeoutError):
                                     attempts_left -= 1
