@@ -46,7 +46,6 @@ from DATABASE.cache_db import (
 )
 
 from DOWN_AND_UP.yt_dlp_hook import get_video_formats
-from HELPERS.pot_helper import build_cli_extractor_args
 from COMMANDS.format_cmd import set_session_mkv_override
 from DOWN_AND_UP.down_and_audio import down_and_audio
 from DOWN_AND_UP.down_and_up import down_and_up
@@ -534,7 +533,7 @@ def generate_download_dir_name(url):
                 domain = domain[4:]
             url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
             return f"{domain}_{url_hash}"
-        except:
+        except Exception:
             return "unknown"
 
 def set_filter(user_id, kind, value):
@@ -3767,7 +3766,7 @@ def fallback_gallery_dl_callback(app, callback_query):
         logger.error(f"Error in fallback_gallery_dl_callback: {e}")
         try:
             callback_query.answer("❌ Error switching to gallery-dl", show_alert=True)
-        except:
+        except Exception:
             pass
 
 ###########################
@@ -4011,7 +4010,7 @@ def show_manual_quality_menu(app, callback_query):
             title = info.get('title', 'Video')
             video_title = title
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info for title")
-    except:
+    except Exception:
         video_title = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TITLE_MSG
     
     # Form caption
@@ -4195,7 +4194,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
             title = info.get('title', 'Video')
             video_title = title
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info for title")
-    except:
+    except Exception:
         video_title = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TITLE_MSG
     
     # Form caption
@@ -4209,11 +4208,8 @@ def show_other_qualities_menu(app, callback_query, page=0):
     cap += f"\n<b>{safe_get_messages(user_id).ALWAYS_ASK_ALL_AVAILABLE_FORMATS_MSG}</b>\n"
     cap += f"\n<i>{safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1)}</i>\n"
     
-    # Get all formats using yt-dlp -F
+    # Get all formats via Python API
     try:
-        import subprocess
-        import sys
-        
         # Create cache file path
         user_dir = os.path.join("users", str(user_id))
         create_directory(user_dir)
@@ -4241,144 +4237,81 @@ def show_other_qualities_menu(app, callback_query, page=0):
                 logger.warning(f"Failed to read cache file {cache_file}: {e}")
         
         if not format_lines:
-            # Run yt-dlp -F to get all formats
-            logger.info(f"Running yt-dlp -F for URL: {url}")
-            
-            # Build command with cookies if available (use same yt-dlp as Python API)
-            cmd = [sys.executable, "-m", "yt_dlp"]
-            # Add PO token extractor-args for CLI if applicable (YouTube only)
-            cmd.extend(build_cli_extractor_args(url))
-            # -F list formats
-            cmd.append("-F")
-            
-            # Add cookies file if it exists
-            user_cookie_file = os.path.join("users", str(user_id), "cookie.txt")
-            if os.path.exists(user_cookie_file):
-                cmd.extend(["--cookies", user_cookie_file])
-                logger.info(f"Using cookies from: {user_cookie_file}")
-            else:
-                logger.info("No user cookie file found, using default")
-            
-            # Add proxy if needed for this domain
-            from HELPERS.proxy_helper import is_proxy_domain, get_proxy_config
-            if is_proxy_domain(url):
-                proxy_config = get_proxy_config()
-                if proxy_config and 'proxy' in proxy_config:
-                    proxy_url = proxy_config['proxy']
-                    cmd.extend(["--proxy", proxy_url])
-                    logger.info(f"Added proxy to yt-dlp command: {proxy_url}")
-            
-            cmd.append(url)
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
-            logger.info(f"yt-dlp -F completed with return code: {result.returncode}")
-            if result.returncode != 0:
-                logger.warning(f"yt-dlp -F failed with stderr: {result.stderr}")
-                # Fallback: try to get formats from cached info
+            # Use Python API (get_video_formats) - same engine as Always Ask Menu
+            logger.info(f"Getting formats via Python API for URL: {url}")
+            try:
                 info = get_video_formats(url, user_id, cookies_already_checked=True)
-                formats = info.get('formats', [])
-                format_lines = []
-                for f in formats:
-                    format_id = f.get('format_id', 'unknown')
-                    ext = f.get('ext', 'unknown')
-                    resolution = f.get('resolution', 'unknown')
-                    proto = f.get('protocol', 'https')
-                    vcodec = f.get('vcodec', 'none')
-                    
-                    # Validate format_id - should not contain brackets or special characters
-                    if format_id and not format_id.startswith('[') and not format_id.startswith('(') and format_id != 'unknown':
-                        # Skip non-media formats
+                if info and isinstance(info, dict) and 'error' not in info:
+                    formats = info.get('formats', [])
+                    for fmt in formats:
+                        fid = fmt.get('format_id', '')
+                        ext = fmt.get('ext', 'unknown')
+                        vcodec = fmt.get('vcodec', 'none')
+                        acodec = fmt.get('acodec', 'none')
+                        resolution = fmt.get('resolution', 'unknown')
+                        proto = fmt.get('protocol', 'https')
+                        fps = fmt.get('fps')
+                        fps_str = str(int(fps)) if fps else ''
+                        tbr = fmt.get('tbr')
+                        tbr_str = f"{int(tbr)}k" if tbr else ''
+                        filesize = fmt.get('filesize') or fmt.get('filesize_approx')
+                        vbr = fmt.get('vbr')
+                        abr = fmt.get('abr')
+                        more_info = fmt.get('format_note', '')
+                        language = fmt.get('language')
+                        
+                        if not fid or fid.startswith('[') or fid.startswith('('):
+                            continue
+                        
                         if ext.lower() in ['mhtml', 'html', 'txt', 'json', 'xml']:
                             continue
                         
-                        # Store format info for button creation
-                        format_lines.append(f"{format_id:<12} {ext:<8} {resolution:<12} {proto:<12} {vcodec}")
-                        logger.debug(f"Fallback format: {format_id} | {ext} | {resolution} | {proto} | {vcodec}")
-                    else:
-                        logger.warning(f"Skipping invalid fallback format_id: {format_id}")
-                
-                # If no formats found, create basic format list
-                if not format_lines:
-                    # Create basic format list based on common patterns
-                    basic_formats = [
-                        "best",
-                        "worst", 
-                        "bestvideo+bestaudio",
-                        "bv+ba"
-                    ]
-                    for fmt in basic_formats:
-                        format_lines.append(f"{fmt:<12} mp4 unknown https none")
-                
-                # Cache the fallback formats for future use
-                if format_lines:
-                    try:
-                        cache_data = {
-                            'url': url,
-                            'timestamp': datetime.now().isoformat(),
-                            'formats': format_lines
-                        }
-                        with open(cache_file, 'w', encoding='utf-8') as f:
-                            json.dump(cache_data, f, ensure_ascii=False, indent=2)
-                        logger.info(f"Cached {len(format_lines)} fallback formats to {cache_file}")
-                    except Exception as e:
-                        logger.warning(f"Failed to cache fallback formats: {e}")
-            else:
-                # Parse yt-dlp output
-                output_lines = result.stdout.strip().split('\n')
-                format_lines = []
-                logger.info(f"Parsing yt-dlp output: {len(output_lines)} lines")
-                
-                for line in output_lines:
-                    if line.strip() and not line.startswith('ID') and not line.startswith('─') and not line.startswith('format_id'):
-                        # Parse format line (ID, EXT, RESOLUTION, FPS, FILESIZE, TBR, PROTO, VCODEC, VBR, ACODEC, ABR, ASR, MORE INFO)
-                        parts = line.split()
-                        if len(parts) >= 7:  # Need at least ID, EXT, RESOLUTION, FPS, FILESIZE, TBR, PROTO
-                            format_id = parts[0]
-                            ext = parts[1] if len(parts) > 1 else 'unknown'
-                            resolution = parts[2] if len(parts) > 2 else '—'
-                            filesize = parts[4] if len(parts) > 4 else 'unknown'
-                            proto = parts[6] if len(parts) > 6 else 'unknown'
-                            vcodec = 'none'
-                            
-                            # Remove ≈ symbol from filesize
-                            if filesize.startswith('≈'):
-                                filesize = filesize[1:].strip()
-                            
-                            # Find VCODEC (usually around position 8-9)
-                            for j, part in enumerate(parts):
-                                if j and j > 7 and part and part != 'none' and not part.startswith('mp4a') and not part.startswith('—') and not part.startswith('audio') and not part.startswith('≈'):
-                                    # Check if this looks like a video codec
-                                    if any(codec in part.lower() for codec in ['avc', 'vp9', 'av1', 'h264', 'h265', 'hevc']):
-                                        vcodec = part
-                                        break
-                            
-                            # Skip non-media formats
-                            if ext.lower() in ['mhtml', 'html', 'txt', 'json', 'xml']:
-                                continue
-                            
-                            # Validate format_id - should not contain brackets or special characters
-                            if format_id and not format_id.startswith('[') and not format_id.startswith('('):
-                                # Store complete original line for full data preservation
-                                format_lines.append(line.strip())
-                                logger.debug(f"Stored complete format line: {line.strip()}")
-                            else:
-                                logger.warning(f"Skipping invalid format_id: {format_id}")
-                
-                logger.info(f"Parsed {len(format_lines)} formats from yt-dlp output")
-                
-                # Cache the formats for future use
-                if format_lines:
-                    try:
-                        cache_data = {
-                            'url': url,
-                            'timestamp': datetime.now().isoformat(),
-                            'formats': format_lines
-                        }
-                        with open(cache_file, 'w', encoding='utf-8') as f:
-                            json.dump(cache_data, f, ensure_ascii=False, indent=2)
-                        logger.info(f"Cached {len(format_lines)} formats to {cache_file}")
-                    except Exception as e:
-                        logger.warning(f"Failed to cache formats: {e}")
+                        parts = [fid, ext, resolution]
+                        if fps_str:
+                            parts.append(fps_str)
+                        if filesize:
+                            if filesize >= 1024 * 1024 * 1024:
+                                parts.append(f"{filesize / (1024*1024*1024):.2f}GiB")
+                            elif filesize >= 1024 * 1024:
+                                parts.append(f"{filesize / (1024*1024):.2f}MiB")
+                            elif filesize >= 1024:
+                                parts.append(f"{filesize / 1024:.2f}KiB")
+                        if tbr_str:
+                            parts.append(tbr_str)
+                        parts.append(proto)
+                        parts.append(vcodec)
+                        if vbr:
+                            parts.append(f"{int(vbr)}k")
+                        parts.append(acodec)
+                        if abr:
+                            parts.append(f"{int(abr)}k")
+                        if language:
+                            parts.append(f"[{language}]")
+                        if more_info:
+                            parts.append(more_info)
+                        
+                        format_lines.append(' '.join(str(p) for p in parts))
+                    
+                    logger.info(f"Got {len(format_lines)} formats via Python API")
+                else:
+                    error = info.get('error', 'Unknown') if isinstance(info, dict) else 'No info'
+                    logger.warning(f"Failed to get formats via Python API: {error}")
+            except Exception as e:
+                logger.error(f"Error getting formats via Python API: {e}")
+            
+            # Cache the formats for future use
+            if format_lines:
+                try:
+                    cache_data = {
+                        'url': url,
+                        'timestamp': datetime.now().isoformat(),
+                        'formats': format_lines
+                    }
+                    with open(cache_file, 'w', encoding='utf-8') as cf:
+                        json.dump(cache_data, cf, ensure_ascii=False, indent=2)
+                    logger.info(f"Cached {len(format_lines)} formats to {cache_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to cache formats: {e}")
         
         # Pagination: 10 formats per page (1 row × 10 columns)
         formats_per_page = 10
@@ -4489,7 +4422,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
                 callback_query.edit_message_caption(caption=error_cap, parse_mode=enums.ParseMode.HTML)
             else:
                 callback_query.edit_message_text(text=error_cap, parse_mode=enums.ParseMode.HTML)
-        except:
+        except Exception:
             pass
 
 def show_formats_from_cache(app, callback_query, format_lines, page, url):
@@ -4511,7 +4444,7 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
             title = info.get('title', 'Video')
             video_title = title
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info for title")
-    except:
+    except Exception:
         video_title = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TITLE_MSG
     
     # Form caption
@@ -5323,8 +5256,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 save_ask_info(user_id, url, info)
             except Exception:
                 pass
-        title = info.get('title', 'Video')
-        video_id = info.get('id')
+        title = (info.get('title', 'Video') if isinstance(info, dict) else 'Video')
+        video_id = (info.get('id') if isinstance(info, dict) else None)
         tags_text = generate_final_tags(url, tags, info)
         # Determine NSFW to hide preview under spoiler in Always Ask Menu too
         try:
@@ -5344,7 +5277,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             create_directory(thumb_dir)
         
         # Для плейлистов скачиваем обложки для всех видео
-        playlist_entries = info.get('_playlist_entries')
+        playlist_entries = (info.get('_playlist_entries') if isinstance(info, dict) else None)
         if is_playlist and playlist_entries and isinstance(playlist_entries, list):
             logger.info(f"🔍 [DEBUG] Плейлист обнаружен, скачиваем обложки для {len(playlist_entries)} видео")
             for entry in playlist_entries:
@@ -5426,7 +5359,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                             thumb_path = thumb_path
                         else:
                             # Fallback: попробуем скачать обложку из метаданных yt-dlp
-                            thumbnail_url = info.get('thumbnail')
+                            thumbnail_url = (info.get('thumbnail') if isinstance(info, dict) else None)
                             if thumbnail_url:
                                 try:
                                     # Валидация URL для предотвращения SSRF
@@ -5463,7 +5396,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # Build list of available audio languages from formats
         available_dubs = []
         lang_seen = set()
-        for f in info.get('formats', []):
+        for f in (info.get('formats', []) if isinstance(info, dict) else []):
             if (f.get('vcodec') == 'none' and f.get('acodec') and f.get('language')):
                 lang = f.get('language')
                 if lang and lang not in lang_seen:
@@ -5516,7 +5449,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         
         if is_youtube_domain_check:
             quality_map = {}
-            for f in info.get('formats', []):
+            for f in (info.get('formats', []) if isinstance(info, dict) else []):
                 if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
                     vcodec = f.get('vcodec') or ''
                     ext = f.get('ext') or ''
@@ -5593,7 +5526,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         # Для MP4 проверяем лимиты
                         if (auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal"):
                             temp_info = {
-                                'duration': info.get('duration'),
+                                'duration': (info.get('duration') if isinstance(info, dict) else None),
                                 'filesize': filesize,
                                 'filesize_approx': filesize
                             }
@@ -5749,7 +5682,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # --- Helpers for size estimation when FILESIZE is missing ---
             def best_audio_kbps() -> int:
                 kbps = 0
-                for af in info.get('formats', []):
+                for af in (info.get('formats', []) if isinstance(info, dict) else []):
                     if af.get('vcodec') == 'none':
                         # Prefer tbr, else abr
                         val = None
@@ -5795,7 +5728,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             def sibling_video_kbps_for_quality(qk: str) -> int:
                 # Try to find any sibling format with same quality and known tbr/vbr
                 best = 0
-                for sf in info.get('formats', []):
+                for sf in (info.get('formats', []) if isinstance(info, dict) else []):
                     if infer_quality_key(sf) != qk:
                         continue
                     val = 0.0
@@ -5832,7 +5765,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     except Exception:
                         pass
                 
-                duration = info.get('duration')
+                duration = (info.get('duration') if isinstance(info, dict) else None)
                 if not duration:
                     return 0
                 # 3) Use tbr/vbr/abr when available
@@ -5867,7 +5800,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 except Exception:
                     return 0
 
-            for f in info.get('formats', []):
+            for f in (info.get('formats', []) if isinstance(info, dict) else []):
                 # Skip audio-only
                 if f.get('vcodec') == 'none' and (f.get('audio_ext') or '') != 'none':
                     continue
@@ -5972,7 +5905,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # Universal fallback when no qualities were found for any service
             if not quality_map:
                 # Try to create default qualities based on available formats
-                video_formats = [f for f in info.get('formats', []) if f.get('vcodec') != 'none']
+                video_formats = [f for f in (info.get('formats', []) if isinstance(info, dict) else []) if f.get('vcodec') != 'none']
                 if video_formats:
                     # Group formats by resolution and create quality keys
                     resolution_groups = {}
@@ -7790,7 +7723,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
             info = get_video_formats(url, user_id, cookies_already_checked=True)
             logger.info(f"⚠️ [OPTIMIZATION] Had to fetch video info again - consider improving caching")
         
-        if quality_key and info and 'formats' in info:
+        if quality_key and isinstance(info, dict) and 'formats' in info:
             # Find the selected format
             selected_format = None
             for f in info['formats']:
@@ -7869,7 +7802,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
         
         # Build quality map from available formats (only if info is available)
         quality_map = {}
-        if info and 'formats' in info:
+        if isinstance(info, dict) and 'formats' in info:
             for f in info.get('formats', []):
                 if f.get('vcodec', 'none') != 'none' and f.get('height') and f.get('width'):
                     w = f['width']

@@ -266,7 +266,7 @@ class LanguageRouter:
                                     else:
                                         # For other complex expressions, try to convert to string
                                         messages_dict[target.id] = str(ast.unparse(node.value))
-                                except:
+                                except Exception:
                                     pass
             
             # If AST method didn't work well, fall back to import method
@@ -403,14 +403,14 @@ class LanguageRouter:
                 else:
                     result += str(ast.unparse(value))
             return result
-        except:
+        except Exception:
             return str(ast.unparse(node))
     
     def _evaluate_binop(self, node: ast.BinOp) -> str:
         """Evaluate binary operation nodes"""
         try:
             return str(ast.unparse(node))
-        except:
+        except Exception:
             return ""
     
     def _evaluate_list(self, node: ast.List) -> list:
@@ -425,7 +425,7 @@ class LanguageRouter:
                 else:
                     result.append(str(ast.unparse(elt)))
             return result
-        except:
+        except Exception:
             return []
     
     def _evaluate_tuple(self, node: ast.Tuple) -> tuple:
@@ -440,7 +440,7 @@ class LanguageRouter:
                 else:
                     result.append(str(ast.unparse(elt)))
             return tuple(result)
-        except:
+        except Exception:
             return ()
     
     def clear_cache(self):

@@ -1,6 +1,6 @@
 # @reply_with_keyboard
 from pyrogram import enums
-from pyrogram.errors import FloodWait
+from pyrogram.errors import FloodWait, UserIsBlocked
 from pyrogram.types import ReplyParameters, InputPaidMediaVideo
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
@@ -26,6 +26,8 @@ app = get_app()
 # Dictionary to track active uploads for logging
 _active_uploads = {}
 _active_uploads_lock = threading.Lock()
+
+_user_blocked_flag = set()
 
 def _start_upload_logging(user_id, msg_id):
     """Start logging upload activity to prevent watchdog false positives"""
@@ -53,6 +55,15 @@ def _stop_upload_logging(user_id, msg_id):
             stop_event = _active_uploads[key]
             stop_event.set()
             del _active_uploads[key]
+
+def mark_user_blocked(user_id):
+    _user_blocked_flag.add(user_id)
+
+def is_user_blocked_flagged(user_id):
+    return user_id in _user_blocked_flag
+
+def clear_user_blocked_flag(user_id):
+    _user_blocked_flag.discard(user_id)
 
 # Import function to get user args
 def get_user_args(user_id: int):
@@ -924,6 +935,9 @@ def send_videos(
                     _stop_upload_logging(user_id, msg_id)
             # Get original filename for document
             original_filename = os.path.basename(video_abs_path)
+            # Sanitize filename to avoid Pyrogram decode errors with special characters
+            from HELPERS.filesystem_hlp import sanitize_filename_strict
+            original_filename = sanitize_filename_strict(original_filename, max_length=100)
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
@@ -959,14 +973,13 @@ def send_videos(
                 logger.info(safe_get_messages(user_id).SENDER_USER_SEND_AS_FILE_ENABLED_MSG.format(user_id=user_id))
                 video_msg = _fallback_send_document(cap)
             else:
-                # Первая попытка с полным описанием, с ограничением на количество ретраев по таймауту
                 attempts_left = 3
+                flood_wait_retries = 3
                 while True:
                     try:
                         video_msg = _try_send_video(cap)
                         break
                     except PaidMediaSendError as e:
-                        # Paid NSFW must not downgrade to free fallback.
                         from HELPERS.logger import send_error_to_user
                         send_error_to_user(
                             message,
@@ -975,37 +988,43 @@ def send_videos(
                         raise
                     except Exception as e:
                         error_str = str(e)
-                        # Handle thumbnail file errors
+                        if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in error_str:
+                            logger.warning(f"User {user_id} has blocked the bot, aborting send")
+                            mark_user_blocked(user_id)
+                            return None
+
                         if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
                             logger.warning(f"Thumbnail file error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
                         
-                        # Handle "Failed to decode" errors
                         if "Failed to decode" in error_str:
+                            if not os.path.exists(video_abs_path):
+                                logger.error(f"Failed to decode: file no longer exists on disk: {video_abs_path}")
+                                from HELPERS.logger import send_error_to_user
+                                send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
+                                return None
                             logger.warning(f"Failed to decode error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
 
-                        # Handle Telegram RPC errors (500 RPC_CALL_FAIL) with exponential backoff retry
                         if "RPC_CALL_FAIL" in error_str or "500" in error_str or "internal problems" in error_str.lower():
                             attempts_left -= 1
                             if attempts_left <= 0:
                                 logger.warning(f"Telegram RPC error persisted after retries, trying as document: {e}")
                                 video_msg = _fallback_send_document(cap)
                                 break
-                            backoff = 3 * (4 - attempts_left)  # 3s, 6s, 9s
+                            backoff = 3 * (4 - attempts_left)
                             logger.warning(f"Telegram RPC error (500), retrying in {backoff}s... ({attempts_left} left): {e}")
                             time.sleep(backoff)
                             continue
 
-                        # Handle FloodWait with automatic sleep
                         if isinstance(e, FloodWait):
                             wait_time = e.value
-                            if wait_time <= 120:
-                                # Short wait: sleep and retry automatically
+                            flood_wait_retries -= 1
+                            if wait_time <= 120 and flood_wait_retries > 0:
                                 wait_time_safe = wait_time + 1
-                                logger.warning(f"FloodWait received ({wait_time}s), waiting {wait_time_safe}s...")
+                                logger.warning(f"FloodWait received ({wait_time}s), waiting {wait_time_safe}s... ({flood_wait_retries} retries left)")
                                 try:
                                     safe_edit_message_text(user_id, msg_id,
                                         f"⏳ FloodWait {wait_time}s — auto-retrying...")
@@ -1014,13 +1033,12 @@ def send_videos(
                                 time.sleep(wait_time_safe)
                                 continue
                             else:
-                                # Long wait: notify user and save for next attempt
                                 hours = wait_time // 3600
                                 minutes = (wait_time % 3600) // 60
                                 seconds = wait_time % 60
                                 time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
-                                logger.warning(f"FloodWait too long ({wait_time}s / {time_str}), saving and notifying user")
-                                # Save flood wait time for next download attempt
+                                reason = "too long" if wait_time > 120 else "max retries exceeded"
+                                logger.warning(f"FloodWait {reason} ({wait_time}s / {time_str}), saving and notifying user")
                                 user_dir = os.path.join("users", str(user_id))
                                 try:
                                     os.makedirs(user_dir, exist_ok=True)
@@ -1045,6 +1063,10 @@ def send_videos(
                             continue
                         raise
         except Exception as e:
+            if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in str(e):
+                logger.warning(f"User {user_id} has blocked the bot, aborting send (outer handler)")
+                mark_user_blocked(user_id)
+                return None
             if "MEDIA_CAPTION_TOO_LONG" in str(e):
                 logger.info(safe_get_messages(user_id).SENDER_CAPTION_TOO_LONG_MSG)
                 # If the caption is too long, try sending only with the main information
@@ -1058,8 +1080,8 @@ def send_videos(
                         # If send_as_file is enabled, always use document
                         video_msg = _fallback_send_document(minimal_cap)
                     else:
-                        # Попытка с коротким описанием и ограниченными ретраями по таймауту
                         attempts_left = 2
+                        flood_wait_retries = 2
                         while True:
                             try:
                                 video_msg = _try_send_video(minimal_cap)
@@ -1073,19 +1095,26 @@ def send_videos(
                                 raise
                             except Exception as e2:
                                 error_str2 = str(e2)
-                                # Handle thumbnail file errors
+                                if isinstance(e2, UserIsBlocked) or "USER_IS_BLOCKED" in error_str2:
+                                    logger.warning(f"User {user_id} has blocked the bot, aborting send (minimal cap)")
+                                    mark_user_blocked(user_id)
+                                    return None
+
                                 if "No such file or directory" in error_str2 and ("__tgthumb" in error_str2 or "thumb" in error_str2.lower()):
                                     logger.warning(f"Thumbnail file error with minimal caption, retrying without thumbnail: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
                                 
-                                # Handle "Failed to decode" errors
                                 if "Failed to decode" in error_str2:
+                                    if not os.path.exists(video_abs_path):
+                                        logger.error(f"Failed to decode (minimal cap): file no longer exists on disk: {video_abs_path}")
+                                        from HELPERS.logger import send_error_to_user
+                                        send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
+                                        return None
                                     logger.warning(f"Failed to decode error with minimal caption, trying as document: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
 
-                                # Handle Telegram RPC errors (500) with retry
                                 if "RPC_CALL_FAIL" in error_str2 or "500" in error_str2 or "internal problems" in error_str2.lower():
                                     attempts_left -= 1
                                     if attempts_left <= 0:
@@ -1097,12 +1126,17 @@ def send_videos(
                                     time.sleep(backoff)
                                     continue
 
-                                # Handle FloodWait
                                 if isinstance(e2, FloodWait):
-                                    wait_time = min(e2.value + 1, 30)
-                                    logger.warning(f"FloodWait received (minimal cap), waiting {wait_time}s...")
-                                    time.sleep(wait_time)
-                                    continue
+                                    flood_wait_retries -= 1
+                                    if flood_wait_retries > 0:
+                                        wait_time = min(e2.value + 1, 30)
+                                        logger.warning(f"FloodWait received (minimal cap), waiting {wait_time}s... ({flood_wait_retries} retries left)")
+                                        time.sleep(wait_time)
+                                        continue
+                                    else:
+                                        logger.warning(f"FloodWait max retries exceeded (minimal cap), falling back to document")
+                                        video_msg = _fallback_send_document(minimal_cap)
+                                        break
 
                                 if "Request timed out" in error_str2 or isinstance(e2, TimeoutError):
                                     attempts_left -= 1
@@ -1130,12 +1164,19 @@ def send_videos(
                         raise
                     except Exception as e3:
                         error_str3 = str(e3)
+                        if isinstance(e3, UserIsBlocked) or "USER_IS_BLOCKED" in error_str3:
+                            logger.warning(f"User {user_id} has blocked the bot, aborting send (empty cap)")
+                            mark_user_blocked(user_id)
+                            return None
                         # Handle thumbnail file errors
                         if "No such file or directory" in error_str3 and ("__tgthumb" in error_str3 or "thumb" in error_str3.lower()):
                             logger.warning(f"Thumbnail file error, trying as document: {e3}")
                             video_msg = _fallback_send_document("")
                         # Handle "Failed to decode" errors
                         elif "Failed to decode" in error_str3:
+                            if not os.path.exists(video_abs_path):
+                                logger.error(f"Failed to decode (empty cap): file no longer exists on disk: {video_abs_path}")
+                                return None
                             logger.warning(f"Failed to decode error, trying as document: {e3}")
                             video_msg = _fallback_send_document("")
                         elif "Request timed out" in error_str3 or isinstance(e3, TimeoutError):
@@ -1144,6 +1185,10 @@ def send_videos(
                             raise
             else:
                 error_str = str(e)
+                if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in error_str:
+                    logger.warning(f"User {user_id} has blocked the bot, aborting send (else branch)")
+                    mark_user_blocked(user_id)
+                    return None
                 # Handle thumbnail file errors
                 if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
                     logger.warning(f"Thumbnail file error in main handler, trying as document: {e}")
@@ -1156,6 +1201,9 @@ def send_videos(
                         raise fallback_error
                 # Handle "Failed to decode" errors
                 elif "Failed to decode" in error_str:
+                    if not os.path.exists(video_abs_path):
+                        logger.error(f"Failed to decode (else branch): file no longer exists on disk: {video_abs_path}")
+                        return None
                     logger.warning(f"Failed to decode error in main handler, trying as document: {e}")
                     try:
                         video_msg = _fallback_send_document(cap if 'cap' in locals() else "")

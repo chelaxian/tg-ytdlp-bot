@@ -278,7 +278,7 @@ def move_backups_to_backup_dir():
             "| sed -z 's#^\\./##' "
             "| rsync -a --relative --from0 --files-from=- --remove-source-files ./ _backup/"
         )
-        subprocess.run(["bash", "-lc", cmd], check=True)
+        subprocess.run(["bash", "-lc", cmd], check=True, timeout=600)
         messages = safe_get_messages()
         log(messages.UPDATE_BACKUPS_MOVED_MSG)
     except Exception as e:
