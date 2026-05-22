@@ -24,6 +24,7 @@ from URL_PARSERS.nocookie import is_no_cookie_domain
 from URL_PARSERS.filter_check import is_no_filter_domain
 from URL_PARSERS.filter_utils import create_smart_match_filter, create_legacy_match_filter
 from URL_PARSERS.youtube import is_youtube_url, download_thumbnail
+from URL_PARSERS.tiktok import is_tiktok_url
 from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
@@ -1007,7 +1008,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             messages = safe_get_messages(message.chat.id)
             nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata, unknown_error_message_sent, download_sections
             # Use format_override if provided, otherwise use default 'ba'
-            download_format = format_override if format_override else 'ba'
+            # TikTok does not provide separate audio streams, use 'best' to download
+            # combined video+audio and let FFmpegExtractAudio extract the audio track
+            is_tiktok = is_tiktok_url(url)
+            if is_tiktok and (not format_override or format_override == 'ba'):
+                download_format = 'best'
+                logger.info(f"TikTok detected: using 'best' format instead of 'ba' for audio extraction")
+            else:
+                download_format = format_override if format_override else 'ba'
             
             # Get user's audio format preference from args_cmd
             from COMMANDS.args_cmd import get_user_ytdlp_args
@@ -2140,6 +2148,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     try:
                         # Get the same options as in try_download_audio but with safe filename
                         download_format = format_override if format_override else 'ba'
+                        if is_tiktok_url(url) and (not format_override or format_override == 'ba'):
+                            download_format = 'best'
+                            logger.info(f"TikTok retry: using 'best' format instead of 'ba' for audio extraction")
                         from COMMANDS.args_cmd import get_user_ytdlp_args
                         user_args = get_user_ytdlp_args(user_id, url)
                         audio_format = user_args.get('audio_format', 'mp3')
