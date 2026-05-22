@@ -1067,8 +1067,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                # Для обратного порядка используем формат START:STOP:-1, иначе просто номер
                'playlist_items': playlist_items_value,
                # outtmpl will be set later with sanitized title
-               # Restrict filenames to ASCII-safe characters to prevent errors
-               'restrictfilenames': True,
+                # Disabled restrictfilenames to preserve Unicode filenames (Arabic, Persian, CJK, etc.)
+                'restrictfilenames': False,
                'progress_hooks': [progress_hook],
                'extractor_args': {
                   'generic': {
@@ -1124,11 +1124,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Define sanitize_title_for_filename function
             def sanitize_title_for_filename(title):
                 messages = safe_get_messages(message.chat.id)
-                """Sanitize title for filename using strict sanitization"""
+                """Sanitize title for filename preserving Unicode (Arabic, Persian, CJK, etc.)"""
                 if not title:
                     return "audio"
-                from HELPERS.filesystem_hlp import sanitize_filename_strict
-                return sanitize_filename_strict(title)
+                from HELPERS.filesystem_hlp import sanitize_filename
+                return sanitize_filename(title)
             
             # Title sanitization is now handled manually before second extract_info call
             
@@ -2180,7 +2180,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                            # Для обратного порядка используем формат START:STOP:-1, иначе просто номер
                           'playlist_items': f"{playlist_item_index}:{playlist_item_index}:-1" if is_reverse_order and is_playlist else str(playlist_item_index),
                            'outtmpl': safe_outtmpl,  # Use safe filename
-                           'restrictfilenames': True,
+                            'restrictfilenames': False,
                            'progress_hooks': [progress_hook],
                            'extractor_args': {
                               'generic': {'impersonate': ['chrome']}
