@@ -1293,10 +1293,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'postprocessors': postprocessors,
                 # Only use ignoreerrors if user explicitly enabled it via /args
                 'ignoreerrors': ignore_errors,
-                # Restrict filenames to ASCII-safe characters to prevent postprocessing errors
-                # with special Unicode chars (Turkish, Arabic, etc.) from archive.org CDN.
-                # Captions still use the original title — this only affects file paths.
-                'restrictfilenames': True,
+                # Disabled restrictfilenames to preserve Unicode filenames (Arabic, Persian, CJK, etc.)
+                # Our sanitize_filename() handles sanitization preserving non-Latin scripts.
+                'restrictfilenames': False,
                 # YouTube extraction increasingly requires an explicit JS runtime.
                 # We ship Node.js in Docker and allow it here to avoid missing formats.
                 'js_runtimes': {'node': {}},
@@ -1359,11 +1358,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Define sanitize_title_for_filename function
             def sanitize_title_for_filename(title):
                 messages = safe_get_messages(message.chat.id)
-                """Sanitize title for filename using strict sanitization"""
+                """Sanitize title for filename preserving Unicode (Arabic, Persian, CJK, etc.)"""
                 if not title:
                     return "video"
-                from HELPERS.filesystem_hlp import sanitize_filename_strict
-                return sanitize_filename_strict(title)
+                from HELPERS.filesystem_hlp import sanitize_filename
+                return sanitize_filename(title)
             
             # Add match_filter only if domain is not in NO_FILTER_DOMAINS
             # Add match_filter for domain filtering and title sanitization
@@ -2887,7 +2886,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # Determine rename_name based on the incoming playlist_name:
             if playlist_name and playlist_name.strip():
                 # A new name for the playlist is explicitly set - let's use it
-                rename_name = sanitize_filename_strict(f"{playlist_name.strip()} - Part {idx + 1}")
+                rename_name = sanitize_filename(f"{playlist_name.strip()} - Part {idx + 1}")
             else:
                 # No new name set - extract name from metadata
                 rename_name = None
@@ -3399,7 +3398,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     cleaned_title = cleaned_title.replace(indicator, "")
                 
                 # Use cleaned title for filename
-                final_name = sanitize_filename_strict(cleaned_title + os.path.splitext(downloaded_file)[1])
+                final_name = sanitize_filename(cleaned_title + os.path.splitext(downloaded_file)[1])
                 if final_name != downloaded_file:
                     old_path = downloaded_abs_path or os.path.join(dir_path, downloaded_file)
                     new_path = os.path.join(dir_path, final_name)
@@ -3570,7 +3569,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 except Exception as e:
                     logger.error(f"Error updating status before conversion: {e}")
 
-                mp4_basename = sanitize_filename_strict(os.path.splitext(final_name)[0]) + ".mp4"
+                mp4_basename = sanitize_filename(os.path.splitext(final_name)[0]) + ".mp4"
                 mp4_file = os.path.join(dir_path, mp4_basename)
 
                 # Get FFmpeg path using the common function
@@ -3797,7 +3796,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 _vid_size_mb = os.path.getsize(user_vid_path) / (1024 * 1024) if os.path.exists(user_vid_path) else 0
                 _needs_ffmpeg_thumb = (duration >= 60) or (_vid_size_mb >= 10)
                 if _needs_ffmpeg_thumb:
-                    result = get_duration_thumb(message, dir_path, user_vid_path, sanitize_filename_strict(caption_name))
+                    result = get_duration_thumb(message, dir_path, user_vid_path, sanitize_filename(caption_name))
                     if result is None:
                         logger.warning("Failed to create ffmpeg thumbnail fallback")
                         thumb_dir = None
@@ -3828,7 +3827,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             if int(video_size_in_bytes) > max_size:
                 safe_edit_message_text(user_id, proc_msg_id,
                     f"{info_text}\n{full_bar}   100.0%\n<i>⚠️ Your video size ({video_size}) is too large.</i>\n<i>Splitting file...</i> ✂️")
-                returned = split_video_2(dir_path, sanitize_filename_strict(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, int(duration), user_id)
+                returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, int(duration), user_id)
                 caption_lst = returned.get("video")
                 path_lst = returned.get("path")
                 # Accumulate all IDs of split video parts
@@ -3852,7 +3851,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Error checking split part file size: {size_error}")
                         continue
                     
-                    part_result = get_duration_thumb(message, dir_path, part_path, sanitize_filename_strict(caption_name))
+                    part_result = get_duration_thumb(message, dir_path, part_path, sanitize_filename(caption_name))
                     if part_result is None:
                         continue
                     part_duration, splited_thumb_dir = part_result
