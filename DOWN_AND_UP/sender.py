@@ -936,8 +936,8 @@ def send_videos(
             # Get original filename for document
             original_filename = os.path.basename(video_abs_path)
             # Sanitize filename to avoid Pyrogram decode errors with special characters
-            from HELPERS.filesystem_hlp import sanitize_filename_strict
-            original_filename = sanitize_filename_strict(original_filename, max_length=100)
+            from HELPERS.filesystem_hlp import sanitize_filename
+            original_filename = sanitize_filename(original_filename)
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
