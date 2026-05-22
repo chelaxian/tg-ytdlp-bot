@@ -24,7 +24,6 @@ from URL_PARSERS.nocookie import is_no_cookie_domain
 from URL_PARSERS.filter_check import is_no_filter_domain
 from URL_PARSERS.filter_utils import create_smart_match_filter, create_legacy_match_filter
 from URL_PARSERS.youtube import is_youtube_url, download_thumbnail
-from URL_PARSERS.tiktok import is_tiktok_url
 from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
@@ -277,6 +276,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     did_proxy_retry = False
     did_cookie_retry = False
     did_live_from_start_retry = False
+    did_format_fallback = False
+    _audio_format_fallback = None  # Set by format fallback when 'ba' is unavailable
     is_hls = False
     unknown_error_message_sent = False  # Флаг для предотвращения спама сообщений об ошибках
     down_and_audio._error_message_sent = False  # Флаг для предотвращения спама yt-dlp ошибок
@@ -1006,16 +1007,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
         def try_download_audio(url, current_index):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata, unknown_error_message_sent, download_sections
-            # Use format_override if provided, otherwise use default 'ba'
-            # TikTok does not provide separate audio streams, use 'best' to download
-            # combined video+audio and let FFmpegExtractAudio extract the audio track
-            is_tiktok = is_tiktok_url(url)
-            if is_tiktok and (not format_override or format_override == 'ba'):
-                download_format = 'best'
-                logger.info(f"TikTok detected: using 'best' format instead of 'ba' for audio extraction")
-            else:
-                download_format = format_override if format_override else 'ba'
+            nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, did_format_fallback, _audio_format_fallback, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata, unknown_error_message_sent, download_sections
+            download_format = _audio_format_fallback or format_override or 'ba'
             
             # Get user's audio format preference from args_cmd
             from COMMANDS.args_cmd import get_user_ytdlp_args
@@ -1499,6 +1492,22 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 error_text = str(e)
                 logger.error(f"DownloadError: {error_text}")
+                
+                # Fallback: if 'ba' (best audio) format is not available, retry with
+                # worstvideo+bestaudio/worst — downloads smallest video + best audio,
+                # or worst combined format. Covers TikTok, Instagram Reels, and any
+                # other service that only serves combined video+audio streams.
+                if ("Requested format is not available" in error_text or
+                    "requested format is not available" in error_text) and not did_format_fallback:
+                    did_format_fallback = True
+                    _audio_format_fallback = 'worstvideo+bestaudio/worst'
+                    logger.info(f"Format 'ba' not available for {url}, retrying with '{_audio_format_fallback}'")
+                    retry_result = try_download_audio(url, current_index)
+                    _audio_format_fallback = None
+                    if retry_result is not None and retry_result != "POSTPROCESSING_ERROR":
+                        logger.info(f"Audio format fallback successful for user {user_id}")
+                        return retry_result
+                    logger.warning(f"Audio format fallback failed for user {user_id}")
                 
                 # Check for live stream detection (only if detection is enabled)
                 if "LIVE_STREAM_DETECTED" in error_text:
@@ -2147,10 +2156,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     # We'll create a new ytdl_opts with safe filename and retry
                     try:
                         # Get the same options as in try_download_audio but with safe filename
-                        download_format = format_override if format_override else 'ba'
-                        if is_tiktok_url(url) and (not format_override or format_override == 'ba'):
-                            download_format = 'best'
-                            logger.info(f"TikTok retry: using 'best' format instead of 'ba' for audio extraction")
+                        download_format = _audio_format_fallback or format_override or 'ba'
                         from COMMANDS.args_cmd import get_user_ytdlp_args
                         user_args = get_user_ytdlp_args(user_id, url)
                         audio_format = user_args.get('audio_format', 'mp3')
