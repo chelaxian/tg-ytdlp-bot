@@ -21,7 +21,7 @@ from HELPERS.download_status import set_active_download, clear_download_start_ti
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, cleanup_user_temp_files, cleanup_subtitle_files, create_directory, check_disk_space
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, embed_subs_to_video, create_default_thumbnail, split_video_2
-from DOWN_AND_UP.sender import send_videos
+from DOWN_AND_UP.sender import send_videos, is_user_blocked_flagged, clear_user_blocked_flag
 from DATABASE.firebase_init import write_logs
 from URL_PARSERS.tags import generate_final_tags, save_user_tags
 from services.stats_events import update_download_progress
@@ -2874,6 +2874,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         range_entries_metadata = None
         current_playlist_items_override = None
         logger.info(f"🔍 [DEBUG] Starting playlist download: indices_to_download={indices_to_download}, len={len(indices_to_download) if indices_to_download else 0}, use_range_download={use_range_download}, has_negative_indices_for_download={has_negative_indices_for_download}")
+        clear_user_blocked_flag(user_id)
         for idx, current_index in enumerate(indices_to_download):
             logger.info(f"🔍 [DEBUG] Processing video {idx + 1}/{len(indices_to_download)}: current_index={current_index}")
             messages = safe_get_messages(message.chat.id)
@@ -3858,6 +3859,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # --- TikTok: Don't Pass Title ---
                     video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
                     if not video_msg:
+                        if is_user_blocked_flagged(user_id):
+                            logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
+                            break
                         logger.error("send_videos returned None for split part; skipping cache save for this part")
                         continue
                     #found_type = None
@@ -4508,6 +4512,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
                         if not video_msg:
+                            if is_user_blocked_flagged(user_id):
+                                logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")
+                                break
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
                         
@@ -4972,6 +4979,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"Error sending video: {e}")
                         import traceback as tb_module
                         logger.error(tb_module.format_exc())
+                        if "USER_IS_BLOCKED" in str(e):
+                            logger.warning(f"User {user_id} has blocked the bot, stopping playlist processing")
+                            break
                         send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)))
                         continue
         if successful_uploads == len(indices_to_download):

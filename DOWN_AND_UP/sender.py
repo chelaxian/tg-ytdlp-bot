@@ -1,6 +1,6 @@
 # @reply_with_keyboard
 from pyrogram import enums
-from pyrogram.errors import FloodWait
+from pyrogram.errors import FloodWait, UserIsBlocked
 from pyrogram.types import ReplyParameters, InputPaidMediaVideo
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
@@ -26,6 +26,8 @@ app = get_app()
 # Dictionary to track active uploads for logging
 _active_uploads = {}
 _active_uploads_lock = threading.Lock()
+
+_user_blocked_flag = set()
 
 def _start_upload_logging(user_id, msg_id):
     """Start logging upload activity to prevent watchdog false positives"""
@@ -53,6 +55,15 @@ def _stop_upload_logging(user_id, msg_id):
             stop_event = _active_uploads[key]
             stop_event.set()
             del _active_uploads[key]
+
+def mark_user_blocked(user_id):
+    _user_blocked_flag.add(user_id)
+
+def is_user_blocked_flagged(user_id):
+    return user_id in _user_blocked_flag
+
+def clear_user_blocked_flag(user_id):
+    _user_blocked_flag.discard(user_id)
 
 # Import function to get user args
 def get_user_args(user_id: int):
@@ -977,12 +988,22 @@ def send_videos(
                         raise
                     except Exception as e:
                         error_str = str(e)
+                        if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in error_str:
+                            logger.warning(f"User {user_id} has blocked the bot, aborting send")
+                            mark_user_blocked(user_id)
+                            return None
+
                         if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
                             logger.warning(f"Thumbnail file error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
                         
                         if "Failed to decode" in error_str:
+                            if not os.path.exists(video_abs_path):
+                                logger.error(f"Failed to decode: file no longer exists on disk: {video_abs_path}")
+                                from HELPERS.logger import send_error_to_user
+                                send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
+                                return None
                             logger.warning(f"Failed to decode error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
@@ -1042,6 +1063,10 @@ def send_videos(
                             continue
                         raise
         except Exception as e:
+            if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in str(e):
+                logger.warning(f"User {user_id} has blocked the bot, aborting send (outer handler)")
+                mark_user_blocked(user_id)
+                return None
             if "MEDIA_CAPTION_TOO_LONG" in str(e):
                 logger.info(safe_get_messages(user_id).SENDER_CAPTION_TOO_LONG_MSG)
                 # If the caption is too long, try sending only with the main information
@@ -1070,12 +1095,22 @@ def send_videos(
                                 raise
                             except Exception as e2:
                                 error_str2 = str(e2)
+                                if isinstance(e2, UserIsBlocked) or "USER_IS_BLOCKED" in error_str2:
+                                    logger.warning(f"User {user_id} has blocked the bot, aborting send (minimal cap)")
+                                    mark_user_blocked(user_id)
+                                    return None
+
                                 if "No such file or directory" in error_str2 and ("__tgthumb" in error_str2 or "thumb" in error_str2.lower()):
                                     logger.warning(f"Thumbnail file error with minimal caption, retrying without thumbnail: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
                                 
                                 if "Failed to decode" in error_str2:
+                                    if not os.path.exists(video_abs_path):
+                                        logger.error(f"Failed to decode (minimal cap): file no longer exists on disk: {video_abs_path}")
+                                        from HELPERS.logger import send_error_to_user
+                                        send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
+                                        return None
                                     logger.warning(f"Failed to decode error with minimal caption, trying as document: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
@@ -1129,12 +1164,19 @@ def send_videos(
                         raise
                     except Exception as e3:
                         error_str3 = str(e3)
+                        if isinstance(e3, UserIsBlocked) or "USER_IS_BLOCKED" in error_str3:
+                            logger.warning(f"User {user_id} has blocked the bot, aborting send (empty cap)")
+                            mark_user_blocked(user_id)
+                            return None
                         # Handle thumbnail file errors
                         if "No such file or directory" in error_str3 and ("__tgthumb" in error_str3 or "thumb" in error_str3.lower()):
                             logger.warning(f"Thumbnail file error, trying as document: {e3}")
                             video_msg = _fallback_send_document("")
                         # Handle "Failed to decode" errors
                         elif "Failed to decode" in error_str3:
+                            if not os.path.exists(video_abs_path):
+                                logger.error(f"Failed to decode (empty cap): file no longer exists on disk: {video_abs_path}")
+                                return None
                             logger.warning(f"Failed to decode error, trying as document: {e3}")
                             video_msg = _fallback_send_document("")
                         elif "Request timed out" in error_str3 or isinstance(e3, TimeoutError):
@@ -1143,6 +1185,10 @@ def send_videos(
                             raise
             else:
                 error_str = str(e)
+                if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in error_str:
+                    logger.warning(f"User {user_id} has blocked the bot, aborting send (else branch)")
+                    mark_user_blocked(user_id)
+                    return None
                 # Handle thumbnail file errors
                 if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
                     logger.warning(f"Thumbnail file error in main handler, trying as document: {e}")
@@ -1155,6 +1201,9 @@ def send_videos(
                         raise fallback_error
                 # Handle "Failed to decode" errors
                 elif "Failed to decode" in error_str:
+                    if not os.path.exists(video_abs_path):
+                        logger.error(f"Failed to decode (else branch): file no longer exists on disk: {video_abs_path}")
+                        return None
                     logger.warning(f"Failed to decode error in main handler, trying as document: {e}")
                     try:
                         video_msg = _fallback_send_document(cap if 'cap' in locals() else "")
