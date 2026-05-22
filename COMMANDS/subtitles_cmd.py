@@ -29,10 +29,32 @@ import xml.etree.ElementTree as ET
 app = get_app()
 
 _subs_check_cache = globals().get('_subs_check_cache', {})
+_subs_check_cache_ts = globals().get('_subs_check_cache_ts', {})
+_SUBS_CACHE_TTL = 3600
 _LAST_TIMEDTEXT_TS = globals().get('_LAST_TIMEDTEXT_TS', 0.0)
 # Global throttling lock for timedtext requests
 _TIMEDTEXT_LOCK = threading.Lock()
 _TIMEDTEXT_NEXT_TS = 0.0
+
+def _cache_set(key, value):
+    global _subs_check_cache, _subs_check_cache_ts
+    now = time.time()
+    _subs_check_cache[key] = value
+    _subs_check_cache_ts[key] = now
+    if len(_subs_check_cache) > 2000:
+        stale = [k for k, ts in _subs_check_cache_ts.items() if now - ts > _SUBS_CACHE_TTL]
+        for k in stale:
+            _subs_check_cache.pop(k, None)
+            _subs_check_cache_ts.pop(k, None)
+
+def _cache_get(key):
+    global _subs_check_cache, _subs_check_cache_ts
+    ts = _subs_check_cache_ts.get(key, 0)
+    if time.time() - ts > _SUBS_CACHE_TTL:
+        _subs_check_cache.pop(key, None)
+        _subs_check_cache_ts.pop(key, None)
+        return None
+    return _subs_check_cache.get(key)
 
 def _timedtext_throttle(min_interval: float = 8.0, jitter: float = 3.0) -> None:
     """Throttle timedtext requests globally to reduce 429 risk.
@@ -572,8 +594,9 @@ def subs_lang_close_callback(app, callback_query):
 
 def clear_subs_check_cache():
     """Cleans the cache of subtitle checks"""
-    global _subs_check_cache
+    global _subs_check_cache, _subs_check_cache_ts
     _subs_check_cache.clear()
+    _subs_check_cache_ts.clear()
     
     # Also clean up temporary language cache files from Always Ask menu
     try:
@@ -605,13 +628,14 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     """
     try:
         cache_key = f"{url}_{user_id}_{return_type}"
-        if cache_key in _subs_check_cache:
-            return _subs_check_cache[cache_key]
+        cached = _cache_get(cache_key)
+        if cached is not None:
+            return cached
 
         subs_lang = get_user_subs_language(user_id)
         if not subs_lang or subs_lang == "OFF":
-            _subs_check_cache[cache_key] = False if not return_type else None
-            return _subs_check_cache[cache_key]
+            _cache_set(cache_key, False if not return_type else None)
+            return _cache_get(cache_key)
 
         # We check the usual subtitles
         available_normal = get_available_subs_languages(url, user_id, auto_only=False)
@@ -624,8 +648,8 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
         logger.info(f"check_subs_availability: auto subs - available={available_auto}, has_auto={has_auto}")
 
         # Cash the found lists of languages separately
-        _subs_check_cache[f"{url}_{user_id}_normal_langs"] = available_normal
-        _subs_check_cache[f"{url}_{user_id}_auto_langs"] = available_auto
+        _cache_set(f"{url}_{user_id}_normal_langs", available_normal)
+        _cache_set(f"{url}_{user_id}_auto_langs", available_auto)
 
         # Determine the type or presence of sub
         if return_type:
@@ -633,7 +657,7 @@ def check_subs_availability(url, user_id, quality_key=None, return_type=False):
         else:
             result = has_normal or has_auto
 
-        _subs_check_cache[cache_key] = result
+        _cache_set(cache_key, result)
         return result
 
     except Exception as e:
@@ -915,11 +939,11 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             if info.get('subtitles') or info.get('automatic_captions'):
                 used_client = client or 'default'
                 logger.info(f"{LoggerMsg.SUBS_YOUTUBE_PLAYER_CLIENT_RETURNED_CAPTIONS_LOG_MSG}")
-                _subs_check_cache[f"{url}_{user_id}_client"] = used_client
+                _cache_set(f"{url}_{user_id}_client", used_client)
                 return info
             logger.info(f"{LoggerMsg.SUBS_PLAYER_CLIENT_NO_CAPTIONS_LOG_MSG}")
             last_info = info
-        _subs_check_cache[f"{url}_{user_id}_client"] = used_client or 'default'
+        _cache_set(f"{url}_{user_id}_client", used_client) or 'default'
         return last_info
 
     def _list_via_timedtext(u: str):
@@ -1515,7 +1539,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     working_ydl = ydl
                     logger.info(f"Successfully extracted info with client {used_client}, found subtitles")
                     # Cache the working client
-                    _subs_check_cache[f"{url}_{user_id}_client"] = used_client
+                    _cache_set(f"{url}_{user_id}_client", used_client)
                     break
                 elif info:
                     logger.warning(f"Client {client} returned info but no subtitles, trying next client")
@@ -1788,8 +1812,8 @@ def download_subtitles_only(app, message, url, tags, available_langs, playlist_n
         if not available_langs:
             try:
                 # Try to get from cache first
-                normal_langs = _subs_check_cache.get(f"{url}_{user_id}_normal_langs", [])
-                auto_langs = _subs_check_cache.get(f"{url}_{user_id}_auto_langs", [])
+                normal_langs = _cache_get(f"{url}_{user_id}_normal_langs") or []
+                auto_langs = _cache_get(f"{url}_{user_id}_auto_langs") or []
                 if auto_mode:
                     available_langs = auto_langs if auto_langs else normal_langs
                 else:

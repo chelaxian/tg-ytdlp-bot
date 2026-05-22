@@ -7,6 +7,7 @@ import shutil
 import logging
 import time
 import re
+import threading
 from moviepy.editor import VideoFileClip
 from moviepy.video.fx.all import resize
 from HELPERS.app_instance import get_app
@@ -944,15 +945,19 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
             errors="replace",
             bufsize=1
         )
-        progress = 0.0
-        last_update = time.time()
-        eta = "?"
-        time_pattern = re.compile(r'time=([0-9:.]+)')
-        
-        while True:
-            line = proc.stdout.readline()
-            if not line:
-                break
+        _popen_timeout_timer = threading.Timer(1800, proc.kill)
+        _popen_timeout_timer.daemon = True
+        _popen_timeout_timer.start()
+        try:
+            progress = 0.0
+            last_update = time.time()
+            eta = "?"
+            time_pattern = re.compile(r'time=([0-9:.]+)')
+            
+            while True:
+                line = proc.stdout.readline()
+                if not line:
+                    break
             logger.info(line.strip())
             match = time_pattern.search(line)
             if match and total_time:
@@ -977,8 +982,10 @@ def embed_subs_to_video(video_path, user_id, tg_update_callback=None, app=None, 
                 if tg_update_callback and (time.time() - last_update > 10 or progress >= 1.0):
                     tg_update_callback(progress, eta)
                     last_update = time.time()
-        
-        proc.wait()
+            
+            proc.wait()
+        finally:
+            _popen_timeout_timer.cancel()
         
         if proc.returncode != 0:
             # Try to read any remaining output for error details
@@ -1458,40 +1465,46 @@ def embed_all_audio_tracks_to_mkv(video_path, audio_tracks, user_id, tg_update_c
                     errors="replace",
                     bufsize=1
                 )
-                progress = 0.0
-                last_update = time.time()
-                time_pattern = re.compile(r'time=([0-9:.]+)')
-                duration_pattern = re.compile(r'Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})')
-                total_duration = 0
-                
-                for line in proc.stdout:
-                    # Parse duration
-                    dur_match = duration_pattern.search(line)
-                    if dur_match:
-                        hours, minutes, seconds, centiseconds = map(int, dur_match.groups())
-                        total_duration = hours * 3600 + minutes * 60 + seconds + centiseconds / 100
+                _popen_timeout_timer = threading.Timer(1800, proc.kill)
+                _popen_timeout_timer.daemon = True
+                _popen_timeout_timer.start()
+                try:
+                    progress = 0.0
+                    last_update = time.time()
+                    time_pattern = re.compile(r'time=([0-9:.]+)')
+                    duration_pattern = re.compile(r'Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})')
+                    total_duration = 0
                     
-                    # Parse progress
-                    time_match = time_pattern.search(line)
-                    if time_match and total_duration > 0:
-                        time_str = time_match.group(1)
-                        try:
-                            parts = time_str.split(':')
-                            if len(parts) == 3:
-                                hours, minutes, seconds = map(float, parts)
-                                current_time = hours * 3600 + minutes * 60 + seconds
-                                progress = min(current_time / total_duration, 1.0)
-                                
-                                # Update progress every 2 seconds
-                                if time.time() - last_update >= 2.0:
-                                    eta_seconds = (total_duration - current_time) / max(progress, 0.01) if progress > 0 else 0
-                                    eta_minutes = int(eta_seconds / 60)
-                                    tg_update_callback(progress, eta_minutes)
-                                    last_update = time.time()
-                        except Exception:
-                            pass
-                
-                proc.wait()
+                    for line in proc.stdout:
+                        # Parse duration
+                        dur_match = duration_pattern.search(line)
+                        if dur_match:
+                            hours, minutes, seconds, centiseconds = map(int, dur_match.groups())
+                            total_duration = hours * 3600 + minutes * 60 + seconds + centiseconds / 100
+                        
+                        # Parse progress
+                        time_match = time_pattern.search(line)
+                        if time_match and total_duration > 0:
+                            time_str = time_match.group(1)
+                            try:
+                                parts = time_str.split(':')
+                                if len(parts) == 3:
+                                    hours, minutes, seconds = map(float, parts)
+                                    current_time = hours * 3600 + minutes * 60 + seconds
+                                    progress = min(current_time / total_duration, 1.0)
+                                    
+                                    # Update progress every 2 seconds
+                                    if time.time() - last_update >= 2.0:
+                                        eta_seconds = (total_duration - current_time) / max(progress, 0.01) if progress > 0 else 0
+                                        eta_minutes = int(eta_seconds / 60)
+                                        tg_update_callback(progress, eta_minutes)
+                                        last_update = time.time()
+                            except Exception:
+                                pass
+                    
+                    proc.wait()
+                finally:
+                    _popen_timeout_timer.cancel()
                 if proc.returncode != 0:
                     raise subprocess.CalledProcessError(proc.returncode, cmd)
             else:
