@@ -840,10 +840,7 @@ def send_videos(
                 logger.warning(f"Thumbnail file missing before send, removing from request: {local_thumb_free}")
                 local_thumb_free = None
             
-            # Generate high-res cover for video_cover (full Photo, no 320px limit)
-            hires_cover = _gen_hires_cover(video_abs_path)
-            if hires_cover and not os.path.exists(hires_cover):
-                hires_cover = None
+            hires_cover = None
             
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
@@ -857,7 +854,6 @@ def send_videos(
                     height=int(v_h2) if v_h2 else height,
                     supports_streaming=True,
                     thumb=local_thumb_free,
-                    video_cover=hires_cover,
                     has_spoiler=False,
                     progress=progress_bar,
                     progress_args=(
