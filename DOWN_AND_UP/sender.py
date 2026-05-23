@@ -12,6 +12,7 @@ from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
 import os
 import subprocess
 import json
+import shutil
 from HELPERS.safe_messeger import safe_forward_messages, safe_send_message, safe_edit_message_text
 from URL_PARSERS.thumbnail_downloader import download_thumbnail
 from CONFIG.config import Config
@@ -647,6 +648,50 @@ def send_videos(
             except Exception:
                 return _gen_thumb(video_path) if _should_generate_cover(video_path, duration) else None
 
+        def _gen_hires_cover(video_path: str) -> str | None:
+            """Generate high-res cover for video_cover param (InputPhoto, no 320px limit).
+            Uses original thumbnail from source or extracts 1280px frame from video.
+            video_cover is uploaded as a full Photo via MTProto and displayed in high quality.
+            """
+            try:
+                base_dir = os.path.dirname(video_path)
+                base_name = os.path.splitext(os.path.basename(video_path))[0]
+                cover_path = os.path.join(base_dir, base_name + '.__hires_cover.jpg')
+                if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
+                    return cover_path
+                # 1) Download original thumbnail (highest available resolution)
+                try:
+                    tmp_dl = os.path.join(base_dir, base_name + '.__ext_hires.jpg')
+                    if video_url and download_thumbnail(video_url, tmp_dl):
+                        try:
+                            shutil.move(tmp_dl, cover_path)
+                        except Exception:
+                            if os.path.exists(tmp_dl):
+                                return tmp_dl
+                        if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
+                            return cover_path
+                    try:
+                        if os.path.exists(tmp_dl):
+                            os.remove(tmp_dl)
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+                # 2) Fallback: use passed-in thumb_file_path if available
+                if thumb_file_path and os.path.exists(thumb_file_path) and os.path.getsize(thumb_file_path) > 0:
+                    return thumb_file_path
+                # 3) Last resort: extract frame at 1280px
+                if _should_generate_cover(video_path, duration):
+                    middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
+                    subprocess.run([
+                        'ffmpeg', '-y', '-ss', str(middle_sec), '-i', video_abs_path,
+                        '-vframes', '1', '-vf', 'scale=1280:-1:flags=lanczos', '-q:v', '2', cover_path
+                    ], capture_output=True, text=True, timeout=30)
+                    return cover_path if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0 else None
+                return None
+            except Exception:
+                return None
+
         def _is_small_video() -> bool:
             """Check if video is small enough for Telegram to auto-generate thumbnails."""
             try:
@@ -795,6 +840,11 @@ def send_videos(
                 logger.warning(f"Thumbnail file missing before send, removing from request: {local_thumb_free}")
                 local_thumb_free = None
             
+            # Generate high-res cover for video_cover (full Photo, no 320px limit)
+            hires_cover = _gen_hires_cover(video_abs_path)
+            if hires_cover and not os.path.exists(hires_cover):
+                hires_cover = None
+            
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
@@ -807,6 +857,7 @@ def send_videos(
                     height=int(v_h2) if v_h2 else height,
                     supports_streaming=True,
                     thumb=local_thumb_free,
+                    video_cover=hires_cover,
                     has_spoiler=False,
                     progress=progress_bar,
                     progress_args=(
@@ -826,6 +877,11 @@ def send_videos(
                     local_thumb_free.endswith('.__tgthumb.jpg') or local_thumb_free.endswith('.__tgthumb_ext.jpg')
                 ) and os.path.exists(local_thumb_free):
                     os.remove(local_thumb_free)
+            except Exception:
+                pass
+            try:
+                if hires_cover and hires_cover.endswith('.__hires_cover.jpg') and os.path.exists(hires_cover):
+                    os.remove(hires_cover)
             except Exception:
                 pass
             return result
