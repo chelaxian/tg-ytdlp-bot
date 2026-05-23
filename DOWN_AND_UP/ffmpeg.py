@@ -226,7 +226,7 @@ def get_duration_thumb_(dir, video_path, thumb_name):
     
     # Determine optimal thumbnail size based on video aspect ratio
     aspect_ratio = orig_w / orig_h
-    max_dimension = 640  # Maximum width or height
+    max_dimension = 320  # Telegram thumbnail limit: width/height <= 320px
     
     if aspect_ratio and aspect_ratio > 1.5:  # Wide/horizontal video (16:9, etc.)
         thumb_w = max_dimension
@@ -262,7 +262,8 @@ def get_duration_thumb_(dir, video_path, thumb_name):
             "-ss", seek_sec,
             "-i", video_path,
             "-vframes", "1",    # Capture 1 Frame
-            "-vf", f"scale={thumb_w}:{thumb_h}",  # Scale to exact thumbnail size
+            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos",  # Scale to exact thumbnail size
+            "-q:v", "2",
             thumb_dir
         ]
         subprocess.run(ffmpeg_command, check=True, capture_output=True, encoding='utf-8', errors='replace', timeout=120)
@@ -341,7 +342,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         
         # Determine optimal thumbnail size based on video aspect ratio
         aspect_ratio = orig_w / orig_h
-        max_dimension = 640  # Maximum width or height
+        max_dimension = 320  # Telegram thumbnail limit: width/height <= 320px
         
         if aspect_ratio and aspect_ratio > 1.5:  # Wide/horizontal video (16:9, etc.)
             thumb_w = max_dimension
@@ -387,7 +388,8 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
             "-ss", seek_sec,
             "-i", video_path,
             "-vframes", "1",    # Capture 1 Frame
-            "-vf", f"scale={thumb_w}:{thumb_h}",  # Scale to exact thumbnail size
+            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos",  # Scale to exact thumbnail size
+            "-q:v", "2",
             thumb_dir
         ]
 
@@ -412,7 +414,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         send_to_all(message, safe_get_messages(user_id).VIDEO_PROCESSING_ERROR_MSG.format(error=str(e)))
         return None
 
-def create_default_thumbnail(thumb_path, width=480, height=480):
+def create_default_thumbnail(thumb_path, width=320, height=320):
     """Create a default thumbnail when normal thumbnail creation fails"""
     try:
         # Get FFmpeg path using the common function

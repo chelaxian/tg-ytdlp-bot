@@ -432,7 +432,7 @@ def send_videos(
                 middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                 subprocess.run([
                     'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=320:-1', thumb_path
+                    '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', thumb_path
                 ], capture_output=True, text=True, timeout=30)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
@@ -465,13 +465,13 @@ def send_videos(
                 if crop_str:
                     filters.append(f'crop={crop_str}')
                 # Step 2 — scale so the image fits inside target dims, preserving AR
-                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease')
+                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease:flags=lanczos')
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
-                    '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
+                    '-vf', vf, '-vframes', '1', '-q:v', '2', dest_path
                 ], capture_output=True, text=True, timeout=30)
                 if r.returncode != 0:
                     logger.warning(f"_thumb_fit_ar ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}")
@@ -526,7 +526,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_path,
-                            '-vframes','1','-q:v','4', tmp_frame
+                            '-vframes','1','-q:v','2', tmp_frame
                         ], capture_output=True, text=True, timeout=30)
                         if os.path.exists(tmp_frame) and os.path.getsize(tmp_frame) > 0:
                             if _resize_to_cover(tmp_frame, cover_path):
@@ -552,12 +552,12 @@ def send_videos(
             import subprocess as _sp
             try:
                 filters = []
-                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase')
+                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase:flags=lanczos')
                 filters.append(f'crop={target_w}:{target_h}')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
-                    '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
+                    '-vf', vf, '-vframes', '1', '-q:v', '2', dest_path
                 ], capture_output=True, text=True, timeout=30)
                 if r.returncode != 0:
                     logger.warning(f'_thumb_crop_center ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}')
@@ -569,10 +569,11 @@ def send_videos(
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
             """Resize for free video thumbnail, matching the video's aspect ratio.
 
-            Telegram thumbnail limits: width <= 320, height <= 320.
+            Telegram thumbnail limits: width <= 320, height <= 320, JPEG < 200KB.
             For horizontal videos (landscape): fit width to 320.
             For vertical videos (portrait): fit height to 320.
             Both dimensions always stay within 320x320.
+            Uses q:v 2 (high quality) + lanczos scaling for best results.
             """
             try:
                 tw, th = 320, 180  # default 16:9
@@ -841,7 +842,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=320:-1', local_thumb
+                            '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', local_thumb
                         ], capture_output=True, text=True, timeout=30)
                         if not os.path.exists(local_thumb):
                             local_thumb = None
