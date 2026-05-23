@@ -10,7 +10,7 @@ import concurrent.futures
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
 from HELPERS.safe_messeger import safe_send_message
-from CONFIG.messages import Messages, safe_get_messages
+from CONFIG.messages import safe_get_messages
 from CONFIG.config import Config
 from DATABASE.firebase_init import is_user_blocked, is_user_ignored
 
@@ -30,14 +30,9 @@ def app_handler(func):
 # Get app instance
 app = get_app()
 
-# eternal reply-keyboard and reliable work with files
-reply_keyboard_msg_ids = {}  # user_id: message_id
-_reply_kb_cleanup_counter = 0
-_REPLY_KB_CLEANUP_INTERVAL = 500  # Clean every 500 calls
-
 def get_main_reply_keyboard(mode="2x3"):
     messages = safe_get_messages(None)
-    """Function for permanent reply-keyboard"""
+    """Function for persistent reply-keyboard (is_persistent=True)"""
     from pyrogram.types import ReplyKeyboardMarkup
     
     if mode == "1x3":
@@ -58,56 +53,13 @@ def get_main_reply_keyboard(mode="2x3"):
     
     return ReplyKeyboardMarkup(
         keyboard,
+        is_persistent=True,
         resize_keyboard=True,
         one_time_keyboard=False
     )
 
-def send_reply_keyboard_always(user_id, mode="2x3"):
-    """Send persistent reply keyboard to user"""
-    global reply_keyboard_msg_ids, _reply_kb_cleanup_counter
-    try:
-        # Periodic cleanup: limit dict size to prevent unbounded growth
-        _reply_kb_cleanup_counter += 1
-        if _reply_kb_cleanup_counter >= _REPLY_KB_CLEANUP_INTERVAL:
-            _reply_kb_cleanup_counter = 0
-            # Keep only last 2000 users
-            if len(reply_keyboard_msg_ids) > 2000:
-                reply_keyboard_msg_ids = dict(list(reply_keyboard_msg_ids.items())[-2000:])
-                logger.debug(f"[KB-CLEANUP] Trimmed reply_keyboard_msg_ids to 2000 entries")
-        msg_id = reply_keyboard_msg_ids.get(user_id)
-        if msg_id:
-            try:
-                app.edit_message_text(user_id, msg_id, "\u2063", reply_markup=get_main_reply_keyboard(mode))
-                return
-            except Exception as e:
-                # Log only if the error is not MESSAGE_ID_INVALID
-                if 'MESSAGE_ID_INVALID' not in str(e):
-                    logger.warning(f"Failed to edit persistent reply keyboard: {e}")
-                # If it didn't work, we delete the id to avoid getting stuck
-                reply_keyboard_msg_ids.pop(user_id, None)
-        # Always after failure or if there is no id - send a new one
-        msg = safe_send_message(user_id, "\u2063", reply_markup=get_main_reply_keyboard(mode))
-        # If sending failed (e.g., FloodWait), don't try to access msg.id
-        if not msg or not hasattr(msg, "id"):
-            return
-        # If there was another service msg_id (and it is not equal to the new one), we try to delete the old message
-        if msg_id and msg_id != msg.id:
-            try:
-                app.delete_messages(user_id, [msg_id])
-            except Exception as e:
-                logger.warning(f"Failed to delete old reply keyboard message: {e}")
-        reply_keyboard_msg_ids[user_id] = msg.id
-    except Exception as e:
-        logger.warning(f"Failed to send persistent reply keyboard: {e}")
-
 # Удаляем конфликтующую функцию on_message из decorators.py
 # Она должна быть только в handler_registry.py 
-
-def _extract_user_id(args, kwargs):
-    """Extract user_id from handler args/kwargs (Pyrogram message object)."""
-    msg = _extract_message_arg(args, kwargs)
-    return getattr(getattr(msg, 'chat', None), 'id', None) if msg else None
-
 
 def _is_ignore_command(message):
     """Check if message text is an ignore/unignore command."""
@@ -118,50 +70,17 @@ def _is_ignore_command(message):
     return False
 
 
-def _get_keyboard_mode(user_id):
-    """Read keyboard mode for user from file. Returns (enabled, mode)."""
-    keyboard_file = f'./users/{user_id}/keyboard.txt'
-    if os.path.exists(keyboard_file):
-        try:
-            with open(keyboard_file, 'r') as f:
-                setting = f.read().strip()
-                if setting == "OFF":
-                    return False, "2x3"
-                if setting in ("1x3", "2x3", "FULL"):
-                    return True, setting
-        except Exception:
-            pass
-    return True, "2x3"
-
-
 def reply_with_keyboard(func):
-    """Wrapper for any custom action that adds reply keyboard."""
+    """Wrapper: checks ignored users. Reply keyboard persistence is handled by is_persistent=True."""
     def wrapper(*args, **kwargs):
         message = _extract_message_arg(args, kwargs)
 
         if message and not _is_ignore_command(message) and is_user_ignored(message):
             return
 
-        result = func(*args, **kwargs)
+        return func(*args, **kwargs)
 
-        user_id = _extract_user_id(args, kwargs)
-        if not user_id:
-            return result
-
-        if message and is_user_ignored(message):
-            return result
-
-        keyboard_enabled, keyboard_mode = _get_keyboard_mode(user_id)
-        if not keyboard_enabled:
-            return result
-
-        is_kb_cmd = getattr(message, 'text', '') == "/keyboard" if message else False
-        if not is_kb_cmd:
-            send_reply_keyboard_always(user_id, keyboard_mode)
-
-        return result
-
-    return wrapper 
+    return wrapper
 
 
 def _extract_message_arg(args, kwargs):

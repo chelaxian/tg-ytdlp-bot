@@ -157,7 +157,7 @@ print(messages.MAGIC_ALL_MODULES_LOADED_MSG)
 ###########################################################
 #        BOT KEYBOARD
 ###########################################################
-from HELPERS.decorators import reply_with_keyboard, get_main_reply_keyboard, send_reply_keyboard_always
+from HELPERS.decorators import reply_with_keyboard, get_main_reply_keyboard
 
 ###########################################################
 #        GROUP HANDLERS FOR ALLOWED GROUPS
