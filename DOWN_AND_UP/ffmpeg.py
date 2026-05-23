@@ -224,23 +224,23 @@ def get_duration_thumb_(dir, video_path, thumb_name):
         duration = 0
         orig_w, orig_h = 1920, 1080  # Default dimensions
     
-    # Determine optimal thumbnail size based on video aspect ratio
-    aspect_ratio = orig_w / orig_h
-    max_dimension = 320  # Telegram thumbnail limit: width/height <= 320px
-    
-    if aspect_ratio and aspect_ratio > 1.5:  # Wide/horizontal video (16:9, etc.)
-        thumb_w = max_dimension
-        thumb_h = int(max_dimension / aspect_ratio)
-    elif aspect_ratio and aspect_ratio < 0.75:  # Tall/vertical video (9:16, etc.)
-        thumb_h = max_dimension
-        thumb_w = int(max_dimension * aspect_ratio)
-    else:  # Square-ish video (1:1, 4:3, etc.)
-        if orig_w >= orig_h:
+        # Determine optimal thumbnail size based on video aspect ratio
+        aspect_ratio = orig_w / orig_h
+        max_dimension = 1280  # High-res thumbnail via MTProto (no 320px server limit)
+        
+        if aspect_ratio and aspect_ratio > 1.5:  # Wide/horizontal video (16:9, etc.)
             thumb_w = max_dimension
             thumb_h = int(max_dimension / aspect_ratio)
-        else:
+        elif aspect_ratio and aspect_ratio < 0.75:  # Tall/vertical video (9:16, etc.)
             thumb_h = max_dimension
             thumb_w = int(max_dimension * aspect_ratio)
+        else:  # Square-ish video (1:1, 4:3, etc.)
+            if orig_w >= orig_h:
+                thumb_w = max_dimension
+                thumb_h = int(max_dimension / aspect_ratio)
+            else:
+                thumb_h = max_dimension
+                thumb_w = int(max_dimension * aspect_ratio)
     
     # Ensure minimum size
     thumb_w = max(thumb_w, 240)
@@ -342,7 +342,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         
         # Determine optimal thumbnail size based on video aspect ratio
         aspect_ratio = orig_w / orig_h
-        max_dimension = 320  # Telegram thumbnail limit: width/height <= 320px
+        max_dimension = 1280  # High-res thumbnail via MTProto (no 320px server limit)
         
         if aspect_ratio and aspect_ratio > 1.5:  # Wide/horizontal video (16:9, etc.)
             thumb_w = max_dimension
@@ -414,7 +414,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         send_to_all(message, safe_get_messages(user_id).VIDEO_PROCESSING_ERROR_MSG.format(error=str(e)))
         return None
 
-def create_default_thumbnail(thumb_path, width=320, height=320):
+def create_default_thumbnail(thumb_path, width=1280, height=1280):
     """Create a default thumbnail when normal thumbnail creation fails"""
     try:
         # Get FFmpeg path using the common function

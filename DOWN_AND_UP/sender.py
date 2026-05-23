@@ -12,7 +12,6 @@ from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
 import os
 import subprocess
 import json
-import shutil
 from HELPERS.safe_messeger import safe_forward_messages, safe_send_message, safe_edit_message_text
 from URL_PARSERS.thumbnail_downloader import download_thumbnail
 from CONFIG.config import Config
@@ -433,7 +432,7 @@ def send_videos(
                 middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                 subprocess.run([
                     'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', thumb_path
+                    '-vframes','1','-vf','scale=1280:-1:flags=lanczos', '-q:v', '2', thumb_path
                 ], capture_output=True, text=True, timeout=30)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
@@ -570,28 +569,25 @@ def send_videos(
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
             """Resize for free video thumbnail, matching the video's aspect ratio.
 
-            Telegram thumbnail limits: width <= 320, height <= 320, JPEG < 200KB.
-            For horizontal videos (landscape): fit width to 320.
-            For vertical videos (portrait): fit height to 320.
-            Both dimensions always stay within 320x320.
+            Pyrogram passes thumb via MTProto InputFile — no 320px server limit.
+            We use 1280px max dimension for high-quality thumbnails.
+            For horizontal videos (landscape): fit width to 1280.
+            For vertical videos (portrait): fit height to 1280.
             Uses q:v 2 (high quality) + lanczos scaling for best results.
             """
             try:
-                tw, th = 320, 180  # default 16:9
-                vw, vh, ar = 0, 0, 1.0  # safe defaults in case ffprobe returned 0,0
+                tw, th = 1280, 720  # default 16:9
+                vw, vh, ar = 0, 0, 1.0
                 try:
                     if width and height and int(width) > 0 and int(height) > 0:
                         vw, vh = int(width), int(height)
                         ar = vw / vh
                         if ar >= 1:
-                            # Horizontal / square video: fit width to 320
-                            tw = 320
-                            th = max(2, round(320 / ar))
+                            tw = 1280
+                            th = max(2, round(1280 / ar))
                         else:
-                            # Vertical video: fit height to 320
-                            th = 320
-                            tw = max(2, round(320 * ar))
-                        # Ensure both dimensions are even (required by some encoders)
+                            th = 1280
+                            tw = max(2, round(1280 * ar))
                         tw = tw + (tw % 2)
                         th = th + (th % 2)
                 except Exception as e:
@@ -615,7 +611,7 @@ def send_videos(
                 cover_path = os.path.join(base_dir, base_name + '.__tgthumb_ext.jpg')
                 if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
                     return cover_path
-                # 1) Try downloading external thumbnail (scaled to 320px width)
+                # 1) Try downloading external thumbnail (scaled to 1280px width)
                 try:
                     tmp_dl = os.path.join(base_dir, base_name + '.__ext_thumb.jpg')
                     if video_url and download_thumbnail(video_url, tmp_dl):
@@ -647,50 +643,6 @@ def send_videos(
                 return None
             except Exception:
                 return _gen_thumb(video_path) if _should_generate_cover(video_path, duration) else None
-
-        def _gen_hires_cover(video_path: str) -> str | None:
-            """Generate high-res cover for video_cover param (InputPhoto, no 320px limit).
-            Uses original thumbnail from source or extracts 1280px frame from video.
-            video_cover is uploaded as a full Photo via MTProto and displayed in high quality.
-            """
-            try:
-                base_dir = os.path.dirname(video_path)
-                base_name = os.path.splitext(os.path.basename(video_path))[0]
-                cover_path = os.path.join(base_dir, base_name + '.__hires_cover.jpg')
-                if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
-                    return cover_path
-                # 1) Download original thumbnail (highest available resolution)
-                try:
-                    tmp_dl = os.path.join(base_dir, base_name + '.__ext_hires.jpg')
-                    if video_url and download_thumbnail(video_url, tmp_dl):
-                        try:
-                            shutil.move(tmp_dl, cover_path)
-                        except Exception:
-                            if os.path.exists(tmp_dl):
-                                return tmp_dl
-                        if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
-                            return cover_path
-                    try:
-                        if os.path.exists(tmp_dl):
-                            os.remove(tmp_dl)
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
-                # 2) Fallback: use passed-in thumb_file_path if available
-                if thumb_file_path and os.path.exists(thumb_file_path) and os.path.getsize(thumb_file_path) > 0:
-                    return thumb_file_path
-                # 3) Last resort: extract frame at 1280px
-                if _should_generate_cover(video_path, duration):
-                    middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
-                    subprocess.run([
-                        'ffmpeg', '-y', '-ss', str(middle_sec), '-i', video_abs_path,
-                        '-vframes', '1', '-vf', 'scale=1280:-1:flags=lanczos', '-q:v', '2', cover_path
-                    ], capture_output=True, text=True, timeout=30)
-                    return cover_path if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0 else None
-                return None
-            except Exception:
-                return None
 
         def _is_small_video() -> bool:
             """Check if video is small enough for Telegram to auto-generate thumbnails."""
@@ -840,8 +792,6 @@ def send_videos(
                 logger.warning(f"Thumbnail file missing before send, removing from request: {local_thumb_free}")
                 local_thumb_free = None
             
-            hires_cover = None
-            
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
@@ -875,11 +825,6 @@ def send_videos(
                     os.remove(local_thumb_free)
             except Exception:
                 pass
-            try:
-                if hires_cover and hires_cover.endswith('.__hires_cover.jpg') and os.path.exists(hires_cover):
-                    os.remove(hires_cover)
-            except Exception:
-                pass
             return result
 
         def _fallback_send_document(caption_text: str):
@@ -894,7 +839,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', local_thumb
+                            '-vframes','1','-vf','scale=1280:-1:flags=lanczos', '-q:v', '2', local_thumb
                         ], capture_output=True, text=True, timeout=30)
                         if not os.path.exists(local_thumb):
                             local_thumb = None
