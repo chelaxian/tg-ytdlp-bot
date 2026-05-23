@@ -286,6 +286,16 @@ def safe_send_message(chat_id, text, **kwargs):
         if isinstance(k, str) and k.startswith('_'):
             kwargs.pop(k, None)
 
+    # Auto-attach ReplyKeyboard for private chats (if user has keyboard enabled)
+    if 'reply_markup' not in kwargs:
+        try:
+            from HELPERS.decorators import get_reply_keyboard_if_needed
+            kb = get_reply_keyboard_if_needed(chat_id)
+            if kb is not None:
+                kwargs['reply_markup'] = kb
+        except Exception:
+            pass
+
     # Throttle message sending per-chat to prevent msg_seqno issues
     # Per-chat lock: different users don't block each other
     with _message_send_locks_lock:

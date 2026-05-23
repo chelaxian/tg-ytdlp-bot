@@ -56,24 +56,17 @@ def _get_keyboard_mode_cached(user_id):
 def invalidate_keyboard_cache(user_id):
     _keyboard_mode_cache.pop(user_id, None)
 
-def _patch_send_message():
-    from pyrogram import Client
-    _orig = Client.send_message
-
-    def _patched(self, chat_id, text, **kwargs):
-        if (isinstance(chat_id, int) and chat_id > 0
-                and 'reply_markup' not in kwargs):
-            try:
-                enabled, mode = _get_keyboard_mode_cached(chat_id)
-                if enabled:
-                    kwargs['reply_markup'] = get_main_reply_keyboard(mode)
-            except Exception:
-                pass
-        return _orig(self, chat_id, text, **kwargs)
-
-    Client.send_message = _patched
-
-_patch_send_message()
+def get_reply_keyboard_if_needed(chat_id):
+    """Return ReplyKeyboardMarkup for private chats if user has keyboard enabled, else None."""
+    if not isinstance(chat_id, int) or chat_id <= 0:
+        return None
+    try:
+        enabled, mode = _get_keyboard_mode_cached(chat_id)
+        if enabled:
+            return get_main_reply_keyboard(mode)
+    except Exception:
+        pass
+    return None
 
 def get_main_reply_keyboard(mode="2x3"):
     messages = safe_get_messages(None)
