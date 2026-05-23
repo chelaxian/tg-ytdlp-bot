@@ -432,7 +432,7 @@ def send_videos(
                 middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                 subprocess.run([
                     'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=1280:-1:flags=lanczos', '-q:v', '2', thumb_path
+                    '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', thumb_path
                 ], capture_output=True, text=True, timeout=30)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
@@ -569,25 +569,24 @@ def send_videos(
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
             """Resize for free video thumbnail, matching the video's aspect ratio.
 
-            Pyrogram passes thumb via MTProto InputFile — no 320px server limit.
-            We use 1280px max dimension for high-quality thumbnails.
-            For horizontal videos (landscape): fit width to 1280.
-            For vertical videos (portrait): fit height to 1280.
+            Telegram thumbnail limits: width <= 320, height <= 320, JPEG < 200KB.
+            For horizontal videos (landscape): fit width to 320.
+            For vertical videos (portrait): fit height to 320.
             Uses q:v 2 (high quality) + lanczos scaling for best results.
             """
             try:
-                tw, th = 1280, 720  # default 16:9
+                tw, th = 320, 180  # default 16:9
                 vw, vh, ar = 0, 0, 1.0
                 try:
                     if width and height and int(width) > 0 and int(height) > 0:
                         vw, vh = int(width), int(height)
                         ar = vw / vh
                         if ar >= 1:
-                            tw = 1280
-                            th = max(2, round(1280 / ar))
+                            tw = 320
+                            th = max(2, round(320 / ar))
                         else:
-                            th = 1280
-                            tw = max(2, round(1280 * ar))
+                            th = 320
+                            tw = max(2, round(320 * ar))
                         tw = tw + (tw % 2)
                         th = th + (th % 2)
                 except Exception as e:
@@ -611,7 +610,7 @@ def send_videos(
                 cover_path = os.path.join(base_dir, base_name + '.__tgthumb_ext.jpg')
                 if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
                     return cover_path
-                # 1) Try downloading external thumbnail (scaled to 1280px width)
+                # 1) Try downloading external thumbnail (scaled to 320px)
                 try:
                     tmp_dl = os.path.join(base_dir, base_name + '.__ext_thumb.jpg')
                     if video_url and download_thumbnail(video_url, tmp_dl):
@@ -839,7 +838,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=1280:-1:flags=lanczos', '-q:v', '2', local_thumb
+                            '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', local_thumb
                         ], capture_output=True, text=True, timeout=30)
                         if not os.path.exists(local_thumb):
                             local_thumb = None

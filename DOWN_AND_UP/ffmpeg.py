@@ -226,15 +226,15 @@ def get_duration_thumb_(dir, video_path, thumb_name):
     
         # Determine optimal thumbnail size based on video aspect ratio
         aspect_ratio = orig_w / orig_h
-        max_dimension = 1280  # High-res thumbnail via MTProto (no 320px server limit)
+        max_dimension = 320
         
-        if aspect_ratio and aspect_ratio > 1.5:  # Wide/horizontal video (16:9, etc.)
+        if aspect_ratio and aspect_ratio > 1.5:
             thumb_w = max_dimension
             thumb_h = int(max_dimension / aspect_ratio)
-        elif aspect_ratio and aspect_ratio < 0.75:  # Tall/vertical video (9:16, etc.)
+        elif aspect_ratio and aspect_ratio < 0.75:
             thumb_h = max_dimension
             thumb_w = int(max_dimension * aspect_ratio)
-        else:  # Square-ish video (1:1, 4:3, etc.)
+        else:
             if orig_w >= orig_h:
                 thumb_w = max_dimension
                 thumb_h = int(max_dimension / aspect_ratio)
@@ -261,8 +261,8 @@ def get_duration_thumb_(dir, video_path, thumb_name):
             "-y",
             "-ss", seek_sec,
             "-i", video_path,
-            "-vframes", "1",    # Capture 1 Frame
-            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos",  # Scale to exact thumbnail size
+            "-vframes", "1",
+            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos",
             "-q:v", "2",
             thumb_dir
         ]
@@ -342,15 +342,15 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         
         # Determine optimal thumbnail size based on video aspect ratio
         aspect_ratio = orig_w / orig_h
-        max_dimension = 1280  # High-res thumbnail via MTProto (no 320px server limit)
+        max_dimension = 320
         
-        if aspect_ratio and aspect_ratio > 1.5:  # Wide/horizontal video (16:9, etc.)
+        if aspect_ratio and aspect_ratio > 1.5:
             thumb_w = max_dimension
             thumb_h = int(max_dimension / aspect_ratio)
-        elif aspect_ratio and aspect_ratio < 0.75:  # Tall/vertical video (9:16, etc.)
+        elif aspect_ratio and aspect_ratio < 0.75:
             thumb_h = max_dimension
             thumb_w = int(max_dimension * aspect_ratio)
-        else:  # Square-ish video (1:1, 4:3, etc.)
+        else:
             if orig_w >= orig_h:
                 thumb_w = max_dimension
                 thumb_h = int(max_dimension / aspect_ratio)
@@ -414,7 +414,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
         send_to_all(message, safe_get_messages(user_id).VIDEO_PROCESSING_ERROR_MSG.format(error=str(e)))
         return None
 
-def create_default_thumbnail(thumb_path, width=1280, height=1280):
+def create_default_thumbnail(thumb_path, width=320, height=320):
     """Create a default thumbnail when normal thumbnail creation fails"""
     try:
         # Get FFmpeg path using the common function
