@@ -668,52 +668,52 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         user_dir = os.path.join("users", str(user_id))
         flood_time_file = os.path.join(user_dir, "flood_wait.txt")
 
-        # We send the initial message
         if os.path.exists(flood_time_file):
             with open(flood_time_file, 'r') as f:
-                wait_time = int(f.read().strip())
+                try:
+                    wait_time = int(f.read().strip())
+                except Exception:
+                    wait_time = None
+            if wait_time is not None:
                 hours = wait_time // 3600
                 minutes = (wait_time % 3600) // 60
                 seconds = wait_time % 60
                 time_str = f"{hours}h {minutes}m {seconds}s"
                 proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_WITH_TIME_MSG.format(time=time_str), message=message)
-        else:
-            proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG, message=message)
+            else:
+                proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG, message=message)
 
-        # We are trying to replace with "Download started"
-        try:
-            app.edit_message_text(
-                chat_id=user_id,
-                message_id=proc_msg.id,
-                text=safe_get_messages(user_id).DOWNLOAD_STARTED_MSG,
-                parse_mode=enums.ParseMode.HTML
-            )
             try:
-                from HELPERS.safe_messeger import schedule_delete_message
-                download_started_msg_id = proc_msg.id
-                schedule_delete_message(user_id, download_started_msg_id, delete_after_seconds=5)
-            except Exception:
-                pass
-            # If you managed to replace, then there is no flood error
-            if os.path.exists(flood_time_file):
-                os.remove(flood_time_file)
-        except FloodWait as e:
-            # Update the counter
-            wait_time = e.value
-            os.makedirs(user_dir, exist_ok=True)
-            with open(flood_time_file, 'w') as f:
-                f.write(str(wait_time))
-            return
-        except Exception as e:
-            logger.error(f"Error editing message: {e}")
-            # Check if error is related to quality_key
-            if "'quality_key'" in str(e):
-                _handle_quality_key_error(e, split_msg_ids, is_playlist, successful_uploads, indices_to_download, video_count, user_id, proc_msg_id, message, app)
-            # Stop animation before returning
-            stop_anim.set()
-            if anim_thread:
-                anim_thread.join(timeout=1)
-            return
+                if proc_msg is not None and hasattr(proc_msg, 'id'):
+                    app.edit_message_text(
+                        chat_id=user_id,
+                        message_id=proc_msg.id,
+                        text=safe_get_messages(user_id).DOWNLOAD_STARTED_MSG,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                    try:
+                        from HELPERS.safe_messeger import schedule_delete_message
+                        download_started_msg_id = proc_msg.id
+                        schedule_delete_message(user_id, download_started_msg_id, delete_after_seconds=5)
+                    except Exception:
+                        pass
+                else:
+                    logger.error(f"[FLOOD-CHECK] proc_msg is not Message: type={type(proc_msg)}, value={proc_msg}")
+                if os.path.exists(flood_time_file):
+                    os.remove(flood_time_file)
+            except FloodWait as e:
+                wait_time = e.value
+                os.makedirs(user_dir, exist_ok=True)
+                with open(flood_time_file, 'w') as f:
+                    f.write(str(wait_time))
+                return
+            except Exception as e:
+                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}, removing flood_time_file")
+                try:
+                    if os.path.exists(flood_time_file):
+                        os.remove(flood_time_file)
+                except Exception:
+                    pass
 
         # If there is no flood error, send a normal message
         proc_msg = app.send_message(user_id, safe_get_messages(user_id).PROCESSING_MSG, reply_parameters=ReplyParameters(message_id=message.id))
