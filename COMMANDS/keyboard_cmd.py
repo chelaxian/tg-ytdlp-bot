@@ -6,7 +6,6 @@ from HELPERS.logger import send_to_all, send_to_logger
 from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
-from HELPERS.decorators import invalidate_keyboard_cache
 
 def keyboard_command(app, message):
     """Handle keyboard settings command"""
@@ -25,7 +24,6 @@ def keyboard_command(app, message):
             # Apply setting directly
             with open(keyboard_file, 'w', encoding='utf-8') as f:
                 f.write(arg.upper())
-            invalidate_keyboard_cache(user_id)
             
             # Show confirmation by editing the original message
             result = safe_edit_message_text(
@@ -110,7 +108,7 @@ def keyboard_command(app, message):
         ["/playlist", "/search", "/help"]
     ]
     
-    reply_markup = ReplyKeyboardMarkup(full_keyboard, is_persistent=True, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(full_keyboard, resize_keyboard=True)
     safe_send_message(message.chat.id, safe_get_messages(user_id).KEYBOARD_ACTIVATED_MSG, reply_markup=reply_markup, message=message)
 
 def keyboard_callback_handler(app, callback_query):
@@ -141,7 +139,8 @@ def keyboard_callback_handler(app, callback_query):
         if setting in ["OFF", "1x3", "2x3", "FULL"]:
             with open(keyboard_file, 'w', encoding='utf-8') as f:
                 f.write(setting)
-            invalidate_keyboard_cache(user_id)
+
+        # Prepare status text
         status_text = safe_get_messages(user_id).KEYBOARD_SETTING_UPDATED_MSG.format(setting=setting)
 
         result = safe_edit_message_text(
@@ -179,7 +178,7 @@ safe_get_messages(user_id).KEYBOARD_HIDDEN_MSG,
             safe_send_message(
                 callback_query.message.chat.id,
 safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(one_by_three, is_persistent=True, resize_keyboard=True),
+                reply_markup=ReplyKeyboardMarkup(one_by_three, resize_keyboard=True),
                 reply_parameters=ReplyParameters(message_id=callback_query.message.id)
             )
         elif setting == "2x3":
@@ -189,8 +188,8 @@ safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
             ]
             safe_send_message(
                 callback_query.message.chat.id,
- safe_get_messages(user_id).KEYBOARD_2X3_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(two_by_three, is_persistent=True, resize_keyboard=True),
+safe_get_messages(user_id).KEYBOARD_2X3_ACTIVATED_MSG,
+                reply_markup=ReplyKeyboardMarkup(two_by_three, resize_keyboard=True),
                 reply_parameters=ReplyParameters(message_id=callback_query.message.id)
             )
         elif setting == "FULL":
@@ -201,8 +200,8 @@ safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
             ]
             safe_send_message(
                 callback_query.message.chat.id,
- safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(emoji_keyboard, is_persistent=True, resize_keyboard=True),
+safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
+                reply_markup=ReplyKeyboardMarkup(emoji_keyboard, resize_keyboard=True),
                 reply_parameters=ReplyParameters(message_id=callback_query.message.id)
             )
 
@@ -230,7 +229,7 @@ def apply_keyboard_setting(app, chat_id, setting, message_id=None, user_id=None)
             safe_send_message(
                 chat_id,
 safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(one_by_three, is_persistent=True, resize_keyboard=True)
+                reply_markup=ReplyKeyboardMarkup(one_by_three, resize_keyboard=True)
             )
         elif setting == "2x3":
             two_by_three = [
@@ -240,8 +239,8 @@ safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
             # Send keyboard change as a separate message since it's a visual change
             safe_send_message(
                 chat_id,
- safe_get_messages(user_id).KEYBOARD_2X3_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(two_by_three, is_persistent=True, resize_keyboard=True)
+safe_get_messages(user_id).KEYBOARD_2X3_ACTIVATED_MSG,
+                reply_markup=ReplyKeyboardMarkup(two_by_three, resize_keyboard=True)
             )
         elif setting == "FULL":
             emoji_keyboard = [
@@ -252,8 +251,8 @@ safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
             # Send keyboard change as a separate message since it's a visual change
             safe_send_message(
                 chat_id,
- safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(emoji_keyboard, is_persistent=True, resize_keyboard=True)
+safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
+                reply_markup=ReplyKeyboardMarkup(emoji_keyboard, resize_keyboard=True)
             )
     except Exception as e:
         from HELPERS.logger import logger
