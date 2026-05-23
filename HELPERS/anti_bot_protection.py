@@ -433,12 +433,21 @@ def _check_24h_activity(ud: _UserData, now: float) -> Optional[str]:
     frequency = LimitsConfig.ANTI_BOT_24H_ACTIVITY_FREQUENCY
     window_h = window_s / 3600.0
 
+    if window_h < 2:
+        return None
+
     hours_since_start = (now - _bot_start_time) / 3600.0
     if hours_since_start < window_h:
         return None
 
+    if _bot_start_time > now:
+        return None
+
     all_ts = list(ud.activity_hours.values())
     hours_in_window = int(window_h)
+
+    if len(all_ts) < frequency:
+        return None
 
     active_hours: List[int] = []
     hour_activity_counts: Dict[int, int] = {}
@@ -457,7 +466,8 @@ def _check_24h_activity(ud: _UserData, now: float) -> Optional[str]:
             return (
                 f"Обнаружена активность 24/7 (подозрение на бота): "
                 f"активность в {len(active_hours)} из {hours_in_window} часов "
-                f"в течение {window_h} часов (требуется: {required_hours} активных часов)"
+                f"в течение последних {hours_in_window} часов "
+                f"(требуется: {required_hours} активных часов из {hours_in_window})"
             )
     else:
         req_per_hour = frequency // hours_in_window
@@ -466,7 +476,7 @@ def _check_24h_activity(ud: _UserData, now: float) -> Optional[str]:
             return (
                 f"Обнаружена активность 24/7 (подозрение на бота): "
                 f"в каждом из {hours_in_window} часов минимум {req_per_hour} активностей "
-                f"в течение {window_h} часов"
+                f"в течение последних {hours_in_window} часов"
             )
     return None
 
