@@ -432,7 +432,7 @@ def send_videos(
                 middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                 subprocess.run([
                     'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', thumb_path
+                    '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=5:5:0.8:3:3:0.4', '-q:v', '2', thumb_path
                 ], capture_output=True, text=True, timeout=30)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
@@ -468,6 +468,7 @@ def send_videos(
                 filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease:flags=lanczos')
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
+                filters.append('unsharp=5:5:0.8:3:3:0.4')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
@@ -554,6 +555,7 @@ def send_videos(
                 filters = []
                 filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase:flags=lanczos')
                 filters.append(f'crop={target_w}:{target_h}')
+                filters.append('unsharp=5:5:0.8:3:3:0.4')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
@@ -838,7 +840,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', local_thumb
+                            '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=5:5:0.8:3:3:0.4', '-q:v', '2', local_thumb
                         ], capture_output=True, text=True, timeout=30)
                         if not os.path.exists(local_thumb):
                             local_thumb = None
