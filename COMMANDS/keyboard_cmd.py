@@ -6,6 +6,7 @@ from HELPERS.logger import send_to_all, send_to_logger
 from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
+from HELPERS.decorators import invalidate_keyboard_cache
 
 def keyboard_command(app, message):
     """Handle keyboard settings command"""
@@ -24,6 +25,7 @@ def keyboard_command(app, message):
             # Apply setting directly
             with open(keyboard_file, 'w', encoding='utf-8') as f:
                 f.write(arg.upper())
+            invalidate_keyboard_cache(user_id)
             
             # Show confirmation by editing the original message
             result = safe_edit_message_text(
@@ -139,8 +141,7 @@ def keyboard_callback_handler(app, callback_query):
         if setting in ["OFF", "1x3", "2x3", "FULL"]:
             with open(keyboard_file, 'w', encoding='utf-8') as f:
                 f.write(setting)
-
-        # Prepare status text
+            invalidate_keyboard_cache(user_id)
         status_text = safe_get_messages(user_id).KEYBOARD_SETTING_UPDATED_MSG.format(setting=setting)
 
         result = safe_edit_message_text(

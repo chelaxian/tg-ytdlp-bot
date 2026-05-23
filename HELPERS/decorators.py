@@ -30,6 +30,51 @@ def app_handler(func):
 # Get app instance
 app = get_app()
 
+_keyboard_mode_cache = {}
+_KB_CACHE_TTL = 300
+
+def _get_keyboard_mode_cached(user_id):
+    import time
+    now = time.time()
+    cached = _keyboard_mode_cache.get(user_id)
+    if cached and (now - cached[1]) < _KB_CACHE_TTL:
+        setting = cached[0]
+        return setting != "OFF", setting
+    keyboard_file = f'./users/{user_id}/keyboard.txt'
+    setting = "2x3"
+    if os.path.exists(keyboard_file):
+        try:
+            with open(keyboard_file, 'r') as f:
+                s = f.read().strip()
+                if s in ("OFF", "1x3", "2x3", "FULL"):
+                    setting = s
+        except Exception:
+            pass
+    _keyboard_mode_cache[user_id] = (setting, now)
+    return setting != "OFF", setting
+
+def invalidate_keyboard_cache(user_id):
+    _keyboard_mode_cache.pop(user_id, None)
+
+def _patch_send_message():
+    from pyrogram import Client
+    _orig = Client.send_message
+
+    def _patched(self, chat_id, text, **kwargs):
+        if (isinstance(chat_id, int) and chat_id > 0
+                and 'reply_markup' not in kwargs):
+            try:
+                enabled, mode = _get_keyboard_mode_cached(chat_id)
+                if enabled:
+                    kwargs['reply_markup'] = get_main_reply_keyboard(mode)
+            except Exception:
+                pass
+        return _orig(self, chat_id, text, **kwargs)
+
+    Client.send_message = _patched
+
+_patch_send_message()
+
 def get_main_reply_keyboard(mode="2x3"):
     messages = safe_get_messages(None)
     """Function for persistent reply-keyboard (is_persistent=True)"""
