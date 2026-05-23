@@ -1,217 +1,254 @@
 """
-Rate limiter for URL requests per user.
-Tracks URLs per minute, hour, and day with cooldown periods.
+Rate limiter for URL requests per user — zero-contention design.
+
+Per-user locks ensure that checking limits for user A never blocks user B.
+A background daemon thread handles disk persistence; handler threads never
+touch the filesystem.
 """
+
 import time
 import os
 import json
 import threading
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
+
 from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
 from HELPERS.logger import logger
 
-# In-memory storage: {user_id: {'minute': [...], 'hour': [...], 'day': [...]}}
-_rate_limits: dict = {}
-_rate_limits_lock = threading.Lock()
+# ── Constants ────────────────────────────────────────────────────────────
 
-# Cooldown storage: {user_id: {'period': 'minute'|'hour'|'day', 'until': timestamp}}
-_cooldowns: dict = {}
-_cooldowns_lock = threading.Lock()
-
-# Debounced save: avoid writing to disk on every single request
-_last_save_time = 0
-_save_interval = 30  # Save at most once every 30 seconds
-_save_lock = threading.Lock()
-
-# File for persistence
 _RATE_LIMITS_FILE = "CONFIG/.rate_limits.json"
 _COOLDOWNS_FILE = "CONFIG/.cooldowns.json"
+_SAVE_INTERVAL = 30
+
+
+# ── Per-user state ───────────────────────────────────────────────────────
+
+class _UserData:
+    """Rate-limit state for a single user."""
+    __slots__ = ('lock', 'minute', 'hour', 'day', 'cooldown')
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.minute: List[float] = []
+        self.hour: List[float] = []
+        self.day: List[float] = []
+        self.cooldown: Optional[Dict] = None  # {'period': str, 'until': float}
+
+
+# ── Global registry (lock-free fast path) ────────────────────────────────
+
+_registry: Dict[int, _UserData] = {}
+_registry_lock = threading.Lock()
+
+
+def _get_user(user_id: int) -> _UserData:
+    ud = _registry.get(user_id)
+    if ud is not None:
+        return ud
+    with _registry_lock:
+        ud = _registry.get(user_id)
+        if ud is None:
+            ud = _UserData()
+            _registry[user_id] = ud
+        return ud
+
+
+# ── Background persistence ───────────────────────────────────────────────
+
+_dirty = threading.Event()
+_save_stop = threading.Event()
+
+
+def _save_worker():
+    while not _save_stop.is_set():
+        _dirty.wait(timeout=_SAVE_INTERVAL)
+        _dirty.clear()
+        if _save_stop.is_set():
+            return
+        try:
+            _do_save()
+        except Exception as exc:
+            logger.error(f"Rate-limiter save failed: {exc}")
+
+
+def _do_save():
+    with _registry_lock:
+        snapshot = dict(_registry)
+
+    limits_data: Dict = {}
+    cooldowns_data: Dict = {}
+    for uid, ud in snapshot.items():
+        with ud.lock:
+            has_limits = ud.minute or ud.hour or ud.day
+            if has_limits:
+                limits_data[str(uid)] = {
+                    'minute': list(ud.minute),
+                    'hour': list(ud.hour),
+                    'day': list(ud.day),
+                }
+            if ud.cooldown is not None:
+                cooldowns_data[str(uid)] = dict(ud.cooldown)
+
+    try:
+        os.makedirs(os.path.dirname(_RATE_LIMITS_FILE) or '.', exist_ok=True)
+
+        tmp = _RATE_LIMITS_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(limits_data, f, indent=2)
+        if os.path.exists(_RATE_LIMITS_FILE):
+            os.replace(tmp, _RATE_LIMITS_FILE)
+        else:
+            os.rename(tmp, _RATE_LIMITS_FILE)
+
+        tmp = _COOLDOWNS_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(cooldowns_data, f, indent=2)
+        if os.path.exists(_COOLDOWNS_FILE):
+            os.replace(tmp, _COOLDOWNS_FILE)
+        else:
+            os.rename(tmp, _COOLDOWNS_FILE)
+    except Exception:
+        for path in (_RATE_LIMITS_FILE + '.tmp', _COOLDOWNS_FILE + '.tmp'):
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError:
+                pass
+        raise
 
 
 def _load_from_disk():
-    """Load rate limits and cooldowns from disk"""
-    global _rate_limits, _cooldowns
-    
-    # Load rate limits
+    global _registry
+
+    registry: Dict[int, _UserData] = {}
+
     if os.path.exists(_RATE_LIMITS_FILE):
         try:
             with open(_RATE_LIMITS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                with _rate_limits_lock:
-                    _rate_limits = {int(k): v for k, v in data.items()}
-        except Exception as e:
-            logger.error(f"Failed to load rate limits: {e}")
-            _rate_limits = {}
-    else:
-        _rate_limits = {}
-    
-    # Load cooldowns
+            for uid_str, user_data in data.items():
+                uid = int(uid_str)
+                ud = _UserData()
+                ud.minute = [float(ts) for ts in user_data.get('minute', [])]
+                ud.hour = [float(ts) for ts in user_data.get('hour', [])]
+                ud.day = [float(ts) for ts in user_data.get('day', [])]
+                registry[uid] = ud
+        except Exception as exc:
+            logger.error(f"Failed to load rate limits: {exc}")
+
     if os.path.exists(_COOLDOWNS_FILE):
         try:
             with open(_COOLDOWNS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                with _cooldowns_lock:
-                    _cooldowns = {int(k): v for k, v in data.items()}
-        except Exception as e:
-            logger.error(f"Failed to load cooldowns: {e}")
-            _cooldowns = {}
+            for uid_str, cd_data in data.items():
+                uid = int(uid_str)
+                if uid not in registry:
+                    registry[uid] = _UserData()
+                registry[uid].cooldown = {
+                    'period': cd_data.get('period', 'minute'),
+                    'until': float(cd_data.get('until', 0)),
+                }
+        except Exception as exc:
+            logger.error(f"Failed to load cooldowns: {exc}")
+
+    _registry = registry
 
 
-def _save_to_disk():
-    """Save rate limits and cooldowns to disk (debounced)."""
-    global _last_save_time
-    with _save_lock:
-        now = time.time()
-        if now - _last_save_time < _save_interval:
-            return  # Skip: saved recently
-        _last_save_time = now
-    try:
-        os.makedirs(os.path.dirname(_RATE_LIMITS_FILE), exist_ok=True)
-        
-        # Save rate limits
-        with _rate_limits_lock:
-            data = {str(k): v for k, v in _rate_limits.items()}
-        with open(_RATE_LIMITS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-        
-        # Save cooldowns
-        with _cooldowns_lock:
-            data = {str(k): v for k, v in _cooldowns.items()}
-        with open(_COOLDOWNS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        logger.error(f"Failed to save rate limits/cooldowns: {e}")
+# ── Lazy cleanup ─────────────────────────────────────────────────────────
+
+def _cleanup_user(ud: _UserData, now: float):
+    """Prune stale timestamps. Caller must hold ud.lock."""
+    cut_60 = now - 60
+    cut_3600 = now - 3600
+    cut_86400 = now - 86400
+
+    i = 0
+    while i < len(ud.minute) and ud.minute[i] < cut_60:
+        i += 1
+    if i:
+        del ud.minute[:i]
+
+    i = 0
+    while i < len(ud.hour) and ud.hour[i] < cut_3600:
+        i += 1
+    if i:
+        del ud.hour[:i]
+
+    i = 0
+    while i < len(ud.day) and ud.day[i] < cut_86400:
+        i += 1
+    if i:
+        del ud.day[:i]
 
 
-def _cleanup_old_entries(user_id: int, current_time: float):
-    """Remove old entries outside the time windows and delete user if all windows are empty."""
-    with _rate_limits_lock:
-        if user_id not in _rate_limits:
-            return
-        
-        user_data = _rate_limits[user_id]
-        
-        # Clean minute entries (older than 60 seconds)
-        user_data['minute'] = [ts for ts in user_data['minute'] if current_time - ts < 60]
-        
-        # Clean hour entries (older than 3600 seconds)
-        user_data['hour'] = [ts for ts in user_data['hour'] if current_time - ts < 3600]
-        
-        # Clean day entries (older than 86400 seconds)
-        user_data['day'] = [ts for ts in user_data['day'] if current_time - ts < 86400]
-        
-        # Remove user entry if all windows are empty to prevent unbounded dict growth
-        if not user_data['minute'] and not user_data['hour'] and not user_data['day']:
-            del _rate_limits[user_id]
-
-
-def _check_cooldown(user_id: int, current_time: float) -> Optional[Tuple[str, float]]:
-    """Check if user is in cooldown. Returns (period, seconds_remaining) or None"""
-    with _cooldowns_lock:
-        if user_id not in _cooldowns:
-            return None
-        
-        cooldown = _cooldowns[user_id]
-        until = cooldown.get('until', 0)
-        
-        if current_time < until:
-            period = cooldown.get('period', 'unknown')
-            remaining = until - current_time
-            return (period, remaining)
-        
-        # Cooldown expired, remove it
-        del _cooldowns[user_id]
-        _save_to_disk()
-        return None
-
-
-def _set_cooldown(user_id: int, period: str, current_time: float):
-    """Set cooldown for user until end of the period"""
-    period_durations = {
-        'minute': LimitsConfig.RATE_LIMIT_COOLDOWN_MINUTE,
-        'hour': LimitsConfig.RATE_LIMIT_COOLDOWN_HOUR,
-        'day': LimitsConfig.RATE_LIMIT_COOLDOWN_DAY
-    }
-    
-    duration = period_durations.get(period, LimitsConfig.RATE_LIMIT_COOLDOWN_MINUTE)
-    until = current_time + duration
-    
-    with _cooldowns_lock:
-        _cooldowns[user_id] = {'period': period, 'until': until}
-    
-    _save_to_disk()
-
+# ── Public API ───────────────────────────────────────────────────────────
 
 def check_rate_limit(user_id: int, is_admin: bool = False) -> Tuple[bool, Optional[str]]:
     """
     Check if user can send another URL.
-    Returns (allowed: bool, message: Optional[str])
-    If not allowed, message contains cooldown info.
+    Returns ``(allowed, message)``.  When *allowed* is False, *message*
+    contains the cooldown info.
     """
-    # Проверяем, должны ли применяться ограничения к админу
-    if is_admin:
-        if LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
-            return (True, None)  # Админы с отключенными ограничениями обходят rate limits
-    
-    current_time = time.time()
-    
-    # Check cooldown first
-    cooldown_info = _check_cooldown(user_id, current_time)
-    if cooldown_info:
-        period, remaining = cooldown_info
-        hours = int(remaining // 3600)
-        minutes = int((remaining % 3600) // 60)
-        seconds = int(remaining % 60)
-        
-        if period == 'day':
-            msg = f"Rate limit exceeded. Cooldown: {hours}h {minutes}m {seconds}s remaining"
-        elif period == 'hour':
-            msg = f"Rate limit exceeded. Cooldown: {minutes}m {seconds}s remaining"
-        else:
-            msg = f"Rate limit exceeded. Cooldown: {seconds}s remaining"
-        
-        return (False, msg)
-    
-    # Cleanup old entries
-    _cleanup_old_entries(user_id, current_time)
-    
-    # Check limits
-    with _rate_limits_lock:
-        if user_id not in _rate_limits:
-            _rate_limits[user_id] = {'minute': [], 'hour': [], 'day': []}
-        user_data = _rate_limits[user_id]
-        
-        # Check minute limit
-        if len(user_data['minute']) >= LimitsConfig.RATE_LIMIT_PER_MINUTE:
-            _set_cooldown(user_id, 'minute', current_time)
-            remaining = LimitsConfig.RATE_LIMIT_COOLDOWN_MINUTE
-            minutes = int(remaining // 60)
+    if is_admin and LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
+        return (True, None)
+
+    now = time.time()
+    ud = _get_user(user_id)
+
+    with ud.lock:
+        if ud.cooldown is not None:
+            if now < ud.cooldown['until']:
+                period = ud.cooldown.get('period', 'unknown')
+                remaining = ud.cooldown['until'] - now
+                hours = int(remaining // 3600)
+                minutes = int((remaining % 3600) // 60)
+                seconds = int(remaining % 60)
+
+                if period == 'day':
+                    msg = f"Rate limit exceeded. Cooldown: {hours}h {minutes}m {seconds}s remaining"
+                elif period == 'hour':
+                    msg = f"Rate limit exceeded. Cooldown: {minutes}m {seconds}s remaining"
+                else:
+                    msg = f"Rate limit exceeded. Cooldown: {seconds}s remaining"
+                return (False, msg)
+            ud.cooldown = None
+
+        _cleanup_user(ud, now)
+
+        if len(ud.minute) >= LimitsConfig.RATE_LIMIT_PER_MINUTE:
+            duration = LimitsConfig.RATE_LIMIT_COOLDOWN_MINUTE
+            ud.cooldown = {'period': 'minute', 'until': now + duration}
+            minutes = int(duration // 60)
+            _dirty.set()
             return (False, f"Rate limit exceeded (max {LimitsConfig.RATE_LIMIT_PER_MINUTE} URLs/minute). Cooldown: {minutes}m remaining")
-        
-        # Check hour limit
-        if len(user_data['hour']) >= LimitsConfig.RATE_LIMIT_PER_HOUR:
-            _set_cooldown(user_id, 'hour', current_time)
-            remaining = LimitsConfig.RATE_LIMIT_COOLDOWN_HOUR
-            hours = int(remaining // 3600)
+
+        if len(ud.hour) >= LimitsConfig.RATE_LIMIT_PER_HOUR:
+            duration = LimitsConfig.RATE_LIMIT_COOLDOWN_HOUR
+            ud.cooldown = {'period': 'hour', 'until': now + duration}
+            hours = int(duration // 3600)
+            _dirty.set()
             return (False, f"Rate limit exceeded (max {LimitsConfig.RATE_LIMIT_PER_HOUR} URLs/hour). Cooldown: {hours}h remaining")
-        
-        # Check day limit
-        if len(user_data['day']) >= LimitsConfig.RATE_LIMIT_PER_DAY:
-            _set_cooldown(user_id, 'day', current_time)
-            remaining = LimitsConfig.RATE_LIMIT_COOLDOWN_DAY
-            hours = int(remaining // 3600)
+
+        if len(ud.day) >= LimitsConfig.RATE_LIMIT_PER_DAY:
+            duration = LimitsConfig.RATE_LIMIT_COOLDOWN_DAY
+            ud.cooldown = {'period': 'day', 'until': now + duration}
+            hours = int(duration // 3600)
+            _dirty.set()
             return (False, f"Rate limit exceeded (max {LimitsConfig.RATE_LIMIT_PER_DAY} URLs/day). Cooldown: {hours}h remaining")
-        
-        # All checks passed, record the request
-        user_data['minute'].append(current_time)
-        user_data['hour'].append(current_time)
-        user_data['day'].append(current_time)
-    
-    _save_to_disk()
+
+        ud.minute.append(now)
+        ud.hour.append(now)
+        ud.day.append(now)
+
+    _dirty.set()
     return (True, None)
 
 
-# Load on module import
+# ── Module initialization ────────────────────────────────────────────────
+
 _load_from_disk()
 
+_save_thread = threading.Thread(target=_save_worker, name="ratelimit-save", daemon=True)
+_save_thread.start()
