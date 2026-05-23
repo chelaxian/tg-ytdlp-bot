@@ -262,7 +262,7 @@ def get_duration_thumb_(dir, video_path, thumb_name):
             "-ss", seek_sec,
             "-i", video_path,
             "-vframes", "1",
-            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos,unsharp=5:5:0.8:3:3:0.4",
+            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos",
             "-q:v", "2",
             thumb_dir
         ]
@@ -388,7 +388,7 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
             "-ss", seek_sec,
             "-i", video_path,
             "-vframes", "1",    # Capture 1 Frame
-            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos,unsharp=5:5:0.8:3:3:0.4",
+            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos",
             "-q:v", "2",
             thumb_dir
         ]

@@ -432,7 +432,7 @@ def send_videos(
                 middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                 subprocess.run([
                     'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=5:5:0.8:3:3:0.4', '-q:v', '2', thumb_path
+                    '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', thumb_path
                 ], capture_output=True, text=True, timeout=30)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
@@ -468,7 +468,6 @@ def send_videos(
                 filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease:flags=lanczos')
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
-                filters.append('unsharp=5:5:0.8:3:3:0.4')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
@@ -555,7 +554,6 @@ def send_videos(
                 filters = []
                 filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase:flags=lanczos')
                 filters.append(f'crop={target_w}:{target_h}')
-                filters.append('unsharp=5:5:0.8:3:3:0.4')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
@@ -567,6 +565,22 @@ def send_videos(
             except Exception as e:
                 logger.warning(f'_thumb_crop_center error: {e}')
                 return False
+
+        def _get_image_dims(path: str) -> tuple[int, int]:
+            """Get image dimensions via ffprobe (fast, no decode)."""
+            try:
+                r = subprocess.run(
+                    ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                     '-show_entries', 'stream=width,height', '-of', 'csv=s=x:p=0', path],
+                    capture_output=True, text=True, timeout=5
+                )
+                if r.returncode == 0 and r.stdout.strip():
+                    parts = r.stdout.strip().split('x')
+                    if len(parts) == 2:
+                        return int(parts[0]), int(parts[1])
+            except Exception:
+                pass
+            return 0, 0
 
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
             """Resize for free video thumbnail, matching the video's aspect ratio.
@@ -594,6 +608,14 @@ def send_videos(
                 except Exception as e:
                     logger.warning(f"_resize_to_thumb_free: AR calc error: {e}")
                 logger.info(f"_resize_to_thumb_free: video={vw}x{vh}, ar={ar:.2f}, target={tw}x{th}, shorts={is_shorts}")
+                # Check if source image already fits within target dims (skip re-encode)
+                img_w, img_h = _get_image_dims(src_path)
+                if img_w > 0 and img_h > 0:
+                    if img_w <= 320 and img_h <= 320 and abs(img_w - tw) <= 4 and abs(img_h - th) <= 4:
+                        import shutil
+                        shutil.copy2(src_path, dest_path)
+                        logger.info(f"_resize_to_thumb_free: source {img_w}x{img_h} matches target {tw}x{th}, skip resize")
+                        return True
                 if is_shorts:
                     result = _thumb_crop_center(src_path, dest_path, tw, th)
                 else:
@@ -615,7 +637,7 @@ def send_videos(
                 # 1) Try downloading external thumbnail (scaled to 320px)
                 try:
                     tmp_dl = os.path.join(base_dir, base_name + '.__ext_thumb.jpg')
-                    if video_url and download_thumbnail(video_url, tmp_dl):
+                    if video_url and download_thumbnail(video_url, tmp_dl, prefer_320=True):
                         if _resize_to_thumb_free(tmp_dl, cover_path):
                             try:
                                 if os.path.exists(tmp_dl):
@@ -840,7 +862,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=5:5:0.8:3:3:0.4', '-q:v', '2', local_thumb
+                            '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', local_thumb
                         ], capture_output=True, text=True, timeout=30)
                         if not os.path.exists(local_thumb):
                             local_thumb = None
