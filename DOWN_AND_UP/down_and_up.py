@@ -2420,11 +2420,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 end_range = 1
                                 logger.info(f"[FALLBACK DEBUG] NO RANGE FOUND, using url: {parsed_url}")
                             
-                            # Build fallback command for single item only (not entire range)
-                            # Use current_index instead of full range to download only the failed item
-                            current_item_index = current_index + 1  # current_index is 0-based, we need 1-based
-                            fallback_text = f"/img {current_item_index}-{current_item_index} {parsed_url}"
-                            logger.info(f"[FALLBACK] Downloading only failed item {current_item_index} via gallery-dl, fallback_text: {fallback_text}")
+                            # Build fallback command: download ALL items via gallery-dl
+                            if start_range and end_range and (start_range != 1 or end_range != 1):
+                                fallback_text = f"/img {start_range}-{end_range} {parsed_url}"
+                            else:
+                                fallback_text = f"/img {parsed_url}"
+                            logger.info(f"[FALLBACK] Downloading all items via gallery-dl, fallback_text: {fallback_text}")
                             
                             if tags_text:
                                 fallback_text += f" {tags_text}"
@@ -2743,11 +2744,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 end_range = 1
                                 logger.info(f"[FALLBACK DEBUG] NO RANGE FOUND, using url: {parsed_url}")
                             
-                            # Build fallback command for single item only (not entire range)
-                            # Use current_index instead of full range to download only the failed item
-                            current_item_index = current_index + 1  # current_index is 0-based, we need 1-based
-                            fallback_text = f"/img {current_item_index}-{current_item_index} {parsed_url}"
-                            logger.info(f"[FALLBACK] Downloading only failed item {current_item_index} via gallery-dl, fallback_text: {fallback_text}")
+                            # Build fallback command: download ALL items via gallery-dl
+                            if start_range and end_range and (start_range != 1 or end_range != 1):
+                                fallback_text = f"/img {start_range}-{end_range} {parsed_url}"
+                            else:
+                                fallback_text = f"/img {parsed_url}"
+                            logger.info(f"[FALLBACK] Downloading all items via gallery-dl (generic), fallback_text: {fallback_text}")
                             
                             if tags_text:
                                 fallback_text += f" {tags_text}"
