@@ -37,6 +37,10 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
         "too many requests",
         "rate limit exceeded",
         "quota exceeded",
+        "only available for registered users",
+        "cookies for the authentication",
+        "cookies-from-browser",
+        "use --cookies",
         
         # Ошибки формата контента
         "no videos found in playlist",

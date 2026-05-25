@@ -7012,8 +7012,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # If this looks like a non-video URL, try gallery-dl fallback first
         try:
             emsg = str(e)
+            from HELPERS.fallback_helper import should_fallback_to_gallery_dl
+            _gallery_dl_fallback = should_fallback_to_gallery_dl(emsg, url)
             if (
-                safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG in emsg
+                _gallery_dl_fallback
+                or safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG in emsg
                 or safe_get_messages(user_id).ALWAYS_ASK_UNSUPPORTED_URL_MSG in emsg
                 or safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG in emsg
                 or safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEO_FOUND_MSG in emsg
@@ -7089,6 +7092,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         return
                     except Exception as call_e:
                         logger.error(f"Failed to trigger gallery-dl fallback from Always Ask menu: {call_e}")
+                        _gallery_dl_fallback_error = str(call_e)
+        except Exception:
+            pass
+        
+        _gallery_dl_error_info = ""
+        try:
+            if _gallery_dl_fallback_error:
+                from HELPERS.logger import sanitize_error_message as _sanitize
+                _gallery_dl_error_info = f"\n\n🔄 <b>gallery-dl fallback also failed:</b>\n<code>{_sanitize(_gallery_dl_fallback_error)}</code>"
         except Exception:
             pass
         
@@ -7115,8 +7127,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         error_text = (
             f"{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG}"
             f"\n<blockquote>{short_error}</blockquote>\n"
-            f"\n<code>{sanitized_error}</code>\n\n"
-            f"{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
+            f"\n<code>{sanitized_error}</code>\n"
+            f"{_gallery_dl_error_info}"
+            f"\n{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
         )
         
         # Try to edit the processing message to show error first
@@ -7132,7 +7145,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     )
                     # Send cookie hint if this is a cookie/authentication error
                     from CONFIG.errors import is_cookie_error
-                    if is_cookie_error(str(e)):
+                    _combined_errors = str(e) + " " + (_gallery_dl_fallback_error or "")
+                    if is_cookie_error(_combined_errors):
                         try:
                             safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
                             logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu)")
@@ -7155,7 +7169,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         )
         # Send cookie hint if this is a cookie/authentication error
         from CONFIG.errors import is_cookie_error
-        if is_cookie_error(str(e)):
+        _combined_errors = str(e) + " " + (_gallery_dl_fallback_error if '_gallery_dl_fallback_error' in dir() else "")
+        if is_cookie_error(_combined_errors):
             try:
                 safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
                 logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu fallback path)")
