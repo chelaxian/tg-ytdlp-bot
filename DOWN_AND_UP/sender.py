@@ -128,25 +128,24 @@ def send_videos(
         return None
     logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
-    # --- ASCII-safe path rename for Pyrogram compatibility ---
-    # Pyrogram's send_video uses os.path.isfile() which may fail for paths
-    # containing non-ASCII characters (accents, diacritics) on some Linux systems.
-    # If the path contains non-ASCII chars, rename to a safe temp name and
-    # rename back in the finally block after sending.
-    _original_video_path_for_rename = None  # set only if renamed
-    _original_filename_before_rename = os.path.basename(video_abs_path)  # preserve for file_name param
+    # --- ASCII-safe hardlink for Pyrogram fallback compatibility ---
+    # On rare Linux systems without UTF-8 locale, Pyrogram's os.path.isfile() may
+    # fail for non-ASCII paths. We create a hardlink with an ASCII-safe name as a
+    # fallback, but always try sending via the ORIGINAL Unicode path first so that
+    # Telegram shows the real filename. The hardlink is deleted in the finally block.
+    _ascii_safe_link_path = None  # set only if hardlink created
+    _original_filename_before_link = os.path.basename(video_abs_path)  # preserve for file_name param
     try:
         video_abs_path.encode('ascii')
     except UnicodeEncodeError:
         _ascii_safe_name = f"_tg_send_{int(time.time() * 1000)}_{os.getpid()}{os.path.splitext(video_abs_path)[1]}"
-        _ascii_safe_path = os.path.join(os.path.dirname(video_abs_path), _ascii_safe_name)
+        _ascii_safe_link_path = os.path.join(os.path.dirname(video_abs_path), _ascii_safe_name)
         try:
-            os.rename(video_abs_path, _ascii_safe_path)
-            logger.info(f"Renamed to ASCII-safe path for Pyrogram: {video_abs_path} -> {_ascii_safe_path}")
-            _original_video_path_for_rename = video_abs_path
-            video_abs_path = _ascii_safe_path
-        except Exception as _rename_err:
-            logger.warning(f"Failed to rename to ASCII-safe path (will try sending anyway): {_rename_err}")
+            os.link(video_abs_path, _ascii_safe_link_path)
+            logger.info(f"Created ASCII-safe hardlink for Pyrogram fallback: {_ascii_safe_link_path}")
+        except Exception as _link_err:
+            logger.warning(f"Failed to create ASCII-safe hardlink (will try sending anyway): {_link_err}")
+            _ascii_safe_link_path = None
     
     # Initialize send_as_file flag (may be set to True by remux fallback below)
     send_as_file = False
@@ -957,17 +956,20 @@ def send_videos(
                 finally:
                     # Stop upload logging after upload completes or fails
                     _stop_upload_logging(user_id, msg_id)
-            # Get original filename for document (use pre-rename name to preserve Unicode)
-            original_filename = _original_filename_before_rename
+            # Get original filename for document (use pre-link name to preserve Unicode)
+            original_filename = _original_filename_before_link
             # Sanitize filename to avoid Pyrogram decode errors with special characters
             from HELPERS.filesystem_hlp import sanitize_filename
             original_filename = sanitize_filename(original_filename)
+            # Use ASCII-safe hardlink path for actual upload (Pyrogram compatibility),
+            # but pass the real Unicode name as file_name so Telegram shows it correctly.
+            _doc_send_path = _ascii_safe_link_path if _ascii_safe_link_path and os.path.exists(_ascii_safe_link_path) else video_abs_path
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
                 result = app.send_document(
                     chat_id=user_id,
-                    document=video_abs_path,
+                    document=_doc_send_path,
                     file_name=original_filename,
                     caption=caption_text,
                     thumb=local_thumb,
@@ -1268,13 +1270,13 @@ def send_videos(
                 send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_DESCRIPTION_FILE_MSG.format(error=str(e)))
         return video_msg
     finally:
-        # Rename file back to original path if it was renamed for ASCII compatibility
-        if _original_video_path_for_rename and os.path.exists(video_abs_path):
+        # Remove ASCII-safe hardlink if it was created
+        if _ascii_safe_link_path and os.path.exists(_ascii_safe_link_path):
             try:
-                os.rename(video_abs_path, _original_video_path_for_rename)
-                logger.info(f"Renamed back to original path: {video_abs_path} -> {_original_video_path_for_rename}")
-            except Exception as _rename_back_err:
-                logger.warning(f"Failed to rename back to original path: {_rename_back_err}")
+                os.remove(_ascii_safe_link_path)
+                logger.info(f"Removed ASCII-safe hardlink: {_ascii_safe_link_path}")
+            except Exception as _unlink_err:
+                logger.warning(f"Failed to remove ASCII-safe hardlink: {_unlink_err}")
         if os.path.exists(temp_desc_path):
             try:
                 os.remove(temp_desc_path)
