@@ -5016,16 +5016,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             else:
                 proc_msg = app.send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG)
             try:
-                app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=safe_get_messages(user_id).DOWNLOAD_STARTED_MSG, parse_mode=enums.ParseMode.HTML)
-                try:
-                    from HELPERS.safe_messeger import schedule_delete_message
-                    schedule_delete_message(user_id, proc_msg.id, delete_after_seconds=5)
-                except Exception:
+                from HELPERS.safe_messeger import schedule_delete_message
+                if proc_msg is None or not hasattr(proc_msg, 'id'):
+                    logger.error(f"[FLOOD-CHECK] proc_msg is not Message: type={type(proc_msg)}, value={proc_msg}")
+                    os.remove(flood_time_file) if os.path.exists(flood_time_file) else None
                     pass
-                if os.path.exists(flood_time_file):
-                    os.remove(flood_time_file)
+                else:
+                    app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=safe_get_messages(user_id).DOWNLOAD_STARTED_MSG, parse_mode=enums.ParseMode.HTML)
+                    schedule_delete_message(user_id, proc_msg.id, delete_after_seconds=5)
+                    if os.path.exists(flood_time_file):
+                        os.remove(flood_time_file)
             except FloodWait as e:
-                # Keep/refresh timer and exit early
                 try:
                     os.makedirs(user_dir, exist_ok=True)
                     with open(flood_time_file, 'w') as f:
@@ -5033,9 +5034,13 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 except Exception:
                     pass
                 return
-            except Exception:
-                return
-            # If edit succeeded, proceed as usual (no flood)
+            except Exception as e:
+                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}, removing flood_time_file")
+                try:
+                    if os.path.exists(flood_time_file):
+                        os.remove(flood_time_file)
+                except Exception:
+                    pass
             proc_msg = None
     except Exception:
         pass

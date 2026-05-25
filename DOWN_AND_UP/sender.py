@@ -128,25 +128,24 @@ def send_videos(
         return None
     logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
-    # --- ASCII-safe path rename for Pyrogram compatibility ---
-    # Pyrogram's send_video uses os.path.isfile() which may fail for paths
-    # containing non-ASCII characters (accents, diacritics) on some Linux systems.
-    # If the path contains non-ASCII chars, rename to a safe temp name and
-    # rename back in the finally block after sending.
-    _original_video_path_for_rename = None  # set only if renamed
-    _original_filename_before_rename = os.path.basename(video_abs_path)  # preserve for file_name param
+    # --- ASCII-safe hardlink for Pyrogram fallback compatibility ---
+    # On rare Linux systems without UTF-8 locale, Pyrogram's os.path.isfile() may
+    # fail for non-ASCII paths. We create a hardlink with an ASCII-safe name as a
+    # fallback, but always try sending via the ORIGINAL Unicode path first so that
+    # Telegram shows the real filename. The hardlink is deleted in the finally block.
+    _ascii_safe_link_path = None  # set only if hardlink created
+    _original_filename_before_link = os.path.basename(video_abs_path)  # preserve for file_name param
     try:
         video_abs_path.encode('ascii')
     except UnicodeEncodeError:
         _ascii_safe_name = f"_tg_send_{int(time.time() * 1000)}_{os.getpid()}{os.path.splitext(video_abs_path)[1]}"
-        _ascii_safe_path = os.path.join(os.path.dirname(video_abs_path), _ascii_safe_name)
+        _ascii_safe_link_path = os.path.join(os.path.dirname(video_abs_path), _ascii_safe_name)
         try:
-            os.rename(video_abs_path, _ascii_safe_path)
-            logger.info(f"Renamed to ASCII-safe path for Pyrogram: {video_abs_path} -> {_ascii_safe_path}")
-            _original_video_path_for_rename = video_abs_path
-            video_abs_path = _ascii_safe_path
-        except Exception as _rename_err:
-            logger.warning(f"Failed to rename to ASCII-safe path (will try sending anyway): {_rename_err}")
+            os.link(video_abs_path, _ascii_safe_link_path)
+            logger.info(f"Created ASCII-safe hardlink for Pyrogram fallback: {_ascii_safe_link_path}")
+        except Exception as _link_err:
+            logger.warning(f"Failed to create ASCII-safe hardlink (will try sending anyway): {_link_err}")
+            _ascii_safe_link_path = None
     
     # Initialize send_as_file flag (may be set to True by remux fallback below)
     send_as_file = False
@@ -432,7 +431,7 @@ def send_videos(
                 middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                 subprocess.run([
                     'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=320:-1', thumb_path
+                    '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=3:3:0.5:3:3:0.25', '-q:v', '1', thumb_path
                 ], capture_output=True, text=True, timeout=30)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
@@ -465,13 +464,14 @@ def send_videos(
                 if crop_str:
                     filters.append(f'crop={crop_str}')
                 # Step 2 — scale so the image fits inside target dims, preserving AR
-                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease')
+                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease:flags=lanczos')
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
+                filters.append('unsharp=3:3:0.5:3:3:0.25')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
-                    '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
+                    '-vf', vf, '-vframes', '1', '-q:v', '1', dest_path
                 ], capture_output=True, text=True, timeout=30)
                 if r.returncode != 0:
                     logger.warning(f"_thumb_fit_ar ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}")
@@ -526,7 +526,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_path,
-                            '-vframes','1','-q:v','4', tmp_frame
+                            '-vframes','1','-q:v','1', tmp_frame
                         ], capture_output=True, text=True, timeout=30)
                         if os.path.exists(tmp_frame) and os.path.getsize(tmp_frame) > 0:
                             if _resize_to_cover(tmp_frame, cover_path):
@@ -552,12 +552,13 @@ def send_videos(
             import subprocess as _sp
             try:
                 filters = []
-                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase')
+                filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase:flags=lanczos')
                 filters.append(f'crop={target_w}:{target_h}')
+                filters.append('unsharp=3:3:0.5:3:3:0.25')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
-                    '-vf', vf, '-vframes', '1', '-q:v', '4', dest_path
+                    '-vf', vf, '-vframes', '1', '-q:v', '1', dest_path
                 ], capture_output=True, text=True, timeout=30)
                 if r.returncode != 0:
                     logger.warning(f'_thumb_crop_center ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}')
@@ -566,35 +567,56 @@ def send_videos(
                 logger.warning(f'_thumb_crop_center error: {e}')
                 return False
 
+        def _get_image_dims(path: str) -> tuple[int, int]:
+            """Get image dimensions via ffprobe (fast, no decode)."""
+            try:
+                r = subprocess.run(
+                    ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                     '-show_entries', 'stream=width,height', '-of', 'csv=s=x:p=0', path],
+                    capture_output=True, text=True, timeout=5
+                )
+                if r.returncode == 0 and r.stdout.strip():
+                    parts = r.stdout.strip().split('x')
+                    if len(parts) == 2:
+                        return int(parts[0]), int(parts[1])
+            except Exception:
+                pass
+            return 0, 0
+
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
             """Resize for free video thumbnail, matching the video's aspect ratio.
 
-            Telegram thumbnail limits: width <= 320, height <= 320.
+            Telegram thumbnail limits: width <= 320, height <= 320, JPEG < 200KB.
             For horizontal videos (landscape): fit width to 320.
             For vertical videos (portrait): fit height to 320.
-            Both dimensions always stay within 320x320.
+            Uses q:v 2 (high quality) + lanczos scaling for best results.
             """
             try:
                 tw, th = 320, 180  # default 16:9
-                vw, vh, ar = 0, 0, 1.0  # safe defaults in case ffprobe returned 0,0
+                vw, vh, ar = 0, 0, 1.0
                 try:
                     if width and height and int(width) > 0 and int(height) > 0:
                         vw, vh = int(width), int(height)
                         ar = vw / vh
                         if ar >= 1:
-                            # Horizontal / square video: fit width to 320
                             tw = 320
                             th = max(2, round(320 / ar))
                         else:
-                            # Vertical video: fit height to 320
                             th = 320
                             tw = max(2, round(320 * ar))
-                        # Ensure both dimensions are even (required by some encoders)
                         tw = tw + (tw % 2)
                         th = th + (th % 2)
                 except Exception as e:
                     logger.warning(f"_resize_to_thumb_free: AR calc error: {e}")
                 logger.info(f"_resize_to_thumb_free: video={vw}x{vh}, ar={ar:.2f}, target={tw}x{th}, shorts={is_shorts}")
+                # Check if source image already fits within target dims (skip re-encode)
+                img_w, img_h = _get_image_dims(src_path)
+                if img_w > 0 and img_h > 0:
+                    if img_w <= 320 and img_h <= 320 and abs(img_w - tw) <= 4 and abs(img_h - th) <= 4:
+                        import shutil
+                        shutil.copy2(src_path, dest_path)
+                        logger.info(f"_resize_to_thumb_free: source {img_w}x{img_h} matches target {tw}x{th}, skip resize")
+                        return True
                 if is_shorts:
                     result = _thumb_crop_center(src_path, dest_path, tw, th)
                 else:
@@ -613,7 +635,7 @@ def send_videos(
                 cover_path = os.path.join(base_dir, base_name + '.__tgthumb_ext.jpg')
                 if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
                     return cover_path
-                # 1) Try downloading external thumbnail (scaled to 320px width)
+                # 1) Try downloading external thumbnail (scaled to 320px)
                 try:
                     tmp_dl = os.path.join(base_dir, base_name + '.__ext_thumb.jpg')
                     if video_url and download_thumbnail(video_url, tmp_dl):
@@ -841,7 +863,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=320:-1', local_thumb
+                            '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=3:3:0.5:3:3:0.25', '-q:v', '1', local_thumb
                         ], capture_output=True, text=True, timeout=30)
                         if not os.path.exists(local_thumb):
                             local_thumb = None
@@ -934,17 +956,20 @@ def send_videos(
                 finally:
                     # Stop upload logging after upload completes or fails
                     _stop_upload_logging(user_id, msg_id)
-            # Get original filename for document (use pre-rename name to preserve Unicode)
-            original_filename = _original_filename_before_rename
+            # Get original filename for document (use pre-link name to preserve Unicode)
+            original_filename = _original_filename_before_link
             # Sanitize filename to avoid Pyrogram decode errors with special characters
             from HELPERS.filesystem_hlp import sanitize_filename
             original_filename = sanitize_filename(original_filename)
+            # Use ASCII-safe hardlink path for actual upload (Pyrogram compatibility),
+            # but pass the real Unicode name as file_name so Telegram shows it correctly.
+            _doc_send_path = _ascii_safe_link_path if _ascii_safe_link_path and os.path.exists(_ascii_safe_link_path) else video_abs_path
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
                 result = app.send_document(
                     chat_id=user_id,
-                    document=video_abs_path,
+                    document=_doc_send_path,
                     file_name=original_filename,
                     caption=caption_text,
                     thumb=local_thumb,
@@ -1245,13 +1270,13 @@ def send_videos(
                 send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_DESCRIPTION_FILE_MSG.format(error=str(e)))
         return video_msg
     finally:
-        # Rename file back to original path if it was renamed for ASCII compatibility
-        if _original_video_path_for_rename and os.path.exists(video_abs_path):
+        # Remove ASCII-safe hardlink if it was created
+        if _ascii_safe_link_path and os.path.exists(_ascii_safe_link_path):
             try:
-                os.rename(video_abs_path, _original_video_path_for_rename)
-                logger.info(f"Renamed back to original path: {video_abs_path} -> {_original_video_path_for_rename}")
-            except Exception as _rename_back_err:
-                logger.warning(f"Failed to rename back to original path: {_rename_back_err}")
+                os.remove(_ascii_safe_link_path)
+                logger.info(f"Removed ASCII-safe hardlink: {_ascii_safe_link_path}")
+            except Exception as _unlink_err:
+                logger.warning(f"Failed to remove ASCII-safe hardlink: {_unlink_err}")
         if os.path.exists(temp_desc_path):
             try:
                 os.remove(temp_desc_path)

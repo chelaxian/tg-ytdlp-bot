@@ -146,7 +146,7 @@ def create_telegram_thumbnail(cover_path, output_path, size=320):
             img_resized = img_cropped.resize((size, size), Image.Resampling.LANCZOS)
             
             # Save as JPEG with baseline encoding and quality 0.8
-            img_resized.save(output_path, 'JPEG', quality=80, optimize=True, progressive=False)
+            img_resized.save(output_path, 'JPEG', quality=95, optimize=True, progressive=False)
             
             # Check file size and reduce quality if needed (<200KB)
             file_size = os.path.getsize(output_path)

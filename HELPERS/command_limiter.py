@@ -1,219 +1,234 @@
 """
-Command rate limiter with exponential backoff for spam protection.
-Tracks commands per minute and applies increasing cooldowns for repeated violations.
+Command rate limiter with exponential backoff — zero-contention design.
+
+Per-user locks ensure that checking limits for user A never blocks user B.
+A background daemon thread handles disk persistence; handler threads never
+touch the filesystem.
+
+Bug fix (from original): the old code used a non-reentrant ``threading.Lock``
+and acquired it recursively (check_command_limit → _set_cooldown → same lock),
+causing a guaranteed deadlock when a user exceeded the command limit.
+This rewrite collapses all state into a single per-user lock so no recursive
+acquisition is possible.
 """
+
 import time
 import os
 import json
 import threading
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
+
 from CONFIG.limits import LimitsConfig
 from HELPERS.logger import logger
 
-# In-memory storage: {user_id: {'commands': [timestamps], 'violations': count, 'current_cooldown': duration}}
-_command_limits: dict = {}
-_command_limits_lock = threading.Lock()
+# ── Constants ────────────────────────────────────────────────────────────
 
-# Cooldown storage: {user_id: {'until': timestamp, 'duration': seconds, 'violations': count}}
-_command_cooldowns: dict = {}
-_command_cooldowns_lock = threading.Lock()
-
-# Debounced save: avoid writing to disk on every single request
-_last_save_time_cmd = 0
-_save_interval_cmd = 30  # Save at most once every 30 seconds
-_save_lock_cmd = threading.Lock()
-
-# File for persistence
 _COMMAND_LIMITS_FILE = "CONFIG/.command_limits.json"
 _COMMAND_COOLDOWNS_FILE = "CONFIG/.command_cooldowns.json"
+_SAVE_INTERVAL = 30
+
+
+# ── Per-user state ───────────────────────────────────────────────────────
+
+class _UserData:
+    """Command-limit state for a single user."""
+    __slots__ = ('lock', 'commands', 'violations', 'cooldown')
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.commands: List[float] = []
+        self.violations: int = 0
+        self.cooldown: Optional[Dict] = None  # {'until': float, 'duration': float}
+
+
+# ── Global registry (lock-free fast path) ────────────────────────────────
+
+_registry: Dict[int, _UserData] = {}
+_registry_lock = threading.Lock()
+
+
+def _get_user(user_id: int) -> _UserData:
+    ud = _registry.get(user_id)
+    if ud is not None:
+        return ud
+    with _registry_lock:
+        ud = _registry.get(user_id)
+        if ud is None:
+            ud = _UserData()
+            _registry[user_id] = ud
+        return ud
+
+
+# ── Background persistence ───────────────────────────────────────────────
+
+_dirty = threading.Event()
+_save_stop = threading.Event()
+
+
+def _save_worker():
+    while not _save_stop.is_set():
+        _dirty.wait(timeout=_SAVE_INTERVAL)
+        _dirty.clear()
+        if _save_stop.is_set():
+            return
+        try:
+            _do_save()
+        except Exception as exc:
+            logger.error(f"Command-limiter save failed: {exc}")
+
+
+def _do_save():
+    with _registry_lock:
+        snapshot = dict(_registry)
+
+    limits_data: Dict = {}
+    cooldowns_data: Dict = {}
+    for uid, ud in snapshot.items():
+        with ud.lock:
+            has_limits = ud.commands or ud.violations > 0
+            if has_limits:
+                limits_data[str(uid)] = {
+                    'commands': list(ud.commands),
+                    'violations': ud.violations,
+                }
+            if ud.cooldown is not None:
+                cooldowns_data[str(uid)] = dict(ud.cooldown)
+
+    try:
+        os.makedirs(os.path.dirname(_COMMAND_LIMITS_FILE) or '.', exist_ok=True)
+
+        tmp = _COMMAND_LIMITS_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(limits_data, f, indent=2)
+        if os.path.exists(_COMMAND_LIMITS_FILE):
+            os.replace(tmp, _COMMAND_LIMITS_FILE)
+        else:
+            os.rename(tmp, _COMMAND_LIMITS_FILE)
+
+        tmp = _COMMAND_COOLDOWNS_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(cooldowns_data, f, indent=2)
+        if os.path.exists(_COMMAND_COOLDOWNS_FILE):
+            os.replace(tmp, _COMMAND_COOLDOWNS_FILE)
+        else:
+            os.rename(tmp, _COMMAND_COOLDOWNS_FILE)
+    except Exception:
+        for path in (_COMMAND_LIMITS_FILE + '.tmp', _COMMAND_COOLDOWNS_FILE + '.tmp'):
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError:
+                pass
+        raise
 
 
 def _load_from_disk():
-    """Load command limits and cooldowns from disk"""
-    global _command_limits, _command_cooldowns
-    
-    # Load command limits
+    global _registry
+
+    registry: Dict[int, _UserData] = {}
+
     if os.path.exists(_COMMAND_LIMITS_FILE):
         try:
             with open(_COMMAND_LIMITS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                with _command_limits_lock:
-                    _command_limits = {int(k): v for k, v in data.items()}
-        except Exception as e:
-            logger.error(f"Failed to load command limits: {e}")
-            _command_limits = {}
-    else:
-        _command_limits = {}
-    
-    # Load cooldowns
+            for uid_str, user_data in data.items():
+                uid = int(uid_str)
+                ud = _UserData()
+                ud.commands = [float(ts) for ts in user_data.get('commands', [])]
+                ud.violations = int(user_data.get('violations', 0))
+                registry[uid] = ud
+        except Exception as exc:
+            logger.error(f"Failed to load command limits: {exc}")
+
     if os.path.exists(_COMMAND_COOLDOWNS_FILE):
         try:
             with open(_COMMAND_COOLDOWNS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                with _command_cooldowns_lock:
-                    _command_cooldowns = {int(k): v for k, v in data.items()}
-        except Exception as e:
-            logger.error(f"Failed to load command cooldowns: {e}")
-            _command_cooldowns = {}
+            for uid_str, cd_data in data.items():
+                uid = int(uid_str)
+                if uid not in registry:
+                    registry[uid] = _UserData()
+                registry[uid].cooldown = {
+                    'until': float(cd_data.get('until', 0)),
+                    'duration': float(cd_data.get('duration', 0)),
+                }
+                if 'violations' in cd_data:
+                    registry[uid].violations = int(cd_data['violations'])
+        except Exception as exc:
+            logger.error(f"Failed to load command cooldowns: {exc}")
+
+    _registry = registry
 
 
-def _save_to_disk():
-    """Save command limits and cooldowns to disk (debounced)."""
-    global _last_save_time_cmd
-    with _save_lock_cmd:
-        now = time.time()
-        if now - _last_save_time_cmd < _save_interval_cmd:
-            return  # Skip: saved recently
-        _last_save_time_cmd = now
-    try:
-        os.makedirs(os.path.dirname(_COMMAND_LIMITS_FILE), exist_ok=True)
-        
-        # Save command limits
-        with _command_limits_lock:
-            data = {str(k): v for k, v in _command_limits.items()}
-        with open(_COMMAND_LIMITS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-        
-        # Save cooldowns
-        with _command_cooldowns_lock:
-            data = {str(k): v for k, v in _command_cooldowns.items()}
-        with open(_COMMAND_COOLDOWNS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        logger.error(f"Failed to save command limits/cooldowns: {e}")
-
-
-def _cleanup_old_entries(user_id: int, current_time: float):
-    """Remove old command entries outside the time window and delete user if empty."""
-    with _command_limits_lock:
-        if user_id not in _command_limits:
-            return
-        
-        user_data = _command_limits[user_id]
-        
-        # Clean commands older than 60 seconds
-        user_data['commands'] = [ts for ts in user_data['commands'] if current_time - ts < 60]
-        
-        # Remove user entry if commands list is empty and no violations worth keeping
-        if not user_data['commands'] and user_data.get('violations', 0) == 0:
-            del _command_limits[user_id]
-
-
-def _check_cooldown(user_id: int, current_time: float) -> Optional[Tuple[float, int]]:
-    """Check if user is in cooldown. Returns (seconds_remaining, violations_count) or None"""
-    with _command_cooldowns_lock:
-        if user_id not in _command_cooldowns:
-            return None
-        
-        cooldown = _command_cooldowns[user_id]
-        until = cooldown.get('until', 0)
-        violations = cooldown.get('violations', 0)
-        
-        if current_time < until:
-            remaining = until - current_time
-            return (remaining, violations)
-        
-        # Cooldown expired, remove it but keep violations count for next violation
-        violations = cooldown.get('violations', 0)
-        del _command_cooldowns[user_id]
-        # Transfer violations to limits storage
-        with _command_limits_lock:
-            if user_id not in _command_limits:
-                _command_limits[user_id] = {'commands': [], 'violations': 0}
-            _command_limits[user_id]['violations'] = violations
-        _save_to_disk()
-        return None
-
-
-def _set_cooldown(user_id: int, current_time: float, violations: int):
-    """Set cooldown for user with exponential backoff"""
-    # Calculate cooldown duration: initial * (multiplier ^ violations)
-    duration = LimitsConfig.COMMAND_COOLDOWN_INITIAL * (LimitsConfig.COMMAND_COOLDOWN_MULTIPLIER ** violations)
-    until = current_time + duration
-    
-    with _command_cooldowns_lock:
-        _command_cooldowns[user_id] = {
-            'until': until,
-            'duration': duration,
-            'violations': violations
-        }
-    
-    # Clear command history for this user
-    with _command_limits_lock:
-        if user_id in _command_limits:
-            _command_limits[user_id]['commands'] = []
-    
-    _save_to_disk()
-    logger.warning(f"Command spam detected for user {user_id}. Cooldown: {duration}s (violations: {violations})")
-
+# ── Public API ───────────────────────────────────────────────────────────
 
 def check_command_limit(user_id: int, is_admin: bool = False) -> Tuple[bool, Optional[str]]:
     """
     Check if user can send another command.
-    Returns (allowed: bool, message: Optional[str])
-    If not allowed, message contains cooldown info.
+    Returns ``(allowed, message)``.  When *allowed* is False, *message*
+    contains the cooldown info.
     """
-    # Проверяем, должны ли применяться ограничения к админу
-    if is_admin:
-        if LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
-            return (True, None)  # Админы с отключенными ограничениями обходят command limits
-    
-    current_time = time.time()
-    
-    # Check cooldown first
-    cooldown_info = _check_cooldown(user_id, current_time)
-    if cooldown_info:
-        remaining, violations = cooldown_info
-        minutes = int(remaining // 60)
-        seconds = int(remaining % 60)
-        
-        if minutes > 0:
-            msg = f"Too many commands. Cooldown: {minutes}m {seconds}s remaining"
-        else:
-            msg = f"Too many commands. Cooldown: {seconds}s remaining"
-        
-        return (False, msg)
-    
-    # Cleanup old entries
-    _cleanup_old_entries(user_id, current_time)
-    
-    # Check limits
-    with _command_limits_lock:
-        if user_id not in _command_limits:
-            _command_limits[user_id] = {'commands': [], 'violations': 0}
-        
-        user_data = _command_limits[user_id]
-        violations = user_data.get('violations', 0)
-        
-        # Check command limit
-        if len(user_data['commands']) >= LimitsConfig.COMMAND_LIMIT_PER_MINUTE:
-            # Increment violations
-            violations += 1
-            user_data['violations'] = violations
-            _set_cooldown(user_id, current_time, violations)
-            
-            # Calculate cooldown for message
-            duration = LimitsConfig.COMMAND_COOLDOWN_INITIAL * (LimitsConfig.COMMAND_COOLDOWN_MULTIPLIER ** violations)
+    if is_admin and LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
+        return (True, None)
+
+    now = time.time()
+    ud = _get_user(user_id)
+
+    with ud.lock:
+        # ── Check cooldown ───────────────────────────────────────────
+        if ud.cooldown is not None:
+            if now < ud.cooldown['until']:
+                remaining = ud.cooldown['until'] - now
+                minutes = int(remaining // 60)
+                seconds = int(remaining % 60)
+                if minutes > 0:
+                    msg = f"Too many commands. Cooldown: {minutes}m {seconds}s remaining"
+                else:
+                    msg = f"Too many commands. Cooldown: {seconds}s remaining"
+                return (False, msg)
+            ud.cooldown = None
+
+        # ── Cleanup old commands ──────────────────────────────────────
+        cut = now - 60
+        i = 0
+        while i < len(ud.commands) and ud.commands[i] < cut:
+            i += 1
+        if i:
+            del ud.commands[:i]
+
+        # ── Check limit ───────────────────────────────────────────────
+        if len(ud.commands) >= LimitsConfig.COMMAND_LIMIT_PER_MINUTE:
+            ud.violations += 1
+            violations = ud.violations
+            duration = LimitsConfig.COMMAND_COOLDOWN_INITIAL * (
+                LimitsConfig.COMMAND_COOLDOWN_MULTIPLIER ** violations
+            )
+            ud.cooldown = {'until': now + duration, 'duration': duration}
+            ud.commands.clear()
+
             minutes = int(duration // 60)
             seconds = int(duration % 60)
-            
+            _dirty.set()
+            logger.warning(
+                f"Command spam detected for user {user_id}. "
+                f"Cooldown: {duration}s (violations: {violations})"
+            )
             if minutes > 0:
-                msg = f"Too many commands (max {LimitsConfig.COMMAND_LIMIT_PER_MINUTE}/minute). Cooldown: {minutes}m {seconds}s"
-            else:
-                msg = f"Too many commands (max {LimitsConfig.COMMAND_LIMIT_PER_MINUTE}/minute). Cooldown: {seconds}s"
-            
-            return (False, msg)
-        
-        # All checks passed, record the command
-        user_data['commands'].append(current_time)
-        # Reset violations if user behaved well (no violations for a while)
-        if violations > 0 and len(user_data['commands']) == 0:
-            user_data['violations'] = 0
-    
-    _save_to_disk()
+                return (False, f"Too many commands (max {LimitsConfig.COMMAND_LIMIT_PER_MINUTE}/minute). Cooldown: {minutes}m {seconds}s")
+            return (False, f"Too many commands (max {LimitsConfig.COMMAND_LIMIT_PER_MINUTE}/minute). Cooldown: {seconds}s")
+
+        # ── Record command ────────────────────────────────────────────
+        ud.commands.append(now)
+        if ud.violations > 0 and len(ud.commands) == 0:
+            ud.violations = 0
+
+    _dirty.set()
     return (True, None)
 
 
-# Load on module import
+# ── Module initialization ────────────────────────────────────────────────
+
 _load_from_disk()
 
+_save_thread = threading.Thread(target=_save_worker, name="cmdlimit-save", daemon=True)
+_save_thread.start()

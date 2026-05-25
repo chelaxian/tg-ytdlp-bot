@@ -564,17 +564,32 @@ def download_dailymotion_thumbnail(video_id: str, dest: str) -> bool:
         return False
 
 
-def download_youtube_thumbnail(video_id: str, dest: str) -> bool:
-    """Download YouTube video thumbnail"""
+def download_youtube_thumbnail(video_id: str, dest: str, prefer_320: bool = False) -> bool:
+    """Download YouTube video thumbnail.
+    
+    Args:
+        video_id: YouTube video ID
+        dest: Destination file path
+        prefer_320: If True, try 320px thumbnail first (mqdefault.jpg 320x180)
+                    to avoid re-encoding when embedding in Telegram videos.
+    """
     try:
-        # YouTube thumbnail URLs
-        thumbnail_urls = [
-            f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
-            f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
-            f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
-            f"https://img.youtube.com/vi/{video_id}/sddefault.jpg",
-            f"https://img.youtube.com/vi/{video_id}/default.jpg"
-        ]
+        if prefer_320:
+            thumbnail_urls = [
+                f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/sddefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/default.jpg"
+            ]
+        else:
+            thumbnail_urls = [
+                f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/sddefault.jpg",
+                f"https://img.youtube.com/vi/{video_id}/default.jpg"
+            ]
         
         for url in thumbnail_urls:
             try:
@@ -714,7 +729,7 @@ def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = N
                 pass
 
 
-def download_thumbnail(url: str, dest: str, user_id: Optional[int] = None, app=None, message=None) -> bool:
+def download_thumbnail(url: str, dest: str, user_id: Optional[int] = None, app=None, message=None, prefer_320: bool = False) -> bool:
     """
     Universal thumbnail downloader for various video services
     Returns True if thumbnail was downloaded successfully, False otherwise
@@ -726,6 +741,7 @@ def download_thumbnail(url: str, dest: str, user_id: Optional[int] = None, app=N
         user_id: Optional user ID for cookies and proxy configuration
         app: Optional Pyrogram app instance for Telegram embed extraction
         message: Optional Telegram message object for Telegram embed extraction
+        prefer_320: If True, prefer 320px thumbnails to avoid re-encode for Telegram embedding
     """
     try:
         service, video_id = extract_service_info(url)
@@ -763,7 +779,7 @@ def download_thumbnail(url: str, dest: str, user_id: Optional[int] = None, app=N
         success = False
         if service == 'youtube':
             try:
-                success = download_youtube_thumbnail(video_id, dest)
+                success = download_youtube_thumbnail(video_id, dest, prefer_320=prefer_320)
             except Exception as e:
                 logger.warning(f"YouTube thumbnail download error: {e}")
                 success = False

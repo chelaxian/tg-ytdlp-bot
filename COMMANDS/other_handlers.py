@@ -7,7 +7,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyPara
 from HELPERS.safe_messeger import safe_send_message
 
 from HELPERS.app_instance import get_app
-from HELPERS.decorators import send_reply_keyboard_always, background_handler
+from HELPERS.decorators import background_handler
 from HELPERS.logger import send_to_logger, send_to_user
 from HELPERS.limitter import is_user_in_channel, check_user, check_playlist_range_limits
 from HELPERS.download_status import get_active_download, can_start_download
