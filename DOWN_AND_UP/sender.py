@@ -432,7 +432,7 @@ def send_videos(
                 middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                 subprocess.run([
                     'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', thumb_path
+                    '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=3:3:0.5:3:3:0.25', '-q:v', '1', thumb_path
                 ], capture_output=True, text=True, timeout=30)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
@@ -468,10 +468,11 @@ def send_videos(
                 filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease:flags=lanczos')
                 # Step 3 — pad to exact target dims with black
                 filters.append(f'pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:color=black')
+                filters.append('unsharp=3:3:0.5:3:3:0.25')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
-                    '-vf', vf, '-vframes', '1', '-q:v', '2', dest_path
+                    '-vf', vf, '-vframes', '1', '-q:v', '1', dest_path
                 ], capture_output=True, text=True, timeout=30)
                 if r.returncode != 0:
                     logger.warning(f"_thumb_fit_ar ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}")
@@ -526,7 +527,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_path,
-                            '-vframes','1','-q:v','2', tmp_frame
+                            '-vframes','1','-q:v','1', tmp_frame
                         ], capture_output=True, text=True, timeout=30)
                         if os.path.exists(tmp_frame) and os.path.getsize(tmp_frame) > 0:
                             if _resize_to_cover(tmp_frame, cover_path):
@@ -554,10 +555,11 @@ def send_videos(
                 filters = []
                 filters.append(f'scale={target_w}:{target_h}:force_original_aspect_ratio=increase:flags=lanczos')
                 filters.append(f'crop={target_w}:{target_h}')
+                filters.append('unsharp=3:3:0.5:3:3:0.25')
                 vf = ','.join(filters)
                 r = _sp.run([
                     'ffmpeg', '-y', '-i', src_path,
-                    '-vf', vf, '-vframes', '1', '-q:v', '2', dest_path
+                    '-vf', vf, '-vframes', '1', '-q:v', '1', dest_path
                 ], capture_output=True, text=True, timeout=30)
                 if r.returncode != 0:
                     logger.warning(f'_thumb_crop_center ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}')
@@ -637,7 +639,7 @@ def send_videos(
                 # 1) Try downloading external thumbnail (scaled to 320px)
                 try:
                     tmp_dl = os.path.join(base_dir, base_name + '.__ext_thumb.jpg')
-                    if video_url and download_thumbnail(video_url, tmp_dl, prefer_320=True):
+                    if video_url and download_thumbnail(video_url, tmp_dl):
                         if _resize_to_thumb_free(tmp_dl, cover_path):
                             try:
                                 if os.path.exists(tmp_dl):
@@ -862,7 +864,7 @@ def send_videos(
                         middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
                         subprocess.run([
                             'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=320:-1:flags=lanczos', '-q:v', '2', local_thumb
+                            '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=3:3:0.5:3:3:0.25', '-q:v', '1', local_thumb
                         ], capture_output=True, text=True, timeout=30)
                         if not os.path.exists(local_thumb):
                             local_thumb = None
