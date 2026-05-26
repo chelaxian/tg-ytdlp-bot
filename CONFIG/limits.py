@@ -69,9 +69,9 @@ class LimitsConfig(object):
         except Exception:
             cpu_count = 2
 
-        bg_workers = min(cpu_count * 4, 48)
-        max_uploads = min(max(cpu_count // 2, 2), 6)
-        inflight = bg_workers * 8
+        bg_workers = min(cpu_count * 5, 48)
+        max_uploads = min(max(cpu_count, 2), 8)
+        inflight = bg_workers * 10
 
         return {
             'bg_workers': bg_workers,
