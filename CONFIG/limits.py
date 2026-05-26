@@ -51,6 +51,12 @@ class LimitsConfig(object):
     
     # HTTP session timeout for individual requests 
     HTTP_REQUEST_TIMEOUT = 60  # 60 seconds
+    
+    # Upload to Telegram configuration
+    # Max simultaneous upload operations (prevents session saturation)
+    MAX_CONCURRENT_UPLOADS = 4
+    # Hard timeout per upload in seconds (30 min — realistic for 2GB at ~100Mbps shared)
+    UPLOAD_TIMEOUT_SECONDS = 1800
 
     #######################################################
     # ChannelGuard (subscribe channel admin-log scanner)

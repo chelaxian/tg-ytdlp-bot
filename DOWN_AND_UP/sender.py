@@ -19,6 +19,7 @@ from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.limits import LimitsConfig
 import time
 import threading
+import concurrent.futures
 
 # Get app instance for decorators
 app = get_app()
@@ -28,6 +29,40 @@ _active_uploads = {}
 _active_uploads_lock = threading.Lock()
 
 _user_blocked_flag = set()
+
+_UPLOAD_SEMAPHORE = threading.Semaphore(LimitsConfig.MAX_CONCURRENT_UPLOADS)
+_UPLOAD_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=LimitsConfig.MAX_CONCURRENT_UPLOADS + 2,
+    thread_name_prefix="tg_upload"
+)
+
+def _timed_upload(upload_fn, timeout=None):
+    """Run an upload with timeout and concurrency control.
+    
+    Prevents a single stuck upload from blocking all bot operations.
+    Uploads run in a dedicated thread pool with a hard timeout.
+    If timeout fires, the calling thread is freed while the upload
+    continues in background (Python threads cannot be killed).
+    """
+    if timeout is None:
+        timeout = LimitsConfig.UPLOAD_TIMEOUT_SECONDS
+    
+    acquired = _UPLOAD_SEMAPHORE.acquire(blocking=False)
+    if not acquired:
+        logger.warning(f"[Upload] All {LimitsConfig.MAX_CONCURRENT_UPLOADS} upload slots busy, rejecting")
+        raise TimeoutError(
+            f"All {LimitsConfig.MAX_CONCURRENT_UPLOADS} upload slots are busy. "
+            f"Please try again in a few minutes."
+        )
+    
+    try:
+        future = _UPLOAD_EXECUTOR.submit(upload_fn)
+        return future.result(timeout=timeout)
+    except concurrent.futures.TimeoutError:
+        logger.error(f"[Upload] Timed out after {timeout}s, releasing slot (background thread may still run)")
+        raise TimeoutError(f"Upload timed out after {timeout}s")
+    finally:
+        _UPLOAD_SEMAPHORE.release()
 
 def _start_upload_logging(user_id, msg_id):
     """Start logging upload activity to prevent watchdog false positives"""
@@ -783,14 +818,14 @@ def send_videos(
                 _start_upload_logging(user_id, msg_id)
                 try:
                     try:
-                        result = app.send_paid_media(
+                        result = _timed_upload(lambda: app.send_paid_media(
                             chat_id=user_id,
                             media=[paid_media],
                             star_count=effective_star_count,
                             **({"allow_paid_broadcast": True} if allow_broadcast else {}),
                             payload=str(Config.STAR_RECEIVER),
                             reply_parameters=ReplyParameters(message_id=message.id),
-                        )
+                        ))
                     except Exception as e:
                         logger.error(f"send_paid_media failed (will NOT fallback to free): {e}")
                         raise PaidMediaSendError(str(e)) from e
@@ -819,7 +854,7 @@ def send_videos(
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
-                result = app.send_video(
+                result = _timed_upload(lambda: app.send_video(
                     chat_id=user_id,
                     video=video_abs_path,
                     caption=caption_text,
@@ -837,7 +872,7 @@ def send_videos(
                     ),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
-                )
+                ))
             finally:
                 # Stop upload logging after upload completes or fails
                 _stop_upload_logging(user_id, msg_id)
@@ -934,14 +969,14 @@ def send_videos(
                 _start_upload_logging(user_id, msg_id)
                 try:
                     try:
-                        result = app.send_paid_media(
+                        result = _timed_upload(lambda: app.send_paid_media(
                             chat_id=user_id,
                             media=[paid_media],
                             star_count=effective_star_count,
                             **({"allow_paid_broadcast": True} if allow_broadcast else {}),
                             payload=str(Config.STAR_RECEIVER),
                             reply_parameters=ReplyParameters(message_id=message.id),
-                        )
+                        ))
                     except Exception as e:
                         logger.error(f"send_paid_media (document fallback) failed (will NOT fallback to free): {e}")
                         raise PaidMediaSendError(str(e)) from e
@@ -967,7 +1002,7 @@ def send_videos(
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
-                result = app.send_document(
+                result = _timed_upload(lambda: app.send_document(
                     chat_id=user_id,
                     document=_doc_send_path,
                     file_name=original_filename,
@@ -981,7 +1016,7 @@ def send_videos(
                     ),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
-                )
+                ))
             finally:
                 # Stop upload logging after upload completes or fails
                 _stop_upload_logging(user_id, msg_id)
