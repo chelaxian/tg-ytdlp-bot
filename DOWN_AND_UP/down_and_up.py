@@ -956,7 +956,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'js_runtimes': {'node': {}},
                 'extractor_args': {
                     'youtubetab': {'skip': ['authcheck']}
-                }
+                },
+                'socket_timeout': 30,
             }
             # Try to use cookies from download directory first, then fallback to user root
             download_cookie_path = os.path.join(user_dir_name, "cookie.txt")
@@ -1311,6 +1312,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'retries': 10,
                 'fragment_retries': 10,
                 'file_access_retries': 3,
+                'socket_timeout': 30,
             }
             
             # Add download_sections if trim is enabled
@@ -3902,7 +3904,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         v_w, v_h, v_dur = width, height, part_duration
                                     
                                     # Create open copy for history (without stars) - send directly to NSFW channel
-                                    open_video_msg = app.send_video(
+                                    open_video_msg = timed_upload(lambda: app.send_video(
                                         chat_id=log_channel_nsfw,
                                         video=path_lst[p],
                                         caption=caption_lst[p] if caption_lst and p < len(caption_lst) else f"part_{p+1}",
@@ -3911,7 +3913,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         height=int(v_h) if v_h else height,
                                         thumb=splited_thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
-                                    )
+                                    ))
                                     logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4606,7 +4608,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         v_w, v_h, v_dur = width, height, duration
                                     
                                     # Create open copy for history (without stars) - send directly to channel
-                                    open_video_msg = app.send_video(
+                                    open_video_msg = timed_upload(lambda: app.send_video(
                                         chat_id=open_log_channel,
                                         video=after_rename_abs_path,
                                         caption='' if force_no_title else original_video_title,
@@ -4615,7 +4617,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         height=int(v_h) if v_h else height,
                                         thumb=thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
-                                    )
+                                    ))
                                     logger.info(f"down_and_up: paid content open copy sent to log channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4872,7 +4874,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             v_w, v_h, v_dur = width, height, duration
                                         
                                         # Create open copy for history (without stars) - send directly to NSFW channel
-                                        open_video_msg = app.send_video(
+                                        open_video_msg = timed_upload(lambda: app.send_video(
                                             chat_id=log_channel_nsfw,
                                             video=after_rename_abs_path,
                                             caption='' if force_no_title else original_video_title,
@@ -4881,7 +4883,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             height=int(v_h) if v_h else height,
                                             thumb=thumb_dir,
                                             reply_parameters=ReplyParameters(message_id=message.id)
-                                        )
+                                        ))
                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery)")
                                         already_forwarded_to_log = True
                                     except Exception as e:

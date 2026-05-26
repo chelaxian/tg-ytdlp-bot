@@ -16,6 +16,9 @@ from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.logger import logger
 import yt_dlp
+import concurrent.futures
+
+_THUMB_DL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="thumb_dl")
 
 
 def _validate_url_for_ssrf(url: str) -> tuple[bool, str]:
@@ -634,6 +637,7 @@ def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = N
             'outtmpl': outtmpl,
             'noplaylist': True,
             'extract_flat': False,
+            'socket_timeout': 30,
         }
         
         # Add cookies if available
@@ -879,8 +883,8 @@ def get_thumbnail_from_telegram_embed(app, message, dest: str) -> bool:
         
         if photo:
             try:
-                # Download photo using Pyrogram
-                downloaded_path = app.download_media(photo, file_name=dest)
+                future = _THUMB_DL_EXECUTOR.submit(app.download_media, photo, file_name=dest)
+                downloaded_path = future.result(timeout=60)
                 if downloaded_path and os.path.exists(downloaded_path):
                     # If downloaded path is different from dest, copy it
                     if downloaded_path != dest:

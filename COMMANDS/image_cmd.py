@@ -261,20 +261,20 @@ def _send_open_copy_to_nsfw_channel(file_path: str, caption: str, user_id: int, 
         
         if is_video:
             # Send as video
-            open_msg = app.send_video(
+            open_msg = timed_upload(lambda: app.send_video(
                 chat_id=log_channel_nsfw,
                 video=file_path,
                 caption=caption,
                 reply_parameters=ReplyParameters(message_id=message_id)
-            )
+            ))
         else:
             # Send as photo
-            open_msg = app.send_photo(
+            open_msg = timed_upload(lambda: app.send_photo(
                 chat_id=log_channel_nsfw,
                 photo=file_path,
                 caption=caption,
                 reply_parameters=ReplyParameters(message_id=message_id)
-            )
+            ))
         
         logger.info(LoggerMsg.IMG_LOG_OPEN_COPY_SENT_LOG_MSG.format(file_path=file_path))
         return open_msg
@@ -2200,13 +2200,13 @@ def image_command(app, message):
                                                 if status_msg and status_msg.id:
                                                     _start_upload_logging(user_id, status_msg.id)
                                                 try:
-                                                    paid_msg = app.send_paid_media(
+                                                    paid_msg = timed_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=album_items,
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    ))
                                                 finally:
                                                     # Stop upload logging after upload completes or fails
                                                     if status_msg and status_msg.id:
@@ -2234,13 +2234,13 @@ def image_command(app, message):
                                                         if status_msg and status_msg.id:
                                                             _start_upload_logging(user_id, status_msg.id)
                                                         try:
-                                                            individual_msg = app.send_paid_media(
+                                                            individual_msg = timed_upload(lambda: app.send_paid_media(
                                                                 user_id,
                                                                 media=[paid_media],
                                                                 star_count=LimitsConfig.NSFW_STAR_COST,
                                                                 payload=str(Config.STAR_RECEIVER),
                                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                            )
+                                                            ))
                                                         finally:
                                                             # Stop upload logging after upload completes or fails
                                                             if status_msg and status_msg.id:
@@ -2290,11 +2290,11 @@ def image_command(app, message):
                                             # Send open copy as album to NSFW channel
                                             log_channel_nsfw = get_log_channel("video", nsfw=True)
                                             if log_channel_nsfw:
-                                                open_sent = app.send_media_group(
+                                                open_sent = timed_upload(lambda: app.send_media_group(
                                                     chat_id=log_channel_nsfw,
                                                     media=open_media_group,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                                 logger.info(f"[IMG LOG] Open copy album sent to LOGS_NSFW_ID for history: {len(open_media_group)} items")
                                         except Exception as e:
                                             logger.error(f"[IMG LOG] Failed to send open copy album to LOGS_NSFW_ID: {e}")
@@ -2341,13 +2341,13 @@ def image_command(app, message):
                                                 if status_msg and status_msg.id:
                                                     _start_upload_logging(user_id, status_msg.id)
                                                 try:
-                                                    paid_msg = app.send_paid_media(
+                                                    paid_msg = timed_upload(lambda: app.send_paid_media(
                                                             user_id,
                                                         media=album_items,
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                        )
+                                                        ))
                                                 finally:
                                                     # Stop upload logging after upload completes or fails
                                                     if status_msg and status_msg.id:
@@ -2375,13 +2375,13 @@ def image_command(app, message):
                                                         if status_msg and status_msg.id:
                                                             _start_upload_logging(user_id, status_msg.id)
                                                         try:
-                                                            individual_msg = app.send_paid_media(
+                                                            individual_msg = timed_upload(lambda: app.send_paid_media(
                                                             user_id,
                                                                 media=[paid_media],
                                                                 star_count=LimitsConfig.NSFW_STAR_COST,
                                                                 payload=str(Config.STAR_RECEIVER),
                                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                            )
+                                                            ))
                                                         finally:
                                                             # Stop upload logging after upload completes or fails
                                                             if status_msg and status_msg.id:
@@ -2424,11 +2424,11 @@ def image_command(app, message):
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
                                             try:
-                                                open_sent = app.send_media_group(
+                                                open_sent = timed_upload(lambda: app.send_media_group(
                                                     chat_id=log_channel_nsfw,
                                                     media=open_media_group,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -2506,21 +2506,21 @@ def image_command(app, message):
                                                             except TypeError:
                                                                 paid_media_list.append(InputPaidMediaVideo(media=media_path))
                                                     # CRITICAL: do not fallback to free media if paid send fails
-                                                    sent = app.send_paid_media(
+                                                    sent = timed_upload(lambda: app.send_paid_media(
                                                         chat_id,
                                                         media=paid_media_list,
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                    )
+                                                    ))
                                                     sent_paid_media_album = True
                                                 else:
-                                                    sent = app.send_media_group(
+                                                    sent = timed_upload(lambda: app.send_media_group(
                                                         chat_id,
                                                         media=media_group,
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
                                                         message_thread_id=message_thread_id
-                                                    )
+                                                    ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -2666,11 +2666,11 @@ def image_command(app, message):
                                                 if status_msg and status_msg.id:
                                                     _start_upload_logging(user_id, status_msg.id)
                                                 try:
-                                                    nsfw_log_sent = app.send_media_group(
+                                                    nsfw_log_sent = timed_upload(lambda: app.send_media_group(
                                                         chat_id=log_channel_nsfw,
                                                         media=nsfw_log_media_group,
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    ))
                                                 finally:
                                                     # Stop upload logging after upload completes or fails
                                                     if status_msg and status_msg.id:
@@ -2739,11 +2739,11 @@ def image_command(app, message):
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
                                             try:
-                                                regular_log_sent = app.send_media_group(
+                                                regular_log_sent = timed_upload(lambda: app.send_media_group(
                                                     chat_id=log_channel,
                                                     media=regular_log_media_group,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -2856,13 +2856,13 @@ def image_command(app, message):
                                                 if status_msg and status_msg.id:
                                                     _start_upload_logging(user_id, status_msg.id)
                                                 try:
-                                                    paid_msg = app.send_paid_media(
+                                                    paid_msg = timed_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=album_items,
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    ))
                                                 finally:
                                                     # Stop upload logging after upload completes or fails
                                                     if status_msg and status_msg.id:
@@ -2890,13 +2890,13 @@ def image_command(app, message):
                                                         if status_msg and status_msg.id:
                                                             _start_upload_logging(user_id, status_msg.id)
                                                         try:
-                                                            individual_msg = app.send_paid_media(
+                                                            individual_msg = timed_upload(lambda: app.send_paid_media(
                                                                 user_id,
                                                                 media=[paid_media],
                                                                 star_count=LimitsConfig.NSFW_STAR_COST,
                                                                 payload=str(Config.STAR_RECEIVER),
                                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                            )
+                                                            ))
                                                         finally:
                                                             # Stop upload logging after upload completes or fails
                                                             if status_msg and status_msg.id:
@@ -2941,11 +2941,11 @@ def image_command(app, message):
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
                                             try:
-                                                open_sent = app.send_media_group(
+                                                open_sent = timed_upload(lambda: app.send_media_group(
                                                     chat_id=log_channel_nsfw,
                                                     media=open_media_group,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -3001,13 +3001,13 @@ def image_command(app, message):
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
                                             try:
-                                                paid_msg = app.send_paid_media(
+                                                paid_msg = timed_upload(lambda: app.send_paid_media(
                                                     user_id,
                                                     media=paid_media_list,
                                                     star_count=LimitsConfig.NSFW_STAR_COST,
                                                     payload=str(Config.STAR_RECEIVER),
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -3033,13 +3033,13 @@ def image_command(app, message):
                                             for i, paid_media in enumerate(paid_media_list):
                                                 try:
                                                     # Use same reply_parameters for all to group them
-                                                    individual_msg = app.send_paid_media(
+                                                    individual_msg = timed_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=[paid_media],
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    ))
                                                     if isinstance(individual_msg, list):
                                                         sent.extend(individual_msg)
                                                     elif individual_msg is not None:
@@ -3087,11 +3087,11 @@ def image_command(app, message):
                                             # Send open copy as album to NSFW channel
                                             log_channel_nsfw = get_log_channel("video", nsfw=True)
                                             if log_channel_nsfw:
-                                                open_sent = app.send_media_group(
+                                                open_sent = timed_upload(lambda: app.send_media_group(
                                                     chat_id=log_channel_nsfw,
                                                     media=open_media_group,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                                 logger.info(f"[IMG LOG] Open copy album sent to LOGS_NSFW_ID for history: {len(open_media_group)} items")
                                         except Exception as e:
                                             logger.error(f"[IMG LOG] Failed to send open copy album to LOGS_NSFW_ID: {e}")
@@ -3134,13 +3134,13 @@ def image_command(app, message):
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
                                             try:
-                                                sent_msg = app.send_paid_media(
+                                                sent_msg = timed_upload(lambda: app.send_paid_media(
                                                     user_id,
                                                     media=paid_media_list,
                                                     star_count=LimitsConfig.NSFW_STAR_COST,
                                                     payload=str(Config.STAR_RECEIVER),
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -3177,12 +3177,12 @@ def image_command(app, message):
                                             if status_msg and status_msg.id:
                                                 _start_upload_logging(user_id, status_msg.id)
                                             try:
-                                                sent_msg = app.send_media_group(
+                                                sent_msg = timed_upload(lambda: app.send_media_group(
                                                     chat_id,
                                                     media=media_group,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
                                                     message_thread_id=message_thread_id
-                                                )
+                                                ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -3259,11 +3259,11 @@ def image_command(app, message):
                                                         if status_msg and status_msg.id:
                                                             _start_upload_logging(user_id, status_msg.id)
                                                         try:
-                                                            nsfw_log_sent = app.send_media_group(
+                                                            nsfw_log_sent = timed_upload(lambda: app.send_media_group(
                                                                 chat_id=log_channel_nsfw,
                                                                 media=nsfw_log_media_group,
                                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                            )
+                                                            ))
                                                         finally:
                                                             # Stop upload logging after upload completes or fails
                                                             if status_msg and status_msg.id:
@@ -3372,11 +3372,11 @@ def image_command(app, message):
                                                         if status_msg and status_msg.id:
                                                             _start_upload_logging(user_id, status_msg.id)
                                                         try:
-                                                            regular_log_sent = app.send_media_group(
+                                                            regular_log_sent = timed_upload(lambda: app.send_media_group(
                                                                 chat_id=log_channel,
                                                                 media=regular_log_media_group,
                                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                            )
+                                                            ))
                                                         finally:
                                                             # Stop upload logging after upload completes or fails
                                                             if status_msg and status_msg.id:
@@ -3419,14 +3419,14 @@ def image_command(app, message):
                                                 _start_upload_logging(user_id, status_msg.id)
                                             _upload_prog = (user_id, status_msg.id, safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG) if (status_msg and status_msg.id) else None
                                             try:
-                                                sent_msg = app.send_document(
+                                                sent_msg = timed_upload(lambda: app.send_document(
                                                     user_id,
                                                     document=f,
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
                                                     message_thread_id=message_thread_id,
                                                     progress=progress_bar if _upload_prog else None,
                                                     progress_args=_upload_prog,
-                                                )
+                                                ))
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -3560,13 +3560,13 @@ def image_command(app, message):
                                         if status_msg and status_msg.id:
                                             _start_upload_logging(user_id, status_msg.id)
                                         try:
-                                            paid_msg = app.send_paid_media(
+                                            paid_msg = timed_upload(lambda: app.send_paid_media(
                                                 user_id,
                                                 media=album_items,
                                                 star_count=LimitsConfig.NSFW_STAR_COST,
                                                 payload=str(Config.STAR_RECEIVER),
                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            ))
                                         finally:
                                             # Stop upload logging after upload completes or fails
                                             if status_msg and status_msg.id:
@@ -3585,13 +3585,13 @@ def image_command(app, message):
                                         # Fallback: send individually as paid media
                                         for paid_media in album_items:
                                             try:
-                                                individual_msg = app.send_paid_media(
+                                                individual_msg = timed_upload(lambda: app.send_paid_media(
                                                     user_id,
                                                     media=[paid_media],
                                                     star_count=LimitsConfig.NSFW_STAR_COST,
                                                     payload=str(Config.STAR_RECEIVER),
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                                 if isinstance(individual_msg, list):
                                                     sent.extend(individual_msg)
                                                 elif individual_msg is not None:
@@ -3634,11 +3634,11 @@ def image_command(app, message):
                                     # Send open copy as album to NSFW channel
                                     log_channel_nsfw = get_log_channel("video", nsfw=True)
                                     if log_channel_nsfw:
-                                        open_sent = app.send_media_group(
+                                        open_sent = timed_upload(lambda: app.send_media_group(
                                             chat_id=log_channel_nsfw,
                                             media=open_media_group,
                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                        )
+                                        ))
                                         logger.info(f"[IMG LOG] Open copy album sent to LOGS_NSFW_ID for history: {len(open_media_group)} items")
                                 except Exception as e:
                                     logger.error(f"[IMG LOG] Failed to send open copy album to LOGS_NSFW_ID: {e}")
@@ -3654,33 +3654,33 @@ def image_command(app, message):
                                             _start_upload_logging(user_id, status_msg.id)
                                         try:
                                             if isinstance(m, InputMediaPhoto):
-                                                paid_msg = app.send_paid_media(
+                                                paid_msg = timed_upload(lambda: app.send_paid_media(
                                                     user_id,
                                                     media=[InputPaidMediaPhoto(media=m.media)],
                                                     star_count=LimitsConfig.NSFW_STAR_COST,
                                                     payload=str(Config.STAR_RECEIVER),
                                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                )
+                                                ))
                                             else:
                                                 # Ensure cover for video
                                                 video_path = m.media if not hasattr(m.media, 'name') else m.media.name
                                                 _cover = ensure_paid_cover_embedded(video_path, getattr(m, 'thumb', None))
                                                 try:
-                                                    paid_msg = app.send_paid_media(
+                                                    paid_msg = timed_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=[InputPaidMediaVideo(media=m.media, cover=_cover)],
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    ))
                                                 except TypeError:
-                                                    paid_msg = app.send_paid_media(
+                                                    paid_msg = timed_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=[InputPaidMediaVideo(media=m.media)],
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    ))
                                         finally:
                                             # Stop upload logging after upload completes or fails
                                             if status_msg and status_msg.id:
@@ -3720,12 +3720,12 @@ def image_command(app, message):
                                     if status_msg and status_msg.id:
                                         _start_upload_logging(user_id, status_msg.id)
                                     try:
-                                        sent = app.send_media_group(
+                                        sent = timed_upload(lambda: app.send_media_group(
                                             chat_id,
                                             media=media_group,
                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
                                             message_thread_id=message_thread_id
-                                        )
+                                        ))
                                     finally:
                                         # Stop upload logging after upload completes or fails
                                         if status_msg and status_msg.id:
@@ -3795,11 +3795,11 @@ def image_command(app, message):
                                     if status_msg and status_msg.id:
                                         _start_upload_logging(user_id, status_msg.id)
                                     try:
-                                        nsfw_log_sent = app.send_media_group(
+                                        nsfw_log_sent = timed_upload(lambda: app.send_media_group(
                                             chat_id=log_channel_nsfw,
                                             media=nsfw_log_media_group,
                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                        )
+                                        ))
                                     finally:
                                         # Stop upload logging after upload completes or fails
                                         if status_msg and status_msg.id:
@@ -3903,11 +3903,11 @@ def image_command(app, message):
                                     if status_msg and status_msg.id:
                                         _start_upload_logging(user_id, status_msg.id)
                                     try:
-                                        regular_log_sent = app.send_media_group(
+                                        regular_log_sent = timed_upload(lambda: app.send_media_group(
                                             chat_id=log_channel,
                                             media=regular_log_media_group,
                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                        )
+                                        ))
                                     finally:
                                         # Stop upload logging after upload completes or fails
                                         if status_msg and status_msg.id:
@@ -3960,20 +3960,20 @@ def image_command(app, message):
                                         while attempts < 5:
                                             try:
                                                 if nsfw_flag and is_private_chat:
-                                                    sent_msg = app.send_paid_media(
+                                                    sent_msg = timed_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=[InputPaidMediaPhoto(media=f)],
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    )
+                                                    ))
                                                 else:
                                                     # Start upload logging to prevent watchdog false positives
                                                     if status_msg and status_msg.id:
                                                         _start_upload_logging(user_id, status_msg.id)
                                                     _upload_prog_ph = (user_id, status_msg.id, safe_get_messages(user_id).SENDER_UPLOADING_FILE_MSG) if (status_msg and status_msg.id) else None
                                                     try:
-                                                        sent_msg = app.send_photo(
+                                                        sent_msg = timed_upload(lambda: app.send_photo(
                                                             user_id,
                                                             photo=f,
                                                             caption=(tags_text_norm or ''),
@@ -3982,7 +3982,7 @@ def image_command(app, message):
                                                             message_thread_id=message_thread_id,
                                                             progress=progress_bar if _upload_prog_ph else None,
                                                             progress_args=_upload_prog_ph,
-                                                        )
+                                                        ))
                                                     finally:
                                                         # Stop upload logging after upload completes or fails
                                                         if status_msg and status_msg.id:
@@ -4017,13 +4017,13 @@ def image_command(app, message):
                                                     if status_msg and status_msg.id:
                                                         _start_upload_logging(user_id, status_msg.id)
                                                     try:
-                                                        sent_msg = app.send_paid_media(
+                                                        sent_msg = timed_upload(lambda: app.send_paid_media(
                                                             user_id,
                                                             media=[media_item],
                                                             star_count=LimitsConfig.NSFW_STAR_COST,
                                                             payload=str(Config.STAR_RECEIVER),
                                                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                        )
+                                                        ))
                                                     finally:
                                                         # Stop upload logging after upload completes or fails
                                                         if status_msg and status_msg.id:
@@ -4034,7 +4034,7 @@ def image_command(app, message):
                                                         _start_upload_logging(user_id, status_msg.id)
                                                     _upload_prog_v = (user_id, status_msg.id, safe_get_messages(user_id).SENDER_UPLOADING_VIDEO_MSG) if (status_msg and status_msg.id) else None
                                                     try:
-                                                        sent_msg = app.send_video(
+                                                        sent_msg = timed_upload(lambda: app.send_video(
                                                             user_id,
                                                             video=f,
                                                             thumb=thumb if thumb and os.path.exists(thumb) else None,
@@ -4044,7 +4044,7 @@ def image_command(app, message):
                                                             message_thread_id=message_thread_id,
                                                             progress=progress_bar if _upload_prog_v else None,
                                                             progress_args=_upload_prog_v,
-                                                        )
+                                                        ))
                                                     finally:
                                                         # Stop upload logging after upload completes or fails
                                                         if status_msg and status_msg.id:
@@ -4132,11 +4132,11 @@ def image_command(app, message):
                                         if status_msg and status_msg.id:
                                             _start_upload_logging(user_id, status_msg.id)
                                         try:
-                                            nsfw_log_sent = app.send_media_group(
+                                            nsfw_log_sent = timed_upload(lambda: app.send_media_group(
                                                 chat_id=log_channel_nsfw,
                                                 media=nsfw_log_media_group,
                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            ))
                                         finally:
                                             # Stop upload logging after upload completes or fails
                                             if status_msg and status_msg.id:
@@ -4222,11 +4222,11 @@ def image_command(app, message):
                                         if status_msg and status_msg.id:
                                             _start_upload_logging(user_id, status_msg.id)
                                         try:
-                                            regular_log_sent = app.send_media_group(
+                                            regular_log_sent = timed_upload(lambda: app.send_media_group(
                                                 chat_id=log_channel,
                                                 media=regular_log_media_group,
                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            )
+                                            ))
                                         finally:
                                             # Stop upload logging after upload completes or fails
                                             if status_msg and status_msg.id:
@@ -4262,12 +4262,12 @@ def image_command(app, message):
                             if status_msg and status_msg.id:
                                 _start_upload_logging(user_id, status_msg.id)
                             try:
-                                sent_msg = app.send_document(
+                                sent_msg = timed_upload(lambda: app.send_document(
                                     user_id,
                                     document=f,
                                     reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
                                     message_thread_id=message_thread_id
-                                )
+                                ))
                             finally:
                                 # Stop upload logging after upload completes or fails
                                 if status_msg and status_msg.id:
@@ -4381,11 +4381,11 @@ def image_command(app, message):
                     if status_msg and status_msg.id:
                         _start_upload_logging(user_id, status_msg.id)
                     try:
-                        sent = app.send_media_group(
+                        sent = timed_upload(lambda: app.send_media_group(
                             user_id,
                             media=media_group,
                             reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                        )
+                        ))
                     finally:
                         # Stop upload logging after upload completes or fails
                         if status_msg and status_msg.id:

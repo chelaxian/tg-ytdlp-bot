@@ -1132,6 +1132,7 @@ def check_porn_command(app, message):
                 'no_warnings': True,
                 'skip_download': True,
                 'extract_flat': False,
+                'socket_timeout': 30,
             }
             from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback
             ytdl_opts = add_proxy_to_ytdl_opts(ytdl_opts, url, user_id)
