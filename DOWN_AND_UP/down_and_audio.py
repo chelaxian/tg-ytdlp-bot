@@ -28,6 +28,7 @@ from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_univ
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
+from HELPERS.upload_guard import timed_upload
 import subprocess
 from urllib.parse import urlparse
 from PIL import Image
@@ -1087,8 +1088,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                # Network resilience: retry on transient failures
                'retries': 10,
                'fragment_retries': 10,
-               'file_access_retries': 3,
-            }
+                'file_access_retries': 3,
+                'socket_timeout': 30,
+             }
             
             # Add download_sections if trim is enabled
             if download_sections:
@@ -2196,8 +2198,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                            # Network resilience
                            'retries': 10,
                            'fragment_retries': 10,
-                           'file_access_retries': 3,
-                        }
+                            'file_access_retries': 3,
+                            'socket_timeout': 30,
+                         }
                         
                         # Add match_filter only if domain is not in NO_FILTER_DOMAINS
                         if not is_no_filter_domain(url):
@@ -2623,13 +2626,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if proc_msg_id:
                             _start_upload_logging(user_id, proc_msg_id)
                         try:
-                            audio_msg = app.send_paid_media(
+                            audio_msg = timed_upload(lambda: app.send_paid_media(
                                 chat_id=user_id,
                                 media=[paid_audio],
                                 star_count=LimitsConfig.NSFW_STAR_COST,
                                 payload=str(Config.STAR_RECEIVER),
                                 reply_parameters=ReplyParameters(message_id=message.id),
-                            )
+                            ))
                             logger.info("Paid NSFW audio sent to user")
                         finally:
                             # Stop upload logging after upload completes or fails
@@ -2653,7 +2656,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if file_ext == '.mp3' or file_ext == '.m4a':
                             # Send as audio for supported formats
                             if telegram_thumb and os.path.exists(telegram_thumb):
-                                audio_msg = app.send_audio(
+                                audio_msg = timed_upload(lambda: app.send_audio(
                                     chat_id=user_id, 
                                     audio=audio_file, 
                                     caption=caption_with_link, 
@@ -2663,10 +2666,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     performer=artist,
                                     progress=progress_bar if _prog_args else None,
                                     progress_args=_prog_args,
-                                )
+                                ))
                                 logger.info(f"Audio sent with Telegram thumbnail: {telegram_thumb}")
                             else:
-                                audio_msg = app.send_audio(
+                                audio_msg = timed_upload(lambda: app.send_audio(
                                     chat_id=user_id, 
                                     audio=audio_file, 
                                     caption=caption_with_link, 
@@ -2675,18 +2678,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     performer=artist,
                                     progress=progress_bar if _prog_args else None,
                                     progress_args=_prog_args,
-                                )
+                                ))
                                 logger.info("Audio sent without thumbnail")
                         else:
                             # Send as document for unsupported audio formats
-                            audio_msg = app.send_document(
+                            audio_msg = timed_upload(lambda: app.send_document(
                                 chat_id=user_id, 
                                 document=audio_file, 
                                 caption=caption_with_link, 
                                 reply_parameters=ReplyParameters(message_id=message.id),
                                 progress=progress_bar if _prog_args else None,
                                 progress_args=_prog_args,
-                            )
+                            ))
                             logger.info(f"Audio sent as document (format: {file_ext})")
                     finally:
                         # Stop upload logging after upload completes or fails
@@ -2714,7 +2717,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     log_channel_nsfw = get_log_channel("video", nsfw=True)
                     try:
                         # Create open copy for history (without stars)
-                        open_audio_msg = app.send_audio(
+                        open_audio_msg = timed_upload(lambda: app.send_audio(
                             chat_id=log_channel_nsfw,
                             audio=audio_file,
                             caption=caption_with_link,
@@ -2722,7 +2725,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None,
                             title=title,
                             performer=artist,
-                        )
+                        ))
                         logger.info(f"down_and_audio: NSFW audio open copy sent to NSFW channel for history")
                     except Exception as e:
                         logger.error(f"down_and_audio: failed to send open copy to NSFW channel: {e}")

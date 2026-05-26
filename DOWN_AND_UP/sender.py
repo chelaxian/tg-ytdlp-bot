@@ -19,6 +19,8 @@ from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.limits import LimitsConfig
 import time
 import threading
+import concurrent.futures
+from HELPERS.upload_guard import timed_upload
 
 # Get app instance for decorators
 app = get_app()
@@ -28,6 +30,9 @@ _active_uploads = {}
 _active_uploads_lock = threading.Lock()
 
 _user_blocked_flag = set()
+
+def _timed_upload(upload_fn, timeout=None):
+    return timed_upload(upload_fn, timeout)
 
 def _start_upload_logging(user_id, msg_id):
     """Start logging upload activity to prevent watchdog false positives"""
@@ -783,14 +788,14 @@ def send_videos(
                 _start_upload_logging(user_id, msg_id)
                 try:
                     try:
-                        result = app.send_paid_media(
+                        result = _timed_upload(lambda: app.send_paid_media(
                             chat_id=user_id,
                             media=[paid_media],
                             star_count=effective_star_count,
                             **({"allow_paid_broadcast": True} if allow_broadcast else {}),
                             payload=str(Config.STAR_RECEIVER),
                             reply_parameters=ReplyParameters(message_id=message.id),
-                        )
+                        ))
                     except Exception as e:
                         logger.error(f"send_paid_media failed (will NOT fallback to free): {e}")
                         raise PaidMediaSendError(str(e)) from e
@@ -819,7 +824,7 @@ def send_videos(
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
-                result = app.send_video(
+                result = _timed_upload(lambda: app.send_video(
                     chat_id=user_id,
                     video=video_abs_path,
                     caption=caption_text,
@@ -837,7 +842,7 @@ def send_videos(
                     ),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
-                )
+                ))
             finally:
                 # Stop upload logging after upload completes or fails
                 _stop_upload_logging(user_id, msg_id)
@@ -934,14 +939,14 @@ def send_videos(
                 _start_upload_logging(user_id, msg_id)
                 try:
                     try:
-                        result = app.send_paid_media(
+                        result = _timed_upload(lambda: app.send_paid_media(
                             chat_id=user_id,
                             media=[paid_media],
                             star_count=effective_star_count,
                             **({"allow_paid_broadcast": True} if allow_broadcast else {}),
                             payload=str(Config.STAR_RECEIVER),
                             reply_parameters=ReplyParameters(message_id=message.id),
-                        )
+                        ))
                     except Exception as e:
                         logger.error(f"send_paid_media (document fallback) failed (will NOT fallback to free): {e}")
                         raise PaidMediaSendError(str(e)) from e
@@ -967,7 +972,7 @@ def send_videos(
             # Start upload logging to prevent watchdog false positives
             _start_upload_logging(user_id, msg_id)
             try:
-                result = app.send_document(
+                result = _timed_upload(lambda: app.send_document(
                     chat_id=user_id,
                     document=_doc_send_path,
                     file_name=original_filename,
@@ -981,7 +986,7 @@ def send_videos(
                     ),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
-                )
+                ))
             finally:
                 # Stop upload logging after upload completes or fails
                 _stop_upload_logging(user_id, msg_id)

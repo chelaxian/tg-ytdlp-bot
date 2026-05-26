@@ -150,8 +150,8 @@ def download_live_stream_chunked(
         # Note: live_from_start will be set per chunk (True for first, False for subsequent)
         base_opts = {
             'concurrent_fragment_downloads': 4,  # -N 4
-            'retries': float('inf'),  # -R infinite
-            'fragment_retries': float('inf'),  # --fragment-retries infinite
+            'retries': 20,  # capped to prevent infinite hang
+            'fragment_retries': 10,  # capped to prevent infinite hang
             'retry_sleep': 'fragment:exp=1:30',  # --retry-sleep fragment:exp=1:30
             'continue_dl': True,  # --continue
             'noverwrites': True,  # --no-overwrites
@@ -160,6 +160,7 @@ def download_live_stream_chunked(
             'downloader': 'ffmpeg',  # --downloader ffmpeg
             'quiet': False,
             'no_warnings': False,
+            'socket_timeout': 30,
         }
         
         # Add user's custom yt-dlp arguments from /args command

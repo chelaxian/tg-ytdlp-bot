@@ -205,13 +205,19 @@ def background_handler(func=None, *, label=None):
     try:
         _BG_EXECUTOR
     except NameError:
-        # Defaults chosen to keep bot responsive while allowing parallel heavy jobs.
-        # If needed, expose these via Config/LimitsConfig later.
+        from CONFIG.limits import LimitsConfig
+        _res = LimitsConfig.detect_system_resources()
         _BG_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
-            max_workers=int(os.getenv("TG_YTDLP_BG_WORKERS", "32"))
+            max_workers=int(os.getenv("TG_YTDLP_BG_WORKERS", str(_res['bg_workers'])))
         )
         _BG_INFLIGHT_SEM = threading.Semaphore(
-            int(os.getenv("TG_YTDLP_BG_INFLIGHT", "256"))
+            int(os.getenv("TG_YTDLP_BG_INFLIGHT", str(_res['inflight'])))
+        )
+        logger.info(
+            f"[WORKERS] Auto-detected CPU={_res['cpu_count']}: "
+            f"bg_workers={_BG_EXECUTOR._max_workers}, "
+            f"inflight={_res['inflight']}, "
+            f"max_uploads={_res['max_uploads']}"
         )
 
     @wraps(func)

@@ -915,6 +915,7 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             'max_sleep_interval': 3,
             'retries': 6,
             'extractor_retries': 3,
+            'socket_timeout': 30,
         }
         # cookies
         if user_id:
@@ -1451,6 +1452,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 'max_sleep_interval': 3,
                 'retries': 6,
                 'extractor_retries': 3,
+                'socket_timeout': 30,
             }
             # cookies
             user_cookie_path = os.path.join("users", str(user_id), "cookie.txt")

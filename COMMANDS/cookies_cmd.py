@@ -1608,6 +1608,7 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
                     },
                     'retries': 2,
                     'extractor_retries': 1,
+                    'socket_timeout': 30,
                 }
                 ydl_opts_no_format = add_pot_to_ytdl_opts(ydl_opts_no_format, test_url)
                 with yt_dlp.YoutubeDL(ydl_opts_no_format) as ydl:
