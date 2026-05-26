@@ -30,9 +30,11 @@ _active_uploads_lock = threading.Lock()
 
 _user_blocked_flag = set()
 
-_UPLOAD_SEMAPHORE = threading.Semaphore(LimitsConfig.MAX_CONCURRENT_UPLOADS)
+_SERVER_RES = LimitsConfig.detect_system_resources()
+_MAX_CONCURRENT_UPLOADS = _SERVER_RES['max_uploads']
+_UPLOAD_SEMAPHORE = threading.Semaphore(_MAX_CONCURRENT_UPLOADS)
 _UPLOAD_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
-    max_workers=LimitsConfig.MAX_CONCURRENT_UPLOADS + 2,
+    max_workers=_MAX_CONCURRENT_UPLOADS + 2,
     thread_name_prefix="tg_upload"
 )
 
@@ -49,9 +51,9 @@ def _timed_upload(upload_fn, timeout=None):
     
     acquired = _UPLOAD_SEMAPHORE.acquire(blocking=False)
     if not acquired:
-        logger.warning(f"[Upload] All {LimitsConfig.MAX_CONCURRENT_UPLOADS} upload slots busy, rejecting")
+        logger.warning(f"[Upload] All {_MAX_CONCURRENT_UPLOADS} upload slots busy, rejecting")
         raise TimeoutError(
-            f"All {LimitsConfig.MAX_CONCURRENT_UPLOADS} upload slots are busy. "
+            f"All {_MAX_CONCURRENT_UPLOADS} upload slots are busy. "
             f"Please try again in a few minutes."
         )
     

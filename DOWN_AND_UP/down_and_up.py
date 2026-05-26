@@ -956,7 +956,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'js_runtimes': {'node': {}},
                 'extractor_args': {
                     'youtubetab': {'skip': ['authcheck']}
-                }
+                },
+                'socket_timeout': 30,
             }
             # Try to use cookies from download directory first, then fallback to user root
             download_cookie_path = os.path.join(user_dir_name, "cookie.txt")
@@ -1311,6 +1312,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'retries': 10,
                 'fragment_retries': 10,
                 'file_access_retries': 3,
+                'socket_timeout': 30,
             }
             
             # Add download_sections if trim is enabled

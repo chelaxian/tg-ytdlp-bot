@@ -57,6 +57,28 @@ class LimitsConfig(object):
     MAX_CONCURRENT_UPLOADS = 4
     # Hard timeout per upload in seconds (30 min — realistic for 2GB at ~100Mbps shared)
     UPLOAD_TIMEOUT_SECONDS = 1800
+    # yt-dlp socket timeout in seconds (prevents hanging on unresponsive servers)
+    YTDLP_SOCKET_TIMEOUT = 30
+
+    @staticmethod
+    def detect_system_resources():
+        """Detect system resources and return recommended worker counts."""
+        import os
+        try:
+            cpu_count = os.cpu_count() or 2
+        except Exception:
+            cpu_count = 2
+
+        bg_workers = min(cpu_count * 4, 48)
+        max_uploads = min(max(cpu_count // 2, 2), 6)
+        inflight = bg_workers * 8
+
+        return {
+            'bg_workers': bg_workers,
+            'max_uploads': max_uploads,
+            'inflight': inflight,
+            'cpu_count': cpu_count,
+        }
 
     #######################################################
     # ChannelGuard (subscribe channel admin-log scanner)
