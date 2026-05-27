@@ -354,14 +354,14 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
     return None
 
 def is_proxy_domain(url: str) -> bool:
-    """Check if the domain is in PROXY_DOMAINS or PROXY_2_DOMAINS"""
+    """Check if the domain is in PROXY_1_DOMAINS or PROXY_2_DOMAINS"""
     from CONFIG.domains import DomainsConfig
     
     domain = extract_domain_from_url(url)
     
-    # Check PROXY_DOMAINS
-    if hasattr(DomainsConfig, 'PROXY_DOMAINS') and DomainsConfig.PROXY_DOMAINS:
-        if is_domain_in_list(domain, DomainsConfig.PROXY_DOMAINS):
+    # Check PROXY_1_DOMAINS
+    if hasattr(DomainsConfig, 'PROXY_1_DOMAINS') and DomainsConfig.PROXY_1_DOMAINS:
+        if is_domain_in_list(domain, DomainsConfig.PROXY_1_DOMAINS):
             return True
     
     # Check PROXY_2_DOMAINS
@@ -569,7 +569,7 @@ def is_domain_in_list(domain, domain_list):
     return False
 
 def select_proxy_for_domain(url):
-    """Select appropriate proxy for domain based on PROXY_DOMAINS and PROXY_2_DOMAINS"""
+    """Select appropriate proxy for domain based on PROXY_1_DOMAINS and PROXY_2_DOMAINS"""
     from CONFIG.domains import DomainsConfig
     
     if is_no_proxy_domain(url):
@@ -584,7 +584,7 @@ def select_proxy_for_domain(url):
     
     logger.info(f"select_proxy_for_domain: URL={url}, extracted_domain={domain}")
     logger.info(f"PROXY_2_DOMAINS: {getattr(DomainsConfig, 'PROXY_2_DOMAINS', 'NOT_FOUND')}")
-    logger.info(f"PROXY_DOMAINS: {getattr(DomainsConfig, 'PROXY_DOMAINS', 'NOT_FOUND')}")
+    logger.info(f"PROXY_1_DOMAINS: {getattr(DomainsConfig, 'PROXY_1_DOMAINS', 'NOT_FOUND')}")
     
     # Check PROXY_2_DOMAINS first
     if hasattr(DomainsConfig, 'PROXY_2_DOMAINS') and DomainsConfig.PROXY_2_DOMAINS:
@@ -592,10 +592,10 @@ def select_proxy_for_domain(url):
             logger.info(f"Domain {domain} found in PROXY_2_DOMAINS, using proxy 2")
             return get_proxy_2_config()
     
-    # Check PROXY_DOMAINS
-    if hasattr(DomainsConfig, 'PROXY_DOMAINS') and DomainsConfig.PROXY_DOMAINS:
-        if is_domain_in_list(domain, DomainsConfig.PROXY_DOMAINS):
-            logger.info(f"Domain {domain} found in PROXY_DOMAINS, using proxy 1")
+    # Check PROXY_1_DOMAINS
+    if hasattr(DomainsConfig, 'PROXY_1_DOMAINS') and DomainsConfig.PROXY_1_DOMAINS:
+        if is_domain_in_list(domain, DomainsConfig.PROXY_1_DOMAINS):
+            logger.info(f"Domain {domain} found in PROXY_1_DOMAINS, using proxy 1")
             return get_proxy_config()
     
     logger.info(f"Domain {domain} not found in any proxy domain lists")

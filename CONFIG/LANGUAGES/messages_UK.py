@@ -863,7 +863,7 @@ class Messages(object):
         "• СІРИЙ СПИСОК: {greylist}\n"
         "• ЧОРНИЙ СПИСОК: {black_list}\n"
         "• БІЛІ КЛЮЧОВІ СЛОВА: {white_keywords}\n"
-        "• PROXY_DOMAINS: {proxy_domains}\n"
+        "• PROXY_1_DOMAINS: {proxy_domains}\n"
         "• PROXY_2_DOMAINS: {proxy_2_domains}\n"
         "• CLEAN_QUERY: {clean_query}\n"
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
@@ -1722,7 +1722,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "Логи {bot_name}\nКористувач: {user_id}\nВсього логів: {total}\nПоточний час: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nВсього {path}: {count}\nПоточний час: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>Всього користувачів: {count}</i>\nОстанні 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "Кеші порно оновлено адміністратором {admin_id}. Домени: {domains}, ключові слова: {keywords}, сайти: {sites}, БІЛИЙ СПИСОК: {whitelist}, СІРИЙ СПИСОК: {greylist}, ЧОРНИЙ СПИСОК: {black_list}, БІЛІ_КЛЮЧОВІ СЛОВА: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "Кеші порно оновлено адміністратором {admin_id}. Домени: {domains}, ключові слова: {keywords}, сайти: {sites}, БІЛИЙ СПИСОК: {whitelist}, СІРИЙ СПИСОК: {greylist}, ЧОРНИЙ СПИСОК: {black_list}, БІЛІ_КЛЮЧОВІ СЛОВА: {white_keywords}, PROXY_1_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Помилка надсилання повідомлення про час очікування: {error}"

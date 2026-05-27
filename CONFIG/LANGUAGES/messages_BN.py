@@ -863,7 +863,7 @@ class Messages(object):
         "• GREYLIST: {greylist}\n"
         "• BLACK_LIST: {black_list}\n"
         "• WHITE_KEYWORDS: {white_keywords}\n"
-        "• PROXY_DOMAINS: {proxy_domains}\n"
+        "• PROXY_1_DOMAINS: {proxy_domains}\n"
         "• PROXY_2_DOMAINS: {proxy_2_domains}\n"
         "• CLEAN_QUERY: {clean_query}\n"
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
@@ -1722,7 +1722,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "{bot_name} এর লগ\nব্যবহারকারী: {user_id}\nমোট লগ: {total}\nবর্তমান সময়: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nমোট {path}: {count}\nবর্তমান সময়: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>মোট ব্যবহারকারী: {count}</i>\nশেষ 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "অ্যাডমিন {admin_id} দ্বারা পর্ন cache পুনরায় লোড করা হয়েছে। Domains: {domains}, Keywords: {keywords}, Sites: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "অ্যাডমিন {admin_id} দ্বারা পর্ন cache পুনরায় লোড করা হয়েছে। Domains: {domains}, Keywords: {keywords}, Sites: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_1_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "টাইমআউট বার্তা পাঠাতে ত্রুটি: {error}"
