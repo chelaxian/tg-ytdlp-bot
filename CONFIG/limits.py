@@ -236,3 +236,6 @@ class LimitsConfig(object):
     # Максимальное суммарное количество прокси, перебираемых по всем странам
     # из ошибки YouTube для одной задачи скачивания
     MAX_PROXIES_PER_TASK = 12
+    # AUTO_PROXY limits: try all proxies in random order for problematic domains
+    AUTO_PROXY_MAX_TIME = 300      # 5 minutes total
+    AUTO_PROXY_MAX_ATTEMPTS = 100  # max proxy attempts

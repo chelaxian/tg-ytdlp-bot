@@ -145,6 +145,11 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
         ytdl_opts.pop('proxy', None)
         return ytdl_opts
     
+    if is_auto_proxy_domain(url):
+        logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url} (will try auto-proxy on failure)")
+        ytdl_opts.pop('proxy', None)
+        return ytdl_opts
+    
     # ГЛОБАЛЬНАЯ ЗАЩИТА: Инициализируем messages
     messages = safe_get_messages(user_id)
     
@@ -214,6 +219,10 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
         opts_no_proxy = ytdl_opts.copy()
         opts_no_proxy.pop('proxy', None)
         return operation_func(opts_no_proxy, *args, **kwargs)
+    
+    if is_auto_proxy_domain(url):
+        logger.info(f"Domain is in AUTO_PROXY_DOMAINS - using auto-proxy fallback for {url}")
+        return try_auto_proxy_fallback(ytdl_opts, url, user_id, operation_func, *args, **kwargs)
     
     # Check if user has proxy enabled
     if not user_id:
@@ -372,6 +381,110 @@ def is_no_proxy_domain(url: str) -> bool:
     domain = extract_domain_from_url(url)
     return is_domain_in_list(domain, DomainsConfig.NO_PROXY_DOMAINS)
 
+def is_auto_proxy_domain(url: str) -> bool:
+    """Check if domain should use AUTO_PROXY mode (try direct first, then all proxies in random order)"""
+    from CONFIG.domains import DomainsConfig
+    
+    if not hasattr(DomainsConfig, 'AUTO_PROXY_DOMAINS') or not DomainsConfig.AUTO_PROXY_DOMAINS:
+        return False
+    
+    domain = extract_domain_from_url(url)
+    return is_domain_in_list(domain, DomainsConfig.AUTO_PROXY_DOMAINS)
+
+def get_all_available_proxies():
+    """Collect all proxies from config + proxy file, return list of {'proxy_url': str, 'source': str}"""
+    proxies = []
+    
+    # Config proxies
+    try:
+        configs = get_all_proxy_configs()
+        for cfg in configs:
+            url = build_proxy_url(cfg)
+            if url:
+                proxies.append({'proxy_url': url, 'source': 'config'})
+    except Exception as e:
+        logger.warning(f"Error collecting config proxies: {e}")
+    
+    # File proxies
+    try:
+        from HELPERS.proxy_file_helper import get_all_proxies_from_file
+        file_proxies = get_all_proxies_from_file()
+        for p in file_proxies:
+            if p.get('proxy_url'):
+                proxies.append({'proxy_url': p['proxy_url'], 'source': 'file'})
+    except Exception as e:
+        logger.warning(f"Error collecting file proxies: {e}")
+    
+    return proxies
+
+def try_auto_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, operation_func=None, *args, **kwargs):
+    """
+    For AUTO_PROXY domains: try operation directly first, then iterate ALL available proxies
+    in random order until success or limits exceeded.
+    """
+    import time
+    from CONFIG.limits import LimitsConfig
+    
+    if not operation_func:
+        return None
+    
+    max_time = getattr(LimitsConfig, 'AUTO_PROXY_MAX_TIME', 300)
+    max_attempts = getattr(LimitsConfig, 'AUTO_PROXY_MAX_ATTEMPTS', 100)
+    start_time = time.monotonic()
+    
+    # Step 1: Try direct (no proxy)
+    logger.info(f"[AUTO_PROXY] Trying {url} directly (no proxy)")
+    try:
+        opts_direct = ytdl_opts.copy()
+        opts_direct.pop('proxy', None)
+        result = operation_func(opts_direct, *args, **kwargs)
+        if result is not None:
+            logger.info(f"[AUTO_PROXY] Direct connection succeeded for {url}")
+            return result
+    except Exception as e:
+        logger.warning(f"[AUTO_PROXY] Direct failed for {url}: {type(e).__name__}")
+    
+    # Step 2: Collect and shuffle all proxies
+    all_proxies = get_all_available_proxies()
+    if not all_proxies:
+        logger.warning(f"[AUTO_PROXY] No proxies available for {url}")
+        return None
+    
+    random.shuffle(all_proxies)
+    total = len(all_proxies)
+    logger.info(f"[AUTO_PROXY] Collected {total} proxies, starting random iteration (limit: {max_time}s / {max_attempts} attempts)")
+    
+    for i, proxy_info in enumerate(all_proxies):
+        if i >= max_attempts:
+            logger.warning(f"[AUTO_PROXY] Reached max attempts ({max_attempts}) for {url}")
+            break
+        elapsed = time.monotonic() - start_time
+        if elapsed >= max_time:
+            logger.warning(f"[AUTO_PROXY] Reached time limit ({max_time}s) for {url}")
+            break
+        
+        proxy_url = proxy_info['proxy_url']
+        proxy_source = proxy_info.get('source', '?')
+        
+        if not test_proxy_url(proxy_url, timeout=PROXY_TEST_TIMEOUT):
+            logger.debug(f"[AUTO_PROXY] Skipping unreachable proxy {i+1}/{total} ({proxy_source})")
+            continue
+        
+        try:
+            current_opts = ytdl_opts.copy()
+            current_opts['proxy'] = proxy_url
+            logger.info(f"[AUTO_PROXY] Trying proxy {i+1}/{total} ({proxy_source}) for {url}")
+            result = operation_func(current_opts, *args, **kwargs)
+            if result is not None:
+                logger.info(f"[AUTO_PROXY] Success with proxy {i+1}/{total} ({proxy_source}) for {url}")
+                return result
+        except Exception as e:
+            logger.debug(f"[AUTO_PROXY] Proxy {i+1}/{total} ({proxy_source}) failed: {type(e).__name__}")
+            continue
+    
+    logger.warning(f"[AUTO_PROXY] All proxies exhausted for {url}")
+    return None
+
 def get_proxy_config():
     """Get proxy configuration from config"""
     from CONFIG.config import Config
@@ -463,6 +576,10 @@ def select_proxy_for_domain(url):
         logger.info(f"select_proxy_for_domain: domain is in NO_PROXY_DOMAINS, skipping proxy for {url}")
         return None
     
+    if is_auto_proxy_domain(url):
+        logger.info(f"select_proxy_for_domain: domain is in AUTO_PROXY_DOMAINS, skipping static proxy for {url}")
+        return None
+    
     domain = extract_domain_from_url(url)
     
     logger.info(f"select_proxy_for_domain: URL={url}, extracted_domain={domain}")
@@ -513,6 +630,11 @@ def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) 
     
     if is_no_proxy_domain(url):
         logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for gallery-dl {url}")
+        config['extractor'].pop('proxy', None)
+        return config
+    
+    if is_auto_proxy_domain(url):
+        logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping proxy for gallery-dl {url} (auto-proxy not supported for gallery-dl)")
         config['extractor'].pop('proxy', None)
         return config
     
