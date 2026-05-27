@@ -1380,7 +1380,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     
                                     download_thread = threading.Thread(target=download_wrapper, daemon=True)
                                     download_thread.start()
-                                    download_thread.join(timeout=15)  # Максимум 15 секунд
+                                    download_thread.join(timeout=180)  # Максимум 3 минуты для HLS загрузок
                                     
                                     # Проверяем, была ли обнаружена ошибка 403
                                     if hls_403_detected.is_set():
@@ -1403,7 +1403,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     if download_thread.is_alive():
                                         # Если поток еще работает после 15 секунд - прерываем
                                         logger.warning("HLS download with proxy exceeded 15 second timeout - aborting")
-                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 15 seconds - too many 403 errors. Please try another proxy.")
+                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 3 minutes. Try again or use a different proxy.")
                                     
                                     # Проверяем, была ли ошибка в потоке
                                     if download_exception[0]:
