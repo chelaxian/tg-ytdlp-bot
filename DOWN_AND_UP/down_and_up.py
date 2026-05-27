@@ -3935,7 +3935,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         height=int(v_h) if v_h else height,
                                         thumb=splited_thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
-                                    ))
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
                                     logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4639,7 +4639,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         height=int(v_h) if v_h else height,
                                         thumb=thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
-                                    ))
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
                                     logger.info(f"down_and_up: paid content open copy sent to log channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4905,7 +4905,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             height=int(v_h) if v_h else height,
                                             thumb=thumb_dir,
                                             reply_parameters=ReplyParameters(message_id=message.id)
-                                        ))
+                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery)")
                                         already_forwarded_to_log = True
                                     except Exception as e:

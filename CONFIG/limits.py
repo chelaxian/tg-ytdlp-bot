@@ -55,8 +55,11 @@ class LimitsConfig(object):
     # Upload to Telegram configuration
     # Max simultaneous upload operations (prevents session saturation)
     MAX_CONCURRENT_UPLOADS = 4
-    # Hard timeout per upload in seconds (30 min — realistic for 2GB at ~100Mbps shared)
-    UPLOAD_TIMEOUT_SECONDS = 1800
+    # Hard timeout per upload in seconds (10 min — generous for most uploads;
+    # after bytes are sent, Telegram response should come within seconds)
+    UPLOAD_TIMEOUT_SECONDS = 600
+    # Shorter timeout for non-critical uploads (log channels, forwarding)
+    UPLOAD_TIMEOUT_LOG_SECONDS = 120
     # yt-dlp socket timeout in seconds (prevents hanging on unresponsive servers)
     YTDLP_SOCKET_TIMEOUT = 30
 
