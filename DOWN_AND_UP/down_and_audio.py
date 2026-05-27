@@ -2612,40 +2612,49 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Send audio with appropriate method based on content type and file format
                 # Используем is_paid_for_user для отправки (админы получают открытый контент)
                 if is_paid_for_user:
-                    # Send paid audio for NSFW content in private chats
+                    # Telegram sendPaidMedia API does not support audio type (only photo/video).
+                    # Send NSFW audio as regular audio since paid audio is not possible.
+                    if proc_msg_id:
+                        _start_upload_logging(user_id, proc_msg_id)
                     try:
-                        from pyrogram.types import InputPaidMediaAudio
-                        from CONFIG.limits import LimitsConfig
-                        
-                        paid_audio = InputPaidMediaAudio(
-                            media=audio_file,
-                            thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None
-                        )
-                        
-                        # Start upload logging to prevent watchdog false positives
-                        if proc_msg_id:
-                            _start_upload_logging(user_id, proc_msg_id)
-                        try:
-                            audio_msg = timed_upload(lambda: app.send_paid_media(
+                        _prog_args = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
+                        if file_ext == '.mp3' or file_ext == '.m4a':
+                            if telegram_thumb and os.path.exists(telegram_thumb):
+                                audio_msg = timed_upload(lambda: app.send_audio(
+                                    chat_id=user_id,
+                                    audio=audio_file,
+                                    caption=caption_with_link,
+                                    reply_parameters=ReplyParameters(message_id=message.id),
+                                    thumb=telegram_thumb,
+                                    title=title,
+                                    performer=artist,
+                                    progress=progress_bar if _prog_args else None,
+                                    progress_args=_prog_args,
+                                ))
+                            else:
+                                audio_msg = timed_upload(lambda: app.send_audio(
+                                    chat_id=user_id,
+                                    audio=audio_file,
+                                    caption=caption_with_link,
+                                    reply_parameters=ReplyParameters(message_id=message.id),
+                                    title=title,
+                                    performer=artist,
+                                    progress=progress_bar if _prog_args else None,
+                                    progress_args=_prog_args,
+                                ))
+                        else:
+                            audio_msg = timed_upload(lambda: app.send_document(
                                 chat_id=user_id,
-                                media=[paid_audio],
-                                star_count=LimitsConfig.NSFW_STAR_COST,
-                                payload=str(Config.STAR_RECEIVER),
+                                document=audio_file,
+                                caption=caption_with_link,
                                 reply_parameters=ReplyParameters(message_id=message.id),
+                                progress=progress_bar if _prog_args else None,
+                                progress_args=_prog_args,
                             ))
-                            logger.info("Paid NSFW audio sent to user")
-                        finally:
-                            # Stop upload logging after upload completes or fails
-                            if proc_msg_id:
-                                _stop_upload_logging(user_id, proc_msg_id)
-                    except Exception as e:
-                        # CRITICAL: never fallback to free media when paid NSFW is required.
-                        logger.error(f"Failed to send paid audio (will NOT fallback to free): {e}")
-                        send_error_to_user(
-                            message,
-                            safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)),
-                        )
-                        raise
+                        logger.info("NSFW audio sent (paid media not supported for audio type)")
+                    finally:
+                        if proc_msg_id:
+                            _stop_upload_logging(user_id, proc_msg_id)
                 else:
                     # Send regular audio for non-NSFW content or group chats
                     # Start upload logging to prevent watchdog false positives
