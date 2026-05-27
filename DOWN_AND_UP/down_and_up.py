@@ -3238,8 +3238,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # Check for .part files — download may have failed near completion
                         part_files = [fname for fname in allfiles if fname.endswith('.part')]
                         # Check for DASH fragments (e.g. vid_ID.f137.mp4, vid_ID.f251.webm)
-                        dash_pattern = re.compile(r'\.f\d+\.(mp4|webm|m4a|mkv|ts)$', re.IGNORECASE)
-                        dash_files = [fname for fname in allfiles if dash_pattern.search(fname)]
+                        _dash_video_exts = ('.mp4', '.webm', '.mkv', '.ts', '.m4v')
+                        dash_files = []
+                        for fname in allfiles:
+                            if fname.endswith('.part'):
+                                continue
+                            base = os.path.splitext(fname)[0]
+                            ext = os.path.splitext(fname)[1].lower()
+                            prev_ext = os.path.splitext(base)[1]
+                            if prev_ext.startswith('.f') and prev_ext[2:].isdigit() and ext in _dash_video_exts:
+                                dash_files.append(fname)
                         if part_files:
                             logger.error(
                                 f"Download incomplete — only .part files found in {dir_path}: {part_files}. "
