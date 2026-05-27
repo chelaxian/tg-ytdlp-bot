@@ -51,6 +51,7 @@ COOKIE_ERRORS = [
     "your account has been rate-limited",
     "content isn't available, try again later",
     "requires login for access to this content",
+    "join this channel to get access to members-only content",
     # Instagram errors
     "[instagram][error]",
     # Geo-block errors (cookie may help bypass)
