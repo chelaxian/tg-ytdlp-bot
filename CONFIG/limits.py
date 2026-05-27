@@ -239,3 +239,4 @@ class LimitsConfig(object):
     # AUTO_PROXY limits: try all proxies in random order for problematic domains
     AUTO_PROXY_MAX_TIME = 300      # 5 minutes total
     AUTO_PROXY_MAX_ATTEMPTS = 100  # max proxy attempts
+    AUTO_PROXY_CACHE_TTL = 300     # cache working proxy for 5 minutes

@@ -14,9 +14,33 @@ logger = logging.getLogger(__name__)
 
 PROXY_TEST_TIMEOUT = 5
 
-# Per-task (user_id, url) set of proxy URLs that were already tried and failed in this task.
-# Prevents infinite loop: each proxy is tried at most once per download task.
 _proxy_failed_for_task = {}
+
+_auto_proxy_cache = {}
+
+def _auto_proxy_cache_key(user_id, url):
+    domain = extract_domain_from_url(url)
+    return (user_id, domain)
+
+def get_cached_auto_proxy(user_id, url):
+    import time
+    from CONFIG.limits import LimitsConfig
+    key = _auto_proxy_cache_key(user_id, url)
+    entry = _auto_proxy_cache.get(key)
+    if not entry:
+        return None
+    ttl = getattr(LimitsConfig, 'AUTO_PROXY_CACHE_TTL', 300)
+    if time.monotonic() - entry['timestamp'] > ttl:
+        _auto_proxy_cache.pop(key, None)
+        return None
+    return entry['proxy_url']
+
+def set_cached_auto_proxy(user_id, url, proxy_url):
+    import time
+    from CONFIG.limits import LimitsConfig
+    key = _auto_proxy_cache_key(user_id, url)
+    _auto_proxy_cache[key] = {'proxy_url': proxy_url, 'timestamp': time.monotonic()}
+    logger.info(f"[AUTO_PROXY_CACHE] Cached proxy for {key}: will reuse for {getattr(LimitsConfig, 'AUTO_PROXY_CACHE_TTL', 300)}s")
 
 def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_id: int = None) -> dict:
     """
@@ -146,8 +170,17 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
         return ytdl_opts
     
     if is_auto_proxy_domain(url):
-        logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url} (will try auto-proxy on failure)")
-        ytdl_opts.pop('proxy', None)
+        cached = get_cached_auto_proxy(user_id, url) if user_id else None
+        if cached:
+            if cached == '__direct__':
+                logger.info(f"[AUTO_PROXY_CACHE] Reusing cached direct connection for {url}")
+                ytdl_opts.pop('proxy', None)
+            else:
+                logger.info(f"[AUTO_PROXY_CACHE] Reusing cached proxy for {url}")
+                ytdl_opts['proxy'] = cached
+        else:
+            logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url} (will try auto-proxy on failure)")
+            ytdl_opts.pop('proxy', None)
         return ytdl_opts
     
     # ГЛОБАЛЬНАЯ ЗАЩИТА: Инициализируем messages
@@ -420,7 +453,7 @@ def get_all_available_proxies():
 def try_auto_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, operation_func=None, *args, **kwargs):
     """
     For AUTO_PROXY domains: try operation directly first, then iterate ALL available proxies
-    in random order until success or limits exceeded.
+    in random order until success or limits exceeded. Caches working proxy for reuse.
     """
     import time
     from CONFIG.limits import LimitsConfig
@@ -432,6 +465,21 @@ def try_auto_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
     max_attempts = getattr(LimitsConfig, 'AUTO_PROXY_MAX_ATTEMPTS', 100)
     start_time = time.monotonic()
     
+    # Step 0: Try cached proxy first
+    cached = get_cached_auto_proxy(user_id, url) if user_id else None
+    if cached:
+        logger.info(f"[AUTO_PROXY_CACHE] Trying cached proxy for {url}")
+        try:
+            opts_cached = ytdl_opts.copy()
+            opts_cached['proxy'] = cached
+            result = operation_func(opts_cached, *args, **kwargs)
+            if result is not None:
+                logger.info(f"[AUTO_PROXY_CACHE] Cached proxy succeeded for {url}")
+                return result
+        except Exception as e:
+            logger.warning(f"[AUTO_PROXY_CACHE] Cached proxy failed for {url}: {type(e).__name__} - invalidating cache")
+            _auto_proxy_cache.pop(_auto_proxy_cache_key(user_id, url), None)
+    
     # Step 1: Try direct (no proxy)
     logger.info(f"[AUTO_PROXY] Trying {url} directly (no proxy)")
     try:
@@ -440,6 +488,8 @@ def try_auto_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
         result = operation_func(opts_direct, *args, **kwargs)
         if result is not None:
             logger.info(f"[AUTO_PROXY] Direct connection succeeded for {url}")
+            if user_id:
+                set_cached_auto_proxy(user_id, url, '__direct__')
             return result
     except Exception as e:
         logger.warning(f"[AUTO_PROXY] Direct failed for {url}: {type(e).__name__}")
@@ -477,6 +527,8 @@ def try_auto_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
             result = operation_func(current_opts, *args, **kwargs)
             if result is not None:
                 logger.info(f"[AUTO_PROXY] Success with proxy {i+1}/{total} ({proxy_source}) for {url}")
+                if user_id:
+                    set_cached_auto_proxy(user_id, url, proxy_url)
                 return result
         except Exception as e:
             logger.debug(f"[AUTO_PROXY] Proxy {i+1}/{total} ({proxy_source}) failed: {type(e).__name__}")
