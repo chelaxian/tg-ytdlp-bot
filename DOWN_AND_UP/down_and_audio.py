@@ -2613,41 +2613,67 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Используем is_paid_for_user для отправки (админы получают открытый контент)
                 if is_paid_for_user:
                     # Telegram sendPaidMedia API does not support audio type (only photo/video).
-                    # Send NSFW audio as regular audio since paid audio is not possible.
+                    # NSFW audio is sent free via send_audio — BUT we must NEVER fallback to
+                    # sending video-capable formats (.mp4, .webm, etc.) to prevent free NSFW
+                    # video leaks through the audio download path. Only pure audio is allowed.
+                    _audio_only_exts = ('.mp3', '.m4a', '.aac', '.flac', '.opus', '.ogg', '.wav', '.alac', '.ac3')
+
+                    if file_ext not in _audio_only_exts:
+                        # File is not pure audio (e.g. .mp4/.webm from worstvideo fallback).
+                        # Must convert to audio before sending — otherwise this is a free video leak.
+                        from DOWN_AND_UP.ffmpeg import get_ffmpeg_path, normalize_path_for_ffmpeg
+                        _ffmpeg_bin = get_ffmpeg_path()
+                        if not _ffmpeg_bin:
+                            logger.error(f"NSFW audio conversion failed: ffmpeg not found, file={audio_file}")
+                            send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error="ffmpeg not found for audio conversion"))
+                            raise RuntimeError("ffmpeg not found for NSFW audio conversion")
+
+                        _converted_audio = audio_file + '.nsfw_conv.mp3'
+                        _src = normalize_path_for_ffmpeg(audio_file)
+                        _dst = normalize_path_for_ffmpeg(_converted_audio)
+                        _conv_cmd = [_ffmpeg_bin, '-y', '-i', _src, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', _dst]
+                        logger.info(f"Converting NSFW non-audio file to mp3: {audio_file} -> {_converted_audio}")
+                        try:
+                            _conv_result = subprocess.run(_conv_cmd, capture_output=True, text=True, timeout=300)
+                            if _conv_result.returncode != 0:
+                                logger.error(f"NSFW audio conversion failed (rc={_conv_result.returncode}): {_conv_result.stderr[:500]}")
+                                raise RuntimeError(f"ffmpeg conversion failed: {_conv_result.stderr[:200]}")
+                            if not os.path.exists(_converted_audio) or os.path.getsize(_converted_audio) == 0:
+                                logger.error(f"NSFW audio conversion produced empty/missing file: {_converted_audio}")
+                                raise RuntimeError("Converted audio file is empty or missing")
+                            audio_file = _converted_audio
+                            file_ext = '.mp3'
+                            logger.info(f"NSFW audio conversion successful: {_converted_audio}")
+                        except Exception as _conv_err:
+                            logger.error(f"NSFW audio conversion error, NOT sending (prevents free video leak): {_conv_err}")
+                            send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(_conv_err)))
+                            raise
+
+                    # At this point audio_file is guaranteed to be a pure audio format
                     if proc_msg_id:
                         _start_upload_logging(user_id, proc_msg_id)
                     try:
                         _prog_args = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
-                        if file_ext == '.mp3' or file_ext == '.m4a':
-                            if telegram_thumb and os.path.exists(telegram_thumb):
-                                audio_msg = timed_upload(lambda: app.send_audio(
-                                    chat_id=user_id,
-                                    audio=audio_file,
-                                    caption=caption_with_link,
-                                    reply_parameters=ReplyParameters(message_id=message.id),
-                                    thumb=telegram_thumb,
-                                    title=title,
-                                    performer=artist,
-                                    progress=progress_bar if _prog_args else None,
-                                    progress_args=_prog_args,
-                                ))
-                            else:
-                                audio_msg = timed_upload(lambda: app.send_audio(
-                                    chat_id=user_id,
-                                    audio=audio_file,
-                                    caption=caption_with_link,
-                                    reply_parameters=ReplyParameters(message_id=message.id),
-                                    title=title,
-                                    performer=artist,
-                                    progress=progress_bar if _prog_args else None,
-                                    progress_args=_prog_args,
-                                ))
-                        else:
-                            audio_msg = timed_upload(lambda: app.send_document(
+                        if telegram_thumb and os.path.exists(telegram_thumb):
+                            audio_msg = timed_upload(lambda: app.send_audio(
                                 chat_id=user_id,
-                                document=audio_file,
+                                audio=audio_file,
                                 caption=caption_with_link,
                                 reply_parameters=ReplyParameters(message_id=message.id),
+                                thumb=telegram_thumb,
+                                title=title,
+                                performer=artist,
+                                progress=progress_bar if _prog_args else None,
+                                progress_args=_prog_args,
+                            ))
+                        else:
+                            audio_msg = timed_upload(lambda: app.send_audio(
+                                chat_id=user_id,
+                                audio=audio_file,
+                                caption=caption_with_link,
+                                reply_parameters=ReplyParameters(message_id=message.id),
+                                title=title,
+                                performer=artist,
                                 progress=progress_bar if _prog_args else None,
                                 progress_args=_prog_args,
                             ))
