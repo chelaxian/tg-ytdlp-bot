@@ -1548,7 +1548,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.info(f"MKV mode enabled: setting merge_output_format=mkv, remux_video=mkv")
             
             # Add proxy configuration if needed
-            if use_proxy:
+            from HELPERS.proxy_helper import is_no_proxy_domain
+            _skip_proxy = is_no_proxy_domain(url)
+            if _skip_proxy:
+                logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for {url}")
+                ytdl_opts.pop('proxy', None)
+            elif use_proxy:
                 # Force proxy for this download
                 from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
                 proxy_config = get_proxy_config()

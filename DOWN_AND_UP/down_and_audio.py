@@ -1172,7 +1172,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             import threading
             thread_proxy = getattr(threading.current_thread(), 'proxy_for_audio_download', None)
             
-            if thread_proxy:
+            from HELPERS.proxy_helper import is_no_proxy_domain
+            _skip_proxy = is_no_proxy_domain(url)
+            if _skip_proxy:
+                logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for {url}")
+                ytdl_opts.pop('proxy', None)
+                threading.current_thread().proxy_for_audio_download = None
+            elif thread_proxy:
                 # Используем прокси из thread-local storage (приоритет)
                 ytdl_opts['proxy'] = thread_proxy
                 logger.info(f"Using proxy from thread-local storage for audio download: {thread_proxy}")

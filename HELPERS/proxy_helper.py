@@ -140,6 +140,11 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
     """Add proxy to yt-dlp options if proxy is enabled for user or domain requires it"""
     logger.info(f"add_proxy_to_ytdl_opts called: user_id={user_id}, url={url}")
     
+    if is_no_proxy_domain(url):
+        logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for {url}")
+        ytdl_opts.pop('proxy', None)
+        return ytdl_opts
+    
     # ГЛОБАЛЬНАЯ ЗАЩИТА: Инициализируем messages
     messages = safe_get_messages(user_id)
     
@@ -203,6 +208,12 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
     messages = safe_get_messages(user_id)
     if not operation_func:
         return None
+    
+    if is_no_proxy_domain(url):
+        logger.info(f"Domain is in NO_PROXY_DOMAINS - calling operation directly without proxy for {url}")
+        opts_no_proxy = ytdl_opts.copy()
+        opts_no_proxy.pop('proxy', None)
+        return operation_func(opts_no_proxy, *args, **kwargs)
     
     # Check if user has proxy enabled
     if not user_id:
@@ -351,6 +362,16 @@ def is_proxy_domain(url: str) -> bool:
     
     return False
 
+def is_no_proxy_domain(url: str) -> bool:
+    """Check if domain should NEVER use proxy (e.g. PornHub breaks through proxy)"""
+    from CONFIG.domains import DomainsConfig
+    
+    if not hasattr(DomainsConfig, 'NO_PROXY_DOMAINS') or not DomainsConfig.NO_PROXY_DOMAINS:
+        return False
+    
+    domain = extract_domain_from_url(url)
+    return is_domain_in_list(domain, DomainsConfig.NO_PROXY_DOMAINS)
+
 def get_proxy_config():
     """Get proxy configuration from config"""
     from CONFIG.config import Config
@@ -438,6 +459,10 @@ def select_proxy_for_domain(url):
     """Select appropriate proxy for domain based on PROXY_DOMAINS and PROXY_2_DOMAINS"""
     from CONFIG.domains import DomainsConfig
     
+    if is_no_proxy_domain(url):
+        logger.info(f"select_proxy_for_domain: domain is in NO_PROXY_DOMAINS, skipping proxy for {url}")
+        return None
+    
     domain = extract_domain_from_url(url)
     
     logger.info(f"select_proxy_for_domain: URL={url}, extracted_domain={domain}")
@@ -485,6 +510,11 @@ def select_proxy_for_user():
 def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) -> dict:
     """Add proxy to gallery-dl config; same logic as add_proxy_to_ytdl_opts: country → file, AUTO → no proxy, domain → proxy"""
     logger.info(f"add_proxy_to_gallery_dl_config called: user_id={user_id}, url={url}")
+    
+    if is_no_proxy_domain(url):
+        logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for gallery-dl {url}")
+        config['extractor'].pop('proxy', None)
+        return config
     
     # Priority 1: User has selected a country from proxy file → use proxy from file
     if user_id:

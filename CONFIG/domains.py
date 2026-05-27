@@ -158,6 +158,12 @@ class DomainsConfig(object):
         'dailymotion.com'
         # Other secure domains can be added
     ]
+    NO_PROXY_DOMAINS = [
+        'pornhub.com', 'pornhub.org',
+        'cn.pornhub.com', 'de.pornhub.org',
+        'es.pornhub.com', 'fr.pornhub.com',
+        'it.pornhub.com', 'rt.pornhub.com', 'rt.pornhub.org',
+    ]
     PROXY_DOMAINS = [
         #'pornhub.com', 'pornhub.org'
         # Other secure domains can be added
