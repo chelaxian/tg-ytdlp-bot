@@ -1874,15 +1874,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
                         ytdl_opts["hls_prefer_native"] = True
                         ytdl_opts["downloader"] = "native"  # Используем native downloader для HLS
-                        ytdl_opts["fragment_retries"] = 0  # Не повторять при ошибке фрагмента
-                        ytdl_opts["hls_fragment_retries"] = 0  # Не повторять HLS-сегменты
-                        ytdl_opts["abort_on_unavailable_fragment"] = True  # Прервать при недоступном сегменте
-                        ytdl_opts["max_fragments"] = 1  # Максимум 1 сегмент для теста (если ошибка - сразу прервать)
+                        ytdl_opts["fragment_retries"] = 3
+                        ytdl_opts["hls_fragment_retries"] = 3
+                        ytdl_opts["abort_on_unavailable_fragment"] = True
                         # Добавляем таймаут для downloader_args (на случай если native не сработает)
                         if "downloader_args" not in ytdl_opts:
                             ytdl_opts["downloader_args"] = {}
                         ytdl_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
-                        logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
+                        logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=3, hls_fragment_retries=3, abort_on_unavailable_fragment=True")
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,

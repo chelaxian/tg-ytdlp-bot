@@ -273,10 +273,9 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
                             # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
                             current_opts["hls_prefer_native"] = True
                             current_opts["downloader"] = "native"  # Используем native downloader для HLS
-                            current_opts["fragment_retries"] = 0
-                            current_opts["hls_fragment_retries"] = 0
+                            current_opts["fragment_retries"] = 3
+                            current_opts["hls_fragment_retries"] = 3
                             current_opts["abort_on_unavailable_fragment"] = True
-                            current_opts["max_fragments"] = 1
                             # Добавляем таймаут для downloader_args
                             if "downloader_args" not in current_opts:
                                 current_opts["downloader_args"] = {}
