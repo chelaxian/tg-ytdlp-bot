@@ -1228,6 +1228,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections, hls_file_found, auto_range_added
             # Initialize hls_file_found for this download attempt
             hls_file_found = False
+
+            def _video_file_exists_on_disk():
+                """Check if a completed video file (not .part) exists in the download directory."""
+                try:
+                    if not os.path.isdir(user_dir_name):
+                        return False
+                    _video_exts = ('.mp4', '.mkv', '.webm', '.ts', '.mpegts', '.avi', '.mov', '.flv', '.3gp', '.ogv', '.wmv', '.asf', '.m4v')
+                    for f in os.listdir(user_dir_name):
+                        if not f.endswith('.part') and f.endswith(_video_exts) and os.path.getsize(os.path.join(user_dir_name, f)) > 0:
+                            return True
+                except Exception:
+                    pass
+                return False
             
             # Ensure download directory exists before setting outtmpl
             try:
@@ -2285,35 +2298,32 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Check for HTTP Error 416 (Requested range not satisfiable) - retry without range requests
                 if "HTTP Error 416" in error_message or "Requested range not satisfiable" in error_message:
                     logger.warning(f"HTTP 416 error detected (range request issue): {error_message}")
-                    # Try to continue if file was partially downloaded
-                    if info_dict:
-                        logger.info("Attempting to continue despite HTTP 416 error")
+                    if _video_file_exists_on_disk():
+                        logger.info("Attempting to continue despite HTTP 416 error — video file found on disk")
                         return info_dict
                     # If retry is needed, return error to trigger retry
-                    logger.error(f"HTTP 416 error - download failed: {error_message}")
+                    logger.error(f"HTTP 416 error - download failed, no file on disk: {error_message}")
                     return None
                 
                 # Check for Read timed out errors - retry with longer timeout
                 if "Read timed out" in error_message or "ReadTimeout" in error_message or "timed out" in error_message.lower():
                     logger.warning(f"Read timeout error detected: {error_message}")
-                    # Try to continue if file was partially downloaded
-                    if info_dict:
-                        logger.info("Attempting to continue despite timeout error")
+                    if _video_file_exists_on_disk():
+                        logger.info("Attempting to continue despite timeout error — video file found on disk")
                         return info_dict
                     # Return None to trigger retry
-                    logger.error(f"Read timeout error - download failed: {error_message}")
+                    logger.error(f"Read timeout error - download failed, no file on disk: {error_message}")
                     return None
                 
                 # Check for incomplete download errors ("Got error: N bytes read, M more expected")
                 # This is a network interruption during download — retry with same format
                 if "bytes read," in error_message and "more expected" in error_message:
                     logger.warning(f"Incomplete download detected (network interruption): {error_message}")
-                    # Check if a partial file exists — yt-dlp may resume from it
-                    if info_dict:
-                        logger.info("Partial download exists, attempting to continue")
+                    if _video_file_exists_on_disk():
+                        logger.info("Partial download exists on disk, attempting to continue")
                         return info_dict
                     # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
-                    logger.error(f"Incomplete download failed: {error_message}")
+                    logger.error(f"Incomplete download failed, no file on disk: {error_message}")
                     return None
                 
                 # Check for HTTP 429 Too Many Requests - sleep and retry
@@ -3225,6 +3235,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info(f"Found video files with fallback search: {files}")
                     
                     if not files:
+                        # Check for .part files — download may have failed near completion
+                        part_files = [fname for fname in allfiles if fname.endswith('.part')]
+                        if part_files:
+                            logger.error(
+                                f"Download incomplete — only .part files found in {dir_path}: {part_files}. "
+                                f"Expected video extension: {video_extensions}. All files: {allfiles}"
+                            )
+                        else:
+                            logger.error(
+                                f"No video or .part files found in {dir_path}. "
+                                f"Expected: {video_extensions}. All files: {allfiles}"
+                            )
                         send_error_to_user(message, safe_get_messages(user_id).SKIPPING_UNSUPPORTED_FILE_TYPE_MSG.format(index=current_index))
                         continue
 
