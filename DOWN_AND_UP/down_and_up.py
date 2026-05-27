@@ -3882,7 +3882,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
+                    _upload_max_retries = 2
+                    video_msg = None
+                    for _upload_attempt in range(_upload_max_retries + 1):
+                        try:
+                            video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
+                            break
+                        except (TimeoutError, Exception) as _upload_err:
+                            _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
+                            _file_still_exists = os.path.exists(part_path)
+                            if _is_timeout and _file_still_exists and _upload_attempt < _upload_max_retries:
+                                logger.warning(f"Split upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), file on disk — retrying: {part_path}")
+                                time.sleep(3)
+                                continue
+                            elif _is_timeout and not _file_still_exists:
+                                logger.error(f"Split upload timed out and file missing on disk, cannot retry: {part_path}")
+                            elif not _is_timeout:
+                                raise
+                            else:
+                                logger.error(f"Split upload timed out after {_upload_max_retries + 1} attempts, giving up: {part_path}")
+                            raise
                     if not video_msg:
                         if is_user_blocked_flagged(user_id):
                             logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
@@ -4535,7 +4554,27 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # States are needed for all videos in playlist (if it's a playlist)
                         # States will be cleared at the end of the function after ALL videos are processed
                         
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
+                        # Upload with auto-retry on timeout (file stays on disk after timeout)
+                        _upload_max_retries = 2
+                        video_msg = None
+                        for _upload_attempt in range(_upload_max_retries + 1):
+                            try:
+                                video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
+                                break
+                            except (TimeoutError, Exception) as _upload_err:
+                                _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
+                                _file_still_exists = os.path.exists(after_rename_abs_path)
+                                if _is_timeout and _file_still_exists and _upload_attempt < _upload_max_retries:
+                                    logger.warning(f"Upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), file on disk — retrying: {after_rename_abs_path}")
+                                    time.sleep(3)
+                                    continue
+                                elif _is_timeout and not _file_still_exists:
+                                    logger.error(f"Upload timed out and file missing on disk, cannot retry: {after_rename_abs_path}")
+                                elif not _is_timeout:
+                                    raise
+                                else:
+                                    logger.error(f"Upload timed out after {_upload_max_retries + 1} attempts, giving up: {after_rename_abs_path}")
+                                raise
                         if not video_msg:
                             if is_user_blocked_flagged(user_id):
                                 logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")
