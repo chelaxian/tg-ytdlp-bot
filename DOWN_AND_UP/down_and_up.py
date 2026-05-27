@@ -3237,18 +3237,45 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if not files:
                         # Check for .part files — download may have failed near completion
                         part_files = [fname for fname in allfiles if fname.endswith('.part')]
+                        # Check for DASH fragments (e.g. vid_ID.f137.mp4, vid_ID.f251.webm)
+                        dash_pattern = re.compile(r'\.f\d+\.(mp4|webm|m4a|mkv|ts)$', re.IGNORECASE)
+                        dash_files = [fname for fname in allfiles if dash_pattern.search(fname)]
                         if part_files:
                             logger.error(
                                 f"Download incomplete — only .part files found in {dir_path}: {part_files}. "
                                 f"Expected video extension: {video_extensions}. All files: {allfiles}"
                             )
+                        elif dash_files:
+                            # DASH fragments exist but weren't merged — try to use the largest video fragment
+                            dash_files_with_sizes = []
+                            for df in dash_files:
+                                df_path = os.path.join(dir_path, df)
+                                try:
+                                    sz = os.path.getsize(df_path)
+                                    dash_files_with_sizes.append((df, sz))
+                                except OSError:
+                                    pass
+                            dash_files_with_sizes.sort(key=lambda x: x[1], reverse=True)
+                            if dash_files_with_sizes:
+                                best_dash = dash_files_with_sizes[0]
+                                logger.warning(
+                                    f"DASH merge may have failed — using largest fragment: {best_dash[0]} ({humanbytes(best_dash[1])}). "
+                                    f"All fragments: {dash_files_with_sizes}. All files: {allfiles}"
+                                )
+                                files = [best_dash[0]]
+                            else:
+                                logger.error(
+                                    f"No usable DASH fragments in {dir_path}. "
+                                    f"Expected: {video_extensions}. All files: {allfiles}"
+                                )
                         else:
                             logger.error(
                                 f"No video or .part files found in {dir_path}. "
                                 f"Expected: {video_extensions}. All files: {allfiles}"
                             )
-                        send_error_to_user(message, safe_get_messages(user_id).SKIPPING_UNSUPPORTED_FILE_TYPE_MSG.format(index=current_index))
-                        continue
+                        if not files:
+                            send_error_to_user(message, safe_get_messages(user_id).SKIPPING_UNSUPPORTED_FILE_TYPE_MSG.format(index=current_index))
+                            continue
 
                     downloaded_file = files[0]
                     downloaded_abs_path = os.path.abspath(os.path.join(dir_path, downloaded_file))
