@@ -199,7 +199,9 @@ class Config(object):
     WHITELIST = DomainsConfig.WHITELIST
     WHITE_KEYWORDS = getattr(DomainsConfig, "WHITE_KEYWORDS", [])
     NO_COOKIE_DOMAINS = DomainsConfig.NO_COOKIE_DOMAINS
-    PROXY_DOMAINS = DomainsConfig.PROXY_DOMAINS    
+    NO_PROXY_DOMAINS = DomainsConfig.NO_PROXY_DOMAINS   
+    AUTO_PROXY_DOMAINS = DomainsConfig.AUTO_PROXY_DOMAINS
+    PROXY_1_DOMAINS = DomainsConfig.PROXY_1_DOMAINS    
     PROXY_2_DOMAINS = DomainsConfig.PROXY_2_DOMAINS    
     YTDLP_ONLY_DOMAINS = getattr(DomainsConfig, "YTDLP_ONLY_DOMAINS", [])
     GALLERYDL_ONLY_DOMAINS = getattr(DomainsConfig, "GALLERYDL_ONLY_DOMAINS", [])

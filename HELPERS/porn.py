@@ -391,7 +391,7 @@ def reload_all_porn_caches():
     Reloads:
     - Text-based caches: PORN_DOMAINS, PORN_KEYWORDS, SUPPORTED_SITES
     - Config-based arrays from CONFIG/domains.py: WHITE_KEYWORDS, WHITELIST,
-      GREYLIST, PROXY_DOMAINS, PROXY_2_DOMAINS, CLEAN_QUERY, NO_COOKIE_DOMAINS,
+      GREYLIST, PROXY_1_DOMAINS, PROXY_2_DOMAINS, CLEAN_QUERY, NO_COOKIE_DOMAINS,
       BLACK_LIST, TIKTOK_DOMAINS, PIPED_DOMAIN.
     Returns a dict with counts for confirmation output.
     """
@@ -405,7 +405,7 @@ def reload_all_porn_caches():
     try:
         DomainsCfg = domains_module.DomainsConfig if isinstance(domains_module, types.ModuleType) else DomainsConfig
         attrs_to_copy = [
-            "WHITE_KEYWORDS", "WHITELIST", "GREYLIST", "PROXY_DOMAINS", "PROXY_2_DOMAINS",
+            "WHITE_KEYWORDS", "WHITELIST", "GREYLIST", "PROXY_1_DOMAINS", "PROXY_2_DOMAINS",
             "CLEAN_QUERY", "NO_COOKIE_DOMAINS", "BLACK_LIST", "TIKTOK_DOMAINS", "PIPED_DOMAIN",
         ]
         for name in attrs_to_copy:
@@ -427,7 +427,7 @@ def reload_all_porn_caches():
         "greylist": len(getattr(Config, "GREYLIST", []) or []),
         "black_list": len(getattr(Config, "BLACK_LIST", []) or []),
         "white_keywords": len(getattr(Config, "WHITE_KEYWORDS", []) or []),
-        "proxy_domains": len(getattr(Config, "PROXY_DOMAINS", []) or []),
+        "proxy_domains": len(getattr(Config, "PROXY_1_DOMAINS", []) or []),
         "proxy_2_domains": len(getattr(Config, "PROXY_2_DOMAINS", []) or []),
         "clean_query": len(getattr(Config, "CLEAN_QUERY", []) or []),
         "no_cookie_domains": len(getattr(Config, "NO_COOKIE_DOMAINS", []) or []),

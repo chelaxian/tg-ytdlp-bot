@@ -45,7 +45,7 @@ def get_domain_lists() -> Dict[str, List[str]]:
         "WHITELIST": list(getattr(DomainsConfig, "WHITELIST", [])),
         "GREYLIST": list(getattr(DomainsConfig, "GREYLIST", [])),
         "NO_COOKIE_DOMAINS": list(getattr(DomainsConfig, "NO_COOKIE_DOMAINS", [])),
-        "PROXY_DOMAINS": list(getattr(DomainsConfig, "PROXY_DOMAINS", [])),
+        "PROXY_1_DOMAINS": list(getattr(DomainsConfig, "PROXY_1_DOMAINS", [])),
         "PROXY_2_DOMAINS": list(getattr(DomainsConfig, "PROXY_2_DOMAINS", [])),
         "NO_FILTER_DOMAINS": list(getattr(DomainsConfig, "NO_FILTER_DOMAINS", [])),
         "TIKTOK_DOMAINS": list(getattr(DomainsConfig, "TIKTOK_DOMAINS", [])),
