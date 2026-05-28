@@ -1228,6 +1228,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections, hls_file_found, auto_range_added
             # Initialize hls_file_found for this download attempt
             hls_file_found = False
+
+            def _video_file_exists_on_disk():
+                """Check if a completed video file (not .part) exists in the download directory."""
+                try:
+                    if not os.path.isdir(user_dir_name):
+                        return False
+                    _video_exts = ('.mp4', '.mkv', '.webm', '.ts', '.mpegts', '.avi', '.mov', '.flv', '.3gp', '.ogv', '.wmv', '.asf', '.m4v')
+                    for f in os.listdir(user_dir_name):
+                        if not f.endswith('.part') and f.endswith(_video_exts) and os.path.getsize(os.path.join(user_dir_name, f)) > 0:
+                            return True
+                except Exception:
+                    pass
+                return False
             
             # Ensure download directory exists before setting outtmpl
             try:
@@ -1535,7 +1548,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.info(f"MKV mode enabled: setting merge_output_format=mkv, remux_video=mkv")
             
             # Add proxy configuration if needed
-            if use_proxy:
+            from HELPERS.proxy_helper import is_no_proxy_domain, is_auto_proxy_domain
+            _skip_proxy = is_no_proxy_domain(url)
+            _auto_proxy = is_auto_proxy_domain(url)
+            if _skip_proxy:
+                logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for {url}")
+                ytdl_opts.pop('proxy', None)
+            elif _auto_proxy:
+                logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url}")
+                ytdl_opts.pop('proxy', None)
+            elif use_proxy:
                 # Force proxy for this download
                 from COMMANDS.proxy_cmd import build_proxy_url, get_proxy_config
                 proxy_config = get_proxy_config()
@@ -1861,15 +1883,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
                         ytdl_opts["hls_prefer_native"] = True
                         ytdl_opts["downloader"] = "native"  # Используем native downloader для HLS
-                        ytdl_opts["fragment_retries"] = 0  # Не повторять при ошибке фрагмента
-                        ytdl_opts["hls_fragment_retries"] = 0  # Не повторять HLS-сегменты
-                        ytdl_opts["abort_on_unavailable_fragment"] = True  # Прервать при недоступном сегменте
-                        ytdl_opts["max_fragments"] = 1  # Максимум 1 сегмент для теста (если ошибка - сразу прервать)
+                        ytdl_opts["fragment_retries"] = 3
+                        ytdl_opts["hls_fragment_retries"] = 3
+                        ytdl_opts["abort_on_unavailable_fragment"] = True
                         # Добавляем таймаут для downloader_args (на случай если native не сработает)
                         if "downloader_args" not in ytdl_opts:
                             ytdl_opts["downloader_args"] = {}
                         ytdl_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
-                        logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
+                        logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=3, hls_fragment_retries=3, abort_on_unavailable_fragment=True")
                 try:
                     if is_hls:
                         safe_edit_message_text(user_id, proc_msg_id,
@@ -1960,7 +1981,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     
                                     download_thread = threading.Thread(target=download_wrapper, daemon=True)
                                     download_thread.start()
-                                    download_thread.join(timeout=15)  # Максимум 15 секунд
+                                    download_thread.join(timeout=180)  # Максимум 3 минуты для HLS загрузок
                                     
                                     # Проверяем, была ли обнаружена ошибка 403
                                     if hls_403_detected.is_set():
@@ -1983,7 +2004,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     if download_thread.is_alive():
                                         # Если поток еще работает после 15 секунд - прерываем
                                         logger.warning("HLS download with proxy exceeded 15 second timeout - aborting")
-                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 15 seconds - too many 403 errors. Please try another proxy.")
+                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 3 minutes. Try again or use a different proxy.")
                                     
                                     # Проверяем, была ли ошибка в потоке
                                     if download_exception[0]:
@@ -2285,35 +2306,32 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Check for HTTP Error 416 (Requested range not satisfiable) - retry without range requests
                 if "HTTP Error 416" in error_message or "Requested range not satisfiable" in error_message:
                     logger.warning(f"HTTP 416 error detected (range request issue): {error_message}")
-                    # Try to continue if file was partially downloaded
-                    if info_dict:
-                        logger.info("Attempting to continue despite HTTP 416 error")
+                    if _video_file_exists_on_disk():
+                        logger.info("Attempting to continue despite HTTP 416 error — video file found on disk")
                         return info_dict
                     # If retry is needed, return error to trigger retry
-                    logger.error(f"HTTP 416 error - download failed: {error_message}")
+                    logger.error(f"HTTP 416 error - download failed, no file on disk: {error_message}")
                     return None
                 
                 # Check for Read timed out errors - retry with longer timeout
                 if "Read timed out" in error_message or "ReadTimeout" in error_message or "timed out" in error_message.lower():
                     logger.warning(f"Read timeout error detected: {error_message}")
-                    # Try to continue if file was partially downloaded
-                    if info_dict:
-                        logger.info("Attempting to continue despite timeout error")
+                    if _video_file_exists_on_disk():
+                        logger.info("Attempting to continue despite timeout error — video file found on disk")
                         return info_dict
                     # Return None to trigger retry
-                    logger.error(f"Read timeout error - download failed: {error_message}")
+                    logger.error(f"Read timeout error - download failed, no file on disk: {error_message}")
                     return None
                 
                 # Check for incomplete download errors ("Got error: N bytes read, M more expected")
                 # This is a network interruption during download — retry with same format
                 if "bytes read," in error_message and "more expected" in error_message:
                     logger.warning(f"Incomplete download detected (network interruption): {error_message}")
-                    # Check if a partial file exists — yt-dlp may resume from it
-                    if info_dict:
-                        logger.info("Partial download exists, attempting to continue")
+                    if _video_file_exists_on_disk():
+                        logger.info("Partial download exists on disk, attempting to continue")
                         return info_dict
                     # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
-                    logger.error(f"Incomplete download failed: {error_message}")
+                    logger.error(f"Incomplete download failed, no file on disk: {error_message}")
                     return None
                 
                 # Check for HTTP 429 Too Many Requests - sleep and retry
@@ -3225,8 +3243,55 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info(f"Found video files with fallback search: {files}")
                     
                     if not files:
-                        send_error_to_user(message, safe_get_messages(user_id).SKIPPING_UNSUPPORTED_FILE_TYPE_MSG.format(index=current_index))
-                        continue
+                        # Check for .part files — download may have failed near completion
+                        part_files = [fname for fname in allfiles if fname.endswith('.part')]
+                        # Check for DASH fragments (e.g. vid_ID.f137.mp4, vid_ID.f251.webm)
+                        _dash_video_exts = ('.mp4', '.webm', '.mkv', '.ts', '.m4v')
+                        dash_files = []
+                        for fname in allfiles:
+                            if fname.endswith('.part'):
+                                continue
+                            base = os.path.splitext(fname)[0]
+                            ext = os.path.splitext(fname)[1].lower()
+                            prev_ext = os.path.splitext(base)[1]
+                            if prev_ext.startswith('.f') and prev_ext[2:].isdigit() and ext in _dash_video_exts:
+                                dash_files.append(fname)
+                        if part_files:
+                            logger.error(
+                                f"Download incomplete — only .part files found in {dir_path}: {part_files}. "
+                                f"Expected video extension: {video_extensions}. All files: {allfiles}"
+                            )
+                        elif dash_files:
+                            # DASH fragments exist but weren't merged — try to use the largest video fragment
+                            dash_files_with_sizes = []
+                            for df in dash_files:
+                                df_path = os.path.join(dir_path, df)
+                                try:
+                                    sz = os.path.getsize(df_path)
+                                    dash_files_with_sizes.append((df, sz))
+                                except OSError:
+                                    pass
+                            dash_files_with_sizes.sort(key=lambda x: x[1], reverse=True)
+                            if dash_files_with_sizes:
+                                best_dash = dash_files_with_sizes[0]
+                                logger.warning(
+                                    f"DASH merge may have failed — using largest fragment: {best_dash[0]} ({humanbytes(best_dash[1])}). "
+                                    f"All fragments: {dash_files_with_sizes}. All files: {allfiles}"
+                                )
+                                files = [best_dash[0]]
+                            else:
+                                logger.error(
+                                    f"No usable DASH fragments in {dir_path}. "
+                                    f"Expected: {video_extensions}. All files: {allfiles}"
+                                )
+                        else:
+                            logger.error(
+                                f"No video or .part files found in {dir_path}. "
+                                f"Expected: {video_extensions}. All files: {allfiles}"
+                            )
+                        if not files:
+                            send_error_to_user(message, safe_get_messages(user_id).SKIPPING_UNSUPPORTED_FILE_TYPE_MSG.format(index=current_index))
+                            continue
 
                     downloaded_file = files[0]
                     downloaded_abs_path = os.path.abspath(os.path.join(dir_path, downloaded_file))
@@ -3860,7 +3925,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
+                    _upload_max_retries = 2
+                    video_msg = None
+                    for _upload_attempt in range(_upload_max_retries + 1):
+                        try:
+                            video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
+                            break
+                        except (TimeoutError, Exception) as _upload_err:
+                            _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
+                            _file_still_exists = os.path.exists(part_path)
+                            if _is_timeout and _file_still_exists and _upload_attempt < _upload_max_retries:
+                                logger.warning(f"Split upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), file on disk — retrying: {part_path}")
+                                time.sleep(3)
+                                continue
+                            elif _is_timeout and not _file_still_exists:
+                                logger.error(f"Split upload timed out and file missing on disk, cannot retry: {part_path}")
+                            elif not _is_timeout:
+                                raise
+                            else:
+                                logger.error(f"Split upload timed out after {_upload_max_retries + 1} attempts, giving up: {part_path}")
+                            raise
                     if not video_msg:
                         if is_user_blocked_flagged(user_id):
                             logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
@@ -3913,7 +3997,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         height=int(v_h) if v_h else height,
                                         thumb=splited_thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
-                                    ))
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
                                     logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4513,7 +4597,27 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # States are needed for all videos in playlist (if it's a playlist)
                         # States will be cleared at the end of the function after ALL videos are processed
                         
-                        video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
+                        # Upload with auto-retry on timeout (file stays on disk after timeout)
+                        _upload_max_retries = 2
+                        video_msg = None
+                        for _upload_attempt in range(_upload_max_retries + 1):
+                            try:
+                                video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
+                                break
+                            except (TimeoutError, Exception) as _upload_err:
+                                _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
+                                _file_still_exists = os.path.exists(after_rename_abs_path)
+                                if _is_timeout and _file_still_exists and _upload_attempt < _upload_max_retries:
+                                    logger.warning(f"Upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), file on disk — retrying: {after_rename_abs_path}")
+                                    time.sleep(3)
+                                    continue
+                                elif _is_timeout and not _file_still_exists:
+                                    logger.error(f"Upload timed out and file missing on disk, cannot retry: {after_rename_abs_path}")
+                                elif not _is_timeout:
+                                    raise
+                                else:
+                                    logger.error(f"Upload timed out after {_upload_max_retries + 1} attempts, giving up: {after_rename_abs_path}")
+                                raise
                         if not video_msg:
                             if is_user_blocked_flagged(user_id):
                                 logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")
@@ -4617,7 +4721,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         height=int(v_h) if v_h else height,
                                         thumb=thumb_dir,
                                         reply_parameters=ReplyParameters(message_id=message.id)
-                                    ))
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
                                     logger.info(f"down_and_up: paid content open copy sent to log channel for history")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4883,7 +4987,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             height=int(v_h) if v_h else height,
                                             thumb=thumb_dir,
                                             reply_parameters=ReplyParameters(message_id=message.id)
-                                        ))
+                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery)")
                                         already_forwarded_to_log = True
                                     except Exception as e:

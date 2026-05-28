@@ -11,7 +11,7 @@ def is_proxy_domain(url):
         url (str): URL для проверки
         
     Returns:
-        bool: True если домен находится в списке PROXY_DOMAINS или PROXY_2_DOMAINS
+        bool: True если домен находится в списке PROXY_1_DOMAINS или PROXY_2_DOMAINS
     """
     try:
         parsed_url = urlparse(url)
@@ -21,15 +21,15 @@ def is_proxy_domain(url):
         if domain.startswith('www.'):
             domain = domain[4:]
             
-        # Проверяем PROXY_DOMAINS
-        if hasattr(Config, 'PROXY_DOMAINS') and Config.PROXY_DOMAINS:
+        # Проверяем PROXY_1_DOMAINS
+        if hasattr(Config, 'PROXY_1_DOMAINS') and Config.PROXY_1_DOMAINS:
             # Проверяем точное совпадение домена
-            if domain in Config.PROXY_DOMAINS:
-                logger.info(f"Domain {domain} found in PROXY_DOMAINS list")
+            if domain in Config.PROXY_1_DOMAINS:
+                logger.info(f"Domain {domain} found in PROXY_1_DOMAINS list")
                 return True
                 
             # Проверяем поддомены
-            for proxy_domain in Config.PROXY_DOMAINS:
+            for proxy_domain in Config.PROXY_1_DOMAINS:
                 if domain.endswith('.' + proxy_domain) or domain == proxy_domain:
                     logger.info(f"Domain {domain} matches proxy domain {proxy_domain}")
                     return True
@@ -123,7 +123,7 @@ def get_proxy_2_config():
         return None
 
 def select_proxy_for_domain(url):
-    """Select appropriate proxy for domain based on PROXY_DOMAINS and PROXY_2_DOMAINS"""
+    """Select appropriate proxy for domain based on PROXY_1_DOMAINS and PROXY_2_DOMAINS"""
     try:
         from CONFIG.domains import DomainsConfig
         from HELPERS.proxy_helper import extract_domain_from_url, is_domain_in_list
@@ -135,9 +135,9 @@ def select_proxy_for_domain(url):
             if is_domain_in_list(domain, DomainsConfig.PROXY_2_DOMAINS):
                 return get_proxy_2_config()
         
-        # Check PROXY_DOMAINS
-        if hasattr(DomainsConfig, 'PROXY_DOMAINS') and DomainsConfig.PROXY_DOMAINS:
-            if is_domain_in_list(domain, DomainsConfig.PROXY_DOMAINS):
+        # Check PROXY_1_DOMAINS
+        if hasattr(DomainsConfig, 'PROXY_1_DOMAINS') and DomainsConfig.PROXY_1_DOMAINS:
+            if is_domain_in_list(domain, DomainsConfig.PROXY_1_DOMAINS):
                 return get_proxy_config()
         
         return None

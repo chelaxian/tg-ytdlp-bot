@@ -1113,15 +1113,14 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     # Используем native HLS downloader вместо ffmpeg, чтобы параметры работали
                     ytdl_opts["hls_prefer_native"] = True
                     ytdl_opts["downloader"] = "native"  # Используем native downloader для HLS
-                    ytdl_opts["fragment_retries"] = 0  # Не повторять при ошибке фрагмента
-                    ytdl_opts["hls_fragment_retries"] = 0  # Не повторять HLS-сегменты
-                    ytdl_opts["abort_on_unavailable_fragment"] = True  # Прервать при недоступном сегменте
-                    ytdl_opts["max_fragments"] = 1  # Максимум 1 сегмент для теста (если ошибка - сразу прервать)
+                    ytdl_opts["fragment_retries"] = 3
+                    ytdl_opts["hls_fragment_retries"] = 3
+                    ytdl_opts["abort_on_unavailable_fragment"] = True
                     # Добавляем таймаут для downloader_args (на случай если native не сработает)
                     if "downloader_args" not in ytdl_opts:
                         ytdl_opts["downloader_args"] = {}
                     ytdl_opts["downloader_args"]["ffmpeg"] = ["-timeout", "10000000"]  # 10 секунд таймаут для ffmpeg
-                    logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=0, hls_fragment_retries=0, abort_on_unavailable_fragment=True, max_fragments=1")
+                    logger.info("Fast-fail options applied: hls_prefer_native=True, fragment_retries=3, hls_fragment_retries=3, abort_on_unavailable_fragment=True")
             
             # Define sanitize_title_for_filename function
             def sanitize_title_for_filename(title):
@@ -1173,7 +1172,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             import threading
             thread_proxy = getattr(threading.current_thread(), 'proxy_for_audio_download', None)
             
-            if thread_proxy:
+            from HELPERS.proxy_helper import is_no_proxy_domain, is_auto_proxy_domain
+            _skip_proxy = is_no_proxy_domain(url)
+            _auto_proxy = is_auto_proxy_domain(url)
+            if _skip_proxy:
+                logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for {url}")
+                ytdl_opts.pop('proxy', None)
+                threading.current_thread().proxy_for_audio_download = None
+            elif _auto_proxy:
+                logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url}")
+                ytdl_opts.pop('proxy', None)
+                threading.current_thread().proxy_for_audio_download = None
+            elif thread_proxy:
                 # Используем прокси из thread-local storage (приоритет)
                 ytdl_opts['proxy'] = thread_proxy
                 logger.info(f"Using proxy from thread-local storage for audio download: {thread_proxy}")
@@ -1370,7 +1380,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     
                                     download_thread = threading.Thread(target=download_wrapper, daemon=True)
                                     download_thread.start()
-                                    download_thread.join(timeout=15)  # Максимум 15 секунд
+                                    download_thread.join(timeout=180)  # Максимум 3 минуты для HLS загрузок
                                     
                                     # Проверяем, была ли обнаружена ошибка 403
                                     if hls_403_detected.is_set():
@@ -1393,7 +1403,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                     if download_thread.is_alive():
                                         # Если поток еще работает после 15 секунд - прерываем
                                         logger.warning("HLS download with proxy exceeded 15 second timeout - aborting")
-                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 15 seconds - too many 403 errors. Please try another proxy.")
+                                        raise yt_dlp.utils.DownloadError("HLS download with proxy timeout after 3 minutes. Try again or use a different proxy.")
                                     
                                     # Проверяем, была ли ошибка в потоке
                                     if download_exception[0]:
@@ -2612,40 +2622,75 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # Send audio with appropriate method based on content type and file format
                 # Используем is_paid_for_user для отправки (админы получают открытый контент)
                 if is_paid_for_user:
-                    # Send paid audio for NSFW content in private chats
-                    try:
-                        from pyrogram.types import InputPaidMediaAudio
-                        from CONFIG.limits import LimitsConfig
-                        
-                        paid_audio = InputPaidMediaAudio(
-                            media=audio_file,
-                            thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None
-                        )
-                        
-                        # Start upload logging to prevent watchdog false positives
-                        if proc_msg_id:
-                            _start_upload_logging(user_id, proc_msg_id)
+                    # Telegram sendPaidMedia API does not support audio type (only photo/video).
+                    # NSFW audio is sent free via send_audio — BUT we must NEVER fallback to
+                    # sending video-capable formats (.mp4, .webm, etc.) to prevent free NSFW
+                    # video leaks through the audio download path. Only pure audio is allowed.
+                    _audio_only_exts = ('.mp3', '.m4a', '.aac', '.flac', '.opus', '.ogg', '.wav', '.alac', '.ac3')
+
+                    if file_ext not in _audio_only_exts:
+                        # File is not pure audio (e.g. .mp4/.webm from worstvideo fallback).
+                        # Must convert to audio before sending — otherwise this is a free video leak.
+                        from DOWN_AND_UP.ffmpeg import get_ffmpeg_path, normalize_path_for_ffmpeg
+                        _ffmpeg_bin = get_ffmpeg_path()
+                        if not _ffmpeg_bin:
+                            logger.error(f"NSFW audio conversion failed: ffmpeg not found, file={audio_file}")
+                            send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error="ffmpeg not found for audio conversion"))
+                            raise RuntimeError("ffmpeg not found for NSFW audio conversion")
+
+                        _converted_audio = audio_file + '.nsfw_conv.mp3'
+                        _src = normalize_path_for_ffmpeg(audio_file)
+                        _dst = normalize_path_for_ffmpeg(_converted_audio)
+                        _conv_cmd = [_ffmpeg_bin, '-y', '-i', _src, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', _dst]
+                        logger.info(f"Converting NSFW non-audio file to mp3: {audio_file} -> {_converted_audio}")
                         try:
-                            audio_msg = timed_upload(lambda: app.send_paid_media(
+                            _conv_result = subprocess.run(_conv_cmd, capture_output=True, text=True, timeout=300)
+                            if _conv_result.returncode != 0:
+                                logger.error(f"NSFW audio conversion failed (rc={_conv_result.returncode}): {_conv_result.stderr[:500]}")
+                                raise RuntimeError(f"ffmpeg conversion failed: {_conv_result.stderr[:200]}")
+                            if not os.path.exists(_converted_audio) or os.path.getsize(_converted_audio) == 0:
+                                logger.error(f"NSFW audio conversion produced empty/missing file: {_converted_audio}")
+                                raise RuntimeError("Converted audio file is empty or missing")
+                            audio_file = _converted_audio
+                            file_ext = '.mp3'
+                            logger.info(f"NSFW audio conversion successful: {_converted_audio}")
+                        except Exception as _conv_err:
+                            logger.error(f"NSFW audio conversion error, NOT sending (prevents free video leak): {_conv_err}")
+                            send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(_conv_err)))
+                            raise
+
+                    # At this point audio_file is guaranteed to be a pure audio format
+                    if proc_msg_id:
+                        _start_upload_logging(user_id, proc_msg_id)
+                    try:
+                        _prog_args = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
+                        if telegram_thumb and os.path.exists(telegram_thumb):
+                            audio_msg = timed_upload(lambda: app.send_audio(
                                 chat_id=user_id,
-                                media=[paid_audio],
-                                star_count=LimitsConfig.NSFW_STAR_COST,
-                                payload=str(Config.STAR_RECEIVER),
+                                audio=audio_file,
+                                caption=caption_with_link,
                                 reply_parameters=ReplyParameters(message_id=message.id),
+                                thumb=telegram_thumb,
+                                title=title,
+                                performer=artist,
+                                progress=progress_bar if _prog_args else None,
+                                progress_args=_prog_args,
                             ))
-                            logger.info("Paid NSFW audio sent to user")
-                        finally:
-                            # Stop upload logging after upload completes or fails
-                            if proc_msg_id:
-                                _stop_upload_logging(user_id, proc_msg_id)
-                    except Exception as e:
-                        # CRITICAL: never fallback to free media when paid NSFW is required.
-                        logger.error(f"Failed to send paid audio (will NOT fallback to free): {e}")
-                        send_error_to_user(
-                            message,
-                            safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)),
-                        )
-                        raise
+                        else:
+                            audio_msg = timed_upload(lambda: app.send_audio(
+                                chat_id=user_id,
+                                audio=audio_file,
+                                caption=caption_with_link,
+                                reply_parameters=ReplyParameters(message_id=message.id),
+                                title=title,
+                                performer=artist,
+                                progress=progress_bar if _prog_args else None,
+                                progress_args=_prog_args,
+                            ))
+                        logger.info("NSFW audio sent (paid media not supported for audio type)")
+                    finally:
+                        if proc_msg_id:
+                            _stop_upload_logging(user_id, proc_msg_id)
                 else:
                     # Send regular audio for non-NSFW content or group chats
                     # Start upload logging to prevent watchdog false positives

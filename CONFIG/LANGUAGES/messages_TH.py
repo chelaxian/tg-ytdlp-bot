@@ -863,7 +863,7 @@ class Messages(object):
         "• รายชื่อเทา: {greylist}\n"
         "• รายชื่อดำ: {black_list}\n"
         "• คำหลักขาว: {white_keywords}\n"
-        "• PROXY_DOMAINS: {proxy_domains}\n"
+        "• PROXY_1_DOMAINS: {proxy_domains}\n"
         "• PROXY_2_DOMAINS: {proxy_2_domains}\n"
         "• CLEAN_QUERY: {clean_query}\n"
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
@@ -1722,7 +1722,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "บันทึกของ {bot_name}\nผู้ใช้: {user_id}\nบันทึกทั้งหมด: {total}\nเวลาปัจจุบัน: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nทั้งหมด {path}: {count}\nเวลาปัจจุบัน: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>ผู้ใช้ทั้งหมด: {count}</i>\n20 รายการล่าสุด {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "แคชสื่อลามกโหลดซ้ำโดยผู้ดูแลระบบ {no_cookie_domains} โดเมน: {domains}, คำสำคัญ: {keywords}, ไซต์: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "แคชสื่อลามกโหลดซ้ำโดยผู้ดูแลระบบ {no_cookie_domains} โดเมน: {domains}, คำสำคัญ: {keywords}, ไซต์: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_1_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "เกิดข้อผิดพลาดในการส่งข้อความหมดเวลา: {error}"

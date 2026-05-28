@@ -1722,7 +1722,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "{bot_name}のログ\nユーザー: {user_id}\n合計ログ: {total}\n現在時刻: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\n合計 {path}: {count}\n現在時刻: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>合計ユーザー: {count}</i>\n最後の20件 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "ポルノキャッシュは管理者 {admin_id} によってリロードされました。ドメイン: {domains}, キーワード: {keywords}, サイト: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "ポルノキャッシュは管理者 {admin_id} によってリロードされました。ドメイン: {domains}, キーワード: {keywords}, サイト: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_1_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "タイムアウト メッセージの送信エラー: {error}"

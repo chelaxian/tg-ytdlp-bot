@@ -7,10 +7,14 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
     """
     Определяет, нужно ли переключаться на gallery-dl при ошибке yt-dlp.
     Возвращает True если ошибка указывает на то, что yt-dlp не может обработать URL.
+    Для AUTO_PROXY_DOMAINS всегда возвращает False — сначала нужно перебрать прокси.
     """
-    # Проверяем, не является ли URL доменом только для yt-dlp
     from CONFIG.domains import DomainsConfig
     from urllib.parse import urlparse
+    from HELPERS.proxy_helper import is_auto_proxy_domain
+    
+    if is_auto_proxy_domain(url):
+        return False
     
     parsed_url = urlparse(url)
     domain = parsed_url.netloc.lower()

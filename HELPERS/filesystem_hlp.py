@@ -187,6 +187,12 @@ def cleanup_media_in_download_folder(folder_path):
                 # Remove only temporary/partial download artifacts
                 if filename.endswith(('.part', '.ytdl', '.temp', '.tmp')):
                     try:
+                        import time
+                        file_mtime = os.path.getmtime(file_path)
+                        current_time = time.time()
+                        if current_time - file_mtime < 30:
+                            logger.info(f"Skipping recent .part file: {file_path}")
+                            continue
                         os.remove(file_path)
                         logger.info(f"Removed temporary download artifact: {file_path}")
                     except Exception as e:

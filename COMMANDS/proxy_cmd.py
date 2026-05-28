@@ -618,7 +618,7 @@ def build_proxy_url(proxy_config):
             return f"http://{proxy_config['ip']}:{proxy_config['port']}"
 
 def select_proxy_for_domain(url):
-    """Select appropriate proxy for domain based on PROXY_DOMAINS and PROXY_2_DOMAINS"""
+    """Select appropriate proxy for domain based on PROXY_1_DOMAINS and PROXY_2_DOMAINS"""
     from CONFIG.domains import DomainsConfig
     
     # Extract domain from URL
@@ -630,7 +630,7 @@ def select_proxy_for_domain(url):
     
     logger.info(LoggerMsg.PROXY_CMD_SELECT_PROXY_FOR_DOMAIN_LOG_MSG.format(url=url, domain=domain))
     logger.info(LoggerMsg.PROXY_CMD_PROXY_2_DOMAINS_LOG_MSG.format(domains=getattr(DomainsConfig, 'PROXY_2_DOMAINS', [])))
-    logger.info(LoggerMsg.PROXY_CMD_PROXY_DOMAINS_LOG_MSG.format(domains=getattr(DomainsConfig, 'PROXY_DOMAINS', [])))
+    logger.info(LoggerMsg.PROXY_CMD_PROXY_DOMAINS_LOG_MSG.format(domains=getattr(DomainsConfig, 'PROXY_1_DOMAINS', [])))
     
     # Helper function to check if domain matches any domain in the list (including subdomains)
     def is_domain_in_list(domain, domain_list):
@@ -655,9 +655,9 @@ def select_proxy_for_domain(url):
             logger.info(LoggerMsg.PROXY_CMD_DOMAIN_FOUND_IN_PROXY_2_LOG_MSG.format(domain=domain))
             return get_proxy_2_config()
     
-    # Check PROXY_DOMAINS
-    if hasattr(DomainsConfig, 'PROXY_DOMAINS') and DomainsConfig.PROXY_DOMAINS:
-        if is_domain_in_list(domain, DomainsConfig.PROXY_DOMAINS):
+    # Check PROXY_1_DOMAINS
+    if hasattr(DomainsConfig, 'PROXY_1_DOMAINS') and DomainsConfig.PROXY_1_DOMAINS:
+        if is_domain_in_list(domain, DomainsConfig.PROXY_1_DOMAINS):
             logger.info(LoggerMsg.PROXY_CMD_DOMAIN_FOUND_IN_PROXY_1_LOG_MSG.format(domain=domain))
             return get_proxy_config()
     

@@ -829,7 +829,7 @@ class Messages(object):
         "• GREYLIST: {greylist}\n"
         "• BLACK_LIST: {black_list}\n"
         "• WHITE_KEYWORDS: {white_keywords}\n"
-        "• PROXY_DOMAINS: {proxy_domains}\n"
+        "• PROXY_1_DOMAINS: {proxy_domains}\n"
         "• PROXY_2_DOMAINS: {proxy_2_domains}\n"
         "• CLEAN_QUERY: {clean_query}\n"
         "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
@@ -1721,7 +1721,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "{bot_name} के लॉग\nउपयोगकर्ता: {user_id}\nकुल लॉग: {total}\nवर्तमान समय: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nकुल {path}: {count}\nवर्तमान समय: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>कुल उपयोगकर्ता: {count}</i>\nअंतिम 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "व्यवस्थापक {admin_id} द्वारा पोर्न कैश रीलोड किए गए। डोमेन: {domains}, कीवर्ड: {keywords}, साइटें: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "व्यवस्थापक {admin_id} द्वारा पोर्न कैश रीलोड किए गए। डोमेन: {domains}, कीवर्ड: {keywords}, साइटें: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_1_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "टाइमआउट संदेश भेजने में त्रुटि: {error}"
