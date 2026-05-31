@@ -50,6 +50,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.tags import extract_url_range_tags
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
+from HELPERS.upload_guard import timed_upload
 
 # Get app instance for decorators
 app = get_app()
