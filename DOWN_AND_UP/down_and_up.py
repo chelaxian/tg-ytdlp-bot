@@ -3998,7 +3998,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         width=int(v_w) if v_w else width,
                                         height=int(v_h) if v_h else height,
                                         thumb=_split_thumb,
-                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                     logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (channel={log_channel_nsfw})")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4719,6 +4719,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     except Exception:
                                         v_w, v_h, v_dur = width, height, duration
                                     
+                                    _file_size_mb = round(os.path.getsize(after_rename_abs_path) / (1024*1024), 1)
+                                    logger.info(f"down_and_up: sending open copy to log channel: channel={open_log_channel}, file={after_rename_abs_path}, size={_file_size_mb}MiB, timeout={LimitsConfig.UPLOAD_TIMEOUT_SECONDS}s")
                                     # Create open copy for history (without stars) - send directly to channel
                                     # NOTE: no reply_parameters here — message.id is from user chat and does not exist in log channel
                                     open_video_msg = timed_upload(lambda: app.send_video(
@@ -4729,7 +4731,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         width=int(v_w) if v_w else width,
                                         height=int(v_h) if v_h else height,
                                         thumb=_open_thumb,
-                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                     logger.info(f"down_and_up: paid content open copy sent to log channel for history (channel={open_log_channel})")
                                     already_forwarded_to_log = True
                                 except Exception as e:
@@ -4881,7 +4883,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                             width=int(v_w) if v_w else width,
                                                             height=int(v_h) if v_h else height,
                                                             thumb=_manual_thumb,
-                                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
+                                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel (manual fallback, channel={log_channel_nsfw})")
                                                     else:
                                                         logger.error(f"down_and_up: cannot send open copy (manual) — file missing: {after_rename_abs_path}")
@@ -5023,7 +5025,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             width=int(v_w) if v_w else width,
                                             height=int(v_h) if v_h else height,
                                             thumb=_err_thumb,
-                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
+                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery, channel={log_channel_nsfw})")
                                         already_forwarded_to_log = True
                                     except Exception as e:
