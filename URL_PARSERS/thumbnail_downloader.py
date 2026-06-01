@@ -7,6 +7,7 @@ import os
 import re
 import requests
 import shutil
+import subprocess
 import tempfile
 import ipaddress
 from urllib.parse import urlparse
@@ -610,6 +611,30 @@ def download_youtube_thumbnail(video_id: str, dest: str, prefer_320: bool = Fals
         return False
 
 
+def _ensure_jpeg(path: str) -> None:
+    """Convert WebP file to JPEG in-place if needed. Telegram requires JPEG thumbnails."""
+    try:
+        with open(path, 'rb') as f:
+            header = f.read(12)
+        if header[:4] == b'RIFF' and header[8:12] == b'WEBP':
+            tmp_path = path + '.convert_tmp.jpg'
+            result = subprocess.run(
+                ['ffmpeg', '-y', '-i', path, '-q:v', '2', tmp_path],
+                capture_output=True, timeout=30
+            )
+            if result.returncode == 0 and os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                os.replace(tmp_path, path)
+                logger.info(f"Converted WebP thumbnail to JPEG: {path}")
+            else:
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+                logger.warning(f"ffmpeg WebP->JPEG conversion failed for {path}")
+    except Exception as e:
+        logger.warning(f"_ensure_jpeg error for {path}: {e}")
+
+
 def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = None) -> bool:
     """
     Download thumbnail using yt-dlp as fallback
@@ -631,13 +656,14 @@ def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = N
         ytdl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'skip_download': True,  # Don't download video
-            'writethumbnail': True,  # Write thumbnail
-            'write_all_thumbnails': False,  # Only write best thumbnail
+            'skip_download': True,
+            'writethumbnail': True,
+            'write_all_thumbnails': False,
             'outtmpl': outtmpl,
             'noplaylist': True,
             'extract_flat': False,
             'socket_timeout': 30,
+            'convert_thumbnails': 'jpg',
         }
         
         # Add cookies if available
@@ -710,9 +736,9 @@ def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = N
                 pass
         
         if downloaded_thumb and os.path.exists(downloaded_thumb):
-            # Copy thumbnail to destination
             try:
                 shutil.copy2(downloaded_thumb, dest)
+                _ensure_jpeg(dest)
                 logger.info(f"Successfully downloaded thumbnail via yt-dlp: {dest}")
                 return True
             except Exception as e:

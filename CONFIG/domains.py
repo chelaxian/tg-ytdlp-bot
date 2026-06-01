@@ -158,19 +158,31 @@ class DomainsConfig(object):
         'dailymotion.com'
         # Other secure domains can be added
     ]
+    
     NO_PROXY_DOMAINS = [
-        # Domains that should NEVER use proxy
+        #'pornhub.com', 'pornhub.org',
+        #'cn.pornhub.com', 'de.pornhub.org',
+        #'es.pornhub.com', 'fr.pornhub.com',
+        #'it.pornhub.com', 'rt.pornhub.com', 'rt.pornhub.org',
     ]
+    
     AUTO_PROXY_DOMAINS = [
         'pornhub.com', 'pornhub.org',
         'cn.pornhub.com', 'de.pornhub.org',
         'es.pornhub.com', 'fr.pornhub.com',
         'it.pornhub.com', 'rt.pornhub.com', 'rt.pornhub.org',
     ]
+
+    # When True, all URLs detected as NSFW (is_porn) will use auto-proxy
+    # fallback (same logic as AUTO_PROXY_DOMAINS: try direct first, then all
+    # available proxies in random order). When False, this setting is ignored.
+    PROXY_ALL_NSFW = True
+    
     PROXY_1_DOMAINS = [
         #'pornhub.com', 'pornhub.org'
         # Other secure domains can be added
     ]
+    
     PROXY_2_DOMAINS = [
         #'instagram.com', 'ig.me'
         # Other secure domains can be added

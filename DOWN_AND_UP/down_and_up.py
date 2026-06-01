@@ -1549,14 +1549,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.info(f"MKV mode enabled: setting merge_output_format=mkv, remux_video=mkv")
             
             # Add proxy configuration if needed
-            from HELPERS.proxy_helper import is_no_proxy_domain, is_auto_proxy_domain
+            from HELPERS.proxy_helper import is_no_proxy_domain, needs_auto_proxy
             _skip_proxy = is_no_proxy_domain(url)
-            _auto_proxy = is_auto_proxy_domain(url)
+            _auto_proxy = needs_auto_proxy(url)
             if _skip_proxy:
                 logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for {url}")
                 ytdl_opts.pop('proxy', None)
             elif _auto_proxy:
-                logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url}")
+                logger.info(f"Domain needs auto-proxy (AUTO_PROXY_DOMAINS or NSFW) - skipping initial proxy for {url}")
                 ytdl_opts.pop('proxy', None)
             elif use_proxy:
                 # Force proxy for this download
@@ -3825,7 +3825,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # If not YouTube or YouTube thumb not found, try universal thumbnail downloader
             if not thumb_dir:
                 try:
-                    # Use video_id in filename to ensure unique thumbnail per playlist item
                     _thumb_uid = video_id or ''
                     universal_thumb_path = os.path.join(dir_path, f"universal_thumb_{_thumb_uid}.jpg" if _thumb_uid else "universal_thumb.jpg")
                     if download_universal_thumbnail(thumb_source_url, universal_thumb_path):
@@ -3834,6 +3833,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"Using universal thumbnail: {universal_thumb_path}")
                 except Exception as e:
                     logger.info(f"Universal thumbnail not available: {e}")
+
+            if thumb_dir and os.path.exists(thumb_dir):
+                try:
+                    with open(thumb_dir, 'rb') as _tf:
+                        _hdr = _tf.read(3)
+                    if _hdr[:3] != b'\xff\xd8\xff':
+                        logger.warning(f"Thumbnail {thumb_dir} is not JPEG (header: {_hdr[:3].hex()}), resetting for ffmpeg fallback")
+                        try:
+                            os.remove(thumb_dir)
+                        except Exception:
+                            pass
+                        thumb_dir = None
+                except Exception:
+                    pass
             
             # Get video duration (always needed)
             try:
@@ -3930,7 +3943,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     video_msg = None
                     for _upload_attempt in range(_upload_max_retries + 1):
                         try:
-                            video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec)
+                            video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, per_video_url=video_page_url)
                             break
                         except (TimeoutError, Exception) as _upload_err:
                             _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
@@ -4604,7 +4617,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         video_msg = None
                         for _upload_attempt in range(_upload_max_retries + 1):
                             try:
-                                video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count)
+                                video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count, per_video_url=video_page_url)
                                 break
                             except (TimeoutError, Exception) as _upload_err:
                                 _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)

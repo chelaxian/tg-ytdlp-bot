@@ -11,9 +11,9 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
     """
     from CONFIG.domains import DomainsConfig
     from urllib.parse import urlparse
-    from HELPERS.proxy_helper import is_auto_proxy_domain
+    from HELPERS.proxy_helper import needs_auto_proxy
     
-    if is_auto_proxy_domain(url):
+    if needs_auto_proxy(url):
         return False
     
     parsed_url = urlparse(url)
