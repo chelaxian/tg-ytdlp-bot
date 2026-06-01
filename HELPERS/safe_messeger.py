@@ -246,7 +246,8 @@ def safe_send_message(chat_id, text, **kwargs):
     # Ensure topic/thread routing for supergroups with topics (only for groups, not private chats)
     try:
         # Only apply topic routing for groups (negative chat_id)
-        if chat_id and chat_id < 0:
+        chat_id_int = int(chat_id) if chat_id is not None else None
+        if chat_id_int is not None and chat_id_int < 0:
             # Check if message is provided in kwargs (for fake messages)
             if original_message is not None:
                 # For fake messages, use the original message's thread_id

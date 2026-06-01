@@ -866,7 +866,15 @@ class Messages(object):
         "• プロキシドメイン：{proxy_domains}\n"
         "• プロキシ2ドメイン：{proxy_2_domains}\n"
         "• クリーンクエリ：{clean_query}\n"
-        "• クッキーなしドメイン：{no_cookie_domains}"
+        "• クッキーなしドメイン：{no_cookie_domains}\n"
+        "• NO_PROXY_DOMAINS: {no_proxy_domains}\n"
+        "• AUTO_PROXY_DOMAINS: {auto_proxy_domains}\n"
+        "• YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}\n"
+        "• GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}\n"
+        "• GALLERYDL_ONLY_PATH: {gallerydl_only_path}\n"
+        "• GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}\n"
+        "• NO_FILTER_DOMAINS: {no_filter_domains}\n"
+        "• TIKTOK_DOMAINS: {tiktok_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ ポルノキャッシュの再読み込みエラー：{error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ チェックするURLを入力してください。\n使用方法：<code>/check_porn &lt;URL&gt;</code>"
@@ -1722,7 +1730,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "{bot_name}のログ\nユーザー: {user_id}\n合計ログ: {total}\n現在時刻: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\n合計 {path}: {count}\n現在時刻: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>合計ユーザー: {count}</i>\n最後の20件 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "ポルノキャッシュは管理者 {admin_id} によってリロードされました。ドメイン: {domains}, キーワード: {keywords}, サイト: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_1_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "ポルノキャッシュは管理者 {admin_id} によってリロードされました。ドメイン: {domains}, キーワード: {keywords}, サイト: {sites}, WHITELIST: {whitelist}, GREYLIST: {greylist}, BLACK_LIST: {black_list}, WHITE_KEYWORDS: {white_keywords}, PROXY_1_DOMAINS: {proxy_domains}, PROXY_2_DOMAINS: {proxy_2_domains}, CLEAN_QUERY: {clean_query}, NO_COOKIE_DOMAINS: {no_cookie_domains}, NO_PROXY_DOMAINS: {no_proxy_domains}, AUTO_PROXY_DOMAINS: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "タイムアウト メッセージの送信エラー: {error}"

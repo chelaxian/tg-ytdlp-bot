@@ -866,7 +866,15 @@ class Messages(object):
         "• PROXY_1_DOMAINS: {proxy_domains}\n"
         "• PROXY_2_DOMAINS: {proxy_2_domains}\n"
         "• CLEAN_QUERY: {clean_query}\n"
-        "• NO_COOKIE_DOMAINS: {no_cookie_domains}"
+        "• NO_COOKIE_DOMAINS: {no_cookie_domains}\n"
+        "• NO_PROXY_DOMAINS: {no_proxy_domains}\n"
+        "• AUTO_PROXY_DOMAINS: {auto_proxy_domains}\n"
+        "• YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}\n"
+        "• GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}\n"
+        "• GALLERYDL_ONLY_PATH: {gallerydl_only_path}\n"
+        "• GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}\n"
+        "• NO_FILTER_DOMAINS: {no_filter_domains}\n"
+        "• TIKTOK_DOMAINS: {tiktok_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ خطا در بارگذاری مجدد کش پورن: {error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ لطفاً یک URL برای بررسی ارائه دهید.\nاستفاده: <code>/check_porn &lt;URL&gt;</code>"
@@ -1722,7 +1730,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "لاگ‌های {bot_name}\nکاربر: {user_id}\nکل لاگ‌ها: {total}\nزمان فعلی: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nکل {path}: {count}\nزمان فعلی: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>کل کاربران: {count}</i>\nآخرین 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "کش‌های پورن توسط مدیر {admin_id} بارگذاری مجدد شدند. دامنه‌ها: {domains}، کلمات کلیدی: {keywords}، سایت‌ها: {sites}، WHITELIST: {whitelist}، GREYLIST: {greylist}، BLACK_LIST: {black_list}، WHITE_KEYWORDS: {white_keywords}، PROXY_1_DOMAINS: {proxy_domains}، PROXY_2_DOMAINS: {proxy_2_domains}، CLEAN_QUERY: {clean_query}، NO_COOKIE_DOMAINS: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "کش‌های پورن توسط مدیر {admin_id} بارگذاری مجدد شدند. دامنه‌ها: {domains}، کلمات کلیدی: {keywords}، سایت‌ها: {sites}، WHITELIST: {whitelist}، GREYLIST: {greylist}، BLACK_LIST: {black_list}، WHITE_KEYWORDS: {white_keywords}، PROXY_1_DOMAINS: {proxy_domains}، PROXY_2_DOMAINS: {proxy_2_domains}، CLEAN_QUERY: {clean_query}، NO_COOKIE_DOMAINS: {no_cookie_domains}, NO_PROXY_DOMAINS: {no_proxy_domains}, AUTO_PROXY_DOMAINS: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "خطا در ارسال پیام زمان‌بندی: {error}"
