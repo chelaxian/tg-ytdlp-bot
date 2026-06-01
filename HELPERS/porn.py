@@ -407,6 +407,7 @@ def reload_all_porn_caches():
         attrs_to_copy = [
             "WHITE_KEYWORDS", "WHITELIST", "GREYLIST", "PROXY_1_DOMAINS", "PROXY_2_DOMAINS",
             "CLEAN_QUERY", "NO_COOKIE_DOMAINS", "BLACK_LIST", "TIKTOK_DOMAINS", "PIPED_DOMAIN",
+            "NO_PROXY_DOMAINS", "AUTO_PROXY_DOMAINS", "PROXY_ALL_NSFW",
         ]
         for name in attrs_to_copy:
             if hasattr(DomainsCfg, name):
@@ -418,6 +419,13 @@ def reload_all_porn_caches():
         logger.error(f"Failed to apply DomainsConfig to Config: {e}")
 
     load_domain_lists()
+
+    try:
+        from HELPERS.proxy_helper import _nsfw_proxy_cache
+        _nsfw_proxy_cache.clear()
+        logger.info("Cleared NSFW auto-proxy cache after reload")
+    except Exception as e:
+        logger.warning(f"Failed to clear NSFW auto-proxy cache: {e}")
 
     counts = {
         "porn_domains": len(PORN_DOMAINS),
@@ -439,5 +447,6 @@ def reload_all_porn_caches():
         "gallerydl_fallback_domains": len(getattr(Config, "GALLERYDL_FALLBACK_DOMAINS", []) or []),
         "no_filter_domains": len(getattr(Config, "NO_FILTER_DOMAINS", []) or []),
         "tiktok_domains": len(getattr(Config, "TIKTOK_DOMAINS", []) or []),
+        "proxy_all_nsfw": getattr(Config, "PROXY_ALL_NSFW", False),
     }
     return counts

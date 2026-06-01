@@ -169,7 +169,7 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
         ytdl_opts.pop('proxy', None)
         return ytdl_opts
     
-    if is_auto_proxy_domain(url):
+    if needs_auto_proxy(url):
         cached = get_cached_auto_proxy(user_id, url) if user_id else None
         if cached:
             if cached == '__direct__':
@@ -179,7 +179,7 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
                 logger.info(f"[AUTO_PROXY_CACHE] Reusing cached proxy for {url}")
                 ytdl_opts['proxy'] = cached
         else:
-            logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url} (will try auto-proxy on failure)")
+            logger.info(f"Domain needs auto-proxy (AUTO_PROXY_DOMAINS or NSFW) - skipping initial proxy for {url}")
             ytdl_opts.pop('proxy', None)
         return ytdl_opts
     
@@ -253,8 +253,8 @@ def try_with_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
         opts_no_proxy.pop('proxy', None)
         return operation_func(opts_no_proxy, *args, **kwargs)
     
-    if is_auto_proxy_domain(url):
-        logger.info(f"Domain is in AUTO_PROXY_DOMAINS - using auto-proxy fallback for {url}")
+    if needs_auto_proxy(url):
+        logger.info(f"Domain needs auto-proxy (AUTO_PROXY_DOMAINS or NSFW) - using auto-proxy fallback for {url}")
         return try_auto_proxy_fallback(ytdl_opts, url, user_id, operation_func, *args, **kwargs)
     
     # Check if user has proxy enabled
@@ -423,6 +423,36 @@ def is_auto_proxy_domain(url: str) -> bool:
     
     domain = extract_domain_from_url(url)
     return is_domain_in_list(domain, DomainsConfig.AUTO_PROXY_DOMAINS)
+
+_nsfw_proxy_cache = {}
+
+def is_nsfw_auto_proxy(url: str) -> bool:
+    """Check if PROXY_ALL_NSFW is enabled and URL is detected as NSFW (same auto-proxy behaviour as AUTO_PROXY_DOMAINS)"""
+    try:
+        from CONFIG.domains import DomainsConfig
+        if not getattr(DomainsConfig, 'PROXY_ALL_NSFW', False):
+            return False
+
+        domain = extract_domain_from_url(url)
+
+        cached = _nsfw_proxy_cache.get(domain)
+        if cached is not None:
+            return cached
+
+        from HELPERS.porn import is_porn
+        result = is_porn(url, "", "", None)
+
+        _nsfw_proxy_cache[domain] = result
+        if result:
+            logger.info(f"[PROXY_ALL_NSFW] NSFW detected for {domain}, enabling auto-proxy")
+        return result
+    except Exception as e:
+        logger.warning(f"is_nsfw_auto_proxy check failed: {e}")
+        return False
+
+def needs_auto_proxy(url: str) -> bool:
+    """Combined check: AUTO_PROXY_DOMAINS or NSFW auto-proxy"""
+    return is_auto_proxy_domain(url) or is_nsfw_auto_proxy(url)
 
 def get_all_available_proxies():
     """Collect all proxies from config + proxy file, return list of {'proxy_url': str, 'source': str}"""
@@ -628,8 +658,8 @@ def select_proxy_for_domain(url):
         logger.info(f"select_proxy_for_domain: domain is in NO_PROXY_DOMAINS, skipping proxy for {url}")
         return None
     
-    if is_auto_proxy_domain(url):
-        logger.info(f"select_proxy_for_domain: domain is in AUTO_PROXY_DOMAINS, skipping static proxy for {url}")
+    if needs_auto_proxy(url):
+        logger.info(f"select_proxy_for_domain: domain needs auto-proxy (AUTO_PROXY_DOMAINS or NSFW), skipping static proxy for {url}")
         return None
     
     domain = extract_domain_from_url(url)
@@ -685,8 +715,8 @@ def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) 
         config['extractor'].pop('proxy', None)
         return config
     
-    if is_auto_proxy_domain(url):
-        logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping proxy for gallery-dl {url} (auto-proxy not supported for gallery-dl)")
+    if needs_auto_proxy(url):
+        logger.info(f"Domain needs auto-proxy (AUTO_PROXY_DOMAINS or NSFW) - skipping proxy for gallery-dl {url} (auto-proxy not supported for gallery-dl)")
         config['extractor'].pop('proxy', None)
         return config
     

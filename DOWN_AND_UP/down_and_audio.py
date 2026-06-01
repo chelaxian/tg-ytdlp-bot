@@ -1172,15 +1172,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             import threading
             thread_proxy = getattr(threading.current_thread(), 'proxy_for_audio_download', None)
             
-            from HELPERS.proxy_helper import is_no_proxy_domain, is_auto_proxy_domain
+            from HELPERS.proxy_helper import is_no_proxy_domain, needs_auto_proxy
             _skip_proxy = is_no_proxy_domain(url)
-            _auto_proxy = is_auto_proxy_domain(url)
+            _auto_proxy = needs_auto_proxy(url)
             if _skip_proxy:
                 logger.info(f"Domain is in NO_PROXY_DOMAINS - skipping proxy for {url}")
                 ytdl_opts.pop('proxy', None)
                 threading.current_thread().proxy_for_audio_download = None
             elif _auto_proxy:
-                logger.info(f"Domain is in AUTO_PROXY_DOMAINS - skipping initial proxy for {url}")
+                logger.info(f"Domain needs auto-proxy (AUTO_PROXY_DOMAINS or NSFW) - skipping initial proxy for {url}")
                 ytdl_opts.pop('proxy', None)
                 threading.current_thread().proxy_for_audio_download = None
             elif thread_proxy:

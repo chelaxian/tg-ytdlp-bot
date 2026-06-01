@@ -102,6 +102,7 @@ def send_videos(
     skip_size_check: bool = False,
     video_quality_codec: str = '',
     paid_star_count: int = 0,
+    per_video_url: str = None,
 ):
     class PaidMediaSendError(RuntimeError):
         """Paid NSFW media failed to send.
@@ -115,7 +116,7 @@ def send_videos(
     messages = safe_get_messages(user_id)
     text = message.text or ""
     m = re.search(r'https?://[^\s\*]+', text)
-    video_url = m.group(0) if m else ""
+    video_url = per_video_url or (m.group(0) if m else "")
     temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
     was_truncated = False
 
@@ -280,8 +281,9 @@ def send_videos(
                                                 msg_id,
                                                 full_video_title,
                                                 tags_text,
-                                                skip_size_check=True,  # Skip size check for sub-parts
+                                                skip_size_check=True,
                                                 video_quality_codec=video_quality_codec,
+                                                per_video_url=video_url,
                                             )
                                             sent_parts.append(sub_part_path)
                                         except Exception as send_error:
@@ -310,8 +312,9 @@ def send_videos(
                                         msg_id,
                                         full_video_title,
                                         tags_text,
-                                        skip_size_check=True,  # Skip size check for parts
+                                        skip_size_check=True,
                                         video_quality_codec=video_quality_codec,
+                                        per_video_url=video_url,
                                     )
                                     sent_parts.append(part_path)
                                 except Exception:
@@ -332,8 +335,9 @@ def send_videos(
                                     msg_id,
                                     full_video_title,
                                     tags_text,
-                                    skip_size_check=True,  # Skip size check for parts
+                                    skip_size_check=True,
                                     video_quality_codec=video_quality_codec,
+                                    per_video_url=video_url,
                                 )
                                 sent_parts.append(part_path)
                             except Exception as send_error:
