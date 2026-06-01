@@ -3825,7 +3825,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # If not YouTube or YouTube thumb not found, try universal thumbnail downloader
             if not thumb_dir:
                 try:
-                    # Use video_id in filename to ensure unique thumbnail per playlist item
                     _thumb_uid = video_id or ''
                     universal_thumb_path = os.path.join(dir_path, f"universal_thumb_{_thumb_uid}.jpg" if _thumb_uid else "universal_thumb.jpg")
                     if download_universal_thumbnail(thumb_source_url, universal_thumb_path):
@@ -3834,6 +3833,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"Using universal thumbnail: {universal_thumb_path}")
                 except Exception as e:
                     logger.info(f"Universal thumbnail not available: {e}")
+
+            if thumb_dir and os.path.exists(thumb_dir):
+                try:
+                    with open(thumb_dir, 'rb') as _tf:
+                        _hdr = _tf.read(3)
+                    if _hdr[:3] != b'\xff\xd8\xff':
+                        logger.warning(f"Thumbnail {thumb_dir} is not JPEG (header: {_hdr[:3].hex()}), resetting for ffmpeg fallback")
+                        try:
+                            os.remove(thumb_dir)
+                        except Exception:
+                            pass
+                        thumb_dir = None
+                except Exception:
+                    pass
             
             # Get video duration (always needed)
             try:
