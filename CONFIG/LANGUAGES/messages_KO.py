@@ -866,7 +866,15 @@ class Messages(object):
         "• 프록시 도메인: {proxy_domains}\n"
         "• 프록시 2 도메인: {proxy_2_domains}\n"
         "• 정리 쿼리: {clean_query}\n"
-        "• 쿠키 없음 도메인: {no_cookie_domains}"
+        "• 쿠키 없음 도메인: {no_cookie_domains}\n"
+        "• NO_PROXY_DOMAINS: {no_proxy_domains}\n"
+        "• AUTO_PROXY_DOMAINS: {auto_proxy_domains}\n"
+        "• YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}\n"
+        "• GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}\n"
+        "• GALLERYDL_ONLY_PATH: {gallerydl_only_path}\n"
+        "• GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}\n"
+        "• NO_FILTER_DOMAINS: {no_filter_domains}\n"
+        "• TIKTOK_DOMAINS: {tiktok_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ 성인 캐시 다시 로드 중 오류가 발생했습니다: {error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ 확인할 URL을 입력해주세요.\n사용법: <code>/check_porn &lt;URL&gt;</code>"
@@ -1722,7 +1730,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "{bot_name}의 로그\n사용자: {user_id}\n총 로그: {total}\n현재 시간: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\n총 {path}: {count}\n현재 시간: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>총 사용자: {count}</i>\n최근 20개 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "관리자 {admin_id}가 포르노 캐시를 다시 로드했습니다. 도메인: {domains}, 키워드: {keywords}, 사이트: {sites}, 화이트리스트: {whitelist}, 그레이리스트: {greylist}, 블랙리스트: {black_list}, 화이트 키워드: {white_keywords}, 프록시 도메인: {proxy_domains}, 프록시 2 도메인: {proxy_2_domains}, 클린 쿼리: {clean_query}, 쿠키 없는 도메인: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "관리자 {admin_id}가 포르노 캐시를 다시 로드했습니다. 도메인: {domains}, 키워드: {keywords}, 사이트: {sites}, 화이트리스트: {whitelist}, 그레이리스트: {greylist}, 블랙리스트: {black_list}, 화이트 키워드: {white_keywords}, 프록시 도메인: {proxy_domains}, 프록시 2 도메인: {proxy_2_domains}, 클린 쿼리: {clean_query}, 쿠키 없는 도메인: {no_cookie_domains}, NO_PROXY_DOMAINS: {no_proxy_domains}, AUTO_PROXY_DOMAINS: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "타임아웃 메시지 전송 오류: {error}"

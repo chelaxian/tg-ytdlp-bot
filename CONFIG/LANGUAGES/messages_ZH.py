@@ -866,7 +866,15 @@ class Messages(object):
         "• 代理域名：{proxy_domains}\n"
         "• 代理2域名：{proxy_2_domains}\n"
         "• 清理查询：{clean_query}\n"
-        "• 无Cookie域名：{no_cookie_domains}"
+        "• 无Cookie域名：{no_cookie_domains}\n"
+        "• NO_PROXY_DOMAINS: {no_proxy_domains}\n"
+        "• AUTO_PROXY_DOMAINS: {auto_proxy_domains}\n"
+        "• YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}\n"
+        "• GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}\n"
+        "• GALLERYDL_ONLY_PATH: {gallerydl_only_path}\n"
+        "• GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}\n"
+        "• NO_FILTER_DOMAINS: {no_filter_domains}\n"
+        "• TIKTOK_DOMAINS: {tiktok_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ 重新加载色情缓存时出错：{error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ 请提供要检查的URL。\n用法：<code>/check_porn &lt;URL&gt;</code>"
@@ -1722,7 +1730,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "{bot_name}的日志\n用户：{user_id}\n总日志：{total}\n当前时间：{now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\n总计 {path}：{count}\n当前时间：{now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>总用户数：{count}</i>\n最近20个 {path}：\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "管理员 {admin_id} 重新加载了色情缓存。域名：{domains}，关键词：{keywords}，网站：{sites}，白名单：{whitelist}，灰名单：{greylist}，黑名单：{black_list}，白关键词：{white_keywords}，代理域名：{proxy_domains}，代理2域名：{proxy_2_domains}，清理查询：{clean_query}，无Cookie域名：{no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "管理员 {admin_id} 重新加载了色情缓存。域名：{domains}，关键词：{keywords}，网站：{sites}，白名单：{whitelist}，灰名单：{greylist}，黑名单：{black_list}，白关键词：{white_keywords}，代理域名：{proxy_domains}，代理2域名：{proxy_2_domains}，清理查询：{clean_query}，无Cookie域名：{no_cookie_domains}, NO_PROXY_DOMAINS: {no_proxy_domains}, AUTO_PROXY_DOMAINS: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "发送超时消息时出错：{error}"
