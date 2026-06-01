@@ -53,7 +53,6 @@ EXCLUDED_DIRS = [
 
 INCLUDE_DIRS = [
     "web",
-    "CONFIG/templates",
 ]
 
 ALWAYS_INCLUDE_FILES = [
