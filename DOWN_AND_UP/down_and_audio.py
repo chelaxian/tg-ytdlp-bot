@@ -2762,18 +2762,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     log_channel_nsfw = get_log_channel("video", nsfw=True)
                     try:
                         # Create open copy for history (without stars)
+                        # NOTE: no reply_parameters — message.id is from user chat and does not exist in log channel
                         open_audio_msg = timed_upload(lambda: app.send_audio(
                             chat_id=log_channel_nsfw,
                             audio=audio_file,
                             caption=caption_with_link,
-                            reply_parameters=ReplyParameters(message_id=message.id),
                             thumb=telegram_thumb if telegram_thumb and os.path.exists(telegram_thumb) else None,
                             title=title,
                             performer=artist,
                         ))
-                        logger.info(f"down_and_audio: NSFW audio open copy sent to NSFW channel for history")
+                        logger.info(f"down_and_audio: NSFW audio open copy sent to NSFW channel for history (channel={log_channel_nsfw})")
                     except Exception as e:
-                        logger.error(f"down_and_audio: failed to send open copy to NSFW channel: {e}")
+                        logger.error(f"down_and_audio: failed to send open copy to NSFW channel (channel={log_channel_nsfw}, file={audio_file}): {e}")
                     
                     # Don't cache NSFW content
                     logger.info(f"down_and_audio: NSFW audio sent to user (paid), PAID channel (paid copy), and NSFW channel (open copy), not cached")

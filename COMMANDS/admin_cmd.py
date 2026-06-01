@@ -1055,7 +1055,15 @@ def reload_porn_command(app, message):
                 proxy_domains=counts.get('proxy_domains', 0),
                 proxy_2_domains=counts.get('proxy_2_domains', 0),
                 clean_query=counts.get('clean_query', 0),
-                no_cookie_domains=counts.get('no_cookie_domains', 0)
+                no_cookie_domains=counts.get('no_cookie_domains', 0),
+                no_proxy_domains=counts.get('no_proxy_domains', 0),
+                auto_proxy_domains=counts.get('auto_proxy_domains', 0),
+                ytdlp_only_domains=counts.get('ytdlp_only_domains', 0),
+                gallerydl_only_domains=counts.get('gallerydl_only_domains', 0),
+                gallerydl_only_path=counts.get('gallerydl_only_path', 0),
+                gallerydl_fallback_domains=counts.get('gallerydl_fallback_domains', 0),
+                no_filter_domains=counts.get('no_filter_domains', 0),
+                tiktok_domains=counts.get('tiktok_domains', 0)
             )
         )
 
@@ -1073,7 +1081,15 @@ def reload_porn_command(app, message):
                 proxy_domains=counts.get('proxy_domains', 0),
                 proxy_2_domains=counts.get('proxy_2_domains', 0),
                 clean_query=counts.get('clean_query', 0),
-                no_cookie_domains=counts.get('no_cookie_domains', 0)
+                no_cookie_domains=counts.get('no_cookie_domains', 0),
+                no_proxy_domains=counts.get('no_proxy_domains', 0),
+                auto_proxy_domains=counts.get('auto_proxy_domains', 0),
+                ytdlp_only_domains=counts.get('ytdlp_only_domains', 0),
+                gallerydl_only_domains=counts.get('gallerydl_only_domains', 0),
+                gallerydl_only_path=counts.get('gallerydl_only_path', 0),
+                gallerydl_fallback_domains=counts.get('gallerydl_fallback_domains', 0),
+                no_filter_domains=counts.get('no_filter_domains', 0),
+                tiktok_domains=counts.get('tiktok_domains', 0)
             )
         )
         

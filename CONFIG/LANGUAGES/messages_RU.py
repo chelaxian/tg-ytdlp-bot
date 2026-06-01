@@ -865,7 +865,15 @@ class Messages(object):
         "• ПРОКСИ ДОМЕНЫ: {proxy_domains}\n"
         "• ПРОКСИ_2_ДОМЕНЫ: {proxy_2_domains}\n"
         "• ОЧИСТКА_ЗАПРОСА: {clean_query}\n"
-        "• ДОМЕНЫ_БЕЗ_КУКИ: {no_cookie_domains}"
+        "• ДОМЕНЫ_БЕЗ_КУКИ: {no_cookie_domains}\n"
+        "• ДОМЕНЫ_БЕЗ_ПРОКСИ: {no_proxy_domains}\n"
+        "• АВТО_ПРОКСИ_ДОМЕНЫ: {auto_proxy_domains}\n"
+        "• YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}\n"
+        "• GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}\n"
+        "• GALLERYDL_ONLY_PATH: {gallerydl_only_path}\n"
+        "• GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}\n"
+        "• NO_FILTER_DOMAINS: {no_filter_domains}\n"
+        "• TIKTOK_DOMAINS: {tiktok_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Ошибка перезагрузки кэша порно: {error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ Пожалуйста, предоставьте URL для проверки.\nИспользование: <code>/check_porn &lt;URL&gt;</code>"
@@ -1719,7 +1727,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "Логи {bot_name}\nПользователь: {user_id}\nВсего логов: {total}\nТекущее время: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nВсего {path}: {count}\nТекущее время: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>Всего пользователей: {count}</i>\nПоследние 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "Кэши порно перезагружены администратором {admin_id}. Домены: {domains}, Ключевые слова: {keywords}, Сайты: {sites}, БЕЛЫЙ СПИСОК: {whitelist}, СЕРЫЙ СПИСОК: {greylist}, ЧЕРНЫЙ СПИСОК: {black_list}, БЕЛЫЕ КЛЮЧЕВЫЕ СЛОВА: {white_keywords}, ПРОКСИ ДОМЕНЫ: {proxy_domains}, ПРОКСИ_2_ДОМЕНЫ: {proxy_2_domains}, ЧИСТЫЙ ЗАПРОС: {clean_query}, БЕЗ_КУКИ_ДОМЕНЫ: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "Кэши порно перезагружены администратором {admin_id}. Домены: {domains}, Ключевые слова: {keywords}, Сайты: {sites}, БЕЛЫЙ СПИСОК: {whitelist}, СЕРЫЙ СПИСОК: {greylist}, ЧЕРНЫЙ СПИСОК: {black_list}, БЕЛЫЕ КЛЮЧЕВЫЕ СЛОВА: {white_keywords}, ПРОКСИ ДОМЕНЫ: {proxy_domains}, ПРОКСИ_2_ДОМЕНЫ: {proxy_2_domains}, ЧИСТЫЙ ЗАПРОС: {clean_query}, БЕЗ_КУКИ_ДОМЕНЫ: {no_cookie_domains}, БЕЗ_ПРОКСИ_ДОМЕНЫ: {no_proxy_domains}, АВТО_ПРОКСИ_ДОМЕНЫ: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Ошибка отправки сообщения о таймауте: {error}"

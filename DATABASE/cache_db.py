@@ -547,11 +547,18 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 
                 # Обновляем локальный кэш для немедленного доступа (и для Firebase, и для локального режима)
                 current = firebase_cache
-                for part in path_parts_local:
+                for part in path_parts_local[:-1]:
+                    if isinstance(current, list):
+                        break
                     if part not in current:
                         current[part] = {}
+                    val = current[part]
+                    if not isinstance(val, dict):
+                        current[part] = {}
                     current = current[part]
-                current[encoded_index] = str(msg_id)
+                else:
+                    if isinstance(current, dict):
+                        current[encoded_index] = str(msg_id)
                 logger.info(f"✅ [CACHE] Обновлен локальный кэш: path={path_parts_local}, msg_id={msg_id}")
 
         logger.info(f"✅ Saved to playlist cache for hash={url_hash}, quality={quality_key}, indices={video_indices}, message_ids={message_ids}")
@@ -612,7 +619,7 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
                         try:
                             encoded_index = encode_playlist_cache_index(index)
                             value = data.get(encoded_index)
-                            if value:
+                            if value and isinstance(value, (str, int, float)):
                                 found[index] = int(value)
                                 logger.info(
                                     f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {value}")
@@ -624,7 +631,9 @@ def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_in
                     for index in requested_indices:
                         try:
                             if isinstance(index, int) and index >= 0 and index < len(data) and data[index]:
-                                found[index] = int(data[index])
+                                val = data[index]
+                                if isinstance(val, (str, int, float)):
+                                    found[index] = int(val)
                                 logger.info(
                                     f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {data[index]}")
                         except Exception as e:

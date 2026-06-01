@@ -867,7 +867,15 @@ class Messages(object):
         "• ПРОКСИ ДОМЕНДЕР: {proxy_domains}\n"
         "• ПРОКСИ_2 ДОМЕНДЕР: {proxy_2_domains}\n"
         "• ТАЗА СҰРАУ: {clean_query}\n"
-        "• COOKIE ЖОҚ ДОМЕНДЕР: {no_cookie_domains}"
+        "• COOKIE ЖОҚ ДОМЕНДЕР: {no_cookie_domains}\n"
+        "• NO_PROXY_DOMAINS: {no_proxy_domains}\n"
+        "• AUTO_PROXY_DOMAINS: {auto_proxy_domains}\n"
+        "• YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}\n"
+        "• GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}\n"
+        "• GALLERYDL_ONLY_PATH: {gallerydl_only_path}\n"
+        "• GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}\n"
+        "• NO_FILTER_DOMAINS: {no_filter_domains}\n"
+        "• TIKTOK_DOMAINS: {tiktok_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ Порн кэшін қайта жүктеу қатесі: {error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ Тексеру үшін URL енгізіңіз.\nҚолдану: <code>/check_porn &lt;URL&gt;</code>"
@@ -1723,7 +1731,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "{bot_name} логтары\nПайдаланушы: {user_id}\nБарлық логтар: {total}\nАғымдағы уақыт: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nБарлық {path}: {count}\nАғымдағы уақыт: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>Жалпы пайдаланушылар: {count}</i>\nСоңғы 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "Порн кэштері әкімші {admin_id} арқылы қайта жүктелді. Домендер: {domains}, Кілт сөздер: {keywords}, Сайттар: {sites}, АҚ ТІЗІМ: {whitelist}, СҰР ТІЗІМ: {greylist}, ҚАРА ТІЗІМ: {black_list}, АҚ КІЛТ СӨЗДЕР: {white_keywords}, ПРОКСИ ДОМЕНДЕР: {proxy_domains}, ПРОКСИ_2 ДОМЕНДЕР: {proxy_2_domains}, ТАЗА СҰРАУ: {clean_query}, COOKIE ЖОҚ ДОМЕНДЕР: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "Порн кэштері әкімші {admin_id} арқылы қайта жүктелді. Домендер: {domains}, Кілт сөздер: {keywords}, Сайттар: {sites}, АҚ ТІЗІМ: {whitelist}, СҰР ТІЗІМ: {greylist}, ҚАРА ТІЗІМ: {black_list}, АҚ КІЛТ СӨЗДЕР: {white_keywords}, ПРОКСИ ДОМЕНДЕР: {proxy_domains}, ПРОКСИ_2 ДОМЕНДЕР: {proxy_2_domains}, ТАЗА СҰРАУ: {clean_query}, COOKIE ЖОҚ ДОМЕНДЕР: {no_cookie_domains}, NO_PROXY_DOMAINS: {no_proxy_domains}, AUTO_PROXY_DOMAINS: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Күту уақыты туралы хабарды жіберу қатесі: {error}"

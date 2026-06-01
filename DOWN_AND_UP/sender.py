@@ -31,8 +31,8 @@ _active_uploads_lock = threading.Lock()
 
 _user_blocked_flag = set()
 
-def _timed_upload(upload_fn, timeout=None):
-    return timed_upload(upload_fn, timeout)
+def _timed_upload(upload_fn, timeout=None, dedup_key=None):
+    return timed_upload(upload_fn, timeout, dedup_key=dedup_key)
 
 def _start_upload_logging(user_id, msg_id):
     """Start logging upload activity to prevent watchdog false positives"""
@@ -842,7 +842,7 @@ def send_videos(
                     ),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
-                ))
+                ), dedup_key=(user_id, video_abs_path))
             finally:
                 # Stop upload logging after upload completes or fails
                 _stop_upload_logging(user_id, msg_id)
@@ -986,7 +986,7 @@ def send_videos(
                     ),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
-                ))
+                ), dedup_key=(user_id, video_abs_path))
             finally:
                 # Stop upload logging after upload completes or fails
                 _stop_upload_logging(user_id, msg_id)

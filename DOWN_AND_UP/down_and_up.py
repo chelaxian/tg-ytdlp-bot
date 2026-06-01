@@ -50,6 +50,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.tags import extract_url_range_tags
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
+from HELPERS.upload_guard import timed_upload
 
 # Get app instance for decorators
 app = get_app()
@@ -3987,7 +3988,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     except Exception:
                                         v_w, v_h, v_dur = width, height, part_duration
                                     
+                                    _split_thumb = splited_thumb_dir if (splited_thumb_dir and os.path.exists(splited_thumb_dir)) else None
                                     # Create open copy for history (without stars) - send directly to NSFW channel
+                                    # NOTE: no reply_parameters — message.id is from user chat and does not exist in log channel
                                     open_video_msg = timed_upload(lambda: app.send_video(
                                         chat_id=log_channel_nsfw,
                                         video=path_lst[p],
@@ -3995,13 +3998,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         duration=int(v_dur) if v_dur else part_duration,
                                         width=int(v_w) if v_w else width,
                                         height=int(v_h) if v_h else height,
-                                        thumb=splited_thumb_dir,
-                                        reply_parameters=ReplyParameters(message_id=message.id)
-                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
-                                    logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history")
+                                        thumb=_split_thumb,
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
+                                    logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (channel={log_channel_nsfw})")
                                     already_forwarded_to_log = True
                                 except Exception as e:
-                                    logger.error(f"down_and_up: failed to send open copy to NSFW channel: {e}")
+                                    logger.error(f"down_and_up: failed to send open copy to NSFW channel (channel={log_channel_nsfw}, file={path_lst[p]}): {e}")
                             else:
                                 logger.warning(f"down_and_up: NSFW channel not available (ID: {log_channel_nsfw}), skipping open copy")
                             
@@ -4705,13 +4707,23 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 else:
                                     open_log_channel = get_log_channel("video")
                                 try:
+                                    # Validate file still exists before sending
+                                    if not os.path.exists(after_rename_abs_path):
+                                        raise FileNotFoundError(f"Video file not found: {after_rename_abs_path}")
+                                    # Validate thumbnail
+                                    _open_thumb = thumb_dir if (thumb_dir and os.path.exists(thumb_dir)) else None
+                                    if thumb_dir and not _open_thumb:
+                                        logger.warning(f"down_and_up: thumbnail missing for open copy: {thumb_dir}")
                                     # Get video dimensions for proper aspect ratio
                                     try:
                                         v_w, v_h, v_dur = get_video_info_ffprobe(after_rename_abs_path)
                                     except Exception:
                                         v_w, v_h, v_dur = width, height, duration
                                     
+                                    _file_size_mb = round(os.path.getsize(after_rename_abs_path) / (1024*1024), 1)
+                                    logger.info(f"down_and_up: sending open copy to log channel: channel={open_log_channel}, file={after_rename_abs_path}, size={_file_size_mb}MiB, timeout={LimitsConfig.UPLOAD_TIMEOUT_SECONDS}s")
                                     # Create open copy for history (without stars) - send directly to channel
+                                    # NOTE: no reply_parameters here — message.id is from user chat and does not exist in log channel
                                     open_video_msg = timed_upload(lambda: app.send_video(
                                         chat_id=open_log_channel,
                                         video=after_rename_abs_path,
@@ -4719,13 +4731,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         duration=int(v_dur) if v_dur else duration,
                                         width=int(v_w) if v_w else width,
                                         height=int(v_h) if v_h else height,
-                                        thumb=thumb_dir,
-                                        reply_parameters=ReplyParameters(message_id=message.id)
-                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
-                                    logger.info(f"down_and_up: paid content open copy sent to log channel for history")
+                                        thumb=_open_thumb,
+                                    ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
+                                    logger.info(f"down_and_up: paid content open copy sent to log channel for history (channel={open_log_channel})")
                                     already_forwarded_to_log = True
                                 except Exception as e:
-                                    logger.error(f"down_and_up: failed to send open copy to log channel: {e}")
+                                    logger.error(f"down_and_up: failed to send open copy to log channel (channel={open_log_channel}, file={after_rename_abs_path}): {e}")
                                 
                                 # Don't cache paid content
                                 logger.info(f"down_and_up: paid content sent to user (paid), PAID channel (paid copy), and log channel (open copy), not cached")
@@ -4854,11 +4865,36 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             # No need to forward to LOGS_PAID_ID as it's already sent
                                             
                                             # Send to LOGS_NSFW_ID (for history) - send open copy, not paid media
-                                            # LOGS_PAID_ID and LOGS_NSWF_ID were already handled in the main logic above
-                                            # No need to send again in manual forward
+                                            # If already_forwarded_to_log is True, the open copy was already sent in main logic above
+                                            # If False, the main logic failed — retry here
+                                            if not ('already_forwarded_to_log' in dir() and already_forwarded_to_log):
+                                                log_channel_nsfw = get_log_channel("video", nsfw=True)
+                                                try:
+                                                    if os.path.exists(after_rename_abs_path):
+                                                        _manual_thumb = thumb_dir if (thumb_dir and os.path.exists(thumb_dir)) else None
+                                                        try:
+                                                            v_w, v_h, v_dur = get_video_info_ffprobe(after_rename_abs_path)
+                                                        except Exception:
+                                                            v_w, v_h, v_dur = width, height, duration
+                                                        open_video_msg = timed_upload(lambda: app.send_video(
+                                                            chat_id=log_channel_nsfw,
+                                                            video=after_rename_abs_path,
+                                                            caption='' if force_no_title else original_video_title,
+                                                            duration=int(v_dur) if v_dur else duration,
+                                                            width=int(v_w) if v_w else width,
+                                                            height=int(v_h) if v_h else height,
+                                                            thumb=_manual_thumb,
+                                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
+                                                        logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel (manual fallback, channel={log_channel_nsfw})")
+                                                    else:
+                                                        logger.error(f"down_and_up: cannot send open copy (manual) — file missing: {after_rename_abs_path}")
+                                                except Exception as e:
+                                                    logger.error(f"down_and_up: failed to send open copy to NSFW channel (manual fallback): {e}")
+                                            else:
+                                                logger.info(f"down_and_up: open copy already sent in main logic, skipping manual forward")
                                             
                                             # Don't cache NSFW content
-                                            logger.info(f"down_and_up: NSFW content already sent to user (paid), PAID channel (paid copy), and NSFW channel (open copy), not cached (manual)")
+                                            logger.info(f"down_and_up: NSFW content sent to user (paid), PAID channel (paid copy), and NSFW channel (open copy), not cached (manual)")
                                             forwarded_msgs = None
                                             
                                         elif is_nsfw:
@@ -4971,6 +5007,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     # Send open copy to LOGS_NSFW_ID for history
                                     log_channel_nsfw = get_log_channel("video", nsfw=True)
                                     try:
+                                        if not os.path.exists(after_rename_abs_path):
+                                            raise FileNotFoundError(f"Video file not found: {after_rename_abs_path}")
+                                        _err_thumb = thumb_dir if (thumb_dir and os.path.exists(thumb_dir)) else None
                                         # Get video dimensions for proper aspect ratio
                                         try:
                                             v_w, v_h, v_dur = get_video_info_ffprobe(after_rename_abs_path)
@@ -4978,6 +5017,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             v_w, v_h, v_dur = width, height, duration
                                         
                                         # Create open copy for history (without stars) - send directly to NSFW channel
+                                        # NOTE: no reply_parameters — message.id is from user chat and does not exist in log channel
                                         open_video_msg = timed_upload(lambda: app.send_video(
                                             chat_id=log_channel_nsfw,
                                             video=after_rename_abs_path,
@@ -4985,13 +5025,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             duration=int(v_dur) if v_dur else duration,
                                             width=int(v_w) if v_w else width,
                                             height=int(v_h) if v_h else height,
-                                            thumb=thumb_dir,
-                                            reply_parameters=ReplyParameters(message_id=message.id)
-                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_LOG_SECONDS)
-                                        logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery)")
+                                            thumb=_err_thumb,
+                                        ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
+                                        logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery, channel={log_channel_nsfw})")
                                         already_forwarded_to_log = True
                                     except Exception as e:
-                                        logger.error(f"down_and_up: failed to send open copy to NSFW channel (error recovery): {e}")
+                                        logger.error(f"down_and_up: failed to send open copy to NSFW channel (error recovery, channel={log_channel_nsfw}, file={after_rename_abs_path}): {e}")
                                     
                                     # Don't cache NSFW content
                                     logger.info(f"down_and_up: NSFW content sent to user (paid), PAID channel (paid copy), and NSFW channel (open copy), not cached (error recovery)")
