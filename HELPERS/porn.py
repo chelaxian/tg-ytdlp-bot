@@ -431,5 +431,13 @@ def reload_all_porn_caches():
         "proxy_2_domains": len(getattr(Config, "PROXY_2_DOMAINS", []) or []),
         "clean_query": len(getattr(Config, "CLEAN_QUERY", []) or []),
         "no_cookie_domains": len(getattr(Config, "NO_COOKIE_DOMAINS", []) or []),
+        "no_proxy_domains": len(getattr(Config, "NO_PROXY_DOMAINS", []) or []),
+        "auto_proxy_domains": len(getattr(Config, "AUTO_PROXY_DOMAINS", []) or []),
+        "ytdlp_only_domains": len(getattr(Config, "YTDLP_ONLY_DOMAINS", []) or []),
+        "gallerydl_only_domains": len(getattr(Config, "GALLERYDL_ONLY_DOMAINS", []) or []),
+        "gallerydl_only_path": len(getattr(Config, "GALLERYDL_ONLY_PATH", []) or []),
+        "gallerydl_fallback_domains": len(getattr(Config, "GALLERYDL_FALLBACK_DOMAINS", []) or []),
+        "no_filter_domains": len(getattr(Config, "NO_FILTER_DOMAINS", []) or []),
+        "tiktok_domains": len(getattr(Config, "TIKTOK_DOMAINS", []) or []),
     }
     return counts

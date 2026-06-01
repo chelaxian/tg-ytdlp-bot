@@ -839,7 +839,15 @@ class Messages(object):
         "• مواقع البروكسي: {proxy_domains}\n"
         "• مواقع البروكسي 2: {proxy_2_domains}\n"
         "• استعلام نظيف: {clean_query}\n"
-        "• مواقع بدون ملفات تعريف ارتباط: {no_cookie_domains}"
+        "• مواقع بدون ملفات تعريف ارتباط: {no_cookie_domains}\n"
+        "• NO_PROXY_DOMAINS: {no_proxy_domains}\n"
+        "• AUTO_PROXY_DOMAINS: {auto_proxy_domains}\n"
+        "• YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}\n"
+        "• GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}\n"
+        "• GALLERYDL_ONLY_PATH: {gallerydl_only_path}\n"
+        "• GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}\n"
+        "• NO_FILTER_DOMAINS: {no_filter_domains}\n"
+        "• TIKTOK_DOMAINS: {tiktok_domains}"
     )
     ADMIN_ERROR_RELOADING_PORN_MSG = "❌ خطأ في إعادة تحميل تخزين المحتوى غير المناسب: {error}"
     ADMIN_CHECK_PORN_USAGE_MSG = "❌ يرجى تقديم رابط للفحص.\nالاستخدام: <code>/check_porn &lt;URL&gt;</code>"
@@ -1728,7 +1736,7 @@ class Messages(object):
     ADMIN_LOGS_FORMAT_MSG = "سجلات {bot_name}\nالمستخدم: {user_id}\nإجمالي السجلات: {total}\nالوقت الحالي: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nإجمالي {path}: {count}\nالوقت الحالي: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>إجمالي المستخدمين: {count}</i>\nآخر 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "تم إعادة تحميل ذاكرة التخزين المؤقت للمحتوى الإباحي بواسطة المسؤول {admin_id}. النطاقات: {domains}، الكلمات المفتاحية: {keywords}، المواقع: {sites}، القائمة البيضاء: {whitelist}، القائمة الرمادية: {greylist}، القائمة السوداء: {black_list}، الكلمات المفتاحية البيضاء: {white_keywords}، نطاقات البروكسي: {proxy_domains}، نطاقات البروكسي 2: {proxy_2_domains}، الاستعلام النظيف: {clean_query}، نطاقات بدون ملفات تعريف الارتباط: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "تم إعادة تحميل ذاكرة التخزين المؤقت للمحتوى الإباحي بواسطة المسؤول {admin_id}. النطاقات: {domains}، الكلمات المفتاحية: {keywords}، المواقع: {sites}، القائمة البيضاء: {whitelist}، القائمة الرمادية: {greylist}، القائمة السوداء: {black_list}، الكلمات المفتاحية البيضاء: {white_keywords}، نطاقات البروكسي: {proxy_domains}، نطاقات البروكسي 2: {proxy_2_domains}، الاستعلام النظيف: {clean_query}، نطاقات بدون ملفات تعريف الارتباط: {no_cookie_domains}, NO_PROXY_DOMAINS: {no_proxy_domains}, AUTO_PROXY_DOMAINS: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "خطأ في إرسال رسالة انتهاء الوقت: {error}"

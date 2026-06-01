@@ -1661,7 +1661,7 @@ Dowiedz się więcej: /playlist"""
     ADMIN_LOGS_FORMAT_MSG = "Logi {bot_name}\nUżytkownik: {user_id}\nCałkowite logi: {total}\nAktualny czas: {now}\n\n{logs}"
     ADMIN_BOT_DATA_FORMAT_MSG = "{bot_name} {path}\nCałkowite {path}: {count}\nAktualny czas: {now}\n\n{data}"
     ADMIN_TOTAL_USERS_MSG = "<i>Całkowici użytkownicy: {count}</i>\nOstatnie 20 {path}:\n\n{display_list}"
-    ADMIN_PORN_CACHE_RELOADED_MSG = "Cache pornograficzne przeładowane przez administratora {admin_id}. Domeny: {domains}, Słowa kluczowe: {keywords}, Strony: {sites}, BIAŁA LISTA: {whitelist}, SZARA LISTA: {greylist}, CZARNA LISTA: {black_list}, BIAŁE SŁOWA KLUCZOWE: {white_keywords}, PROXY_DOMAINY: {proxy_domains}, PROXY_2_DOMAINY: {proxy_2_domains}, CZYSTE_ZAPYTANIE: {clean_query}, DOMENY_BEZ_COOKIE: {no_cookie_domains}"
+    ADMIN_PORN_CACHE_RELOADED_MSG = "Cache pornograficzne przeładowane przez administratora {admin_id}. Domeny: {domains}, Słowa kluczowe: {keywords}, Strony: {sites}, BIAŁA LISTA: {whitelist}, SZARA LISTA: {greylist}, CZARNA LISTA: {black_list}, BIAŁE SŁOWA KLUCZOWE: {white_keywords}, PROXY_DOMAINY: {proxy_domains}, PROXY_2_DOMAINY: {proxy_2_domains}, CZYSTE_ZAPYTANIE: {clean_query}, DOMENY_BEZ_COOKIE: {no_cookie_domains}, NO_PROXY_DOMAINS: {no_proxy_domains}, AUTO_PROXY_DOMAINS: {auto_proxy_domains}, YTDLP_ONLY_DOMAINS: {ytdlp_only_domains}, GALLERYDL_ONLY_DOMAINS: {gallerydl_only_domains}, GALLERYDL_ONLY_PATH: {gallerydl_only_path}, GALLERYDL_FALLBACK_DOMAINS: {gallerydl_fallback_domains}, NO_FILTER_DOMAINS: {no_filter_domains}, TIKTOK_DOMAINS: {tiktok_domains}"
     
     # Args command additional messages
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Błąd podczas wysyłania wiadomości o przekroczeniu czasu: {error}"
