@@ -2092,6 +2092,30 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
                 
+                # Handle broken thumbnail URL scheme (e.g. "litthttps" from generic extractor)
+                # Retry without thumbnails — ffmpeg will generate a frame-grab thumbnail later
+                if "Unsupported url scheme" in error_message or "url scheme" in error_message.lower():
+                    logger.warning(f"Broken URL scheme detected (likely thumbnail URL), retrying without thumbnails: {error_message}")
+                    no_thumb_opts = ytdl_opts.copy()
+                    no_thumb_opts['writethumbnail'] = False
+                    no_thumb_opts['postprocessors'] = [pp for pp in no_thumb_opts.get('postprocessors', []) if pp.get('key') != 'EmbedThumbnail']
+                    try:
+                        retry_result = try_with_proxy_fallback(no_thumb_opts, url, user_id, download_operation)
+                        if retry_result:
+                            logger.info("Successfully downloaded video without thumbnails — ffmpeg will generate thumbnail from video frame")
+                            if not is_youtube_url(url):
+                                from COMMANDS.cookies_cmd import set_cookie_cache_result
+                                cookie_file_path = no_thumb_opts.get('cookiefile')
+                                if cookie_file_path and os.path.exists(cookie_file_path):
+                                    set_cookie_cache_result(user_id, url, True, cookie_file_path)
+                            from HELPERS.filesystem_hlp import remove_protection_file
+                            remove_protection_file(user_dir_name)
+                            if retry_result is not True:
+                                return retry_result
+                            return info_dict
+                    except Exception as retry_e:
+                        logger.error(f"Retry without thumbnails also failed: {retry_e}")
+                
                 # Handle "File name too long" (Errno 36) — retry with a short hashed filename
                 if "File name too long" in error_message or "Errno 36" in error_message:
                     logger.warning(f"Filename too long, retrying with short hashed filename")
