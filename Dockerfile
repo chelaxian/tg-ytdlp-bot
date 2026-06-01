@@ -10,7 +10,7 @@ ENV TZ="$TZ" \
 # - font packages for Arabic/Asian and emoji support (README: optional fonts)
 # - docker.io for dashboard container to manage Docker
 # - nodejs for yt-dlp JS runtime (YouTube extraction)
-# - phantomjs for PornHub and similar sites
+# - phantomjs removed: deprecated and no longer available in Debian repos
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ffmpeg \
@@ -21,7 +21,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     nodejs \
     npm \
-    phantomjs \
     fonts-noto-core \
     fonts-noto-extra \
     fonts-kacst-one \

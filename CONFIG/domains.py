@@ -167,16 +167,11 @@ class DomainsConfig(object):
     ]
     
     AUTO_PROXY_DOMAINS = [
-        'pornhub.com', 'pornhub.org',
-        'cn.pornhub.com', 'de.pornhub.org',
-        'es.pornhub.com', 'fr.pornhub.com',
-        'it.pornhub.com', 'rt.pornhub.com', 'rt.pornhub.org',
+        #'pornhub.com', 'pornhub.org',
+        #'cn.pornhub.com', 'de.pornhub.org',
+        #'es.pornhub.com', 'fr.pornhub.com',
+        #'it.pornhub.com', 'rt.pornhub.com', 'rt.pornhub.org',
     ]
-
-    # When True, all URLs detected as NSFW (is_porn) will use auto-proxy
-    # fallback (same logic as AUTO_PROXY_DOMAINS: try direct first, then all
-    # available proxies in random order). When False, this setting is ignored.
-    PROXY_ALL_NSFW = True
     
     PROXY_1_DOMAINS = [
         #'pornhub.com', 'pornhub.org'
@@ -187,7 +182,9 @@ class DomainsConfig(object):
         #'instagram.com', 'ig.me'
         # Other secure domains can be added
     ]
-
+    
+    PROXY_ALL_NSFW = False
+    
     # Domains that don't work well with match_filter (messages.STREAM_messages.STREAM_DURATION_MSG.format(duration=duration)_MSG.format(messages.STREAM_DURATION_MSG.format(duration=duration)=messages.STREAM_DURATION_MSG.format(duration=duration))/live detection issues)
     NO_FILTER_DOMAINS = [
         'bashlinker.alenwalak.workers.dev',
