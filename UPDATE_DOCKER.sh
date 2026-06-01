@@ -111,7 +111,7 @@ echo "=========================================="
 
 # Шаг 1: Остановка и удаление контейнеров
 echo ""
-log_info "Шаг 1/4: Остановка и удаление контейнеров..."
+log_info "Шаг 1/5: Остановка и удаление контейнеров..."
 
 if [ "$REMOVE_VOLUMES" = true ]; then
     log_warning "Будут удалены volumes (включая warp-data)"
@@ -131,7 +131,7 @@ log_success "Контейнеры остановлены и удалены"
 # Шаг 2: Обновление кода (если не пропущено)
 if [ "$SKIP_UPDATE" = false ]; then
     echo ""
-    log_info "Шаг 2/4: Обновление кода из репозитория..."
+    log_info "Шаг 2/5: Обновление кода из репозитория..."
     
     if [ ! -f "update_from_repo.py" ]; then
         log_error "update_from_repo.py не найден"
@@ -152,12 +152,12 @@ if [ "$SKIP_UPDATE" = false ]; then
     fi
 else
     echo ""
-    log_warning "Шаг 2/4: Обновление кода пропущено (--skip-update)"
+    log_warning "Шаг 2/5: Обновление кода пропущено (--skip-update)"
 fi
 
 # Шаг 3: Сборка образов
 echo ""
-log_info "Шаг 3/4: Сборка Docker образов..."
+log_info "Шаг 3/5: Сборка Docker образов..."
 
 BUILD_ARGS=""
 if [ "$NO_CACHE" = true ]; then
@@ -174,13 +174,36 @@ fi
 
 # Шаг 4: Запуск контейнеров
 echo ""
-log_info "Шаг 4/4: Запуск контейнеров..."
+log_info "Шаг 4/5: Запуск контейнеров..."
 
 if $DOCKER_COMPOSE up -d; then
     log_success "Контейнеры успешно запущены"
 else
     log_error "Ошибка при запуске контейнеров"
     exit 1
+fi
+
+# Шаг 5: Очистка неиспользуемых Docker ресурсов
+echo ""
+log_info "Шаг 5/5: Очистка неиспользуемых Docker ресурсов..."
+
+# Удаляем dangling образы (без тега, оставшиеся от предыдущих сборок)
+DANGLING_COUNT=$(docker images -f "dangling=true" -q | wc -l)
+if [ "$DANGLING_COUNT" -gt 0 ]; then
+    log_info "Удаление $DANGLING_COUNT неиспользуемых образов (dangling images)..."
+    docker image prune -f
+    log_success "Dangling образы удалены"
+else
+    log_info "Нет dangling образов для удаления"
+fi
+
+# Удаляем остановленные контейнеры, неиспользуемые сети и кеш сборки
+PRUNE_OUTPUT=$(docker system prune -f 2>&1)
+RECLAIMED=$(echo "$PRUNE_OUTPUT" | grep "Total reclaimed space" || true)
+if [ -n "$RECLAIMED" ]; then
+    log_success "Очистка выполнена: $RECLAIMED"
+else
+    log_success "Очистка Docker кеша выполнена"
 fi
 
 # Финальная информация

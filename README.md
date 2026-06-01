@@ -278,39 +278,11 @@ sudo apt-get install -y nodejs
 # Verify Node.js
 node --version  # Should be v18+ or v20+
 
-# Install PhantomJS (required for PornHub and similar sites)
-sudo apt-get install -y phantomjs
-
-# Verify PhantomJS
-phantomjs --version  # Should be 2.1.1
 ```
 
-**If `phantomjs` is not available via apt**, install manually:
-
-```bash
-# For x86_64:
-cd /tmp
-wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2
-tar xjf phantomjs-2.1.1-linux-x86_64.tar.bz2
-sudo cp phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/
-rm -rf phantomjs-2.1.1-linux-x86_64*
-
-# For ARM64 (aarch64) — build from source:
-cd /tmp
-sudo apt-get install -y build-essential g++ flex bison gperf ruby perl \
-  libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 libssl-dev \
-  libpng-dev libjpeg-dev python
-git clone https://github.com/ariya/phantomjs.git
-cd phantomjs && git checkout 2.1.1
-python build.py -j$(nproc)
-sudo cp bin/phantomjs /usr/local/bin/
-cd /tmp && rm -rf phantomjs
-
-# Verify
-phantomjs --version
-```
-
-> **Note:** Node.js and PhantomJS are already included in the Docker image. Manual installation is only needed for non-Docker deployments.
+> **Note:** Node.js is already included in the Docker image. Manual installation is only needed for non-Docker deployments.
+>
+> ~~PhantomJS~~: no longer required. Previously used for PornHub and similar sites, but yt-dlp now uses alternative extraction methods.
 
 ### Step 4: Setup Configuration
 
