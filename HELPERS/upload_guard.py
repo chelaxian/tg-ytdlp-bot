@@ -11,19 +11,42 @@ _UPLOAD_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     thread_name_prefix="tg_upload"
 )
 
-def timed_upload(upload_fn, timeout=None):
+_ACTIVE_UPLOAD_KEYS = set()
+_ACTIVE_UPLOAD_LOCK = threading.Lock()
+
+
+def timed_upload(upload_fn, timeout=None, dedup_key=None):
     """Run an upload with timeout and concurrency control.
 
     Prevents a single stuck upload from blocking all bot operations.
     Uploads run in a dedicated thread pool with a hard timeout.
     If timeout fires, the calling thread is freed while the upload
     continues in background (Python threads cannot be killed).
+
+    Args:
+        dedup_key: Optional hashable key to prevent duplicate uploads.
+                   If another upload with the same key timed out but its
+                   background thread is still running, this call will
+                   immediately raise TimeoutError without starting a new upload.
     """
     if timeout is None:
         timeout = LimitsConfig.UPLOAD_TIMEOUT_SECONDS
 
+    if dedup_key is not None:
+        with _ACTIVE_UPLOAD_LOCK:
+            if dedup_key in _ACTIVE_UPLOAD_KEYS:
+                logger.warning(f"[Upload] Duplicate upload blocked for key={dedup_key}, previous upload still in progress")
+                raise TimeoutError(
+                    f"Upload already in progress for this file. "
+                    f"Please wait for the current upload to complete."
+                )
+            _ACTIVE_UPLOAD_KEYS.add(dedup_key)
+
     acquired = _UPLOAD_SEMAPHORE.acquire(blocking=False)
     if not acquired:
+        if dedup_key is not None:
+            with _ACTIVE_UPLOAD_LOCK:
+                _ACTIVE_UPLOAD_KEYS.discard(dedup_key)
         logger.warning(f"[Upload] All {_MAX_CONCURRENT_UPLOADS} upload slots busy, rejecting")
         raise TimeoutError(
             f"All {_MAX_CONCURRENT_UPLOADS} upload slots are busy. "
@@ -32,9 +55,13 @@ def timed_upload(upload_fn, timeout=None):
 
     try:
         future = _UPLOAD_EXECUTOR.submit(upload_fn)
-        return future.result(timeout=timeout)
+        result = future.result(timeout=timeout)
+        return result
     except concurrent.futures.TimeoutError:
         logger.error(f"[Upload] Timed out after {timeout}s, releasing slot (background thread may still run)")
         raise TimeoutError(f"Upload timed out after {timeout}s")
     finally:
         _UPLOAD_SEMAPHORE.release()
+        if dedup_key is not None:
+            with _ACTIVE_UPLOAD_LOCK:
+                _ACTIVE_UPLOAD_KEYS.discard(dedup_key)
