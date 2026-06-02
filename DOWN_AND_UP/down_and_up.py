@@ -50,7 +50,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.tags import extract_url_range_tags
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
-from HELPERS.upload_guard import timed_upload
+from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
 
 # Get app instance for decorators
 app = get_app()
@@ -666,55 +666,37 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     _cancel_ev = register_download_cancel_event(user_id)
     try:
         # Check if there is a saved waiting time
-        user_dir = os.path.join("users", str(user_id))
-        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
+        from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
+        flood_remaining, flood_time_str = read_flood_wait_remaining(user_id)
 
-        if os.path.exists(flood_time_file):
-            with open(flood_time_file, 'r') as f:
-                try:
-                    wait_time = int(f.read().strip())
-                except Exception:
-                    wait_time = None
-            if wait_time is not None:
-                hours = wait_time // 3600
-                minutes = (wait_time % 3600) // 60
-                seconds = wait_time % 60
-                time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_WITH_TIME_MSG.format(time=time_str), message=message)
-            else:
-                proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG, message=message)
+        # Send rate-limit message FIRST — if edit gets FloodWait, user sees this notice
+        if flood_remaining is not None:
+            proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_WITH_TIME_MSG.format(time=flood_time_str), message=message)
+        else:
+            proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG, message=message)
 
-            try:
-                if proc_msg is not None and hasattr(proc_msg, 'id'):
-                    app.edit_message_text(
-                        chat_id=user_id,
-                        message_id=proc_msg.id,
-                        text=safe_get_messages(user_id).DOWNLOAD_STARTED_MSG,
-                        parse_mode=enums.ParseMode.HTML
-                    )
-                    try:
-                        from HELPERS.safe_messeger import schedule_delete_message
-                        download_started_msg_id = proc_msg.id
-                        schedule_delete_message(user_id, download_started_msg_id, delete_after_seconds=5)
-                    except Exception:
-                        pass
-                else:
-                    logger.error(f"[FLOOD-CHECK] proc_msg is not Message: type={type(proc_msg)}, value={proc_msg}")
-                if os.path.exists(flood_time_file):
-                    os.remove(flood_time_file)
-            except FloodWait as e:
-                wait_time = e.value
-                os.makedirs(user_dir, exist_ok=True)
-                with open(flood_time_file, 'w') as f:
-                    f.write(str(wait_time))
-                return
-            except Exception as e:
-                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}, removing flood_time_file")
+        # Try to replace with "Download started" to confirm no FloodWait
+        try:
+            if proc_msg is not None and hasattr(proc_msg, 'id'):
+                app.edit_message_text(
+                    chat_id=user_id,
+                    message_id=proc_msg.id,
+                    text=safe_get_messages(user_id).DOWNLOAD_STARTED_MSG,
+                    parse_mode=enums.ParseMode.HTML
+                )
                 try:
-                    if os.path.exists(flood_time_file):
-                        os.remove(flood_time_file)
+                    from HELPERS.safe_messeger import schedule_delete_message
+                    download_started_msg_id = proc_msg.id
+                    schedule_delete_message(user_id, download_started_msg_id, delete_after_seconds=5)
                 except Exception:
                     pass
+            else:
+                logger.error(f"[FLOOD-CHECK] proc_msg is not Message: type={type(proc_msg)}, value={proc_msg}")
+        except FloodWait as e:
+            _write_flood_wait_file(user_id, e.value)
+            return
+        except Exception as e:
+            logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
 
         # If there is no flood error, send a normal message
         proc_msg = app.send_message(user_id, safe_get_messages(user_id).PROCESSING_MSG, reply_parameters=ReplyParameters(message_id=message.id))
@@ -2091,6 +2073,30 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 error_message = str(e)
                 logger.error(f"DownloadError: {error_message}")
+                
+                # Handle broken thumbnail URL scheme (e.g. "litthttps" from generic extractor)
+                # Retry without thumbnails — ffmpeg will generate a frame-grab thumbnail later
+                if "Unsupported url scheme" in error_message or "url scheme" in error_message.lower():
+                    logger.warning(f"Broken URL scheme detected (likely thumbnail URL), retrying without thumbnails: {error_message}")
+                    no_thumb_opts = ytdl_opts.copy()
+                    no_thumb_opts['writethumbnail'] = False
+                    no_thumb_opts['postprocessors'] = [pp for pp in no_thumb_opts.get('postprocessors', []) if pp.get('key') != 'EmbedThumbnail']
+                    try:
+                        retry_result = try_with_proxy_fallback(no_thumb_opts, url, user_id, download_operation)
+                        if retry_result:
+                            logger.info("Successfully downloaded video without thumbnails — ffmpeg will generate thumbnail from video frame")
+                            if not is_youtube_url(url):
+                                from COMMANDS.cookies_cmd import set_cookie_cache_result
+                                cookie_file_path = no_thumb_opts.get('cookiefile')
+                                if cookie_file_path and os.path.exists(cookie_file_path):
+                                    set_cookie_cache_result(user_id, url, True, cookie_file_path)
+                            from HELPERS.filesystem_hlp import remove_protection_file
+                            remove_protection_file(user_dir_name)
+                            if retry_result is not True:
+                                return retry_result
+                            return info_dict
+                    except Exception as retry_e:
+                        logger.error(f"Retry without thumbnails also failed: {retry_e}")
                 
                 # Handle "File name too long" (Errno 36) — retry with a short hashed filename
                 if "File name too long" in error_message or "Errno 36" in error_message:
@@ -3945,6 +3951,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, per_video_url=video_page_url)
                             break
+                        except UploadAlreadyInProgressError:
+                            logger.warning(f"Split upload already in progress, skipping duplicate: {part_path}")
+                            break
                         except (TimeoutError, Exception) as _upload_err:
                             _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
                             _file_still_exists = os.path.exists(part_path)
@@ -4618,6 +4627,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         for _upload_attempt in range(_upload_max_retries + 1):
                             try:
                                 video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count, per_video_url=video_page_url)
+                                break
+                            except UploadAlreadyInProgressError:
+                                logger.warning(f"Upload already in progress, skipping duplicate: {after_rename_abs_path}")
                                 break
                             except (TimeoutError, Exception) as _upload_err:
                                 _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)

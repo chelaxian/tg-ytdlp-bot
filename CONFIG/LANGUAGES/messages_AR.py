@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>حدث خطأ</b>\n\n<code>{url}</code>\n\nالخطأ: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ خطأ في إرسال الفيديو: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ هذا الفيديو قيد التحميل بالفعل. يرجى الانتظار حتى اكتمال التحميل الحالي."
+    FLOOD_WAIT_USER_MSG = "يتطلب Telegram الانتظار قبل الإرسال. سيستمر البوت تلقائيًا بعد انتهاء المؤقت ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ خطأ غير معروف: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ مساحة القرص غير كافية لتحميل مقاطع الفيديو."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ حجم الملف يتجاوز الحد الأقصى {limit} جيجابايت. يرجى اختيار ملف أصغر ضمن الحجم المسموح."
@@ -1599,6 +1601,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ لا يمكن تضمين الترجمات بسبب الحدود (الجودة/المدة/الحجم)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ الترجمات غير متاحة للغة المحددة"
     ERROR_SENDING_VIDEO_MSG = "❌ خطأ في إرسال الفيديو: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ هذا الفيديو قيد التحميل بالفعل. يرجى الانتظار حتى اكتمال التحميل الحالي."
+    FLOOD_WAIT_USER_MSG = "يتطلب Telegram الانتظار قبل الإرسال. سيستمر البوت تلقائيًا بعد انتهاء المؤقت ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ تم إرسال فيديوهات قائمة التشغيل: {sent}/{total} ملف."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ تم إلغاء التحميل بسبب انتهاء الوقت (ساعتان)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ فشل في تحميل الفيديو: {error}"

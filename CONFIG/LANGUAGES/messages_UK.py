@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>Сталася помилка</b>\n\n<code>{url}</code>\n\nПомилка: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Помилка відправки відео: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Це відео вже завантажується. Зачекайте завершення поточного завантаження."
+    FLOOD_WAIT_USER_MSG = "Telegram вимагає зачекати перед відправкою. Бот автоматично продовжить після закінчення таймера ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Невідома помилка: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Недостатньо місця на диску для завантаження відео."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Розмір файлу перевищує ліміт {limit} GB. Будь ласка, виберіть менший файл у дозволеному розмірі."
@@ -1593,6 +1595,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Субтитри не можна вставляти через обмеження (якість/тривалість/розмір)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Субтитри недоступні для вибраної мови"
     ERROR_SENDING_VIDEO_MSG = "❌ Помилка надсилання відео: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Це відео вже завантажується. Зачекайте завершення поточного завантаження."
+    FLOOD_WAIT_USER_MSG = "Telegram вимагає зачекати перед відправкою. Бот автоматично продовжить після закінчення таймера ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Надіслані відео зі списку відтворення: {sent}/{total} файлів."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Завантаження скасовано через час очікування (2 години)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Не вдалося завантажити відео: {error}"

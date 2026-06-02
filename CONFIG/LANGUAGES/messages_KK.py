@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -345,6 +345,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>Қате орын алды</b>\n\n<code>{url}</code>\n\nҚате: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Бейне бұл қатесі: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Бұл видео жүктеліп жатыр. Ағымдағы жүктеу аяқталғанша күтіңіз."
+    FLOOD_WAIT_USER_MSG = "Telegram жіберу алдында күтуді талап етеді. Таймер аяқталғаннан кейін бот автоматты түрде жалғасады ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Белгісіз қате: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Бейнелерді жүктеу үшін дискіде жеткілікті орын жоқ."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Файл өлшемі {limit} GB лимитінен асып кетті. Рұқсат етілген өлшем ішінде кішірек файл таңдаңыз."
@@ -1594,6 +1596,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Субтитрлерді шектеулерге байланысты енгізу мүмкін емес (сапа/ұзақтық/өлшем)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Таңдалған тіл үшін субтитрлер қолжетімді емес"
     ERROR_SENDING_VIDEO_MSG = "❌ Бейнені жіберу қатесі: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Бұл видео жүктеліп жатыр. Ағымдағы жүктеу аяқталғанша күтіңіз."
+    FLOOD_WAIT_USER_MSG = "Telegram жіберу алдында күтуді талап етеді. Таймер аяқталғаннан кейін бот автоматты түрде жалғасады ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Жіберілген ойнату тізімі бейнелері: {sent}/{total} файл."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Жүктеп алу күту уақытының аяқталуына байланысты тоқтатылды (2 сағат)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Бейнені жүктеп алу мүмкін болмады: {error}"

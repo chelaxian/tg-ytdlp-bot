@@ -201,14 +201,47 @@ def _should_retry(error, user_id, retry_delay=5):
 
 
 def _write_flood_wait_file(chat_id, value):
-    """Persist FloodWait seconds to user's flood_wait.txt file."""
+    """Persist FloodWait as unix timestamp (now + seconds) to user's flood_wait.txt file."""
     try:
         user_dir = os.path.join("users", str(chat_id))
         os.makedirs(user_dir, exist_ok=True)
         with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-            f.write(str(value))
+            f.write(str(int(time.time()) + int(value)))
     except Exception:
         pass
+
+
+def read_flood_wait_remaining(chat_id):
+    """Read flood_wait.txt and return remaining seconds, or None if not active.
+
+    Returns (remaining_seconds, formatted_str) or (None, None).
+    Deletes the file automatically if the FloodWait has expired.
+    """
+    user_dir = os.path.join("users", str(chat_id))
+    flood_file = os.path.join(user_dir, "flood_wait.txt")
+    if not os.path.exists(flood_file):
+        return None, None
+    try:
+        with open(flood_file, 'r') as f:
+            stored = int(f.read().strip())
+    except Exception:
+        try:
+            os.remove(flood_file)
+        except Exception:
+            pass
+        return None, None
+    remaining = stored - int(time.time())
+    if remaining <= 0:
+        try:
+            os.remove(flood_file)
+        except Exception:
+            pass
+        return None, None
+    hours = remaining // 3600
+    minutes = (remaining % 3600) // 60
+    seconds = remaining % 60
+    time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
+    return remaining, time_str
 
 
 # Helper function for safe message sending with flood wait handling

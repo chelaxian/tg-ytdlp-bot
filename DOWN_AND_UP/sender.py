@@ -20,7 +20,7 @@ from CONFIG.limits import LimitsConfig
 import time
 import threading
 import concurrent.futures
-from HELPERS.upload_guard import timed_upload
+from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
 
 # Get app instance for decorators
 app = get_app()
@@ -1021,6 +1021,12 @@ def send_videos(
                             safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)),
                         )
                         raise
+                    except UploadAlreadyInProgressError:
+                        logger.warning(f"Upload already in progress for user {user_id}, file={video_abs_path}, skipping duplicate")
+                        safe_send_message(user_id,
+                            safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
+                            parse_mode=enums.ParseMode.HTML, message=message)
+                        return None
                     except Exception as e:
                         error_str = str(e)
                         if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in error_str:
@@ -1074,18 +1080,20 @@ def send_videos(
                                 time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
                                 reason = "too long" if wait_time > 120 else "max retries exceeded"
                                 logger.warning(f"FloodWait {reason} ({wait_time}s / {time_str}), saving and notifying user")
-                                user_dir = os.path.join("users", str(user_id))
-                                try:
-                                    os.makedirs(user_dir, exist_ok=True)
-                                    with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as fw_f:
-                                        fw_f.write(str(wait_time))
-                                except Exception:
-                                    pass
-                                from HELPERS.logger import send_error_to_user
-                                send_error_to_user(message,
+                                from HELPERS.safe_messeger import _write_flood_wait_file
+                                _write_flood_wait_file(user_id, wait_time)
+                                from HELPERS.logger import log_error_to_channel
+                                log_error_to_channel(message,
                                     f"⏳ **Telegram FloodWait**: {time_str}\n\n"
                                     f"Telegram требует подождать перед следующей отправкой. "
                                     f"Бот автоматически продолжит после истечения таймера.")
+                                try:
+                                    safe_edit_message_text(user_id, msg_id,
+                                        f"⏳ <b>Telegram FloodWait</b>: {time_str}\n\n"
+                                        + safe_get_messages(user_id).FLOOD_WAIT_USER_MSG.format(time_str=time_str),
+                                        parse_mode=enums.ParseMode.HTML)
+                                except Exception:
+                                    pass
                                 return None
 
                         if "Request timed out" in error_str or isinstance(e, TimeoutError):
@@ -1097,6 +1105,12 @@ def send_videos(
                             time.sleep(2)
                             continue
                         raise
+        except UploadAlreadyInProgressError:
+            logger.warning(f"Upload already in progress for user {user_id}, file={video_abs_path}, skipping duplicate (outer)")
+            safe_send_message(user_id,
+                safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
+                parse_mode=enums.ParseMode.HTML, message=message)
+            return None
         except Exception as e:
             if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in str(e):
                 logger.warning(f"User {user_id} has blocked the bot, aborting send (outer handler)")

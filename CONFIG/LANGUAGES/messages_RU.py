@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -343,6 +343,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>Произошла ошибка</b>\n\n<code>{url}</code>\n\nОшибка: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Ошибка отправки видео: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Это видео уже загружается. Подождите завершения текущей загрузки."
+    FLOOD_WAIT_USER_MSG = "Telegram требует подождать перед отправкой. Бот автоматически продолжит после истечения таймера ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Неизвестная ошибка: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Недостаточно места на диске для загрузки видео."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Размер файла превышает лимит {limit} ГБ. Пожалуйста, выберите файл меньшего размера в пределах допустимого."
@@ -1592,6 +1594,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Субтитры не могут быть встроены из-за лимитов (качество/длительность/размер)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Субтитры недоступны для выбранного языка"
     ERROR_SENDING_VIDEO_MSG = "❌ Ошибка отправки видео: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Это видео уже загружается. Подождите завершения текущей загрузки."
+    FLOOD_WAIT_USER_MSG = "Telegram требует подождать перед отправкой. Бот автоматически продолжит после истечения таймера ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Видео плейлиста отправлены: {sent}/{total} файлов."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Скачивание отменено из-за таймаута (2 часа)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Не удалось скачать видео: {error}"

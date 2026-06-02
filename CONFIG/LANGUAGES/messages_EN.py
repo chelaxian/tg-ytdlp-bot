@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -343,6 +343,8 @@ Use:
     ERROR_OCCURRED_MSG = "❌ <b>Error occurred</b>\n\n<code>{url}</code>\n\nError: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ This video is already being uploaded. Please wait for the current upload to complete."
+    FLOOD_WAIT_USER_MSG = "Telegram requires waiting before sending. The bot will automatically continue after the timer expires ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Unknown error: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Not enough disk space to download videos."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ The file size exceeds the {limit} GB limit. Please select a smaller file within the allowed size."
@@ -1591,6 +1593,8 @@ Learn more: /playlist"""
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Subtitles cannot be embedded due to limits (quality/duration/size)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Subtitles are not available for the selected language"
     ERROR_SENDING_VIDEO_MSG = "❌ Error sending video: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ This video is already being uploaded. Please wait for the current upload to complete."
+    FLOOD_WAIT_USER_MSG = "Telegram requires waiting before sending. The bot will automatically continue after the timer expires ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Playlist videos sent: {sent}/{total} files."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Download cancelled due to timeout (2 hours)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Failed to download video: {error}"
