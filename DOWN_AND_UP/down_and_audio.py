@@ -179,13 +179,14 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
             logger.error(f"Cover file not found: {cover_path}")
             return False
         
-        # Convert cover to JPEG if needed
         if cover_path.lower().endswith(('.webp', '.png')):
             jpeg_path = cover_path.rsplit('.', 1)[0] + '.jpg'
             logger.info(f"Converting cover to JPEG: {cover_path} -> {jpeg_path}")
             result = subprocess.run([
                 "ffmpeg", "-y", "-i", cover_path, jpeg_path
-            ], check=True, capture_output=True, text=True, timeout=120)
+            ], check=True, capture_output=True, timeout=120)
+            if result.stderr:
+                logger.debug(f"FFmpeg cover conversion stderr: {result.stderr.decode('utf-8', errors='replace')}")
             cover_path = jpeg_path
         
         out_path = mp3_path.rsplit('.', 1)[0] + '_tagged.mp3'
@@ -216,12 +217,12 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
         
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
         
-        # Run ffmpeg command
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=600)
+        result = subprocess.run(cmd, check=True, capture_output=True, timeout=600)
         
-        logger.info(f"FFmpeg stdout: {result.stdout}")
+        if result.stdout:
+            logger.info(f"FFmpeg stdout: {result.stdout.decode('utf-8', errors='replace')}")
         if result.stderr:
-            logger.info(f"FFmpeg stderr: {result.stderr}")
+            logger.info(f"FFmpeg stderr: {result.stderr.decode('utf-8', errors='replace')}")
         
         # Replace original file with tagged version
         if os.path.exists(out_path):
@@ -233,7 +234,8 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
             return False
             
     except subprocess.CalledProcessError as e:
-        logger.error(f"FFmpeg error embedding cover: {e.stderr}")
+        stderr_text = e.stderr.decode('utf-8', errors='replace') if isinstance(e.stderr, bytes) else str(e.stderr)
+        logger.error(f"FFmpeg error embedding cover: {stderr_text}")
         logger.error(f"FFmpeg command that failed: {' '.join(cmd) if 'cmd' in locals() else 'Unknown'}")
         return False
     except Exception as e:

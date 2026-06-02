@@ -1169,9 +1169,6 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
             error_response = f"{error_type}: {error_msg}"
             logger.error(f"Fatal error in gallery-dl Python API: {error_response}")
             
-            # Log error to exception channel
-            log_error_to_channel(None, f"Gallery-dl Python API fatal error: {error_response}", url)
-            
             return error_response
         
         return False
@@ -1293,6 +1290,8 @@ def _is_fatal_error(stderr_text: str) -> bool:
     
     # Additional common errors
     if any(error in stderr_lower for error in [
+        "unsupported url",
+        "no matching extractor",
         "blocked by robots.txt",
         "geoblocked",
         "region blocked",
@@ -1522,19 +1521,6 @@ def download_image_range_cli(url: str, range_expr: str, user_id=None, use_proxy:
                     error_type = _get_error_type(stderr_text)
                     error_msg = f"{error_type}: {stderr_text}"
                     logger.error(f"Fatal error in gallery-dl: {error_msg}")
-                    
-                    # Log error to exception channel (skip if no message object available)
-                    try:
-                        from HELPERS.logger import log_error_to_channel
-                        # Create a minimal message object for logging
-                        class MinimalMessage:
-                            def __init__(self, chat_id, first_name="Unknown"):
-                                self.chat = type('Chat', (), {'id': chat_id, 'first_name': first_name})()
-                        
-                        minimal_msg = MinimalMessage(-1, "Gallery-dl")
-                        log_error_to_channel(minimal_msg, f"Gallery-dl fatal error: {error_msg}", url)
-                    except Exception as log_e:
-                        logger.error(f"Failed to log gallery-dl error: {log_e}")
                     
                     return error_msg
                 

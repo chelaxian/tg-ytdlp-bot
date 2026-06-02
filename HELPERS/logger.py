@@ -112,6 +112,28 @@ def send_to_all(message, msg, parse_mode=None):
     safe_send_message(get_log_channel("general"), msg_with_id, parse_mode=enums.ParseMode.HTML)
     safe_send_message(user_id, msg, parse_mode=parse_mode or enums.ParseMode.HTML, message=message)
 
+# --- Error log throttle/dedup to prevent spam ----------------------------------
+
+_error_throttle_lock = threading.Lock()
+_error_throttle_cache: dict[str, float] = {}
+_ERROR_THROTTLE_SECONDS = 120
+
+
+def _should_send_error(msg: str, url: str = "") -> bool:
+    key = f"{msg}|{url}"
+    now = time.time()
+    with _error_throttle_lock:
+        last_sent = _error_throttle_cache.get(key)
+        if last_sent and (now - last_sent) < _ERROR_THROTTLE_SECONDS:
+            return False
+        _error_throttle_cache[key] = now
+        if len(_error_throttle_cache) > 500:
+            cutoff = now - _ERROR_THROTTLE_SECONDS
+            _error_throttle_cache.update(
+                {k: v for k, v in list(_error_throttle_cache.items()) if v > cutoff}
+            )
+        return True
+
 # --- Helpers for error logging -------------------------------------------------
 
 def _extract_url_from_message(message) -> str:
@@ -154,17 +176,19 @@ def send_error_to_user(message, msg, url: str = None):
     """
     user_id = message.chat.id
     url_str = (url or _extract_url_from_message(message) or "").strip()
-    
-    # Маскируем секретные данные в сообщении для пользователя
+
     sanitized_msg = sanitize_error_message(str(msg))
-    
+
+    if not _should_send_error(sanitized_msg, url_str):
+        logger.debug(f"Suppressed duplicate error to LOG_EXCEPTION (throttle): {sanitized_msg[:100]}")
+        safe_send_message(user_id, sanitized_msg, parse_mode=enums.ParseMode.HTML, message=message)
+        return
+
     if url_str:
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \nURL: {url_str}\n\n{sanitized_msg}"
     else:
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{sanitized_msg}"
-    # Send to LOG_EXCEPTION channel for error tracking (полная версия для админов)
     safe_send_message(Config.LOG_EXCEPTION, msg_with_id, parse_mode=enums.ParseMode.HTML)
-    # Send to user (маскированная версия)
     safe_send_message(user_id, sanitized_msg, parse_mode=enums.ParseMode.HTML, message=message)
 
 # Log error message to LOG_EXCEPTION channel (without sending to user)
@@ -175,11 +199,15 @@ def log_error_to_channel(message, msg, url: str = None):
     url: optional explicit URL that caused the error; if not provided, will be
          extracted from the user's message text/caption when possible.
     """
-    user_id = message.chat.id
     url_str = (url or _extract_url_from_message(message) or "").strip()
+
+    if not _should_send_error(msg, url_str):
+        logger.debug(f"Suppressed duplicate error to LOG_EXCEPTION (throttle): {msg[:100]}")
+        return
+
+    user_id = message.chat.id
     if url_str:
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \nURL: {url_str}\n\n{msg}"
     else:
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    # Send to LOG_EXCEPTION channel for error tracking
     safe_send_message(Config.LOG_EXCEPTION, msg_with_id, parse_mode=enums.ParseMode.HTML)
