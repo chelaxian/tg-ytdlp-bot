@@ -1023,9 +1023,12 @@ def send_videos(
                         raise
                     except UploadAlreadyInProgressError:
                         logger.warning(f"Upload already in progress for user {user_id}, file={video_abs_path}, skipping duplicate")
-                        safe_send_message(user_id,
-                            safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
-                            parse_mode=enums.ParseMode.HTML, message=message)
+                        try:
+                            safe_edit_message_text(user_id, msg_id,
+                                safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
+                                parse_mode=enums.ParseMode.HTML)
+                        except Exception:
+                            pass
                         return None
                     except Exception as e:
                         error_str = str(e)
@@ -1080,13 +1083,8 @@ def send_videos(
                                 time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
                                 reason = "too long" if wait_time > 120 else "max retries exceeded"
                                 logger.warning(f"FloodWait {reason} ({wait_time}s / {time_str}), saving and notifying user")
-                                user_dir = os.path.join("users", str(user_id))
-                                try:
-                                    os.makedirs(user_dir, exist_ok=True)
-                                    with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as fw_f:
-                                        fw_f.write(str(wait_time))
-                                except Exception:
-                                    pass
+                                from HELPERS.safe_messeger import _write_flood_wait_file
+                                _write_flood_wait_file(user_id, wait_time)
                                 from HELPERS.logger import log_error_to_channel
                                 log_error_to_channel(message,
                                     f"⏳ **Telegram FloodWait**: {time_str}\n\n"
@@ -1112,9 +1110,12 @@ def send_videos(
                         raise
         except UploadAlreadyInProgressError:
             logger.warning(f"Upload already in progress for user {user_id}, file={video_abs_path}, skipping duplicate (outer)")
-            safe_send_message(user_id,
-                safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
-                parse_mode=enums.ParseMode.HTML, message=message)
+            try:
+                safe_edit_message_text(user_id, msg_id,
+                    safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
+                    parse_mode=enums.ParseMode.HTML)
+            except Exception:
+                pass
             return None
         except Exception as e:
             if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in str(e):

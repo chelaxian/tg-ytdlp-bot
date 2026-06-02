@@ -4999,48 +4999,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
     
     # Early FloodWait check: if there is a saved waiting time, inform user and try to clear on success
     try:
-        user_dir = os.path.join("users", str(user_id))
-        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
-        if os.path.exists(flood_time_file):
-            with open(flood_time_file, 'r') as f:
-                try:
-                    wait_time = int(f.read().strip())
-                except Exception:
-                    wait_time = None
-            if wait_time is not None:
-                hours = wait_time // 3600
-                minutes = (wait_time % 3600) // 60
-                seconds = wait_time % 60
-                time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = app.send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_WITH_TIME_MSG.format(time=time_str))
-            else:
-                proc_msg = app.send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG)
+        from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
+        flood_remaining, flood_time_str = read_flood_wait_remaining(user_id)
+        if flood_remaining is not None:
+            proc_msg = app.send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_WITH_TIME_MSG.format(time=flood_time_str))
+        else:
+            proc_msg = app.send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG)
+        if flood_remaining is not None or proc_msg:
             try:
                 from HELPERS.safe_messeger import schedule_delete_message
                 if proc_msg is None or not hasattr(proc_msg, 'id'):
                     logger.error(f"[FLOOD-CHECK] proc_msg is not Message: type={type(proc_msg)}, value={proc_msg}")
-                    os.remove(flood_time_file) if os.path.exists(flood_time_file) else None
-                    pass
                 else:
                     app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=safe_get_messages(user_id).DOWNLOAD_STARTED_MSG, parse_mode=enums.ParseMode.HTML)
                     schedule_delete_message(user_id, proc_msg.id, delete_after_seconds=5)
-                    if os.path.exists(flood_time_file):
-                        os.remove(flood_time_file)
             except FloodWait as e:
-                try:
-                    os.makedirs(user_dir, exist_ok=True)
-                    with open(flood_time_file, 'w') as f:
-                        f.write(str(e.value))
-                except Exception:
-                    pass
+                _write_flood_wait_file(user_id, e.value)
                 return
             except Exception as e:
-                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}, removing flood_time_file")
-                try:
-                    if os.path.exists(flood_time_file):
-                        os.remove(flood_time_file)
-                except Exception:
-                    pass
+                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
             proc_msg = None
     except Exception:
         pass
@@ -6962,11 +6939,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         send_to_logger(message, safe_get_messages(user_id).ALWAYS_ASK_MENU_SENT_LOG_MSG.format(url=url))
     except FloodWait as e:
         wait_time = e.value
-        user_dir = os.path.join("users", str(user_id))
-        create_directory(user_dir)
-        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
-        with open(flood_time_file, 'w') as f:
-            f.write(str(wait_time))
+        from HELPERS.safe_messeger import _write_flood_wait_file
+        _write_flood_wait_file(user_id, wait_time)
         hours = wait_time // 3600
         minutes = (wait_time % 3600) // 60
         seconds = wait_time % 60
