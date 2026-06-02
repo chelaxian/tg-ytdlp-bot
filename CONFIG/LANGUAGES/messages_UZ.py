@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ Ishlating:
     ERROR_OCCURRED_MSG = "❌ <b>Xatolik yuz berdi</b>\n\n<code>{url}</code>\n\nXatolik: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Videoni yuborishda xatolik: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Bu video allaqachon yuklanmoqda. Iltimos, joriy yuklash tugashini kuting."
+    FLOOD_WAIT_USER_MSG = "Telegram yuborishdan oldin kutishni talab qiladi. Bot taymer tugagandan so'ng avtomatik davom etadi ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Noma'lum xatolik: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Videolarni yuklab olish uchun disk maydoni yetarli emas."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Fayl hajmi {limit} GB chegarasidan oshib ketdi. Iltimos, ruxsat etilgan hajm ichida kichikroq faylni tanlang."
@@ -1593,6 +1595,8 @@ Ko'proq ma'lumot: /playlist"""
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Subtitrlar cheklovlar tufayli kiritilmaydi (sifat/davomiylik/hajm)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Tanlangan til uchun subtitrlar mavjud emas"
     ERROR_SENDING_VIDEO_MSG = "❌ Videoni yuborishda xatolik: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Bu video allaqachon yuklanmoqda. Iltimos, joriy yuklash tugashini kuting."
+    FLOOD_WAIT_USER_MSG = "Telegram yuborishdan oldin kutishni talab qiladi. Bot taymer tugagandan so'ng avtomatik davom etadi ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Ro'yxat videolari yuborildi: {sent}/{total} fayl."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Yuklab olish timeout tufayli bekor qilindi (2 soat)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Videoni yuklab olishda muvaffaqiyatsizlik: {error}"

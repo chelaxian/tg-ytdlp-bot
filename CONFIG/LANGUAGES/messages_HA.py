@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -345,6 +345,8 @@ Yi amfani da:
     ERROR_OCCURRED_MSG = "❌ <b>Kuskure ya faru</b>\n\n<code>{url}</code>\n\nKuskure: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Kuskure wajen aika aika: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Wannan bidiyon ana loda shi tuni. Da fatan za a jira har sai loda na yanzu ya kammala."
+    FLOOD_WAIT_USER_MSG = "Telegram na buƙatar jira kafin aiki. Bot zai ci gaba da atomatik bayan ƙarewar lokacin ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Kuskure da ba a sani ba: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Babu isasshen sarari na diski don saukewa bidiyoyi."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Girman fayil ya wuce iyakar {limit} GB. Da fatan za a zaɓi fayil ƙarami a cikin girman da aka yarda."
@@ -1594,6 +1596,8 @@ Koyi ƙari: /playlist"""
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Ba za a iya shigar da rubutun kalmomi ba saboda iyaka (inganci / tsawon lokaci / girman)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Babu rubutun ra'ayi don harshen da aka zaɓa"
     ERROR_SENDING_VIDEO_MSG = "❌ Kuskuren aika bidiyo: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Wannan bidiyon ana loda shi tuni. Da fatan za a jira har sai loda na yanzu ya kammala."
+    FLOOD_WAIT_USER_MSG = "Telegram na buƙatar jira kafin aiki. Bot zai ci gaba da atomatik bayan ƙarewar lokacin ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Bidiyon lissafin waƙa da aka aika: {total}__/{sent} fayiloli."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ An soke zazzagewa saboda ƙarewar lokaci (awanni 2)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ An kasa zazzage bidiyo: {error}"

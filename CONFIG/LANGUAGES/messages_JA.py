@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>エラーが発生しました</b>\n\n<code>{url}</code>\n\nエラー：{error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ 動画の送信エラー：{error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ この動画はすでにアップロード中です。現在のアップロードが完了するまでお待ちください。"
+    FLOOD_WAIT_USER_MSG = "Telegramは送信前に待機が必要です。タイマー満了後にボットが自動的に再開します ({time_str})。"
     ERROR_UNKNOWN_MSG = "❌ 不明なエラー：{error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 動画をダウンロードするためのディスク容量が不足しています。"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ ファイルサイズが{limit}GBの制限を超えています。許可されたサイズ内でより小さなファイルを選択してください。"
@@ -1593,6 +1595,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ 字幕は（画質・長さ・サイズ）の制限により埋め込むことができません。"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ 選択された言語の字幕は利用できません"
     ERROR_SENDING_VIDEO_MSG = "❌ ビデオの送信エラー：{error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ この動画はすでにアップロード中です。現在のアップロードが完了するまでお待ちください。"
+    FLOOD_WAIT_USER_MSG = "Telegramは送信前に待機が必要です。タイマー満了後にボットが自動的に再開します ({time_str})。"
     PLAYLIST_VIDEOS_SENT_MSG = "✅ プレイリストのビデオを送信しました：{sent}/{total}ファイル。"
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ タイムアウトによりダウンロードがキャンセルされました（2時間）"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ ビデオのダウンロードに失敗しました：{error}"

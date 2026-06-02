@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>ত্রুটি ঘটেছে</b>\n\n<code>{url}</code>\n\nত্রুটি: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ ভিডিও পাঠাতে ত্রুটি: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ এই ভিডিওটি ইতিমধ্যে আপলোড হচ্ছে। বর্তমান আপলোড সম্পন্ন হওয়া পর্যন্ত অপেক্ষা করুন।"
+    FLOOD_WAIT_USER_MSG = "Telegram পাঠানোর আগে অপেক্ষা করতে হবে। টাইমার শেষ হলে বট স্বয়ংক্রিয়ভাবে চালু হবে ({time_str})।"
     ERROR_UNKNOWN_MSG = "❌ অজানা ত্রুটি: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ ভিডিও ডাউনলোড করার জন্য পর্যাপ্ত ডিস্ক স্পেস নেই।"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ ফাইলের আকার {limit} GB সীমা অতিক্রম করেছে। অনুগ্রহ করে অনুমোদিত আকারের মধ্যে একটি ছোট ফাইল নির্বাচন করুন।"
@@ -1593,6 +1595,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ সীমাবদ্ধতার কারণে সাবটাইটেল এমবেড করা যায় না (মান/সময়কাল/আকার)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ নির্বাচিত ভাষার জন্য সাবটাইটেল উপলব্ধ নয়"
     ERROR_SENDING_VIDEO_MSG = "❌ ভিডিও পাঠাতে ত্রুটি: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ এই ভিডিওটি ইতিমধ্যে আপলোড হচ্ছে। বর্তমান আপলোড সম্পন্ন হওয়া পর্যন্ত অপেক্ষা করুন।"
+    FLOOD_WAIT_USER_MSG = "Telegram পাঠানোর আগে অপেক্ষা করতে হবে। টাইমার শেষ হলে বট স্বয়ংক্রিয়ভাবে চালু হবে ({time_str})।"
     PLAYLIST_VIDEOS_SENT_MSG = "✅ প্লেলিস্ট ভিডিও পাঠানো হয়েছে: {sent}/{total} ফাইল।"
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ টাইমআউটের কারণে ডাউনলোড বাতিল করা হয়েছে (2 ঘন্টা)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ ভিডিও ডাউনলোড করতে ব্যর্থ: {error}"

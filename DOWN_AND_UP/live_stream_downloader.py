@@ -54,17 +54,11 @@ def download_live_stream_chunked(
         # Send a "rate limit" message FIRST. If there's no FloodWait, we immediately
         # replace it with the real progress message. If FloodWait IS active, the replace
         # fails and the user sees the rate-limit notice instead of silence.
-        user_dir = os.path.join("users", str(user_id))
-        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
+        from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
+        flood_remaining, flood_time_str = read_flood_wait_remaining(user_id)
         
-        if os.path.exists(flood_time_file):
-            with open(flood_time_file, 'r') as f:
-                wait_time = int(f.read().strip())
-                hours = wait_time // 3600
-                minutes = (wait_time % 3600) // 60
-                seconds = wait_time % 60
-                time_str = f"{hours}h {minutes}m {seconds}s" if hours > 0 else f"{minutes}m {seconds}s"
-                flood_msg = safe_send_message(user_id, messages.RATE_LIMIT_WITH_TIME_MSG.format(time=time_str), message=message)
+        if flood_remaining is not None:
+            flood_msg = safe_send_message(user_id, messages.RATE_LIMIT_WITH_TIME_MSG.format(time=flood_time_str), message=message)
         else:
             flood_msg = safe_send_message(user_id, messages.RATE_LIMIT_NO_TIME_MSG, message=message)
         
@@ -82,15 +76,10 @@ def download_live_stream_chunked(
                     app.delete_messages(user_id, flood_msg.id)
                 except Exception:
                     pass
-                if os.path.exists(flood_time_file):
-                    os.remove(flood_time_file)
             except FloodWait as e:
                 # FloodWait IS active — the warning message stays visible for the user
-                wait_time = e.value
-                os.makedirs(user_dir, exist_ok=True)
-                with open(flood_time_file, 'w') as f:
-                    f.write(str(wait_time))
-                logger.warning(f"FloodWait {wait_time}s during live stream start — user notified")
+                _write_flood_wait_file(user_id, e.value)
+                logger.warning(f"FloodWait {e.value}s during live stream start — user notified")
                 return False
             except Exception:
                 pass  # Non-FloodWait error, continue normally

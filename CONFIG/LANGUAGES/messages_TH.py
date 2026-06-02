@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>เกิดข้อผิดพลาด</b>\n\n<code>{url}</code>\n\nข้อผิดพลาด: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ สายการบินในการส่งวิดีโอ: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ วิดีโอนี้กำลังอัปโหลดอยู่ กรุณารอให้การอัปโหลดปัจจุบันเสร็จสิ้น"
+    FLOOD_WAIT_USER_MSG = "Telegram ต้องการรอก่อนส่ง บอทจะดำเนินการต่อโดยอัตโนมัติหลังจากหมดเวลา ({time_str})"
     ERROR_UNKNOWN_MSG = "❌ ข้อผิดพลาดที่ไม่ทราบสาเหตุ: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ พื้นที่ดิสก์ไม่เพียงพอสำหรับการดาวน์โหลดวิดีโอ"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ ขนาดไฟล์เกินขีดจำกัด {limit} GB กรุณาเลือกไฟล์ที่เล็กกว่าในขนาดที่อนุญาต"
@@ -1593,6 +1595,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ ไม่สามารถฝังคำบรรยายได้เนื่องจากมีข้อจำกัด (คุณภาพ/ระยะเวลา/ขนาด)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ คำบรรยายไม่พร้อมใช้งานสำหรับภาษาที่เลือก"
     ERROR_SENDING_VIDEO_MSG = "❌ เกิดข้อผิดพลาดในการส่งวิดีโอ: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ วิดีโอนี้กำลังอัปโหลดอยู่ กรุณารอให้การอัปโหลดปัจจุบันเสร็จสิ้น"
+    FLOOD_WAIT_USER_MSG = "Telegram ต้องการรอก่อนส่ง บอทจะดำเนินการต่อโดยอัตโนมัติหลังจากหมดเวลา ({time_str})"
     PLAYLIST_VIDEOS_SENT_MSG = "✅ วิดีโอเพลย์ลิสต์ที่ส่ง: {sent}/{total} ไฟล์"
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ การดาวน์โหลดถูกยกเลิกเนื่องจากหมดเวลา (2 ชั่วโมง)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ ไม่สามารถดาวน์โหลดวิดีโอได้: {error}"

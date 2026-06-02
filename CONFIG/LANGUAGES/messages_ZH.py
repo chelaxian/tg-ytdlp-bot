@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>发生错误</b>\n\n<code>{url}</code>\n\n错误：{error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ 发送视频时出错：{error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ 该视频正在上传中。请等待当前上传完成。"
+    FLOOD_WAIT_USER_MSG = "Telegram要求在发送前等待。计时器到期后机器人将自动继续 ({time_str})。"
     ERROR_UNKNOWN_MSG = "❌ 未知错误：{error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 磁盘空间不足，无法下载视频。"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ 文件大小超过 {limit} GB 限制。请在允许的大小范围内选择较小的文件。"
@@ -1593,6 +1595,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ 由于限制（质量/时长/大小），无法嵌入字幕"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ 所选语言的字幕不可用"
     ERROR_SENDING_VIDEO_MSG = "❌ 发送视频时出错：{error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ 该视频正在上传中。请等待当前上传完成。"
+    FLOOD_WAIT_USER_MSG = "Telegram要求在发送前等待。计时器到期后机器人将自动继续 ({time_str})。"
     PLAYLIST_VIDEOS_SENT_MSG = "✅ 播放列表视频已发送：{sent}/{total} 个文件。"
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ 由于超时（2小时）取消下载"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ 下载视频失败：{error}"

@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ Use:
     ERROR_OCCURRED_MSG = "❌ <b>Đã xảy ra lỗi</b>\n\n<code>{url}</code>\n\nLỗi: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Lỗi khi gửi video: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Video này đang được tải lên. Vui lòng đợi tải lên hiện tại hoàn tất."
+    FLOOD_WAIT_USER_MSG = "Telegram yêu cầu chờ trước khi gửi. Bot sẽ tự động tiếp tục sau khi hết thời gian chờ ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Lỗi không xác định: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Không đủ dung lượng ổ đĩa để tải xuống video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Kích thước tệp vượt quá giới hạn {limit} GB. Vui lòng chọn tệp nhỏ hơn trong phạm vi kích thước được phép."
@@ -1593,6 +1595,8 @@ Tìm hiểu thêm: /playlist"""
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Phụ đề không thể nhúng do giới hạn (chất lượng/thời lượng/kích thước)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Phụ đề không khả dụng cho ngôn ngữ đã chọn"
     ERROR_SENDING_VIDEO_MSG = "❌ Lỗi khi gửi video: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Video này đang được tải lên. Vui lòng đợi tải lên hiện tại hoàn tất."
+    FLOOD_WAIT_USER_MSG = "Telegram yêu cầu chờ trước khi gửi. Bot sẽ tự động tiếp tục sau khi hết thời gian chờ ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Video danh sách phát đã được gửi: {sent}/{total} tệp."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Tải xuống đã bị hủy do hết thời gian chờ (2 giờ)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Không thể tải video: {error}"

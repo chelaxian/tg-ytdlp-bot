@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ Kullanın:
     ERROR_OCCURRED_MSG = "❌ <b>Hata oluştu</b>\n\n<code>{url}</code>\n\nHata: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Video gönderme hatası: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Bu video zaten yükleniyor. Lütfen mevcut yüklemenin tamamlanmasını bekleyin."
+    FLOOD_WAIT_USER_MSG = "Telegram göndermeden önce beklemenizi gerektirir. Bot, zamanlayıcı süresi dolduktan sonra otomatik olarak devam edecektir ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Bilinmeyen hata: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Video indirmek için yeterli disk alanı yok."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Dosya boyutu {limit} GB limitini aşıyor. Lütfen izin verilen boyut içinde daha küçük bir dosya seçin."
@@ -1593,6 +1595,8 @@ Daha fazla bilgi: /playlist"""
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Altyazılar limitler nedeniyle gömülemez (kalite/süre/boyut)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Seçilen dil için altyazı mevcut değil"
     ERROR_SENDING_VIDEO_MSG = "❌ Video gönderme hatası: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Bu video zaten yükleniyor. Lütfen mevcut yüklemenin tamamlanmasını bekleyin."
+    FLOOD_WAIT_USER_MSG = "Telegram göndermeden önce beklemenizi gerektirir. Bot, zamanlayıcı süresi dolduktan sonra otomatik olarak devam edecektir ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Playlist videoları gönderildi: {sent}/{total} dosya."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ İndirme zaman aşımı nedeniyle iptal edildi (2 saat)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Video indirme başarısız: {error}"

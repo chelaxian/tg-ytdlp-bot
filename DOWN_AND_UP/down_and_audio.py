@@ -28,7 +28,7 @@ from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_univ
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
-from HELPERS.upload_guard import timed_upload
+from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
 import subprocess
 from urllib.parse import urlparse
 from PIL import Image
@@ -614,18 +614,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     _cancel_ev = register_download_cancel_event(user_id)
     try:
         # Check if there is a saved waiting time
-        user_dir = os.path.join("users", str(user_id))
-        flood_time_file = os.path.join(user_dir, "flood_wait.txt")
+        from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
+        flood_remaining, flood_time_str = read_flood_wait_remaining(user_id)
 
         # We send the initial message
-        if os.path.exists(flood_time_file):
-            with open(flood_time_file, 'r') as f:
-                wait_time = int(f.read().strip())
-                hours = wait_time // 3600
-                minutes = (wait_time % 3600) // 60
-                seconds = wait_time % 60
-                time_str = f"{hours}h {minutes}m {seconds}s"
-                proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_WITH_TIME_MSG.format(time=time_str), message=message)
+        if flood_remaining is not None:
+            proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_WITH_TIME_MSG.format(time=flood_time_str), message=message)
         else:
             proc_msg = safe_send_message(user_id, safe_get_messages(user_id).RATE_LIMIT_NO_TIME_MSG, message=message)
 
@@ -643,13 +637,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 schedule_delete_message(user_id, proc_msg.id, delete_after_seconds=5)
             except Exception as e:
                 logger.error(f"Error scheduling download started message deletion: {e}")
-            if os.path.exists(flood_time_file):
-                os.remove(flood_time_file)
         except FloodWait as e:
-            wait_time = e.value
-            os.makedirs(user_dir, exist_ok=True)
-            with open(flood_time_file, 'w') as f:
-                f.write(str(wait_time))
+            _write_flood_wait_file(user_id, e.value)
             return
         except Exception as e:
             logger.error(f"Error editing message: {e}")
