@@ -1023,12 +1023,9 @@ def send_videos(
                         raise
                     except UploadAlreadyInProgressError:
                         logger.warning(f"Upload already in progress for user {user_id}, file={video_abs_path}, skipping duplicate")
-                        try:
-                            safe_edit_message_text(user_id, msg_id,
-                                safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
-                                parse_mode=enums.ParseMode.HTML)
-                        except Exception:
-                            pass
+                        safe_send_message(user_id,
+                            safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
+                            parse_mode=enums.ParseMode.HTML, message=message)
                         return None
                     except Exception as e:
                         error_str = str(e)
@@ -1110,12 +1107,9 @@ def send_videos(
                         raise
         except UploadAlreadyInProgressError:
             logger.warning(f"Upload already in progress for user {user_id}, file={video_abs_path}, skipping duplicate (outer)")
-            try:
-                safe_edit_message_text(user_id, msg_id,
-                    safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
-                    parse_mode=enums.ParseMode.HTML)
-            except Exception:
-                pass
+            safe_send_message(user_id,
+                safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
+                parse_mode=enums.ParseMode.HTML, message=message)
             return None
         except Exception as e:
             if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in str(e):
