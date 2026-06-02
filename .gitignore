@@ -166,6 +166,12 @@ delete_redacted.sh
 tg-ytdlp-NEW.code-workspace
 *.code-workspace
 
+# Kilo agent skill/command files (local tooling, not project code)
+.kilo/command/
+.kilo/skills/
+.kilo/plans/
+scripts/issues_cron.ps1
+
 # !Allow/Block tracked regression tests (keep most local tests ignored)
 tests/
 /tests/
