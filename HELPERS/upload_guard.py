@@ -3,6 +3,15 @@ import concurrent.futures
 from CONFIG.limits import LimitsConfig
 from HELPERS.logger import logger
 
+
+class UploadAlreadyInProgressError(TimeoutError):
+    pass
+
+
+class UploadSlotsBusyError(TimeoutError):
+    pass
+
+
 _SERVER_RES = LimitsConfig.detect_system_resources()
 _MAX_CONCURRENT_UPLOADS = _SERVER_RES['max_uploads']
 _UPLOAD_SEMAPHORE = threading.Semaphore(_MAX_CONCURRENT_UPLOADS)
@@ -36,7 +45,7 @@ def timed_upload(upload_fn, timeout=None, dedup_key=None):
         with _ACTIVE_UPLOAD_LOCK:
             if dedup_key in _ACTIVE_UPLOAD_KEYS:
                 logger.warning(f"[Upload] Duplicate upload blocked for key={dedup_key}, previous upload still in progress")
-                raise TimeoutError(
+                raise UploadAlreadyInProgressError(
                     f"Upload already in progress for this file. "
                     f"Please wait for the current upload to complete."
                 )
@@ -48,7 +57,7 @@ def timed_upload(upload_fn, timeout=None, dedup_key=None):
             with _ACTIVE_UPLOAD_LOCK:
                 _ACTIVE_UPLOAD_KEYS.discard(dedup_key)
         logger.warning(f"[Upload] All {_MAX_CONCURRENT_UPLOADS} upload slots busy, rejecting")
-        raise TimeoutError(
+        raise UploadSlotsBusyError(
             f"All {_MAX_CONCURRENT_UPLOADS} upload slots are busy. "
             f"Please try again in a few minutes."
         )

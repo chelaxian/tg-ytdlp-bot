@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>خطا رخ داد</b>\n\n<code>{url}</code>\n\nخطا: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ خطا در ارسال ویدیو: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ این ویدیو در حال آپلود است. لطفاً تا پایان آپلود فعلی منتظر بمانید."
+    FLOOD_WAIT_USER_MSG = "تلگرام قبل از ارسال نیاز به انتظار دارد. ربات پس از اتمام تایمر به طور خودکار ادامه می‌یابد ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ خطای ناشناخته: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ فضای دیسک کافی برای دانلود ویدیوها نیست."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ اندازه فایل از محدودیت {limit} GB تجاوز می‌کند. لطفاً یک فایل کوچکتر در اندازه مجاز انتخاب کنید."
@@ -1593,6 +1595,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ زیرنویس‌ها به دلیل محدودیت‌ها (کیفیت/مدت زمان/اندازه) نمی‌توانند جاسازی شوند"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ زیرنویس‌ها برای زبان انتخاب شده در دسترس نیستند"
     ERROR_SENDING_VIDEO_MSG = "❌ خطا در ارسال ویدیو: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ این ویدیو در حال آپلود است. لطفاً تا پایان آپلود فعلی منتظر بمانید."
+    FLOOD_WAIT_USER_MSG = "تلگرام قبل از ارسال نیاز به انتظار دارد. ربات پس از اتمام تایمر به طور خودکار ادامه می‌یابد ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ ویدیوهای لیست پخش ارسال شدند: {sent}/{total} فایل."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ دانلود به دلیل زمان‌بندی لغو شد (2 ساعت)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ دانلود ویدیو ناموفق بود: {error}"

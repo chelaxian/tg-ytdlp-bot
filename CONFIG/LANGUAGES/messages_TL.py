@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -345,6 +345,8 @@ Gamitin:
     ERROR_OCCURRED_MSG = "❌ <b>May naganap na error</b>\n\n<code>{url}</code>\n\nError: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ Error sa pagpapadala ng video: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Ang video na ito ay kasalukuyang ina-upload. Mangyaring maghintay hanggang sa matapos ang kasalukuyang upload."
+    FLOOD_WAIT_USER_MSG = "Telegram ay nangangailangan ng paghihintay bago magpadala. Awatomatikong magpapatuloy ang bot pagkatapos maubos ang timer ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ Hindi kilalang error: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ Walang sapat na disk space upang mag-download ng mga video."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ Ang file size ay lumampas sa limit na {limit} GB. Mangyaring pumili ng mas maliit na file sa loob ng pinapayagang size."
@@ -1594,6 +1596,8 @@ Matuto pa: /playlist"""
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ Hindi maaaring i-embed ang mga subtitle dahil sa mga limitasyon (kalidad/tagal/laki)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ Hindi available ang mga subtitle para sa napiling wika"
     ERROR_SENDING_VIDEO_MSG = "❌ Error sa pagpapadala ng video: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ Ang video na ito ay kasalukuyang ina-upload. Mangyaring maghintay hanggang sa matapos ang kasalukuyang upload."
+    FLOOD_WAIT_USER_MSG = "Telegram ay nangangailangan ng paghihintay bago magpadala. Awatomatikong magpapatuloy ang bot pagkatapos maubos ang timer ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ Ipinadala ang mga video sa playlist: {sent}/{total} mga file."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ Kinansela ang pag-download dahil sa timeout (2 oras)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ Nabigong i-download ang video: {error}"

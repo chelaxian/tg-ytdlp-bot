@@ -28,7 +28,7 @@ from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_univ
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
-from HELPERS.upload_guard import timed_upload
+from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
 import subprocess
 from urllib.parse import urlparse
 from PIL import Image

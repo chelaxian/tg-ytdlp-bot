@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -344,6 +344,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>오류 발생</b>\n\n<code>{url}</code>\n\n오류: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ 동영상 전송 오류: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ 이 비디오는 이미 업로드 중입니다. 현재 업로드가 완료될 때까지 기다려 주세요."
+    FLOOD_WAIT_USER_MSG = "Telegram은 전송 전 대기가 필요합니다. 타이머가 만료되면 봇이 자동으로 계속합니다 ({time_str})."
     ERROR_UNKNOWN_MSG = "❌ 알 수 없는 오류: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ 동영상을 다운로드할 디스크 공간이 부족합니다."
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ 파일 크기가 {limit} GB 제한을 초과했습니다. 허용된 크기 내에서 더 작은 파일을 선택하세요."
@@ -1593,6 +1595,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ 제한(화질/재생 시간/크기)으로 인해 자막을 삽입할 수 없습니다"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ 선택한 언어에 대한 자막을 사용할 수 없습니다"
     ERROR_SENDING_VIDEO_MSG = "❌ 비디오 전송 오류: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ 이 비디오는 이미 업로드 중입니다. 현재 업로드가 완료될 때까지 기다려 주세요."
+    FLOOD_WAIT_USER_MSG = "Telegram은 전송 전 대기가 필요합니다. 타이머가 만료되면 봇이 자동으로 계속합니다 ({time_str})."
     PLAYLIST_VIDEOS_SENT_MSG = "✅ 재생목록 비디오 전송됨: {sent}/{total} 파일."
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ 시간 초과로 인해 다운로드 취소됨 (2시간)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ 비디오 다운로드 실패: {error}"

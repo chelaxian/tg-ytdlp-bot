@@ -1,4 +1,4 @@
-# Messages Configuration
+﻿# Messages Configuration
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -343,6 +343,8 @@ class Messages(object):
     ERROR_OCCURRED_MSG = "❌ <b>त्रुटि हुई</b>\n\n<code>{url}</code>\n\nत्रुटि: {error}"
 
     ERROR_SENDING_VIDEO_MSG = "❌ वीडियो भेजने में त्रुटि: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ यह वीडियो पहले से ही अपलोड हो रहा है। कृपया वर्तमान अपलोड पूरा होने तक प्रतीक्षा करें।"
+    FLOOD_WAIT_USER_MSG = "Telegram भेजने से पहले प्रतीक्षा करने की आवश्यकता है। टाइमर समाप्त होने के बाद बॉट स्वचालित रूप से जारी रहेगा ({time_str})।"
     ERROR_UNKNOWN_MSG = "❌ अज्ञात त्रुटि: {error}"
     ERROR_NO_DISK_SPACE_MSG = "❌ वीडियो डाउनलोड करने के लिए पर्याप्त डिस्क स्थान नहीं है।"
     ERROR_FILE_SIZE_LIMIT_MSG = "❌ फाइल का आकार {limit} GB सीमा से अधिक है। कृपया अनुमतित आकार के भीतर एक छोटी फाइल चुनें।"
@@ -1592,6 +1594,8 @@ class Messages(object):
     SUBTITLES_CANNOT_EMBED_LIMITS_MSG = "ℹ️ सीमाओं के कारण उपशीर्षक एंबेड नहीं किए जा सकते (गुणवत्ता/अवधि/आकार)"
     SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG = "ℹ️ चयनित भाषा के लिए उपशीर्षक उपलब्ध नहीं हैं"
     ERROR_SENDING_VIDEO_MSG = "❌ वीडियो भेजने में त्रुटि: {error}"
+    UPLOAD_ALREADY_IN_PROGRESS_MSG = "⏳ यह वीडियो पहले से ही अपलोड हो रहा है। कृपया वर्तमान अपलोड पूरा होने तक प्रतीक्षा करें।"
+    FLOOD_WAIT_USER_MSG = "Telegram भेजने से पहले प्रतीक्षा करने की आवश्यकता है। टाइमर समाप्त होने के बाद बॉट स्वचालित रूप से जारी रहेगा ({time_str})।"
     PLAYLIST_VIDEOS_SENT_MSG = "✅ प्लेलिस्ट वीडियो भेजे गए: {sent}/{total} फ़ाइलें।"
     DOWNLOAD_CANCELLED_TIMEOUT_MSG = "⏰ टाइमआउट के कारण डाउनलोड रद्द किया गया (2 घंटे)"
     FAILED_DOWNLOAD_VIDEO_MSG = "❌ वीडियो डाउनलोड करने में विफल: {error}"

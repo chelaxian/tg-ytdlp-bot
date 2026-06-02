@@ -50,7 +50,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.tags import extract_url_range_tags
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
-from HELPERS.upload_guard import timed_upload
+from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
 
 # Get app instance for decorators
 app = get_app()
@@ -3969,6 +3969,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             video_msg = send_videos(message, part_path, '' if force_no_title else caption_name, part_duration, splited_thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, per_video_url=video_page_url)
                             break
+                        except UploadAlreadyInProgressError:
+                            logger.warning(f"Split upload already in progress, skipping duplicate: {part_path}")
+                            break
                         except (TimeoutError, Exception) as _upload_err:
                             _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
                             _file_still_exists = os.path.exists(part_path)
@@ -4642,6 +4645,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         for _upload_attempt in range(_upload_max_retries + 1):
                             try:
                                 video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final, video_quality_codec=video_quality_codec, paid_star_count=sub_burn_star_count, per_video_url=video_page_url)
+                                break
+                            except UploadAlreadyInProgressError:
+                                logger.warning(f"Upload already in progress, skipping duplicate: {after_rename_abs_path}")
                                 break
                             except (TimeoutError, Exception) as _upload_err:
                                 _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
