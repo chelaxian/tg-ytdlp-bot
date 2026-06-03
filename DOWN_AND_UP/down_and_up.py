@@ -33,6 +33,7 @@ from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_univ
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error, add_web_creator_to_opts
 from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
+from CONFIG.domains import DomainsConfig
 from CONFIG.errors import is_cookie_error
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, get_user_subs_language, clear_subs_check_cache, is_subs_always_ask
 from COMMANDS.split_sizer import get_user_split_size
@@ -2730,10 +2731,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return None
                 
                 # Auto-fallback to gallery-dl for obvious non-video cases
+                # BUT skip for YTDLP_ONLY_DOMAINS (e.g. YouTube) — they must NOT go to gallery-dl
                 emsg = str(e)
+                _fallback_url_domain = urlparse(url).netloc.lower()
+                if _fallback_url_domain.startswith('www.'):
+                    _fallback_url_domain = _fallback_url_domain[4:]
+                _is_ytdlp_only = any(
+                    _fallback_url_domain == d or _fallback_url_domain.endswith('.' + d)
+                    for d in DomainsConfig.YTDLP_ONLY_DOMAINS
+                )
                 if (
-                    "No videos found in playlist" in emsg
-                    or "Unsupported URL" in emsg
+                    not _is_ytdlp_only
+                    and ("No videos found in playlist" in emsg
+                         or "Unsupported URL" in emsg)
                 ):
                     try:
                         from COMMANDS.image_cmd import image_command
