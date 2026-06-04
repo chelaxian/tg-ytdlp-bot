@@ -2860,8 +2860,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 if "No videos found in playlist" in str(e):
                     error_message = safe_get_messages(user_id).DOWN_UP_NO_VIDEOS_PLAYLIST_MSG.format(index=current_index + 1)
                     send_error_to_user(message, error_message)
-                    logger.info(f"Stopping download: playlist item at index {current_index} (no video found)")
-                    return "STOP"  # New special value for full stop
+                    logger.info(f"Skipping playlist item at index {current_index} (no video found)")
+                    return "NO_VIDEOS_SKIP"  # Skip this item; main loop tracks consecutive failures
                 
                 # Check if this is a TikTok infinite loop error
                 if "TikTok API keeps sending the same page" in str(e) and "infinite loop" in str(e):
@@ -2964,6 +2964,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         current_playlist_items_override = None
         logger.info(f"🔍 [DEBUG] Starting playlist download: indices_to_download={indices_to_download}, len={len(indices_to_download) if indices_to_download else 0}, use_range_download={use_range_download}, has_negative_indices_for_download={has_negative_indices_for_download}")
         clear_user_blocked_flag(user_id)
+        # Track consecutive "No videos found in playlist" skips. If 5 in a row - stop the playlist.
+        consecutive_no_videos_skips = 0
+        MAX_CONSECUTIVE_NO_VIDEOS_SKIPS = 5
         for idx, current_index in enumerate(indices_to_download):
             logger.info(f"🔍 [DEBUG] Processing video {idx + 1}/{len(indices_to_download)}: current_index={current_index}")
             messages = safe_get_messages(message.chat.id)
@@ -3035,16 +3038,32 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if result == "STOP":
                         stop_all = True
                         break
+                    elif result == "NO_VIDEOS_SKIP":
+                        consecutive_no_videos_skips += 1
+                        logger.info(f"Consecutive no-videos skips: {consecutive_no_videos_skips}/{MAX_CONSECUTIVE_NO_VIDEOS_SKIPS} at index {current_index}")
+                        if consecutive_no_videos_skips >= MAX_CONSECUTIVE_NO_VIDEOS_SKIPS:
+                            logger.warning(f"Reached {MAX_CONSECUTIVE_NO_VIDEOS_SKIPS} consecutive no-videos skips at index {current_index}, stopping playlist")
+                            try:
+                                send_error_to_user(message, f"⏹️ Stopped playlist: {MAX_CONSECUTIVE_NO_VIDEOS_SKIPS} consecutive indices had no videos.")
+                            except Exception:
+                                pass
+                            stop_all = True
+                        else:
+                            skip_item = True
+                        break
                     elif result == "SKIP":
+                        consecutive_no_videos_skips = 0  # Reset on different type of skip
                         skip_item = True
                         break
                     elif result == "IMG":
                         # Gallery-dl fallback has been triggered for this specific item
+                        consecutive_no_videos_skips = 0  # Reset on gallery-dl fallback
                         logger.info(f"Gallery-dl fallback triggered for item {current_index}, continuing with next item")
                         skip_item = True
                         break
                     elif result is not None and isinstance(result, dict):
                         info_dict = result
+                        consecutive_no_videos_skips = 0  # Reset on successful download
                         break
                     elif result is not None and isinstance(result, str):
                         # Handle string return values (like "POSTPROCESSING_ERROR")
