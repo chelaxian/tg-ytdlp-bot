@@ -2591,9 +2591,16 @@ def askq_callback(app, callback_query):
             # Маскируем секретные данные перед отправкой пользователю
             from HELPERS.logger import sanitize_error_message
             sanitized_output = sanitize_error_message(output)
+            failed_msg = safe_get_messages(user_id).AA_FAILED_GET_FORMATS_MSG
+            if failed_msg and '{output}' in failed_msg:
+                failed_text = failed_msg.replace('{output}', sanitized_output)
+            elif failed_msg:
+                failed_text = f"{failed_msg}\n<code>{sanitized_output}</code>"
+            else:
+                failed_text = f"❌ Failed to get formats:\n<code>{sanitized_output}</code>"
             app.send_message(
                 user_id,
-                safe_get_messages(user_id).AA_FAILED_GET_FORMATS_MSG.format(output=sanitized_output),
+                failed_text,
                 reply_parameters=ReplyParameters(message_id=original_message.id)
             )
         

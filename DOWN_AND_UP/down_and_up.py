@@ -13,7 +13,7 @@ import traceback
 import yt_dlp
 import re
 from HELPERS.app_instance import get_app
-from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, get_log_channel, log_error_to_channel
+from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, get_log_channel, log_error_to_channel, sanitize_error_message
 from CONFIG.logger_msg import LoggerMsg
 from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user, check_file_size_limit, check_subs_limits
@@ -33,6 +33,7 @@ from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_univ
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error, add_web_creator_to_opts
 from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
+from CONFIG.domains import DomainsConfig
 from CONFIG.errors import is_cookie_error
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, get_user_subs_language, clear_subs_check_cache, is_subs_always_ask
 from COMMANDS.split_sizer import get_user_split_size
@@ -170,6 +171,50 @@ def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids:
         logger.info(LoggerMsg.DOWN_UP_SAVE_REQUESTED_LOG_MSG.format(quality=safe_quality_key, channel_type=channel_type))
     except Exception as e:
         logger.error(LoggerMsg.DOWN_UP_SAVE_FAILED_LOG_MSG.format(quality=safe_quality_key, error=e))
+
+
+def _build_full_video_log_caption(
+    title: str,
+    description: str,
+    url: str,
+    tags_text: str,
+    user_id: int,
+    quality_codec_suffix: str = '',
+    force_no_title: bool = False,
+) -> str:
+    """
+    Build a full HTML caption (title + blockquote description + tags + link)
+    matching the one delivered to the user by send_videos.
+
+    Used for sending open copies to LOGS_NSFW_ID, so the log channel sees
+    the same rich caption (tags, video URL, quality/codec, bot mention)
+    that the user received — not just the bare video title.
+    """
+    try:
+        from HELPERS.caption import truncate_caption
+        effective_title = '' if force_no_title else (title or '')
+        title_html, pre_block, blockquote_content, tags_block, link_block, _was_truncated = truncate_caption(
+            title=effective_title,
+            description=description or '',
+            url=url or '',
+            tags_text=tags_text or '',
+            max_length=1000,
+            user_id=user_id,
+            quality_codec_suffix=quality_codec_suffix or '',
+        )
+        cap = ''
+        if title_html:
+            cap += title_html + '\n\n'
+        if pre_block:
+            cap += pre_block + '\n'
+        cap += f'<blockquote expandable>{blockquote_content}</blockquote>\n'
+        if tags_block:
+            cap += tags_block
+        cap += link_block
+        return cap
+    except Exception as e:
+        logger.error(f"_build_full_video_log_caption failed, falling back to bare title: {e}")
+        return '' if force_no_title else (title or '')
 
 
 def determine_need_subs(subs_enabled, found_type, user_id):
@@ -2097,6 +2142,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             return info_dict
                     except Exception as retry_e:
                         logger.error(f"Retry without thumbnails also failed: {retry_e}")
+                        log_error_to_channel(message, f"Thumbnail URL scheme error — retry without thumbs also failed: {str(retry_e)[:300]}", url)
                 
                 # Handle "File name too long" (Errno 36) — retry with a short hashed filename
                 if "File name too long" in error_message or "Errno 36" in error_message:
@@ -2113,6 +2159,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             return short_info
                     except Exception as short_e:
                         logger.error(f"Short filename retry also failed: {short_e}")
+                        log_error_to_channel(message, f"Short filename retry failed: {str(short_e)[:300]}", url)
                     return None
                 
                 # Special handling for HLS streams: check if file was actually created despite the error
@@ -2318,6 +2365,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     # If retry is needed, return error to trigger retry
                     logger.error(f"HTTP 416 error - download failed, no file on disk: {error_message}")
+                    log_error_to_channel(message, f"HTTP 416 range error: {error_message[:300]}", url)
                     return None
                 
                 # Check for Read timed out errors - retry with longer timeout
@@ -2328,6 +2376,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     # Return None to trigger retry
                     logger.error(f"Read timeout error - download failed, no file on disk: {error_message}")
+                    log_error_to_channel(message, f"Read timeout: {error_message[:300]}", url)
                     return None
                 
                 # Check for incomplete download errors ("Got error: N bytes read, M more expected")
@@ -2339,6 +2388,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
                     logger.error(f"Incomplete download failed, no file on disk: {error_message}")
+                    log_error_to_channel(message, f"Incomplete download: {error_message[:300]}", url)
                     return None
                 
                 # Check for HTTP 429 Too Many Requests - sleep and retry
@@ -2357,6 +2407,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             try_download._429_count = 0
                             return retry_result
                     logger.error(f"HTTP 429 rate limit persisted after retries: {error_message}")
+                    log_error_to_channel(message, f"HTTP 429 rate limit: {error_message[:300]}", url)
                     try_download._429_count = 0
                     return None
                 
@@ -2393,6 +2444,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.error(f"Manual rename also failed: {rename_err}")
                     # Return None to trigger retry with next attempt
                     logger.error(f"File rename error, retrying with next attempt: {error_message}")
+                    log_error_to_channel(message, f"File rename error: {error_message[:300]}", url)
                     return None
                 
                 # Check for --live-from-start error and retry with --no-live-from-start
@@ -2730,10 +2782,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return None
                 
                 # Auto-fallback to gallery-dl for obvious non-video cases
+                # BUT skip for YTDLP_ONLY_DOMAINS (e.g. YouTube) — they must NOT go to gallery-dl
                 emsg = str(e)
+                _fallback_url_domain = urlparse(url).netloc.lower()
+                if _fallback_url_domain.startswith('www.'):
+                    _fallback_url_domain = _fallback_url_domain[4:]
+                _is_ytdlp_only = any(
+                    _fallback_url_domain == d or _fallback_url_domain.endswith('.' + d)
+                    for d in DomainsConfig.YTDLP_ONLY_DOMAINS
+                )
                 if (
-                    "No videos found in playlist" in emsg
-                    or "Unsupported URL" in emsg
+                    not _is_ytdlp_only
+                    and ("No videos found in playlist" in emsg
+                         or "Unsupported URL" in emsg)
                 ):
                     try:
                         from COMMANDS.image_cmd import image_command
@@ -3079,6 +3140,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         )
                         send_error_to_user(message, format_error_message)
                         error_message_sent = True
+                    else:
+                        generic_error_msg = (
+                            safe_get_messages(user_id).DOWNLOAD_ERROR_GENERIC +
+                            f"\n\n<b>Error:</b> <code>{sanitize_error_message(error_message)[:500]}</code>"
+                        )
+                        send_error_to_user(message, generic_error_msg, url)
+                        error_message_sent = True
+                elif not error_message and not error_message_sent:
+                    log_error_to_channel(message, f"Download returned None with no error_message for URL: {url}", url)
+                    send_error_to_user(message, safe_get_messages(user_id).DOWNLOAD_ERROR_GENERIC, url)
+                    error_message_sent = True
                 
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
@@ -3113,7 +3185,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             save_user_tags(user_id, tags_text_final.split())
 
             # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1"); quality = min(width, height)
-            from HELPERS.caption import format_quality_codec
+            from HELPERS.caption import format_quality_codec, truncate_caption
             _height = info_dict.get('height') if info_dict else None
             _width = info_dict.get('width') if info_dict else None
             _vcodec = info_dict.get('vcodec') if info_dict else None
@@ -3801,9 +3873,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             thumb_source_url = video_page_url or url
             
             # Try to download YouTube thumbnail first
-            # Безопасная проверка домена через urlparse
+            # urlparse is imported globally at line 43 — avoid local re-import to prevent
+            # "free variable referenced before assignment in enclosing scope" in nested functions
             try:
-                from urllib.parse import urlparse
                 parsed_thumb_url = urlparse(thumb_source_url)
                 thumb_hostname = (parsed_thumb_url.hostname or '').lower()
                 is_youtube = thumb_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
@@ -4747,16 +4819,27 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     
                                     _file_size_mb = round(os.path.getsize(after_rename_abs_path) / (1024*1024), 1)
                                     logger.info(f"down_and_up: sending open copy to log channel: channel={open_log_channel}, file={after_rename_abs_path}, size={_file_size_mb}MiB, timeout={LimitsConfig.UPLOAD_TIMEOUT_SECONDS}s")
+                                    # Build rich caption matching what the user received (title + description + tags + URL + bot mention + quality/codec)
+                                    _open_caption = _build_full_video_log_caption(
+                                        title=original_video_title,
+                                        description=full_video_title,
+                                        url=video_page_url or url,
+                                        tags_text=tags_text_final,
+                                        user_id=user_id,
+                                        quality_codec_suffix=video_quality_codec,
+                                        force_no_title=force_no_title,
+                                    )
                                     # Create open copy for history (without stars) - send directly to channel
                                     # NOTE: no reply_parameters here — message.id is from user chat and does not exist in log channel
                                     open_video_msg = timed_upload(lambda: app.send_video(
                                         chat_id=open_log_channel,
                                         video=after_rename_abs_path,
-                                        caption='' if force_no_title else original_video_title,
+                                        caption=_open_caption,
                                         duration=int(v_dur) if v_dur else duration,
                                         width=int(v_w) if v_w else width,
                                         height=int(v_h) if v_h else height,
                                         thumb=_open_thumb,
+                                        parse_mode=enums.ParseMode.HTML,
                                     ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                     logger.info(f"down_and_up: paid content open copy sent to log channel for history (channel={open_log_channel})")
                                     already_forwarded_to_log = True
@@ -4901,14 +4984,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                             v_w, v_h, v_dur = get_video_info_ffprobe(after_rename_abs_path)
                                                         except Exception:
                                                             v_w, v_h, v_dur = width, height, duration
+                                                        _manual_caption = _build_full_video_log_caption(
+                                                            title=original_video_title,
+                                                            description=full_video_title,
+                                                            url=video_page_url or url,
+                                                            tags_text=tags_text_final,
+                                                            user_id=user_id,
+                                                            quality_codec_suffix=video_quality_codec,
+                                                            force_no_title=force_no_title,
+                                                        )
                                                         open_video_msg = timed_upload(lambda: app.send_video(
                                                             chat_id=log_channel_nsfw,
                                                             video=after_rename_abs_path,
-                                                            caption='' if force_no_title else original_video_title,
+                                                            caption=_manual_caption,
                                                             duration=int(v_dur) if v_dur else duration,
                                                             width=int(v_w) if v_w else width,
                                                             height=int(v_h) if v_h else height,
                                                             thumb=_manual_thumb,
+                                                            parse_mode=enums.ParseMode.HTML,
                                                         ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel (manual fallback, channel={log_channel_nsfw})")
                                                     else:
@@ -5043,14 +5136,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         
                                         # Create open copy for history (without stars) - send directly to NSFW channel
                                         # NOTE: no reply_parameters — message.id is from user chat and does not exist in log channel
+                                        _err_caption = _build_full_video_log_caption(
+                                            title=original_video_title,
+                                            description=full_video_title,
+                                            url=video_page_url or url,
+                                            tags_text=tags_text_final,
+                                            user_id=user_id,
+                                            quality_codec_suffix=video_quality_codec,
+                                            force_no_title=force_no_title,
+                                        )
                                         open_video_msg = timed_upload(lambda: app.send_video(
                                             chat_id=log_channel_nsfw,
                                             video=after_rename_abs_path,
-                                            caption='' if force_no_title else original_video_title,
+                                            caption=_err_caption,
                                             duration=int(v_dur) if v_dur else duration,
                                             width=int(v_w) if v_w else width,
                                             height=int(v_h) if v_h else height,
                                             thumb=_err_thumb,
+                                            parse_mode=enums.ParseMode.HTML,
                                         ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery, channel={log_channel_nsfw})")
                                         already_forwarded_to_log = True

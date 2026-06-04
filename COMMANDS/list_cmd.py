@@ -66,20 +66,20 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
         lines.append("─" * 120)
         
         for fmt in formats:
-            fid = fmt.get('format_id', '')
+            fid = fmt.get('format_id') or ''
             if not fid or fid.startswith('[') or fid.startswith('('):
                 continue
             
-            ext = fmt.get('ext', 'unknown')
-            vcodec = fmt.get('vcodec', 'none')
-            acodec = fmt.get('acodec', 'none')
+            ext = fmt.get('ext') or 'unknown'
+            vcodec = fmt.get('vcodec') or 'none'
+            acodec = fmt.get('acodec') or 'none'
             
             if vcodec == 'none' and acodec != 'none':
                 resolution = 'audio only'
             elif vcodec != 'none' and acodec == 'none':
                 resolution = 'video only'
             else:
-                resolution = fmt.get('resolution', 'unknown')
+                resolution = fmt.get('resolution') or 'unknown'
             
             fps = fmt.get('fps')
             fps_str = str(int(fps)) if fps else ''
@@ -90,13 +90,13 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
             tbr = fmt.get('tbr')
             tbr_str = f"{int(tbr)}k" if tbr else ''
             
-            proto = fmt.get('protocol', '')
+            proto = fmt.get('protocol') or ''
             
             more_info_parts = []
             language = fmt.get('language')
             if language:
                 more_info_parts.append(f"[{language}]")
-            format_note = fmt.get('format_note', '')
+            format_note = fmt.get('format_note') or ''
             if format_note:
                 more_info_parts.append(format_note)
             more_info = ' '.join(more_info_parts)
@@ -105,7 +105,7 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
             if fmt.get('audio_channels'):
                 ch = str(fmt['audio_channels'])
             
-            line = f"{fid:<12} {ext:<6} {resolution:<14} {fps_str:>4} {ch:>2} │ {filesize_str:>12} {tbr_str:>7} {proto:<8} │ {vcodec:<16} {acodec:<14} {more_info}"
+            line = f"{str(fid):<12} {str(ext):<6} {str(resolution):<14} {str(fps_str):>4} {str(ch):>2} │ {str(filesize_str):>12} {str(tbr_str):>7} {str(proto):<8} │ {str(vcodec):<16} {str(acodec):<14} {str(more_info)}"
             lines.append(line)
         
         lines.append("─" * 120)
