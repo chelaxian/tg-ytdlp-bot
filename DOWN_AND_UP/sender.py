@@ -416,7 +416,7 @@ def send_videos(
             cap += tags_block
         cap += link_block
 
-        def _should_generate_cover(video_path: str, duration_seconds: int) -> bool:
+        def _should_generate_cover(video_path: str, duration_seconds: int, is_paid: bool = False) -> bool:
             try:
                 size_mb = os.path.getsize(video_path) / (1024 * 1024)
             except Exception:
@@ -425,7 +425,8 @@ def send_videos(
                 dur = float(duration_seconds or 0)
             except Exception:
                 dur = 0.0
-            # Generate unless both duration<60 and size<10
+            if is_paid:
+                return True
             return (dur >= 60.0) or (size_mb >= 10.0)
 
         def _gen_thumb(video_path: str) -> str | None:
@@ -591,6 +592,32 @@ def send_videos(
             except Exception:
                 pass
             return 0, 0
+
+        def _embed_cover_in_video(video_path: str, cover_path: str) -> str | None:
+            """Embed cover into video as attached_pic so it survives forwardMessages (fast re-mux)."""
+            try:
+                out_path = video_path + '.__paid_with_cover.mp4'
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-i', video_path,
+                    '-i', cover_path,
+                    '-map', '0:v', '-map', '0:a', '-map', '1:v',
+                    '-c:v', 'copy', '-c:a', 'copy',
+                    '-disposition:v:0', 'default',
+                    '-disposition:v:1', 'attached_pic',
+                    '-metadata:s:v:1', 'title=Cover',
+                    out_path
+                ]
+                r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                if r.returncode != 0:
+                    logger.error(f"Failed to embed cover: {r.stderr[:300]}")
+                    return None
+                if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
+                    return None
+                return out_path
+            except Exception as e:
+                logger.error(f"_embed_cover_in_video error: {e}")
+                return None
 
         def _resize_to_thumb_free(src_path: str, dest_path: str) -> bool:
             """Resize for free video thumbnail, matching the video's aspect ratio.
@@ -775,8 +802,17 @@ def send_videos(
                         logger.warning(f"Error generating paid cover, continuing without it: {cover_error}")
                         paid_cover = None
                     
+                    _paid_upload_path = video_abs_path
+                    if paid_cover:
+                        try:
+                            embedded = _embed_cover_in_video(video_abs_path, paid_cover)
+                            if embedded and os.path.exists(embedded):
+                                _paid_upload_path = embedded
+                        except Exception as _embed_err:
+                            logger.warning(f"Paid embed error: {_embed_err}")
+                    
                     paid_media = InputPaidMediaVideo(
-                        media=video_abs_path,
+                        media=_paid_upload_path,
                         cover=paid_cover,
                         width=safe_w,
                         height=safe_h,
@@ -804,18 +840,15 @@ def send_videos(
                         logger.error(f"send_paid_media failed (will NOT fallback to free): {e}")
                         raise PaidMediaSendError(str(e)) from e
                     try:
-                        # Some forks return list for albums; wrap to single message for uniformity
                         video_msg = result[0] if isinstance(result, list) and result else result
-                        # Paid media will be forwarded to LOGS_PAID_ID in image_cmd.py for caching
                         was_paid = True
                         return video_msg
                     except Exception:
                         was_paid = True
                         return result
                 finally:
-                    # Stop upload logging after upload completes or fails
                     _stop_upload_logging(user_id, msg_id)
-            # Для бесплатных тоже удерживаем правильные метаданные и мини-обложку по правилу
+            # Для бесплатных тоже удерживаем правильные метаданные
             try:
                 v_w2, v_h2, v_dur2 = get_video_info_ffprobe(video_abs_path)
             except Exception:
