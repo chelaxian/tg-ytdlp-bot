@@ -4786,23 +4786,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Используем is_paid_for_logging для логирования (чтобы логирование было как для всех)
                             if is_any_paid_for_logging:
                                 # For paid content in private chat, send_videos already sent paid media to user
-                                # Send paid copy to LOGS_PAID_ID and open copy for history
+                                # Send paid copy to LOGS_PAID_ID via forward (symlink-style, preserves embedded cover)
+                                # and open copy to LOGS_NSFW_ID for history (new upload, free version)
                                 
-                                # Send paid copy to LOGS_PAID_ID
+                                # Send paid copy to LOGS_PAID_ID via forward
                                 log_channel_paid = get_log_channel("video", paid=True)
                                 try:
-                                    # Forward the paid video to LOGS_PAID_ID
                                     safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
-                                    logger.info(f"down_and_up: paid content (nsfw={is_paid_for_logging}, sub_burn={is_sub_paid_for_logging}) paid copy sent to PAID channel")
+                                    logger.info(f"down_and_up: paid content (nsfw={is_paid_for_logging}, sub_burn={is_sub_paid_for_logging}) paid copy forwarded to PAID channel")
                                 except Exception as e:
-                                    logger.error(f"down_and_up: failed to send paid copy to PAID channel: {e}")
+                                    logger.error(f"down_and_up: failed to forward paid copy to PAID channel: {e}")
                                 
-                                # Send open copy for history
+                                # Send open copy for history (new upload to NSFW channel)
                                 # NSFW -> LOGS_NSFW_ID, subtitle hard-burn -> LOGS_VIDEO_ID
                                 if is_paid_for_logging:
                                     open_log_channel = get_log_channel("video", nsfw=True)
                                 else:
                                     open_log_channel = get_log_channel("video")
+                                
                                 try:
                                     # Validate file still exists before sending
                                     if not os.path.exists(after_rename_abs_path):
