@@ -13,7 +13,7 @@ import traceback
 import yt_dlp
 import re
 from HELPERS.app_instance import get_app
-from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, get_log_channel, log_error_to_channel
+from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, get_log_channel, log_error_to_channel, sanitize_error_message
 from CONFIG.logger_msg import LoggerMsg
 from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user, check_file_size_limit, check_subs_limits
@@ -2098,6 +2098,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             return info_dict
                     except Exception as retry_e:
                         logger.error(f"Retry without thumbnails also failed: {retry_e}")
+                        log_error_to_channel(message, f"Thumbnail URL scheme error — retry without thumbs also failed: {str(retry_e)[:300]}", url)
                 
                 # Handle "File name too long" (Errno 36) — retry with a short hashed filename
                 if "File name too long" in error_message or "Errno 36" in error_message:
@@ -2114,6 +2115,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             return short_info
                     except Exception as short_e:
                         logger.error(f"Short filename retry also failed: {short_e}")
+                        log_error_to_channel(message, f"Short filename retry failed: {str(short_e)[:300]}", url)
                     return None
                 
                 # Special handling for HLS streams: check if file was actually created despite the error
@@ -2319,6 +2321,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     # If retry is needed, return error to trigger retry
                     logger.error(f"HTTP 416 error - download failed, no file on disk: {error_message}")
+                    log_error_to_channel(message, f"HTTP 416 range error: {error_message[:300]}", url)
                     return None
                 
                 # Check for Read timed out errors - retry with longer timeout
@@ -2329,6 +2332,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     # Return None to trigger retry
                     logger.error(f"Read timeout error - download failed, no file on disk: {error_message}")
+                    log_error_to_channel(message, f"Read timeout: {error_message[:300]}", url)
                     return None
                 
                 # Check for incomplete download errors ("Got error: N bytes read, M more expected")
@@ -2340,6 +2344,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
                     logger.error(f"Incomplete download failed, no file on disk: {error_message}")
+                    log_error_to_channel(message, f"Incomplete download: {error_message[:300]}", url)
                     return None
                 
                 # Check for HTTP 429 Too Many Requests - sleep and retry
@@ -2358,6 +2363,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             try_download._429_count = 0
                             return retry_result
                     logger.error(f"HTTP 429 rate limit persisted after retries: {error_message}")
+                    log_error_to_channel(message, f"HTTP 429 rate limit: {error_message[:300]}", url)
                     try_download._429_count = 0
                     return None
                 
@@ -2394,6 +2400,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.error(f"Manual rename also failed: {rename_err}")
                     # Return None to trigger retry with next attempt
                     logger.error(f"File rename error, retrying with next attempt: {error_message}")
+                    log_error_to_channel(message, f"File rename error: {error_message[:300]}", url)
                     return None
                 
                 # Check for --live-from-start error and retry with --no-live-from-start
@@ -3089,6 +3096,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         )
                         send_error_to_user(message, format_error_message)
                         error_message_sent = True
+                    else:
+                        generic_error_msg = (
+                            safe_get_messages(user_id).DOWNLOAD_ERROR_GENERIC +
+                            f"\n\n<b>Error:</b> <code>{sanitize_error_message(error_message)[:500]}</code>"
+                        )
+                        send_error_to_user(message, generic_error_msg, url)
+                        error_message_sent = True
+                elif not error_message and not error_message_sent:
+                    log_error_to_channel(message, f"Download returned None with no error_message for URL: {url}", url)
+                    send_error_to_user(message, safe_get_messages(user_id).DOWNLOAD_ERROR_GENERIC, url)
+                    error_message_sent = True
                 
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
@@ -3811,9 +3829,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             thumb_source_url = video_page_url or url
             
             # Try to download YouTube thumbnail first
-            # Безопасная проверка домена через urlparse
+            # urlparse is imported globally at line 43 — avoid local re-import to prevent
+            # "free variable referenced before assignment in enclosing scope" in nested functions
             try:
-                from urllib.parse import urlparse
                 parsed_thumb_url = urlparse(thumb_source_url)
                 thumb_hostname = (parsed_thumb_url.hostname or '').lower()
                 is_youtube = thumb_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
