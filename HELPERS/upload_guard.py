@@ -51,15 +51,16 @@ def timed_upload(upload_fn, timeout=None, dedup_key=None):
                 )
             _ACTIVE_UPLOAD_KEYS.add(dedup_key)
 
-    acquired = _UPLOAD_SEMAPHORE.acquire(blocking=False)
+    _queue_wait_timeout = timeout + 300
+    acquired = _UPLOAD_SEMAPHORE.acquire(blocking=True, timeout=_queue_wait_timeout)
     if not acquired:
         if dedup_key is not None:
             with _ACTIVE_UPLOAD_LOCK:
                 _ACTIVE_UPLOAD_KEYS.discard(dedup_key)
-        logger.warning(f"[Upload] All {_MAX_CONCURRENT_UPLOADS} upload slots busy, rejecting")
+        logger.warning(f"[Upload] Queue wait timed out after {_queue_wait_timeout}s")
         raise UploadSlotsBusyError(
             f"All {_MAX_CONCURRENT_UPLOADS} upload slots are busy. "
-            f"Please try again in a few minutes."
+            f"Queue wait timed out."
         )
 
     try:

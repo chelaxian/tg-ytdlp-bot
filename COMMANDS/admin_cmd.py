@@ -101,7 +101,7 @@ def reload_firebase_cache_command(app, message):
                 send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_FAILED_SEND_STATUS_LOG_MSG)
                 return
         
-        result = subprocess.run([sys.executable, script_path], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=os.path.dirname(os.path.dirname(script_path)), timeout=600)
+        result = subprocess.run([sys.executable, script_path], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=os.path.dirname(os.path.dirname(script_path)), timeout=1500)
         if result.returncode != 0:
             error_msg = safe_get_messages(message.chat.id).ADMIN_ERROR_SCRIPT_MSG.format(script_path=script_path, stdout=result.stdout, stderr=result.stderr)
             if is_fake_message:
