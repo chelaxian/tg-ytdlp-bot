@@ -173,6 +173,50 @@ def _save_video_cache_with_logging(url: str, safe_quality_key: str, message_ids:
         logger.error(LoggerMsg.DOWN_UP_SAVE_FAILED_LOG_MSG.format(quality=safe_quality_key, error=e))
 
 
+def _build_full_video_log_caption(
+    title: str,
+    description: str,
+    url: str,
+    tags_text: str,
+    user_id: int,
+    quality_codec_suffix: str = '',
+    force_no_title: bool = False,
+) -> str:
+    """
+    Build a full HTML caption (title + blockquote description + tags + link)
+    matching the one delivered to the user by send_videos.
+
+    Used for sending open copies to LOGS_NSFW_ID, so the log channel sees
+    the same rich caption (tags, video URL, quality/codec, bot mention)
+    that the user received — not just the bare video title.
+    """
+    try:
+        from HELPERS.caption import truncate_caption
+        effective_title = '' if force_no_title else (title or '')
+        title_html, pre_block, blockquote_content, tags_block, link_block, _was_truncated = truncate_caption(
+            title=effective_title,
+            description=description or '',
+            url=url or '',
+            tags_text=tags_text or '',
+            max_length=1000,
+            user_id=user_id,
+            quality_codec_suffix=quality_codec_suffix or '',
+        )
+        cap = ''
+        if title_html:
+            cap += title_html + '\n\n'
+        if pre_block:
+            cap += pre_block + '\n'
+        cap += f'<blockquote expandable>{blockquote_content}</blockquote>\n'
+        if tags_block:
+            cap += tags_block
+        cap += link_block
+        return cap
+    except Exception as e:
+        logger.error(f"_build_full_video_log_caption failed, falling back to bare title: {e}")
+        return '' if force_no_title else (title or '')
+
+
 def determine_need_subs(subs_enabled, found_type, user_id):
     """
     Helper function to determine if subtitles are needed based on user settings and found type.
@@ -3141,7 +3185,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             save_user_tags(user_id, tags_text_final.split())
 
             # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1"); quality = min(width, height)
-            from HELPERS.caption import format_quality_codec
+            from HELPERS.caption import format_quality_codec, truncate_caption
             _height = info_dict.get('height') if info_dict else None
             _width = info_dict.get('width') if info_dict else None
             _vcodec = info_dict.get('vcodec') if info_dict else None
@@ -4775,16 +4819,27 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     
                                     _file_size_mb = round(os.path.getsize(after_rename_abs_path) / (1024*1024), 1)
                                     logger.info(f"down_and_up: sending open copy to log channel: channel={open_log_channel}, file={after_rename_abs_path}, size={_file_size_mb}MiB, timeout={LimitsConfig.UPLOAD_TIMEOUT_SECONDS}s")
+                                    # Build rich caption matching what the user received (title + description + tags + URL + bot mention + quality/codec)
+                                    _open_caption = _build_full_video_log_caption(
+                                        title=original_video_title,
+                                        description=full_video_title,
+                                        url=video_page_url or url,
+                                        tags_text=tags_text_final,
+                                        user_id=user_id,
+                                        quality_codec_suffix=video_quality_codec,
+                                        force_no_title=force_no_title,
+                                    )
                                     # Create open copy for history (without stars) - send directly to channel
                                     # NOTE: no reply_parameters here — message.id is from user chat and does not exist in log channel
                                     open_video_msg = timed_upload(lambda: app.send_video(
                                         chat_id=open_log_channel,
                                         video=after_rename_abs_path,
-                                        caption='' if force_no_title else original_video_title,
+                                        caption=_open_caption,
                                         duration=int(v_dur) if v_dur else duration,
                                         width=int(v_w) if v_w else width,
                                         height=int(v_h) if v_h else height,
                                         thumb=_open_thumb,
+                                        parse_mode=enums.ParseMode.HTML,
                                     ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                     logger.info(f"down_and_up: paid content open copy sent to log channel for history (channel={open_log_channel})")
                                     already_forwarded_to_log = True
@@ -4929,14 +4984,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                             v_w, v_h, v_dur = get_video_info_ffprobe(after_rename_abs_path)
                                                         except Exception:
                                                             v_w, v_h, v_dur = width, height, duration
+                                                        _manual_caption = _build_full_video_log_caption(
+                                                            title=original_video_title,
+                                                            description=full_video_title,
+                                                            url=video_page_url or url,
+                                                            tags_text=tags_text_final,
+                                                            user_id=user_id,
+                                                            quality_codec_suffix=video_quality_codec,
+                                                            force_no_title=force_no_title,
+                                                        )
                                                         open_video_msg = timed_upload(lambda: app.send_video(
                                                             chat_id=log_channel_nsfw,
                                                             video=after_rename_abs_path,
-                                                            caption='' if force_no_title else original_video_title,
+                                                            caption=_manual_caption,
                                                             duration=int(v_dur) if v_dur else duration,
                                                             width=int(v_w) if v_w else width,
                                                             height=int(v_h) if v_h else height,
                                                             thumb=_manual_thumb,
+                                                            parse_mode=enums.ParseMode.HTML,
                                                         ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel (manual fallback, channel={log_channel_nsfw})")
                                                     else:
@@ -5071,14 +5136,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         
                                         # Create open copy for history (without stars) - send directly to NSFW channel
                                         # NOTE: no reply_parameters — message.id is from user chat and does not exist in log channel
+                                        _err_caption = _build_full_video_log_caption(
+                                            title=original_video_title,
+                                            description=full_video_title,
+                                            url=video_page_url or url,
+                                            tags_text=tags_text_final,
+                                            user_id=user_id,
+                                            quality_codec_suffix=video_quality_codec,
+                                            force_no_title=force_no_title,
+                                        )
                                         open_video_msg = timed_upload(lambda: app.send_video(
                                             chat_id=log_channel_nsfw,
                                             video=after_rename_abs_path,
-                                            caption='' if force_no_title else original_video_title,
+                                            caption=_err_caption,
                                             duration=int(v_dur) if v_dur else duration,
                                             width=int(v_w) if v_w else width,
                                             height=int(v_h) if v_h else height,
                                             thumb=_err_thumb,
+                                            parse_mode=enums.ParseMode.HTML,
                                         ), timeout=LimitsConfig.UPLOAD_TIMEOUT_SECONDS)
                                         logger.info(f"down_and_up: NSFW content open copy sent to NSFW channel for history (error recovery, channel={log_channel_nsfw})")
                                         already_forwarded_to_log = True
