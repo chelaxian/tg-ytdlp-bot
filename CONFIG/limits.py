@@ -75,7 +75,7 @@ class LimitsConfig(object):
             cpu_count = 2
 
         bg_workers = min(cpu_count * 5, 48)
-        max_uploads = min(cpu_count + 2, 8)
+        max_uploads = min(cpu_count, 8)
         inflight = bg_workers * 10
 
         return {
