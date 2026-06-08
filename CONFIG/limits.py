@@ -54,9 +54,8 @@ class LimitsConfig(object):
     
     # Upload to Telegram configuration
     # Max simultaneous upload operations (prevents session saturation)
-    # Keep low: Pyrogram shares one TCP session — too many concurrent uploads
-    # cause SaveBigFilePart TimeoutError cascade and worker thread exhaustion
-    MAX_CONCURRENT_UPLOADS = 4
+    # Dynamically computed in detect_system_resources() — do not hardcode
+    MAX_CONCURRENT_UPLOADS = None  # resolved at runtime
     # Hard timeout per upload in seconds (10 min — generous for most uploads;
     # after bytes are sent, Telegram response should come within seconds)
     UPLOAD_TIMEOUT_SECONDS = 600
@@ -84,6 +83,12 @@ class LimitsConfig(object):
             'inflight': inflight,
             'cpu_count': cpu_count,
         }
+
+    @classmethod
+    def _resolve_dynamic_limits(cls):
+        if cls.MAX_CONCURRENT_UPLOADS is None:
+            res = cls.detect_system_resources()
+            cls.MAX_CONCURRENT_UPLOADS = res['max_uploads']
 
     #######################################################
     # ChannelGuard (subscribe channel admin-log scanner)

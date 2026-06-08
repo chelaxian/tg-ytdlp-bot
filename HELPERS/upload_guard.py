@@ -14,7 +14,8 @@ class UploadSlotsBusyError(TimeoutError):
 
 
 _SERVER_RES = LimitsConfig.detect_system_resources()
-_MAX_CONCURRENT_UPLOADS = min(_SERVER_RES['max_uploads'], 4)
+LimitsConfig._resolve_dynamic_limits()
+_MAX_CONCURRENT_UPLOADS = _SERVER_RES['max_uploads']
 _UPLOAD_SEMAPHORE = threading.Semaphore(_MAX_CONCURRENT_UPLOADS)
 _UPLOAD_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     max_workers=_MAX_CONCURRENT_UPLOADS * 4,
