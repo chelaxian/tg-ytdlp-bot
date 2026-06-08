@@ -4036,7 +4036,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         continue
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
-                    _upload_max_retries = 2
+                    _upload_max_retries = 1
                     video_msg = None
                     for _upload_attempt in range(_upload_max_retries + 1):
                         try:
@@ -4049,8 +4049,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
                             _file_still_exists = os.path.exists(part_path)
                             if _is_timeout and _file_still_exists and _upload_attempt < _upload_max_retries:
-                                logger.warning(f"Split upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), file on disk — retrying: {part_path}")
-                                time.sleep(3)
+                                _retry_delay = 10 * (_upload_attempt + 1)
+                                logger.warning(f"Split upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), waiting {_retry_delay}s before retry: {part_path}")
+                                time.sleep(_retry_delay)
                                 continue
                             elif _is_timeout and not _file_still_exists:
                                 logger.error(f"Split upload timed out and file missing on disk, cannot retry: {part_path}")
@@ -4713,7 +4714,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         # States will be cleared at the end of the function after ALL videos are processed
                         
                         # Upload with auto-retry on timeout (file stays on disk after timeout)
-                        _upload_max_retries = 2
+                        _upload_max_retries = 1
                         video_msg = None
                         for _upload_attempt in range(_upload_max_retries + 1):
                             try:
@@ -4726,8 +4727,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 _is_timeout = isinstance(_upload_err, (TimeoutError,)) or 'timed out' in str(_upload_err).lower() or 'Timed out' in str(_upload_err)
                                 _file_still_exists = os.path.exists(after_rename_abs_path)
                                 if _is_timeout and _file_still_exists and _upload_attempt < _upload_max_retries:
-                                    logger.warning(f"Upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), file on disk — retrying: {after_rename_abs_path}")
-                                    time.sleep(3)
+                                    _retry_delay = 10 * (_upload_attempt + 1)
+                                    logger.warning(f"Upload timed out (attempt {_upload_attempt + 1}/{_upload_max_retries + 1}), waiting {_retry_delay}s before retry: {after_rename_abs_path}")
+                                    time.sleep(_retry_delay)
                                     continue
                                 elif _is_timeout and not _file_still_exists:
                                     logger.error(f"Upload timed out and file missing on disk, cannot retry: {after_rename_abs_path}")

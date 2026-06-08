@@ -54,7 +54,9 @@ class LimitsConfig(object):
     
     # Upload to Telegram configuration
     # Max simultaneous upload operations (prevents session saturation)
-    MAX_CONCURRENT_UPLOADS = 4
+    # Keep low: Pyrogram shares one TCP session — too many concurrent uploads
+    # cause SaveBigFilePart TimeoutError cascade and worker thread exhaustion
+    MAX_CONCURRENT_UPLOADS = 2
     # Hard timeout per upload in seconds (10 min — generous for most uploads;
     # after bytes are sent, Telegram response should come within seconds)
     UPLOAD_TIMEOUT_SECONDS = 600
