@@ -2969,6 +2969,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         MAX_CONSECUTIVE_NO_VIDEOS_SKIPS = 5
         for idx, current_index in enumerate(indices_to_download):
             logger.info(f"🔍 [DEBUG] Processing video {idx + 1}/{len(indices_to_download)}: current_index={current_index}")
+            
+            # Check for active FloodWait before starting next video in playlist.
+            # If Telegram has already rate-limited us, downloading more videos
+            # is pointless — they won't be sent anyway, and more API calls
+            # will only escalate the penalty.
+            if is_playlist:
+                try:
+                    _fw_remaining, _fw_str = read_flood_wait_remaining(user_id)
+                    if _fw_remaining is not None:
+                        logger.warning(f"[ANTI-FLOOD] FloodWait still active ({_fw_str}), pausing playlist at video {idx + 1}/{len(indices_to_download)}. Uploaded {successful_uploads} so far.")
+                        safe_edit_message_text(user_id, proc_msg_id,
+                            f"⏳ <b>Playlist paused</b> — Telegram FloodWait active ({_fw_str}).\n"
+                            f"Uploaded {successful_uploads}/{len(indices_to_download)} videos.\n"
+                            f"The bot will resume automatically after the wait period.",
+                            parse_mode=enums.ParseMode.HTML)
+                        break
+                except Exception:
+                    pass
+            
             messages = safe_get_messages(message.chat.id)
             total_process = f"""
 <b>📶 {safe_get_messages(user_id).TOTAL_PROGRESS_MSG}</b>
@@ -4064,6 +4083,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if is_user_blocked_flagged(user_id):
                             logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
                             break
+                        flood_remaining_check_split, _ = read_flood_wait_remaining(user_id)
+                        if flood_remaining_check_split is not None:
+                            logger.warning(f"FloodWait active ({flood_remaining_check_split}s remaining), stopping playlist at split part index {current_index}")
+                            break
                         logger.error("send_videos returned None for split part; skipping cache save for this part")
                         continue
                     #found_type = None
@@ -4742,6 +4765,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_user_blocked_flagged(user_id):
                                 logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")
                                 break
+                            flood_remaining_check, _ = read_flood_wait_remaining(user_id)
+                            if flood_remaining_check is not None:
+                                logger.warning(f"FloodWait active ({flood_remaining_check}s remaining), stopping playlist at index {current_index} to avoid escalating penalties")
+                                safe_edit_message_text(user_id, proc_msg_id,
+                                    f"⏳ <b>Playlist paused</b> — Telegram FloodWait active.\n"
+                                    f"Uploaded {successful_uploads}/{len(indices_to_download)} videos.\n"
+                                    f"The bot will resume automatically after the wait period.",
+                                    parse_mode=enums.ParseMode.HTML)
+                                break
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
                         
@@ -5270,6 +5302,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             os.remove(after_rename_abs_path)
                         if thumb_dir and os.path.exists(thumb_dir):
                             os.remove(thumb_dir)
+                        
+                        # Anti-flood delay between playlist videos to prevent FloodWait escalation.
+                        # Telegram rate-limits mass sending; without a pause, a 48-video playlist
+                        # fires 5-6 API calls per video (~250-300 total) with virtually no gap,
+                        # which accumulates into 9+ hour FloodWait penalties.
+                        if is_playlist and (idx + 1) < len(indices_to_download):
+                            inter_video_delay = 3.0
+                            logger.info(f"[ANTI-FLOOD] Waiting {inter_video_delay}s before next playlist video ({idx + 1}/{len(indices_to_download)})")
+                            time.sleep(inter_video_delay)
+                        
                         pass
                     except Exception as e:
                         logger.error(f"Error sending video: {e}")

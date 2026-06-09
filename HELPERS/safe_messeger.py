@@ -331,7 +331,7 @@ def safe_send_message(chat_id, text, **kwargs):
         last_sent = _last_message_sent.get(chat_id, 0)
         now = time.time()
         # Increase minimum spacing to reduce RANDOM_ID_DUPLICATE in high-throughput chats
-        min_spacing = 0.25  # seconds
+        min_spacing = 0.5  # seconds — prevents FloodWait escalation on mass sends (playlists, logs)
         if now - last_sent < min_spacing:
             time.sleep(min_spacing - (now - last_sent))
         _last_message_sent[chat_id] = time.time()
@@ -377,10 +377,31 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
     max_retries = 3
     retry_delay = 5
 
+    with _message_send_locks_lock:
+        if chat_id not in _message_send_locks:
+            _message_send_locks[chat_id] = threading.Lock()
+        chat_lock = _message_send_locks[chat_id]
+
+    with chat_lock:
+        last_sent = _last_message_sent.get(chat_id, 0)
+        now = time.time()
+        min_spacing = 0.5
+        if now - last_sent < min_spacing:
+            time.sleep(min_spacing - (now - last_sent))
+        _last_message_sent[chat_id] = time.time()
+
     for attempt in range(max_retries):
         try:
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.forward_messages(chat_id, from_chat_id, message_ids, **kwargs))
+        except FloodWait as e:
+            if e.value <= 60 and attempt < max_retries - 1:
+                logger.warning(f"FloodWait ({e.value}s) while forwarding to {chat_id}, retrying ({attempt+1}/{max_retries})")
+                time.sleep(e.value + 1)
+                continue
+            _write_flood_wait_file(chat_id, e.value)
+            logger.warning(f"Flood wait detected ({e.value}s) while forwarding messages to {chat_id}")
+            return None
         except Exception as e:
             if _should_retry(e, user_id, retry_delay) and attempt < max_retries - 1:
                 continue
