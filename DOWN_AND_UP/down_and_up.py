@@ -2368,28 +2368,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     log_error_to_channel(message, f"HTTP 416 range error: {error_message[:300]}", url)
                     return None
                 
-                # Check for Read timed out errors - retry with longer timeout
+                # Check for Read timed out errors - skip retries (network issue, not format issue)
                 if "Read timed out" in error_message or "ReadTimeout" in error_message or "timed out" in error_message.lower():
                     logger.warning(f"Read timeout error detected: {error_message}")
                     if _video_file_exists_on_disk():
                         logger.info("Attempting to continue despite timeout error — video file found on disk")
                         return info_dict
-                    # Return None to trigger retry
                     logger.error(f"Read timeout error - download failed, no file on disk: {error_message}")
                     log_error_to_channel(message, f"Read timeout: {error_message[:300]}", url)
-                    return None
+                    return "NETWORK_TIMEOUT"
                 
                 # Check for incomplete download errors ("Got error: N bytes read, M more expected")
-                # This is a network interruption during download — retry with same format
+                # This is a network interruption during download — skip retries (network issue)
                 if "bytes read," in error_message and "more expected" in error_message:
                     logger.warning(f"Incomplete download detected (network interruption): {error_message}")
                     if _video_file_exists_on_disk():
                         logger.info("Partial download exists on disk, attempting to continue")
                         return info_dict
-                    # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
                     logger.error(f"Incomplete download failed, no file on disk: {error_message}")
                     log_error_to_channel(message, f"Incomplete download: {error_message[:300]}", url)
-                    return None
+                    return "NETWORK_ERROR"
                 
                 # Check for HTTP 429 Too Many Requests - sleep and retry
                 if "HTTP Error 429" in error_message or "Too Many Requests" in error_message:
@@ -3008,6 +3006,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             did_proxy_retry = False
             did_live_from_start_retry = False
             error_message_sent = False  # Reset error message flag for each playlist item
+            network_error = False
 
             info_dict = None
             skip_item = False
@@ -3056,6 +3055,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             did_cookie_retry = True
                     if result == "STOP":
                         stop_all = True
+                        break
+                    elif result == "NETWORK_TIMEOUT" or result == "NETWORK_ERROR":
+                        network_error = True
+                        logger.warning(f"Network error ({result}) for video {current_index}, skipping format retries")
                         break
                     elif result == "NO_VIDEOS_SKIP":
                         consecutive_no_videos_skips += 1
@@ -3195,6 +3198,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if error_key not in playlist_errors:
                         playlist_errors[error_key] = True
 
+                if is_playlist and network_error:
+                    logger.info(f"Skipping video {current_index} due to network error, continuing with remaining playlist items")
+                    continue
                 break
 
             successful_uploads += 1
