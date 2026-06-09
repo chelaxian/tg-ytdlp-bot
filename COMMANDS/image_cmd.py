@@ -35,6 +35,7 @@ from COMMANDS.nsfw_cmd import should_apply_spoiler
 from DATABASE.cache_db import save_to_image_cache, get_cached_image_posts, get_cached_image_post_indices
 import json
 from URL_PARSERS.tags import save_user_tags, extract_url_range_tags
+from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
 from URL_PARSERS.service_api_info import get_service_account_info, build_tags
 
 # Unified helpers to create thumbnails/covers for videos
