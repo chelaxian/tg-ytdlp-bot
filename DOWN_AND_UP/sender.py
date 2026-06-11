@@ -595,6 +595,7 @@ def send_videos(
 
         def _embed_cover_in_video(video_path: str, cover_path: str) -> str | None:
             """Embed cover into video as attached_pic so it survives forwardMessages (fast re-mux)."""
+            import subprocess as _sp
             try:
                 out_path = video_path + '.__paid_with_cover.mp4'
                 cmd = [
@@ -608,7 +609,7 @@ def send_videos(
                     '-metadata:s:v:1', 'title=Cover',
                     out_path
                 ]
-                r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                r = _sp.run(cmd, capture_output=True, text=True, timeout=120)
                 if r.returncode != 0:
                     logger.error(f"Failed to embed cover: {r.stderr[:300]}")
                     return None
