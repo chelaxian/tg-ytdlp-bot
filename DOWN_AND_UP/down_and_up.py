@@ -2368,28 +2368,26 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     log_error_to_channel(message, f"HTTP 416 range error: {error_message[:300]}", url)
                     return None
                 
-                # Check for Read timed out errors - retry with longer timeout
+                # Check for Read timed out errors - skip retries (network issue, not format issue)
                 if "Read timed out" in error_message or "ReadTimeout" in error_message or "timed out" in error_message.lower():
                     logger.warning(f"Read timeout error detected: {error_message}")
                     if _video_file_exists_on_disk():
                         logger.info("Attempting to continue despite timeout error — video file found on disk")
                         return info_dict
-                    # Return None to trigger retry
                     logger.error(f"Read timeout error - download failed, no file on disk: {error_message}")
                     log_error_to_channel(message, f"Read timeout: {error_message[:300]}", url)
-                    return None
+                    return "NETWORK_TIMEOUT"
                 
                 # Check for incomplete download errors ("Got error: N bytes read, M more expected")
-                # This is a network interruption during download — retry with same format
+                # This is a network interruption during download — skip retries (network issue)
                 if "bytes read," in error_message and "more expected" in error_message:
                     logger.warning(f"Incomplete download detected (network interruption): {error_message}")
                     if _video_file_exists_on_disk():
                         logger.info("Partial download exists on disk, attempting to continue")
                         return info_dict
-                    # Return None to trigger retry with next attempt (yt-dlp resumes partial downloads)
                     logger.error(f"Incomplete download failed, no file on disk: {error_message}")
                     log_error_to_channel(message, f"Incomplete download: {error_message[:300]}", url)
-                    return None
+                    return "NETWORK_ERROR"
                 
                 # Check for HTTP 429 Too Many Requests - sleep and retry
                 if "HTTP Error 429" in error_message or "Too Many Requests" in error_message:
@@ -2969,6 +2967,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         MAX_CONSECUTIVE_NO_VIDEOS_SKIPS = 5
         for idx, current_index in enumerate(indices_to_download):
             logger.info(f"🔍 [DEBUG] Processing video {idx + 1}/{len(indices_to_download)}: current_index={current_index}")
+            
+            # Check for active FloodWait before starting next video in playlist.
+            # If Telegram has already rate-limited us, downloading more videos
+            # is pointless — they won't be sent anyway, and more API calls
+            # will only escalate the penalty.
+            if is_playlist:
+                try:
+                    _fw_remaining, _fw_str = read_flood_wait_remaining(user_id)
+                    if _fw_remaining is not None:
+                        logger.warning(f"[ANTI-FLOOD] FloodWait still active ({_fw_str}), pausing playlist at video {idx + 1}/{len(indices_to_download)}. Uploaded {successful_uploads} so far.")
+                        safe_edit_message_text(user_id, proc_msg_id,
+                            f"⏳ <b>Playlist paused</b> — Telegram FloodWait active ({_fw_str}).\n"
+                            f"Uploaded {successful_uploads}/{len(indices_to_download)} videos.\n"
+                            f"The bot will resume automatically after the wait period.",
+                            parse_mode=enums.ParseMode.HTML)
+                        break
+                except Exception:
+                    pass
+            
             messages = safe_get_messages(message.chat.id)
             total_process = f"""
 <b>📶 {safe_get_messages(user_id).TOTAL_PROGRESS_MSG}</b>
@@ -2989,6 +3006,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             did_proxy_retry = False
             did_live_from_start_retry = False
             error_message_sent = False  # Reset error message flag for each playlist item
+            network_error = False
 
             info_dict = None
             skip_item = False
@@ -3037,6 +3055,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             did_cookie_retry = True
                     if result == "STOP":
                         stop_all = True
+                        break
+                    elif result == "NETWORK_TIMEOUT" or result == "NETWORK_ERROR":
+                        network_error = True
+                        logger.warning(f"Network error ({result}) for video {current_index}, skipping format retries")
                         break
                     elif result == "NO_VIDEOS_SKIP":
                         consecutive_no_videos_skips += 1
@@ -3176,6 +3198,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if error_key not in playlist_errors:
                         playlist_errors[error_key] = True
 
+                if is_playlist and network_error:
+                    logger.info(f"Skipping video {current_index} due to network error, continuing with remaining playlist items")
+                    continue
                 break
 
             successful_uploads += 1
@@ -4064,6 +4089,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if is_user_blocked_flagged(user_id):
                             logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
                             break
+                        flood_remaining_check_split, _ = read_flood_wait_remaining(user_id)
+                        if flood_remaining_check_split is not None:
+                            logger.warning(f"FloodWait active ({flood_remaining_check_split}s remaining), stopping playlist at split part index {current_index}")
+                            break
                         logger.error("send_videos returned None for split part; skipping cache save for this part")
                         continue
                     #found_type = None
@@ -4742,6 +4771,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if is_user_blocked_flagged(user_id):
                                 logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")
                                 break
+                            flood_remaining_check, _ = read_flood_wait_remaining(user_id)
+                            if flood_remaining_check is not None:
+                                logger.warning(f"FloodWait active ({flood_remaining_check}s remaining), stopping playlist at index {current_index} to avoid escalating penalties")
+                                safe_edit_message_text(user_id, proc_msg_id,
+                                    f"⏳ <b>Playlist paused</b> — Telegram FloodWait active.\n"
+                                    f"Uploaded {successful_uploads}/{len(indices_to_download)} videos.\n"
+                                    f"The bot will resume automatically after the wait period.",
+                                    parse_mode=enums.ParseMode.HTML)
+                                break
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
                         
@@ -5270,6 +5308,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             os.remove(after_rename_abs_path)
                         if thumb_dir and os.path.exists(thumb_dir):
                             os.remove(thumb_dir)
+                        
+                        # Anti-flood delay between playlist videos to prevent FloodWait escalation.
+                        # Telegram rate-limits mass sending; without a pause, a 48-video playlist
+                        # fires 5-6 API calls per video (~250-300 total) with virtually no gap,
+                        # which accumulates into 9+ hour FloodWait penalties.
+                        if is_playlist and (idx + 1) < len(indices_to_download):
+                            inter_video_delay = 3.0
+                            logger.info(f"[ANTI-FLOOD] Waiting {inter_video_delay}s before next playlist video ({idx + 1}/{len(indices_to_download)})")
+                            time.sleep(inter_video_delay)
+                        
                         pass
                     except Exception as e:
                         logger.error(f"Error sending video: {e}")
