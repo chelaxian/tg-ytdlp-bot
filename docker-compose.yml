@@ -85,12 +85,14 @@ services:
     networks:
       - warp-net
     healthcheck:
-      # Проверяем, что WireGuard работает и DNS разрешается
-      test: ["CMD-SHELL", "wg show wgcf >/dev/null 2>&1 && (getent hosts google.com >/dev/null 2>&1 || curl -s --max-time 5 https://www.google.com >/dev/null 2>&1)"]
+      # WireGuard interface must be up; DNS reachability is best-effort
+      # (google.com may fail on geo-blocked/DNS-restricted hosts without
+      # meaning the tunnel itself is broken, so we don't block startup on it)
+      test: ["CMD-SHELL", "wg show wgcf >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 40s
 
 networks:
   warp-net:
