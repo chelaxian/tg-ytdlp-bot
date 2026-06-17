@@ -165,6 +165,7 @@ env
 delete_redacted.sh
 tg-ytdlp-NEW.code-workspace
 *.code-workspace
+tg-ytdlp-bot.code-workspace
 
 # Kilo agent skill/command files (local tooling, not project code)
 .kilo/command/
