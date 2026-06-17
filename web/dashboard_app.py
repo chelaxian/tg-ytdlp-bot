@@ -3,13 +3,14 @@ from __future__ import annotations
 import pathlib
 import logging
 from typing import Any, List
-from fastapi import FastAPI, HTTPException, Query, Request, Cookie, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 from CONFIG.config import Config
 from services import stats_service
@@ -20,56 +21,76 @@ from services.auth_service import get_auth_service
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Порт дашборда берется из Config.DASHBOARD_PORT (по умолчанию 5555)
-# Для запуска: uvicorn web.dashboard_app:app --host 0.0.0.0 --port {Config.DASHBOARD_PORT}
-
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-app = FastAPI(title="TG YTDLP Dashboard", version="1.0.0")
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+app = FastAPI(title="TG YTDLP Dashboard", version="2.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 
-# CORS для API запросов
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Используем кастомный StaticFiles с cache-control для статики.
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
 
 
-# Middleware для проверки авторизации
-class AuthMiddleware(BaseHTTPMiddleware):
+app.mount("/static", CachedStaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Добавляет security-заголовки ко всем ответам."""
+
     async def dispatch(self, request: Request, call_next):
-        # Публичные пути
-        public_paths = ["/login", "/api/login", "/api/reset-lockdown", "/static", "/health"]
-        if any(request.url.path.startswith(path) for path in public_paths):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+        # CSP: script-src — только self (no inline scripts / handlers).
+        # style-src — 'unsafe-inline' разрешён, т.к. JS генерирует динамический контент со стилями.
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; "
+            "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+        )
+        return response
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    """Проверяет авторизацию для всех путей, кроме публичных."""
+
+    PUBLIC_PREFIXES = ("/login", "/api/login", "/static", "/health")
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        if any(path.startswith(prefix) for prefix in self.PUBLIC_PREFIXES):
             return await call_next(request)
-        
-        # Проверяем токен из cookie
+
         token = request.cookies.get("auth_token")
         auth_service = get_auth_service()
-        
+
         if not token or not auth_service.verify_token(token):
-            if request.url.path.startswith("/api/"):
-                raise HTTPException(status_code=401, detail="Unauthorized")
+            if path.startswith("/api/"):
+                return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
             return RedirectResponse(url="/login", status_code=302)
-        
+
         response = await call_next(request)
-        if request.url.path != "/api/logout":
+        if path != "/api/logout":
             response.set_cookie(
                 key="auth_token",
                 value=token,
                 httponly=True,
-                secure=False,
+                secure=getattr(Config, "DASHBOARD_COOKIE_SECURE", False),
                 samesite="lax",
                 max_age=auth_service.session_ttl,
             )
         return response
 
 
+# Порядок важен: security-заголовки применяются последними (внешний middleware).
 app.add_middleware(AuthMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -78,36 +99,36 @@ async def login_page(request: Request):
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(...)
-    password: str = Field(...)
+    username: str = Field(..., min_length=1, max_length=128)
+    password: str = Field(..., min_length=1, max_length=256)
 
 
 @app.post("/api/login")
 async def api_login(payload: LoginRequest, request: Request):
     auth_service = get_auth_service()
-    # Перезагружаем конфиг перед каждой попыткой входа
     auth_service.reload_config()
     client_ip = request.client.host if request.client else "unknown"
-    
+
     try:
         token = auth_service.login(payload.username, payload.password, client_ip)
-        response = Response(content='{"status": "ok"}', media_type="application/json")
-        response.set_cookie(
-            key="auth_token",
-            value=token,
-            httponly=True,
-            secure=False,  # В production установить True для HTTPS
-            samesite="lax",
-            max_age=auth_service.session_ttl,
-        )
-        return response
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        return JSONResponse(status_code=401, content={"detail": str(e)})
+
+    response = JSONResponse(content={"status": "ok"})
+    response.set_cookie(
+        key="auth_token",
+        value=token,
+        httponly=True,
+        secure=getattr(Config, "DASHBOARD_COOKIE_SECURE", False),
+        samesite="lax",
+        max_age=auth_service.session_ttl,
+    )
+    return response
 
 
 @app.post("/api/reset-lockdown")
 async def api_reset_lockdown(request: Request):
-    """Сбрасывает блокировку для текущего IP (для отладки)."""
+    """Сбрасывает блокировку для текущего IP. Требует авторизации."""
     auth_service = get_auth_service()
     client_ip = request.client.host if request.client else "unknown"
     auth_service.reset_lockdown(client_ip)
@@ -120,7 +141,7 @@ async def api_logout(request: Request):
     if token:
         auth_service = get_auth_service()
         auth_service.logout(token)
-    response = Response(content='{"status":"ok"}', media_type="application/json")
+    response = JSONResponse(content={"status": "ok"})
     response.delete_cookie("auth_token")
     return response
 
@@ -131,13 +152,17 @@ async def dashboard(request: Request):
         request,
         "dashboard.html",
         {
-            "title": "Статистика бота",
+            "title": "Bot statistics",
             "config": {
                 "STATS_ACTIVE_TIMEOUT": getattr(Config, "STATS_ACTIVE_TIMEOUT", 900),
             },
         },
     )
 
+
+# ---------------------------------------------------------------------------
+# Statistics API
+# ---------------------------------------------------------------------------
 
 @app.get("/api/active-users")
 async def api_active_users(
@@ -263,6 +288,10 @@ async def api_unblock_user(payload: BlockRequest):
     return {"status": "ok"}
 
 
+# ---------------------------------------------------------------------------
+# System API
+# ---------------------------------------------------------------------------
+
 @app.get("/api/system-metrics")
 async def api_system_metrics():
     return system_service.get_system_metrics()
@@ -289,6 +318,8 @@ async def api_update_config(payload: ConfigUpdateRequest):
         success = system_service.update_config_setting(payload.key, payload.value)
         if not success:
             raise HTTPException(status_code=400, detail="Failed to update config")
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"status": "ok"}
@@ -320,6 +351,8 @@ async def api_update_domain_list(payload: DomainListUpdateRequest):
         success = lists_service.update_domain_list(payload.list_name, payload.items)
         if not success:
             raise HTTPException(status_code=400, detail="Failed to update domain list")
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"status": "ok"}
@@ -338,6 +371,7 @@ async def api_restart_service():
 @app.post("/api/restart-panel")
 async def api_restart_panel():
     return system_service.restart_panel()
+
 
 @app.post("/api/update-engines")
 async def api_update_engines():
@@ -362,4 +396,3 @@ async def api_update_lists_from_urls(payload: ListsUpdateFromUrlsRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
