@@ -300,6 +300,27 @@
     let modalBodyEl;
     let themeToggleBtn;
     let currentTheme = localStorage.getItem("dashboardTheme") || "dark";
+    let pendingRequests = 0;
+    let statusTimer = null;
+    const loadedTabs = new Set();
+
+    function escapeHtml(unsafe) {
+        if (typeof unsafe !== 'string') return '';
+        return unsafe
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(unsafe) {
+        if (typeof unsafe !== 'string') return '';
+        return unsafe
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
 
     const endpoints = {
         activeUsers: (minutes = 15, limit = 100) =>
@@ -341,8 +362,23 @@
         updateStatusText();
     }
 
+    function incLoading() {
+        pendingRequests++;
+        if (pendingRequests === 1) {
+            setStatus("loading");
+        }
+    }
+
+    function decLoading() {
+        pendingRequests = Math.max(0, pendingRequests - 1);
+        if (pendingRequests === 0) {
+            clearTimeout(statusTimer);
+            statusTimer = setTimeout(() => setStatus("online"), 150);
+        }
+    }
+
     async function fetchJSON(url, options = {}) {
-        setStatus("loading");
+        incLoading();
         try {
             const response = await fetch(url, options);
             if (!response.ok) {
@@ -357,13 +393,13 @@
                 throw new Error(`Invalid JSON response: ${text.substring(0, 120)}`);
             }
         } finally {
-            setStatus("online");
+            decLoading();
         }
     }
 
     function formatUserMeta(item) {
-        const username = item.username ? `@${item.username}` : t("meta.no_username");
-        return `${username} • ${t("meta.id_label")}: ${item.user_id}`;
+        const username = item.username ? `@${escapeHtml(item.username)}` : t("meta.no_username");
+        return `${username} • ${t("meta.id_label")}: ${escapeHtml(String(item.user_id))}`;
     }
 
     function relativeTime(ts) {
@@ -758,20 +794,18 @@
         const extraEl = node.querySelector("[data-extra]");
         const button = node.querySelector("[data-block]");
 
-        flag.textContent = item.flag || "🏳";
-        
-        // Добавляем ссылки на профили
-        const nameText = item.name || `${t("meta.id_label")} ${item.user_id}`;
+        flag.textContent = escapeHtml(item.flag || "🏳");
+
+        const nameText = escapeHtml(item.name || `${t("meta.id_label")} ${item.user_id}`);
         if (item.username) {
-            nameEl.innerHTML = `<a href="https://t.me/${item.username}" target="_blank" style="color: #38bdf8; text-decoration: none;">${nameText}</a>`;
+            nameEl.innerHTML = `<a href="https://t.me/${escapeAttr(item.username)}" target="_blank" rel="noopener noreferrer" style="color: var(--link); text-decoration: none;">${nameText}</a>`;
         } else {
-            nameEl.innerHTML = `<a href="tg://user?id=${item.user_id}" style="color: #38bdf8; text-decoration: none;">${nameText}</a>`;
+            nameEl.innerHTML = `<a href="tg://user?id=${escapeAttr(String(item.user_id))}" style="color: var(--link); text-decoration: none;">${nameText}</a>`;
         }
-        
-        // Добавляем ссылку на ID если есть username
+
         const metaText = options.meta ? options.meta(item) : formatUserMeta(item);
         if (item.username && item.user_id) {
-            metaEl.innerHTML = `${metaText} • <a href="tg://user?id=${item.user_id}" style="color: #94a3b8; text-decoration: none; font-size: 0.85rem;">ID: ${item.user_id}</a>`;
+            metaEl.innerHTML = `${escapeHtml(metaText)} • <a href="tg://user?id=${escapeAttr(String(item.user_id))}" style="color: var(--text-secondary); text-decoration: none; font-size: 0.85rem;">ID: ${escapeHtml(String(item.user_id))}</a>`;
         } else {
             metaEl.textContent = metaText;
         }
@@ -899,15 +933,15 @@
             container.__items = [];
             return;
         }
-        container.__items = items; // Сохраняем для поиска
+        container.__items = items;
         container.innerHTML = "";
         items.forEach((item) => {
             const row = document.createElement("div");
             row.className = "list-row";
-            const badgeHtml = showBadge ? `<div class="badge">${item.count ?? ""}</div>` : "";
+            const badgeHtml = showBadge ? `<div class="badge">${escapeHtml(String(item.count ?? ""))}</div>` : "";
             row.innerHTML = `
                 <div class="list-row__info">
-                    <span class="flag">${icon || "•"}</span>
+                    <span class="flag">${escapeHtml(icon || "•")}</span>
                     <div>
                         <span class="title">${formatter(item)}</span>
                     </div>
@@ -919,12 +953,12 @@
     }
 
     function buildActiveMeta(item) {
-        let meta = `${formatUserMeta(item)}`;
+        let meta = formatUserMeta(item);
         if (item.url) {
             meta += ` • ${prettifyUrl(item.url)}`;
         }
         if (item.title) {
-            meta += ` • ${truncate(item.title, 60)}`;
+            meta += ` • ${escapeHtml(truncate(item.title, 60))}`;
         }
         return meta;
     }
@@ -1149,33 +1183,33 @@
     function setupPowerUsersFilters() {
         const minUrlsInput = document.getElementById("power-users-min-urls");
         const daysInput = document.getElementById("power-users-days");
-        const applyBtn = document.querySelector('[onclick="loadPowerUsers()"]');
-        
+        const applyBtn = document.getElementById("power-users-apply");
+
+        const reload = () => {
+            loadPowerUsers();
+        };
+
+        if (applyBtn) {
+            applyBtn.addEventListener("click", reload);
+        }
+
         if (minUrlsInput && daysInput) {
-            // Auto-reload on input change with debounce
-            let timeout;
-            const reload = () => {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    loadPowerUsers();
-                }, 500);
-            };
-            
-            minUrlsInput.addEventListener("input", reload);
-            daysInput.addEventListener("input", reload);
-            
-            // Also reload on Enter key
-            minUrlsInput.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") {
+            const debounce = (fn, delay) => {
+                let timeout;
+                return (...args) => {
                     clearTimeout(timeout);
-                    loadPowerUsers();
-                }
+                    timeout = setTimeout(() => fn(...args), delay);
+                };
+            };
+
+            minUrlsInput.addEventListener("input", debounce(reload, 500));
+            daysInput.addEventListener("input", debounce(reload, 500));
+
+            minUrlsInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") reload();
             });
             daysInput.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") {
-                    clearTimeout(timeout);
-                    loadPowerUsers();
-                }
+                if (e.key === "Enter") reload();
             });
         }
     }
@@ -1206,29 +1240,87 @@
             const row = document.createElement("div");
             row.className = "timeline-entry";
             const icon = entry.type === "join" ? "🟢" : "🔴";
-            const userName = entry.name || entry.username || `${t("meta.id_label")} ${entry.user_id}`;
+            const userName = escapeHtml(entry.name || entry.username || `${t("meta.id_label")} ${entry.user_id}`);
             row.innerHTML = `
-                <span class="marker">${icon}</span>
+                <span class="marker">${escapeHtml(icon)}</span>
                 <div class="body" style="flex: 1;">
                     <div class="title">${userName}</div>
-                    <div class="time">${new Date(entry.timestamp * 1000).toLocaleString()}</div>
-                    <div class="meta">${entry.description || ""}</div>
+                    <div class="time">${escapeHtml(new Date(entry.timestamp * 1000).toLocaleString())}</div>
+                    <div class="meta">${escapeHtml(entry.description || "")}</div>
                 </div>
                 <div style="margin-left: auto;">
-                    <button class="icon-button" data-block-user="${entry.user_id}" style="margin-left: 0.5rem;">❌</button>
+                    <button class="icon-button" data-action="block-user" data-user-id="${escapeAttr(String(entry.user_id))}" style="margin-left: 0.5rem;">❌</button>
                 </div>
             `;
-            const blockBtn = row.querySelector(`[data-block-user="${entry.user_id}"]`);
-            if (blockBtn) {
-                blockBtn.addEventListener("click", () => blockUser(entry.user_id));
-            }
             container.appendChild(row);
         });
     }
 
+    async function loadTab(tabName) {
+        if (loadedTabs.has(tabName)) return;
+
+        const selectors = {
+            topUsers: document.getElementById("top-users-period"),
+            countries: document.getElementById("countries-period"),
+            domains: document.getElementById("domains-period"),
+            suspicious: document.getElementById("suspicious-period"),
+            multiUrl: document.getElementById("multi-url-period"),
+            historyPeriod: document.getElementById("history-period"),
+        };
+
+        try {
+            if (tabName === "activity") {
+                const minutes = selectors.activePeriod?.value || "15";
+                await Promise.all([
+                    loadActiveUsers(),
+                    loadTopUsers(selectors.topUsers?.value || "all"),
+                    loadSuspiciousUsers(selectors.suspicious?.value || "today"),
+                    loadFormatUsers(),
+                ]);
+            } else if (tabName === "users") {
+                const period = selectors.countries?.value || "all";
+                await Promise.all([
+                    loadCountries(period),
+                    loadGenderAge(period),
+                    loadNSFW(),
+                    loadPlaylistUsers(),
+                    loadMultiUrlUsers(selectors.multiUrl?.value || "all"),
+                    loadPowerUsers(),
+                ]);
+            } else if (tabName === "content") {
+                const period = selectors.domains?.value || "all";
+                await loadDomains(period);
+                const nsfwData = await fetchJSON(endpoints.nsfwDomains(50));
+                const container = document.getElementById("nsfw-domains-list");
+                renderSimpleList(container, nsfwData || [], (item) => escapeHtml(item.domain || "-"), "");
+            } else if (tabName === "moderation") {
+                await Promise.all([loadBlockedUsers(), loadChannelEvents()]);
+            } else if (tabName === "history") {
+                await loadHistoryUsers();
+                if (selectors.historyPeriod) {
+                    selectors.historyPeriod.addEventListener("change", () => {
+                        if (currentHistoryUserId) {
+                            loadUserHistory(currentHistoryUserId);
+                        }
+                    });
+                }
+            } else if (tabName === "system") {
+                await Promise.all([loadSystemMetrics(), loadPackageVersions(), loadConfigSettings()]);
+                applyTranslations();
+            } else if (tabName === "lists") {
+                await Promise.all([loadListsStats(), loadDomainLists()]);
+                applyTranslations();
+            }
+
+            loadedTabs.add(tabName);
+        } catch (err) {
+            console.error(`Failed to load tab ${tabName}:`, err);
+        }
+    }
+
     function setupTabs() {
         document.querySelectorAll(".tab-button").forEach((button) => {
-            button.addEventListener("click", () => {
+            button.addEventListener("click", async () => {
                 document.querySelectorAll(".tab-button").forEach((btn) => btn.classList.remove("active"));
                 document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
                 button.classList.add("active");
@@ -1236,6 +1328,7 @@
                 const panel = document.querySelector(`[data-tab-panel="${target}"]`);
                 if (panel) panel.classList.add("active");
                 applyAdaptiveGrid();
+                await loadTab(target);
             });
         });
     }
@@ -1449,7 +1542,7 @@
         const data = await fetchJSON("/api/system-metrics");
         const container = document.getElementById("system-metrics");
         if (data.error) {
-            container.innerHTML = `<div class="empty-state">Error: ${data.error}</div>`;
+            container.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error)}</div>`;
             return;
         }
         const uptime = data.uptime || {};
@@ -1459,57 +1552,57 @@
         container.innerHTML = `
             <div class="metric-row">
                 <span class="metric-label">Status:</span>
-                <span class="metric-value">${data.status || "unknown"}</span>
+                <span class="metric-value">${escapeHtml(String(data.status || "unknown"))}</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">Uptime:</span>
-                <span class="metric-value">${uptime.days || 0}d ${uptime.hours || 0}h ${uptime.minutes || 0}m</span>
+                <span class="metric-value">${escapeHtml(String(uptime.days || 0))}d ${escapeHtml(String(uptime.hours || 0))}h ${escapeHtml(String(uptime.minutes || 0))}m</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">Next cache reload:</span>
-                <span class="metric-value">${reloadHours}h ${reloadMinutes}m</span>
+                <span class="metric-value">${escapeHtml(String(reloadHours))}h ${escapeHtml(String(reloadMinutes))}m</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">CPU:</span>
-                <span class="metric-value">${data.cpu_percent || 0}%</span>
+                <span class="metric-value">${escapeHtml(String(data.cpu_percent || 0))}%</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">RAM:</span>
-                <span class="metric-value">${data.memory?.used_gb || 0} / ${data.memory?.total_gb || 0} GB (${data.memory?.percent || 0}%)</span>
+                <span class="metric-value">${escapeHtml(String(data.memory?.used_gb || 0))} / ${escapeHtml(String(data.memory?.total_gb || 0))} GB (${escapeHtml(String(data.memory?.percent || 0))}%)</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">Disk:</span>
-                <span class="metric-value">${data.disk?.used_gb || 0} / ${data.disk?.total_gb || 0} GB (${data.disk?.percent || 0}%)</span>
+                <span class="metric-value">${escapeHtml(String(data.disk?.used_gb || 0))} / ${escapeHtml(String(data.disk?.total_gb || 0))} GB (${escapeHtml(String(data.disk?.percent || 0))}%)</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">Network sent:</span>
-                <span class="metric-value">${data.network?.bytes_sent_mb || 0} MB</span>
+                <span class="metric-value">${escapeHtml(String(data.network?.bytes_sent_mb || 0))} MB</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">Network received:</span>
-                <span class="metric-value">${data.network?.bytes_recv_mb || 0} MB</span>
+                <span class="metric-value">${escapeHtml(String(data.network?.bytes_recv_mb || 0))} MB</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">Network speed (sent):</span>
-                <span class="metric-value">${data.network?.speed_sent_mbps || 0} Mbps</span>
+                <span class="metric-value">${escapeHtml(String(data.network?.speed_sent_mbps || 0))} Mbps</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">Network speed (recv):</span>
-                <span class="metric-value">${data.network?.speed_recv_mbps || 0} Mbps</span>
+                <span class="metric-value">${escapeHtml(String(data.network?.speed_recv_mbps || 0))} Mbps</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">External IP (IPv4):</span>
-                <span class="metric-value">${data.external_ip?.ipv4 || data.external_ip || "unknown"}</span>
+                <span class="metric-value">${escapeHtml(String(data.external_ip?.ipv4 || data.external_ip || "unknown"))}</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">External IP (IPv6):</span>
-                <span class="metric-value">${data.external_ip?.ipv6 || "unknown"}</span>
+                <span class="metric-value">${escapeHtml(String(data.external_ip?.ipv6 || "unknown"))}</span>
             </div>
             <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <button class="action-button" onclick="rotateIP()" data-i18n="system.ip_rotate">Rotate IP</button>
-                <button class="action-button" onclick="restartService()" data-i18n="system.restart">Restart Service</button>
-                <button class="action-button" onclick="restartPanel()" data-i18n="system.restart_panel">Restart Panel</button>
-                <button class="action-button" onclick="cleanupUserFiles()" data-i18n="system.cleanup">Cleanup User Files</button>
+                <button class="action-button" data-action="rotate-ip" data-i18n="system.ip_rotate">Rotate IP</button>
+                <button class="action-button" data-action="restart-service" data-i18n="system.restart">Restart Service</button>
+                <button class="action-button" data-action="restart-panel" data-i18n="system.restart_panel">Restart Panel</button>
+                <button class="action-button" data-action="cleanup-user-files" data-i18n="system.cleanup">Cleanup User Files</button>
             </div>
         `;
     }
@@ -1519,12 +1612,12 @@
         const container = document.getElementById("package-versions");
         container.innerHTML = Object.entries(data || {}).map(([pkg, version]) => `
             <div class="metric-row">
-                <span class="metric-label">${pkg}:</span>
-                <span class="metric-value">${version}</span>
+                <span class="metric-label">${escapeHtml(pkg)}:</span>
+                <span class="metric-value">${escapeHtml(String(version))}</span>
             </div>
         `).join("") + `
             <div style="margin-top: 1rem;">
-                <button class="action-button" onclick="updateEngines()" data-i18n="system.update_engines">Update Engines</button>
+                <button class="action-button" data-action="update-engines" data-i18n="system.update_engines">Update Engines</button>
             </div>
         `;
     }
@@ -1592,14 +1685,87 @@
         }
     };
 
-    window.logout = async function() {
-        try {
-            await fetchJSON("/api/logout", { method: "POST" });
-        } catch (e) {
-            // даже если произошла ошибка, переходим на страницу логина
-        } finally {
+    function actionLogout() {
+        fetchJSON("/api/logout", { method: "POST" }).finally(() => {
             window.location.href = "/login";
-        }
+        });
+    }
+
+    const systemActions = {
+        "rotate-ip": async () => {
+            if (!confirm("Rotate IP address? This will restart WireGuard.")) return;
+            try {
+                const data = await fetchJSON("/api/rotate-ip", { method: "POST" });
+                let message = data.message || (data.status === "ok" ? "IP rotated successfully" : "Failed to rotate IP");
+                if (data.status === "ok" && data.ipv4 && data.ipv6) {
+                    message += `\n\nNew IPv4: ${data.ipv4}\nNew IPv6: ${data.ipv6}`;
+                }
+                alert(message);
+                if (data.status === "ok") {
+                    await loadSystemMetrics();
+                }
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        },
+        "restart-service": async () => {
+            if (!confirm("Restart tg-ytdlp-bot service?")) return;
+            try {
+                const data = await fetchJSON("/api/restart-service", { method: "POST" });
+                alert(data.message || (data.status === "ok" ? "Service restarted successfully" : "Failed to restart service"));
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        },
+        "restart-panel": async () => {
+            if (!confirm("Restart dashboard panel? The connection may drop, then you can reload the page.")) return;
+            try {
+                await fetch("/api/restart-panel", { method: "POST" });
+            } catch (e) {
+            } finally {
+                alert("Panel restart initiated. If the page stops responding, wait a few seconds and reload it.");
+            }
+        },
+        "cleanup-user-files": async () => {
+            if (!confirm("Delete all user files (except system files)? This cannot be undone.")) return;
+            try {
+                const data = await fetchJSON("/api/cleanup-user-files", { method: "POST" });
+                alert(data.message || (data.status === "ok" ? "Files cleaned up successfully" : "Failed to cleanup files"));
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        },
+        "update-engines": async () => {
+            if (!confirm("Update engines? This may take several minutes.")) return;
+            try {
+                const data = await fetchJSON("/api/update-engines", { method: "POST" });
+                alert(data.message || (data.status === "ok" ? "Engines updated successfully" : "Failed to update engines"));
+                if (data.status === "ok") {
+                    await loadPackageVersions();
+                }
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        },
+        "update-lists": async () => {
+            try {
+                const data = await fetchJSON("/api/update-lists", { method: "POST" });
+                if (data.status === "need_urls") {
+                    showUpdateListsModal();
+                } else if (data.status === "error") {
+                    alert(data.message || "Failed to update lists");
+                } else {
+                    if (!confirm("Update lists? This may take several minutes.")) return;
+                    alert(data.message || (data.status === "ok" ? "Lists updated successfully" : "Failed to update lists"));
+                    if (data.status === "ok") {
+                        await loadListsStats();
+                    }
+                }
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        },
+        "block-user": (userId) => blockUser(userId),
     };
 
     async function loadConfigSettings() {
@@ -1841,18 +2007,18 @@
         container.innerHTML = `
             <div class="metric-row">
                 <span class="metric-label">porn_domains.txt:</span>
-                <span class="metric-value">${data.porn_domains || 0} lines</span>
+                <span class="metric-value">${escapeHtml(String(data.porn_domains || 0))} lines</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">porn_keywords.txt:</span>
-                <span class="metric-value">${data.porn_keywords || 0} lines</span>
+                <span class="metric-value">${escapeHtml(String(data.porn_keywords || 0))} lines</span>
             </div>
             <div class="metric-row">
                 <span class="metric-label">supported_sites.txt:</span>
-                <span class="metric-value">${data.supported_sites || 0} lines</span>
+                <span class="metric-value">${escapeHtml(String(data.supported_sites || 0))} lines</span>
             </div>
             <div style="margin-top: 1rem;">
-                <button class="action-button" onclick="updateLists()" data-i18n="lists.update">Update Lists</button>
+                <button class="action-button" data-action="update-lists" data-i18n="lists.update">Update Lists</button>
             </div>
         `;
     }
@@ -2007,22 +2173,23 @@
         }
         let html = "";
         Object.entries(data).forEach(([listName, items]) => {
+            const escapedListName = escapeHtml(listName);
             html += `<div class="domain-list-section">`;
-            html += `<h4>${listName} (${items.length})</h4>`;
-            html += `<input type="text" class="list-search" data-list="${listName}" placeholder="Search...">`;
-            html += `<div class="domain-list-items" data-list="${listName}">`;
+            html += `<h4>${escapedListName} (${escapeHtml(String(items.length))})</h4>`;
+            html += `<input type="text" class="list-search" data-list="${escapeAttr(listName)}" placeholder="Search...">`;
+            html += `<div class="domain-list-items" data-list="${escapeAttr(listName)}">`;
             items.forEach((item, idx) => {
-                html += `<div class="domain-list-item" data-item="${idx}">
-                    <span>${item}</span>
-                    <button class="icon-button-small" onclick="removeDomainItem('${listName}', ${idx})">✕</button>
+                html += `<div class="domain-list-item" data-item="${idx}" data-list="${escapeAttr(listName)}">
+                    <span>${escapeHtml(item)}</span>
+                    <button class="icon-button-small" data-action="remove-domain-item">✕</button>
                 </div>`;
             });
             html += `</div>`;
             html += `<div class="add-item-form">
-                <input type="text" class="new-item-input" data-list="${listName}" placeholder="Add new item...">
-                <button onclick="addDomainItem('${listName}')">Add</button>
+                <input type="text" class="new-item-input" data-list="${escapeAttr(listName)}" placeholder="Add new item...">
+                <button data-action="add-domain-item" data-list="${escapeAttr(listName)}">Add</button>
             </div>`;
-            html += `<button class="save-list-btn" onclick="saveDomainList('${listName}')">Save ${listName}</button>`;
+            html += `<button class="save-list-btn" data-action="save-domain-list" data-list="${escapeAttr(listName)}">Save ${escapedListName}</button>`;
             html += `</div>`;
         });
         container.innerHTML = html;
@@ -2034,7 +2201,7 @@
             input.addEventListener("input", (e) => {
                 const query = e.target.value.toLowerCase();
                 const listName = e.target.dataset.list;
-                const itemsContainer = document.querySelector(`.domain-list-items[data-list="${listName}"]`);
+                const itemsContainer = document.querySelector(`.domain-list-items[data-list="${escapeAttr(listName)}"]`);
                 if (!itemsContainer) return;
                 itemsContainer.querySelectorAll(".domain-list-item").forEach((item) => {
                     const text = item.textContent.toLowerCase();
@@ -2044,95 +2211,59 @@
         });
     }
 
-    window.removeDomainItem = function(listName, idx) {
-        const itemsContainer = document.querySelector(`.domain-list-items[data-list="${listName}"]`);
-        const item = itemsContainer?.querySelector(`[data-item="${idx}"]`);
-        if (item) item.remove();
-    };
-
-    window.addDomainItem = function(listName) {
-        const input = document.querySelector(`.new-item-input[data-list="${listName}"]`);
-        const itemsContainer = document.querySelector(`.domain-list-items[data-list="${listName}"]`);
-        if (!input || !itemsContainer || !input.value.trim()) return;
-        const newItem = document.createElement("div");
-        newItem.className = "domain-list-item";
-        newItem.dataset.item = itemsContainer.children.length;
-        newItem.innerHTML = `
-            <span>${input.value.trim()}</span>
-            <button class="icon-button-small" onclick="removeDomainItem('${listName}', ${newItem.dataset.item})">✕</button>
-        `;
-        itemsContainer.appendChild(newItem);
-        input.value = "";
-    };
-
-    window.saveDomainList = async function(listName) {
-        const itemsContainer = document.querySelector(`.domain-list-items[data-list="${listName}"]`);
-        if (!itemsContainer) return;
-        const items = Array.from(itemsContainer.querySelectorAll("span")).map(span => span.textContent.trim()).filter(v => v);
-        try {
-            await fetch("/api/update-domain-list", {
+    function handleDomainListAction(action, listName) {
+        if (action === "add-domain-item") {
+            const input = document.querySelector(`.new-item-input[data-list="${escapeAttr(listName)}"]`);
+            const itemsContainer = document.querySelector(`.domain-list-items[data-list="${escapeAttr(listName)}"]`);
+            if (!input || !itemsContainer || !input.value.trim()) return;
+            const newItem = document.createElement("div");
+            newItem.className = "domain-list-item";
+            newItem.dataset.item = itemsContainer.children.length;
+            newItem.dataset.list = listName;
+            newItem.innerHTML = `
+                <span>${escapeHtml(input.value.trim())}</span>
+                <button class="icon-button-small" data-action="remove-domain-item">✕</button>
+            `;
+            itemsContainer.appendChild(newItem);
+            input.value = "";
+        } else if (action === "save-domain-list") {
+            const itemsContainer = document.querySelector(`.domain-list-items[data-list="${escapeAttr(listName)}"]`);
+            if (!itemsContainer) return;
+            const items = Array.from(itemsContainer.querySelectorAll("span")).map(span => span.textContent.trim()).filter(v => v);
+            fetch("/api/update-domain-list", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ list_name: listName, items }),
-            });
-            alert(`${listName} saved! Restart bot to apply changes.`);
-        } catch (e) {
-            console.error(`Failed to save ${listName}:`, e);
-            alert(`Failed to save ${listName}`);
+            }).then(() => alert(`${escapeHtml(listName)} saved! Restart bot to apply changes.`))
+             .catch(err => {
+                 console.error(`Failed to save ${listName}:`, err);
+                 alert(`Failed to save ${escapeHtml(listName)}`);
+             });
         }
-    };
+    }
+
+    function setupListSearches() {
+        document.querySelectorAll(".list-search").forEach((input) => {
+            input.addEventListener("input", (e) => {
+                const query = e.target.value.toLowerCase();
+                const listName = e.target.dataset.list;
+                const itemsContainer = document.querySelector(`.domain-list-items[data-list="${escapeAttr(listName)}"]`);
+                if (!itemsContainer) return;
+                itemsContainer.querySelectorAll(".domain-list-item").forEach((item) => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(query) ? "" : "none";
+                });
+            });
+        });
+    }
 
     function refreshModeration() {
         loadBlockedUsers();
     }
 
-    async function refreshData() {
-        const topPeriod = selectors.topUsers?.value || "all";
-        const countriesPeriod = selectors.countries?.value || "all";
-        const domainsPeriod = selectors.domains?.value || "all";
-        const suspiciousPeriod = selectors.suspicious?.value || "today";
-        await Promise.all([
-            loadActiveUsers(),
-            loadTopUsers(topPeriod),
-            loadCountries(countriesPeriod),
-            loadGenderAge(countriesPeriod),
-            loadDomains(domainsPeriod),
-            loadNSFW(),
-            loadPlaylistUsers(),
-            loadMultiUrlUsers(selectors.multiUrl?.value || "all"),
-            loadFormatUsers(),
-            loadPowerUsers(),
-            loadBlockedUsers(),
-            loadChannelEvents(),
-            loadSuspiciousUsers(suspiciousPeriod),
-        ]);
+    async     function refreshData() {
+        loadTab("activity");
         applyAdaptiveGrid();
-    }
-
-    function setupTabHandlers() {
-        document.querySelectorAll(".tab-button").forEach((button) => {
-            button.addEventListener("click", async () => {
-                const target = button.dataset.tabTarget;
-                if (target === "system") {
-                    await Promise.all([loadSystemMetrics(), loadPackageVersions(), loadConfigSettings()]);
-                    applyTranslations();
-                } else if (target === "lists") {
-                    await Promise.all([loadListsStats(), loadDomainLists()]);
-                    applyTranslations();
-                } else if (target === "history") {
-                    await loadHistoryUsers();
-                    const periodSelect = document.getElementById("history-period");
-                    if (periodSelect) {
-                        periodSelect.addEventListener("change", () => {
-                            if (currentHistoryUserId) {
-                                loadUserHistory(currentHistoryUserId);
-                            }
-                        });
-                    }
-                    applyTranslations();
-                }
-            });
-        });
     }
 
     async function bootstrap() {
@@ -2161,12 +2292,43 @@
         setupLanguageSwitch();
         setupSearchFilters();
         setupLayoutToggle();
-        setupTabHandlers();
         setupThemeToggle();
         setupPowerUsersFilters();
+
+        document.getElementById("logout-btn")?.addEventListener("click", actionLogout);
+
+        document.addEventListener("click", (event) => {
+            const target = event.target.closest("[data-action]");
+            if (!target) return;
+            const action = target.dataset.action;
+            const userId = target.dataset.userId;
+            const listName = target.dataset.list;
+
+            if (action === "remove-domain-item") {
+                const item = target.closest(".domain-list-item");
+                if (item) item.remove();
+                return;
+            }
+
+            if (action === "add-domain-item" || action === "save-domain-list") {
+                event.preventDefault();
+                event.stopPropagation();
+                handleDomainListAction(action, listName);
+                return;
+            }
+
+            const handler = systemActions[action];
+            if (handler) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (userId !== undefined) handler(parseInt(userId, 10));
+                else handler();
+            }
+        });
+
         applyTranslations();
         applyAdaptiveGrid();
-        await refreshData();
+        await loadTab("activity");
     }
 
     document.addEventListener("DOMContentLoaded", bootstrap);

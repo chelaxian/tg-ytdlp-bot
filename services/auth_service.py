@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-# Version 1.0.1
+# Version 1.1.0
 
 import hashlib
+import hmac
 import secrets
 import time
 import logging
@@ -32,17 +33,19 @@ class AuthService:
         password = getattr(Config, "DASHBOARD_PASSWORD", "admin123")
         self._username = str(username).strip() if username else "admin"
         self._password_hash = self._hash_password(str(password).strip() if password else "admin123")
-        logger.info(f"[auth] Initialized with username='{self._username}' (length={len(self._username)})")
+        logger.info("[auth] AuthService initialized")
         
         self._load_sessions()
     
     def _hash_password(self, password: str) -> str:
-        """Хеширует пароль."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Хеширует пароль с солью (PBKDF2-HMAC-SHA256)."""
+        salt = b"tg-ytdlp-dashboard-salt"
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations=200_000)
+        return dk.hex()
     
     def _check_password(self, password: str) -> bool:
-        """Проверяет пароль."""
-        return self._hash_password(password) == self._password_hash
+        """Проверяет пароль с защитой от timing-атак."""
+        return hmac.compare_digest(self._hash_password(password), self._password_hash)
     
     def _get_lockdown_time(self, failed_count: int) -> float:
         """Вычисляет время блокировки на основе количества неудачных попыток."""
@@ -67,22 +70,14 @@ class AuthService:
             password = str(password).strip() if password else ""
             
             # Проверяем логин/пароль
-            username_match = username == self._username
+            username_match = hmac.compare_digest(username, self._username)
             password_match = self._check_password(password)
             
-            # Отладочная информация для первой неудачной попытки
             failed_count = self._failed_attempts.get(ip, 0)
             if not username_match or not password_match:
                 failed_count = failed_count + 1
                 if failed_count == 1:
-                    # Детальная отладочная информация только для первой попытки
-                    logger.warning(
-                        f"[auth] Login failed for IP {ip}: "
-                        f"username_match={username_match} "
-                        f"(got='{username}' len={len(username)}, expected='{self._username}' len={len(self._username)}), "
-                        f"password_match={password_match} "
-                        f"(password_len={len(password)})"
-                    )
+                    logger.warning(f"[auth] Login failed for IP {ip}")
                 
                 # Увеличиваем счетчик неудачных попыток
                 self._failed_attempts[ip] = failed_count
@@ -145,7 +140,7 @@ class AuthService:
             self._username = username_clean
             self._password_hash = self._hash_password(password_clean)
             if old_username != username_clean:
-                logger.info(f"[auth] Config reloaded: username changed from '{old_username}' to '{username_clean}'")
+                logger.info("[auth] Config reloaded: username changed")
     
     def reset_lockdown(self, ip: str) -> None:
         """Сбрасывает блокировку для указанного IP (для отладки)."""
