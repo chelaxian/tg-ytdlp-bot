@@ -506,7 +506,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         # If playlist detected, check if range was auto-added
         if is_playlist_detected:
             from URL_PARSERS.video_extractor import has_range_syntax
-            if not has_range_syntax(original_text) and video_start_with == 1 and video_end_with == 1 and video_count == 1:
+            # video_end_with may not be assigned yet at this point (issue #321);
+            # default to video_start_with so the equality check below never raises UnboundLocalError
+            _tentative_end = locals().get('video_end_with', video_start_with)
+            if not has_range_syntax(original_text) and video_start_with == 1 and _tentative_end == 1 and video_count == 1:
                 auto_range_added = True
                 logger.info(f"🔍 [DEBUG] Auto-range added detected for playlist URL: {url}")
     
@@ -1099,6 +1102,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         full_bar = "🟩" * 10
         first_progress_update = True  # Flag for tracking the first update
         progress_start_time = time.time()
+        progress_msg_dead = False  # Set True when progress message is deleted; stops further update attempts (issue #322)
         # One-time retry guards to avoid infinite retry loops across attempts
         # (already initialized at the beginning of the function)
         
@@ -1108,7 +1112,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         def progress_func(d):
             messages = safe_get_messages(message.chat.id)
-            nonlocal last_update, first_progress_update, is_hls
+            nonlocal last_update, first_progress_update, is_hls, progress_msg_dead
+            # Skip all work if the progress message was deleted by the user (issue #322)
+            if progress_msg_dead:
+                return
             # Check if /clean was called for this user → abort download
             if _cancel_ev.is_set():
                 raise Exception("Download cancelled by user (/clean)")
@@ -1205,7 +1212,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.info(f"Updating progress for user {user_id}, message {proc_msg_id}: {progress_text}")
                     result = safe_edit_message_text(user_id, proc_msg_id, progress_text)
                     if result is None:
-                        logger.warning(f"Failed to update progress message {proc_msg_id} for user {user_id} - message may have been deleted")
+                        progress_msg_dead = True
+                        logger.warning(f"Failed to update progress message {proc_msg_id} for user {user_id} - message may have been deleted; stopping further progress updates")
                 except Exception as e:
                     logger.error(f"Error updating progress: {e}")
                     # Check if error is related to quality_key
@@ -4767,6 +4775,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 else:
                                     logger.error(f"Upload timed out after {_upload_max_retries + 1} attempts, giving up: {after_rename_abs_path}")
                                 raise
+                        from DOWN_AND_UP.sender import SPLIT_SUCCESS_SENTINEL
+                        if video_msg is SPLIT_SUCCESS_SENTINEL:
+                            # The video was split into parts and sent successfully; there is no
+                            # single message id to cache, but the upload itself succeeded (issue #331).
+                            successful_uploads += 1
+                            last_video_msg_id = None
+                            logger.info("send_videos: split video sent as multiple parts; skipping per-item cache and logging")
+                            continue
                         if not video_msg:
                             if is_user_blocked_flagged(user_id):
                                 logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")

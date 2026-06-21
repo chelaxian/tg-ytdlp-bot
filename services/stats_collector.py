@@ -587,9 +587,9 @@ class StatsCollector:
                 self._multi_url_events = self._multi_url_events[-5000:]
             # Пишем на диск, чтобы дашборд видел эти события даже в другом процессе
             try:
+                from HELPERS.filesystem_hlp import atomic_write_json
                 self._multi_url_events_file.parent.mkdir(parents=True, exist_ok=True)
-                with self._multi_url_events_file.open("w", encoding="utf-8") as fh:
-                    json.dump(self._multi_url_events, fh)
+                atomic_write_json(str(self._multi_url_events_file), self._multi_url_events, indent=None)
             except Exception as exc:
                 logger.debug(f"[stats] failed to persist multi-url events: {exc}")
 

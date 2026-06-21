@@ -4314,8 +4314,8 @@ def show_other_qualities_menu(app, callback_query, page=0):
                         'timestamp': datetime.now().isoformat(),
                         'formats': format_lines
                     }
-                    with open(cache_file, 'w', encoding='utf-8') as cf:
-                        json.dump(cache_data, cf, ensure_ascii=False, indent=2)
+                    from HELPERS.filesystem_hlp import atomic_write_json
+                    atomic_write_json(cache_file, cache_data)
                     logger.info(f"Cached {len(format_lines)} formats to {cache_file}")
                 except Exception as e:
                     logger.warning(f"Failed to cache formats: {e}")

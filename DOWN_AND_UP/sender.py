@@ -29,6 +29,12 @@ app = get_app()
 _active_uploads = {}
 _active_uploads_lock = threading.Lock()
 
+# Sentinel returned by send_videos when a single video was split into multiple
+# parts and sent successfully. A truthy value distinguishes "split success" from
+# a genuine failure (which returns None), preventing a misleading
+# "send_videos returned None" error log and an aborted cache save (issue #331).
+SPLIT_SUCCESS_SENTINEL = object()
+
 _user_blocked_flag = set()
 
 def _timed_upload(upload_fn, timeout=None, dedup_key=None):
@@ -351,7 +357,7 @@ def send_videos(
                                 os.remove(original_video_path)
                         except Exception:
                             pass
-                        return None  # Parts were sent separately
+                        return SPLIT_SUCCESS_SENTINEL  # Parts were sent separately (issue #331)
                     else:
                         logger.error("Failed to send any parts of split video")
                         return None
