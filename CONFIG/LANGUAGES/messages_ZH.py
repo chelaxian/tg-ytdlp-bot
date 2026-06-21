@@ -2143,7 +2143,7 @@ class Messages(object):
     GALLERY_DL_UNKNOWN_ERROR_MSG = "未知错误"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ 下载已开始</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ 请稍候...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚关闭"

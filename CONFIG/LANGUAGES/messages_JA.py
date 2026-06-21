@@ -2143,7 +2143,7 @@ class Messages(object):
     GALLERY_DL_UNKNOWN_ERROR_MSG = "不明なエラー"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ ダウンロードが開始されました</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ お待ちください...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚閉じる"

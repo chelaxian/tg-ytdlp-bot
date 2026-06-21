@@ -2144,7 +2144,7 @@ Matuto pa: /playlist"""
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Hindi Alam na Error"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ Nagsimula ang pag-download</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Mangyaring maghintay...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Isara"

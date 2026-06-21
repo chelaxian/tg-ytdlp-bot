@@ -2143,7 +2143,7 @@ class Messages(object):
     GALLERY_DL_UNKNOWN_ERROR_MSG = "خطای ناشناخته"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ دانلود شروع شد</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ لطفاً صبر کنید...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚بستن"
