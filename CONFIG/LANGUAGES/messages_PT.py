@@ -2143,7 +2143,7 @@ Saiba mais: /playlist"""
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Erro Desconhecido"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ Download iniciado</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Aguarde...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Fechar"

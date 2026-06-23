@@ -2143,7 +2143,7 @@ class Messages(object):
     GALLERY_DL_UNKNOWN_ERROR_MSG = "ข้อผิดพลาดที่ไม่ทราบสาเหตุ"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ เริ่มการดาวน์โหลด</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ กรุณารอ...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚ปิด"

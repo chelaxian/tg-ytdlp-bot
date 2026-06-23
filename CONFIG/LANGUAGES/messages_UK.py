@@ -2143,7 +2143,7 @@ class Messages(object):
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Невідома помилка"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ Завантаження розпочато</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Зачекайте...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Закрити"

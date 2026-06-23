@@ -2143,7 +2143,7 @@ Daha fazla bilgi: /playlist"""
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Bilinmeyen Hata"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ İndirme başlatıldı</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Lütfen bekleyin...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Kapat"

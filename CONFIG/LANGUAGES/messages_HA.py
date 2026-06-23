@@ -2144,7 +2144,7 @@ Koyi ƙari: /playlist"""
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Kuskuren da ba a sani ba"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ An fara saukewa</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Da fatan za a jira...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Rufe"

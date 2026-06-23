@@ -2143,7 +2143,7 @@ Tìm hiểu thêm: /playlist"""
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Lỗi Không Xác Định"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ Tải xuống đã bắt đầu</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Vui lòng đợi...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Đóng"
