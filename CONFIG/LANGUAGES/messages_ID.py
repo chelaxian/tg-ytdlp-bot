@@ -2143,7 +2143,7 @@ Pelajari lebih lanjut: /playlist"""
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Error Tidak Dikenal"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ Unduhan dimulai</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Mohon tunggu...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Tutup"

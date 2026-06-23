@@ -2143,7 +2143,7 @@ Ko'proq ma'lumot: /playlist"""
     GALLERY_DL_UNKNOWN_ERROR_MSG = "Noma'lum xatolik"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ Yuklab olish boshlandi</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ Iltimos kuting...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚Yopish"

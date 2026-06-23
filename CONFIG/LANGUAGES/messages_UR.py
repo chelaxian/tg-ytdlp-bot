@@ -2144,7 +2144,7 @@ Use:
     GALLERY_DL_UNKNOWN_ERROR_MSG = "نامعلوم خرابی"
     
     # Download started message (used in both audio and video downloads)
-    DOWNLOAD_STARTED_MSG = "<b>▶️ ڈاؤن لوڈ شروع ہو گیا</b>"
+    DOWNLOAD_STARTED_MSG = "<b>⏳ براہ کرم انتظار کریں...</b>"
     
     # Split command constants
     SPLIT_CLOSE_BUTTON_MSG = "🔚بند کریں"
