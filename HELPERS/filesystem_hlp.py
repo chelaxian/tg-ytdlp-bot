@@ -5,6 +5,8 @@ import sys
 import shutil
 import threading
 import unicodedata
+import json
+import tempfile
 
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger
@@ -303,6 +305,14 @@ def remove_media(message, only=None, force_clean=False):
             for file in files:
                 if extension == '.txt' and file in protected_txt_files:
                     continue
+                # Skip incomplete download artifacts (.part / .ytdl): removing them
+                # mid-download causes "Unable to rename .part" / Errno 2 race conditions
+                # (issue #299). They are either completed (renamed to final extension) or
+                # reaped by a later clean once the download is done.
+                if extension in ('.part', '.ytdl'):
+                    logger.debug(LoggerMsg.FILESYSTEM_FAILED_REMOVE_FILE_LOG_MSG.format(
+                        file_path=os.path.join(dir, file), error="incomplete download artifact, skipped"))
+                    continue
                 file_path = os.path.join(dir, file)
                 try:
                     os.remove(file_path)
@@ -342,18 +352,61 @@ _SAFE_CHARS = set(".-_()")
 
 
 def _truncate_name(name, ext, max_total):
-    """Truncate name part so that name+ext fits within max_total chars."""
+    """Truncate name part so that name+ext fits within max_total bytes.
+
+    NAME_MAX on most filesystems (ext4/XFS/NTFS) is measured in BYTES, not
+    characters. CJK/emoji filenames use 3-4 bytes per character, so counting
+    code points (len()) under-truncates and triggers Errno 36 (issue #315).
+    """
     full_name = name + ext
-    if len(full_name) <= max_total:
+    try:
+        full_name_bytes = len(full_name.encode("utf-8"))
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        full_name_bytes = len(full_name)
+    if full_name_bytes <= max_total:
         return full_name
-    max_name_length = max_total - len(ext)
-    if max_name_length > 3:
-        name = name[:max_name_length - 3] + "..."
-    elif max_name_length > 0:
-        name = name[:max_name_length]
-    else:
-        name = ""
-    return name + ext
+
+    ext_bytes = _byte_len(ext)
+    max_name_bytes = max_total - ext_bytes
+    if max_name_bytes <= 0:
+        return ext
+
+    # Trim character-by-character until the byte budget is met (avoids splitting
+    # a multi-byte UTF-8 sequence).
+    truncated = name
+    while _byte_len(truncated) > max_name_bytes and truncated:
+        truncated = truncated[:-1]
+
+    return truncated + ext
+
+
+def _byte_len(text):
+    """Return the byte length of text, falling back to char length on error."""
+    try:
+        return len(text.encode("utf-8"))
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return len(text)
+
+
+def atomic_write_json(file_path, data, indent=2, ensure_ascii=False):
+    """Write JSON to file_path atomically (temp file + os.replace).
+
+    Prevents corrupted JSON when the process is interrupted mid-write or when
+    multiple processes read the file concurrently (issue #316).
+    """
+    directory = os.path.dirname(file_path) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(dir=directory, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=ensure_ascii, indent=indent)
+        os.replace(tmp_path, file_path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def _clean_unicode_name(name):

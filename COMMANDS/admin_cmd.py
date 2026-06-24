@@ -162,6 +162,19 @@ def reload_firebase_cache_command(app, message):
                 threading.Thread(target=delete_msg, daemon=True).start()
                 from HELPERS.logger import log_error_to_channel
                 log_error_to_channel(message, final_msg)
+    except subprocess.TimeoutExpired as e:
+        # Specialized handling for Firebase cache reload timeouts (issue #292).
+        # The original 600s subprocess timeout was raised to 1500s; if it still
+        # fires, surface a clear message instead of a generic error.
+        timeout_msg = safe_get_messages(message.chat.id).ADMIN_ERROR_RELOADING_MSG.format(
+            error=f"Cache reload timed out after {e.timeout}s")
+        if 'status_msg' in locals() and status_msg and not is_fake_message:
+            safe_edit_message_text(message.chat.id, status_msg.id, timeout_msg)
+            def delete_msg():
+                time.sleep(60)
+                safe_delete_messages(message.chat.id, [status_msg.id])
+            threading.Thread(target=delete_msg, daemon=True).start()
+        send_to_logger(message, f"Cache reload timed out after {e.timeout}s: {e}")
     except Exception as e:
         # ГЛОБАЛЬНАЯ ЗАЩИТА: Убедимся, что messages инициализирована
         if 'messages' not in locals() or messages is None:
