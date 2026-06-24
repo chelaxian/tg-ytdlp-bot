@@ -5024,7 +5024,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 _write_flood_wait_file(user_id, e.value)
                 return
             except Exception as e:
-                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
+                err_str = str(e)
+                if "MESSAGE_ID_INVALID" in err_str:
+                    logger.debug(f"[FLOOD-CHECK] edit_message_text MESSAGE_ID_INVALID (message already deleted): {e}")
+                else:
+                    logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
             proc_msg = None
     except Exception:
         pass

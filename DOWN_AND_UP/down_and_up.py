@@ -744,7 +744,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             _write_flood_wait_file(user_id, e.value)
             return
         except Exception as e:
-            logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
+            err_str = str(e)
+            if "MESSAGE_ID_INVALID" in err_str:
+                logger.debug(f"[FLOOD-CHECK] edit_message_text MESSAGE_ID_INVALID (message already deleted): {e}")
+            else:
+                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
 
         # If there is no flood error, send a normal message
         proc_msg = app.send_message(user_id, safe_get_messages(user_id).PROCESSING_MSG, reply_parameters=ReplyParameters(message_id=message.id))
