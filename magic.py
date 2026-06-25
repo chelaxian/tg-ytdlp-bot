@@ -173,6 +173,7 @@ from COMMANDS.other_handlers import link_command_handler, audio_command_handler,
 from COMMANDS.tag_cmd import tags_command
 from URL_PARSERS.url_extractor import url_distractor
 from COMMANDS.subtitles_cmd import subs_command
+from COMMANDS.dubs_cmd import dubs_command
 from COMMANDS import args_cmd
 from COMMANDS.list_cmd import list_command
 from COMMANDS.cookies_cmd import cookies_from_browser
@@ -232,6 +233,7 @@ if _allowed_groups:
         "audio": audio_command_handler,
         "playlist": playlist_command,
         "subs": subs_command,
+        "dubs": dubs_command,
         "args": args_cmd.args_command,
         "list": list_command,
         "cookies_from_browser": cookies_from_browser,
