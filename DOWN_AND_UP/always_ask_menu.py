@@ -235,6 +235,14 @@ def extract_button_data(format_line):
     """Extract only needed data for button display from complete format line"""
     parts = format_line.split()
     button_parts = []
+
+    # Detect HDR (High Dynamic Range) anywhere in the format line.
+    # YouTube HDR formats carry the "HDR" marker in format_note, e.g. "144p60 HDR, ANDR-V".
+    is_hdr = False
+    for _p in parts:
+        if _p.strip().rstrip(',').upper() == 'HDR' or 'hdr' in _p.lower():
+            is_hdr = True
+            break
     
     # Media extensions to look for (popular formats only)
     media_extensions = ['mp4', 'webm', 'm4a', 'mkv', 'avi', 'mov', 'flv', 'wmv', '3gp', 'ogv', 'ts', 'mts', 'm2ts', 'mp3', 'ogg', 'm3u8', 'f4v', 'm4v', 'm4p', 'm4b', 'm4r', '3g2', '3gpp', '3gpp2', 'asf', 'divx', 'xvid', 'rm', 'rmvb', 'vob', 'vcd', 'svcd', 'dvd', 'iso', 'sub', 'idx', 'srt', 'ssa', 'ass', 'vtt', 'smi', 'sami', 'rt', 'txt', 'lrc', 'vobsub', 'dvdsub', 'pgs', 'dvb', 'hdmv', 'pcm', 'wav', 'aiff', 'wma', 'ape', 'flac', 'alac', 'aac', 'ac3', 'dts', 'dtshd', 'truehd', 'eac3', 'mp2', 'opus', 'vorbis', 'speex', 'amr', 'awb', 'gsm', 'amrnb', 'amrwb']
@@ -371,7 +379,11 @@ def extract_button_data(format_line):
         if clean_item_lower not in seen:
             seen.add(clean_item_lower)
             button_parts.append(clean_item)
-    
+
+    # Append HDR tag last so HDR formats are visually distinguishable in the menu
+    if is_hdr and 'hdr' not in (s.lower() for s in button_parts):
+        button_parts.append('HDR')
+
     return button_parts
 
 # In-memory filters for Always Ask (per user session)
@@ -387,7 +399,7 @@ def get_filters(user_id):
     f = _ASK_FILTERS.get(str(user_id))
     if not f:
         # defaults: filters hidden to keep UI simple
-        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": []}
+        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": [], "hdr": False}
         _ASK_FILTERS[str(user_id)] = f
         logger.info(f"[DEBUG] get_filters: created new default filters for user_id={user_id}")
     else:
@@ -548,6 +560,8 @@ def set_filter(user_id, kind, value):
         f["quality"] = value
     elif kind == "toggle":
         f["visible"] = (value == "on")
+    elif kind == "hdr":
+        f["hdr"] = (value in ("on", True, "true", "True", "1"))
     _ASK_FILTERS[str(user_id)] = f
 
 def save_filters(user_id, state):
@@ -1856,12 +1870,16 @@ def ask_filter_callback(app, callback_query):
                     set_session_mkv_override(user_id, value == "mkv")
             except Exception:
                 pass
+        elif kind == "hdr":
+            # Toggle HDR extra-quality preference
+            set_filter(user_id, "hdr", "on" if value != "on" else "off")
         elif kind == "toggle":
             set_filter(user_id, kind, value)
             # Reset codec/ext to defaults when closing CODEC menu via Back
             if value == "off":
                 set_filter(user_id, "codec", "avc1")
                 set_filter(user_id, "ext", "mp4")
+                set_filter(user_id, "hdr", "off")
         # Rebuild the same message in place (fast, using cache)
         original_message = callback_query.message.reply_to_message
         if original_message:
@@ -1891,31 +1909,35 @@ def get_available_formats_from_cache(user_id, url, download_dir=None):
             if os.path.exists(download_cache_file):
                 cache_file = download_cache_file
                 logger.info(f"Using ask_formats.json from download directory: {download_cache_file}")
-        
+
         # Fallback to user root directory
         if not cache_file:
             user_dir = os.path.join("users", str(user_id))
             cache_file = os.path.join(user_dir, _ASK_INFO_CACHE_FILE)
             if os.path.exists(cache_file):
                 logger.info(f"Using ask_formats.json from user directory: {cache_file}")
-        
+
         if not cache_file or not os.path.exists(cache_file):
-            return {"codecs": set(), "formats": set()}
-        
+            return {"codecs": set(), "formats": set(), "hdr": False}
+
         with open(cache_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         available_codecs = set()
         available_formats = set()
-        
+        has_hdr = False
+
         # Check if this URL matches the cached data
         if data.get('url') == url:
             formats = data.get('formats', [])
-            
+
             for format_line in formats:
+                # HDR detection: format line contains an HDR marker
+                if not has_hdr and 'hdr' in format_line.lower():
+                    has_hdr = True
                 # Extract codecs and formats using our existing function
                 extracted = extract_button_data(format_line)
-                
+
                 for item in extracted:
                     # Check for codecs
                     if item.lower() in ['avc1', 'avc', 'h264']:
@@ -1924,18 +1946,18 @@ def get_available_formats_from_cache(user_id, url, download_dir=None):
                         available_codecs.add('av01')
                     elif item.lower() in ['vp9', 'vp09']:
                         available_codecs.add('vp9')
-                    
+
                     # Check for formats
                     if item.lower() in ['mp4']:
                         available_formats.add('mp4')
                     elif item.lower() in ['mkv', 'webm', 'avi', 'mov', 'flv', 'wmv', '3gp', 'ogv', 'ts', 'mts', 'm2ts']:
                         # These formats can be converted to MKV by ffmpeg
                         available_formats.add('mkv')
-        
-        return {"codecs": available_codecs, "formats": available_formats}
+
+        return {"codecs": available_codecs, "formats": available_formats, "hdr": has_hdr}
     except Exception as e:
         logger.warning(f"{LoggerMsg.ALWAYS_ASK_ERROR_READING_AVAILABLE_FORMATS_FROM_CACHE_LOG_MSG}: {e}")
-        return {"codecs": set(), "formats": set()}
+        return {"codecs": set(), "formats": set(), "hdr": False}
 
 def filter_qualities_by_codec_format(user_id, url, qualities, download_dir=None):
     """Filter qualities based on selected codec and format"""
@@ -2046,6 +2068,7 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
     codec = f.get("codec", "avc1")
     ext = f.get("ext", "mp4")
     visible = bool(f.get("visible", False))
+    hdr_on = bool(f.get("hdr", False))
     audio_lang = f.get("audio_lang")
     has_dubs = bool(f.get("has_dubs"))
     
@@ -2142,6 +2165,10 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
     avc1_btn = (safe_get_messages(user_id).AA_AVC_BUTTON_MSG if codec == "avc1" else safe_get_messages(user_id).AA_AVC_BUTTON_INACTIVE_MSG) if avc1_available else safe_get_messages(user_id).AA_AVC_BUTTON_UNAVAILABLE_MSG
     av01_btn = (safe_get_messages(user_id).AA_AV1_BUTTON_MSG if codec == "av01" else safe_get_messages(user_id).AA_AV1_BUTTON_INACTIVE_MSG) if av01_available else safe_get_messages(user_id).AA_AV1_BUTTON_UNAVAILABLE_MSG
     vp9_btn = (safe_get_messages(user_id).AA_VP9_BUTTON_MSG if codec == "vp9" else safe_get_messages(user_id).AA_VP9_BUTTON_INACTIVE_MSG) if vp9_available else safe_get_messages(user_id).AA_VP9_BUTTON_UNAVAILABLE_MSG
+
+    # HDR availability from cache (None/empty cache -> treat as available so the button stays usable)
+    hdr_available = bool(available_formats.get("hdr")) or not available_formats.get("codecs")
+    hdr_btn = (safe_get_messages(user_id).AA_HDR_BUTTON_MSG if hdr_on else safe_get_messages(user_id).AA_HDR_BUTTON_INACTIVE_MSG) if hdr_available else safe_get_messages(user_id).AA_HDR_BUTTON_UNAVAILABLE_MSG
     
     # Build format buttons with availability check
     # If user has fixed format via /args, don't show container buttons
@@ -2191,9 +2218,11 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
         else (f"🚀{audio_format}" if is_cached_mp3 else f"🎧{audio_format}")
     )
     # Build rows based on whether format is fixed
-    rows = [
-        [InlineKeyboardButton(avc1_btn, callback_data="askf|codec|avc1"), InlineKeyboardButton(av01_btn, callback_data="askf|codec|av01"), InlineKeyboardButton(vp9_btn, callback_data="askf|codec|vp9")]
-    ]
+    # Codec row + HDR "extra quality" toggle (HDR only selectable when available)
+    codec_row = [InlineKeyboardButton(avc1_btn, callback_data="askf|codec|avc1"), InlineKeyboardButton(av01_btn, callback_data="askf|codec|av01"), InlineKeyboardButton(vp9_btn, callback_data="askf|codec|vp9")]
+    if hdr_available:
+        codec_row.append(InlineKeyboardButton(hdr_btn, callback_data="askf|hdr|on" if not hdr_on else "askf|hdr|off"))
+    rows = [codec_row]
     
     # Add format row - only show container buttons if not fixed via /args
     if user_fixed_format:
@@ -7239,6 +7268,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         filters_state = {"codec": "avc1", "ext": "mp4"}
     sel_codec = filters_state.get("codec", "avc1")
     sel_ext = filters_state.get("ext", "mp4")
+    hdr_on = bool(filters_state.get("hdr", False))
     # Apply persistent /dubs preference (does nothing if not set or manually overridden)
     try:
         from COMMANDS.dubs_cmd import apply_dubs_preference
@@ -7555,6 +7585,19 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     # Delete processing message before starting download
     delete_processing_message(app, user_id, proc_msg)
+
+    # Apply HDR filter if enabled: prepend HDR-preferring selectors to format string
+    if hdr_on:
+        # Build HDR-first format with fallback to original format
+        # HDR formats have dynamic_range=hdr; YouTube uses vp9.2 or av01.10 for HDR
+        hdr_pref = f"bv*[dynamic_range=hdr]+ba"
+        # Fallback to vp9.2 or av01-based HDR (YouTube specific)
+        hdr_fallback = f"bv*[vcodec*=vp9.2]+ba/bv*[vcodec*=av01]+ba/bv+ba/best"
+        fmt = f"{hdr_pref}/{hdr_fallback}/{fmt}"
+        logger.info(f"HDR mode ON: using HDR-preferring format for {data}")
+        # Reset HDR flag after applying (one-shot preference)
+        set_filter(user_id, "hdr", "off")
+
     # Load trim sections if available (don't clear yet - will be cleared in down_and_up_with_format)
     download_sections = load_trim_sections(user_id, url, clear_after_use=False)
     down_and_up_with_format(app, original_message, url, fmt, tags_text, quality_key=quality_key, proc_msg=proc_msg, download_sections=download_sections)

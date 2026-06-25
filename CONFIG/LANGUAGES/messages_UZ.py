@@ -1662,6 +1662,9 @@ Ko'proq ma'lumot: /playlist"""
     AA_MKV_BUTTON_MSG = "✅ MKV"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Keyinroq urinib ko'ring."
@@ -1708,6 +1711,9 @@ Ko'proq ma'lumot: /playlist"""
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: YOQILGAN"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: O'CHIRILGAN"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "

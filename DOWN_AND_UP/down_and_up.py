@@ -3251,12 +3251,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             _height = info_dict.get('height') if info_dict else None
             _width = info_dict.get('width') if info_dict else None
             _vcodec = info_dict.get('vcodec') if info_dict else None
+            _dynamic_range = info_dict.get('dynamic_range') if info_dict else None
             if not _vcodec and info_dict and info_dict.get('requested_formats'):
                 for rf in info_dict.get('requested_formats', []):
                     if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
                         _vcodec = rf.get('vcodec')
-                        break
-            video_quality_codec = format_quality_codec(_height, _width, _vcodec)
+                    if not _dynamic_range and rf.get('dynamic_range'):
+                        _dynamic_range = rf.get('dynamic_range')
+                # Get vcodec from first video format if not yet found
+                if not _vcodec:
+                    for rf in info_dict.get('requested_formats', []):
+                        if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
+                            _vcodec = rf.get('vcodec')
+                            break
+            video_quality_codec = format_quality_codec(_height, _width, _vcodec, _dynamic_range)
 
            # If rename_name is not set, set it equal to video_title
             if rename_name is None:
