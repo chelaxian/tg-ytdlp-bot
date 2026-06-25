@@ -6,6 +6,7 @@ class CommandsConfig(object):
     #######################################################
     DOWNLOAD_COOKIE_COMMAND = "/cookie"
     SUBS_COMMAND = "/subs"
+    DUBS_COMMAND = "/dubs"
     CHECK_COOKIE_COMMAND = "/check_cookie"
     SAVE_AS_COOKIE_COMMAND = "/save_as_cookie"
     AUDIO_COMMAND = "/audio"

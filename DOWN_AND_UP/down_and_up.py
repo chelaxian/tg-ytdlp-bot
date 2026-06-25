@@ -462,15 +462,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     
     # Check for dubs (audio tracks) in Always Ask mode
     has_dubs = False
-    if is_always_ask_mode and is_youtube_url(url):
+    if is_youtube_url(url):
         try:
             from DOWN_AND_UP.always_ask_menu import get_filters
             filters_state = get_filters(user_id)
+            # Apply persistent /dubs preference (does nothing if not set or manually overridden)
+            try:
+                from COMMANDS.dubs_cmd import apply_dubs_preference
+                filters_state = apply_dubs_preference(user_id, filters_state)
+            except Exception:
+                pass
             audio_all_dubs = filters_state.get("audio_all_dubs", False)
             selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
             if audio_all_dubs or selected_audio_langs:
                 has_dubs = True
-                logger.info(f"Always Ask mode: dubs detected - audio_all_dubs={audio_all_dubs}, selected_audio_langs={selected_audio_langs}")
+                logger.info(f"Dubs detected - audio_all_dubs={audio_all_dubs}, selected_audio_langs={selected_audio_langs}")
         except Exception as e:
             logger.warning(f"Error checking for dubs: {e}")
         subs_all_selected = False
@@ -3245,12 +3251,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             _height = info_dict.get('height') if info_dict else None
             _width = info_dict.get('width') if info_dict else None
             _vcodec = info_dict.get('vcodec') if info_dict else None
+            _dynamic_range = info_dict.get('dynamic_range') if info_dict else None
             if not _vcodec and info_dict and info_dict.get('requested_formats'):
                 for rf in info_dict.get('requested_formats', []):
                     if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
                         _vcodec = rf.get('vcodec')
-                        break
-            video_quality_codec = format_quality_codec(_height, _width, _vcodec)
+                    if not _dynamic_range and rf.get('dynamic_range'):
+                        _dynamic_range = rf.get('dynamic_range')
+                # Get vcodec from first video format if not yet found
+                if not _vcodec:
+                    for rf in info_dict.get('requested_formats', []):
+                        if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
+                            _vcodec = rf.get('vcodec')
+                            break
+            video_quality_codec = format_quality_codec(_height, _width, _vcodec, _dynamic_range)
 
            # If rename_name is not set, set it equal to video_title
             if rename_name is None:

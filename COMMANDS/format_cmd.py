@@ -27,7 +27,8 @@ def _prefs_path(user_id):
 def _default_prefs():
     # codec: avc1 | av01 | vp9
     # mkv: True -> remux to mkv container, False -> default to mp4
-    return {"codec": "avc1", "mkv": False}
+    # hdr: True -> prefer HDR format, False -> default to SDR
+    return {"codec": "avc1", "mkv": False, "hdr": False}
 
 def parse_quality_argument(quality_arg):
     """
@@ -76,6 +77,7 @@ def load_user_prefs(user_id):
                 data.setdefault("codec", "avc1")
                 # Backward compatibility: migrate from old 'webm' to new 'mkv' (default OFF)
                 data.setdefault("mkv", False)
+                data.setdefault("hdr", False)
                 return data
     except Exception:
         pass
@@ -121,6 +123,29 @@ def get_session_mkv_override(user_id):
 
 def clear_session_mkv_override(user_id):
     _SESSION_MKV_OVERRIDE.pop(str(user_id), None)
+
+# HDR preference functions (session-scoped like mkv)
+_SESSION_HDR_OVERRIDE = {}
+
+def get_user_hdr_preference(user_id):
+    # Session override takes precedence
+    key = str(user_id)
+    if key in _SESSION_HDR_OVERRIDE:
+        return bool(_SESSION_HDR_OVERRIDE[key])
+    prefs = load_user_prefs(user_id)
+    return bool(prefs.get("hdr", False))
+
+def toggle_user_hdr_preference(user_id):
+    prefs = load_user_prefs(user_id)
+    prefs["hdr"] = not bool(prefs.get("hdr", False))
+    save_user_prefs(user_id, prefs)
+    return prefs["hdr"]
+
+def set_session_hdr_override(user_id, value):
+    _SESSION_HDR_OVERRIDE[str(user_id)] = bool(value)
+
+def clear_session_hdr_override(user_id):
+    _SESSION_HDR_OVERRIDE.pop(str(user_id), None)
 
 # Get app instance for decorators
 app = get_app()
@@ -284,18 +309,20 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_CUSTOM_HINT_SENT_LOG_MSG)
         return
 
-    # If the Others button is pressed - we display the second set of options
+# If the Others button is pressed - we display the second set of options
     if data == "others":
         # Get current codec preference
         current_codec = get_user_codec_preference(user_id)
         mkv_on = get_user_mkv_preference(user_id)
-        
+        hdr_on = get_user_hdr_preference(user_id)
+
         # Create codec selection buttons with active state indicators
         avc1_button = safe_get_messages(user_id).FORMAT_AVC1_BUTTON_MSG if current_codec == "avc1" else safe_get_messages(user_id).FORMAT_AVC1_BUTTON_INACTIVE_MSG
         av01_button = safe_get_messages(user_id).FORMAT_AV01_BUTTON_MSG if current_codec == "av01" else safe_get_messages(user_id).FORMAT_AV01_BUTTON_INACTIVE_MSG
         vp9_button = safe_get_messages(user_id).FORMAT_VP9_BUTTON_MSG if current_codec == "vp9" else safe_get_messages(user_id).FORMAT_VP9_BUTTON_INACTIVE_MSG
         mkv_button = safe_get_messages(user_id).FORMAT_MKV_ON_BUTTON_MSG if mkv_on else safe_get_messages(user_id).FORMAT_MKV_OFF_BUTTON_MSG
-        
+        hdr_button = safe_get_messages(user_id).FORMAT_HDR_ON_BUTTON_MSG if hdr_on else safe_get_messages(user_id).FORMAT_HDR_OFF_BUTTON_MSG
+
         full_res_keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"),
@@ -314,10 +341,13 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
             ],
             [
                 InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"),
-                InlineKeyboardButton(av01_button, callback_data="format_codec|av01"),
-                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"),
+                InlineKeyboardButton(av01_button, callback_data="format_codec|av01")
             ],
-            [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+            [
+                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"),
+                InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")
+            ],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).FORMAT_RESOLUTION_MENU_MSG, reply_markup=full_res_keyboard)
         try:
@@ -431,6 +461,15 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
     else:
         chosen_format = data
 
+    # Apply HDR preference if enabled (prepend HDR selectors before the codec/quality format)
+    hdr_on = get_user_hdr_preference(user_id)
+    if hdr_on:
+        # Prepend HDR-preferring selectors with fallback to the chosen format
+        hdr_pref = "bv*[dynamic_range=hdr]+ba"
+        hdr_fallback = "/bv*[vcodec*=vp9.2]+ba/bv*[vcodec*=av01]+ba/bv+ba/best"
+        chosen_format = f"{hdr_pref}{hdr_fallback}/{chosen_format}"
+        logger.info(f"HDR preference ON: prepending HDR selectors to format {chosen_format}")
+
     # Save The Selected Format
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
@@ -463,15 +502,17 @@ def format_codec_callback(app, callback_query):
     if data in ["avc1", "av01", "vp9"]:
         set_user_codec_preference(user_id, data)
         callback_query.answer(safe_get_messages(user_id).FORMAT_CODEC_SET_MSG.format(codec=data.upper()))
-        
+
         # Refresh the menu to show updated codec selection
         current_codec = get_user_codec_preference(user_id)
         mkv_on = get_user_mkv_preference(user_id)
+        hdr_on = get_user_hdr_preference(user_id)
         avc1_button = safe_get_messages(user_id).FORMAT_AVC1_BUTTON_MSG if current_codec == "avc1" else safe_get_messages(user_id).FORMAT_AVC1_BUTTON_INACTIVE_MSG
         av01_button = safe_get_messages(user_id).FORMAT_AV01_BUTTON_MSG if current_codec == "av01" else safe_get_messages(user_id).FORMAT_AV01_BUTTON_INACTIVE_MSG
         vp9_button = safe_get_messages(user_id).FORMAT_VP9_BUTTON_MSG if current_codec == "vp9" else safe_get_messages(user_id).FORMAT_VP9_BUTTON_INACTIVE_MSG
         mkv_button = safe_get_messages(user_id).FORMAT_MKV_ON_BUTTON_MSG if mkv_on else safe_get_messages(user_id).FORMAT_MKV_OFF_BUTTON_MSG
-        
+        hdr_button = safe_get_messages(user_id).FORMAT_HDR_ON_BUTTON_MSG if hdr_on else safe_get_messages(user_id).FORMAT_HDR_OFF_BUTTON_MSG
+
         full_res_keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"),
@@ -490,10 +531,13 @@ def format_codec_callback(app, callback_query):
             ],
             [
                 InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"),
-                InlineKeyboardButton(av01_button, callback_data="format_codec|av01"),
-                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9")
+                InlineKeyboardButton(av01_button, callback_data="format_codec|av01")
             ],
-            [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+            [
+                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"),
+                InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")
+            ],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         try:
             callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)
@@ -510,16 +554,19 @@ def format_container_callback(app, callback_query):
         mkv_on = toggle_user_mkv_preference(user_id)
         # Re-render Others menu
         current_codec = get_user_codec_preference(user_id)
+        hdr_on = get_user_hdr_preference(user_id)
         avc1_button = safe_get_messages(user_id).FORMAT_AVC1_BUTTON_MSG if current_codec == "avc1" else safe_get_messages(user_id).FORMAT_AVC1_BUTTON_INACTIVE_MSG
         av01_button = safe_get_messages(user_id).FORMAT_AV01_BUTTON_MSG if current_codec == "av01" else safe_get_messages(user_id).FORMAT_AV01_BUTTON_INACTIVE_MSG
         vp9_button = safe_get_messages(user_id).FORMAT_VP9_BUTTON_MSG if current_codec == "vp9" else safe_get_messages(user_id).FORMAT_VP9_BUTTON_INACTIVE_MSG
         mkv_button = safe_get_messages(user_id).FORMAT_MKV_ON_BUTTON_MSG if mkv_on else safe_get_messages(user_id).FORMAT_MKV_OFF_BUTTON_MSG
+        hdr_button = safe_get_messages(user_id).FORMAT_HDR_ON_BUTTON_MSG if hdr_on else safe_get_messages(user_id).FORMAT_HDR_OFF_BUTTON_MSG
         full_res_keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"), InlineKeyboardButton("240p (426×240)", callback_data="format_option|bv240"), InlineKeyboardButton("360p (640×360)", callback_data="format_option|bv360")],
             [InlineKeyboardButton("480p (854×480)", callback_data="format_option|bv480"), InlineKeyboardButton("720p (1280×720)", callback_data="format_option|bv720"), InlineKeyboardButton("1080p (1920×1080)", callback_data="format_option|bv1080")],
             [InlineKeyboardButton("1440p (2560×1440)", callback_data="format_option|bv1440"), InlineKeyboardButton("2160p (3840×2160)", callback_data="format_option|bv2160"), InlineKeyboardButton("4320p (7680×4320)", callback_data="format_option|bv4320")],
-            [InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"), InlineKeyboardButton(av01_button, callback_data="format_codec|av01"), InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9")],
-            [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+            [InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"), InlineKeyboardButton(av01_button, callback_data="format_codec|av01")],
+            [InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         try:
             callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)
@@ -527,6 +574,32 @@ def format_container_callback(app, callback_query):
             pass
         try:
             callback_query.answer(safe_get_messages(user_id).FORMAT_MKV_TOGGLE_MSG.format(status='ON' if mkv_on else 'OFF'))
+        except Exception:
+            pass
+    elif data == "hdr_toggle":
+        hdr_on = toggle_user_hdr_preference(user_id)
+        # Re-render Others menu
+        current_codec = get_user_codec_preference(user_id)
+        mkv_on = get_user_mkv_preference(user_id)
+        avc1_button = safe_get_messages(user_id).FORMAT_AVC1_BUTTON_MSG if current_codec == "avc1" else safe_get_messages(user_id).FORMAT_AVC1_BUTTON_INACTIVE_MSG
+        av01_button = safe_get_messages(user_id).FORMAT_AV01_BUTTON_MSG if current_codec == "av01" else safe_get_messages(user_id).FORMAT_AV01_BUTTON_INACTIVE_MSG
+        vp9_button = safe_get_messages(user_id).FORMAT_VP9_BUTTON_MSG if current_codec == "vp9" else safe_get_messages(user_id).FORMAT_VP9_BUTTON_INACTIVE_MSG
+        mkv_button = safe_get_messages(user_id).FORMAT_MKV_ON_BUTTON_MSG if mkv_on else safe_get_messages(user_id).FORMAT_MKV_OFF_BUTTON_MSG
+        hdr_button = safe_get_messages(user_id).FORMAT_HDR_ON_BUTTON_MSG if hdr_on else safe_get_messages(user_id).FORMAT_HDR_OFF_BUTTON_MSG
+        full_res_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"), InlineKeyboardButton("240p (426×240)", callback_data="format_option|bv240"), InlineKeyboardButton("360p (640×360)", callback_data="format_option|bv360")],
+            [InlineKeyboardButton("480p (854×480)", callback_data="format_option|bv480"), InlineKeyboardButton("720p (1280×720)", callback_data="format_option|bv720"), InlineKeyboardButton("1080p (1920×1080)", callback_data="format_option|bv1080")],
+            [InlineKeyboardButton("1440p (2560×1440)", callback_data="format_option|bv1440"), InlineKeyboardButton("2160p (3840×2160)", callback_data="format_option|bv2160"), InlineKeyboardButton("4320p (7680×4320)", callback_data="format_option|bv4320")],
+            [InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"), InlineKeyboardButton(av01_button, callback_data="format_codec|av01")],
+            [InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+        ])
+        try:
+            callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)
+        except Exception:
+            pass
+        try:
+            callback_query.answer(safe_get_messages(user_id).FORMAT_HDR_TOGGLE_MSG.format(status='ON' if hdr_on else 'OFF'))
         except Exception:
             pass
 

@@ -1661,6 +1661,9 @@ class Messages(object):
     AA_MKV_BUTTON_MSG = "✅ MKV"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Лимит флуда. Попробуйте позже."
@@ -1705,6 +1708,9 @@ class Messages(object):
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ВКЛ"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: ВЫКЛ"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2223,6 +2229,7 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Изменить размер части разделения видео"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Скачать видео как аудио"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Настройки языка субтитров"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - Язык озвучки (аудио) по умолчанию"
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Как скачивать плейлисты"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Скачивать изображения через gallery-dl"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Показать ваши #теги"

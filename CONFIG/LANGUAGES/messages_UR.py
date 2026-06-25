@@ -1663,6 +1663,9 @@ Use:
     AA_MKV_BUTTON_MSG = "✅ ایم کے وی"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood کی حد۔ بعد میں کوشش کریں۔"
@@ -1709,6 +1712,9 @@ Use:
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ON"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: OFF"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts 
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2222,6 +2228,7 @@ Use:
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - ویڈیو پارٹ سائز تبدیل کریں"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ویڈیو کو آڈیو کے طور پر ڈاؤن لوڈ کریں"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - سب ٹائٹل زبان کی ترتیبات"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - ڈیفالٹ ڈب (آڈیو ٹریک) زبان"
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - پلے لسٹ کیسے ڈاؤن لوڈ کریں"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl کے ذریعے تصاویر ڈاؤن لوڈ کریں"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - اپنے #tags بھیجیں"
