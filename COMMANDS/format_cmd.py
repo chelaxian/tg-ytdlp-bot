@@ -341,10 +341,13 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
             ],
             [
                 InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"),
-                InlineKeyboardButton(av01_button, callback_data="format_codec|av01"),
-                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"),
+                InlineKeyboardButton(av01_button, callback_data="format_codec|av01")
             ],
-            [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+            [
+                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"),
+                InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")
+            ],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).FORMAT_RESOLUTION_MENU_MSG, reply_markup=full_res_keyboard)
         try:
@@ -528,10 +531,13 @@ def format_codec_callback(app, callback_query):
             ],
             [
                 InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"),
-                InlineKeyboardButton(av01_button, callback_data="format_codec|av01"),
-                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9")
+                InlineKeyboardButton(av01_button, callback_data="format_codec|av01")
             ],
-            [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+            [
+                InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"),
+                InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")
+            ],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         try:
             callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)
@@ -558,8 +564,9 @@ def format_container_callback(app, callback_query):
             [InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"), InlineKeyboardButton("240p (426×240)", callback_data="format_option|bv240"), InlineKeyboardButton("360p (640×360)", callback_data="format_option|bv360")],
             [InlineKeyboardButton("480p (854×480)", callback_data="format_option|bv480"), InlineKeyboardButton("720p (1280×720)", callback_data="format_option|bv720"), InlineKeyboardButton("1080p (1920×1080)", callback_data="format_option|bv1080")],
             [InlineKeyboardButton("1440p (2560×1440)", callback_data="format_option|bv1440"), InlineKeyboardButton("2160p (3840×2160)", callback_data="format_option|bv2160"), InlineKeyboardButton("4320p (7680×4320)", callback_data="format_option|bv4320")],
-            [InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"), InlineKeyboardButton(av01_button, callback_data="format_codec|av01"), InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9")],
-            [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+            [InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"), InlineKeyboardButton(av01_button, callback_data="format_codec|av01")],
+            [InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         try:
             callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)
@@ -583,8 +590,9 @@ def format_container_callback(app, callback_query):
             [InlineKeyboardButton("144p (256×144)", callback_data="format_option|bv144"), InlineKeyboardButton("240p (426×240)", callback_data="format_option|bv240"), InlineKeyboardButton("360p (640×360)", callback_data="format_option|bv360")],
             [InlineKeyboardButton("480p (854×480)", callback_data="format_option|bv480"), InlineKeyboardButton("720p (1280×720)", callback_data="format_option|bv720"), InlineKeyboardButton("1080p (1920×1080)", callback_data="format_option|bv1080")],
             [InlineKeyboardButton("1440p (2560×1440)", callback_data="format_option|bv1440"), InlineKeyboardButton("2160p (3840×2160)", callback_data="format_option|bv2160"), InlineKeyboardButton("4320p (7680×4320)", callback_data="format_option|bv4320")],
-            [InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"), InlineKeyboardButton(av01_button, callback_data="format_codec|av01"), InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9")],
-            [InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
+            [InlineKeyboardButton(avc1_button, callback_data="format_codec|avc1"), InlineKeyboardButton(av01_button, callback_data="format_codec|av01")],
+            [InlineKeyboardButton(vp9_button, callback_data="format_codec|vp9"), InlineKeyboardButton(hdr_button, callback_data="format_container|hdr_toggle")],
+            [InlineKeyboardButton(mkv_button, callback_data="format_container|mkv_toggle"), InlineKeyboardButton(safe_get_messages(user_id).FORMAT_BACK_BUTTON_MSG, callback_data="format_option|back"), InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="format_option|close")]
         ])
         try:
             callback_query.edit_message_reply_markup(reply_markup=full_res_keyboard)

@@ -1871,8 +1871,11 @@ def ask_filter_callback(app, callback_query):
             except Exception:
                 pass
         elif kind == "hdr":
-            # Toggle HDR extra-quality preference
-            set_filter(user_id, "hdr", "on" if value != "on" else "off")
+            # Toggle HDR extra-quality preference; falls through to common path
+            # which rebuilds the menu in-place via ask_quality_menu(cb=...)
+            f = get_filters(user_id)
+            f["hdr"] = not f.get("hdr", False)
+            _ASK_FILTERS[str(user_id)] = f
         elif kind == "toggle":
             set_filter(user_id, kind, value)
             # Reset codec/ext to defaults when closing CODEC menu via Back
@@ -2218,11 +2221,13 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
         else (f"🚀{audio_format}" if is_cached_mp3 else f"🎧{audio_format}")
     )
     # Build rows based on whether format is fixed
-    # Codec row + HDR "extra quality" toggle (HDR only selectable when available)
-    codec_row = [InlineKeyboardButton(avc1_btn, callback_data="askf|codec|avc1"), InlineKeyboardButton(av01_btn, callback_data="askf|codec|av01"), InlineKeyboardButton(vp9_btn, callback_data="askf|codec|vp9")]
+    # Codec row split into 2 rows: AVC/AV1 on first row, VP9/HDR on second row
+    rows = [
+        [InlineKeyboardButton(avc1_btn, callback_data="askf|codec|avc1"), InlineKeyboardButton(av01_btn, callback_data="askf|codec|av01")],
+        [InlineKeyboardButton(vp9_btn, callback_data="askf|codec|vp9")]
+    ]
     if hdr_available:
-        codec_row.append(InlineKeyboardButton(hdr_btn, callback_data="askf|hdr|on" if not hdr_on else "askf|hdr|off"))
-    rows = [codec_row]
+        rows[1].append(InlineKeyboardButton(hdr_btn, callback_data="askf|hdr|toggle"))
     
     # Add format row - only show container buttons if not fixed via /args
     if user_fixed_format:
