@@ -462,15 +462,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     
     # Check for dubs (audio tracks) in Always Ask mode
     has_dubs = False
-    if is_always_ask_mode and is_youtube_url(url):
+    if is_youtube_url(url):
         try:
             from DOWN_AND_UP.always_ask_menu import get_filters
             filters_state = get_filters(user_id)
+            # Apply persistent /dubs preference (does nothing if not set or manually overridden)
+            try:
+                from COMMANDS.dubs_cmd import apply_dubs_preference
+                filters_state = apply_dubs_preference(user_id, filters_state)
+            except Exception:
+                pass
             audio_all_dubs = filters_state.get("audio_all_dubs", False)
             selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
             if audio_all_dubs or selected_audio_langs:
                 has_dubs = True
-                logger.info(f"Always Ask mode: dubs detected - audio_all_dubs={audio_all_dubs}, selected_audio_langs={selected_audio_langs}")
+                logger.info(f"Dubs detected - audio_all_dubs={audio_all_dubs}, selected_audio_langs={selected_audio_langs}")
         except Exception as e:
             logger.warning(f"Error checking for dubs: {e}")
         subs_all_selected = False

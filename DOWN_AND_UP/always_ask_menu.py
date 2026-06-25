@@ -7239,6 +7239,12 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         filters_state = {"codec": "avc1", "ext": "mp4"}
     sel_codec = filters_state.get("codec", "avc1")
     sel_ext = filters_state.get("ext", "mp4")
+    # Apply persistent /dubs preference (does nothing if not set or manually overridden)
+    try:
+        from COMMANDS.dubs_cmd import apply_dubs_preference
+        filters_state = apply_dubs_preference(user_id, filters_state)
+    except Exception:
+        pass
     sel_audio_lang = filters_state.get("audio_lang")
     audio_all_dubs = filters_state.get("audio_all_dubs", False)
     selected_audio_langs = filters_state.get("selected_audio_langs", []) or []

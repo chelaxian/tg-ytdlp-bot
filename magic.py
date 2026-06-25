@@ -142,6 +142,7 @@ from COMMANDS.proxy_cmd import *
 from COMMANDS.settings_cmd import *
 from COMMANDS.split_sizer import *
 from COMMANDS.subtitles_cmd import *
+from COMMANDS.dubs_cmd import *
 from COMMANDS.tag_cmd import *
 from COMMANDS.proxy_cmd import proxy_command
 from COMMANDS.cookies_cmd import download_cookie
