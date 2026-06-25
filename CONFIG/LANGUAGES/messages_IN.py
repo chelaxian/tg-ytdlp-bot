@@ -2227,6 +2227,11 @@ class Messages(object):
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - वीडियो को ऑडियो के रूप में डाउनलोड करें"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - उपशीर्षक भाषा सेटिंग्स"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - डिफ़ॉल्ट डब (ऑडियो ट्रैक) भाषा"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - प्लेलिस्ट कैसे डाउनलोड करें"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl के माध्यम से छवियां डाउनलोड करें"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - अपने #टैग भेजें"

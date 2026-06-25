@@ -2228,6 +2228,11 @@ class Messages(object):
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ビデオをオーディオとしてダウンロード"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - 字幕言語設定"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - デフォルトのダビング（音声トラック）言語"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - プレイリストのダウンロード方法"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl 経由で画像をダウンロード"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - #tags を送信します"

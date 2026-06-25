@@ -2228,6 +2228,11 @@ class Messages(object):
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ভিডিওকে অডিও হিসাবে ডাউনলোড করুন"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - সাবটাইটেল ভাষা সেটিংস"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - ডিফল্ট ডাব (অডিও ট্র্যাক) ভাষা"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - প্লেলিস্ট ডাউনলোড করার 방법"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl এর মাধ্যমে ছবি ডাউনলোড করুন"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - আপনার #tags পাঠান"

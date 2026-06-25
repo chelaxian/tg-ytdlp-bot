@@ -2228,6 +2228,11 @@ class Messages(object):
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - دانلود ویدیو به عنوان صدا"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - تنظیمات زبان زیرنویس"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - زبان دوبله پیش‌فرض (تراک صوتی)"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - نحوه دانلود لیست‌های پخش"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - دانلود تصاویر از طریق gallery-dl"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - ارسال #تگ‌های شما"

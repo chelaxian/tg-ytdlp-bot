@@ -120,7 +120,7 @@ def dubs_command(app, message):
 
         if arg == "off":
             save_user_dubs_language(user_id, "OFF")
-            safe_send_message(user_id, "✅ Dubs disabled.", message=message)
+            safe_send_message(user_id, safe_get_messages(user_id).DUBS_DISABLED_MSG, message=message)
             send_to_logger(message, f"Dubs disabled by user {user_id}")
             return
 
@@ -131,11 +131,7 @@ def dubs_command(app, message):
             name = lang_info['name']
             safe_send_message(
                 user_id,
-                f"✅ Default dub language set to: {flag} {name}\n\n"
-                f"Audio tracks in this language will be automatically selected.\n"
-                f"Note: multiple audio tracks are embedded only in MKV format.\n\n"
-                f"Use <code>/dubs off</code> to disable.",
-                parse_mode=enums.ParseMode.HTML,
+                safe_get_messages(user_id).DUBS_LANGUAGE_SET_MSG.format(flag=flag, name=name),
                 message=message,
             )
             send_to_logger(message, f"Dubs language set to '{arg}' by user {user_id}")
@@ -160,13 +156,12 @@ def dubs_command(app, message):
         lang_info = LANGUAGES.get(current_lang, {"name": current_lang, "flag": "🌐"})
         flag = lang_info['flag']
         name = lang_info['name']
-        status_text = f"🗣 Current dub language: {flag} {name}"
+        status_text = safe_get_messages(user_id).DUBS_CURRENT_MSG.format(flag=flag, name=name)
     else:
-        status_text = "🗣 Dubs are currently disabled."
+        status_text = safe_get_messages(user_id).DUBS_NONE_MSG
 
     safe_send_message(
         user_id,
-        f"<b>Dubs Settings</b>\n\n"
         f"{status_text}\n\n"
         "<b>Quick commands:</b>\n"
         "• <code>/dubs en</code> - set default dub language\n"
