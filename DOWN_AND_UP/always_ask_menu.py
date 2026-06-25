@@ -4314,8 +4314,8 @@ def show_other_qualities_menu(app, callback_query, page=0):
                         'timestamp': datetime.now().isoformat(),
                         'formats': format_lines
                     }
-                    with open(cache_file, 'w', encoding='utf-8') as cf:
-                        json.dump(cache_data, cf, ensure_ascii=False, indent=2)
+                    from HELPERS.filesystem_hlp import atomic_write_json
+                    atomic_write_json(cache_file, cache_data)
                     logger.info(f"Cached {len(format_lines)} formats to {cache_file}")
                 except Exception as e:
                     logger.warning(f"Failed to cache formats: {e}")
@@ -5024,7 +5024,11 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 _write_flood_wait_file(user_id, e.value)
                 return
             except Exception as e:
-                logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
+                err_str = str(e)
+                if "MESSAGE_ID_INVALID" in err_str:
+                    logger.debug(f"[FLOOD-CHECK] edit_message_text MESSAGE_ID_INVALID (message already deleted): {e}")
+                else:
+                    logger.error(f"[FLOOD-CHECK] edit_message_text failed: {e}, proc_msg type={type(proc_msg)}")
             proc_msg = None
     except Exception:
         pass
