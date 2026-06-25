@@ -97,7 +97,8 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
             
             # Parse proxy line: 🇩🇪 Germany – 1.2.3.4:8080:username:password  or  🇩🇪 Germany – 1.2.3.4:8080  (no auth)
             # Format: [flag] Country – IP:PORT[:USER:PASSWORD]  (user/password optional for no-auth proxies)
-            match = re.match(r'[^\w]*([A-Za-z\s]+?)\s*[–-]\s*(\d+\.\d+\.\d+\.\d+):(\d+):([^:]*):(.*)', line)
+            # Country part accepts any Unicode letter (Türkiye, Côte d'Ivoire, Россия, 日本) — issue #317.
+            match = re.match(r'[^\w]*([^\W\d][\w\s]*?)\s*[–-]\s*(\d+\.\d+\.\d+\.\d+):(\d+):([^:]*):(.*)', line, re.UNICODE)
             if match:
                 country = match.group(1).strip()
                 ip = match.group(2)
@@ -127,7 +128,7 @@ def parse_proxy_file(file_path: str = "TXT/proxy.txt") -> List[Dict]:
                 )
             else:
                 # No-auth format: 🇩🇪 Germany – 1.2.3.4:8080
-                match_no_auth = re.match(r'[^\w]*([A-Za-z\s]+?)\s*[–-]\s*(\d+\.\d+\.\d+\.\d+):(\d+)\s*$', line)
+                match_no_auth = re.match(r'[^\w]*([^\W\d][\w\s]*?)\s*[–-]\s*(\d+\.\d+\.\d+\.\d+):(\d+)\s*$', line, re.UNICODE)
                 if match_no_auth:
                     country = match_no_auth.group(1).strip()
                     ip = match_no_auth.group(2)

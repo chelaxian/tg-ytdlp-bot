@@ -5,6 +5,7 @@ from CONFIG.logger_msg import LoggerMsg
 from HELPERS.logger import logger, get_log_channel
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors import UserNotParticipant
 import os
 from HELPERS.safe_messeger import safe_send_message
 from CONFIG.limits import LimitsConfig
@@ -152,6 +153,12 @@ def is_user_in_channel(app, message):
             logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_IS_MEMBER_LOG_MSG.format(user_id=message.chat.id))
             return True
 
+        logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_NOT_MEMBER_LOG_MSG.format(user_id=message.chat.id))
+        _send_subscribe_prompt(message.chat.id)
+        return False
+
+    except UserNotParticipant:
+        # Expected behavior: user is not a member of the channel. This is not an error.
         logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_NOT_MEMBER_LOG_MSG.format(user_id=message.chat.id))
         _send_subscribe_prompt(message.chat.id)
         return False

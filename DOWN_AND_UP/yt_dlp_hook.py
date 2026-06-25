@@ -13,6 +13,30 @@ from HELPERS.pot_helper import add_pot_to_ytdl_opts
 from CONFIG.limits import LimitsConfig
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
 
+
+# Permanent, non-transient errors that cannot be fixed by retries, cookies,
+# proxy rotation or impersonation. Detecting them early prevents expensive
+# multi-strategy retry storms (issues #323, #329, #330).
+_RATE_LIMIT_INDICATORS = (
+    'rate limit', 'rate-limit', 'rate-limited', 'too many requests',
+    '429', 'has been rate-limited',
+)
+_PERMANENT_UNAVAILABLE_INDICATORS = (
+    'does not exist', 'not exist', 'playlist does not exist',
+    'video does not exist', 'channel does not exist', 'user does not exist',
+    'no longer available', 'video unavailable', 'private video',
+    'this content isn\'t available', 'this content is not available',
+)
+
+
+def _is_rate_limited(error_lower):
+    return any(k in error_lower for k in _RATE_LIMIT_INDICATORS)
+
+
+def _is_permanent_unavailable(error_lower):
+    return any(k in error_lower for k in _PERMANENT_UNAVAILABLE_INDICATORS)
+
+
 def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already_checked=False, use_proxy=False, playlist_end_index=None):
     # ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
     logger.info(f"🔍 [DEBUG] get_video_formats вызвана с параметрами:")
@@ -341,11 +365,31 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
         except yt_dlp.utils.DownloadError as e:
             error_text = str(e)
             logger.error(f"DownloadError in get_video_formats: {error_text}")
-            
+            _error_lower = error_text.lower()
+
             # Check for live stream detection (only if detection is enabled)
             if "LIVE_STREAM_DETECTED" in error_text and LimitsConfig.ENABLE_LIVE_STREAM_BLOCKING:
                 return {'error': 'LIVE_STREAM_DETECTED'}
-            
+
+            # Permanent, non-transient errors: abort immediately instead of running
+            # expensive proxy/impersonate retry storms (issues #323, #329, #330).
+            if _is_rate_limited(_error_lower):
+                logger.warning(f"Rate-limit detected, aborting retries for {url}: {error_text[:200]}")
+                return {'error': 'RATE_LIMITED', 'original_error': error_text}
+
+            if _is_permanent_unavailable(_error_lower):
+                logger.warning(f"Permanent unavailable error, no retries for {url}: {error_text[:200]}")
+                return {'error': 'PERMANENT_UNAVAILABLE', 'original_error': error_text}
+
+            # Unsupported URL: only allow gallery-dl fallback (non-YouTube); otherwise bail out
+            # without proxy/impersonate retries which cannot help unsupported domains (issue #323).
+            if 'unsupported url' in _error_lower:
+                if should_fallback_to_gallery_dl(error_text, url):
+                    logger.info(f"Unsupported URL — deferring to gallery-dl fallback for {url}")
+                    return {'error': 'FALLBACK_TO_GALLERY_DL', 'original_error': error_text}
+                logger.warning(f"Unsupported URL, no retries for {url}: {error_text[:200]}")
+                return {'error': 'UNSUPPORTED_URL', 'original_error': error_text}
+
             # Check for YouTube cookie errors and try automatic retry
             if is_youtube_url(url) and user_id is not None:
                 from COMMANDS.cookies_cmd import is_youtube_cookie_error, is_youtube_geo_error, retry_download_with_different_cookies, retry_download_with_proxy
@@ -369,10 +413,22 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
             elif not is_youtube_url(url) and user_id is not None:
                 # For non-YouTube sites, try cookie fallback
                 logger.info(f"Non-YouTube error detected in get_video_formats for user {user_id}, attempting cookie fallback")
-                
+
                 # Check if error is cookie-related
                 error_str = error_text.lower()
-                if any(keyword in error_str for keyword in ['cookie', 'auth', 'login', 'sign in', '403', '401', 'forbidden', 'unauthorized']):
+                # HTTP 401 from access-restricted hosts (Dailymotion/Vimeo) is a permanent
+                # access-denied/API change, NOT a cookie problem — skip cookie fallback to avoid
+                # a 4-strategy retry storm that just re-receives 401 (issue #318).
+                _host = ''
+                try:
+                    from urllib.parse import urlparse
+                    _host = (urlparse(url).hostname or '').lower()
+                except Exception:
+                    pass
+                _access_denied_host = any(h in _host for h in ('dailymotion.com', 'vimeo.com'))
+                if _access_denied_host and ('401' in error_str or 'unauthorized' in error_str):
+                    logger.info(f"401/Unauthorized from access-restricted host {_host} for {url} — skipping cookie fallback (permanent access error)")
+                elif any(keyword in error_str for keyword in ['cookie', 'auth', 'login', 'sign in', '403', '401', 'forbidden', 'unauthorized']):
                     logger.info(f"Error appears to be cookie-related for {url}, trying cookie fallback")
                     
                     # Try cookie fallback with new system
