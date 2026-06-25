@@ -5277,7 +5277,24 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     reply_parameters=ReplyParameters(message_id=message.id)
                 )
                 return
-            
+
+            # Handle permanent / unsupported / rate-limit errors returned by
+            # get_video_formats so the user gets a clean message instead of a
+            # broken or empty Always Ask menu (issues #329, #339).
+            if isinstance(info, dict) and info.get('error') in (
+                'UNSUPPORTED_URL', 'PERMANENT_UNAVAILABLE', 'RATE_LIMITED'
+            ):
+                _ask_err_kind = info.get('error')
+                logger.warning(f"ask_quality_menu: get_video_formats returned {_ask_err_kind} for {url}")
+                if _ask_err_kind == 'PERMANENT_UNAVAILABLE':
+                    _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
+                elif _ask_err_kind == 'RATE_LIMITED':
+                    _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
+                else:
+                    _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_UNSUPPORTED_URL_MSG
+                send_error_to_user(message, f"❌ <b>{_ask_err_text}</b>")
+                return
+
             # Save minimal info to cache
             try:
                 save_ask_info(user_id, url, info)
