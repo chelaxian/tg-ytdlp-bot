@@ -2220,6 +2220,7 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - Бөлінген бейне бөлігінің өлшемін өзгерту"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Бейнені аудио ретінде жүктеу"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Субтитр тілі баптаулары"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - Negizgi dublyazh (audio zholshygy) tili"
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Плейлистерді қалай жүктеуге болады"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl арқылы суреттерді жүктеу"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - #тегтеріңізді жіберу"

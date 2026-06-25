@@ -2227,6 +2227,7 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - 分割ビデオ部分のサイズを変更します"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ビデオをオーディオとしてダウンロード"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - 字幕言語設定"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - デフォルトのダビング（音声トラック）言語"
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - プレイリストのダウンロード方法"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl 経由で画像をダウンロード"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - #tags を送信します"

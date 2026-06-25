@@ -203,6 +203,7 @@ safe_get_messages(user_id).SETTINGS_COOKIES_TITLE_MSG,
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_SPLIT_CMD_BUTTON_MSG, callback_data="settings__cmd__split")],
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_AUDIO_CMD_BUTTON_MSG, callback_data="settings__cmd__audio")],
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_SUBS_CMD_BUTTON_MSG, callback_data="settings__cmd__subs")],
+            [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_DUBS_CMD_BUTTON_MSG, callback_data="settings__cmd__dubs")],
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_PLAYLIST_CMD_BUTTON_MSG, callback_data="settings__cmd__playlist")],
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_IMG_CMD_BUTTON_MSG, callback_data="settings__cmd__img")],
             [InlineKeyboardButton(safe_get_messages(user_id).SUBS_BACK_BUTTON_MSG, callback_data="settings__menu__back")]
@@ -417,6 +418,24 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
     if data == "subs":
         try:
             subs_command(app, fake_message("/subs", user_id))
+        except FloodWait as e:
+            from HELPERS.safe_messeger import _write_flood_wait_file
+            _write_flood_wait_file(user_id, e.value)
+            callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
+            return
+
+        try:
+            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+        except Exception:
+            pass
+
+        return
+
+    # /Dubs Command
+    if data == "dubs":
+        try:
+            from COMMANDS.dubs_cmd import dubs_command
+            dubs_command(app, fake_message("/dubs", user_id))
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)

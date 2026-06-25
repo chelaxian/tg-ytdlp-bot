@@ -2226,6 +2226,7 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - विभाजित वीडियो भाग आकार बदलें"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - वीडियो को ऑडियो के रूप में डाउनलोड करें"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - उपशीर्षक भाषा सेटिंग्स"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - डिफ़ॉल्ट डब (ऑडियो ट्रैक) भाषा"
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - प्लेलिस्ट कैसे डाउनलोड करें"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl के माध्यम से छवियां डाउनलोड करें"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - अपने #टैग भेजें"

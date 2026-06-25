@@ -2228,6 +2228,7 @@ Use:
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - ویڈیو پارٹ سائز تبدیل کریں"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ویڈیو کو آڈیو کے طور پر ڈاؤن لوڈ کریں"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - سب ٹائٹل زبان کی ترتیبات"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - ڈیفالٹ ڈب (آڈیو ٹریک) زبان"
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - پلے لسٹ کیسے ڈاؤن لوڈ کریں"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl کے ذریعے تصاویر ڈاؤن لوڈ کریں"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - اپنے #tags بھیجیں"

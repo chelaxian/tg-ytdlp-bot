@@ -2233,6 +2233,7 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - تغيير حجم جزء الفيديو المقسم"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - تحميل الفيديو كصوت"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - إعدادات لغة الترجمات"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - لغة الدبلجة الافتراضية (مسار صوتي)"
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - كيفية تحميل قوائم التشغيل"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - تحميل الصور عبر gallery-dl"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - إرسال علاماتك #"
