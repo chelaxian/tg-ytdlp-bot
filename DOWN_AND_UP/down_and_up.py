@@ -3244,11 +3244,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # --- Use new centralized function for all tags ---
             tags_list = tags_text.split() if tags_text else []
             tags_text_final = generate_final_tags(url, tags_list, info_dict)
-            # Add HDR tag if video has HDR
-            if info_dict and str(info_dict.get('dynamic_range', '')).lower() == 'hdr':
-                if '#hdr' not in tags_text_final.lower():
-                    tags_text_final = f"{tags_text_final} #HDR"
-            save_user_tags(user_id, tags_text_final.split())
 
             # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1"); quality = min(width, height)
             from HELPERS.caption import format_quality_codec, truncate_caption
@@ -3256,18 +3251,31 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             _width = info_dict.get('width') if info_dict else None
             _vcodec = info_dict.get('vcodec') if info_dict else None
             _dynamic_range = info_dict.get('dynamic_range') if info_dict else None
-            if not _vcodec and info_dict and info_dict.get('requested_formats'):
-                for rf in info_dict.get('requested_formats', []):
-                    if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
-                        _vcodec = rf.get('vcodec')
-                    if not _dynamic_range and rf.get('dynamic_range'):
-                        _dynamic_range = rf.get('dynamic_range')
-                # Get vcodec from first video format if not yet found
+            if info_dict and info_dict.get('requested_formats'):
+                # Search requested_formats for vcodec (video stream) independently
                 if not _vcodec:
                     for rf in info_dict.get('requested_formats', []):
                         if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
                             _vcodec = rf.get('vcodec')
                             break
+                # Search requested_formats for dynamic_range independently of vcodec
+                if not _dynamic_range:
+                    for rf in info_dict.get('requested_formats', []):
+                        if rf.get('dynamic_range'):
+                            _dynamic_range = rf.get('dynamic_range')
+                            break
+            # Add HDR tag if video has HDR
+            # Fallback: detect HDR by vcodec (vp9.2 = VP9 Profile 2 HDR;
+            # av01 with 10-bit = HDR) when dynamic_range field is missing
+            _is_hdr = bool(_dynamic_range and str(_dynamic_range).lower() == 'hdr')
+            if not _is_hdr and _vcodec:
+                _vc = str(_vcodec).lower()
+                if 'vp9.2' in _vc or ('av01' in _vc and '.10.' in _vc):
+                    _is_hdr = True
+                    _dynamic_range = 'hdr'
+            if _is_hdr and '#hdr' not in tags_text_final.lower():
+                tags_text_final = f"{tags_text_final} #HDR"
+            save_user_tags(user_id, tags_text_final.split())
             video_quality_codec = format_quality_codec(_height, _width, _vcodec, _dynamic_range)
 
            # If rename_name is not set, set it equal to video_title

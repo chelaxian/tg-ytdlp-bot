@@ -399,9 +399,22 @@ def get_filters(user_id):
     f = _ASK_FILTERS.get(str(user_id))
     if not f:
         # defaults: filters hidden to keep UI simple
-        f = {"codec": "avc1", "ext": "mp4", "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": [], "hdr": False}
+        # Sync codec/ext with /format preferences (format_prefs.json) so the
+        # Always Ask CODEC menu reflects what the user chose in /format Others.
+        _default_codec = "avc1"
+        _default_ext = "mp4"
+        _default_hdr = False
+        try:
+            from COMMANDS.format_cmd import get_user_codec_preference, get_user_mkv_preference, get_user_hdr_preference
+            _default_codec = get_user_codec_preference(user_id) or "avc1"
+            if get_user_mkv_preference(user_id):
+                _default_ext = "mkv"
+            _default_hdr = get_user_hdr_preference(user_id)
+        except Exception as e:
+            logger.debug(f"get_filters: could not read /format prefs, using defaults: {e}")
+        f = {"codec": _default_codec, "ext": _default_ext, "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": [], "hdr": _default_hdr}
         _ASK_FILTERS[str(user_id)] = f
-        logger.info(f"[DEBUG] get_filters: created new default filters for user_id={user_id}")
+        logger.info(f"[DEBUG] get_filters: created new default filters for user_id={user_id} (synced from /format: codec={_default_codec}, ext={_default_ext}, hdr={_default_hdr})")
     else:
         logger.info(f"[DEBUG] get_filters: retrieved existing filters for user_id={user_id}, selected_subs_langs={f.get('selected_subs_langs', [])}, subs_all_selected={f.get('subs_all_selected', False)}")
     return f
@@ -4983,6 +4996,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 clear_trim_state(user_id, url)
             # Note: We don't clear filters here because user might have set /subs command
             # Filters are cleared only on /clean or after successful download
+            # Sync codec/ext/hdr with /format preferences so CODEC menu reflects them
+            try:
+                from COMMANDS.format_cmd import get_user_codec_preference, get_user_mkv_preference, get_user_hdr_preference
+                f = get_filters(user_id)
+                f["codec"] = get_user_codec_preference(user_id) or "avc1"
+                f["ext"] = "mkv" if get_user_mkv_preference(user_id) else "mp4"
+                f["hdr"] = bool(get_user_hdr_preference(user_id))
+                _ASK_FILTERS[str(user_id)] = f
+                logger.info(f"[SYNC] Always Ask codec/ext/hdr synced from /format: codec={f['codec']}, ext={f['ext']}, hdr={f['hdr']}")
+            except Exception as sync_err:
+                logger.debug(f"[SYNC] Could not sync Always Ask filters from /format: {sync_err}")
         except Exception as e:
             logger.error(f"Failed to clear states before showing menu: {e}")
     
