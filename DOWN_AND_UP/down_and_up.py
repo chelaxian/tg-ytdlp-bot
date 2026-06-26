@@ -3244,6 +3244,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # --- Use new centralized function for all tags ---
             tags_list = tags_text.split() if tags_text else []
             tags_text_final = generate_final_tags(url, tags_list, info_dict)
+            # Add HDR tag if video has HDR
+            if info_dict and str(info_dict.get('dynamic_range', '')).lower() == 'hdr':
+                if '#hdr' not in tags_text_final.lower():
+                    tags_text_final = f"{tags_text_final} #HDR"
             save_user_tags(user_id, tags_text_final.split())
 
             # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1"); quality = min(width, height)
