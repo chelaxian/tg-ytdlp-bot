@@ -1976,44 +1976,50 @@ def get_available_formats_from_cache(user_id, url, download_dir=None):
         return {"codecs": set(), "formats": set(), "hdr": False}
 
 def filter_qualities_by_codec_format(user_id, url, qualities, download_dir=None):
-    """Filter qualities based on selected codec and format"""
+    """Filter qualities based on selected codec and format (and HDR if enabled)"""
     try:
         # Get current filters
         f = get_filters(user_id)
         selected_codec = f.get("codec", "avc1")
         selected_format = f.get("ext", "mp4")
-        
+        selected_hdr = bool(f.get("hdr", False))
+
         # Get available formats from cache
         user_download_dir = get_user_download_dir(user_id) if download_dir is None else download_dir
         available_formats = get_available_formats_from_cache(user_id, url, user_download_dir)
-        
+
         # If no cache or no specific formats available, return all qualities
         if not available_formats["codecs"] and not available_formats["formats"]:
             return qualities
-        
+
+        # If HDR is requested but not available in this video, no qualities match
+        if selected_hdr and not available_formats.get("hdr"):
+            return []
+
         # Get all format lines from cache
         user_dir = os.path.join("users", str(user_id))
         cache_file = os.path.join(user_dir, _ASK_INFO_CACHE_FILE)
-        
+
         if not os.path.exists(cache_file):
             return qualities
-        
+
         with open(cache_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         if data.get('url') != url:
             return qualities
-        
+
         formats = data.get('formats', [])
         filtered_qualities = set()
-        
+
         for format_line in formats:
             extracted = extract_button_data(format_line)
-            
+
             # Check if this format matches selected codec and format
             has_codec = False
             has_format = False
-            
+            has_hdr = False
+
             for item in extracted:
                 # Check codec
                 if selected_codec == 'avc1' and item.lower() in ['avc1', 'avc', 'h264']:
@@ -2022,28 +2028,42 @@ def filter_qualities_by_codec_format(user_id, url, qualities, download_dir=None)
                     has_codec = True
                 elif selected_codec == 'vp9' and item.lower() in ['vp9', 'vp09']:
                     has_codec = True
-                
+
                 # Check format
                 if selected_format == 'mp4' and item.lower() == 'mp4':
                     has_format = True
                 elif selected_format == 'mkv' and item.lower() in ['mkv', 'webm', 'avi', 'mov', 'flv', 'wmv', '3gp', 'ogv', 'ts', 'mts', 'm2ts']:
                     has_format = True
-            
-            # If both codec and format match, extract quality
-            if has_codec and has_format:
+
+                # Check HDR marker
+                if item.strip().upper() == 'HDR':
+                    has_hdr = True
+
+            # Determine if this format line qualifies for the current filters.
+            # When HDR is on, require the HDR marker and ignore codec (HDR implies
+            # vp9.2/av01). When HDR is off, require matching codec + container.
+            if selected_hdr:
+                qualifies = has_hdr and has_format
+            else:
+                qualifies = has_codec and has_format
+
+            if qualifies:
                 for item in extracted:
                     # Look for quality patterns (e.g., 720p, 1080p)
                     if 'p' in item and any(char.isdigit() for char in item):
                         quality_match = re.search(r'(\d+p\d*)', item)
                         if quality_match:
                             filtered_qualities.add(quality_match.group(1))
-        
+
         # Return intersection of available qualities and filtered qualities
         if filtered_qualities:
             return [q for q in qualities if q in filtered_qualities]
+        elif selected_hdr:
+            # HDR was requested but no matching qualities found -> nothing to show
+            return []
         else:
             return qualities
-            
+
     except Exception as e:
         logger.warning(f"{LoggerMsg.ALWAYS_ASK_ERROR_FILTERING_QUALITIES_LOG_MSG}: {e}")
         return qualities
