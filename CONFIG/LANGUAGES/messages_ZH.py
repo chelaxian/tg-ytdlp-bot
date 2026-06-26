@@ -1662,6 +1662,9 @@ class Messages(object):
     AA_MKV_BUTTON_MSG = "✅ MKV"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ 洪水限制。请稍后再试。"
@@ -1708,6 +1711,9 @@ class Messages(object):
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV：开启"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV：关闭"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2221,6 +2227,13 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - 更改分割视频部分大小"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - 将视频下载为音频"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - 字幕语言设置"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - 默认配音（音轨）语言"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>配音（音轨）设置</b>\n\n{status_text}\n\n选择配音语言:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - 如何下载播放列表"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - 通过gallery-dl下载图像"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - 发送您的#标签"

@@ -1662,6 +1662,9 @@ class Messages(object):
     AA_MKV_BUTTON_MSG = "✅เอ็มเควี"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Try later."
@@ -1708,6 +1711,9 @@ class Messages(object):
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ON"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: OFF"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2221,6 +2227,13 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - เปลี่ยนขนาดส่วนวิดีโอที่แบ่ง"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ดาวน์โหลดวิดีโอเป็นเสียง"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - การตั้งค่าภาษาคำบรรยาย"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - ภาษาพากย์ (แทร็กเสียง) เริ่มต้น"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>การตั้งค่าพากย์เสียง (แทร็กเสียง)</b>\n\n{status_text}\n\nเลือกภาษาพากย์เสียง:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - วิธีดาวน์โหลดเพลย์ลิสต์"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - ดาวน์โหลดรูปภาพผ่าน gallery-dl"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - ส่ง #แท็กของคุณ"

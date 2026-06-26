@@ -1661,6 +1661,9 @@ class Messages(object):
     AA_MKV_BUTTON_MSG = "✅ MKV"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ फ्लड सीमा। बाद में प्रयास करें।"
@@ -1707,6 +1710,9 @@ class Messages(object):
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ON"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: OFF"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2220,6 +2226,13 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - विभाजित वीडियो भाग आकार बदलें"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - वीडियो को ऑडियो के रूप में डाउनलोड करें"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - उपशीर्षक भाषा सेटिंग्स"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - डिफ़ॉल्ट डब (ऑडियो ट्रैक) भाषा"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>डबिंग (ऑडियो ट्रैक) सेटिंग्स</b>\n\n{status_text}\n\nडबिंग भाषा चुनें:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - प्लेलिस्ट कैसे डाउनलोड करें"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl के माध्यम से छवियां डाउनलोड करें"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - अपने #टैग भेजें"

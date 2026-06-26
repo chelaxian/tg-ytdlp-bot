@@ -1662,6 +1662,9 @@ class Messages(object):
     AA_MKV_BUTTON_MSG = "✅MKV"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Try later."
@@ -1708,6 +1711,9 @@ class Messages(object):
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ON"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: OFF"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2221,6 +2227,13 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - 分割ビデオ部分のサイズを変更します"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ビデオをオーディオとしてダウンロード"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - 字幕言語設定"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - デフォルトのダビング（音声トラック）言語"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>吹き替え（音声トラック）設定</b>\n\n{status_text}\n\n吹き替え言語を選択:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - プレイリストのダウンロード方法"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl 経由で画像をダウンロード"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - #tags を送信します"
