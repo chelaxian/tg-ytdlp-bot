@@ -370,7 +370,7 @@ def url_distractor(app, message):
         elif mapped == Config.SUBS_COMMAND:
             from COMMANDS.subtitles_cmd import subs_command
             return subs_command(app, fake_msg)
-        elif mapped == Config.DUBS_COMMAND:
+        elif mapped == getattr(Config, 'DUBS_COMMAND', '/dubs'):
             from COMMANDS.dubs_cmd import dubs_command
             return dubs_command(app, fake_msg)
         elif mapped == Config.TAGS_COMMAND:
@@ -594,7 +594,7 @@ def url_distractor(app, message):
         return
 
     # /Dubs Command
-    if text.startswith(Config.DUBS_COMMAND):
+    if text.startswith(getattr(Config, 'DUBS_COMMAND', '/dubs')):
         from COMMANDS.dubs_cmd import dubs_command
         dubs_command(app, message)
         return
