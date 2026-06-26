@@ -100,6 +100,9 @@ def set_user_codec_preference(user_id, codec):
     prefs = load_user_prefs(user_id)
     prefs["codec"] = codec
     save_user_prefs(user_id, prefs)
+    # Clear session overrides so /format becomes the single source of truth
+    _SESSION_MKV_OVERRIDE.pop(str(user_id), None)
+    _SESSION_HDR_OVERRIDE.pop(str(user_id), None)
 
 def get_user_mkv_preference(user_id):
     # Session override takes precedence
@@ -113,6 +116,8 @@ def toggle_user_mkv_preference(user_id):
     prefs = load_user_prefs(user_id)
     prefs["mkv"] = not bool(prefs.get("mkv", False))
     save_user_prefs(user_id, prefs)
+    # Clear session override so persisted preference takes effect
+    _SESSION_MKV_OVERRIDE.pop(str(user_id), None)
     return prefs["mkv"]
 
 def set_session_mkv_override(user_id, value):
@@ -139,6 +144,8 @@ def toggle_user_hdr_preference(user_id):
     prefs = load_user_prefs(user_id)
     prefs["hdr"] = not bool(prefs.get("hdr", False))
     save_user_prefs(user_id, prefs)
+    # Clear session override so persisted preference takes effect
+    _SESSION_HDR_OVERRIDE.pop(str(user_id), None)
     return prefs["hdr"]
 
 def set_session_hdr_override(user_id, value):
@@ -182,7 +189,48 @@ def set_format(app, message):
     # If the additional text is transmitted, we save it as Custom Format or Quality
     if len(message.command) > 1:
         arg = message.text.split(" ", 1)[1].strip()
-        
+        arg_l = arg.lower()
+
+        # --- Codec / container / HDR toggle arguments ---
+        # These change persistent prefs without overwriting the quality in format.txt
+        if arg_l in ("hdr",):
+            new_val = toggle_user_hdr_preference(user_id)
+            _SESSION_HDR_OVERRIDE.pop(str(user_id), None)
+            safe_send_message(user_id, safe_get_messages(user_id).FORMAT_HDR_TOGGLE_MSG.format(status='ON' if new_val else 'OFF'), message=message)
+            send_to_logger(message, f"[format] HDR toggled to {new_val} for user {user_id}")
+            return
+        if arg_l in ("mkv",):
+            prefs = load_user_prefs(user_id)
+            prefs["mkv"] = True
+            save_user_prefs(user_id, prefs)
+            _SESSION_MKV_OVERRIDE.pop(str(user_id), None)
+            safe_send_message(user_id, safe_get_messages(user_id).FORMAT_MKV_TOGGLE_MSG.format(status='ON'), message=message)
+            send_to_logger(message, f"[format] MKV enabled for user {user_id}")
+            return
+        if arg_l in ("mp4",):
+            prefs = load_user_prefs(user_id)
+            prefs["mkv"] = False
+            save_user_prefs(user_id, prefs)
+            _SESSION_MKV_OVERRIDE.pop(str(user_id), None)
+            safe_send_message(user_id, safe_get_messages(user_id).FORMAT_MKV_TOGGLE_MSG.format(status='OFF'), message=message)
+            send_to_logger(message, f"[format] MP4 enabled (MKV off) for user {user_id}")
+            return
+        if arg_l in ("av1", "av01"):
+            set_user_codec_preference(user_id, "av01")
+            safe_send_message(user_id, safe_get_messages(user_id).FORMAT_CODEC_SET_MSG.format(codec="AV1"), message=message)
+            send_to_logger(message, f"[format] codec set to av01 for user {user_id}")
+            return
+        if arg_l in ("avc", "avc1", "h264"):
+            set_user_codec_preference(user_id, "avc1")
+            safe_send_message(user_id, safe_get_messages(user_id).FORMAT_CODEC_SET_MSG.format(codec="AVC1"), message=message)
+            send_to_logger(message, f"[format] codec set to avc1 for user {user_id}")
+            return
+        if arg_l in ("vp9", "vp09"):
+            set_user_codec_preference(user_id, "vp9")
+            safe_send_message(user_id, safe_get_messages(user_id).FORMAT_CODEC_SET_MSG.format(codec="VP9"), message=message)
+            send_to_logger(message, f"[format] codec set to vp9 for user {user_id}")
+            return
+
         # Check for special arguments
         if arg.lower() == "ask":
             # Set to Always Ask mode
