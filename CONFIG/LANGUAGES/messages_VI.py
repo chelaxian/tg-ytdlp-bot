@@ -2232,6 +2232,7 @@ Tìm hiểu thêm: /playlist"""
     DUBS_DISABLED_MSG = "✅ Dubs disabled."
     DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
     DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Cài đặt lồng tiếng (rãnh âm thanh)</b>\n\n{status_text}\n\nChọn ngôn ngữ lồng tiếng:\n\n"
 
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Cách tải danh sách phát"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Tải hình ảnh qua gallery-dl"

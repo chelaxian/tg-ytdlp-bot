@@ -2225,6 +2225,7 @@ class Messages(object):
     DUBS_DISABLED_MSG = "✅ Dubs disabled."
     DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
     DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Дубляж (дыбыс жолшығы) параметрлері</b>\n\n{status_text}\n\nДубляж тілін таңдаңыз:\n\n"
 
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Плейлистерді қалай жүктеуге болады"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl арқылы суреттерді жүктеу"

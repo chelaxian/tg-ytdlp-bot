@@ -2232,6 +2232,7 @@ Más información: /playlist"""
     DUBS_DISABLED_MSG = "✅ Dubs disabled."
     DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
     DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Configuración de doblaje (pista de audio)</b>\n\n{status_text}\n\nSeleccionar idioma de doblaje:\n\n"
 
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Cómo descargar listas de reproducción"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Descargar imágenes vía gallery-dl"

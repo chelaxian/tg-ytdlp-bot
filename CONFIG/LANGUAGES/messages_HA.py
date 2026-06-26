@@ -2233,6 +2233,7 @@ Koyi ƙari: /playlist"""
     DUBS_DISABLED_MSG = "✅ Dubs disabled."
     DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
     DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Saitocin furen baki (waƙar sauti)</b>\n\n{status_text}\n\nZaɓi yaren furen baki:\n\n"
 
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ / lissafin waƙa - Yadda ake saukar da lissafin waƙa"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 / img - Zazzage hotuna ta hanyar gallery-dl"

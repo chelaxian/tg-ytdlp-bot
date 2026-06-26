@@ -2232,6 +2232,7 @@ class Messages(object):
     DUBS_DISABLED_MSG = "✅ Dubs disabled."
     DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
     DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>تنظیمات دوبله (قطعه صوتی)</b>\n\n{status_text}\n\nزبان دوبله را انتخاب کنید:\n\n"
 
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - نحوه دانلود لیست‌های پخش"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - دانلود تصاویر از طریق gallery-dl"

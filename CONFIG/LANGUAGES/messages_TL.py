@@ -2233,6 +2233,7 @@ Matuto pa: /playlist"""
     DUBS_DISABLED_MSG = "✅ Dubs disabled."
     DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
     DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Mga setting ng dubbing (audio track)</b>\n\n{status_text}\n\nPumili ng wika ng dubbing:\n\n"
 
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Paano i-download ang playlists"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - I-download ang images via gallery-dl"

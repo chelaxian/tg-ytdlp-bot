@@ -39,6 +39,7 @@ from COMMANDS.subtitles_cmd import (
 )
 from COMMANDS.split_sizer import get_user_split_size
 from COMMANDS.nsfw_cmd import should_apply_spoiler
+from COMMANDS.dubs_cmd import get_user_dubs_language
 
 from DATABASE.cache_db import (
     get_cached_qualities, get_cached_playlist_count, get_cached_playlist_videos, 
@@ -6263,21 +6264,32 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # --- Add subtitles and dubs count info ---
         subs_count_info = ""
         dubs_count_info = ""
+        fstate = get_filters(user_id)
         
-        # Check if subtitles are enabled and Always Ask mode is enabled for subs
-        if is_subs_enabled(user_id) and is_subs_always_ask(user_id):
+        # Check if subtitles are available (YouTube only)
+        if is_subs_enabled(user_id) and is_subs_always_ask(user_id) and is_youtube_url(url):
             try:
                 # Get available subtitles count (single-check/cached within session)
                 from COMMANDS.subtitles_cmd import get_or_compute_subs_langs
                 normal_subs, auto_subs = get_or_compute_subs_langs(user_id, url)
                 total_subs = len(set(normal_subs) | set(auto_subs))
                 if total_subs and total_subs > 0:
-                    subs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_SUBTITLES_MSG}: {total_subs} available\n"
+                    # Show selected language with flag if set via /subs or Always Ask menu
+                    subs_lang_txt = get_user_subs_language(user_id)
+                    sel_subs_menu = fstate.get("selected_subs_langs", []) or []
+                    chosen = subs_lang_txt if (subs_lang_txt and subs_lang_txt != "OFF") else None
+                    if not chosen and sel_subs_menu:
+                        chosen = sel_subs_menu[0]
+                    if chosen:
+                        sflag = get_flag(chosen, use_second_part=True)
+                        scode = chosen.split('-')[0].upper()
+                        subs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_SUBTITLES_MSG}: {sflag} {scode} ({total_subs} available)\n"
+                    else:
+                        subs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_SUBTITLES_MSG}: {total_subs} available\n"
             except Exception as e:
                 logger.error(f"Error getting subtitles count: {e}")
         
         # Check if dubs are available
-        fstate = get_filters(user_id)
         available_dubs = fstate.get("available_dubs", [])
         if len(available_dubs) > 1:  # More than 1 language means dubs are available
             # Get selected audio language(s)
@@ -6289,16 +6301,27 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             if audio_all_dubs:
                 dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: ALL ({len(available_dubs)} languages)"
             elif selected_audio_langs:
-                # Show selected languages
-                langs_str = ", ".join(selected_audio_langs[:3])  # Show first 3
+                # Show selected languages with flags
+                def _fmt_dub_lang(code):
+                    return f"{get_flag(code, use_second_part=False)} {code.split('-')[0].upper()}"
+                langs_str = ", ".join(_fmt_dub_lang(c) for c in selected_audio_langs[:3])
                 if len(selected_audio_langs) > 3:
                     langs_str += f" +{len(selected_audio_langs) - 3} more"
                 dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {langs_str} ({len(selected_audio_langs)}/{len(available_dubs)})"
             elif sel_audio_lang:
                 # Single language selected (for MP4)
-                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {sel_audio_lang} ({len(available_dubs)} available)"
+                dflag = get_flag(sel_audio_lang, use_second_part=False)
+                dcode = sel_audio_lang.split('-')[0].upper()
+                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {dflag} {dcode} ({len(available_dubs)} available)"
             else:
-                dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {len(available_dubs)} languages"
+                # Check if user has /dubs preference set
+                dubs_lang = get_user_dubs_language(user_id)
+                if dubs_lang:
+                    dflag = get_flag(dubs_lang, use_second_part=False)
+                    dcode = dubs_lang.split('-')[0].upper()
+                    dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {dflag} {dcode} ({len(available_dubs)} available)"
+                else:
+                    dubs_count_info = f"{safe_get_messages(user_id).ALWAYS_ASK_DUBBED_AUDIO_MSG}: {len(available_dubs)} languages"
         
         # Add the info to caption - each type independently
         info_parts = []

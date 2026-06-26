@@ -2232,6 +2232,7 @@ Ko'proq ma'lumot: /playlist"""
     DUBS_DISABLED_MSG = "✅ Dubs disabled."
     DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
     DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Dublyaj (audio trek) sozlamalari</b>\n\n{status_text}\n\nDublyaj tilini tanlang:\n\n"
 
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Ro'yxatlarni qanday yuklab olish"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl orqali rasmlarni yuklab olish"
