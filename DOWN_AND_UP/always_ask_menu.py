@@ -412,7 +412,7 @@ def get_filters(user_id):
             _default_hdr = get_user_hdr_preference(user_id)
         except Exception as e:
             logger.debug(f"get_filters: could not read /format prefs, using defaults: {e}")
-        f = {"codec": _default_codec, "ext": _default_ext, "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": [], "hdr": _default_hdr}
+        f = {"codec": _default_codec, "ext": _default_ext, "visible": False, "audio_lang": None, "has_dubs": False, "available_dubs": [], "selected_subs_langs": [], "subs_all_selected": False, "audio_all_dubs": False, "selected_audio_langs": [], "hdr": _default_hdr, "has_subs_video": True}
         _ASK_FILTERS[str(user_id)] = f
         logger.info(f"[DEBUG] get_filters: created new default filters for user_id={user_id} (synced from /format: codec={_default_codec}, ext={_default_ext}, hdr={_default_hdr})")
     else:
@@ -1951,24 +1951,29 @@ def get_available_formats_from_cache(user_id, url, download_dir=None):
                 # HDR detection: format line contains an HDR marker
                 if not has_hdr and 'hdr' in format_line.lower():
                     has_hdr = True
+                # Skip audio-only streams for MKV/codec detection (they don't represent video)
+                is_audio_only = 'audio only' in format_line.lower()
                 # Extract codecs and formats using our existing function
                 extracted = extract_button_data(format_line)
 
                 for item in extracted:
-                    # Check for codecs
-                    if item.lower() in ['avc1', 'avc', 'h264']:
-                        available_codecs.add('avc1')
-                    elif item.lower() in ['av1', 'av01']:
-                        available_codecs.add('av01')
-                    elif item.lower() in ['vp9', 'vp09']:
-                        available_codecs.add('vp9')
+                    # Check for codecs (only from video streams)
+                    if not is_audio_only:
+                        if item.lower() in ['avc1', 'avc', 'h264']:
+                            available_codecs.add('avc1')
+                        elif item.lower() in ['av1', 'av01']:
+                            available_codecs.add('av01')
+                        elif item.lower() in ['vp9', 'vp09']:
+                            available_codecs.add('vp9')
 
                     # Check for formats
                     if item.lower() in ['mp4']:
                         available_formats.add('mp4')
                     elif item.lower() in ['mkv', 'webm', 'avi', 'mov', 'flv', 'wmv', '3gp', 'ogv', 'ts', 'mts', 'm2ts']:
-                        # These formats can be converted to MKV by ffmpeg
-                        available_formats.add('mkv')
+                        # MKV container only makes sense for VIDEO streams (audio-only
+                        # webm/m4a should not expose the MKV button)
+                        if not is_audio_only:
+                            available_formats.add('mkv')
 
         return {"codecs": available_codecs, "formats": available_formats, "hdr": has_hdr}
     except Exception as e:
@@ -2173,9 +2178,11 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
         if has_dubs:
             buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_DUBS_BUTTON_MSG, callback_data="askf|dubs|open"))
         
-        # Show SUBS button if Always Ask is enabled for this user
+        # Show SUBS button if Always Ask is enabled AND subs are available for this video
         try:
-            if is_subs_always_ask(user_id):
+            has_subs_video = f.get("has_subs_video", True)  # Default True if not yet detected
+            is_yt = True if not url else is_youtube_url(url)
+            if is_subs_always_ask(user_id) and has_subs_video and is_yt:
                 buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_SUBS_BUTTON_MSG, callback_data="askf|subs|open"))
         except Exception:
             pass
@@ -2193,20 +2200,36 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
             # Fallback: single row
             return [buttons], []
     
-    # Build codec buttons with availability check
-    avc1_available = 'avc1' in available_formats["codecs"] or not available_formats["codecs"]  # Show if available or if no cache
-    av01_available = 'av01' in available_formats["codecs"] or not available_formats["codecs"]
-    vp9_available = 'vp9' in available_formats["codecs"] or not available_formats["codecs"]
-    
-    avc1_btn = (safe_get_messages(user_id).AA_AVC_BUTTON_MSG if codec == "avc1" else safe_get_messages(user_id).AA_AVC_BUTTON_INACTIVE_MSG) if avc1_available else safe_get_messages(user_id).AA_AVC_BUTTON_UNAVAILABLE_MSG
-    av01_btn = (safe_get_messages(user_id).AA_AV1_BUTTON_MSG if codec == "av01" else safe_get_messages(user_id).AA_AV1_BUTTON_INACTIVE_MSG) if av01_available else safe_get_messages(user_id).AA_AV1_BUTTON_UNAVAILABLE_MSG
-    vp9_btn = (safe_get_messages(user_id).AA_VP9_BUTTON_MSG if codec == "vp9" else safe_get_messages(user_id).AA_VP9_BUTTON_INACTIVE_MSG) if vp9_available else safe_get_messages(user_id).AA_VP9_BUTTON_UNAVAILABLE_MSG
+    # Build codec buttons with availability check.
+    # When cache exists, HIDE unavailable codecs (instead of showing ❌).
+    # When no cache, show everything (we don't know what's available).
+    _has_cache = bool(available_formats["codecs"])
+    avc1_available = ('avc1' in available_formats["codecs"]) or not _has_cache
+    av01_available = ('av01' in available_formats["codecs"]) or not _has_cache
+    vp9_available = ('vp9' in available_formats["codecs"]) or not _has_cache
 
-    # HDR availability from cache (None/empty cache -> treat as available so the button stays usable)
-    hdr_available = bool(available_formats.get("hdr")) or not available_formats.get("codecs")
-    hdr_btn = (safe_get_messages(user_id).AA_HDR_BUTTON_MSG if hdr_on else safe_get_messages(user_id).AA_HDR_BUTTON_INACTIVE_MSG) if hdr_available else safe_get_messages(user_id).AA_HDR_BUTTON_UNAVAILABLE_MSG
-    
-    # Build format buttons with availability check
+    # Fallback: if the selected codec is not available for this video, switch to AVC1
+    if _has_cache and codec != 'avc1' and codec not in available_formats["codecs"]:
+        codec = 'avc1'
+        set_filter(user_id, "codec", "avc1")
+        logger.info(f"[FALLBACK] Selected codec not available, switched to avc1 for user {user_id}")
+
+    avc1_btn = safe_get_messages(user_id).AA_AVC_BUTTON_MSG if codec == "avc1" else safe_get_messages(user_id).AA_AVC_BUTTON_INACTIVE_MSG
+    av01_btn = safe_get_messages(user_id).AA_AV1_BUTTON_MSG if codec == "av01" else safe_get_messages(user_id).AA_AV1_BUTTON_INACTIVE_MSG
+    vp9_btn = safe_get_messages(user_id).AA_VP9_BUTTON_MSG if codec == "vp9" else safe_get_messages(user_id).AA_VP9_BUTTON_INACTIVE_MSG
+
+    # HDR availability from cache (no cache -> treat as available so button stays usable)
+    hdr_available = bool(available_formats.get("hdr")) or not _has_cache
+    hdr_btn = safe_get_messages(user_id).AA_HDR_BUTTON_MSG if hdr_on else safe_get_messages(user_id).AA_HDR_BUTTON_INACTIVE_MSG
+
+    # Fallback: if HDR is on but not available for this video, turn it off
+    if _has_cache and hdr_on and not available_formats.get("hdr"):
+        hdr_on = False
+        set_filter(user_id, "hdr", "off")
+        logger.info(f"[FALLBACK] HDR not available, turned off HDR for user {user_id}")
+
+    # Build format buttons with availability check.
+    # When cache exists, HIDE unavailable container buttons.
     # If user has fixed format via /args, don't show container buttons
     if user_fixed_format:
         # Show fixed format as read-only
@@ -2214,11 +2237,21 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
         mp4_btn = fixed_format_btn
         mkv_btn = None  # Don't show MKV button
     else:
-        mp4_available = 'mp4' in available_formats["formats"] or not available_formats["formats"]
-        mkv_available = 'mkv' in available_formats["formats"] or not available_formats["formats"]
-        
-        mp4_btn = (safe_get_messages(user_id).AA_MP4_BUTTON_MSG if ext == "mp4" else safe_get_messages(user_id).AA_MP4_BUTTON_INACTIVE_MSG) if mp4_available else safe_get_messages(user_id).AA_MP4_BUTTON_UNAVAILABLE_MSG
-        mkv_btn = (safe_get_messages(user_id).AA_MKV_BUTTON_MSG if ext == "mkv" else safe_get_messages(user_id).AA_MKV_BUTTON_INACTIVE_MSG) if mkv_available else safe_get_messages(user_id).AA_MKV_BUTTON_UNAVAILABLE_MSG
+        mp4_available = ('mp4' in available_formats["formats"]) or not _has_cache
+        mkv_available = ('mkv' in available_formats["formats"]) or not _has_cache
+
+        # Fallback: if selected container is not available, switch to mp4
+        if _has_cache and ext == 'mkv' and not mkv_available:
+            ext = 'mp4'
+            set_filter(user_id, "ext", "mp4")
+            try:
+                set_session_mkv_override(user_id, False)
+            except Exception:
+                pass
+            logger.info(f"[FALLBACK] MKV not available, switched to mp4 for user {user_id}")
+
+        mp4_btn = safe_get_messages(user_id).AA_MP4_BUTTON_MSG if ext == "mp4" else safe_get_messages(user_id).AA_MP4_BUTTON_INACTIVE_MSG
+        mkv_btn = safe_get_messages(user_id).AA_MKV_BUTTON_MSG if ext == "mkv" else safe_get_messages(user_id).AA_MKV_BUTTON_INACTIVE_MSG
     
     # NSFW detection for expanded filters
     is_nsfw = False
@@ -2254,28 +2287,40 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
         else (f"🚀{audio_format}" if is_cached_mp3 else f"🎧{audio_format}")
     )
     # Build rows based on whether format is fixed
-    # Codec row split into 2 rows: AVC/AV1 on first row, VP9/HDR on second row
-    rows = [
-        [InlineKeyboardButton(avc1_btn, callback_data="askf|codec|avc1"), InlineKeyboardButton(av01_btn, callback_data="askf|codec|av01")],
-        [InlineKeyboardButton(vp9_btn, callback_data="askf|codec|vp9")]
-    ]
+    # Codec buttons: always show AVC1 (default); show AV1/VP9/HDR only when available.
+    # Collect available codec buttons, then split into rows of max 2.
+    codec_buttons = [InlineKeyboardButton(avc1_btn, callback_data="askf|codec|avc1")]
+    if av01_available:
+        codec_buttons.append(InlineKeyboardButton(av01_btn, callback_data="askf|codec|av01"))
+    if vp9_available:
+        codec_buttons.append(InlineKeyboardButton(vp9_btn, callback_data="askf|codec|vp9"))
     if hdr_available:
-        rows[1].append(InlineKeyboardButton(hdr_btn, callback_data="askf|hdr|toggle"))
-    
+        codec_buttons.append(InlineKeyboardButton(hdr_btn, callback_data="askf|hdr|toggle"))
+
+    # Split codec buttons into rows of 2
+    rows = []
+    for i in range(0, len(codec_buttons), 2):
+        rows.append(codec_buttons[i:i+2])
+
     # Add format row - only show container buttons if not fixed via /args
     if user_fixed_format:
         # Show fixed format as non-clickable
         format_row = [InlineKeyboardButton(mp4_btn, callback_data="askf|empty"), InlineKeyboardButton(mp3_label, callback_data="askq|mp3")]
     else:
-        # Show normal container selection
-        format_row = [InlineKeyboardButton(mp4_btn, callback_data="askf|ext|mp4"), InlineKeyboardButton(mkv_btn, callback_data="askf|ext|mkv"), InlineKeyboardButton(mp3_label, callback_data="askq|mp3")]
+        # Show normal container selection: MP4 always, MKV only when available
+        format_row = [InlineKeyboardButton(mp4_btn, callback_data="askf|ext|mp4")]
+        if mkv_btn is not None and mkv_available:
+            format_row.append(InlineKeyboardButton(mkv_btn, callback_data="askf|ext|mkv"))
+        format_row.append(InlineKeyboardButton(mp3_label, callback_data="askq|mp3"))
     
     rows.append(format_row)
     action_buttons = []
     if has_dubs:
         action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_DUBS_BUTTON_MSG, callback_data="askf|dubs|open"))
     try:
-        if is_subs_always_ask(user_id):
+        has_subs_video = f.get("has_subs_video", True)  # Default True if not yet detected
+        is_yt = True if not url else is_youtube_url(url)
+        if is_subs_always_ask(user_id) and has_subs_video and is_yt:
             action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_SUBS_BUTTON_MSG, callback_data="askf|subs|open"))
     except Exception:
         pass
@@ -5498,6 +5543,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         if not has_dubs:
             # If only one or zero languages, reset audio selection
             fstate["audio_lang"] = None
+        # Detect subtitle availability from info (only YouTube supports this)
+        has_subs_video = False
+        if isinstance(info, dict):
+            try:
+                from URL_PARSERS.youtube import is_youtube_url
+                if is_youtube_url(url):
+                    subs = info.get('subtitles') or {}
+                    auto_caps = info.get('automatic_captions') or {}
+                    has_subs_video = bool(subs or auto_caps)
+            except Exception:
+                has_subs_video = False
+        fstate["has_subs_video"] = has_subs_video
         _ASK_FILTERS[str(user_id)] = fstate
         # If user selected MKV container, reflect this to the download session preference
         try:
