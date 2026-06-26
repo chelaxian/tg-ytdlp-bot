@@ -2230,6 +2230,12 @@ class Messages(object):
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Скачать видео как аудио"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Настройки языка субтитров"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - Язык озвучки (аудио) по умолчанию"
+    DUBS_LANGUAGE_SET_MSG = "✅ Язык озвучки установлен: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Озвучка отключена."
+    DUBS_CURRENT_MSG = "🗣 Текущий язык озвучки: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Озвучка отключена."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Настройки дубляжа (аудіодорожки)</b>\n\n{status_text}\n\nВыберите язык дубляжа:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Как скачивать плейлисты"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - Скачивать изображения через gallery-dl"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - Показать ваши #теги"

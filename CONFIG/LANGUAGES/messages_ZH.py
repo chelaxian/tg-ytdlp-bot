@@ -2228,6 +2228,12 @@ class Messages(object):
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - 将视频下载为音频"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - 字幕语言设置"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - 默认配音（音轨）语言"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>配音（音轨）设置</b>\n\n{status_text}\n\n选择配音语言:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - 如何下载播放列表"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - 通过gallery-dl下载图像"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - 发送您的#标签"

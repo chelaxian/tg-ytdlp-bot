@@ -2221,6 +2221,12 @@ class Messages(object):
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - Бейнені аудио ретінде жүктеу"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - Субтитр тілі баптаулары"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - Negizgi dublyazh (audio zholshygy) tili"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>Дубляж (дыбыс жолшығы) параметрлері</b>\n\n{status_text}\n\nДубляж тілін таңдаңыз:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - Плейлистерді қалай жүктеуге болады"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl арқылы суреттерді жүктеу"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - #тегтеріңізді жіберу"

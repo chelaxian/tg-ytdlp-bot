@@ -51,21 +51,19 @@ def format_quality_codec(height=None, width=None, vcodec=None, dynamic_range=Non
         pass
     if vcodec:
         v = (vcodec or "").strip().lower()
+        is_hdr = dynamic_range and str(dynamic_range).lower() == "hdr"
         if "av01" in v or v == "av1":
-            codec_display = "AV1"
+            codec_display = "AV1" if not is_hdr else "AV1 (HDR)"
         elif "avc1" in v or "h264" in v or "avc" in v:
-            codec_display = "AVC1"
+            codec_display = "AVC1" if not is_hdr else "AVC1 (HDR)"
         elif "vp9" in v:
-            codec_display = "VP9"
+            codec_display = "VP9" if not is_hdr else "VP9 (HDR)"
         elif "hevc" in v or "h265" in v:
-            codec_display = "HEVC"
+            codec_display = "HEVC" if not is_hdr else "HEVC (HDR)"
         else:
             codec_display = v[:4].upper() if len(v) >= 4 else v.upper()
         if codec_display:
             parts.append(f"📼{codec_display}")
-    # HDR detection: append HDR tag if present
-    if dynamic_range and str(dynamic_range).lower() == "hdr":
-        parts.append("📺HDR")
     return (" " + " ".join(parts)) if parts else ""
 
 

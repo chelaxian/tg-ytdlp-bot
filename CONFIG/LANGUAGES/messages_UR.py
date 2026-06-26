@@ -2229,6 +2229,12 @@ Use:
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ویڈیو کو آڈیو کے طور پر ڈاؤن لوڈ کریں"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - سب ٹائٹل زبان کی ترتیبات"
     SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - ڈیفالٹ ڈب (آڈیو ٹریک) زبان"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>ڈبنگ (آڈیو ٹریک) کی ترتیبات</b>\n\n{status_text}\n\nڈبنگ کی زبان منتخب کریں:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - پلے لسٹ کیسے ڈاؤن لوڈ کریں"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl کے ذریعے تصاویر ڈاؤن لوڈ کریں"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - اپنے #tags بھیجیں"
