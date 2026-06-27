@@ -26,6 +26,7 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
     'video does not exist', 'channel does not exist', 'user does not exist',
     'no longer available', 'video unavailable', 'private video',
     'this content isn\'t available', 'this content is not available',
+    'removed for violating', "terms of service", 'has been removed',
 )
 
 
