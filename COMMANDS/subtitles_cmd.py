@@ -1423,6 +1423,13 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
 
         return False
 
+    # Negative cache: if subtitles recently failed with 429 for this URL/user,
+    # skip immediately to prevent retry storms from repeated user requests (issue #355)
+    _neg_key = f"{url}_{user_id}_subs_429_blocked"
+    if _cache_get(_neg_key):
+        logger.info(f"Subtitles recently failed with 429 for this URL/user; skipping to avoid retry storm")
+        return None
+
     for attempt in range(MAX_RETRIES):
         try:
             subs_lang = get_user_subs_language(user_id)
@@ -1740,6 +1747,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                     time.sleep(wait_time)
                     continue
                 logger.error(LoggerMsg.SUBS_FINAL_ATTEMPT_FAILED_429_LOG_MSG)
+                _cache_set(_neg_key, True)
                 return None
             logger.error(f"{LoggerMsg.SUBS_DOWNLOAD_ERROR_LOG_MSG}: {e}")
             if attempt < MAX_RETRIES - 1:

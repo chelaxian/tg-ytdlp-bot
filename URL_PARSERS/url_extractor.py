@@ -1212,7 +1212,21 @@ def url_distractor(app, message):
                                 logger.info(f"URL_EXTRACTOR: blocking blacklisted domain '{black_item}' for URL '{raw_url}'")
                                 send_error_to_user(message, safe_get_messages(user_id).PORN_CONTENT_CANNOT_DOWNLOAD_MSG, url=raw_url)
                                 return
-                
+
+                        # DRM pre-filter: Spotify uses DRM protection that yt-dlp will never support.
+                        # Block early with a clear message instead of generating yt-dlp error logs (issue #353)
+                        if url_hostname == 'spotify.com' or url_hostname == 'open.spotify.com' or url_hostname.endswith('.spotify.com'):
+                            logger.info(f"URL_EXTRACTOR: blocking DRM-protected domain '{url_hostname}' for URL '{raw_url}'")
+                            drm_msg = (
+                                f"<blockquote>{safe_get_messages(user_id).ERROR_CHECK_SUPPORTED_SITES_MSG}</blockquote>\n"
+                                f"────────────────\n"
+                                f"❌ <b>Error Code:</b> <code>DRM_PROTECTED</code>\n"
+                                f"📝 <b>Description:</b> This content (Spotify) is protected by DRM and cannot be downloaded.\n"
+                                f"   yt-dlp does not support DRM-protected streaming services. Please use another source."
+                            )
+                            send_error_to_user(message, drm_msg, url=raw_url)
+                            return
+
                 parsed = urlparse(raw_url)
                 path_lower = (parsed.path or "").lower()
 

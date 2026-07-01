@@ -2670,6 +2670,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Private video" in error_message:
                         error_code = "PRIVATE_VIDEO"
                         error_description = "Video is private and requires authentication"
+                    elif "live event has ended" in error_message or "live event has not started" in error_message:
+                        error_code = "LIVE_ENDED"
+                        error_description = "This live stream has ended (or has not started yet). Please try another link."
+                    elif "members-only" in error_message or "join this channel" in error_message:
+                        error_code = "MEMBERS_ONLY"
+                        error_description = "This video is available only to channel members (paid subscribers). The bot cannot download it without an active membership."
                     elif "Sign in to confirm" in error_message:
                         error_code = "SIGN_IN_REQUIRED"
                         error_description = "Sign in required - cookies needed"
