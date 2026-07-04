@@ -787,6 +787,7 @@ Scopri di più: /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Accesso negato. Solo amministratore."
     ACCESS_DENIED_ADMIN = "❌ Accesso negato. Solo amministratore."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Accesso negato. Questo bot è privato."
     WELCOME_MASTER = "Benvenuto Maestro 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Spiacenti... Si è verificato un errore durante il download."
     SIZE_LIMIT_EXCEEDED = "❌ La dimensione del file supera il limite di {max_size_gb} GB. Seleziona un file più piccolo entro le dimensioni consentite."

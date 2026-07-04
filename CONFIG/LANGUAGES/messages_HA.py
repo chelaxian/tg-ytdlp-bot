@@ -788,6 +788,7 @@ Koyi ƙari: /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ An ƙi dama. Admin kawai."
     ACCESS_DENIED_ADMIN = "❌ An ƙi dama. Admin kawai."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ An hana damar shiga. Wannan bot na sirri ne."
     WELCOME_MASTER = "Barka da zuwa Jagora 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Yi hakuri... Wani kuskure ya faru yayin saukewa."
     SIZE_LIMIT_EXCEEDED = "❌ Girman fayil ya wuce iyakar {max_size_gb} GB. Da fatan za a zaɓi fayil ƙarami a cikin girman da aka yarda."

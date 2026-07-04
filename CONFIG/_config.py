@@ -23,6 +23,8 @@ class Config(object):
     # Add allowed group IDs - Only these groups will be served by the bot
     ADMIN_GROUP = [-100111111111111, -1002222222222222]
     ALLOWED_GROUP = [-100111111111111, -1002222222222222]
+    # Restrict private chat usage to these user IDs only (empty list = everyone allowed)
+    ALLOWED_USERS = []
     # API ID Telegram
     API_ID = 00000000000000
     # API HASH Telegram

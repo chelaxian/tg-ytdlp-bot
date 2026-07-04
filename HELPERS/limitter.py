@@ -133,6 +133,26 @@ def _send_subscribe_prompt(chat_id):
     )
 
 
+def is_user_allowed(message):
+    """ALLOWED_USERS whitelist for private chats.
+    Empty list = disabled (everyone allowed). Admins always pass.
+    Groups are unaffected (private chats only)."""
+    allowed_users = getattr(Config, 'ALLOWED_USERS', [])
+    if not allowed_users:
+        return True
+    if getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
+        return True
+    try:
+        user_id = int(getattr(message.chat, 'id', 0))
+    except Exception:
+        return True
+    if user_id in Config.ADMIN or user_id in allowed_users:
+        return True
+    logger.info(LoggerMsg.LIMITTER_USER_NOT_ALLOWED_LOG_MSG.format(user_id=user_id))
+    safe_send_message(user_id, safe_get_messages(user_id).ACCESS_DENIED_PRIVATE_MSG)
+    return False
+
+
 def is_user_in_channel(app, message):
     _messages = safe_get_messages(message.chat.id)
     # Bypass subscription checks for explicitly allowed groups and admin groups
@@ -142,6 +162,9 @@ def is_user_in_channel(app, message):
             return True
     except Exception:
         pass
+    # ALLOWED_USERS whitelist check (private chats only)
+    if not is_user_allowed(message):
+        return False  # denial message already sent by is_user_allowed
     try:
         logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_MEMBERSHIP_LOG_MSG.format(
             user_id=message.chat.id, channel=Config.SUBSCRIBE_CHANNEL))

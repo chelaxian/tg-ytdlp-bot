@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ دسترسی رد شد. فقط مدیر."
     ACCESS_DENIED_ADMIN = "❌ دسترسی رد شد. فقط مدیر."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ دسترسی رد شد. این ربات خصوصی است."
     WELCOME_MASTER = "خوش آمدید ارباب 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ متأسفم... خطایی در حین دانلود رخ داد."
     SIZE_LIMIT_EXCEEDED = "❌ اندازه فایل از محدودیت {max_size_gb} GB تجاوز می‌کند. لطفاً فایلی کوچکتر در اندازه مجاز انتخاب کنید."

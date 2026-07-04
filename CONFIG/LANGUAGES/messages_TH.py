@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ การเข้าถึงถูกปฏิเสธ ผู้ดูแลระบบเท่านั้น"
     ACCESS_DENIED_ADMIN = "❌ การเข้าถึงถูกปฏิเสธ ผู้ดูแลระบบเท่านั้น"
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ การเข้าถึงถูกปฏิเสธ บอทนี้เป็นบอทส่วนตัว"
     WELCOME_MASTER = "ยินดีต้อนรับท่านอาจารย์ 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ ขออภัย... มีข้อผิดพลาดเกิดขึ้นระหว่างการดาวน์โหลด"
     SIZE_LIMIT_EXCEEDED = "❌ ขนาดไฟล์เกินขีดจำกัด {max_size_gb} GB โปรดเลือกไฟล์ที่มีขนาดเล็กกว่าในขนาดที่อนุญาต"

@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ تم رفض الوصول. للمدير فقط."
     ACCESS_DENIED_ADMIN = "❌ تم رفض الوصول. للمدير فقط."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ تم رفض الوصول. هذا البوت خاص."
     WELCOME_MASTER = "مرحباً أيها السيد 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ عذراً... حدث خطأ أثناء التحميل."
     SIZE_LIMIT_EXCEEDED = "❌ حجم الملف يتجاوز الحد الأقصى {max_size_gb} جيجابايت. يرجى اختيار ملف أصغر ضمن الحجم المسموح."

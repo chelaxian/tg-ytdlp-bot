@@ -787,6 +787,7 @@ Ko'proq ma'lumot: /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Kirish rad etildi. Faqat admin."
     ACCESS_DENIED_ADMIN = "❌ Kirish rad etildi. Faqat admin."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Kirish rad etildi. Bu bot shaxsiy."
     WELCOME_MASTER = "Xush kelibsiz, Usta 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Kechirasiz... Yuklab olish paytida xatolik yuz berdi."
     SIZE_LIMIT_EXCEEDED = "❌ Fayl hajmi {max_size_gb} GB chegarasidan oshib ketdi. Iltimos, ruxsat etilgan hajm ichida kichikroq faylni tanlang."

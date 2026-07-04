@@ -6,6 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from CONFIG.config import Config
 
 class Messages(object):
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Brak dostępu. Ten bot jest prywatny."
     #######################################################
     # Messages and errors
     #######################################################

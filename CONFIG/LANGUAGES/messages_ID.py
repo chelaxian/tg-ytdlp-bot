@@ -787,6 +787,7 @@ Pelajari lebih lanjut: /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Akses ditolak. Hanya admin."
     ACCESS_DENIED_ADMIN = "❌ Akses ditolak. Hanya admin."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Akses ditolak. Bot ini bersifat pribadi."
     WELCOME_MASTER = "Selamat Datang Tuan 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Maaf... Terjadi kesalahan saat mengunduh."
     SIZE_LIMIT_EXCEEDED = "❌ Ukuran file melebihi batas {max_size_gb} GB. Silakan pilih file yang lebih kecil dalam ukuran yang diizinkan."

@@ -787,6 +787,7 @@ En savoir plus : /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Accès refusé. Administrateurs uniquement."
     ACCESS_DENIED_ADMIN = "❌ Accès refusé. Administrateurs uniquement."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Accès refusé. Ce bot est privé."
     WELCOME_MASTER = "Bienvenue Maître 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Désolé... Une erreur s'est produite lors du téléchargement."
     SIZE_LIMIT_EXCEEDED = "❌ La taille du fichier dépasse la limite de {max_size_gb} Go. Veuillez sélectionner un fichier plus petit dans la taille autorisée."

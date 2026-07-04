@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ アクセスが拒否されました。管理者のみ。"
     ACCESS_DENIED_ADMIN = "❌ アクセスが拒否されました。管理者のみ。"
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ アクセスが拒否されました。このボットはプライベートです。"
     WELCOME_MASTER = "マスター、ようこそ 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ 申し訳ございません... ダウンロード中にエラーが発生しました。"
     SIZE_LIMIT_EXCEEDED = "❌ ファイルサイズが{max_size_gb}GBの制限を超えています。許可されたサイズ内でより小さなファイルを選択してください。"
