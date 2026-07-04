@@ -183,3 +183,6 @@ tests/*
 yt-dlp
 *.log.*
 *.log
+# configuration-webserver: real cookie files (create them from the *.example templates); never commit secrets
+docker/configuration-webserver/site/cookies/*.txt
+!docker/configuration-webserver/site/cookies/README.txt
