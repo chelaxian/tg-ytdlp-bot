@@ -142,6 +142,10 @@ def is_user_in_channel(app, message):
             return True
     except Exception:
         pass
+    # Subscription is optional: skip the check when SUBSCRIBE_CHANNEL is not configured
+    # (empty/0 = no channel gate; mirrors the ALLOWED_GROUP empty-list convention)
+    if not getattr(Config, 'SUBSCRIBE_CHANNEL', None):
+        return True
     try:
         logger.info(LoggerMsg.LIMITTER_CHANNEL_CHECK_MEMBERSHIP_LOG_MSG.format(
             user_id=message.chat.id, channel=Config.SUBSCRIBE_CHANNEL))
