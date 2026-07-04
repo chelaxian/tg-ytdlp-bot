@@ -14,6 +14,7 @@ from HELPERS.filesystem_hlp import create_directory
 from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_message_text
 from pyrogram.errors import FloodWait
 import os
+from functools import lru_cache
 import json
 import requests
 import re
@@ -1203,6 +1204,21 @@ def _sanitize_error_detail(detail: str, url: str) -> str:
     except Exception:
         return "<hidden>"
 
+@lru_cache(maxsize=None)
+def _get_trusted_cookie_urls() -> frozenset[str]:
+    """Exact cookie-fetch URLs the admin configured in Config.*COOKIE_URL are trusted.
+    Substring match (not endswith) covers both COOKIE_URL and YOUTUBE_COOKIE_URL_1..10,
+    while correctly skipping YOUTUBE_COOKIE_TEST_URL / YOUTUBE_COOKIE_ORDER (no 'COOKIE_URL' substring).
+    Cached (frozenset): Config.*COOKIE_URL are static at runtime — config.py changes need a restart."""
+    urls = set()
+    for attr in dir(Config):
+        if "COOKIE_URL" in attr:
+            val = getattr(Config, attr, None)
+            if isinstance(val, str) and val:
+                urls.add(val)
+    return frozenset(urls)
+
+
 def _download_content(url: str, timeout: int = 30, user_id: int | None = None, allow_domain_fallback: bool = True):
     """Скачивает бинарный контент, при необходимости используя пользовательский прокси."""
     if not url:
@@ -1211,7 +1227,7 @@ def _download_content(url: str, timeout: int = 30, user_id: int | None = None, a
     # Валидация URL для предотвращения SSRF
     try:
         from services.lists_service import _validate_url_for_ssrf
-        is_valid, error_msg = _validate_url_for_ssrf(url)
+        is_valid, error_msg = _validate_url_for_ssrf(url, allowed_urls=_get_trusted_cookie_urls())
         if not is_valid:
             logger.warning(f"[COOKIES] Blocked SSRF attempt: {error_msg}")
             return False, None, None, f"invalid-url: {error_msg}"
