@@ -128,5 +128,58 @@ def should_fallback_to_gallery_dl(error_message: str, url: str) -> bool:
     
     if is_tiktok and any(err in error_lower for err in ["429", "403", "401", "unable to download"]):
         return True
-    
+
     return False
+
+
+_GALLERY_DL_NO_EXTRACTOR_MARKERS = (
+    "no suitable extractor",
+    "unsupported url",
+    "no matching extractor",
+    "unsupported scheme",
+)
+
+
+def gallery_dl_has_extractor(url: str) -> bool:
+    """Return True when gallery-dl has a **specific** extractor for *url*.
+
+    A conservative check used to avoid expensive subprocess retry storms for
+    URLs that neither yt-dlp nor gallery-dl can handle (issue #323).
+
+    Returns True (don't block fallback) when:
+      * gallery-dl is not importable;
+      * the ``extractor.find`` API is unavailable;
+      * a specific (non-generic) extractor matches.
+
+    Returns False (skip fallback) only when ``find(url, default=None)``
+    explicitly returns *None*, meaning no extractor at all.
+    """
+    try:
+        import gallery_dl
+        find_fn = getattr(getattr(gallery_dl, "extractor", None), "find", None)
+        if find_fn is None:
+            return True
+        try:
+            result = find_fn(url, default=None)
+        except TypeError:
+            result = find_fn(url)
+        if result is None:
+            return False
+        name = result.__name__ if isinstance(result, type) else type(result).__name__
+        if name == "GenericExtractor":
+            return False
+        return True
+    except Exception:
+        return True
+
+
+def is_gallery_dl_no_extractor_error(stderr_text: str) -> bool:
+    """Check whether gallery-dl subprocess stderr indicates the URL has no
+    matching extractor at all (issue #323).
+
+    Used to short-circuit pointless ``--get-urls`` / cookie retries.
+    """
+    if not stderr_text:
+        return False
+    lower = stderr_text.lower()
+    return any(marker in lower for marker in _GALLERY_DL_NO_EXTRACTOR_MARKERS)

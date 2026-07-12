@@ -38,6 +38,7 @@ from pyrogram.types import (
 ###########################################################
 # CONFIG
 from CONFIG.config import Config
+from CONFIG.limits import LimitsConfig
 from CONFIG.messages import Messages, safe_get_messages
 
 # HELPERS (только те, что не содержат обработчики)
@@ -56,12 +57,16 @@ from HELPERS.safe_messeger import *
 #        APP INITIALIZATION
 ###########################################################
 # Pyrogram App Initialization
-app = Client(
-    "magic",
+import inspect as _inspect
+_client_kwargs = dict(
+    name="magic",
     api_id=Config.API_ID,
     api_hash=Config.API_HASH,
-    bot_token=Config.BOT_TOKEN
+    bot_token=Config.BOT_TOKEN,
 )
+if 'upload_timeout' in _inspect.signature(Client.__init__).parameters:
+    _client_kwargs['upload_timeout'] = LimitsConfig.UPLOAD_TIMEOUT_SECONDS
+app = Client(**_client_kwargs)
 
 # Set global app instance BEFORE importing handlers
 set_app(app)
@@ -142,6 +147,7 @@ from COMMANDS.proxy_cmd import *
 from COMMANDS.settings_cmd import *
 from COMMANDS.split_sizer import *
 from COMMANDS.subtitles_cmd import *
+from COMMANDS.dubs_cmd import *
 from COMMANDS.tag_cmd import *
 from COMMANDS.proxy_cmd import proxy_command
 from COMMANDS.cookies_cmd import download_cookie
@@ -172,6 +178,7 @@ from COMMANDS.other_handlers import link_command_handler, audio_command_handler,
 from COMMANDS.tag_cmd import tags_command
 from URL_PARSERS.url_extractor import url_distractor
 from COMMANDS.subtitles_cmd import subs_command
+from COMMANDS.dubs_cmd import dubs_command
 from COMMANDS import args_cmd
 from COMMANDS.list_cmd import list_command
 from COMMANDS.cookies_cmd import cookies_from_browser
@@ -231,6 +238,7 @@ if _allowed_groups:
         "audio": audio_command_handler,
         "playlist": playlist_command,
         "subs": subs_command,
+        "dubs": dubs_command,
         "args": args_cmd.args_command,
         "list": list_command,
         "cookies_from_browser": cookies_from_browser,

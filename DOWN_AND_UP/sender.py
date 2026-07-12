@@ -1052,6 +1052,15 @@ def send_videos(
                 flood_wait_retries = 3
                 while True:
                     try:
+                        # Preventive existence re-check: the downloaded file can
+                        # disappear between the entry guard and the actual upload
+                        # (concurrent cleanup race, issue #364). Bail out cleanly
+                        # instead of attempting a doomed send.
+                        if not os.path.exists(video_abs_path):
+                            logger.error(f"Video file vanished before upload (race): {video_abs_path}")
+                            from HELPERS.logger import send_error_to_user
+                            send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
+                            return None
                         video_msg = _try_send_video(cap)
                         break
                     except PaidMediaSendError as e:

@@ -58,11 +58,11 @@ class LimitsConfig(object):
     MAX_CONCURRENT_UPLOADS = None  # resolved at runtime
     # Hard timeout per upload in seconds (10 min — generous for most uploads;
     # after bytes are sent, Telegram response should come within seconds)
-    UPLOAD_TIMEOUT_SECONDS = 600
+    UPLOAD_TIMEOUT_SECONDS = 1200
     # Shorter timeout for non-critical uploads (log channels, forwarding)
     UPLOAD_TIMEOUT_LOG_SECONDS = 120
     # yt-dlp socket timeout in seconds (prevents hanging on unresponsive servers)
-    YTDLP_SOCKET_TIMEOUT = 30
+    YTDLP_SOCKET_TIMEOUT = 60
 
     @staticmethod
     def detect_system_resources():

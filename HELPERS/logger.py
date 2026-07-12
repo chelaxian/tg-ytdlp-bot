@@ -8,11 +8,44 @@ try:
 except ImportError:
     SDNOTIFY_AVAILABLE = False
     SystemdNotifier = None
-from pyrogram import enums
+try:
+    from pyrogram import enums
+except Exception:
+    enums = None
 import re
 from CONFIG.config import Config
-from HELPERS.safe_messeger import safe_send_message
-from services.stats_events import capture_message_context
+
+
+def safe_send_message(*args, **kwargs):
+    """Lazy wrapper around HELPERS.safe_messeger.safe_send_message.
+
+    Defers the pyrogram import so that standalone scripts (e.g.
+    DATABASE/download_firebase.py) can import this module without pulling
+    in the full pyrogram dependency chain.
+    """
+    from HELPERS.safe_messeger import safe_send_message as _real
+    return _real(*args, **kwargs)
+
+
+def _capture_message_context(message):
+    """Lazy wrapper around services.stats_events.capture_message_context.
+
+    Defers the import so that standalone scripts (e.g.
+    DATABASE/download_firebase.py) can import this module without pulling
+    in the services.* dependency chain (which transitively imports pyrogram).
+    """
+    try:
+        from services.stats_events import capture_message_context
+        capture_message_context(message)
+    except Exception:
+        pass
+
+
+def _html_parse_mode():
+    """Return pyrogram HTML parse mode, or None when pyrogram is unavailable."""
+    if enums is not None:
+        return enums.ParseMode.HTML
+    return None
 
 # Configure logging
 logging.basicConfig(
@@ -87,30 +120,30 @@ def get_log_channel(kind: str = "general", nsfw: bool = False, paid: bool = Fals
 # Send Message to Logger
 
 def send_to_logger(message, msg):
-    capture_message_context(message)
+    _capture_message_context(message)
     user_id = message.chat.id
     msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
     # Print (user_id, "-", msg)
     safe_send_message(get_log_channel("general"), msg_with_id,
-                     parse_mode=enums.ParseMode.HTML)
+                     parse_mode=_html_parse_mode())
 
 # Send Message to User Only
 
 def send_to_user(message, msg):
-    capture_message_context(message)
+    _capture_message_context(message)
     user_id = message.chat.id
     # Маскируем секретные данные перед отправкой пользователю
     sanitized_msg = sanitize_error_message(str(msg))
-    safe_send_message(user_id, sanitized_msg, parse_mode=enums.ParseMode.HTML, message=message)
+    safe_send_message(user_id, sanitized_msg, parse_mode=_html_parse_mode(), message=message)
 
 # Send Message to All ...
 
 def send_to_all(message, msg, parse_mode=None):
-    capture_message_context(message)
+    _capture_message_context(message)
     user_id = message.chat.id
     msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    safe_send_message(get_log_channel("general"), msg_with_id, parse_mode=enums.ParseMode.HTML)
-    safe_send_message(user_id, msg, parse_mode=parse_mode or enums.ParseMode.HTML, message=message)
+    safe_send_message(get_log_channel("general"), msg_with_id, parse_mode=_html_parse_mode())
+    safe_send_message(user_id, msg, parse_mode=parse_mode or _html_parse_mode(), message=message)
 
 # --- Error log throttle/dedup to prevent spam ----------------------------------
 
@@ -168,7 +201,7 @@ def sanitize_error_message(error_text: str) -> str:
 
 # Send Error Message to User and LOG_EXCEPTION channel
 def send_error_to_user(message, msg, url: str = None):
-    capture_message_context(message)
+    _capture_message_context(message)
     """Send error message to user and log it to LOG_EXCEPTION channel.
 
     url: optional explicit URL that caused the error; if not provided, will be
@@ -181,19 +214,19 @@ def send_error_to_user(message, msg, url: str = None):
 
     if not _should_send_error(sanitized_msg, url_str):
         logger.debug(f"Suppressed duplicate error to LOG_EXCEPTION (throttle): {sanitized_msg[:100]}")
-        safe_send_message(user_id, sanitized_msg, parse_mode=enums.ParseMode.HTML, message=message)
+        safe_send_message(user_id, sanitized_msg, parse_mode=_html_parse_mode(), message=message)
         return
 
     if url_str:
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \nURL: {url_str}\n\n{sanitized_msg}"
     else:
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{sanitized_msg}"
-    safe_send_message(Config.LOG_EXCEPTION, msg_with_id, parse_mode=enums.ParseMode.HTML)
-    safe_send_message(user_id, sanitized_msg, parse_mode=enums.ParseMode.HTML, message=message)
+    safe_send_message(Config.LOG_EXCEPTION, msg_with_id, parse_mode=_html_parse_mode())
+    safe_send_message(user_id, sanitized_msg, parse_mode=_html_parse_mode(), message=message)
 
 # Log error message to LOG_EXCEPTION channel (without sending to user)
 def log_error_to_channel(message, msg, url: str = None):
-    capture_message_context(message)
+    _capture_message_context(message)
     """Log error message to LOG_EXCEPTION channel only.
 
     url: optional explicit URL that caused the error; if not provided, will be
@@ -210,4 +243,4 @@ def log_error_to_channel(message, msg, url: str = None):
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \nURL: {url_str}\n\n{msg}"
     else:
         msg_with_id = f"{message.chat.first_name} - {user_id}\n \n{msg}"
-    safe_send_message(Config.LOG_EXCEPTION, msg_with_id, parse_mode=enums.ParseMode.HTML)
+    safe_send_message(Config.LOG_EXCEPTION, msg_with_id, parse_mode=_html_parse_mode())

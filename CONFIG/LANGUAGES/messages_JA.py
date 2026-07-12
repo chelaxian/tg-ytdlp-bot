@@ -1398,6 +1398,12 @@ class Messages(object):
     ALWAYS_ASK_THIS_TWEET_DOES_NOT_CONTAIN_MSG = "このツイートには含まれていません"
     ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG = "❌ <b>ビデオ情報の取得エラー：</b>"
     ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG = "ビデオ情報の取得エラー"
+    ALWAYS_ASK_MEMBERS_ONLY_MSG = "\U0001F512 <b>This video is available only to channel members (paid subscribers).</b>\nThe bot cannot download it without an active membership."
+    ALWAYS_ASK_LIVE_ENDED_MSG = "\U0001F4FA <b>This live stream has ended (or has not started yet).</b>\nPlease try another link."
+    ALWAYS_ASK_GEO_RESTRICTED_MSG = "\U0001F30D <b>This video is not available in your region.</b>\nThe uploader has restricted it geographically \u2014 try a VPN/proxy or another link."
+    ALWAYS_ASK_AGE_RESTRICTED_MSG = "\U0001F51E <b>This video requires age verification.</b>\nTry using /cookie to provide YouTube cookies from an age-verified account."
+    ALWAYS_ASK_HTTP_500_MSG = "\U0001F6E0\uFE0F <b>The video server returned an internal error (HTTP 500).</b>\nThis is temporary \u2014 please try again later."
+    ALWAYS_ASK_EXTRACTOR_ERROR_MSG = "\u26a0\ufe0f <b>The video extractor failed to parse the page.</b>\nThis usually happens when the platform (e.g. Facebook) changes its structure. Try updating yt-dlp or using cookies via <code>/cookie</code>."
     ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "<code>/clean</code>コマンドを試して、もう一度お試しください。エラーが続く場合、YouTubeは認証が必要です。<code>/cookie</code>または<code>/cookies_from_browser</code>経由でcookies.txtを更新して、もう一度お試しください。"
     ALWAYS_ASK_MENU_CLOSED_MSG = "メニューを閉じました。"
     ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 手動品質選択"
@@ -1662,6 +1668,9 @@ class Messages(object):
     AA_MKV_BUTTON_MSG = "✅MKV"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Try later."
@@ -1708,6 +1717,9 @@ class Messages(object):
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ON"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: OFF"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2221,6 +2233,13 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - 分割ビデオ部分のサイズを変更します"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ビデオをオーディオとしてダウンロード"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - 字幕言語設定"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - デフォルトのダビング（音声トラック）言語"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>吹き替え（音声トラック）設定</b>\n\n{status_text}\n\n吹き替え言語を選択:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - プレイリストのダウンロード方法"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - gallery-dl 経由で画像をダウンロード"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - #tags を送信します"

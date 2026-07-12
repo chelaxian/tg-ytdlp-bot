@@ -1110,7 +1110,7 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
                 'no_warnings': True,
                 'skip_download': True,
                 'noplaylist': True,
-                'socket_timeout': 30,
+                'socket_timeout': 60,
             }
             
             # Add cookies
@@ -1290,7 +1290,7 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
                     'quiet': True,
                     'no_warnings': True,
                     'noplaylist': True,
-                    'socket_timeout': 30,
+                    'socket_timeout': 60,
                 }
                 
                 # Add cookies
@@ -1641,7 +1641,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
             'noplaylist': True,
             'format': 'best',
             'ignore_no_formats_error': True,
-            'socket_timeout': 30,
+            'socket_timeout': 60,
         }
         
         # Add cookies
@@ -1834,7 +1834,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                                     'ignore_no_formats_error': True,
                                     'cookiefile': user_cookie_path if os.path.exists(user_cookie_path) else None,
                                     'extractor_args': {'youtube': {'player_client': ['tv']}},
-                                    'socket_timeout': 30,
+                                    'socket_timeout': 60,
                                 }
                                 if proxy_info_opts['cookiefile'] is None:
                                     proxy_info_opts.pop('cookiefile')
@@ -1880,7 +1880,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                                     'ignore_no_formats_error': True,
                                     'cookiefile': user_cookie_path if os.path.exists(user_cookie_path) else None,
                                     'extractor_args': {'youtube': {'player_client': ['tv']}},
-                                    'socket_timeout': 30,
+                                    'socket_timeout': 60,
                                 }
                                 if proxy_info_opts['cookiefile'] is None:
                                     proxy_info_opts.pop('cookiefile')

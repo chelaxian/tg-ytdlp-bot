@@ -65,7 +65,7 @@ def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_i
             'extract_flat': False,
             'nocheckcertificate': True,
             'ignoreerrors': False,
-            'socket_timeout': 30,
+            'socket_timeout': 60,
         }
         
         # Add proxy configuration
@@ -109,6 +109,12 @@ def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_i
         else:
             raise Exception("No direct URL found")
             
+        # Some extractors (e.g. VK Video) return formats whose 'url' field is None
+        # (HLS-only / login-required / geo-blocked). Guard before dereferencing it
+        # below (quote/urlparse/replace would otherwise crash) — issue #363.
+        if not direct_url:
+            raise Exception("No direct URL found (format has no playable url)")
+        
         # Create player-specific URLs
         encoded_url = quote(direct_url, safe='')
         

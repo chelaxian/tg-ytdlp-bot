@@ -149,7 +149,7 @@ def download_live_stream_chunked(
             'downloader': 'ffmpeg',  # --downloader ffmpeg
             'quiet': False,
             'no_warnings': False,
-            'socket_timeout': 30,
+            'socket_timeout': 60,
         }
         
         # Add user's custom yt-dlp arguments from /args command

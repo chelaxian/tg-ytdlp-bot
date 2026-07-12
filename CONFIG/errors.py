@@ -68,10 +68,15 @@ GEO_BLOCK_PATTERNS = [
     "blocked in your country",
     "not available in your country",
     "not available in your region",
-    "video limitato geograficamente",
+    "not available in your area",
+    "not available from your location",
+    "not available outside",
+    "available only in",
+    "geographically restricted",
     "geographic restriction",
     "geo-blocked",
     "region blocked",
+    "rights restrictions",
     "this video is available in",
 ]
 
@@ -125,3 +130,58 @@ def has_country_list_in_error(error_message: str) -> bool:
     if not error_message:
         return False
     return bool(_COUNTRY_LIST_PATTERN.search(error_message))
+
+
+# Specific, semantic yt-dlp error categories surfaced to the user with an
+# actionable localized message (issues #352, #354, #356, #359, #360).
+# Returns the category code or None when the error is unclassified (caller
+# falls back to the generic handling).
+def classify_yt_dlp_error(error_message, url=None):
+    """Classify a yt-dlp/extractor error string into a semantic category.
+
+    Returns one of: MEMBERS_ONLY, LIVE_ENDED, GEO_RESTRICTED, AGE_RESTRICTED,
+    HTTP_500, EXTRACTOR_ERROR — or None if the error is not recognised (fall
+    through to generic handling).
+
+    Note: a geo/members/age error can still be actionable via cookies, so the
+    caller keeps appending the cookie hint for those categories.
+    """
+    if not error_message:
+        return None
+    error_lower = error_message.lower()
+
+    # Members-only content (issue #352)
+    if "members-only" in error_lower or "join this channel" in error_lower:
+        return "MEMBERS_ONLY"
+
+    # Live stream ended / not started (issue #354)
+    if "live event has ended" in error_lower or "live event has not started" in error_lower:
+        return "LIVE_ENDED"
+    # Regression #354: a /live/<ID> URL that returns "No video formats found" is
+    # in practice an ended stream that yt-dlp reports before the LIVE_ENDED text.
+    if "no video formats found" in error_lower and url and "/live/" in url.lower():
+        return "LIVE_ENDED"
+
+    # Geo restriction (issue #359) — reuse the existing geo pattern matcher
+    if is_geo_block_error(error_message):
+        return "GEO_RESTRICTED"
+
+    # Age verification required (issue #360)
+    if (
+        "take a few minutes to verify your age" in error_lower
+        or "sign in to confirm your age" in error_lower
+        or "age verification required" in error_lower
+    ):
+        return "AGE_RESTRICTED"
+
+    # Upstream server error (issue #356) — transient, show "try again later"
+    if "http error 500" in error_lower or "internal server error" in error_lower:
+        return "HTTP_500"
+
+    # Extractor/parse failure (issue #328) — Facebook and other platforms change
+    # page structure, breaking yt-dlp's extractor. Show a friendly message
+    # suggesting yt-dlp update or cookies rather than the raw "Cannot parse data".
+    if "cannot parse data" in error_lower or "unable to extract" in error_lower or "extractor error" in error_lower:
+        return "EXTRACTOR_ERROR"
+
+    return None

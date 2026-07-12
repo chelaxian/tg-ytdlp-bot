@@ -820,6 +820,14 @@ def get_total_media_count(url: str, user_id=None, use_proxy: bool = False) -> in
                     return _get_total_media_count_fallback(url, user_id, use_proxy, cfg_path)
             else:
                 logger.warning(f"get_total_media_count failed: {result.stderr[:400]}")
+                # If gallery-dl reports "No suitable extractor" / "Unsupported",
+                # the URL is fundamentally unsupported — skip the --get-urls
+                # fallback which would just re-discover the same failure and add
+                # log noise (issue #323).
+                from HELPERS.fallback_helper import is_gallery_dl_no_extractor_error
+                if is_gallery_dl_no_extractor_error(result.stderr):
+                    logger.info(f"gallery-dl reports no extractor for {url}, skipping --get-urls fallback")
+                    return None
                 # Fallback to --get-urls for sites that don't work with --simulate
                 return _get_total_media_count_fallback(url, user_id, use_proxy, cfg_path)
         finally:
@@ -900,6 +908,13 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
             return len(lines)
         else:
             logger.warning(f"Fallback get_total_media_count failed: {result.stderr[:400]}")
+            # If gallery-dl reports "No suitable extractor", the URL is
+            # fundamentally unsupported — skip VK/Instagram/TikTok cookie
+            # retries which would all fail the same way (issue #323).
+            from HELPERS.fallback_helper import is_gallery_dl_no_extractor_error
+            if is_gallery_dl_no_extractor_error(result.stderr):
+                logger.info(f"gallery-dl reports no extractor for {url} (--get-urls), skipping further retries")
+                return None
             # For VK, always try without cookies if failed with cookies
             if is_vk_url:
                 logger.info("[VK] Failed with cookies, trying without cookies")
@@ -1232,6 +1247,8 @@ def _is_fatal_error(stderr_text: str) -> bool:
         "account not found",
         "profile not found",
         "user not found",
+        "could not be found",
+        "requested user",
         "page not found",
         "account suspended",
         "account banned",
@@ -1245,7 +1262,9 @@ def _is_fatal_error(stderr_text: str) -> bool:
         "rate limit exceeded",
         "too many requests",
         "429 too many requests",
-        "quota exceeded"
+        "quota exceeded",
+        "دوباره تلاش کنید",
+        "لطفاً بعداً",
     ]):
         return True
     
@@ -1265,7 +1284,10 @@ def _is_fatal_error(stderr_text: str) -> bool:
         "empty profile",
         "no posts found",
         "no videos found",
-        "no images found"
+        "no videos in playlist",
+        "empty playlist",
+        "no images found",
+        "هیچ ویدیویی",
     ]):
         return True
     
@@ -1308,7 +1330,10 @@ def _is_fatal_error(stderr_text: str) -> bool:
         "content removed",
         "post deleted",
         "account deleted",
-        "account terminated"
+        "account terminated",
+        "forbidden content",
+        "محتوى محظور",
+        "محظور",
     ]):
         return True
     
@@ -1324,7 +1349,7 @@ def _get_error_type(stderr_text: str, user_id=None) -> str:
     
     # Authentication errors
     if any(error in stderr_lower for error in [
-        "401 unauthorized", "authentication failed", "login required", "access denied",
+        "401 unauthorized", "403 forbidden", "authentication failed", "login required", "access denied",
         "http redirect to login page", "redirect to login", "login page"
     ]):
         return safe_get_messages(user_id).GALLERY_DL_AUTH_ERROR_MSG
@@ -1361,7 +1386,8 @@ def _get_error_type(stderr_text: str, user_id=None) -> str:
     
     # Account/Profile errors
     if any(error in stderr_lower for error in [
-        "account not found", "profile not found", "user not found", "page not found"
+        "account not found", "profile not found", "user not found", "page not found",
+        "could not be found", "requested user",
     ]):
         return safe_get_messages(user_id).GALLERY_DL_ACCOUNT_NOT_FOUND_MSG
     
@@ -1372,7 +1398,8 @@ def _get_error_type(stderr_text: str, user_id=None) -> str:
     
     # Rate limiting errors
     if any(error in stderr_lower for error in [
-        "rate limit exceeded", "too many requests", "429 too many requests", "quota exceeded"
+        "rate limit exceeded", "too many requests", "429 too many requests", "quota exceeded",
+        "دوباره تلاش کنید", "لطفاً بعداً",
     ]):
         return safe_get_messages(user_id).GALLERY_DL_RATE_LIMIT_EXCEEDED_MSG
     
@@ -1384,7 +1411,8 @@ def _get_error_type(stderr_text: str, user_id=None) -> str:
     
     # Content not available
     if any(error in stderr_lower for error in [
-        "no media found", "no content available", "empty profile", "no posts found"
+        "no media found", "no content available", "empty profile", "no posts found",
+        "no videos in playlist", "empty playlist", "هیچ ویدیویی",
     ]):
         return safe_get_messages(user_id).GALLERY_DL_CONTENT_UNAVAILABLE_MSG
     
@@ -1402,7 +1430,8 @@ def _get_error_type(stderr_text: str, user_id=None) -> str:
     
     # Legal/Policy violations
     if any(error in stderr_lower for error in [
-        "terms of service violation", "copyright violation", "dmca takedown", "content removed"
+        "terms of service violation", "copyright violation", "dmca takedown", "content removed",
+        "forbidden content", "محتوى محظور", "محظور",
     ]):
         return safe_get_messages(user_id).GALLERY_DL_POLICY_VIOLATION_MSG
     

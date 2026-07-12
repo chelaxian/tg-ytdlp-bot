@@ -197,6 +197,14 @@ def extract_url_range_tags(text: str):
     if not isinstance(text, str):
         return None, 1, 1, None, [], '', None
     
+    # YouTube Music playlist URLs reject the *N*M playlist range syntax with HTTP 400
+    # (issue #370). Strip any *N*M suffix so no range is applied to music.youtube.com.
+    if 'music.youtube.com' in text.lower():
+        stripped = re.sub(r'\*[-]?\d+\*[-]?\d+', '', text)
+        if stripped != text:
+            logger.info(f"🔍 [DEBUG] extract_url_range_tags: YouTube Music URL — удалён диапазон *N*M (issue #370)")
+            text = stripped
+    
     #  Сначала ищем формат /img start-end URL (поддерживаем отрицательные числа)
     img_range_match = re.search(r'/img\s+(-?\d+)-(-?\d+)\s+(https?://[^\s\*#]+)', text)
     if img_range_match:

@@ -662,7 +662,7 @@ def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = N
             'outtmpl': outtmpl,
             'noplaylist': True,
             'extract_flat': False,
-            'socket_timeout': 30,
+            'socket_timeout': 60,
             'convert_thumbnails': 'jpg',
         }
         

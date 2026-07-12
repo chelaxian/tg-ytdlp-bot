@@ -25,13 +25,14 @@ _QUALITY_HINT = {
 }
 
 
-def format_quality_codec(height=None, width=None, vcodec=None):
+def format_quality_codec(height=None, width=None, vcodec=None, dynamic_range=None):
     """
     Build suffix string for caption: quality (144p–4320p) and codec (AV1, AVC1, VP9).
     Quality = whichever of width/height exactly matches a standard value (144, 240, 360, 480, 720, 1080, …).
     E.g. 1920x1080 → 1080p, 1080x1920 → 1080p. If both match, use the minimum (e.g. 1080×720 → 720p).
     Hints in parentheses: SD, HD, Full HD, QHD, 4K, 8K.
-    Returns e.g. " 📹1080P(Full HD) 📼AV1" or " 📹4320p(8K) 📼VP9" or "" if both missing.
+    If dynamic_range == "hdr" (case-insensitive), appends HDR tag.
+    Returns e.g. " 📹1080P(Full HD) 📼AV1 📺HDR" or " 📹4320p(8K) 📼VP9 📺HDR" or similar.
     """
     parts = []
     try:
@@ -50,14 +51,15 @@ def format_quality_codec(height=None, width=None, vcodec=None):
         pass
     if vcodec:
         v = (vcodec or "").strip().lower()
+        is_hdr = dynamic_range and str(dynamic_range).lower() == "hdr"
         if "av01" in v or v == "av1":
-            codec_display = "AV1"
+            codec_display = "AV1" if not is_hdr else "AV1 (HDR)"
         elif "avc1" in v or "h264" in v or "avc" in v:
-            codec_display = "AVC1"
+            codec_display = "AVC1" if not is_hdr else "AVC1 (HDR)"
         elif "vp9" in v:
-            codec_display = "VP9"
+            codec_display = "VP9" if not is_hdr else "VP9 (HDR)"
         elif "hevc" in v or "h265" in v:
-            codec_display = "HEVC"
+            codec_display = "HEVC" if not is_hdr else "HEVC (HDR)"
         else:
             codec_display = v[:4].upper() if len(v) >= 4 else v.upper()
         if codec_display:

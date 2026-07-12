@@ -9,6 +9,7 @@ from CONFIG.logger_msg import LoggerMsg
 import threading
 import time
 import traceback
+import json
 import yt_dlp
 from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
@@ -166,19 +167,33 @@ def create_telegram_thumbnail(cover_path, output_path, size=320):
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
-def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
-    """Embed cover into MP3 using ID3v2 APIC via ffmpeg."""
+def embed_cover_audio(audio_path, cover_path, title=None, artist=None, album=None):
+    """Embed cover art into any audio file via ffmpeg.
+    Supports: MP3 (ID3v2 APIC), M4A/AAC/ALAC (MP4 covr), FLAC, OPUS, OGG/Vorbis.
+    WAV and AC3 do not support cover art — skipped gracefully."""
     try:
-        logger.info(f"Starting cover embedding: MP3={mp3_path}, Cover={cover_path}")
-        
-        # Check if files exist
-        if not os.path.exists(mp3_path):
-            logger.error(f"MP3 file not found: {mp3_path}")
+        ext = os.path.splitext(audio_path)[1].lower()
+
+        if ext in ('.wav', '.ac3'):
+            logger.info(f"Cover art not supported for {ext} format, skipping: {audio_path}")
+            return True
+
+        # OGG/OPUS/FLAC cover art is embedded by yt-dlp's EmbedThumbnail
+        # postprocessor (mutagen-based). ffmpeg cannot embed covers in
+        # OGG containers — skip to avoid corrupting the file.
+        if ext in ('.opus', '.ogg'):
+            logger.info(f"Cover art for {ext} handled by EmbedThumbnail (mutagen), skipping ffmpeg: {audio_path}")
+            return True
+
+        logger.info(f"Starting cover embedding: {audio_path} ({ext}), Cover={cover_path}")
+
+        if not os.path.exists(audio_path):
+            logger.error(f"Audio file not found: {audio_path}")
             return False
         if not os.path.exists(cover_path):
             logger.error(f"Cover file not found: {cover_path}")
             return False
-        
+
         if cover_path.lower().endswith(('.webp', '.png')):
             jpeg_path = cover_path.rsplit('.', 1)[0] + '.jpg'
             logger.info(f"Converting cover to JPEG: {cover_path} -> {jpeg_path}")
@@ -188,51 +203,53 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
             if result.stderr:
                 logger.debug(f"FFmpeg cover conversion stderr: {result.stderr.decode('utf-8', errors='replace')}")
             cover_path = jpeg_path
-        
-        out_path = mp3_path.rsplit('.', 1)[0] + '_tagged.mp3'
-        
-        # Build ffmpeg command for MP3 cover embedding
+
+        base, ext_with_dot = os.path.splitext(audio_path)
+        out_path = base + '_tagged' + ext_with_dot
+
         cmd = [
             "ffmpeg", "-y",
-            "-i", mp3_path,
+            "-i", audio_path,
             "-i", cover_path,
             "-map", "0:a:0", "-map", "1:v:0",
             "-c:a", "copy",
             "-c:v", "mjpeg",
-            "-id3v2_version", "3",
-            "-metadata:s:v", "title=Album cover",
-            "-metadata:s:v", "comment=Cover (front)",
             "-disposition:v", "attached_pic"
         ]
-        
-        # Add metadata if provided
+
+        if ext == '.mp3':
+            cmd.extend([
+                "-id3v2_version", "3",
+                "-metadata:s:v", "title=Album cover",
+                "-metadata:s:v", "comment=Cover (front)",
+            ])
+
         if title:
             cmd.extend(["-metadata", f"title={title}"])
         if artist:
             cmd.extend(["-metadata", f"artist={artist}"])
         if album:
             cmd.extend(["-metadata", f"album={album}"])
-        
+
         cmd.append(out_path)
-        
+
         logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
-        
+
         result = subprocess.run(cmd, check=True, capture_output=True, timeout=600)
-        
+
         if result.stdout:
             logger.info(f"FFmpeg stdout: {result.stdout.decode('utf-8', errors='replace')}")
         if result.stderr:
             logger.info(f"FFmpeg stderr: {result.stderr.decode('utf-8', errors='replace')}")
-        
-        # Replace original file with tagged version
+
         if os.path.exists(out_path):
-            os.replace(out_path, mp3_path)
-            logger.info(f"Successfully embedded cover in MP3: {mp3_path}")
+            os.replace(out_path, audio_path)
+            logger.info(f"Successfully embedded cover in {audio_path}")
             return True
         else:
-            logger.error(f"Failed to create tagged MP3 file: {out_path}")
+            logger.error(f"Failed to create tagged file: {out_path}")
             return False
-            
+
     except subprocess.CalledProcessError as e:
         stderr_text = e.stderr.decode('utf-8', errors='replace') if isinstance(e.stderr, bytes) else str(e.stderr)
         logger.error(f"FFmpeg error embedding cover: {stderr_text}")
@@ -243,7 +260,66 @@ def embed_cover_mp3(mp3_path, cover_path, title=None, artist=None, album=None):
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
-# @reply_with_keyboard
+_AUDIO_CODEC_DISPLAY = {
+    'mp3': 'MP3', 'mp3float': 'MP3',
+    'aac': 'AAC', 'aac_latm': 'AAC',
+    'opus': 'OPUS',
+    'vorbis': 'VORBIS',
+    'flac': 'FLAC',
+    'alac': 'ALAC',
+    'ac3': 'AC3',
+    'pcm_s16le': 'PCM', 'pcm_s24le': 'PCM', 'pcm_f32le': 'PCM',
+    'pcm_s32le': 'PCM', 'pcm_u8': 'PCM',
+}
+
+
+def get_audio_bitrate_codec(audio_path):
+    """Get audio codec name and bit rate (bps as string) from file via ffprobe.
+    Returns (codec_name, bit_rate_bps) or (None, None) on failure."""
+    try:
+        cmd = [
+            "ffprobe", "-v", "error",
+            "-select_streams", "a:0",
+            "-show_entries", "stream=codec_name,bit_rate",
+            "-show_entries", "format=bit_rate",
+            "-of", "json",
+            audio_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, timeout=30)
+        if result.returncode != 0:
+            logger.debug(f"ffprobe failed for {audio_path}")
+            return None, None
+
+        data = json.loads(result.stdout.decode('utf-8', errors='replace'))
+        streams = data.get('streams', [])
+        codec_name = None
+        bit_rate = None
+        if streams:
+            codec_name = streams[0].get('codec_name')
+            bit_rate = streams[0].get('bit_rate')
+        if not bit_rate or bit_rate == 'N/A':
+            bit_rate = data.get('format', {}).get('bit_rate')
+
+        return codec_name, bit_rate
+    except Exception as e:
+        logger.debug(f"Error probing audio for bitrate/codec: {e}")
+        return None, None
+
+
+def format_audio_quality_suffix(codec_name=None, bit_rate=None):
+    """Build audio quality suffix for caption: ' 💿192 kb/s 📻OPUS'."""
+    parts = []
+    if bit_rate:
+        try:
+            kbps = int(bit_rate) // 1000
+            if kbps > 0:
+                parts.append(f"💿{kbps} kb/s")
+        except (ValueError, TypeError):
+            pass
+    if codec_name:
+        display = _AUDIO_CODEC_DISPLAY.get(codec_name.lower(), codec_name.upper())
+        parts.append(f"📻{display}")
+    return (" " + " ".join(parts)) if parts else ""
 def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None, video_count=1, video_start_with=1, format_override=None, cookies_already_checked=False, use_proxy=False, cached_video_info=None, download_sections=None):
     # Сбрасываем кеш проверенных источников куки для новой задачи загрузки
     user_id = message.chat.id
@@ -1050,6 +1126,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             postprocessors.append({
                 'key': 'FFmpegMetadata'   # equivalent to --add-metadata
             })
+
+            # Add EmbedThumbnail postprocessor (same as video path).
+            # Uses mutagen internally — correctly embeds cover art in
+            # MP3 (ID3v2), M4A (covr), OGG/OPUS/Vorbis (METADATA_BLOCK_PICTURE), FLAC.
+            # ffmpeg alone cannot embed covers in OGG/OPUS containers.
+            embed_thumbnail = user_args.get('embed_thumbnail', True) if user_args else True
+            if embed_thumbnail:
+                postprocessors.append({'key': 'EmbedThumbnail'})
+                logger.info(f"User {user_id} embed_thumbnail={embed_thumbnail}, adding EmbedThumbnail postprocessor for audio")
             
             ytdl_opts = {
                'format': download_format,
@@ -1077,11 +1162,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                # Without this, yt-dlp can't extract formats ("Only images are available")
                'js_runtimes': {'node': {}},
                # Network resilience: retry on transient failures
-               'retries': 10,
-               'fragment_retries': 10,
-                'file_access_retries': 3,
-                'socket_timeout': 30,
-             }
+                'retries': 5,
+                'fragment_retries': 10,
+                 'file_access_retries': 3,
+                 'socket_timeout': 60,
+                 'source_address': '0.0.0.0',
+              }
             
             # Add download_sections if trim is enabled
             if download_sections:
@@ -1143,11 +1229,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # ignoreerrors is set based on user's ignore_errors setting
                 user_args_copy = user_args.copy()
                 user_args_copy.pop('ignoreerrors', None)
+                # embed_thumbnail is already handled via EmbedThumbnail postprocessor above
+                user_args_copy.pop('embed_thumbnail', None)
                 ytdl_opts.update(user_args_copy)
             
             # Only use ignoreerrors if user explicitly enabled it via /args
             ytdl_opts['ignoreerrors'] = ignore_errors
-            
+
+            # Prevent yt-dlp from routing non-playlist URLs through playlist/tab
+            # extractors, which causes "No videos found in playlist" (issue #377).
+            if not is_playlist:
+                ytdl_opts['noplaylist'] = True
+
             # Log final yt-dlp options for debugging
             log_ytdlp_options(user_id, ytdl_opts, "audio_download")
             
@@ -2197,13 +2290,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                            # JS runtime for YouTube n-parameter challenge solving
                            'js_runtimes': {'node': {}},
                            # Network resilience
-                           'retries': 10,
-                           'fragment_retries': 10,
-                            'file_access_retries': 3,
-                            'socket_timeout': 30,
-                         }
-                        
-                        # Add match_filter only if domain is not in NO_FILTER_DOMAINS
+                            'retries': 5,
+                            'fragment_retries': 10,
+                             'file_access_retries': 3,
+                             'socket_timeout': 60,
+                             'source_address': '0.0.0.0',
+                          }
+
+                        # Prevent yt-dlp from routing non-playlist URLs through playlist/tab
+                        # extractors (issue #377).
+                        if not is_playlist:
+                           ytdl_opts['noplaylist'] = True
+
                         if not is_no_filter_domain(url):
                             ytdl_opts['match_filter'] = create_smart_match_filter(user_id=user_id, message=message)
                         
@@ -2453,7 +2551,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             logger.error(f"[TRIM AUDIO] Error during trim execution: {trim_exec_error}")
                             logger.error(traceback.format_exc())
 
-            # Embed cover into MP3 file if thumbnail is available (enabled by default)
+            # Embed cover into audio file if thumbnail is available (enabled by default)
+            # Supports MP3, M4A, FLAC, OPUS, OGG — WAV/AC3 are skipped gracefully
             # Errors during embedding are handled gracefully and won't stop download
             try:
                 # Check if user disabled embed_thumbnail (default is True)
@@ -2509,7 +2608,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         
                         logger.info(f"Metadata - Title: {title_for_metadata}, Artist: {artist}, Album: {album}")
                         
-                        success = embed_cover_mp3(audio_file, cover_path, title=title_for_metadata, artist=artist, album=album)
+                        success = embed_cover_audio(audio_file, cover_path, title=title_for_metadata, artist=artist, album=album)
                         if success:
                             logger.info(f"Successfully embedded cover in audio file: {audio_file}")
                         else:
@@ -2540,32 +2639,36 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
             bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
 
-            # Defaults in case MP3 has no metadata or reading fails
+            # Defaults in case metadata reading fails
             artist = "Unknown Artist"
             title = original_audio_title or "Unknown Title"
 
-            # Create display title from MP3 metadata (artist + title)
+            # Create display title from metadata (artist + title) — works for all formats
             try:
                 import mutagen
-                from mutagen.mp3 import MP3
-                from mutagen.id3 import ID3NoHeaderError
-                
-                # Try to read metadata from the MP3 file
-                audio_metadata = MP3(audio_file)
-                artist = audio_metadata.get('TPE1', ['Unknown Artist'])[0] if 'TPE1' in audio_metadata else artist
-                title = audio_metadata.get('TIT2', [title])[0] if 'TIT2' in audio_metadata else title
-                
-                # Create display title: "Artist - Title"
+                audio_metadata = mutagen.File(audio_file, easy=True)
+                if audio_metadata is not None:
+                    _artist_vals = audio_metadata.get('artist')
+                    if _artist_vals:
+                        artist = str(_artist_vals[0])
+                    _title_vals = audio_metadata.get('title')
+                    if _title_vals:
+                        title = str(_title_vals[0])
+
                 display_title = f"{artist} - {title}"
-                logger.info(f"MP3 metadata display title: '{display_title}'")
-                
+                logger.info(f"Audio metadata display title: '{display_title}'")
             except Exception as e:
-                logger.warning(f"Failed to read MP3 metadata, using original title: {e}")
+                logger.warning(f"Failed to read audio metadata, using original title: {e}")
                 display_title = title
-            
+
             # Use display title from metadata for caption
             caption_with_link = f"{display_title}\n{tags_block}[🔗 Audio URL]({url}){bot_mention}"
-            
+
+            # Get audio bitrate/codec via ffprobe for caption suffix
+            audio_codec, audio_bitrate = get_audio_bitrate_codec(audio_file)
+            audio_quality_suffix = format_audio_quality_suffix(audio_codec, audio_bitrate)
+            logger.info(f"Audio quality suffix: '{audio_quality_suffix}' (codec={audio_codec}, bitrate={audio_bitrate})")
+
             # Trim caption to fit Telegram's 1024 character limit using truncate_caption
             from HELPERS.caption import truncate_caption
             title_html, pre_block, blockquote_content, tags_block, link_block, was_truncated = truncate_caption(
@@ -2574,7 +2677,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 url=url,
                 tags_text=tags_text_final,
                 max_length=1000,  # Reduced for safety
-                user_id=user_id
+                user_id=user_id,
+                quality_codec_suffix=audio_quality_suffix
             )
             # Rebuild caption from truncated parts
             caption_with_link = ""
@@ -2689,8 +2793,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         _start_upload_logging(user_id, proc_msg_id)
                     try:
                         _prog_args = (user_id, proc_msg_id, _upload_status_text) if proc_msg_id else None
-                        if file_ext == '.mp3' or file_ext == '.m4a':
-                            # Send as audio for supported formats
+                        if file_ext in ('.mp3', '.m4a', '.opus', '.ogg'):
+                            # Send as audio (Telegram player supports MP3, M4A, OGG/OPUS)
                             if telegram_thumb and os.path.exists(telegram_thumb):
                                 audio_msg = timed_upload(lambda: app.send_audio(
                                     chat_id=user_id, 

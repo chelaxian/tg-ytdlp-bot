@@ -85,6 +85,20 @@ def is_skippable_video_error(error_message: str) -> bool:
         "video unavailable",
         "this video has been removed",
         "video is not available",
+        # Приватные/недоступные видео в плейлистах (issue #374)
+        "private video",
+        "this video is private",
+        "premieres in",
+        "members-only",
+        "join this channel",
+        "sign in to confirm your age",
+        "age-restricted",
+        "video not available",
+        # Geo-blocked в плейлистах (issue #374)
+        "not available in your country",
+        "not made this video available",
+        "geo-blocked",
+        "geo restricted",
         # Общие паттерны
         "copyright holder",
         "violating.*policy",
@@ -462,15 +476,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     
     # Check for dubs (audio tracks) in Always Ask mode
     has_dubs = False
-    if is_always_ask_mode and is_youtube_url(url):
+    if is_youtube_url(url):
         try:
             from DOWN_AND_UP.always_ask_menu import get_filters
             filters_state = get_filters(user_id)
+            # Apply persistent /dubs preference (does nothing if not set or manually overridden)
+            try:
+                from COMMANDS.dubs_cmd import apply_dubs_preference
+                filters_state = apply_dubs_preference(user_id, filters_state)
+            except Exception:
+                pass
             audio_all_dubs = filters_state.get("audio_all_dubs", False)
             selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
             if audio_all_dubs or selected_audio_langs:
                 has_dubs = True
-                logger.info(f"Always Ask mode: dubs detected - audio_all_dubs={audio_all_dubs}, selected_audio_langs={selected_audio_langs}")
+                logger.info(f"Dubs detected - audio_all_dubs={audio_all_dubs}, selected_audio_langs={selected_audio_langs}")
         except Exception as e:
             logger.warning(f"Error checking for dubs: {e}")
         subs_all_selected = False
@@ -992,7 +1012,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'extractor_args': {
                     'youtubetab': {'skip': ['authcheck']}
                 },
-                'socket_timeout': 30,
+                'socket_timeout': 60,
             }
             # Try to use cookies from download directory first, then fallback to user root
             download_cookie_path = os.path.join(user_dir_name, "cookie.txt")
@@ -1362,10 +1382,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
                 'live_from_start': True if not did_live_from_start_retry else False,
                 # Network resilience: retry on transient failures (incomplete downloads, timeouts)
-                'retries': 10,
+                'retries': 5,
                 'fragment_retries': 10,
                 'file_access_retries': 3,
-                'socket_timeout': 30,
+                'socket_timeout': 60,
+                'source_address': '0.0.0.0',
             }
             
             # Add download_sections if trim is enabled
@@ -1542,8 +1563,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             common_opts['cookiefile'] = None
                             logger.info(f"No user cookies found for non-YouTube URL: {url}, will try fallback during download")
             
-            # If this is not a playlist with a range, add --no-playlist to the URL with the list parameter
-            if not is_playlist and 'list=' in url:
+            # If this is not a playlist, always tell yt-dlp not to treat it as one.
+            # Previously only set for URLs containing 'list=', but YouTube Shorts
+            # and other single-video URLs without 'list=' can still be routed by
+            # yt-dlp through a playlist/tab extractor, causing "No videos found
+            # in playlist" (issue #377).
+            if not is_playlist:
                 common_opts['noplaylist'] = True
             
             # Always use progress_hooks, even for HLS
@@ -2890,8 +2915,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if not error_message_sent:
                         error_str = str(e)
                         # Check for geo-block error and add proxy hint
-                        from CONFIG.errors import is_geo_block_error, has_country_list_in_error
-                        if is_geo_block_error(error_str):
+                        from CONFIG.errors import is_geo_block_error, has_country_list_in_error, classify_yt_dlp_error
+                        _dl_err_cat = classify_yt_dlp_error(error_str, url)
+                        if _dl_err_cat == "EXTRACTOR_ERROR":
+                            send_to_user(message, safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG, parse_mode=enums.ParseMode.HTML)
+                        elif is_geo_block_error(error_str):
                             if has_country_list_in_error(error_str):
                                 # Countries listed in error — proxy retry should have already been attempted
                                 send_to_user(message, f"❌ <b>Video is geo-blocked</b>\n\n<code>{error_str[:500]}</code>\n\n💡 The video is restricted to specific countries. Enable proxy (<code>/proxy</code>) so the bot can try proxies from those countries.")
@@ -3238,19 +3266,39 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # --- Use new centralized function for all tags ---
             tags_list = tags_text.split() if tags_text else []
             tags_text_final = generate_final_tags(url, tags_list, info_dict)
-            save_user_tags(user_id, tags_text_final.split())
 
             # Build quality/codec suffix for caption (e.g. " 📹1080P 📼AV1"); quality = min(width, height)
             from HELPERS.caption import format_quality_codec, truncate_caption
             _height = info_dict.get('height') if info_dict else None
             _width = info_dict.get('width') if info_dict else None
             _vcodec = info_dict.get('vcodec') if info_dict else None
-            if not _vcodec and info_dict and info_dict.get('requested_formats'):
-                for rf in info_dict.get('requested_formats', []):
-                    if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
-                        _vcodec = rf.get('vcodec')
-                        break
-            video_quality_codec = format_quality_codec(_height, _width, _vcodec)
+            _dynamic_range = info_dict.get('dynamic_range') if info_dict else None
+            if info_dict and info_dict.get('requested_formats'):
+                # Search requested_formats for vcodec (video stream) independently
+                if not _vcodec:
+                    for rf in info_dict.get('requested_formats', []):
+                        if rf.get('vcodec') and str(rf.get('vcodec', '')).lower() != 'none':
+                            _vcodec = rf.get('vcodec')
+                            break
+                # Search requested_formats for dynamic_range independently of vcodec
+                if not _dynamic_range:
+                    for rf in info_dict.get('requested_formats', []):
+                        if rf.get('dynamic_range'):
+                            _dynamic_range = rf.get('dynamic_range')
+                            break
+            # Add HDR tag if video has HDR
+            # Fallback: detect HDR by vcodec (vp9.2 = VP9 Profile 2 HDR;
+            # av01 with 10-bit = HDR) when dynamic_range field is missing
+            _is_hdr = bool(_dynamic_range and str(_dynamic_range).lower() == 'hdr')
+            if not _is_hdr and _vcodec:
+                _vc = str(_vcodec).lower()
+                if 'vp9.2' in _vc or ('av01' in _vc and '.10.' in _vc):
+                    _is_hdr = True
+                    _dynamic_range = 'hdr'
+            if _is_hdr and '#hdr' not in tags_text_final.lower():
+                tags_text_final = f"{tags_text_final} #HDR"
+            save_user_tags(user_id, tags_text_final.split())
+            video_quality_codec = format_quality_codec(_height, _width, _vcodec, _dynamic_range)
 
            # If rename_name is not set, set it equal to video_title
             if rename_name is None:
@@ -4144,6 +4192,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         v_w, v_h, v_dur = width, height, part_duration
                                     
                                     _split_thumb = splited_thumb_dir if (splited_thumb_dir and os.path.exists(splited_thumb_dir)) else None
+                                    if not os.path.exists(path_lst[p]):
+                                        raise FileNotFoundError(f"Video file not found: {path_lst[p]}")
                                     # Create open copy for history (without stars) - send directly to NSFW channel
                                     # NOTE: no reply_parameters — message.id is from user chat and does not exist in log channel
                                     open_video_msg = timed_upload(lambda: app.send_video(

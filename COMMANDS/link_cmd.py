@@ -148,6 +148,12 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
         # Use try_with_proxy_fallback to try all proxies if first one fails
         info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
         
+        # Format fallback: if extraction failed, retry with 'best' format (issue #362)
+        if info is None and format_spec != 'best':
+            logger.info(f"Link extraction failed with format '{format_spec}', retrying with 'best' (issue #362)")
+            ytdl_opts['format'] = 'best'
+            info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
+        
         if info is None:
             return {'error': 'Failed to extract video information: all proxies failed or video unavailable'}
         

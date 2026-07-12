@@ -1397,7 +1397,7 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
         ydl_opts = add_pot_to_ytdl_opts(ydl_opts, url)
         # Add timeout for Docker network stability
         if 'socket_timeout' not in ydl_opts:
-            ydl_opts['socket_timeout'] = 30
+            ydl_opts['socket_timeout'] = 60
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -1481,7 +1481,7 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
         ydl_opts = add_pot_to_ytdl_opts(ydl_opts, test_url)
         # Add timeout for Docker network stability 
         if 'socket_timeout' not in ydl_opts:
-            ydl_opts['socket_timeout'] = 30
+            ydl_opts['socket_timeout'] = 60
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(test_url, download=False)
@@ -1606,7 +1606,7 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
                     },
                     'retries': 2,
                     'extractor_retries': 1,
-                    'socket_timeout': 30,
+                    'socket_timeout': 60,
                 }
                 ydl_opts_no_format = add_pot_to_ytdl_opts(ydl_opts_no_format, test_url)
                 with yt_dlp.YoutubeDL(ydl_opts_no_format) as ydl:

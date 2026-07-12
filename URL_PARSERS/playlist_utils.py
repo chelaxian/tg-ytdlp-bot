@@ -16,10 +16,17 @@ def is_playlist_with_range(text: str) -> bool:
     range_pattern = r'\*-?\d+\*-?\d+|-?\d+\*-?\d+|\*'
     return bool(re.search(range_pattern, text))
 
+def is_youtube_music_url(url: str) -> bool:
+    """Return True if the URL points to YouTube Music (music.youtube.com)."""
+    if not isinstance(url, str):
+        return False
+    return 'music.youtube.com' in url.lower()
+
+
 def is_playlist_url(url: str) -> bool:
     """
     Checks if the URL is a playlist URL by pattern matching.
-    For YouTube: checks for https://youtube.com/playlist?list= pattern.
+    For YouTube: checks for https://youtube.com/playlist? list= pattern.
     Returns True if URL appears to be a playlist, False otherwise.
     """
     if not isinstance(url, str):
@@ -27,7 +34,13 @@ def is_playlist_url(url: str) -> bool:
     
     url_lower = url.lower()
     
-    # Check for YouTube playlist pattern: https://youtube.com/playlist?list= or https://www.youtube.com/playlist?list=
+    # YouTube Music playlists reject the *N*M range / playlist_items syntax with HTTP 400
+    # (issue #370). Treat them as non-playlist so no range is auto-appended and none is
+    # parsed from a user-typed *N*M suffix.
+    if is_youtube_music_url(url):
+        return False
+    
+    # Check for YouTube playlist pattern: https://youtube.com/playlist? list= or https://www.youtube.com/playlist? list=
     if 'youtube.com/playlist' in url_lower and 'list=' in url_lower:
         return True
     if 'youtu.be' in url_lower and 'list=' in url_lower:

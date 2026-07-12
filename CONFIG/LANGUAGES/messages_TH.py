@@ -1398,6 +1398,12 @@ class Messages(object):
     ALWAYS_ASK_THIS_TWEET_DOES_NOT_CONTAIN_MSG = "ทวีตนี้ไม่มี"
     ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG = "❌ <b>เกิดข้อผิดพลาดในการดึงข้อมูลวิดีโอ:</b>"
     ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG = "เกิดข้อผิดพลาดในการดึงข้อมูลวิดีโอ"
+    ALWAYS_ASK_MEMBERS_ONLY_MSG = "\U0001F512 <b>This video is available only to channel members (paid subscribers).</b>\nThe bot cannot download it without an active membership."
+    ALWAYS_ASK_LIVE_ENDED_MSG = "\U0001F4FA <b>This live stream has ended (or has not started yet).</b>\nPlease try another link."
+    ALWAYS_ASK_GEO_RESTRICTED_MSG = "\U0001F30D <b>This video is not available in your region.</b>\nThe uploader has restricted it geographically \u2014 try a VPN/proxy or another link."
+    ALWAYS_ASK_AGE_RESTRICTED_MSG = "\U0001F51E <b>This video requires age verification.</b>\nTry using /cookie to provide YouTube cookies from an age-verified account."
+    ALWAYS_ASK_HTTP_500_MSG = "\U0001F6E0\uFE0F <b>The video server returned an internal error (HTTP 500).</b>\nThis is temporary \u2014 please try again later."
+    ALWAYS_ASK_EXTRACTOR_ERROR_MSG = "\u26a0\ufe0f <b>The video extractor failed to parse the page.</b>\nThis usually happens when the platform (e.g. Facebook) changes its structure. Try updating yt-dlp or using cookies via <code>/cookie</code>."
     ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "ลองใช้คำสั่ง <code>/clean</code> แล้วลองอีกครั้ง หากข้อผิดพลาดยังคงอยู่ YouTube จำเป็นต้องได้รับอนุญาต อัปเดต Cookies.txt ผ่าน <code>/cookie</code> หรือ <code>/cookies_from_browser</code> แล้วลองอีกครั้ง"
     ALWAYS_ASK_MENU_CLOSED_MSG = "ปิดเมนูแล้ว."
     ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 การเลือกคุณภาพด้วยตนเอง"
@@ -1662,6 +1668,9 @@ class Messages(object):
     AA_MKV_BUTTON_MSG = "✅เอ็มเควี"
     AA_MKV_BUTTON_INACTIVE_MSG = "☑️ MKV"
     AA_MKV_BUTTON_UNAVAILABLE_MSG = "❌ MKV"
+    AA_HDR_BUTTON_MSG = "✅ HDR"
+    AA_HDR_BUTTON_INACTIVE_MSG = "☑️ HDR"
+    AA_HDR_BUTTON_UNAVAILABLE_MSG = "❌ HDR"
 
     # Flood limit messages
     FLOOD_LIMIT_TRY_LATER_MSG = "⏳ Flood limit. Try later."
@@ -1708,6 +1717,9 @@ class Messages(object):
     FORMAT_VP9_BUTTON_INACTIVE_MSG = "☑️ vp09 (VP9)"
     FORMAT_MKV_ON_BUTTON_MSG = "✅ MKV: ON"
     FORMAT_MKV_OFF_BUTTON_MSG = "☑️ MKV: OFF"
+    FORMAT_HDR_ON_BUTTON_MSG = "✅ HDR: ON"
+    FORMAT_HDR_OFF_BUTTON_MSG = "☑️ HDR: OFF"
+    FORMAT_HDR_TOGGLE_MSG = "HDR: {status}"
     
     # Subtitles command button texts
     SUBS_LANGUAGE_CHECKMARK_MSG = "✅ "
@@ -2221,6 +2233,13 @@ class Messages(object):
     SETTINGS_SPLIT_CMD_BUTTON_MSG = "✂️ /split - เปลี่ยนขนาดส่วนวิดีโอที่แบ่ง"
     SETTINGS_AUDIO_CMD_BUTTON_MSG = "🎧 /audio - ดาวน์โหลดวิดีโอเป็นเสียง"
     SETTINGS_SUBS_CMD_BUTTON_MSG = "💬 /subs - การตั้งค่าภาษาคำบรรยาย"
+    SETTINGS_DUBS_CMD_BUTTON_MSG = "🗣 /dubs - ภาษาพากย์ (แทร็กเสียง) เริ่มต้น"
+    DUBS_LANGUAGE_SET_MSG = "✅ Default dub language set to: {flag} {name}"
+    DUBS_DISABLED_MSG = "✅ Dubs disabled."
+    DUBS_CURRENT_MSG = "🗣 Current dub language: {flag} {name}"
+    DUBS_NONE_MSG = "🗣 Dubs are currently disabled."
+    DUBS_SETTINGS_MENU_MSG = "🗣 <b>การตั้งค่าพากย์เสียง (แทร็กเสียง)</b>\n\n{status_text}\n\nเลือกภาษาพากย์เสียง:\n\n"
+
     SETTINGS_PLAYLIST_CMD_BUTTON_MSG = "⏯️ /playlist - วิธีดาวน์โหลดเพลย์ลิสต์"
     SETTINGS_IMG_CMD_BUTTON_MSG = "🖼 /img - ดาวน์โหลดรูปภาพผ่าน gallery-dl"
     SETTINGS_TAGS_CMD_BUTTON_MSG = "#️⃣ /tags - ส่ง #แท็กของคุณ"
