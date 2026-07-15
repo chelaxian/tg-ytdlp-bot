@@ -309,7 +309,7 @@ docker compose up -d --build
 ```
 
 Контейнер бота будет собран из `Dockerfile`, и:
-- `configuration-webserver` будет обслуживать cookie файлы по `http://configuration-webserver/cookies/<filename>`
+- `configuration-webserver` (по желанию — запускается отдельно командой `docker compose --profile configuration-webserver up -d`) будет обслуживать cookie файлы; он работает в сетевом namespace warp, поэтому бот обращается к ним по `http://localhost/cookies/<filename>`
 - `bgutil-provider` будет доступен по `http://bgutil-provider:4416` для YouTube PO токенов
 - **Dashboard панель** будет доступна по `http://localhost:5555` (или `http://<ваш-ip>:5555`)
 

@@ -66,6 +66,29 @@ services:
       warp:
         condition: service_healthy
 
+  # Cookie/config webserver (Caddy). Serves docker/configuration-webserver/site/ over HTTP
+  # for COOKIE_URL / *_COOKIE_URL. It shares warp's network namespace (like
+  # bgutil-provider), because warp overrides the bot's DNS (to 1.1.1.1) and
+  # service-name resolution over warp-net does not work; in the shared namespace
+  # the bot reaches Caddy (:80) at http://localhost/cookies/<file>.
+  # Opt-in: NOT started by `docker compose up -d`.
+  # Run it with:  docker compose --profile configuration-webserver up -d
+  configuration-webserver:
+    profiles: ["configuration-webserver"]
+    container_name: tg-ytdlp-configuration-webserver
+    image: caddy:2-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    network_mode: "container:tg-ytdlp-warp"
+    depends_on:
+      warp:
+        condition: service_healthy
+    volumes:
+      - ./docker/configuration-webserver/conf:/etc/caddy:ro
+      - ./docker/configuration-webserver/site:/srv:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
   warp:
     build: ./warp
     container_name: tg-ytdlp-warp
@@ -100,3 +123,5 @@ networks:
 
 volumes:
   warp-data:
+  caddy-data:
+  caddy-config:

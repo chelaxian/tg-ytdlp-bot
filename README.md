@@ -201,7 +201,7 @@ docker compose up -d --build
 ```
 
 The bot container will be built from the included `Dockerfile`, and:
-- `configuration-webserver` will serve cookie files at `http://configuration-webserver/cookies/<filename>`
+- `configuration-webserver` (opt-in — start it separately with `docker compose --profile configuration-webserver up -d`) will serve cookie files; it shares warp's network namespace, so the bot reaches them at `http://localhost/cookies/<filename>`
 - `bgutil-provider` will be available at `http://bgutil-provider:4416` for YouTube PO tokens
 - **Dashboard panel** will be available at `http://localhost:5555` (or `http://<your-server-ip>:5555`)
 
