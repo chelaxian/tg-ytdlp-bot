@@ -256,7 +256,7 @@ cp CONFIG/_config.py CONFIG/config.py
 - **API_ID**, **API_HASH** – из [my.telegram.org](https://my.telegram.org)
 - **BOT_TOKEN** – из [@BotFather](https://t.me/BotFather)
 - **LOGS_*** – все лог-каналы
-- **SUBSCRIBE_CHANNEL** и **SUBSCRIBE_CHANNEL_URL** – канал подписки
+- **SUBSCRIBE_CHANNEL** и **SUBSCRIBE_CHANNEL_URL** – канал подписки (опционально: `0` или пусто в `SUBSCRIBE_CHANNEL` отключает требование подписки)
 
 **Пример конфигурации:**
 

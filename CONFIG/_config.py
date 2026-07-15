@@ -38,7 +38,7 @@ class Config(object):
     LOGS_IMG_ID = -100111111111111  # Channel ID for media command logs /img 
     LOGS_PAID_ID = -100111111111111  # Channel ID for paid media logs
     LOG_EXCEPTION = -100111111111111  # Channel ID for exception logs
-    # Channel ID to subscribe to
+    # Channel ID to subscribe to (optional: set to 0 or leave empty to disable the subscription requirement)
     SUBSCRIBE_CHANNEL = -100222222222222222222
     # Add subscription channel - Required (str)
     SUBSCRIBE_CHANNEL_URL = "https://t.me/+abcdef"
