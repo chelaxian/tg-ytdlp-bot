@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ 访问被拒绝。仅限管理员。"
     ACCESS_DENIED_ADMIN = "❌ 访问被拒绝。仅限管理员。"
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ 访问被拒绝。此机器人是私有的。"
     WELCOME_MASTER = "欢迎主人 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ 抱歉...下载过程中发生了一些错误。"
     SIZE_LIMIT_EXCEEDED = "❌ 文件大小超过 {max_size_gb} GB 限制。请在允许的大小范围内选择较小的文件。"

@@ -788,6 +788,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Қол жеткізу қол жетімсіз. Тек әкімші."
     ACCESS_DENIED_ADMIN = "❌ Қол жеткізу қол жетімсіз. Тек әкімші."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Қол жеткізу тыйым салынған. Бұл бот жеке."
     WELCOME_MASTER = "Қош келдіңіз, Қожайын 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Кешіріңіз... Жүктеу кезінде қате орын алды."
     SIZE_LIMIT_EXCEEDED = "❌ Файл өлшемі {max_size_gb} GB шегінен асып кетті. Рұқсат етілген өлшем ішінде кішірек файлды таңдаңыз."

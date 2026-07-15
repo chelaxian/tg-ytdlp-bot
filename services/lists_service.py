@@ -175,14 +175,20 @@ def update_lists() -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 
-def _validate_url_for_ssrf(url: str) -> tuple[bool, str]:
+def _validate_url_for_ssrf(url: str, allowed_urls: set[str] | None = None) -> tuple[bool, str]:
     """
     Валидирует URL для предотвращения SSRF атак.
     Возвращает (is_valid, error_message).
+    allowed_urls: набор точных URL, которым доверяем (напр. cookie-webserver из Config).
+    Они проходят без SSRF-фильтрации хоста. Совпадение строго по полному URL,
+    поэтому послабление не открывает остальной localhost/приватную сеть.
     """
     if not url:
         return False, "URL is empty"
-    
+    # Explicitly trusted exact URLs (e.g. cookie-webserver URLs from Config) bypass the host filter
+    if allowed_urls and url in allowed_urls:
+        return True, ""
+
     try:
         parsed = urlparse(url)
         

@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ অ্যাক্সেস অস্বীকার করা হয়েছে। শুধুমাত্র অ্যাডমিন।"
     ACCESS_DENIED_ADMIN = "❌ অ্যাক্সেস অস্বীকার করা হয়েছে। শুধুমাত্র অ্যাডমিন।"
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ অ্যাক্সেস অস্বীকৃত। এই বটটি ব্যক্তিগত।"
     WELCOME_MASTER = "স্বাগতম মাস্টার 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ দুঃখিত... ডাউনলোডের সময় কিছু ত্রুটি ঘটেছে।"
     SIZE_LIMIT_EXCEEDED = "❌ ফাইলের আকার {max_size_gb} GB সীমা অতিক্রম করেছে। অনুগ্রহ করে অনুমোদিত আকারের মধ্যে একটি ছোট ফাইল নির্বাচন করুন।"

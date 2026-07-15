@@ -787,6 +787,7 @@ Tìm hiểu thêm: /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Truy cập bị từ chối. Chỉ dành cho admin."
     ACCESS_DENIED_ADMIN = "❌ Truy cập bị từ chối. Chỉ dành cho admin."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Truy cập bị từ chối. Bot này ở chế độ riêng tư."
     WELCOME_MASTER = "Chào mừng Thầy 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Xin lỗi... Đã xảy ra lỗi trong quá trình tải xuống."
     SIZE_LIMIT_EXCEEDED = "❌ Kích thước tệp vượt quá giới hạn {max_size_gb} GB. Vui lòng chọn tệp nhỏ hơn trong phạm vi kích thước được phép."

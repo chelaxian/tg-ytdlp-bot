@@ -786,6 +786,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ पहुंच अस्वीकृत। केवल व्यवस्थापक।"
     ACCESS_DENIED_ADMIN = "❌ पहुंच अस्वीकृत। केवल व्यवस्थापक।"
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ पहुँच अस्वीकृत। यह बॉट निजी है।"
     WELCOME_MASTER = "स्वागत है मास्टर 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ क्षमा करें... डाउनलोड के दौरान कुछ त्रुटि हुई।"
     SIZE_LIMIT_EXCEEDED = "❌ फाइल का आकार {max_size_gb} GB सीमा से अधिक है। कृपया अनुमतित आकार के भीतर एक छोटी फाइल चुनें।"
