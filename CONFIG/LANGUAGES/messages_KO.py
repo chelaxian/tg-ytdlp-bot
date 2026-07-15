@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ 접근이 거부되었습니다. 관리자만 가능합니다."
     ACCESS_DENIED_ADMIN = "❌ 접근이 거부되었습니다. 관리자만 가능합니다."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ 접근이 거부되었습니다. 이 봇은 비공개입니다."
     WELCOME_MASTER = "환영합니다 관리자님 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ 죄송합니다... 다운로드 중 오류가 발생했습니다."
     SIZE_LIMIT_EXCEEDED = "❌ 파일 크기가 {max_size_gb} GB 제한을 초과했습니다. 허용된 크기 내에서 더 작은 파일을 선택해주세요."

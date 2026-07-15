@@ -23,6 +23,8 @@ class Config(object):
     # Add allowed group IDs - Only these groups will be served by the bot
     ADMIN_GROUP = [-100111111111111, -1002222222222222]
     ALLOWED_GROUP = [-100111111111111, -1002222222222222]
+    # Restrict private chat usage to these user IDs only (empty list = everyone allowed)
+    ALLOWED_USERS = []
     # API ID Telegram
     API_ID = 00000000000000
     # API HASH Telegram
@@ -38,7 +40,7 @@ class Config(object):
     LOGS_IMG_ID = -100111111111111  # Channel ID for media command logs /img 
     LOGS_PAID_ID = -100111111111111  # Channel ID for paid media logs
     LOG_EXCEPTION = -100111111111111  # Channel ID for exception logs
-    # Channel ID to subscribe to
+    # Channel ID to subscribe to (optional: set to 0 or leave empty to disable the subscription requirement)
     SUBSCRIBE_CHANNEL = -100222222222222222222
     # Add subscription channel - Required (str)
     SUBSCRIBE_CHANNEL_URL = "https://t.me/+abcdef"
@@ -75,34 +77,35 @@ class Config(object):
     # OPTIONAL (NOT REQUIRED) SETTINGS - you can stop here
     ########################################################    
     # Cookie file URL
-    # For Docker setup: served by configuration-webserver container
-    # EX: "http://configuration-webserver/cookies/cookie.txt"
-    COOKIE_URL = "http://configuration-webserver/cookies/cookie.txt"
+    # For Docker setup: served by the configuration-webserver container, which shares
+    # warp's network namespace — so the bot reaches it at http://localhost/cookies/...
+    # EX: "http://localhost/cookies/cookie.txt"
+    COOKIE_URL = "http://localhost/cookies/cookie.txt"
     # YouTube cookies URLs - main URL and backups
     # The bot will check cookies in the order: YOUTUBE_COOKIE_URL, YOUTUBE_COOKIE_URL_1, YOUTUBE_COOKIE_URL_2, etc. up to 10
     # If one URL does not work or the cookies are expired, the bot will automatically try the next one
-    YOUTUBE_COOKIE_URL = "http://configuration-webserver/cookies/youtube.txt"
-    YOUTUBE_COOKIE_URL_1 = "http://configuration-webserver/cookies/youtube-1.txt"
-    YOUTUBE_COOKIE_URL_2 = "http://configuration-webserver/cookies/youtube-[N=2-9].txt"
-    #YOUTUBE_COOKIE_URL_2 = "http://configuration-webserver/cookies/youtube-2.txt"
-    #YOUTUBE_COOKIE_URL_3 = "http://configuration-webserver/cookies/youtube-3.txt"
-    #YOUTUBE_COOKIE_URL_4 = "http://configuration-webserver/cookies/youtube-4.txt"
-    #YOUTUBE_COOKIE_URL_5 = "http://configuration-webserver/cookies/youtube-5.txt"
-    #YOUTUBE_COOKIE_URL_6 = "http://configuration-webserver/cookies/youtube-6.txt"
-    #YOUTUBE_COOKIE_URL_7 = "http://configuration-webserver/cookies/youtube-7.txt"
-    #YOUTUBE_COOKIE_URL_8 = "http://configuration-webserver/cookies/youtube-8.txt"
-    #YOUTUBE_COOKIE_URL_9 = "http://configuration-webserver/cookies/youtube-9.txt"    
-    YOUTUBE_COOKIE_URL_10 = "http://configuration-webserver/cookies/youtube-10.txt"
+    YOUTUBE_COOKIE_URL = "http://localhost/cookies/youtube.txt"
+    YOUTUBE_COOKIE_URL_1 = "http://localhost/cookies/youtube-1.txt"
+    YOUTUBE_COOKIE_URL_2 = "http://localhost/cookies/youtube-[N=2-9].txt"
+    #YOUTUBE_COOKIE_URL_2 = "http://localhost/cookies/youtube-2.txt"
+    #YOUTUBE_COOKIE_URL_3 = "http://localhost/cookies/youtube-3.txt"
+    #YOUTUBE_COOKIE_URL_4 = "http://localhost/cookies/youtube-4.txt"
+    #YOUTUBE_COOKIE_URL_5 = "http://localhost/cookies/youtube-5.txt"
+    #YOUTUBE_COOKIE_URL_6 = "http://localhost/cookies/youtube-6.txt"
+    #YOUTUBE_COOKIE_URL_7 = "http://localhost/cookies/youtube-7.txt"
+    #YOUTUBE_COOKIE_URL_8 = "http://localhost/cookies/youtube-8.txt"
+    #YOUTUBE_COOKIE_URL_9 = "http://localhost/cookies/youtube-9.txt"    
+    YOUTUBE_COOKIE_URL_10 = "http://localhost/cookies/youtube-10.txt"
     YOUTUBE_COOKIE_ORDER = "round_robin" # random, round_robin
     # YouTube test URL for cookie validation
     YOUTUBE_COOKIE_TEST_URL = "https://www.youtube.com/watch?v=_GuOjXYl5ew" #youtube official video
     #YOUTUBE_COOKIE_TEST_URL = "https://youtu.be/XqZsoesa55w"  # Baby Shark Dance
     #YOUTUBE_COOKIE_TEST_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Rick Roll - short video
-    INSTAGRAM_COOKIE_URL = "http://configuration-webserver/cookies/instagram.txt"
-    TIKTOK_COOKIE_URL = "http://configuration-webserver/cookies/tiktok.txt"
-    FACEBOOK_COOKIE_URL = "http://configuration-webserver/cookies/facebook.txt"
-    TWITTER_COOKIE_URL = "http://configuration-webserver/cookies/twitter.txt"
-    VK_COOKIE_URL = "http://configuration-webserver/cookies/vk.txt"
+    INSTAGRAM_COOKIE_URL = "http://localhost/cookies/instagram.txt"
+    TIKTOK_COOKIE_URL = "http://localhost/cookies/tiktok.txt"
+    FACEBOOK_COOKIE_URL = "http://localhost/cookies/facebook.txt"
+    TWITTER_COOKIE_URL = "http://localhost/cookies/twitter.txt"
+    VK_COOKIE_URL = "http://localhost/cookies/vk.txt"
     # Do not chanege this
     COOKIE_FILE_PATH = "TXT/cookie.txt"
     # Do not chanege this

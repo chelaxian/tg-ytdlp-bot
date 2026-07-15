@@ -788,6 +788,7 @@ Use:
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
     ACCESS_DENIED_ADMIN = "❌ رسائی سے انکار. صرف ایڈمن۔"
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ رسائی سے انکار۔ یہ بوٹ نجی ہے۔"
     WELCOME_MASTER = "خوش آمدید ماسٹر 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ معذرت ... ڈاؤن لوڈ کے دوران کچھ خرابی پیش آگئی۔"
     SIZE_LIMIT_EXCEEDED = "❌ فائل کا سائز {max_size_gb} GB حد سے تجاوز کرتا ہے۔ براہ کرم اجازت شدہ سائز میں ایک چھوٹی فائل منتخب کریں۔"

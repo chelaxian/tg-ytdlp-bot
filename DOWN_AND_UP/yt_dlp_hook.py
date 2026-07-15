@@ -489,7 +489,13 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                 logger.warning(f"All impersonate versions failed for {url}, trying proxy fallback")
             
             logger.error(f"Error extracting info for {url}: {e}")
-            raise e
+            # yt-dlp can raise non-DownloadError exceptions during extraction
+            # (e.g. an internal TypeError when the GoogleDriveFolder extractor
+            # feeds a bool from _download_webpage(fatal=False) into re.search on
+            # folder URLs). Returning a structured error dict instead of
+            # re-raising lets callers show a clean user-facing message instead of
+            # crashing the bot (issue #380).
+            return {'error': 'EXTRACTION_ERROR', 'original_error': error_text}
     
     from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
     

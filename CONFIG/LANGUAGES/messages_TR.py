@@ -787,6 +787,7 @@ Daha fazla bilgi: /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Erişim reddedildi. Yalnızca yönetici."
     ACCESS_DENIED_ADMIN = "❌ Erişim reddedildi. Yalnızca yönetici."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Erişim reddedildi. Bu bot özeldir."
     WELCOME_MASTER = "Hoş geldiniz Usta 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Üzgünüm... İndirme sırasında bir hata oluştu."
     SIZE_LIMIT_EXCEEDED = "❌ Dosya boyutu {max_size_gb} GB sınırını aşıyor. Lütfen izin verilen boyut dahilinde daha küçük bir dosya seçin."

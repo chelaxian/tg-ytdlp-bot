@@ -787,6 +787,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Доступ заборонено. Лише адміністратор."
     ACCESS_DENIED_ADMIN = "❌ Доступ заборонено. Лише адміністратор."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Доступ заборонено. Цей бот приватний."
     WELCOME_MASTER = "Ласкаво просимо, Майстре 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Вибачте... Під час завантаження сталася помилка."
     SIZE_LIMIT_EXCEEDED = "❌ Розмір файлу перевищує {max_size_gb} Гб. Будь ласка, виберіть менший файл у межах дозволеного розміру."
