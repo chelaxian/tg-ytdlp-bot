@@ -4,7 +4,7 @@
 # Text Message Handler for General Commands
 from HELPERS.app_instance import get_app
 from HELPERS.decorators import reply_with_keyboard, background_handler
-from HELPERS.limitter import is_user_in_channel, check_user
+from HELPERS.limitter import is_user_in_channel, check_user, is_user_allowed
 from HELPERS.logger import send_to_all, send_to_logger, send_to_user
 from CONFIG.logger_msg import LoggerMsg, get_logger_msg
 from CONFIG.messages import Messages, safe_get_messages
@@ -123,6 +123,10 @@ def url_distractor(app, message):
             if is_user_blocked(message):
                 return  # User is blocked, message already sent by is_user_blocked
     
+    # ALLOWED_USERS whitelist (private only, admins always allowed)
+    if not is_admin and not is_user_allowed(message):
+        return  # denial message already sent by is_user_allowed
+
     # Anti-bot protection check
     from HELPERS.anti_bot_protection import check_and_ban_user, record_user_activity
     from CONFIG.messages import safe_get_messages

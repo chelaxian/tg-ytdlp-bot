@@ -788,6 +788,7 @@ Matuto pa: /playlist"""
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Tinanggihan ang pag-access. Admin lang."
     ACCESS_DENIED_ADMIN = "❌ Tinanggihan ang pag-access. Admin lang."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Tinanggihan ang pag-access. Pribado ang bot na ito."
     WELCOME_MASTER = "Maligayang pagdating Master 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Paumanhin... May naganap na error habang nagda-download."
     SIZE_LIMIT_EXCEEDED = "❌ Ang laki ng file ay lumampas sa {max_size_gb} GB na limitasyon. Mangyaring pumili ng mas maliit na file sa loob ng pinapayagang laki."

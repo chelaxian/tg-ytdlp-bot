@@ -253,6 +253,7 @@ cp CONFIG/_config.py CONFIG/config.py
 - **ADMIN_USERNAME** – ваш username (например `"@"` или `"@username"`)
 - **ADMIN_GROUP** – ID групп админов (опционально)
 - **ALLOWED_GROUP** – ID разрешенных групп (опционально)
+- **ALLOWED_USERS** – ID пользователей, которым разрешён бот в личных чатах; пустой список (по умолчанию) — доступ всем (опционально)
 - **API_ID**, **API_HASH** – из [my.telegram.org](https://my.telegram.org)
 - **BOT_TOKEN** – из [@BotFather](https://t.me/BotFather)
 - **LOGS_*** – все лог-каналы
@@ -272,6 +273,7 @@ ADMIN = [123456789]                          # Список ID админов
 ADMIN_USERNAME = "@"                         # Admin username
 ADMIN_GROUP = [-1001234567890]               # ID групп админов
 ALLOWED_GROUP = [-1001234567890]             # ID разрешенных групп
+ALLOWED_USERS = []                           # Белый список ID для личных чатов (пусто = доступ всем)
 API_ID = 12345678                            # Ваш Telegram API ID
 API_HASH = "your_api_hash_here"              # Ваш Telegram API Hash
 BOT_TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"  # Токен бота
