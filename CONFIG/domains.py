@@ -78,6 +78,19 @@ class DomainsConfig(object):
         'youla.ru',
         'drive2.ru'
     ]
+
+    # Raw CDN / media-segment domains that are not downloadable video pages.
+    # Users sometimes paste these from DevTools (HLS playlists, range fragments,
+    # thumbnails). They are temporary, expire within hours, and cannot be
+    # processed by ffmpeg as a single video (issue #388).
+    CDN_REJECT_DOMAINS = [
+        'vimeocdn.com',        # Vimeo CDN: vod-adaptive-ak., skyfire., i.
+        'akamaized.net',       # generic Akamai HLS/DASH CDN
+        'fastly.net',          # generic Fastly CDN
+        'cloudfront.net',      # generic CloudFront CDN
+        'googlevideo.com',     # YouTube media server (raw fragments)
+        'ytimg.com',           # YouTube thumbnails
+    ]
     #BLACK_LIST = ["pornhub", "phncdn.com", "xvideos", "xhcdn.com", "xhamster"]
     # Paths to domain and keyword lists
     PORN_DOMAINS_FILE = "TXT/porn_domains.txt"

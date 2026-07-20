@@ -2689,6 +2689,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Private video" in error_message:
                         error_code = "PRIVATE_VIDEO"
                         error_description = "Video is private and requires authentication"
+                    elif "premieres in" in error_message.lower() or "premieres on" in error_message.lower():
+                        error_code = "PREMIERE_PENDING"
+                        error_description = "🎬 This video is a premiere that hasn't started yet. Please come back later when the premiere begins."
                     elif "Sign in to confirm" in error_message:
                         error_code = "SIGN_IN_REQUIRED"
                         error_description = "Sign in required - cookies needed"
@@ -2894,7 +2897,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Check if this is a "No videos found in playlist" error
                 if "No videos found in playlist" in str(e):
                     error_message = safe_get_messages(user_id).DOWN_UP_NO_VIDEOS_PLAYLIST_MSG.format(index=current_index + 1)
-                    send_error_to_user(message, error_message)
+                    # Notify the user only (not LOG_EXCEPTION) — the main loop
+                    # sends ONE consolidated message when the consecutive-skip
+                    # threshold is reached. Logging every index pollutes
+                    # LOG_EXCEPTION (issue #377 reopened).
+                    send_to_user(message, error_message)
                     logger.info(f"Skipping playlist item at index {current_index} (no video found)")
                     return "NO_VIDEOS_SKIP"  # Skip this item; main loop tracks consecutive failures
                 

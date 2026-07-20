@@ -109,6 +109,8 @@ def is_skippable_video_error(error_message: str) -> bool:
         "video unavailable",
         "this video has been removed",
         "video is not available",
+        "premieres in",
+        "premieres on",
         # Общие паттерны
         "copyright holder",
         "violating.*policy",
@@ -1745,6 +1747,49 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         logger.warning(f"Audio download retry with --no-live-from-start failed for user {user_id}")
                         # Continue with normal error handling below
                 
+                # Check for incomplete download errors ("Got error: N bytes read, M more expected")
+                # Network interruption during download — skip retries (issue #384 parity with video path)
+                if "bytes read," in error_text and "more expected" in error_text:
+                    logger.warning(f"Incomplete audio download detected (network interruption): {error_text}")
+                    try:
+                        if os.path.exists(user_dir_name):
+                            _files = os.listdir(user_dir_name)
+                            _audio_files = [f for f in _files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                            if _audio_files and info_dict:
+                                logger.info("Partial audio download exists on disk, attempting to continue")
+                                return info_dict
+                    except Exception as _check_e:
+                        logger.debug(f"Error checking for audio files after incomplete download: {_check_e}")
+                    from HELPERS.logger import log_error_to_channel
+                    log_error_to_channel(message, f"Incomplete audio download: {error_text[:300]}", url)
+                    return "NETWORK_ERROR"
+
+                # Check for rename errors (.part file missing during rename) — issue #385 parity with video path
+                if "Unable to rename file" in error_text:
+                    logger.warning(f"Audio file rename error detected: {error_text}")
+                    import re as _re
+                    _dest_match = _re.search(r"-> '([^']+)'", error_text)
+                    if _dest_match:
+                        _dest_path = _dest_match.group(1)
+                        if os.path.exists(_dest_path):
+                            logger.info(f"Destination audio file exists despite rename error: {_dest_path}")
+                            return info_dict
+                    _src_match = _re.search(r"'([^']+\.part)'", error_text)
+                    if _src_match:
+                        _src_path = _src_match.group(1)
+                        if os.path.exists(_src_path):
+                            _dest_path2 = _src_path[:-5]
+                            try:
+                                os.rename(_src_path, _dest_path2)
+                                logger.info(f"Manually renamed {_src_path} -> {_dest_path2}")
+                                return info_dict
+                            except Exception as _rename_err:
+                                logger.error(f"Manual audio rename also failed: {_rename_err}")
+                    logger.error(f"Audio file rename error, retrying with next attempt: {error_text}")
+                    from HELPERS.logger import log_error_to_channel
+                    log_error_to_channel(message, f"Audio file rename error: {error_text[:300]}", url)
+                    return None
+
                 # Auto-fallback to gallery-dl (/img) for all supported errors
                 # Но НЕ для аудио, так как gallery-dl не умеет скачивать аудио
                 # В down_and_audio.py мы НЕ делаем fallback на gallery-dl, так как это аудио функция
@@ -1913,6 +1958,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif "Private video" in error_text:
                         error_code = "PRIVATE_VIDEO"
                         error_description = "Video is private and requires authentication"
+                    elif "premieres in" in error_text.lower() or "premieres on" in error_text.lower():
+                        error_code = "PREMIERE_PENDING"
+                        error_description = "🎬 This video is a premiere that hasn't started yet. Please come back later when the premiere begins."
                     elif "Sign in to confirm" in error_text:
                         error_code = "SIGN_IN_REQUIRED"
                         error_description = "Sign in required - cookies needed"

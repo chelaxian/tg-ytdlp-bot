@@ -27,6 +27,8 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
     'no longer available', 'video unavailable', 'private video',
     'this content isn\'t available', 'this content is not available',
     'removed for violating', "terms of service", 'has been removed',
+    # Premiere not yet started (issue #387) — retrying immediately is pointless
+    'premieres in', 'premieres on',
 )
 
 
