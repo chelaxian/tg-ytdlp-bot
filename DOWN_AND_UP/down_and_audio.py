@@ -53,6 +53,10 @@ app = get_app()
 _active_audio_uploads = {}
 _active_audio_uploads_lock = threading.Lock()
 
+# Sentinel for "thread-local cookie override is not set" (distinguishes
+# "override = None" from "no override at all"). Used by issue #383 fix.
+_NOT_SET = object()
+
 def _start_upload_logging(user_id, msg_id):
     """Start logging upload activity to prevent watchdog false positives"""
     stop_event = threading.Event()
@@ -1247,7 +1251,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             log_ytdlp_options(user_id, ytdl_opts, "audio_download")
             
             # Check if we need to use --no-cookies for this domain
-            if is_no_cookie_domain(url):
+            # Also honour a thread-local cookie override set by
+            # try_non_youtube_cookie_fallback (issue #383), so the audio path
+            # actually uses different cookies per fallback strategy.
+            import threading
+            _cookie_override = getattr(threading.current_thread(), 'cookiefile_override', _NOT_SET)
+            if _cookie_override is not _NOT_SET:
+                ytdl_opts['cookiefile'] = _cookie_override  # could be None or a path
+                logger.info(f"Using thread-local cookie override for audio: {_cookie_override}")
+            elif is_no_cookie_domain(url):
                 ytdl_opts['cookiefile'] = None  # Equivalent to --no-cookies
                 logger.info(f"Using --no-cookies for domain: {url}")
             else:
