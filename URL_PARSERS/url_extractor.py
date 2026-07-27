@@ -1216,7 +1216,33 @@ def url_distractor(app, message):
                                 logger.info(f"URL_EXTRACTOR: blocking blacklisted domain '{black_item}' for URL '{raw_url}'")
                                 send_error_to_user(message, safe_get_messages(user_id).PORN_CONTENT_CANNOT_DOWNLOAD_MSG, url=raw_url)
                                 return
-                
+
+                # Reject raw CDN / media-segment URLs early (issue #388).
+                # These are HLS playlists, range fragments, or thumbnails copied
+                # from DevTools — they cannot be processed as a single video and
+                # generate ~38% of all errors when users spam them.
+                if raw_url:
+                    try:
+                        _cdn_parsed = urlparse(raw_url)
+                        _cdn_host = (_cdn_parsed.hostname or '').lower()
+                        if _cdn_host:
+                            from CONFIG.domains import DomainsConfig as _DC
+                            for _cdn_domain in _DC.CDN_REJECT_DOMAINS:
+                                _cdn_domain_lower = _cdn_domain.lower().strip()
+                                if _cdn_host == _cdn_domain_lower or _cdn_host.endswith('.' + _cdn_domain_lower):
+                                    logger.info(f"URL_EXTRACTOR: blocking raw CDN domain '{_cdn_domain}' for URL '{raw_url}'")
+                                    _cdn_err_msg = (
+                                        f"❌ <b>This is a raw CDN URL, not a video page.</b>\n\n"
+                                        f"The link you sent points to an internal media-segment / CDN endpoint "
+                                        f"(<code>{_cdn_host}</code>) which cannot be downloaded as a single video.\n\n"
+                                        f"💡 <b>Please send the page URL</b> where the video is embedded "
+                                        f"(e.g. the Vimeo watch page, not the underlying stream URL)."
+                                    )
+                                    send_error_to_user(message, _cdn_err_msg, url=raw_url)
+                                    return
+                    except Exception as _cdn_check_error:
+                        logger.error(f"URL_EXTRACTOR: failed to apply CDN domain guard: {_cdn_check_error}")
+
                 parsed = urlparse(raw_url)
                 path_lower = (parsed.path or "").lower()
 

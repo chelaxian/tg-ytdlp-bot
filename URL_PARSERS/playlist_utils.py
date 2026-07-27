@@ -12,8 +12,11 @@ def is_playlist_with_range(text: str) -> bool:
     if not isinstance(text, str):
         return False
 
-    # Look for patterns like *1*3, 1*1000, *5*10, *-1*-100, or just * for full playlist (поддерживаем отрицательные числа)
-    range_pattern = r'\*-?\d+\*-?\d+|-?\d+\*-?\d+|\*'
+    # Look for patterns like *1*3, 1*1000, *5*10, *-1*-100, or standalone * for full playlist.
+    # The bare * must be a standalone token (surrounded by whitespace or string
+    # boundary), otherwise it matches asterisks inside URLs/words and wrongly
+    # classifies single-video messages as playlists (issue #389).
+    range_pattern = r'\*-?\d+\*-?\d+|-?\d+\*-?\d+|(?<!\S)\*(?!\S)'
     return bool(re.search(range_pattern, text))
 
 def is_youtube_music_url(url: str) -> bool:

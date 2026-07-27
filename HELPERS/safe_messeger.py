@@ -255,6 +255,13 @@ def safe_send_message(chat_id, text, **kwargs):
     
     # DEBUG: Log all parameters
     logger.info(f"[SAFE_SEND_DEBUG] chat_id={chat_id}, text_length={len(text) if text else 0}")
+
+    # Telegram text message limit is 4096 chars. Truncate with margin to
+    # prevent MESSAGE_TOO_LONG errors (issue #393: 11 cases/24h).
+    _TELEGRAM_TEXT_LIMIT = 4000
+    if text and isinstance(text, str) and len(text) > _TELEGRAM_TEXT_LIMIT:
+        logger.warning(f"[SAFE_SEND] Text truncated from {len(text)} to {_TELEGRAM_TEXT_LIMIT} chars for chat_id={chat_id}")
+        text = text[:_TELEGRAM_TEXT_LIMIT - 1] + '…'
     logger.info(f"[SAFE_SEND_DEBUG] original_message={original_message}")
     logger.info(f"[SAFE_SEND_DEBUG] original_message.message_thread_id={getattr(original_message, 'message_thread_id', None) if original_message else None}")
     logger.info(f"[SAFE_SEND_DEBUG] cb_peek={cb_peek}")

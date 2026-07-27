@@ -3190,35 +3190,55 @@ def try_non_youtube_cookie_fallback(user_id: int, url: str, download_func, *args
     """
     from CONFIG.limits import LimitsConfig
     global _non_youtube_fallback_active
-    
+    import threading
+
     # Prevent recursive fallback loops for the same user+URL
     fallback_key = f"{user_id}:{url}"
     if fallback_key in _non_youtube_fallback_active:
         logger.warning(f"[COOKIE FALLBACK] Recursion detected for {url} (user {user_id}), skipping repeated fallback")
         return None
     _non_youtube_fallback_active.add(fallback_key)
-    
+
     # Очищаем истекшие задачи перед проверкой
     cleanup_expired_tasks()
-    
+
     # Начинаем новую задачу проверки куки
     task_id = start_cookie_task(user_id, url, 'non_youtube')
-    
+
+    # Locate the opts dict in args (video path passes attempt_opts; audio path
+    # passes current_index). We mutate 'cookiefile' on the dict so each
+    # strategy actually tries different cookies. For the audio path (no dict in
+    # args) we set a thread-local that try_download_audio checks (issue #383).
+    _opts = None
+    for _arg in args:
+        if isinstance(_arg, dict):
+            _opts = _arg
+            break
+    _original_cookiefile = _opts.get('cookiefile') if _opts else None
+
+    def _apply_cookie(path):
+        """Set the active cookiefile for the upcoming download_func call."""
+        if _opts is not None:
+            _opts['cookiefile'] = path
+        # Thread-local for the audio path (and as a backup for video path)
+        threading.current_thread().cookiefile_override = path
+
     try:
         # 1. Пробуем куки пользователя
         user_dir = os.path.join("users", str(user_id))
         user_cookie_path = os.path.join(user_dir, "cookie.txt")
-        
+
         if os.path.exists(user_cookie_path):
             logger.info(f"Trying user cookies for non-YouTube URL: {url}")
             try:
+                _apply_cookie(user_cookie_path)
                 result = download_func(*args)
                 if result is not None:
                     finish_cookie_task(task_id, True, user_cookie_path)
                     return result
             except Exception as e:
                 logger.warning(f"User cookies failed for {url}: {e}")
-        
+
         # 2. Пробуем куки по ссылкам сервисов из конфига
         service_name = get_service_name_from_url(url)
         if service_name:
@@ -3232,8 +3252,9 @@ def try_non_youtube_cookie_fallback(user_id: int, url: str, download_func, *args
                         temp_cookie_path = os.path.join(user_dir, f"temp_{service_name}_cookie.txt")
                         with open(temp_cookie_path, "wb") as f:
                             f.write(content)
-                        
+
                         try:
+                            _apply_cookie(temp_cookie_path)
                             result = download_func(*args)
                             if result is not None:
                                 finish_cookie_task(task_id, True, temp_cookie_path)
@@ -3246,38 +3267,48 @@ def try_non_youtube_cookie_fallback(user_id: int, url: str, download_func, *args
                                 os.remove(temp_cookie_path)
                 except Exception as e:
                     logger.warning(f"Failed to download service cookies for {service_name}: {e}")
-        
+
         # 3. Пробуем глобальные куки
         global_cookie_path = Config.COOKIE_FILE_PATH
         if os.path.exists(global_cookie_path):
             logger.info(f"Trying global cookies for non-YouTube URL: {url}")
             try:
+                _apply_cookie(global_cookie_path)
                 result = download_func(*args)
                 if result is not None:
                     finish_cookie_task(task_id, True, global_cookie_path)
                     return result
             except Exception as e:
                 logger.warning(f"Global cookies failed for {url}: {e}")
-        
+
         # 4. Пробуем без куки
         logger.info(f"Trying without cookies for non-YouTube URL: {url}")
         try:
+            _apply_cookie(None)
             result = download_func(*args)
             if result is not None:
                 finish_cookie_task(task_id, True, None)
                 return result
         except Exception as e:
             logger.warning(f"Download without cookies failed for {url}: {e}")
-        
+
         # Все попытки неудачны
         finish_cookie_task(task_id, False)
         return None
-        
+
     except Exception as e:
         logger.error(f"Cookie fallback error for {url}: {e}")
         finish_cookie_task(task_id, False)
         return None
     finally:
+        # Restore original cookiefile to avoid side effects on the caller's opts
+        if _opts is not None:
+            _opts['cookiefile'] = _original_cookiefile
+        # Clear the thread-local override
+        try:
+            del threading.current_thread().cookiefile_override
+        except AttributeError:
+            pass
         _non_youtube_fallback_active.discard(fallback_key)
 
 def get_service_name_from_url(url: str) -> str | None:
