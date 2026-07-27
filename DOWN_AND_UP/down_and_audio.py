@@ -1993,6 +1993,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif "Unsupported URL" in error_text:
                         error_code = "UNSUPPORTED_URL"
                         error_description = "This URL is not supported by yt-dlp"
+                    elif "does not have a" in error_text and ("tab" in error_text or "post" in error_text.lower()):
+                        error_code = "UNSUPPORTED_CONTENT"
+                        error_description = "This is a community post or tab page, not a downloadable video. Please send a direct video link."
+                    elif "412" in error_text and ("precondition" in error_text.lower() or "Precondition Failed" in error_text):
+                        error_code = "HTTP_412"
+                        error_description = "The website rejected the request (HTTP 412 — anti-bot protection). This site may require cookies or may not be supported."
+                    elif "Error receiving available formats" in error_text or "error receiving available formats" in error_text.lower():
+                        error_code = "FORMAT_EXTRACTION_ERROR"
+                        error_description = "Could not retrieve video formats. The video may be deleted, restricted, or require authentication."
                     elif "Postprocessing: audio conversion failed" in error_text or "received signal 2" in error_text:
                         # FFmpeg/yt-dlp reported that audio conversion was interrupted by signal 2 (SIGINT)
                         # Treat this as a known, user-visible error instead of UNKNOWN_ERROR

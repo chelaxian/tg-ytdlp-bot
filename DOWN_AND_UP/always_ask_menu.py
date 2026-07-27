@@ -7361,7 +7361,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # If editing failed or no proc_msg, send new message to user
         # В лог пишем подробную ошибку, чтобы в LOG_EXCEPTION был понятный стек
         logger.error(f"Always Ask menu error for user {user_id}: {detailed_error}")
-        from HELPERS.safe_messeger import safe_send_message
         safe_send_message(user_id, error_text, parse_mode=enums.ParseMode.HTML, message=message)
         # В канал логирования тоже отправляем полное описание исключения
         log_error_to_channel(

@@ -2712,6 +2712,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Unsupported URL" in error_message:
                         error_code = "UNSUPPORTED_URL"
                         error_description = "This URL is not supported by yt-dlp"
+                    elif "does not have a" in error_message and ("tab" in error_message or "post" in error_message.lower()):
+                        error_code = "UNSUPPORTED_CONTENT"
+                        error_description = "This is a community post or tab page, not a downloadable video. Please send a direct video link."
+                    elif "412" in error_message and ("precondition" in error_message.lower() or "Precondition Failed" in error_message):
+                        error_code = "HTTP_412"
+                        error_description = "The website rejected the request (HTTP 412 — anti-bot protection). This site may require cookies or may not be supported."
+                    elif "Error receiving available formats" in error_message or "error receiving available formats" in error_message.lower():
+                        error_code = "FORMAT_EXTRACTION_ERROR"
+                        error_description = "Could not retrieve video formats. The video may be deleted, restricted, or require authentication."
                     elif "Network error" in error_message:
                         error_code = "NETWORK_ERROR"
                         error_description = "Network connection failed"
@@ -2727,6 +2736,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Unable to extract" in error_message:
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "Failed to extract video information. This may be a temporary issue or the site may have changed its format. Please try again later."
+                    elif "Cannot parse data" in error_message or "cannot parse data" in error_message.lower():
+                        error_code = "EXTRACTOR_ERROR"
+                        error_description = "Failed to parse the page. The website may have changed its structure. Please try again later or use a different link."
                     elif "ffmpeg exited with code" in error_message or "ERROR: ffmpeg" in error_message:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message
