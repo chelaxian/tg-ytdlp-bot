@@ -2739,6 +2739,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Cannot parse data" in error_message or "cannot parse data" in error_message.lower():
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "Failed to parse the page. The website may have changed its structure. Please try again later or use a different link."
+                    elif "downloaded file is empty" in error_message.lower():
+                        error_code = "EMPTY_DOWNLOAD"
+                        error_description = "The source produced an empty file. This usually means the live stream hasn't started yet or has no actual video data."
                     elif "ffmpeg exited with code" in error_message or "ERROR: ffmpeg" in error_message:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message

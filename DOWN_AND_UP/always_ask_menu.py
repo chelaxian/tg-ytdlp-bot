@@ -7333,6 +7333,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             error_text = safe_get_messages(user_id).ALWAYS_ASK_HTTP_500_MSG
         elif _err_category == "EXTRACTOR_ERROR":
             error_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
+        elif _err_category == "EMPTY_DOWNLOAD":
+            error_text = safe_get_messages(user_id).ALWAYS_ASK_EMPTY_DOWNLOAD_MSG
         
         # Try to edit the processing message to show error first
         try:
