@@ -192,4 +192,12 @@ def classify_yt_dlp_error(error_message, url=None):
     if "cannot parse data" in error_lower or "unable to extract" in error_lower or "extractor error" in error_lower:
         return "EXTRACTOR_ERROR"
 
+    # Empty download (issue #403) — yt-dlp reports "The downloaded file is
+    # empty" when a YouTube live stream has not started yet or produces no
+    # video data. This is a permanent condition for the current attempt, so
+    # show a clear message instead of UNKNOWN_ERROR and avoid pointless
+    # retries.
+    if "downloaded file is empty" in error_lower:
+        return "EMPTY_DOWNLOAD"
+
     return None

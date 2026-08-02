@@ -1405,6 +1405,7 @@ class Messages(object):
     ALWAYS_ASK_AGE_RESTRICTED_MSG = "\U0001F51E <b>This video requires age verification.</b>\nTry using /cookie to provide YouTube cookies from an age-verified account."
     ALWAYS_ASK_HTTP_500_MSG = "\U0001F6E0\uFE0F <b>The video server returned an internal error (HTTP 500).</b>\nThis is temporary \u2014 please try again later."
     ALWAYS_ASK_EXTRACTOR_ERROR_MSG = "\u26a0\ufe0f <b>The video extractor failed to parse the page.</b>\nThis usually happens when the platform (e.g. Facebook) changes its structure. Try updating yt-dlp or using cookies via <code>/cookie</code>."
+    ALWAYS_ASK_EMPTY_DOWNLOAD_MSG = "\U0001F4E6 <b>The download produced an empty file (0 bytes).</b>\nThis usually means the live stream hasn't started yet, has no actual video data, or the source is temporarily unavailable. Please try again later or use a different link."
     ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "<code>/clean</code> 명령을 시도하고 다시 시도하세요. 오류가 지속되면 YouTube에 인증이 필요합니다. <code>/cookie</code> 또는 <code>/cookies_from_browser</code>를 통해 cookies.txt를 업데이트하고 다시 시도하세요."
     ALWAYS_ASK_MENU_CLOSED_MSG = "메뉴 닫힘."
     ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 수동 화질 선택"
