@@ -53,6 +53,10 @@ app = get_app()
 _active_audio_uploads = {}
 _active_audio_uploads_lock = threading.Lock()
 
+# Sentinel for "thread-local cookie override is not set" (distinguishes
+# "override = None" from "no override at all"). Used by issue #383 fix.
+_NOT_SET = object()
+
 def _start_upload_logging(user_id, msg_id):
     """Start logging upload activity to prevent watchdog false positives"""
     stop_event = threading.Event()
@@ -109,6 +113,8 @@ def is_skippable_video_error(error_message: str) -> bool:
         "video unavailable",
         "this video has been removed",
         "video is not available",
+        "premieres in",
+        "premieres on",
         # Общие паттерны
         "copyright holder",
         "violating.*policy",
@@ -1245,7 +1251,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             log_ytdlp_options(user_id, ytdl_opts, "audio_download")
             
             # Check if we need to use --no-cookies for this domain
-            if is_no_cookie_domain(url):
+            # Also honour a thread-local cookie override set by
+            # try_non_youtube_cookie_fallback (issue #383), so the audio path
+            # actually uses different cookies per fallback strategy.
+            import threading
+            _cookie_override = getattr(threading.current_thread(), 'cookiefile_override', _NOT_SET)
+            if _cookie_override is not _NOT_SET:
+                ytdl_opts['cookiefile'] = _cookie_override  # could be None or a path
+                logger.info(f"Using thread-local cookie override for audio: {_cookie_override}")
+            elif is_no_cookie_domain(url):
                 ytdl_opts['cookiefile'] = None  # Equivalent to --no-cookies
                 logger.info(f"Using --no-cookies for domain: {url}")
             else:
@@ -1745,6 +1759,49 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         logger.warning(f"Audio download retry with --no-live-from-start failed for user {user_id}")
                         # Continue with normal error handling below
                 
+                # Check for incomplete download errors ("Got error: N bytes read, M more expected")
+                # Network interruption during download — skip retries (issue #384 parity with video path)
+                if "bytes read," in error_text and "more expected" in error_text:
+                    logger.warning(f"Incomplete audio download detected (network interruption): {error_text}")
+                    try:
+                        if os.path.exists(user_dir_name):
+                            _files = os.listdir(user_dir_name)
+                            _audio_files = [f for f in _files if f.endswith(('.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.opus'))]
+                            if _audio_files and info_dict:
+                                logger.info("Partial audio download exists on disk, attempting to continue")
+                                return info_dict
+                    except Exception as _check_e:
+                        logger.debug(f"Error checking for audio files after incomplete download: {_check_e}")
+                    from HELPERS.logger import log_error_to_channel
+                    log_error_to_channel(message, f"Incomplete audio download: {error_text[:300]}", url)
+                    return "NETWORK_ERROR"
+
+                # Check for rename errors (.part file missing during rename) — issue #385 parity with video path
+                if "Unable to rename file" in error_text:
+                    logger.warning(f"Audio file rename error detected: {error_text}")
+                    import re as _re
+                    _dest_match = _re.search(r"-> '([^']+)'", error_text)
+                    if _dest_match:
+                        _dest_path = _dest_match.group(1)
+                        if os.path.exists(_dest_path):
+                            logger.info(f"Destination audio file exists despite rename error: {_dest_path}")
+                            return info_dict
+                    _src_match = _re.search(r"'([^']+\.part)'", error_text)
+                    if _src_match:
+                        _src_path = _src_match.group(1)
+                        if os.path.exists(_src_path):
+                            _dest_path2 = _src_path[:-5]
+                            try:
+                                os.rename(_src_path, _dest_path2)
+                                logger.info(f"Manually renamed {_src_path} -> {_dest_path2}")
+                                return info_dict
+                            except Exception as _rename_err:
+                                logger.error(f"Manual audio rename also failed: {_rename_err}")
+                    logger.error(f"Audio file rename error, retrying with next attempt: {error_text}")
+                    from HELPERS.logger import log_error_to_channel
+                    log_error_to_channel(message, f"Audio file rename error: {error_text[:300]}", url)
+                    return None
+
                 # Auto-fallback to gallery-dl (/img) for all supported errors
                 # Но НЕ для аудио, так как gallery-dl не умеет скачивать аудио
                 # В down_and_audio.py мы НЕ делаем fallback на gallery-dl, так как это аудио функция
@@ -1913,6 +1970,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif "Private video" in error_text:
                         error_code = "PRIVATE_VIDEO"
                         error_description = "Video is private and requires authentication"
+                    elif "premieres in" in error_text.lower() or "premieres on" in error_text.lower():
+                        error_code = "PREMIERE_PENDING"
+                        error_description = "🎬 This video is a premiere that hasn't started yet. Please come back later when the premiere begins."
                     elif "Sign in to confirm" in error_text:
                         error_code = "SIGN_IN_REQUIRED"
                         error_description = "Sign in required - cookies needed"
@@ -1933,6 +1993,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif "Unsupported URL" in error_text:
                         error_code = "UNSUPPORTED_URL"
                         error_description = "This URL is not supported by yt-dlp"
+                    elif "does not have a" in error_text and ("tab" in error_text or "post" in error_text.lower()):
+                        error_code = "UNSUPPORTED_CONTENT"
+                        error_description = "This is a community post or tab page, not a downloadable video. Please send a direct video link."
+                    elif "412" in error_text and ("precondition" in error_text.lower() or "Precondition Failed" in error_text):
+                        error_code = "HTTP_412"
+                        error_description = "The website rejected the request (HTTP 412 — anti-bot protection). This site may require cookies or may not be supported."
+                    elif "Error receiving available formats" in error_text or "error receiving available formats" in error_text.lower():
+                        error_code = "FORMAT_EXTRACTION_ERROR"
+                        error_description = "Could not retrieve video formats. The video may be deleted, restricted, or require authentication."
                     elif "Postprocessing: audio conversion failed" in error_text or "received signal 2" in error_text:
                         # FFmpeg/yt-dlp reported that audio conversion was interrupted by signal 2 (SIGINT)
                         # Treat this as a known, user-visible error instead of UNKNOWN_ERROR

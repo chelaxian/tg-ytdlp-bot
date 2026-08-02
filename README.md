@@ -141,10 +141,11 @@ Then edit `CONFIG/config.py` and fill in at least:
 - **ADMIN_USERNAME** – admin username (e.g., `"@"` or `"@your_username"`)
 - **ADMIN_GROUP** – list of admin group IDs (groups that bypass all limits, optional but recommended)
 - **ALLOWED_GROUP** – list of allowed group IDs (groups with increased limits, optional but recommended)
+- **ALLOWED_USERS** – list of user IDs allowed to use the bot in private chats; empty list (default) means everyone is allowed (optional)
 - **API_ID**, **API_HASH** – from [my.telegram.org](https://my.telegram.org) (see section [Getting API Credentials](#getting-api-credentials))
 - **BOT_TOKEN** – from [@BotFather](https://t.me/BotFather) (see section [Getting API Credentials](#getting-api-credentials))
 - **LOGS\_*** (LOGS_ID, LOGS_VIDEO_ID, LOGS_NSFW_ID, LOGS_IMG_ID, LOGS_PAID_ID, LOG_EXCEPTION) – Fill in all the fields, if you want you can use the same channel for all
-- **SUBSCRIBE_CHANNEL** and **SUBSCRIBE_CHANNEL_URL** – channel ID and invite link users must join
+- **SUBSCRIBE_CHANNEL** and **SUBSCRIBE_CHANNEL_URL** – channel ID and invite link users must join (optional: set `SUBSCRIBE_CHANNEL` to `0` or leave empty to disable the subscription requirement)
 
 **Configuration Example:**
 
@@ -161,6 +162,7 @@ ADMIN = [123456789]                          # List of admin user IDs
 ADMIN_USERNAME = "@"                         # Admin username (e.g., "@" or "@your_username")
 ADMIN_GROUP = [-1001234567890]               # List of admin group IDs (groups that bypass all limits)
 ALLOWED_GROUP = [-1001234567890]             # List of allowed group IDs (groups with increased limits)
+ALLOWED_USERS = []                           # Private-chat whitelist of user IDs (empty = everyone allowed)
 API_ID = 12345678                            # Your Telegram API ID
 API_HASH = "your_api_hash_here"              # Your Telegram API Hash
 BOT_TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"  # Your bot token
@@ -201,7 +203,7 @@ docker compose up -d --build
 ```
 
 The bot container will be built from the included `Dockerfile`, and:
-- `configuration-webserver` will serve cookie files at `http://configuration-webserver/cookies/<filename>`
+- `configuration-webserver` (opt-in — start it separately with `docker compose --profile configuration-webserver up -d`) will serve cookie files; it shares warp's network namespace, so the bot reaches them at `http://localhost/cookies/<filename>`
 - `bgutil-provider` will be available at `http://bgutil-provider:4416` for YouTube PO tokens
 - **Dashboard panel** will be available at `http://localhost:5555` (or `http://<your-server-ip>:5555`)
 

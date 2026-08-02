@@ -253,10 +253,11 @@ cp CONFIG/_config.py CONFIG/config.py
 - **ADMIN_USERNAME** – ваш username (например `"@"` или `"@username"`)
 - **ADMIN_GROUP** – ID групп админов (опционально)
 - **ALLOWED_GROUP** – ID разрешенных групп (опционально)
+- **ALLOWED_USERS** – ID пользователей, которым разрешён бот в личных чатах; пустой список (по умолчанию) — доступ всем (опционально)
 - **API_ID**, **API_HASH** – из [my.telegram.org](https://my.telegram.org)
 - **BOT_TOKEN** – из [@BotFather](https://t.me/BotFather)
 - **LOGS_*** – все лог-каналы
-- **SUBSCRIBE_CHANNEL** и **SUBSCRIBE_CHANNEL_URL** – канал подписки
+- **SUBSCRIBE_CHANNEL** и **SUBSCRIBE_CHANNEL_URL** – канал подписки (опционально: `0` или пусто в `SUBSCRIBE_CHANNEL` отключает требование подписки)
 
 **Пример конфигурации:**
 
@@ -272,6 +273,7 @@ ADMIN = [123456789]                          # Список ID админов
 ADMIN_USERNAME = "@"                         # Admin username
 ADMIN_GROUP = [-1001234567890]               # ID групп админов
 ALLOWED_GROUP = [-1001234567890]             # ID разрешенных групп
+ALLOWED_USERS = []                           # Белый список ID для личных чатов (пусто = доступ всем)
 API_ID = 12345678                            # Ваш Telegram API ID
 API_HASH = "your_api_hash_here"              # Ваш Telegram API Hash
 BOT_TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"  # Токен бота
@@ -309,7 +311,7 @@ docker compose up -d --build
 ```
 
 Контейнер бота будет собран из `Dockerfile`, и:
-- `configuration-webserver` будет обслуживать cookie файлы по `http://configuration-webserver/cookies/<filename>`
+- `configuration-webserver` (по желанию — запускается отдельно командой `docker compose --profile configuration-webserver up -d`) будет обслуживать cookie файлы; он работает в сетевом namespace warp, поэтому бот обращается к ним по `http://localhost/cookies/<filename>`
 - `bgutil-provider` будет доступен по `http://bgutil-provider:4416` для YouTube PO токенов
 - **Dashboard панель** будет доступна по `http://localhost:5555` (или `http://<ваш-ip>:5555`)
 

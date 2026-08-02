@@ -9,7 +9,7 @@ ENV TZ="$TZ" \
 # - git, ffmpeg, mediainfo, rsync (README: base deps + FFmpeg)
 # - font packages for Arabic/Asian and emoji support (README: optional fonts)
 # - docker.io for dashboard container to manage Docker
-# - nodejs for yt-dlp JS runtime (YouTube extraction)
+# - gnupg + curl for adding the NodeSource apt repo (Node.js installed separately below)
 # - phantomjs removed: deprecated and no longer available in Debian repos
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
@@ -19,8 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     docker.io \
     curl \
     iputils-ping \
-    nodejs \
-    npm \
+    gnupg \
     fonts-noto-core \
     fonts-noto-extra \
     fonts-kacst-one \
@@ -42,6 +41,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
+
+# Node.js 22 for yt-dlp's EJS (the YouTube n-challenge / nsig solver). Debian's apt
+# nodejs is < 22, but EJS requires node >= 22 — otherwise every JS challenge provider
+# reports "unavailable" and adaptive formats (720p+/4K) are dropped.
+# https://github.com/yt-dlp/ejs — added the canonical way (GPG key in keyrings +
+# signed-by source list, not the piped setup script).
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

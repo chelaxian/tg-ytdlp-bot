@@ -5397,6 +5397,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         logger.warning(f"Failed to send cookie hint (playlist no videos): {_cookie_hint_err}")
                 return
 
+            # Handle raw extraction failures (non-DownloadError exceptions raised by
+            # yt-dlp during extract_info). The most common trigger is an upstream
+            # yt-dlp TypeError when processing Google Drive folder URLs, where the
+            # GoogleDriveFolder extractor feeds a bool from _download_webpage into
+            # re.search (issue #380). Show a clean message instead of an empty menu.
+            if isinstance(info, dict) and info.get('error') == 'EXTRACTION_ERROR':
+                logger.warning(f"ask_quality_menu: get_video_formats raised an extraction error for {url}: {str(info.get('original_error', ''))[:200]}")
+                send_error_to_user(message, f"❌ <b>{safe_get_messages(user_id).ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG}</b>")
+                return
+
             # Save minimal info to cache
             try:
                 save_ask_info(user_id, url, info)
@@ -7323,6 +7333,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             error_text = safe_get_messages(user_id).ALWAYS_ASK_HTTP_500_MSG
         elif _err_category == "EXTRACTOR_ERROR":
             error_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
+        elif _err_category == "EMPTY_DOWNLOAD":
+            error_text = safe_get_messages(user_id).ALWAYS_ASK_EMPTY_DOWNLOAD_MSG
         
         # Try to edit the processing message to show error first
         try:
@@ -7351,7 +7363,6 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # If editing failed or no proc_msg, send new message to user
         # В лог пишем подробную ошибку, чтобы в LOG_EXCEPTION был понятный стек
         logger.error(f"Always Ask menu error for user {user_id}: {detailed_error}")
-        from HELPERS.safe_messeger import safe_send_message
         safe_send_message(user_id, error_text, parse_mode=enums.ParseMode.HTML, message=message)
         # В канал логирования тоже отправляем полное описание исключения
         log_error_to_channel(

@@ -788,6 +788,7 @@ class Messages(object):
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Қол жеткізу қол жетімсіз. Тек әкімші."
     ACCESS_DENIED_ADMIN = "❌ Қол жеткізу қол жетімсіз. Тек әкімші."
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ Қол жеткізу тыйым салынған. Бұл бот жеке."
     WELCOME_MASTER = "Қош келдіңіз, Қожайын 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ Кешіріңіз... Жүктеу кезінде қате орын алды."
     SIZE_LIMIT_EXCEEDED = "❌ Файл өлшемі {max_size_gb} GB шегінен асып кетті. Рұқсат етілген өлшем ішінде кішірек файлды таңдаңыз."
@@ -1405,6 +1406,7 @@ class Messages(object):
     ALWAYS_ASK_AGE_RESTRICTED_MSG = "\U0001F51E <b>This video requires age verification.</b>\nTry using /cookie to provide YouTube cookies from an age-verified account."
     ALWAYS_ASK_HTTP_500_MSG = "\U0001F6E0\uFE0F <b>The video server returned an internal error (HTTP 500).</b>\nThis is temporary \u2014 please try again later."
     ALWAYS_ASK_EXTRACTOR_ERROR_MSG = "\u26a0\ufe0f <b>The video extractor failed to parse the page.</b>\nThis usually happens when the platform (e.g. Facebook) changes its structure. Try updating yt-dlp or using cookies via <code>/cookie</code>."
+    ALWAYS_ASK_EMPTY_DOWNLOAD_MSG = "\U0001F4E6 <b>The download produced an empty file (0 bytes).</b>\nThis usually means the live stream hasn't started yet, has no actual video data, or the source is temporarily unavailable. Please try again later or use a different link."
     ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "<code>/clean</code> пәрменін орындап, әрекетті қайталаңыз. Қате жойылмаса, YouTube авторизацияны қажет етеді. Cookies.txt файлын <code>/cookie</code> немесе <code>/cookies_from_browser</code> арқылы жаңартып, әрекетті қайталаңыз."
     ALWAYS_ASK_MENU_CLOSED_MSG = "Мәзір жабық."
     ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 Сапаны қолмен таңдау"

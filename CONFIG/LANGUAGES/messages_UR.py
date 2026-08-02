@@ -788,6 +788,7 @@ Use:
     # Admin command messages
     ADMIN_ACCESS_DENIED_MSG = "❌ Access denied. Admin only."
     ACCESS_DENIED_ADMIN = "❌ رسائی سے انکار. صرف ایڈمن۔"
+    ACCESS_DENIED_PRIVATE_MSG = "⛔ رسائی سے انکار۔ یہ بوٹ نجی ہے۔"
     WELCOME_MASTER = "خوش آمدید ماسٹر 🥷"
     DOWNLOAD_ERROR_GENERIC = "❌ معذرت ... ڈاؤن لوڈ کے دوران کچھ خرابی پیش آگئی۔"
     SIZE_LIMIT_EXCEEDED = "❌ فائل کا سائز {max_size_gb} GB حد سے تجاوز کرتا ہے۔ براہ کرم اجازت شدہ سائز میں ایک چھوٹی فائل منتخب کریں۔"
@@ -1405,6 +1406,7 @@ Use:
     ALWAYS_ASK_AGE_RESTRICTED_MSG = "\U0001F51E <b>This video requires age verification.</b>\nTry using /cookie to provide YouTube cookies from an age-verified account."
     ALWAYS_ASK_HTTP_500_MSG = "\U0001F6E0\uFE0F <b>The video server returned an internal error (HTTP 500).</b>\nThis is temporary \u2014 please try again later."
     ALWAYS_ASK_EXTRACTOR_ERROR_MSG = "\u26a0\ufe0f <b>The video extractor failed to parse the page.</b>\nThis usually happens when the platform (e.g. Facebook) changes its structure. Try updating yt-dlp or using cookies via <code>/cookie</code>."
+    ALWAYS_ASK_EMPTY_DOWNLOAD_MSG = "\U0001F4E6 <b>The download produced an empty file (0 bytes).</b>\nThis usually means the live stream hasn't started yet, has no actual video data, or the source is temporarily unavailable. Please try again later or use a different link."
     ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG = "<code>/clean</code> کمانڈ آزمائیں اور دوبارہ کوشش کریں۔ اگر خرابی برقرار رہے، تو YouTube کو تصدیق درکار ہے۔ <code>/cookie</code> یا <code>/cookies_from_browser</code> کے ذریعے cookies.txt اپ ڈیٹ کریں اور دوبارہ کوشش کریں۔"
     ALWAYS_ASK_MENU_CLOSED_MSG = "مینو بند۔"
     ALWAYS_ASK_MANUAL_QUALITY_SELECTION_MSG = "🎛 دستی کوالٹی انتخاب"

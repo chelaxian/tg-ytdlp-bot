@@ -269,6 +269,7 @@ class LoggerMsg(object):
     LIMITTER_CHANNEL_CHECK_IS_MEMBER_LOG_MSG = "[CHANNEL_CHECK] User {user_id} is member of channel"
     LIMITTER_CHANNEL_CHECK_NOT_MEMBER_LOG_MSG = "[CHANNEL_CHECK] User {user_id} is not member of channel"
     LIMITTER_CHANNEL_CHECK_ERROR_LOG_MSG = "Error checking channel membership for user {user_id}: {error}"
+    LIMITTER_USER_NOT_ALLOWED_LOG_MSG = "User {user_id} is not in ALLOWED_USERS — private access denied"
     LIMITTER_SUBTITLE_LIMITS_CHECK_PASSED_LOG_MSG = "Subtitle limits check passed: duration={duration}s, size={size} bytes, quality={width}x{height}"
     LIMITTER_SUBTITLE_LIMITS_CHECK_ERROR_LOG_MSG = "Error checking subtitle limits: {error}"
     

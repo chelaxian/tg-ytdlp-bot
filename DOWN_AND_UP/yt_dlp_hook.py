@@ -27,6 +27,13 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
     'no longer available', 'video unavailable', 'private video',
     'this content isn\'t available', 'this content is not available',
     'removed for violating', "terms of service", 'has been removed',
+    # Premiere not yet started (issue #387) — retrying immediately is pointless
+    'premieres in', 'premieres on',
+    # YouTube bot-detection / PO-token (issue #394) — cookie rotation never
+    # fixes this; fail fast to prevent the 22+ case retry storm
+    'sign in to confirm', 'not a bot',
+    # YouTube community post / tab page (issue #391) — not a downloadable video
+    'does not have a',
 )
 
 
@@ -98,6 +105,18 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
         'live_from_start': True,
         'socket_timeout': 60,
     }
+
+    # Prevent yt-dlp from routing non-playlist URLs through playlist/tab
+    # extractors, which causes "No videos found in playlist" for single
+    # videos (issue #389). The download path already sets noplaylist, but
+    # this discovery function is called FIRST and must also set it.
+    _url_lower = url.lower()
+    _is_playlist_url = (
+        ('list=' in _url_lower and ('youtube.com' in _url_lower or 'youtu.be' in _url_lower))
+        or ('/playlist' in _url_lower)
+    )
+    if not _is_playlist_url:
+        ytdl_opts['noplaylist'] = True
     
     # Add match_filter only if domain is not in NO_FILTER_DOMAINS
     if not is_no_filter_domain(url):
@@ -489,7 +508,13 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                 logger.warning(f"All impersonate versions failed for {url}, trying proxy fallback")
             
             logger.error(f"Error extracting info for {url}: {e}")
-            raise e
+            # yt-dlp can raise non-DownloadError exceptions during extraction
+            # (e.g. an internal TypeError when the GoogleDriveFolder extractor
+            # feeds a bool from _download_webpage(fatal=False) into re.search on
+            # folder URLs). Returning a structured error dict instead of
+            # re-raising lets callers show a clean user-facing message instead of
+            # crashing the bot (issue #380).
+            return {'error': 'EXTRACTION_ERROR', 'original_error': error_text}
     
     from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
     
