@@ -1000,9 +1000,24 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             # treat as unavailable (since yt-dlp warning goes to stderr, not exception text)
             is_specific_version = not is_basic and any(char.isdigit() for char in impersonate_version)
             likely_unavailable = is_specific_version and is_cloudflare_error(error_text)
-            
-            if explicit_unavailable or likely_unavailable:
-                logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
+
+            # Transport-level errors (SSL/TLS/cert) that NO impersonate version can
+            # fix — a browser fingerprint cannot repair a self-signed certificate or a
+            # TLS handshake failure. Counting these toward the abort threshold prevents
+            # a 120+ version retry storm from a single URL (issue #411, e.g. erome.com).
+            _transport_unfixable = is_specific_version and any(
+                _marker in error_text.lower() for _marker in (
+                    'ssl certificate', 'self-signed', 'self signed',
+                    'ssl connect', 'tls connect', 'certificate verify failed',
+                    'curl: (35)', 'curl: (60)', 'curl: (77)',
+                )
+            )
+
+            if explicit_unavailable or likely_unavailable or _transport_unfixable:
+                if _transport_unfixable:
+                    logger.debug(f"Impersonate version {impersonate_version} hit an impersonate-incapable transport error (SSL/TLS), skipping")
+                else:
+                    logger.debug(f"Impersonate version {impersonate_version} is not available, skipping")
                 
                 # If basic version is unavailable and curl_cffi is installed, mark all basic versions as unavailable
                 # This is normal: curl_cffi only supports specific versions (chrome122, chrome121, etc.), not basic ones (chrome, edge, etc.)
@@ -1017,7 +1032,8 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                 # Only track unavailable count for specific versions
                 if not is_basic:
                     unavailable_specific_count += 1
-                    logger.warning(f"⚠️ Specific version {impersonate_version} unavailable (consecutive failures: {unavailable_specific_count}/{max_unavailable_before_skip})")
+                    _reason = "impersonate-incapable transport error (SSL/TLS)" if _transport_unfixable else "unavailable"
+                    logger.warning(f"⚠️ Specific version {impersonate_version} {_reason} (consecutive failures: {unavailable_specific_count}/{max_unavailable_before_skip})")
                     
                     # If too many consecutive specific versions are unavailable, skip remaining
                     if unavailable_specific_count >= max_unavailable_before_skip:
@@ -1025,7 +1041,7 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
                         current_idx = impersonate_versions.index(impersonate_version)
                         remaining_specific = [v for v in impersonate_versions[current_idx+1:] if v not in basic_versions]
                         remaining_count = len(remaining_specific)
-                        logger.error(f"❌ {unavailable_specific_count} consecutive specific impersonate versions unavailable. STOPPING and skipping remaining {remaining_count} specific versions.")
+                        logger.error(f"❌ {unavailable_specific_count} consecutive specific impersonate versions failed ({_reason}). STOPPING and skipping remaining {remaining_count} specific versions.")
                         break
                 continue
             else:
