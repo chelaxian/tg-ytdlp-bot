@@ -1227,7 +1227,16 @@ def url_distractor(app, message):
                         _cdn_host = (_cdn_parsed.hostname or '').lower()
                         if _cdn_host:
                             from CONFIG.domains import DomainsConfig as _DC
-                            for _cdn_domain in _DC.CDN_REJECT_DOMAINS:
+                            # Defensive access (issue #400): some production builds
+                            # deploy url_extractor.py ahead of CONFIG/domains.py, so
+                            # the CDN_REJECT_DOMAINS attribute may be absent. A missing
+                            # attribute previously raised AttributeError on EVERY
+                            # request (28 cases/24h). Fall back to an empty list so the
+                            # guard is simply skipped instead of polluting the log.
+                            _cdn_reject_domains = getattr(_DC, 'CDN_REJECT_DOMAINS', None)
+                            if _cdn_reject_domains is None:
+                                logger.debug("URL_EXTRACTOR: CDN_REJECT_DOMAINS not present in deployed build; skipping CDN domain guard")
+                            for _cdn_domain in (_cdn_reject_domains or []):
                                 _cdn_domain_lower = _cdn_domain.lower().strip()
                                 if _cdn_host == _cdn_domain_lower or _cdn_host.endswith('.' + _cdn_domain_lower):
                                     logger.info(f"URL_EXTRACTOR: blocking raw CDN domain '{_cdn_domain}' for URL '{raw_url}'")
