@@ -2727,6 +2727,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "bytes read," in error_message and "more expected" in error_message:
                         error_code = "INCOMPLETE_DOWNLOAD"
                         error_description = "Download was interrupted — network connection unstable. Please try again."
+                    elif "Unable to download m3u8 information" in error_message and ("404" in error_message or "Not Found" in error_message):
+                        # HLS manifest is missing (HTTP 404). This is a permanent
+                        # content-availability state for HLS-based platforms (Kick.com
+                        # VODs/live, Twitch, etc.): the stream/VOD was removed, expired,
+                        # or never archived. Show a clear message instead of UNKNOWN_ERROR
+                        # and avoid pointless retries (issue #410).
+                        error_code = "CONTENT_UNAVAILABLE"
+                        error_description = "This stream or video is no longer available. The media may have been removed, expired, or the live event has ended with no archived recording."
                     elif "Unable to rename file" in error_message:
                         error_code = "FILE_RENAME_ERROR"
                         error_description = "Failed to finalize download file. This may be a temporary issue — please try again."
@@ -3252,7 +3260,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         error_message_sent = True
                 elif not error_message and not error_message_sent:
                     log_error_to_channel(message, f"Download returned None with no error_message for URL: {url}", url)
-                    send_error_to_user(message, safe_get_messages(user_id).DOWNLOAD_ERROR_GENERIC, url)
+                    # The downloader produced no result and no diagnosable error.
+                    # This typically means the media was removed, made private,
+                    # rate-limited, or the link's query parameters confused the
+                    # extractor. Give the user an actionable explanation instead of
+                    # the opaque generic message (issue #408).
+                    _none_download_msg = (
+                        "❌ <b>Couldn't download this media.</b>\n\n"
+                        "The source returned no downloadable content. This usually means:\n"
+                        "• The video was deleted, made private, or is no longer available\n"
+                        "• The platform is rate-limiting access — try again later\n"
+                        "• The link contains extra parameters that confuse the extractor — try the direct video link\n\n"
+                        "💡 Please check the link and try again."
+                    )
+                    send_error_to_user(message, _none_download_msg, url)
                     error_message_sent = True
                 
                 with playlist_errors_lock:
