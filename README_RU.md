@@ -386,6 +386,10 @@ sudo apt-get install -y nodejs
 # Проверка Node.js
 node --version  # Должно быть v22+
 
+# Если версия ниже v22, установите из NodeSource:
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node --version  # Теперь должно быть v22+
 ```
 
 > **Примечание:** Node.js уже включён в Docker-образ. Ручная установка нужна только для установки без Docker.
