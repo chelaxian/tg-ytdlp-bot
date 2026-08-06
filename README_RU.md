@@ -1,6 +1,6 @@
 # 🤖 tg-ytdlp-bot
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![PyroTGFork](https://img.shields.io/badge/PyroTGFork-Latest-green.svg)](https://github.com/pyrogram/pyrogram)
 [![yt-dlp](https://img.shields.io/badge/yt--dlp-Latest-red.svg)](https://github.com/yt-dlp/yt-dlp)
 [![gallery-dl](https://img.shields.io/badge/gallery--dl-Latest-orange.svg)](https://github.com/mikf/gallery-dl)
@@ -190,7 +190,7 @@ https://youtube.com/watch?v=video3
 **Решения:**
 1. Проверьте все обязательные поля в конфигурации
 2. Убедитесь что бот имеет права администратора во всех каналах
-3. Проверьте версию Python (требуется 3.10+)
+3. Проверьте версию Python (требуется 3.11+)
 
 ### Видео с YouTube не скачиваются
 
@@ -334,7 +334,7 @@ P.S. не забудьте добавить бота в каналы с прав
 
 #### Предварительные требования
 
-- **Python 3.10+**
+- **Python 3.11+**
 - **Ubuntu/Debian** (рекомендуется) или другой Linux
 - **Chromium** (опционально, для команды `/cookies_from_browser`)
 - **Docker** (опционально, для PO Token Provider)
@@ -354,7 +354,7 @@ chmod +x *.sh
 ```bash
 # Обновление системных пакетов
 sudo apt update
-sudo apt install -y git python3.10 python3-pip python3.10-venv mediainfo rsync
+sudo apt install -y git python3.11 python3-pip python3.11-venv mediainfo rsync
 
 # Создание виртуального окружения
 python3 -m venv venv

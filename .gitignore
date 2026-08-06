@@ -37,6 +37,7 @@ users/
 cookies/
 tests/
 _backup/
+.kilo/
 _backup/_arabic_fonts_amiri/
 _cursor/
 _cursor/TOOLS/
