@@ -358,7 +358,7 @@ sudo apt update
 sudo apt install -y git python3.11 python3-pip python3.11-venv mediainfo rsync
 
 # Создание виртуального окружения
-python3 -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate
 
 # Установка Python пакетов
@@ -410,7 +410,7 @@ sudo apt install -y docker.io
 docker run -d --name bgutil-provider -p 4416:4416 --init --restart unless-stopped brainicism/bgutil-ytdlp-pot-provider
 
 # Установите yt-dlp plugin
-python3 -m pip install -U bgutil-ytdlp-pot-provider
+python3.11 -m pip install -U bgutil-ytdlp-pot-provider
 ```
 
 **Конфигурация в `CONFIG/config.py`:**
@@ -442,7 +442,7 @@ nano config.py
 source venv/bin/activate
 
 # Запуск бота
-python3 magic.py
+python3.11 magic.py
 ```
 
 ---
@@ -1485,8 +1485,8 @@ journalctl -u tg-ytdlp-bot -f
 
 #### Ручное обновление через Python
 ```bash
-python3 scripts/update_from_repo.py --show-excluded   # показать исключённые файлы/папки
-python3 scripts/update_from_repo.py                   # интерактивное обновление (прошит подтверждение)
+python3.11 scripts/update_from_repo.py --show-excluded   # показать исключённые файлы/папки
+python3.11 scripts/update_from_repo.py                   # интерактивное обновление (прошит подтверждение)
 ```
 
 ### Обновление Docker установки
@@ -1615,7 +1615,7 @@ docker system prune -a --volumes
 
 ### Интерактивное восстановление (рекомендуется)
 ```bash
-python3 scripts/restore_from_backup.py
+python3.11 scripts/restore_from_backup.py
 ```
 - Используйте клавиши Arrow (или j/k) чтобы навигировать, PgUp/PgDn для пагинации, Enter чтобы выбрать, q чтобы выйти.
 - Список показывает сгруппированные бекапы по минуте: `[YYYY-MM-DD HH:MM:SS] files: N (id: YYYYMMDD_HHMM)`.
@@ -1623,13 +1623,13 @@ python3 scripts/restore_from_backup.py
 
 ### Список доступных бекапов
 ```bash
-python3 scripts/restore_from_backup.py --list
+python3.11 scripts/restore_from_backup.py --list
 ```
 Выводит доступные ID бекапов (сначала новейшие) с количеством файлов.
 
 ### Не-интерактивное восстановление по ID
 ```bash
-python3 scripts/restore_from_backup.py --timestamp YYYYMMDD_HHMM
+python3.11 scripts/restore_from_backup.py --timestamp YYYYMMDD_HHMM
 ```
 Восстанавливает все файлы для указанного ID бекапа.
 
@@ -1875,14 +1875,14 @@ git clone https://github.com/your-username/tg-ytdlp-bot.git
 cd tg-ytdlp-bot
 
 # Создать виртуальное окружение
-python3 -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate
 
 # Установить зависимости
 pip install -r requirements.txt
 
 # Сделать ваши изменения и протестировать
-python3 magic.py
+python3.11 magic.py
 ```
 
 ### Процесс Pull Request
