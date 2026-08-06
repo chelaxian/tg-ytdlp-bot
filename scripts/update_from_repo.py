@@ -9,10 +9,20 @@ import os
 import sys
 import shutil
 import tempfile
-from CONFIG.messages import Messages, safe_get_messages
 import subprocess
 from pathlib import Path
 from datetime import datetime
+
+# This script lives in <project_root>/scripts/. Resolve the project root (one
+# level up), put it on sys.path (so `from CONFIG...` imports resolve) and chdir
+# there: the updater clones the repo and copies files relative to the project
+# root (magic.py sanity check, CONFIG/LANGUAGES creation, find . -name backup, etc.).
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from CONFIG.messages import Messages, safe_get_messages
 
 # =====================================================
 # NEW: Backup toggle (1 = enable backups, 0 = skip)
