@@ -32,7 +32,7 @@ This project and everyone participating in it is governed by our commitment to c
 
 Before you begin, ensure you have:
 
-- **Python 3.10+** installed
+- **Python 3.11+** installed
 - **Git** installed
 - **Telegram Bot Token** (for testing)
 - **Basic understanding** of Python, Pyrogram, and yt-dlp
@@ -65,7 +65,7 @@ git remote add upstream https://github.com/chelaxian/tg-ytdlp-bot.git
 
 ```bash
 # Create virtual environment
-python3 -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
@@ -89,7 +89,7 @@ nano CONFIG/config.py
 
 ```bash
 # Run the bot to ensure everything works
-python3 magic.py
+python3.11 magic.py
 ```
 
 ## 📝 Contributing Guidelines
@@ -255,8 +255,8 @@ What you expected to happen.
 If applicable, add screenshots.
 
 **Environment:**
-- OS: [e.g. Ubuntu 20.04]
-- Python version: [e.g. 3.10.0]
+- OS: [e.g. Ubuntu 22.04]
+- Python version: [e.g. 3.11.0]
 - Bot version: [e.g. 1.0.0]
 
 **Additional context**
