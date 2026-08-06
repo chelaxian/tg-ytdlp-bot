@@ -278,13 +278,42 @@ PhantomJS is required for some sites like PornHub.
 sudo apt-get install -y nodejs
 
 # Verify Node.js
-node --version  # Should be v18+ or v20+
+node --version  # Should be v22+
 
+# If version is below v22, install from NodeSource:
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node --version  # Should now be v22+
 ```
 
 > **Note:** Node.js is already included in the Docker image. Manual installation is only needed for non-Docker deployments.
 >
 > ~~PhantomJS~~: no longer required. Previously used for PornHub and similar sites, but yt-dlp now uses alternative extraction methods.
+
+### Step 3.75: PO Token Provider (YouTube Bypass)
+
+Optional — bypasses YouTube restrictions ("Sign in to confirm", IP-based blocking, rate limiting). Works with existing proxy and cookie systems. Has automatic fallback to standard YouTube extraction if provider is unavailable.
+
+**Setup (Docker container):**
+```bash
+# Install Docker (if not already installed)
+sudo apt install -y docker.io
+
+# Run PO Token Provider
+docker run -d --name bgutil-provider -p 4416:4416 --init --restart unless-stopped brainicism/bgutil-ytdlp-pot-provider
+
+# Install yt-dlp plugin
+python3 -m pip install -U bgutil-ytdlp-pot-provider
+```
+
+**Configuration in `CONFIG/config.py`:**
+```python
+YOUTUBE_POT_ENABLED = True
+YOUTUBE_POT_BASE_URL = "http://127.0.0.1:4416"
+YOUTUBE_POT_DISABLE_INNERTUBE = False
+```
+
+> **Note:** If the PO token provider is unavailable, the bot automatically falls back to standard YouTube extraction. No user impact.
 
 ### Step 4: Setup Configuration
 
@@ -369,7 +398,7 @@ For proxy configuration details, see the [Proxy Support](#-proxy-support) sectio
 
 #### PO Token Provider (YouTube Bypass)
 
-For PO Token Provider setup and configuration, see the [PO Token Provider (YouTube Bypass)](#-po-token-provider-youtube-bypass) section in Advanced Features.
+For PO Token Provider setup and configuration, see [Step 3.75: PO Token Provider (YouTube Bypass)](#step-375-po-token-provider-youtube-bypass) in the Manual Installation section.
 
 #### Channel Guard Session String (Optional)
 
@@ -1166,57 +1195,6 @@ View all available formats for any video URL:
 - Includes download instructions for `/format` command
 - Exports complete list as text file
 - Works with all supported platforms
-
-### 🚀 PO Token Provider (YouTube Bypass)
-
-Automatically bypass YouTube restrictions:
-
-- **"Sign in to confirm"** message bypass
-- **IP-based blocking** protection
-- **Rate limiting** mitigation
-- **Transparent Operation**: Works with existing proxy and cookie systems
-- **Automatic Fallback**: Falls back to standard extraction if provider unavailable
-
-**Setup:**
-```bash
-# Install Docker
-sudo apt install -y docker.io
-
-# Run PO Token Provider
-docker run -d --name bgutil-provider -p 4416:4416 --init --restart unless-stopped brainicism/bgutil-ytdlp-pot-provider
-
-# Install yt-dlp plugin
-python3 -m pip install -U bgutil-ytdlp-pot-provider
-```
-
-**Configuration:**
-```python
-# In CONFIG/config.py
-YOUTUBE_POT_ENABLED = True
-YOUTUBE_POT_BASE_URL = "http://127.0.0.1:4416"
-YOUTUBE_POT_DISABLE_INNERTUBE = False
-```
-
-**Technical Details:**
-- Uses proper Python API format for `extractor_args`: `dict -> dict -> list[str]`
-- `disable_innertube` is only added when enabled (as `["1"]` string in list)
-- Compatible with yt-dlp >= 2025.05.22
-- Works with both HTTP and script-based providers
-- **Automatic Fallback**: If PO token provider is unavailable, bot automatically falls back to standard YouTube extraction
-- **Health Monitoring**: Provider availability is cached and checked every 30 seconds
-
-**Requirements:**
-- Docker container running `brainicism/bgutil-ytdlp-pot-provider`
-- yt-dlp plugin: `bgutil-ytdlp-pot-provider`
-
-**Fallback Mechanism:**
-- **Automatic Detection**: Bot checks provider availability before each YouTube request
-- **Cached Health Checks**: Provider status is cached for 30 seconds to avoid excessive requests
-- **Graceful Degradation**: If provider is unavailable, bot automatically falls back to standard YouTube extraction
-- **No User Impact**: Fallback is completely transparent to users
-- **Admin Monitoring**: Provider health is automatically monitored and logged
-
-
 
 ### 🎧 Multi-Track Audio & Subtitle Embedding (MKV)
 
