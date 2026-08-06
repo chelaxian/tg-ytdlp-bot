@@ -5,9 +5,9 @@ Session string generator for Channel Guard.
 Creates a user Telegram session needed for reading channel admin logs.
 
 Usage:
-  python generate_session_string.py                    # Interactive (asks API keys)
-  python generate_session_string.py --api-id=XXX --api-hash=XXX  # With custom keys
-  python generate_session_string.py --phone            # Phone number method
+  python scripts/generate_session_string.py                    # Interactive (asks API keys)
+  python scripts/generate_session_string.py --api-id=XXX --api-hash=XXX  # With custom keys
+  python scripts/generate_session_string.py --phone            # Phone number method
 
 IMPORTANT: Public API_IDs (like 6119513) are often blocked by Telegram.
 Get your own at https://my.telegram.org -> API Development Tools
@@ -18,6 +18,14 @@ import asyncio
 import datetime
 import base64
 from pyrogram import Client, raw, types, handlers
+
+# This script lives in <project_root>/scripts/. Resolve the project root (one
+# level up) and chdir there so `from CONFIG.config import Config` resolves and
+# the generated channel_guard_session_string.txt is written to the project root.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 
 PUBLIC_API_IDS = {
@@ -253,7 +261,7 @@ async def generate_session_string():
         print()
         if use_phone:
             print("If the code is not received, try QR code method instead:")
-            print("  python generate_session_string.py")
+            print("  python scripts/generate_session_string.py")
         print()
     finally:
         try:

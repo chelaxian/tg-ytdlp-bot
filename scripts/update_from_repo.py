@@ -9,10 +9,20 @@ import os
 import sys
 import shutil
 import tempfile
-from CONFIG.messages import Messages, safe_get_messages
 import subprocess
 from pathlib import Path
 from datetime import datetime
+
+# This script lives in <project_root>/scripts/. Resolve the project root (one
+# level up), put it on sys.path (so `from CONFIG...` imports resolve) and chdir
+# there: the updater clones the repo and copies files relative to the project
+# root (magic.py sanity check, CONFIG/LANGUAGES creation, find . -name backup, etc.).
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from CONFIG.messages import Messages, safe_get_messages
 
 # =====================================================
 # NEW: Backup toggle (1 = enable backups, 0 = skip)
@@ -36,7 +46,6 @@ EXCLUDED_FILES = [
     "magic.session-journal",
     "dump.json",
     "script.sh",
-    "engines_updater.sh",
 ]
 
 EXCLUDED_DIRS = [
@@ -61,12 +70,17 @@ ALWAYS_INCLUDE_FILES = [
     "Dockerfile",
     "docker-compose.yml",
     ".dockerignore",
-    "docker-entrypoint.sh",
-    # Update scripts
-    "UPDATE.sh",
-    "UPDATE_DOCKER.sh",
-    "engines_updater.sh",
-    "update_bgutil_provider.sh",
+    "scripts/docker-entrypoint.sh",
+    # Update / maintenance scripts (live under scripts/)
+    "scripts/UPDATE.sh",
+    "scripts/UPDATE_DOCKER.sh",
+    "scripts/engines_updater.sh",
+    "scripts/update_bgutil_provider.sh",
+    "scripts/update_from_repo.py",
+    "scripts/create_backup.py",
+    "scripts/restore_from_backup.py",
+    "scripts/generate_session_string.py",
+    "scripts/clean_fire_logs.py",
     # Other important files
     "README.md",
     "CONTRIBUTING.md",
@@ -116,7 +130,7 @@ def should_update_file(file_path, exclude_include_dirs=False):
         return True
 
     # Include Docker-related files (including files in warp/ subdirectory)
-    if file_path in ['Dockerfile', 'docker-compose.yml', '.dockerignore', 'docker-entrypoint.sh']:
+    if file_path in ['Dockerfile', 'docker-compose.yml', '.dockerignore', 'scripts/docker-entrypoint.sh']:
         return True
     if file_path.startswith('warp/'):
         # Include all files in warp/ directory (Dockerfile, .sh scripts, .dockerignore)

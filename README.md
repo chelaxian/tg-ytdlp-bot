@@ -45,6 +45,7 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 - 🇦🇪 [@tgytdlp_uae_bot](https://t.me/tgytdlp_uae_bot) - UAE server
 - 🇬🇧 [@tgytdlp_uk_bot](https://t.me/tgytdlp_uk_bot) - UK server
 - 🇫🇷 [@tgytdlp_fr_bot](https://t.me/tgytdlp_fr_bot) - FR server
+- 🇩🇪 [@tgytdlp_de_bot](https://t.me/tgytdlp_de_bot) - DE server
 
 **Community Channel:** [@tg_ytdlp](https://t.me/tg_ytdlp)
 
@@ -408,7 +409,7 @@ Channel Guard is a feature that monitors channel subscription events and can aut
 
 1. Run the script:
 ```bash
-python generate_session_string.py
+python scripts/generate_session_string.py
 ```
 
 2. Follow the interactive prompts:
@@ -1540,7 +1541,7 @@ You can update code from the `newdesign2` branch (or `main` branch) of `chelaxia
 
 #### One-command update (recommended)
 ```bash
-./UPDATE.sh
+./scripts/UPDATE.sh
 ```
 - The script checks prerequisites and runs the Python updater.
 - After a successful update, restart the bot service (if you use systemd):
@@ -1551,8 +1552,8 @@ journalctl -u tg-ytdlp-bot -f
 
 #### Manual update via Python
 ```bash
-python3 update_from_repo.py --show-excluded   # show excluded files/folders
-python3 update_from_repo.py                   # interactive update (prompts for confirmation)
+python3 scripts/update_from_repo.py --show-excluded   # show excluded files/folders
+python3 scripts/update_from_repo.py                   # interactive update (prompts for confirmation)
 ```
 
 ### Updating Docker Installation
@@ -1562,19 +1563,19 @@ Use the `UPDATE_DOCKER.sh` script for automated Docker environment updates:
 
 ```bash
 # Make script executable (first time only)
-chmod +x UPDATE_DOCKER.sh
+chmod +x scripts/UPDATE_DOCKER.sh
 
 # Full update: stop containers -> update code -> rebuild -> restart
-./UPDATE_DOCKER.sh
+./scripts/UPDATE_DOCKER.sh
 
 # Skip code update, only rebuild and restart containers
-./UPDATE_DOCKER.sh --skip-update
+./scripts/UPDATE_DOCKER.sh --skip-update
 
 # Full update with clean build (no cache)
-./UPDATE_DOCKER.sh --no-cache
+./scripts/UPDATE_DOCKER.sh --no-cache
 
 # Show help
-./UPDATE_DOCKER.sh --help
+./scripts/UPDATE_DOCKER.sh --help
 ```
 
 **What `UPDATE_DOCKER.sh` does:**
@@ -1600,7 +1601,7 @@ If you prefer to update manually:
 
 ```bash
 # 1. Update code
-./UPDATE.sh
+./scripts/UPDATE.sh
 
 # 2. Stop containers
 docker compose down
@@ -1681,7 +1682,7 @@ When the updater changes files, it creates backups and moves them into the `_bac
 
 ### Interactive restore (recommended)
 ```bash
-python3 restore_from_backup.py
+python3 scripts/restore_from_backup.py
 ```
 - Use Arrow keys (or j/k) to navigate, PgUp/PgDn for paging, Enter to select, q to quit.
 - The list shows grouped backups by minute: `[YYYY-MM-DD HH:MM:SS] files: N (id: YYYYMMDD_HHMM)`.
@@ -1689,13 +1690,13 @@ python3 restore_from_backup.py
 
 ### List available backups
 ```bash
-python3 restore_from_backup.py --list
+python3 scripts/restore_from_backup.py --list
 ```
 Outputs available backup IDs (newest first) with file counts.
 
 ### Non-interactive restore by ID
 ```bash
-python3 restore_from_backup.py --timestamp YYYYMMDD_HHMM
+python3 scripts/restore_from_backup.py --timestamp YYYYMMDD_HHMM
 ```
 Restores all files for the specified backup ID.
 
