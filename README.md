@@ -1,6 +1,6 @@
 # 🤖 tg-ytdlp-bot
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![PyroTGFork](https://img.shields.io/badge/PyroTGFork-Latest-green.svg)](https://github.com/pyrogram/pyrogram)
 [![yt-dlp](https://img.shields.io/badge/yt--dlp-Latest-red.svg)](https://github.com/yt-dlp/yt-dlp)
 [![gallery-dl](https://img.shields.io/badge/gallery--dl-Latest-orange.svg)](https://github.com/mikf/gallery-dl)
@@ -228,7 +228,7 @@ P.S. do not forget to add your bot to your channels with admin rights
 
 #### Prerequisites
 
-- **Python 3.10+**
+- **Python 3.11+**
 - **Ubuntu/Debian** (recommended) or other Linux distribution
 - **Chromium** (recommended) or other Browser (optional, for `/cookies_from_browser` command)
 - **Docker** (optional, for PO Token Provider)
@@ -248,7 +248,7 @@ chmod +x *.sh
 ```bash
 # Update system packages
 sudo apt update
-sudo apt install -y git python3.10 python3-pip python3.10-venv mediainfo rsync
+sudo apt install -y git python3.11 python3-pip python3.11-venv mediainfo rsync
 
 # Create virtual environment
 python3 -m venv venv
@@ -1913,7 +1913,7 @@ Notes:
 2. Verify API credentials are correct
 3. Ensure channels are set up and bot has admin permissions
 4. Check Firebase configuration and credentials
-5. Verify Python version (3.10+ required)
+5. Verify Python version (3.11+ required)
 
 #### Cookie Download Fails
 
