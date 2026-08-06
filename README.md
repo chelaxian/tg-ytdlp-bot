@@ -252,7 +252,7 @@ sudo apt update
 sudo apt install -y git python3.11 python3-pip python3.11-venv mediainfo rsync
 
 # Create virtual environment
-python3 -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate
 
 # Install Python packages
@@ -304,7 +304,7 @@ sudo apt install -y docker.io
 docker run -d --name bgutil-provider -p 4416:4416 --init --restart unless-stopped brainicism/bgutil-ytdlp-pot-provider
 
 # Install yt-dlp plugin
-python3 -m pip install -U bgutil-ytdlp-pot-provider
+python3.11 -m pip install -U bgutil-ytdlp-pot-provider
 ```
 
 **Configuration in `CONFIG/config.py`:**
@@ -336,7 +336,7 @@ nano config.py
 source venv/bin/activate
 
 # Start the bot
-python3 magic.py
+python3.11 magic.py
 ```
 
 ## ⚙️ Configuration
@@ -1552,8 +1552,8 @@ journalctl -u tg-ytdlp-bot -f
 
 #### Manual update via Python
 ```bash
-python3 scripts/update_from_repo.py --show-excluded   # show excluded files/folders
-python3 scripts/update_from_repo.py                   # interactive update (prompts for confirmation)
+python3.11 scripts/update_from_repo.py --show-excluded   # show excluded files/folders
+python3.11 scripts/update_from_repo.py                   # interactive update (prompts for confirmation)
 ```
 
 ### Updating Docker Installation
@@ -1682,7 +1682,7 @@ When the updater changes files, it creates backups and moves them into the `_bac
 
 ### Interactive restore (recommended)
 ```bash
-python3 scripts/restore_from_backup.py
+python3.11 scripts/restore_from_backup.py
 ```
 - Use Arrow keys (or j/k) to navigate, PgUp/PgDn for paging, Enter to select, q to quit.
 - The list shows grouped backups by minute: `[YYYY-MM-DD HH:MM:SS] files: N (id: YYYYMMDD_HHMM)`.
@@ -1690,13 +1690,13 @@ python3 scripts/restore_from_backup.py
 
 ### List available backups
 ```bash
-python3 scripts/restore_from_backup.py --list
+python3.11 scripts/restore_from_backup.py --list
 ```
 Outputs available backup IDs (newest first) with file counts.
 
 ### Non-interactive restore by ID
 ```bash
-python3 scripts/restore_from_backup.py --timestamp YYYYMMDD_HHMM
+python3.11 scripts/restore_from_backup.py --timestamp YYYYMMDD_HHMM
 ```
 Restores all files for the specified backup ID.
 
@@ -1994,14 +1994,14 @@ git clone https://github.com/your-username/tg-ytdlp-bot.git
 cd tg-ytdlp-bot
 
 # Create virtual environment
-python3 -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Make your changes and test
-python3 magic.py
+python3.11 magic.py
 ```
 
 ### Pull Request Process
