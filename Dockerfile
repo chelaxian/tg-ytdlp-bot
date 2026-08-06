@@ -68,7 +68,7 @@ COPY . .
 
 # Копируем и делаем исполняемым entrypoint скрипт
 # Конвертируем Windows окончания строк (CRLF) в Unix (LF) и делаем исполняемым
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY scripts/docker-entrypoint.sh /usr/local/bin/
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh && \
     # Clean up any Python cache that might have been copied

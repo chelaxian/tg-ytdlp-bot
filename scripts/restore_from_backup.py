@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from CONFIG.messages import Messages, safe_get_messages
 """
 Interactive backup restore tool for tg-ytdlp-bot.
 
@@ -11,16 +10,27 @@ Interactive backup restore tool for tg-ytdlp-bot.
   recreating directories as needed and stripping the `.backup_<timestamp>` suffix.
 
 Non-interactive usage:
-  python3 restore_from_backup.py --timestamp YYYYMMDD_HHMMSS
-  python3 restore_from_backup.py --list
+  python3 scripts/restore_from_backup.py --timestamp YYYYMMDD_HHMMSS
+  python3 scripts/restore_from_backup.py --list
 
 Safety:
-- Reads from `_backup/` only. Writes into current project directory.
+- Reads from `_backup/` only. Writes into the project root directory.
 - Will create missing directories. Overwrites existing files.
 """
 
 import os
 import sys
+
+# This script lives in <project_root>/scripts/. Resolve the project root (one
+# level up), put it on sys.path (so `from CONFIG...` imports resolve) and chdir
+# there so _backup/ and restored files are handled against the project root.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from CONFIG.messages import Messages, safe_get_messages
+
 import re
 import curses
 import argparse

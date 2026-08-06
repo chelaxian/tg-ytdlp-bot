@@ -46,7 +46,7 @@ class Config(object):
     SUBSCRIBE_CHANNEL_URL = "https://t.me/+abcdef"
     # Session string пользователя для чтения admin logs канала (опционально)
     # Боты не могут читать admin logs, поэтому нужна пользовательская сессия
-    # Для генерации session string запустите: python generate_session_string.py
+    # Для генерации session string запустите: python scripts/generate_session_string.py
     CHANNEL_GUARD_SESSION_STRING = ""
     #######################################################
     ###########################################################

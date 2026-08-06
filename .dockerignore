@@ -80,7 +80,7 @@ update-yt-dlp.sh
 monitor_resources.py
 start_docker.sh
 delete_redacted.sh
-UPDATE.sh
+scripts/UPDATE.sh
 
 # Docker files (not needed inside) 
 docker-compose.yml
@@ -101,10 +101,10 @@ warp/
 # Development files
 *.bat
 *.ps1
-generate_session_string.py
-restore_from_backup.py
-create_backup.py
-update_from_repo.py
+scripts/generate_session_string.py
+scripts/restore_from_backup.py
+scripts/create_backup.py
+scripts/update_from_repo.py
 
 # PATCH files (if not needed at runtime)
 PATCH/

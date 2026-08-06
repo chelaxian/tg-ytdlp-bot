@@ -4,9 +4,19 @@
 """
 
 import os
+import sys
 import shutil
 import datetime
 from pathlib import Path
+
+# This script lives in <project_root>/scripts/. Resolve the project root (one
+# level up) and chdir there so all relative paths below (COMMANDS/, CONFIG/,
+# magic.py, backups, ...) resolve against the project root regardless of where
+# the script is invoked from.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 def create_backup():
     """Создать бэкап всех модулей"""
@@ -31,8 +41,7 @@ def create_backup():
             'DOWN_AND_UP/',
             'CONFIG/',
             'PATCH/',
-            'restore_from_backup.py',
-            'update_from_repo.py',
+            'scripts/',
             'magic.py'
         ]
         
