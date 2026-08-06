@@ -559,7 +559,7 @@ def update_engines() -> Dict[str, Any]:
         outputs = []
         try:
             # Обновляем yt-dlp и gallery-dl в контейнере бота
-            result = _run_in_bot(["bash", "/app/engines_updater.sh"], timeout=300)
+            result = _run_in_bot(["bash", "/app/scripts/engines_updater.sh"], timeout=300)
             if result.returncode != 0:
                 return {
                     "status": "error",
@@ -619,8 +619,8 @@ def update_engines() -> Dict[str, Any]:
     # Локальный режим — старое поведение, проверяем наличие скриптов
     try:
         base_dir = Path(__file__).resolve().parent.parent
-        updater = base_dir / "engines_updater.sh"
-        provider = base_dir / "update_bgutil_provider.sh"
+        updater = base_dir / "scripts" / "engines_updater.sh"
+        provider = base_dir / "scripts" / "update_bgutil_provider.sh"
         if not updater.exists():
             return {"status": "error", "message": f"{updater} not found"}
         if not provider.exists():

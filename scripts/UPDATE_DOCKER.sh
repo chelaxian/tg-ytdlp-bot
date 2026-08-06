@@ -5,6 +5,13 @@
 
 set -e  # Остановка при ошибке
 
+# This script lives in <project_root>/scripts/. Resolve project root (one level
+# up) and cd there so docker-compose.yml / magic.py checks and update_from_repo.py
+# run against the project root regardless of the caller's CWD.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # Цвета для вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -133,8 +140,8 @@ if [ "$SKIP_UPDATE" = false ]; then
     echo ""
     log_info "Шаг 2/5: Обновление кода из репозитория..."
     
-    if [ ! -f "update_from_repo.py" ]; then
-        log_error "update_from_repo.py не найден"
+    if [ ! -f "$SCRIPT_DIR/update_from_repo.py" ]; then
+        log_error "update_from_repo.py не найден (ожидался в $SCRIPT_DIR)"
         exit 1
     fi
     
@@ -144,7 +151,7 @@ if [ "$SKIP_UPDATE" = false ]; then
     fi
     
     # Запускаем обновление кода
-    if python3 update_from_repo.py; then
+    if python3 "$SCRIPT_DIR/update_from_repo.py"; then
         log_success "Код успешно обновлен"
     else
         log_error "Ошибка при обновлении кода"

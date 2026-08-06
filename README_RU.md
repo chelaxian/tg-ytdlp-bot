@@ -52,6 +52,7 @@
 - 🇦🇪 [@tgytdlp_uae_bot](https://t.me/tgytdlp_uae_bot) - Сервер в ОАЭ
 - 🇬🇧 [@tgytdlp_uk_bot](https://t.me/tgytdlp_uk_bot) - Сервер в Великобритании
 - 🇫🇷 [@tgytdlp_fr_bot](https://t.me/tgytdlp_fr_bot) - Сервер во Франции
+- 🇩🇪 [@tgytdlp_de_bot](https://t.me/tgytdlp_de_bot) - Сервер в Германии
 
 **Канал сообщества:** [@tg_ytdlp](https://t.me/tg_ytdlp)
 
@@ -1473,7 +1474,7 @@ RELOAD_CACHE_EVERY = 24  # в часах
 
 #### Одно-командное обновление (рекомендуется)
 ```bash
-./UPDATE.sh
+./scripts/UPDATE.sh
 ```
 - Скрипт проверяет предпосылки и запускает Python апдейтер.
 - После успешного обновления, перезапустите сервис бота (если используете systemd):
@@ -1484,8 +1485,8 @@ journalctl -u tg-ytdlp-bot -f
 
 #### Ручное обновление через Python
 ```bash
-python3 update_from_repo.py --show-excluded   # показать исключённые файлы/папки
-python3 update_from_repo.py                   # интерактивное обновление (прошит подтверждение)
+python3 scripts/update_from_repo.py --show-excluded   # показать исключённые файлы/папки
+python3 scripts/update_from_repo.py                   # интерактивное обновление (прошит подтверждение)
 ```
 
 ### Обновление Docker установки
@@ -1495,19 +1496,19 @@ python3 update_from_repo.py                   # интерактивное об�
 
 ```bash
 # Сделать скрипт исполняемым (только в первый раз)
-chmod +x UPDATE_DOCKER.sh
+chmod +x scripts/UPDATE_DOCKER.sh
 
 # Полное обновление: остановить контейнеры -> обновить код -> пересобрать -> перезапустить
-./UPDATE_DOCKER.sh
+./scripts/UPDATE_DOCKER.sh
 
 # Пропустить обновление кода, только пересобрать и перезапустить контейнеры
-./UPDATE_DOCKER.sh --skip-update
+./scripts/UPDATE_DOCKER.sh --skip-update
 
 # Полное обновление с чистой сборкой (без кэша)
-./UPDATE_DOCKER.sh --no-cache
+./scripts/UPDATE_DOCKER.sh --no-cache
 
 # Показать помощь
-./UPDATE_DOCKER.sh --help
+./scripts/UPDATE_DOCKER.sh --help
 ```
 
 **Что `UPDATE_DOCKER.sh` делает:**
@@ -1533,7 +1534,7 @@ docker system prune -a --volumes
 
 ```bash
 # 1. Обновить код
-./UPDATE.sh
+./scripts/UPDATE.sh
 
 # 2. Остановить контейнеры
 docker compose down
@@ -1614,7 +1615,7 @@ docker system prune -a --volumes
 
 ### Интерактивное восстановление (рекомендуется)
 ```bash
-python3 restore_from_backup.py
+python3 scripts/restore_from_backup.py
 ```
 - Используйте клавиши Arrow (или j/k) чтобы навигировать, PgUp/PgDn для пагинации, Enter чтобы выбрать, q чтобы выйти.
 - Список показывает сгруппированные бекапы по минуте: `[YYYY-MM-DD HH:MM:SS] files: N (id: YYYYMMDD_HHMM)`.
@@ -1622,13 +1623,13 @@ python3 restore_from_backup.py
 
 ### Список доступных бекапов
 ```bash
-python3 restore_from_backup.py --list
+python3 scripts/restore_from_backup.py --list
 ```
 Выводит доступные ID бекапов (сначала новейшие) с количеством файлов.
 
 ### Не-интерактивное восстановление по ID
 ```bash
-python3 restore_from_backup.py --timestamp YYYYMMDD_HHMM
+python3 scripts/restore_from_backup.py --timestamp YYYYMMDD_HHMM
 ```
 Восстанавливает все файлы для указанного ID бекапа.
 

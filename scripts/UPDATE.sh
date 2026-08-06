@@ -2,8 +2,16 @@
 # Version 1.0.0
 
 # Updater script for tg-ytdlp-bot
-# Run from the bot folder (where magic.py is located)
+# Can be run from anywhere; it resolves the project root automatically
+# (this script lives in <project_root>/scripts/, root is one level up).
 # Note: backups created with minute-level timestamp (.backup_YYYYMMDD_HHMM)
+
+# Resolve script dir + project root, then cd into the project root so that all
+# relative checks (magic.py, docker-compose.yml) and update_from_repo.py run
+# against the project root regardless of the caller's CWD.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # Опция сохранения docker-compose.yml при обновлении
 PRESERVE_DOCKER_COMPOSE=True
@@ -46,7 +54,7 @@ fi
 
 # Run update
 echo "📥 Starting update..."
-python3 update_from_repo.py
+python3 "$SCRIPT_DIR/update_from_repo.py"
 update_status=$?
 
 # Восстанавливаем docker-compose.yml после обновления, если опция включена
