@@ -384,13 +384,42 @@ PhantomJS необходим для некоторых сайтов, таких 
 sudo apt-get install -y nodejs
 
 # Проверка Node.js
-node --version  # Должно быть v18+ или v20+
+node --version  # Должно быть v22+
 
+# Если версия ниже v22, установите из NodeSource:
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node --version  # Теперь должно быть v22+
 ```
 
 > **Примечание:** Node.js уже включён в Docker-образ. Ручная установка нужна только для установки без Docker.
 >
 > ~~PhantomJS~~: больше не требуется. Ранее использовался для PornHub и подобных сайтов, но yt-dlp теперь использует другие методы извлечения.
+
+#### Шаг 3.75: PO Token Provider (YouTube Bypass)
+
+Опционально — обходит YouTube ограничения ("Sign in to confirm", IP-based blocking, rate limiting). Работает с существующими системами прокси и cookies. Автоматический fallback к стандартному YouTube извлечению если provider недоступен.
+
+**Настройка (Docker контейнер):**
+```bash
+# Установите Docker (если ещё не установлен)
+sudo apt install -y docker.io
+
+# Запустите PO Token Provider
+docker run -d --name bgutil-provider -p 4416:4416 --init --restart unless-stopped brainicism/bgutil-ytdlp-pot-provider
+
+# Установите yt-dlp plugin
+python3 -m pip install -U bgutil-ytdlp-pot-provider
+```
+
+**Конфигурация в `CONFIG/config.py`:**
+```python
+YOUTUBE_POT_ENABLED = True
+YOUTUBE_POT_BASE_URL = "http://127.0.0.1:4416"
+YOUTUBE_POT_DISABLE_INNERTUBE = False
+```
+
+> **Примечание:** Если PO token provider недоступен, бот автоматически fallback к стандартному YouTube извлечению. Без влияния на пользователя.
 
 #### Шаг 4: Настройка конфигурации
 
@@ -1105,55 +1134,6 @@ Timeout: 30
 - Включает инструкции по загрузке для команды `/format`
 - Экспортирует полный список как текстовый файл
 - Работает со всеми поддерживаемыми платформами
-
-### 🚀 PO Token Provider (YouTube Bypass)
-
-Автоматический обход YouTube ограничений:
-
-- **"Sign in to confirm"** bypass сообщения
-- **IP-based blocking** защита
-- **Rate limiting** смягчение
-- **Прозрачная работа**: Работает с существующими системами прокси и cookies
-- **Автоматический fallback**: Falls back к стандартной извлечению если provider недоступен
-
-**Настройка:**
-```bash
-# Установите Docker
-sudo apt install -y docker.io
-
-# Запустите PO Token Provider
-docker run -d --name bgutil-provider -p 4416:4416 --init --restart unless-stopped brainicism/bgutil-ytdlp-pot-provider
-
-# Установите yt-dlp plugin
-python3 -m pip install -U bgutil-ytdlp-pot-provider
-```
-
-**Конфигурация:**
-```python
-# В CONFIG/config.py
-YOUTUBE_POT_ENABLED = True
-YOUTUBE_POT_BASE_URL = "http://127.0.0.1:4416"
-YOUTUBE_POT_DISABLE_INNERTUBE = False
-```
-
-**Технические детали:**
-- Использует правильный Python API формат для `extractor_args`: `dict -> dict -> list[str]`
-- `disable_innertube` добавляется только когда включён (как `["1"]` string в list)
-- Совместим с yt-dlp >= 2025.05.22
-- Работает с HTTP и script-based providers
-- **Автоматический fallback**: Если PO token provider недоступен, бот автоматически fallback к стандартной YouTube извлечению
-- **Мониторинг здоровья**: Доступность provider кэшируется и проверяется каждые 30 секунд
-
-**Требования:**
-- Docker контейнер запускающий `brainicism/bgutil-ytdlp-pot-provider`
-- yt-dlp plugin: `bgutil-ytdlp-pot-provider`
-
-**Механизм fallback:**
-- **Автоматическое определение**: Бот проверяет доступность provider перед каждым YouTube запросом
-- **Кэшированные проверки здоровья**: Статус provider кэшируется на 30 секунд чтобы избежать избыточных запросов
-- **Graceful degradation**: Если provider недоступен, бот автоматически fallback к стандартной YouTube извлечению
-- **Без влияния на пользователя**: Fallback полностью прозрачен для пользователей
-- **Мониторинг админа**: Здоровье provider автоматически мониторится и логируется
 
 ### 🎧 Многодорожечное аудио и субтитры (MKV)
 
