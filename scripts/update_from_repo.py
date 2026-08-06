@@ -46,7 +46,6 @@ EXCLUDED_FILES = [
     "magic.session-journal",
     "dump.json",
     "script.sh",
-    "engines_updater.sh",
 ]
 
 EXCLUDED_DIRS = [
@@ -71,12 +70,17 @@ ALWAYS_INCLUDE_FILES = [
     "Dockerfile",
     "docker-compose.yml",
     ".dockerignore",
-    "docker-entrypoint.sh",
-    # Update scripts
-    "UPDATE.sh",
-    "UPDATE_DOCKER.sh",
-    "engines_updater.sh",
-    "update_bgutil_provider.sh",
+    "scripts/docker-entrypoint.sh",
+    # Update / maintenance scripts (live under scripts/)
+    "scripts/UPDATE.sh",
+    "scripts/UPDATE_DOCKER.sh",
+    "scripts/engines_updater.sh",
+    "scripts/update_bgutil_provider.sh",
+    "scripts/update_from_repo.py",
+    "scripts/create_backup.py",
+    "scripts/restore_from_backup.py",
+    "scripts/generate_session_string.py",
+    "scripts/clean_fire_logs.py",
     # Other important files
     "README.md",
     "CONTRIBUTING.md",
@@ -126,7 +130,7 @@ def should_update_file(file_path, exclude_include_dirs=False):
         return True
 
     # Include Docker-related files (including files in warp/ subdirectory)
-    if file_path in ['Dockerfile', 'docker-compose.yml', '.dockerignore', 'docker-entrypoint.sh']:
+    if file_path in ['Dockerfile', 'docker-compose.yml', '.dockerignore', 'scripts/docker-entrypoint.sh']:
         return True
     if file_path.startswith('warp/'):
         # Include all files in warp/ directory (Dockerfile, .sh scripts, .dockerignore)
