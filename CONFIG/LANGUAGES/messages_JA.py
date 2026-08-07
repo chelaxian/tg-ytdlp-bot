@@ -9,7 +9,7 @@ class Messages(object):
     #######################################################
     # Messages and errors
     #######################################################
-    CREDITS_MSG = "<blockquote><i>管理：</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 言語を変更: /lang</b>"
+    CREDITS_MSG = "<blockquote><i>管理：</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n🇩🇪 @tgytdlp_de_bot</blockquote>\n<b>🌍 言語を変更: /lang</b>"
     TO_USE_MSG = "<i>このボットを使用するには、@tg_ytdlp Telegramチャンネルに登録する必要があります。</i>\nチャンネルに参加した後、<b>動画リンクを再度送信するとボットがダウンロードします</b> ❤️\n\n<blockquote>P.S. 🔞NSFWコンテンツの可能性のため - ☁️<b>クラウドストレージ</b>、📁<b>ファイル共有</b>、🔗<b>URL短縮</b>、🔞<b>ポルノサイト</b>からのダウンロードは有料です！1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ @tg_ytdlpチャンネルを🗑<b>削除/登録解除しない</b>こと、ボットに🤖<b>URL/コマンドを過度にスパムしない</b>こと - ボット使用から自動的にBANされます ⛔️</blockquote>"
 
     ERROR1 = "URLリンクが見つかりませんでした。<b>https://</b>または<b>http://</b>を含むURLを入力してください"

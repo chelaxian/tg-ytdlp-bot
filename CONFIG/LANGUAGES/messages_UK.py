@@ -9,7 +9,7 @@ class Messages(object):
     #######################################################
     # Messages and errors
     #######################################################
-    CREDITS_MSG = "<blockquote><i>Керується</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Змінити мову: /lang</b>"
+    CREDITS_MSG = "<blockquote><i>Керується</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n🇩🇪 @tgytdlp_de_bot</blockquote>\n<b>🌍 Змінити мову: /lang</b>"
     TO_USE_MSG = "<i>Щоб використовувати цього бота, потрібно підписатися на канал Telegram @tg_ytdlp.</i>\nПісля приєднання до каналу <b>надішліть знову посилання на відео — бот завантажить його для вас</b> ❤️\n\n<blockquote>P.S. Через можливий 🔞NSFW контент — завантаження з ☁️<b>хмарного сховища</b>, 📁<b>обміну файлами</b>, 🔗<b>скорочувачів URL</b> та 🔞<b>порно-сайтів</b> платне! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ НЕ 🗑<b>видаляйте/не відписуйтесь від каналу @tg_ytdlp</b> і НЕ 🤖<b>надсилайте зайвого спаму URL/командами боту</b> — вас автоматично заблокують ⛔️</blockquote>"
 
     ERROR1 = "Посилання URL не знайдено. Будь ласка, введіть URL з <b>https://</b> або <b>http://</b>"
