@@ -9,7 +9,7 @@ class Messages(object):
     #######################################################
     # Messages and errors
     #######################################################
-    CREDITS_MSG = "<blockquote><i>مدیریت شده توسط</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 تغییر زبان: /lang</b>"
+    CREDITS_MSG = "<blockquote><i>مدیریت شده توسط</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot\n🇩🇪 @tgytdlp_de_bot</blockquote>\n<b>🌍 تغییر زبان: /lang</b>"
     TO_USE_MSG = "<i>برای استفاده از این ربات باید به کانال تلگرام @tg_ytdlp مشترک شوید.</i>\nپس از پیوستن به کانال، <b>لینک ویدیوی خود را دوباره ارسال کنید و ربات آن را برای شما دانلود می‌کند</b> ❤️\n\n<blockquote>P.S. به دلیل محتوای احتمالی 🔞NSFW - دانلود از ☁️<b>ذخیره‌سازی ابری</b>، 📁<b>اشتراک‌گذاری فایل</b>، 🔗<b>کوتاه‌کننده‌های URL</b> و 🔞<b>سایت‌های مستهجن</b> پولی است! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. 🔥 Subtitle hard-burn (MP4) is paid: 144p: 1⭐ | 240p: 2⭐ | 360p: 3⭐ | 480p: 4⭐ | 720p: 5⭐ (free in MKV mode)</blockquote>\n<blockquote>P.P.P.S. ‼️ کانال @tg_ytdlp را 🗑<b>حذف/لغو اشتراک نکنید</b> و به ربات 🤖<b>URL/دستورات را بیش از حد اسپم نکنید</b> - به‌طور خودکار از استفاده ربات محروم می‌شوید ⛔️</blockquote>"
 
     ERROR1 = "لینک URL یافت نشد. لطفاً یک URL با <b>https://</b> یا <b>http://</b> وارد کنید"
