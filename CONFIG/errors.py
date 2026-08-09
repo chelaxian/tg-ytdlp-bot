@@ -189,7 +189,9 @@ def classify_yt_dlp_error(error_message, url=None):
     # Extractor/parse failure (issue #328) — Facebook and other platforms change
     # page structure, breaking yt-dlp's extractor. Show a friendly message
     # suggesting yt-dlp update or cookies rather than the raw "Cannot parse data".
-    if "cannot parse data" in error_lower or "unable to extract" in error_lower or "extractor error" in error_lower:
+    # Also covers YouTube "The page needs to be reloaded" bot-detection challenge
+    # (issue #436) — same class of upstream page-parsing failure.
+    if "cannot parse data" in error_lower or "unable to extract" in error_lower or "extractor error" in error_lower or "page needs to be reloaded" in error_lower:
         return "EXTRACTOR_ERROR"
 
     # Empty download (issue #403) — yt-dlp reports "The downloaded file is

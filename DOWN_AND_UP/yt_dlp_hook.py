@@ -32,6 +32,9 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
     # YouTube bot-detection / PO-token (issue #394) — cookie rotation never
     # fixes this; fail fast to prevent the 22+ case retry storm
     'sign in to confirm', 'not a bot',
+    # YouTube frontend challenge (issue #436) — "The page needs to be reloaded"
+    # is a new bot-detection challenge; cannot be fixed by cookies/proxy/format
+    'page needs to be reloaded',
     # YouTube community post / tab page (issue #391) — not a downloadable video
     'does not have a',
 )

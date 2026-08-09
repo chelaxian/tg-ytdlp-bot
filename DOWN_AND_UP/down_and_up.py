@@ -114,6 +114,57 @@ def is_skippable_video_error(error_message: str) -> bool:
     return False
 
 
+# ---------------------------------------------------------------------------
+# Per-user consecutive network-error rate limiter (issue #384)
+# ---------------------------------------------------------------------------
+# A single user retrying playlists during a network outage (YouTube throttling,
+# proxy instability) can generate 70+ errors/24h. Track consecutive network
+# errors per user; after MAX consecutive failures within WINDOW seconds, block
+# the user for COOLDOWN seconds to break the retry loop.
+_NET_ERROR_TRACKER = {}  # {user_id: {"count": int, "first_ts": float, "blocked_ts": float}}
+MAX_CONSECUTIVE_NET_ERRORS = 5
+NET_ERROR_WINDOW_SEC = 180      # 3-minute rolling window
+NET_ERROR_COOLDOWN_SEC = 300    # 5-minute cooldown after threshold hit
+
+
+def _check_net_error_cooldown(user_id):
+    """Return remaining cooldown seconds if user is blocked, else 0."""
+    rec = _NET_ERROR_TRACKER.get(user_id)
+    if not rec or not rec.get("blocked_ts"):
+        return 0
+    elapsed = time.time() - rec["blocked_ts"]
+    remaining = NET_ERROR_COOLDOWN_SEC - elapsed
+    if remaining > 0:
+        return int(remaining)
+    # Cooldown expired — reset
+    del _NET_ERROR_TRACKER[user_id]
+    return 0
+
+
+def _record_net_error(user_id):
+    """Record a consecutive network error for a user; block when threshold hit."""
+    now = time.time()
+    rec = _NET_ERROR_TRACKER.get(user_id)
+    if rec and rec.get("blocked_ts"):
+        return  # already blocked
+    if rec and (now - rec["first_ts"]) <= NET_ERROR_WINDOW_SEC:
+        rec["count"] += 1
+    else:
+        _NET_ERROR_TRACKER[user_id] = {"count": 1, "first_ts": now, "blocked_ts": 0}
+        return
+    if rec["count"] >= MAX_CONSECUTIVE_NET_ERRORS:
+        rec["blocked_ts"] = now
+        logger.warning(
+            f"User {user_id} hit {MAX_CONSECUTIVE_NET_ERRORS} consecutive network "
+            f"errors within {NET_ERROR_WINDOW_SEC}s — blocking for {NET_ERROR_COOLDOWN_SEC}s"
+        )
+
+
+def _clear_net_errors(user_id):
+    """Reset the network-error counter (called on successful download)."""
+    _NET_ERROR_TRACKER.pop(user_id, None)
+
+
 def _handle_quality_key_error(e: Exception, split_msg_ids: list, is_playlist: bool, successful_uploads: int, indices_to_download: list, video_count: int, user_id: int, proc_msg_id: int, message, app, url: str = None, safe_quality_key: str = None):
     messages = safe_get_messages(user_id)
     """Universal handler for quality_key errors that ensures final actions are completed"""
@@ -277,6 +328,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # замедлит старт скачивания. Сбрасываем источники только для новых задач,
     # когда куки ещё не проверялись.
     user_id = message.chat.id
+
+    # Per-user network-error rate limiter (issue #384): if the user has hit the
+    # consecutive network-error threshold, block new downloads during cooldown.
+    _cooldown_remaining = _check_net_error_cooldown(user_id)
+    if _cooldown_remaining > 0:
+        logger.warning(f"User {user_id} is in network-error cooldown ({_cooldown_remaining}s remaining), rejecting download for {url}")
+        _cooldown_msg = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
+        send_error_to_user(message, f"⚠️ {_cooldown_msg}")
+        return
+
     if not cookies_already_checked:
         from COMMANDS.cookies_cmd import reset_checked_cookie_sources
         reset_checked_cookie_sources(user_id)
@@ -815,10 +876,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         size = int((float(tbr) * 1000.0 / 8.0) * float(duration))
                     else:
                         # последний шанс: взять максимальный tbr из форматов
+                        # НО фильтруем storyboard/dash форматы с аномальным tbr (>50 Mbps)
+                        # YouTube иногда отдаёт storyboard-форматы с tbr=137000+ Kbps,
+                        # что приводит к оценке в 70+ GiB для одного видео (issue #175)
                         formats = info_probe.get('formats') or []
                         best_tbr = 0
                         for f in formats:
                             ftbr = f.get('tbr') or 0
+                            if ftbr and ftbr > 50000:
+                                continue  # storyboard / dash segment — нереалистичный битрейт
                             if ftbr and ftbr > best_tbr:
                                 best_tbr = ftbr
                         if best_tbr and duration:
@@ -2413,6 +2479,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     logger.error(f"Read timeout error - download failed, no file on disk: {error_message}")
                     log_error_to_channel(message, f"Read timeout: {error_message[:300]}", url)
+                    _record_net_error(user_id)
                     return "NETWORK_TIMEOUT"
                 
                 # Check for incomplete download errors ("Got error: N bytes read, M more expected")
@@ -2424,6 +2491,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         return info_dict
                     logger.error(f"Incomplete download failed, no file on disk: {error_message}")
                     log_error_to_channel(message, f"Incomplete download: {error_message[:300]}", url)
+                    _record_net_error(user_id)
                     return "NETWORK_ERROR"
                 
                 # Check for HTTP 429 Too Many Requests - sleep and retry
@@ -2560,8 +2628,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # YouTube‑специфичные ошибки: сначала пробуем перебор кук, затем гео‑прокси
                 if is_youtube_url(url):
+                    # 0) Permanent bot-detection errors (issues #394, #436) —
+                    # "Sign in to confirm you're not a bot" and "The page needs to
+                    # be reloaded" are YouTube challenges that cookie rotation,
+                    # proxy fallback and format retries CANNOT fix. Detect early
+                    # so the cookie/proxy retry blocks below are skipped — the
+                    # error then falls through to the message block where it gets
+                    # a clean user-facing classification (SIGN_IN_REQUIRED /
+                    # EXTRACTOR_ERROR) instead of triggering a multi-strategy
+                    # retry storm.
+                    _perm_bot_indicators = ('sign in to confirm', 'not a bot', 'page needs to be reloaded')
+                    _is_perm_bot = any(_k in error_message.lower() for _k in _perm_bot_indicators)
+                    if _is_perm_bot:
+                        logger.warning(f"YouTube permanent bot-detection error, skipping cookie/proxy retries for {url}: {error_message[:200]}")
+                        log_error_to_channel(message, f"YouTube bot-detection: {error_message[:300]}", url)
+
                     # 1) Ошибки авторизации/куков (в т.ч. "Sign in to confirm you’re not a bot")
-                    if is_youtube_cookie_error(error_message):
+                    # 1) Ошибки авторизации/куков (в т.ч. "Sign in to confirm you're not a bot")
+                    if not _is_perm_bot and is_youtube_cookie_error(error_message):
                         logger.info(f"YouTube cookie-related error detected for user {user_id}, attempting retry with different cookies")
                         try:
                             retry_result = retry_download_with_different_cookies(
@@ -2744,6 +2828,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Unable to extract" in error_message:
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "Failed to extract video information. This may be a temporary issue or the site may have changed its format. Please try again later."
+                    elif "page needs to be reloaded" in error_message.lower():
+                        error_code = "EXTRACTOR_ERROR"
+                        error_description = "YouTube is challenging the request (bot detection). Please try again in a few minutes. If the problem persists, the bot's yt-dlp may need updating."
                     elif "Cannot parse data" in error_message or "cannot parse data" in error_message.lower():
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "Failed to parse the page. The website may have changed its structure. Please try again later or use a different link."
@@ -3156,6 +3243,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif result is not None and isinstance(result, dict):
                         info_dict = result
                         consecutive_no_videos_skips = 0  # Reset on successful download
+                        _clear_net_errors(user_id)  # Reset network-error cooldown (issue #384)
                         break
                     elif result is not None and isinstance(result, str):
                         # Handle string return values (like "POSTPROCESSING_ERROR")

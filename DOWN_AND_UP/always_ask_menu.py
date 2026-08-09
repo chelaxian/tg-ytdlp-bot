@@ -5377,7 +5377,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 _ask_err_kind = info.get('error')
                 logger.warning(f"ask_quality_menu: get_video_formats returned {_ask_err_kind} for {url}")
                 if _ask_err_kind == 'PERMANENT_UNAVAILABLE':
-                    _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
+                    # Use classify_yt_dlp_error on the original error text for a more
+                    # specific user-facing message when available (issues #436, #394).
+                    _orig_err = info.get('original_error') or ''
+                    from CONFIG.errors import classify_yt_dlp_error
+                    _perm_cat = classify_yt_dlp_error(_orig_err, url)
+                    if _perm_cat == 'EXTRACTOR_ERROR':
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
+                    elif 'sign in to confirm' in _orig_err.lower() or 'not a bot' in _orig_err.lower():
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
+                    else:
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
                 elif _ask_err_kind == 'RATE_LIMITED':
                     _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
                 else:
