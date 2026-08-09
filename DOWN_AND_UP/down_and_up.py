@@ -757,10 +757,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         size = int((float(tbr) * 1000.0 / 8.0) * float(duration))
                     else:
                         # последний шанс: взять максимальный tbr из форматов
+                        # НО фильтруем storyboard/dash форматы с аномальным tbr (>50 Mbps)
+                        # YouTube иногда отдаёт storyboard-форматы с tbr=137000+ Kbps,
+                        # что приводит к оценке в 70+ GiB для одного видео (issue #175)
                         formats = info_probe.get('formats') or []
                         best_tbr = 0
                         for f in formats:
                             ftbr = f.get('tbr') or 0
+                            if ftbr and ftbr > 50000:
+                                continue  # storyboard / dash segment — нереалистичный битрейт
                             if ftbr and ftbr > best_tbr:
                                 best_tbr = ftbr
                         if best_tbr and duration:
