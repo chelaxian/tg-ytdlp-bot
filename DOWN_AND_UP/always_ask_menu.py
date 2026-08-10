@@ -7345,6 +7345,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             error_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
         elif _err_category == "EMPTY_DOWNLOAD":
             error_text = safe_get_messages(user_id).ALWAYS_ASK_EMPTY_DOWNLOAD_MSG
+        elif _err_category == "SIGN_IN_REQUIRED":
+            # YouTube bot-detection: cookies didn't help or are missing.
+            # Show a specific, actionable message instead of the generic parse error.
+            error_text = (
+                "❌ <b>YouTube requires authentication</b>\n\n"
+                "<blockquote>Sign in to confirm you're not a bot</blockquote>\n"
+                f"\n<code>{sanitized_error}</code>\n\n"
+                "🔑 <b>Use the <code>/cookie</code> command to add cookies and try again.</b>\n"
+            )
         
         # Try to edit the processing message to show error first
         try:

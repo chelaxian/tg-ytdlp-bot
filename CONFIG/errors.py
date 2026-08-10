@@ -182,6 +182,18 @@ def classify_yt_dlp_error(error_message, url=None):
     ):
         return "AGE_RESTRICTED"
 
+    # YouTube bot-detection / sign-in required (issue #440)
+    # YouTube shows "Sign in to confirm you're not a bot" when it detects
+    # automated access. The bot already has cookie retry logic, but when all
+    # cookies fail the user should see a clear actionable message instead of
+    # a generic "extractor failed" error.
+    if (
+        "sign in to confirm" in error_lower
+        or "not a bot" in error_lower
+        or "sign in to confirm you" in error_lower
+    ):
+        return "SIGN_IN_REQUIRED"
+
     # Upstream server error (issue #356) — transient, show "try again later"
     if "http error 500" in error_lower or "internal server error" in error_lower:
         return "HTTP_500"
