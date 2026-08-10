@@ -391,6 +391,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     did_proxy_retry = False
     did_cookie_retry = False
     did_live_from_start_retry = False
+    did_format_fallback = False
     is_hls = False
     error_message_sent = False  # Flag to prevent duplicate error messages
     
@@ -1351,7 +1352,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         def try_download(url, attempt_opts):
             messages = safe_get_messages(message.chat.id)
-            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections, hls_file_found, auto_range_added
+            nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, did_format_fallback, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections, hls_file_found, auto_range_added
             # Initialize hls_file_found for this download attempt
             hls_file_found = False
 
@@ -2516,7 +2517,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Check for format not available error
                 if "Requested format is not available" in error_message:
-                    logger.error(f"Format not available error: {error_message}")
+                    if not did_format_fallback:
+                        logger.warning(f"Format not available, retrying with format='best': {error_message}")
+                        did_format_fallback = True
+                        fallback_opts = attempt_opts.copy()
+                        fallback_opts['format'] = 'best'
+                        # Remove YouTube-specific extractor args that may constrain formats
+                        if 'extractor_args' in fallback_opts and 'youtube' in fallback_opts['extractor_args']:
+                            del fallback_opts['extractor_args']['youtube']
+                        retry_result = try_download(url, fallback_opts)
+                        if retry_result is not None:
+                            logger.info(f"Format fallback to 'best' successful for user {user_id}")
+                            return retry_result
+                        else:
+                            logger.warning(f"Format fallback to 'best' also failed for user {user_id}")
+                    logger.error(f"Format not available error (after fallback): {error_message}")
                     return "FORMAT_NOT_AVAILABLE"
                 
                 # Check for rename errors (common with DASH downloads when .part file is missing)
@@ -3162,6 +3177,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             did_cookie_retry = False
             did_proxy_retry = False
             did_live_from_start_retry = False
+            did_format_fallback = False
             error_message_sent = False  # Reset error message flag for each playlist item
             network_error = False
 
