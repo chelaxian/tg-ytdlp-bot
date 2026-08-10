@@ -7069,12 +7069,35 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # ВАЖНО: маскируем секретные данные перед отправкой пользователю
         from HELPERS.logger import sanitize_error_message
         sanitized_error = sanitize_error_message(str(e))
-        error_text = (
-            f"{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG}"
-            f"\n<blockquote>{short_error}</blockquote>\n"
-            f"\n<code>{sanitized_error}</code>\n\n"
-            f"{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
-        )
+        
+        # Check if this is a YouTube authentication/cookie error and show specific message (#440)
+        error_str = str(e)
+        is_youtube_auth_error = False
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            is_yt = (parsed.hostname or '').lower() in ('www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be')
+            if is_yt:
+                from COMMANDS.cookies_cmd import is_youtube_cookie_error
+                is_youtube_auth_error = is_youtube_cookie_error(error_str)
+        except Exception:
+            pass
+        
+        if is_youtube_auth_error:
+            error_text = (
+                f"❌ <b>YouTube requires authentication</b>\n\n"
+                f"<blockquote>Sign in to confirm you're not a bot</blockquote>\n"
+                f"\n<code>{sanitized_error}</code>\n\n"
+                f"🔑 <b>Use the <code>/cookie</code> command to add cookies and try again.</b>\n"
+                f"Or use <code>/cookies_from_browser</code> to import from your browser."
+            )
+        else:
+            error_text = (
+                f"{safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_MSG}"
+                f"\n<blockquote>{short_error}</blockquote>\n"
+                f"\n<code>{sanitized_error}</code>\n\n"
+                f"{safe_get_messages(user_id).ALWAYS_ASK_TRY_CLEAN_COMMAND_MSG}"
+            )
         
         # Try to edit the processing message to show error first
         try:
