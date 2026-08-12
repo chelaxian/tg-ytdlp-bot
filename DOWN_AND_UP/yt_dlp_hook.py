@@ -62,6 +62,18 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
     logger.info(f"   cookies_already_checked: {cookies_already_checked}")
     logger.info(f"   use_proxy: {use_proxy}")
     
+    # Resolve Facebook share-redirect URLs (/share/v/, /share/r/, fb.watch) to
+    # canonical video URLs that yt-dlp can extract (issue #392). Defensive: on
+    # any failure the original URL is used unchanged.
+    try:
+        from URL_PARSERS.normalizer import resolve_facebook_share_url
+        _resolved = resolve_facebook_share_url(url)
+        if _resolved != url:
+            logger.info(f"get_video_formats: resolved Facebook share URL '{url}' -> '{_resolved}'")
+            url = _resolved
+    except Exception as _fb_err:
+        logger.debug(f"get_video_formats: Facebook share resolution skipped: {_fb_err}")
+    
     # ВНИМАНИЕ ПО ПРОИЗВОДИТЕЛЬНОСТИ:
     # Раньше здесь безусловно сбрасывался кеш проверенных источников YouTube‑куки.
     # Это приводило к тому, что при каждом новом URL бот заново перебирал и проверял
