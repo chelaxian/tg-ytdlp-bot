@@ -396,6 +396,49 @@ _USER_DOWNLOAD_DIRS = {}
 # Store processing messages for each user session
 _PROC_MSG_CACHE = {}
 
+# Per-(user, URL) extraction-failure cooldown (issue #445).
+# When a user retries the same URL that just failed extraction, short-circuit
+# with a "recently tried" message instead of re-running the expensive
+# yt-dlp extraction (prevents retry storms: one user, 20+ retries of one URL).
+_RECENT_EXTRACT_FAILS = {}          # {(user_id, norm_url): fail_ts}
+EXTRACT_FAIL_COOLDOWN_SEC = 180     # 3-minute cooldown per URL
+
+
+def _extract_fail_key(user_id, url):
+    """Build a normalized cache key for (user_id, url)."""
+    try:
+        from URL_PARSERS.normalizer import normalize_url_for_cache
+        return (user_id, normalize_url_for_cache(url))
+    except Exception:
+        return (user_id, url)
+
+
+def _check_extract_cooldown(user_id, url):
+    """Return remaining cooldown seconds if (user_id, url) recently failed, else 0."""
+    import time
+    key = _extract_fail_key(user_id, url)
+    fail_ts = _RECENT_EXTRACT_FAILS.get(key)
+    if not fail_ts:
+        return 0
+    remaining = EXTRACT_FAIL_COOLDOWN_SEC - (time.time() - fail_ts)
+    if remaining > 0:
+        return int(remaining)
+    _RECENT_EXTRACT_FAILS.pop(key, None)
+    return 0
+
+
+def _record_extract_fail(user_id, url):
+    """Record an extraction failure for (user_id, url)."""
+    key = _extract_fail_key(user_id, url)
+    import time
+    _RECENT_EXTRACT_FAILS[key] = time.time()
+
+
+def _clear_extract_fail(user_id, url):
+    """Clear the extraction-failure cache for (user_id, url) on success."""
+    key = _extract_fail_key(user_id, url)
+    _RECENT_EXTRACT_FAILS.pop(key, None)
+
 def get_filters(user_id):
     f = _ASK_FILTERS.get(str(user_id))
     if not f:
@@ -5049,6 +5092,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     user_id = message.chat.id
     
+    # Per-URL extraction-failure cooldown (issue #445): if this user just tried
+    # this URL and it failed extraction, short-circuit with a "recently tried"
+    # message instead of re-running the expensive yt-dlp extraction. This breaks
+    # retry storms where one user re-sends the same failing URL 20+ times.
+    if cb is None:
+        _cooldown_remaining = _check_extract_cooldown(user_id, url)
+        if _cooldown_remaining > 0:
+            logger.info(f"ask_quality_menu: short-circuiting {url} for user {user_id} ({_cooldown_remaining}s cooldown remaining)")
+            send_error_to_user(message, f"\u23f3 <b>{safe_get_messages(user_id).ALWAYS_ASK_RECENTLY_FAILED_MSG}</b>")
+            return
+    
     # Clear Always Ask menu states before first showing (only if not from callback)
     # This ensures clean state - emojis are only shown after user explicitly selects options
     # BUT: Do NOT clear TRIM sections if they are already saved (user has provided timecode range)
@@ -5235,6 +5289,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             try:
                 info = get_video_formats(url, user_id, playlist_start_index, cookies_already_checked=True, playlist_end_index=playlist_end_index)
                 logger.info(f"✅ [DEBUG] get_video_formats выполнен успешно")
+                # Clear per-URL extraction-failure cache on success (issue #445)
+                _clear_extract_fail(user_id, url)
                 logger.info(f"   info type: {type(info)}")
                 if isinstance(info, dict):
                     logger.info(f"   info keys: {list(info.keys())}")
@@ -5376,6 +5432,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             ):
                 _ask_err_kind = info.get('error')
                 logger.warning(f"ask_quality_menu: get_video_formats returned {_ask_err_kind} for {url}")
+                # Record extraction failure for per-URL cooldown (issue #445)
+                _record_extract_fail(user_id, url)
                 if _ask_err_kind == 'PERMANENT_UNAVAILABLE':
                     # Use classify_yt_dlp_error on the original error text for a more
                     # specific user-facing message when available (issues #436, #394, #440).
@@ -5421,6 +5479,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             # re.search (issue #380). Show a clean message instead of an empty menu.
             if isinstance(info, dict) and info.get('error') == 'EXTRACTION_ERROR':
                 logger.warning(f"ask_quality_menu: get_video_formats raised an extraction error for {url}: {str(info.get('original_error', ''))[:200]}")
+                # Record extraction failure for per-URL cooldown (issue #445)
+                _record_extract_fail(user_id, url)
                 send_error_to_user(message, f"❌ <b>{safe_get_messages(user_id).ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG}</b>")
                 return
 
@@ -7319,6 +7379,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         # ВАЖНО: для логов и отладки используем ПОЛНОЕ описание исключения, а не короткую заглушку.
         short_error = safe_get_messages(user_id).ALWAYS_ASK_ERROR_RETRIEVING_VIDEO_INFO_SHORT_MSG
         detailed_error = f"{short_error}: {str(e)}"
+        # Record extraction failure for per-URL cooldown (issue #445)
+        _record_extract_fail(user_id, url)
         # Для пользователя оставляем читаемое сообщение + технические детали отдельным блоком
         # ВАЖНО: маскируем секретные данные перед отправкой пользователю
         from HELPERS.logger import sanitize_error_message

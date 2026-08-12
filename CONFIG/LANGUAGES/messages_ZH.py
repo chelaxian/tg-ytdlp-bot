@@ -1354,6 +1354,7 @@ class Messages(object):
     ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "请稍后再试。"
     ALWAYS_ASK_SIGN_IN_REQUIRED_MSG = "🔐 <b>YouTube requires sign-in to confirm you are not a bot.</b>\nThis video needs authentication. Use the <code>/cookie</code> command to add your cookies and try again."
     ALWAYS_ASK_YT_RATE_LIMITED_MSG = "⏳ <b>YouTube is temporarily limiting access.</b>\nPlease try again in a few minutes. This is a temporary restriction on the YouTube side."
+    ALWAYS_ASK_RECENTLY_FAILED_MSG = "⏳ This link was already tried recently and failed. Please wait a few minutes before trying again."
     ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp无法处理此内容"
     ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "系统建议改用gallery-dl。"
     ALWAYS_ASK_OPTIONS_MSG = "**选项：**"
