@@ -20,6 +20,10 @@ from HELPERS.fallback_helper import should_fallback_to_gallery_dl, gallery_dl_ha
 _RATE_LIMIT_INDICATORS = (
     'rate limit', 'rate-limit', 'rate-limited', 'too many requests',
     '429', 'has been rate-limited',
+    # YouTube "Please try again later" (issue #446) — transient server-side
+    # throttle; retrying immediately worsens it. Abort retries and let the
+    # caller show a clear "try again in a few minutes" message.
+    'try again later', 'please try again',
 )
 _PERMANENT_UNAVAILABLE_INDICATORS = (
     'does not exist', 'not exist', 'playlist does not exist',

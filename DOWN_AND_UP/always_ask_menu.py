@@ -5378,18 +5378,25 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 logger.warning(f"ask_quality_menu: get_video_formats returned {_ask_err_kind} for {url}")
                 if _ask_err_kind == 'PERMANENT_UNAVAILABLE':
                     # Use classify_yt_dlp_error on the original error text for a more
-                    # specific user-facing message when available (issues #436, #394).
+                    # specific user-facing message when available (issues #436, #394, #440).
                     _orig_err = info.get('original_error') or ''
                     from CONFIG.errors import classify_yt_dlp_error
                     _perm_cat = classify_yt_dlp_error(_orig_err, url)
-                    if _perm_cat == 'EXTRACTOR_ERROR':
+                    if _perm_cat == 'SIGN_IN_REQUIRED':
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_SIGN_IN_REQUIRED_MSG
+                    elif _perm_cat == 'EXTRACTOR_ERROR':
                         _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
-                    elif 'sign in to confirm' in _orig_err.lower() or 'not a bot' in _orig_err.lower():
-                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
                     else:
                         _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
                 elif _ask_err_kind == 'RATE_LIMITED':
-                    _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
+                    # Distinguish YouTube "try again later" (issue #446) from a
+                    # generic 429/rate-limit for a more accurate message.
+                    _orig_err = info.get('original_error') or ''
+                    from CONFIG.errors import classify_yt_dlp_error
+                    if classify_yt_dlp_error(_orig_err, url) == 'YT_RATE_LIMITED':
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_YT_RATE_LIMITED_MSG
+                    else:
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
                 else:
                     _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_UNSUPPORTED_URL_MSG
                 send_error_to_user(message, f"❌ <b>{_ask_err_text}</b>")
@@ -7341,6 +7348,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             error_text = safe_get_messages(user_id).ALWAYS_ASK_AGE_RESTRICTED_MSG
         elif _err_category == "HTTP_500":
             error_text = safe_get_messages(user_id).ALWAYS_ASK_HTTP_500_MSG
+        elif _err_category == "SIGN_IN_REQUIRED":
+            error_text = safe_get_messages(user_id).ALWAYS_ASK_SIGN_IN_REQUIRED_MSG
+        elif _err_category == "YT_RATE_LIMITED":
+            error_text = safe_get_messages(user_id).ALWAYS_ASK_YT_RATE_LIMITED_MSG
         elif _err_category == "EXTRACTOR_ERROR":
             error_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
         elif _err_category == "EMPTY_DOWNLOAD":

@@ -1353,6 +1353,8 @@ class Messages(object):
     ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ Пішімдерді алу қатесі"
     ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ Қол жетімді пішімдерді алу қатесі."
     ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "Тағы жасауды сәл кейінірек көріңізді өтінеміз."
+    ALWAYS_ASK_SIGN_IN_REQUIRED_MSG = "🔐 <b>YouTube requires sign-in to confirm you are not a bot.</b>\nThis video needs authentication. Use the <code>/cookie</code> command to add your cookies and try again."
+    ALWAYS_ASK_YT_RATE_LIMITED_MSG = "⏳ <b>YouTube is temporarily limiting access.</b>\nPlease try again in a few minutes. This is a temporary restriction on the YouTube side."
     ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp бұл мазмұнды өңдей алмайды"
     ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "Оның орнына жүйе gallery-dl пайдалануды ұсынады."
     ALWAYS_ASK_OPTIONS_MSG = "**Опциялар:**"

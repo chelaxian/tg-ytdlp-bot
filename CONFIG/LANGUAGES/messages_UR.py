@@ -1353,6 +1353,8 @@ Use:
     ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ فارمیٹس حاصل کرنے میں خرابی"
     ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ دستیاب فارمیٹس حاصل کرنے میں خرابی۔"
     ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "براہ کرم بعد میں دوبارہ کوشش کریں۔"
+    ALWAYS_ASK_SIGN_IN_REQUIRED_MSG = "🔐 <b>YouTube requires sign-in to confirm you are not a bot.</b>\nThis video needs authentication. Use the <code>/cookie</code> command to add your cookies and try again."
+    ALWAYS_ASK_YT_RATE_LIMITED_MSG = "⏳ <b>YouTube is temporarily limiting access.</b>\nPlease try again in a few minutes. This is a temporary restriction on the YouTube side."
     ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp اس مواد کو پراسیس نہیں کر سکتا"
     ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "سسٹم gallery-dl استعمال کرنے کی سفارش کرتا ہے۔"
     ALWAYS_ASK_OPTIONS_MSG = "**اختیارات:**"

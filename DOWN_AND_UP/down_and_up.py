@@ -2831,6 +2831,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "page needs to be reloaded" in error_message.lower():
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "YouTube is challenging the request (bot detection). Please try again in a few minutes. If the problem persists, the bot's yt-dlp may need updating."
+                    elif "try again later" in error_message.lower() or "please try again" in error_message.lower():
+                        error_code = "YT_RATE_LIMITED"
+                        error_description = "YouTube is temporarily limiting access (rate-limit). Please try again in a few minutes."
                     elif "Cannot parse data" in error_message or "cannot parse data" in error_message.lower():
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "Failed to parse the page. The website may have changed its structure. Please try again later or use a different link."

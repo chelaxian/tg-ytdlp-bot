@@ -141,8 +141,8 @@ def classify_yt_dlp_error(error_message, url=None):
     """Classify a yt-dlp/extractor error string into a semantic category.
 
     Returns one of: MEMBERS_ONLY, LIVE_ENDED, PREMIERE_PENDING, GEO_RESTRICTED, AGE_RESTRICTED,
-    HTTP_500, EXTRACTOR_ERROR — or None if the error is not recognised (fall
-    through to generic handling).
+    SIGN_IN_REQUIRED, YT_RATE_LIMITED, HTTP_500, EXTRACTOR_ERROR, EMPTY_DOWNLOAD — or None if
+    the error is not recognised (fall through to generic handling).
 
     Note: a geo/members/age error can still be actionable via cookies, so the
     caller keeps appending the cookie hint for those categories.
@@ -181,6 +181,27 @@ def classify_yt_dlp_error(error_message, url=None):
         or "age verification required" in error_lower
     ):
         return "AGE_RESTRICTED"
+
+    # YouTube bot-detection / sign-in required (issue #440) — YouTube shows
+    # "Sign in to confirm you're not a bot" when it detects automated access.
+    # The bot already has cookie retry logic, but when all cookies fail the user
+    # should see a clear actionable /cookie message instead of a generic
+    # "extractor failed" or "try again later" error.
+    if (
+        "sign in to confirm" in error_lower
+        or "not a bot" in error_lower
+    ):
+        return "SIGN_IN_REQUIRED"
+
+    # YouTube temporary rate-limit / "Please try again later" (issue #446) —
+    # YouTube asks the client to retry later when rate-limiting access. This is
+    # transient on the YouTube side; show a clear message and do not retry
+    # immediately (retries worsen the rate-limit).
+    if (
+        "try again later" in error_lower
+        or "please try again" in error_lower
+    ):
+        return "YT_RATE_LIMITED"
 
     # Upstream server error (issue #356) — transient, show "try again later"
     if "http error 500" in error_lower or "internal server error" in error_lower:

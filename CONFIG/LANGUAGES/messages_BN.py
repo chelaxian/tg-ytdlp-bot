@@ -1352,6 +1352,8 @@ class Messages(object):
     ALWAYS_ASK_ERROR_GETTING_FORMATS_MSG = "❌ ফরম্যাট পাওয়ার সময় ত্রুটি"
     ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG = "❌ উপলব্ধ ফরম্যাট পাওয়ার সময় ত্রুটি।"
     ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG = "অনুগ্রহ করে পরে আবার চেষ্টা করুন।"
+    ALWAYS_ASK_SIGN_IN_REQUIRED_MSG = "🔐 <b>YouTube requires sign-in to confirm you are not a bot.</b>\nThis video needs authentication. Use the <code>/cookie</code> command to add your cookies and try again."
+    ALWAYS_ASK_YT_RATE_LIMITED_MSG = "⏳ <b>YouTube is temporarily limiting access.</b>\nPlease try again in a few minutes. This is a temporary restriction on the YouTube side."
     ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG = "🔄 <b>yt-dlp এই কন্টেন্ট প্রক্রিয়া করতে পারে না"
     ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG = "সিস্টেম পরিবর্তে gallery-dl ব্যবহার করার পরামর্শ দেয়।"
     ALWAYS_ASK_OPTIONS_MSG = "**বিকল্প:**"
