@@ -2020,6 +2020,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif "Network error" in error_text:
                         error_code = "NETWORK_ERROR"
                         error_description = "Network connection failed"
+                    elif "unable to open for writing" in error_text.lower():
+                        # Output directory disappeared mid-download (cleanup
+                        # race) — parity with the video path (issue #451).
+                        error_code = "FILE_OPEN_ERROR"
+                        error_description = "Failed to create the output file — the download directory was cleared while downloading. This is a temporary issue — please try again."
                     elif "ffmpeg exited with code" in error_text or "ERROR: ffmpeg" in error_text:
                         error_code = "FFMPEG_ERROR"
                         # Try to extract more details from error message

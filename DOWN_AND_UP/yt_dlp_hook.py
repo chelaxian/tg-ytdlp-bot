@@ -41,6 +41,12 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
     'page needs to be reloaded',
     # YouTube community post / tab page (issue #391) — not a downloadable video
     'does not have a',
+    # Upstream extractor regressions — the extractor received a structurally
+    # unparseable response (TikTok challenge change, issue #452/#445) or a
+    # playlist with no supported entries (tvp.pl DRM/geo, issue #450).
+    # Cookie/proxy retries cannot fix a broken extractor: abort immediately.
+    'unexpected response from webpage request',
+    'skipping unsupported file type',
 )
 
 

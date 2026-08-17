@@ -212,7 +212,20 @@ def classify_yt_dlp_error(error_message, url=None):
     # suggesting yt-dlp update or cookies rather than the raw "Cannot parse data".
     # Also covers YouTube "The page needs to be reloaded" bot-detection challenge
     # (issue #436) — same class of upstream page-parsing failure.
-    if "cannot parse data" in error_lower or "unable to extract" in error_lower or "extractor error" in error_lower or "page needs to be reloaded" in error_lower:
+    # TikTok "Unexpected response from webpage request" (issue #452) — the
+    # extractor received a page it cannot parse (upstream extractor regression);
+    # proxies/cookies cannot help, so surface the same friendly message.
+    # "Skipping unsupported file type in playlist" (issue #450) — tvp.pl and
+    # similar sites return playlists whose entries are not downloadable video
+    # formats (likely DRM/geo); retrying will not change the outcome.
+    if (
+        "cannot parse data" in error_lower
+        or "unable to extract" in error_lower
+        or "extractor error" in error_lower
+        or "page needs to be reloaded" in error_lower
+        or "unexpected response from webpage request" in error_lower
+        or "skipping unsupported file type" in error_lower
+    ):
         return "EXTRACTOR_ERROR"
 
     # Empty download (issue #403) — yt-dlp reports "The downloaded file is
