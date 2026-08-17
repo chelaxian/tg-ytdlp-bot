@@ -1395,6 +1395,7 @@ class Messages(object):
     ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "既存の行に下部ボタンを追加しました"
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "新しい下部行を作成しました"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "プレイリストにビデオが見つかりません"
+    ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "サポートされていないURL"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "ビデオが見つかりませんでした"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "ビデオが見つかりません"

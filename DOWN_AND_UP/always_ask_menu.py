@@ -5444,8 +5444,24 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_SIGN_IN_REQUIRED_MSG
                     elif _perm_cat == 'EXTRACTOR_ERROR':
                         _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
+                    elif _perm_cat == 'VIDEO_UNAVAILABLE':
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG
                     else:
-                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
+                        # The playlist-specific wording is only accurate for
+                        # playlist URLs; single videos (youtu.be/<id>, /live/,
+                        # m.youtube.com/watch?v=, Instagram reels) that fail
+                        # with a permanent error used to be shown "No videos
+                        # found in playlist" which misled users (issue #389).
+                        _looks_like_playlist = False
+                        try:
+                            from URL_PARSERS.playlist_utils import is_playlist_url as _is_pl
+                            _looks_like_playlist = _is_pl(url)
+                        except Exception:
+                            _looks_like_playlist = ('list=' in url.lower()) or ('/playlist' in url.lower())
+                        if _looks_like_playlist:
+                            _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
+                        else:
+                            _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG
                 elif _ask_err_kind == 'RATE_LIMITED':
                     # Distinguish YouTube "try again later" (issue #446) from a
                     # generic 429/rate-limit for a more accurate message.
@@ -7418,6 +7434,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             error_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
         elif _err_category == "EMPTY_DOWNLOAD":
             error_text = safe_get_messages(user_id).ALWAYS_ASK_EMPTY_DOWNLOAD_MSG
+        elif _err_category == "VIDEO_UNAVAILABLE":
+            error_text = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG
         
         # Try to edit the processing message to show error first
         try:

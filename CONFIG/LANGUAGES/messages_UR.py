@@ -1396,6 +1396,7 @@ Use:
     ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "موجودہ قطار میں نیچے کے بٹن شامل کیے گئے"
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "نیا نیچے کی قطار بنائی گئی"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "پلے لسٹ میں کوئی ویڈیوز نہیں ملیں"
+    ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "غیر معاون URL"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "کوئی ویڈیو نہیں مل سکی"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "کوئی ویڈیو نہیں ملی"

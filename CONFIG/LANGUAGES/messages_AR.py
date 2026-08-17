@@ -1401,6 +1401,7 @@ class Messages(object):
     ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "تم إضافة الأزرار السفلية إلى الصف الموجود"
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "تم إنشاء صف سفلي جديد"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "لم يتم العثور على مقاطع فيديو في قائمة التشغيل"
+    ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "رابط غير مدعوم"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "لم يتم العثور على فيديو"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "لم يتم العثور على فيديو"

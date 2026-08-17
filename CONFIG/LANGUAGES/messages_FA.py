@@ -1395,6 +1395,7 @@ class Messages(object):
     ALWAYS_ASK_ADDED_BOTTOM_BUTTONS_TO_EXISTING_ROW_MSG = "دکمه‌های پایین به ردیف موجود اضافه شدند"
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "ردیف پایین جدید ایجاد شد"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "هیچ ویدیویی در لیست پخش یافت نشد"
+    ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "URL پشتیبانی نشده"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "هیچ ویدیویی یافت نشد"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "هیچ ویدیویی یافت نشد"

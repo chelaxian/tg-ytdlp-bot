@@ -47,6 +47,10 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
     # Cookie/proxy retries cannot fix a broken extractor: abort immediately.
     'unexpected response from webpage request',
     'skipping unsupported file type',
+    # Instagram post inaccessible without an account (issue #373): the API
+    # returns an empty media payload; cookies are the only possible fix, so
+    # abort retries and let the menu show the cookie hint.
+    'empty media response',
 )
 
 

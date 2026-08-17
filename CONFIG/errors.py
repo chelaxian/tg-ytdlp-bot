@@ -236,4 +236,11 @@ def classify_yt_dlp_error(error_message, url=None):
     if "downloaded file is empty" in error_lower:
         return "EMPTY_DOWNLOAD"
 
+    # Content exists but yields no playable media (issue #373): Instagram
+    # "sent an empty media response. Check if this post is accessible
+    # without an account" — the post is inaccessible without login. The
+    # menu path already sends the cookie hint for this category.
+    if "empty media response" in error_lower:
+        return "VIDEO_UNAVAILABLE"
+
     return None
