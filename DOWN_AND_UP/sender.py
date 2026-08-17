@@ -1337,9 +1337,12 @@ def send_videos(
                 )
                 # Note: Description file forwarding is handled in down_and_up.py
             except Exception as e:
-                logger.error(safe_get_messages(user_id).SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG.format(error=e))
-                from HELPERS.logger import send_error_to_user
-                send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_DESCRIPTION_FILE_MSG.format(error=str(e)))
+                # The description file is a supplementary artifact — the video
+                # itself was already delivered above. A failed upload (e.g.
+                # Telegram MD5_CHECKSUM_INVALID after a FloodWait cascade) must
+                # not alarm the user or pollute the LOG_EXCEPTION channel:
+                # log a warning and continue the workflow (issue #447).
+                logger.warning(safe_get_messages(user_id).SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG.format(error=e))
         return video_msg
     finally:
         # Remove ASCII-safe hardlink if it was created

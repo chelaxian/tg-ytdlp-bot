@@ -7441,7 +7441,14 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                             logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
                     return
         except Exception as e2:
-            logger.error(f"Error editing processing message: {e2}")
+            # MESSAGE_ID_INVALID means the user deleted the processing message
+            # while the bot was still working — expected behaviour, not an
+            # error. Log quietly and fall through to sending a new message,
+            # same treatment as progress messages (issues #322, #453).
+            if 'MESSAGE_ID_INVALID' in str(e2).upper():
+                logger.debug(f"Processing message {getattr(proc_msg, 'id', '?')} was deleted by user {user_id}; skipping edit (issue #453)")
+            else:
+                logger.error(f"Error editing processing message: {e2}")
         
         # If editing failed or no proc_msg, send new message to user
         # В лог пишем подробную ошибку, чтобы в LOG_EXCEPTION был понятный стек
