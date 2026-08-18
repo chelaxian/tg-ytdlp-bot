@@ -430,6 +430,20 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
                 logger.warning(f"Permanent unavailable error, no retries for {url}: {error_text[:200]}")
                 return {'error': 'PERMANENT_UNAVAILABLE', 'original_error': error_text}
 
+            # Auto-retry: --live-from-start fails for non-live streams on VK and
+            # other platforms. Retry with live_from_start=False (issue #80/vk).
+            if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_text:
+                logger.info(f"live-from-start not supported for this URL, retrying with --no-live-from-start: {url}")
+                retry_opts = opts.copy()
+                retry_opts['live_from_start'] = False
+                try:
+                    retry_result = extract_info_operation(retry_opts)
+                    if retry_result is not None:
+                        logger.info(f"Retry with --no-live-from-start successful for {url}")
+                        return retry_result
+                except Exception as retry_e:
+                    logger.warning(f"Retry with --no-live-from-start also failed for {url}: {retry_e}")
+
             # Unsupported URL: only allow gallery-dl fallback (non-YouTube); otherwise bail out
             # without proxy/impersonate retries which cannot help unsupported domains (issue #323).
             if 'unsupported url' in _error_lower:
