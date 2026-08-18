@@ -431,9 +431,12 @@ def subs_command(app, message):
             return
 
 
-    # Enable AUTO/TRANS by default if not enabled before
-    if not get_user_subs_auto_mode(user_id):
-        save_user_subs_auto_mode(user_id, True)
+    # AUTO/TRANS is NOT force-enabled here on purpose (issue #448): the old
+    # "enable by default if not enabled" block silently re-enabled AUTO/TRANS
+    # every time a user opened the /subs menu, overriding both an explicit
+    # `/subs <lang>` (manual) choice and the AUTO/TRANS toggle button. The
+    # default (no subs_auto.txt) already means manual mode, matching the
+    # documented `/subs <lang>` behaviour.
 
     current_lang = get_user_subs_language(user_id)
     auto_mode = get_user_subs_auto_mode(user_id)

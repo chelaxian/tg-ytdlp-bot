@@ -593,14 +593,45 @@ class StatsCollector:
             except Exception as exc:
                 logger.debug(f"[stats] failed to persist multi-url events: {exc}")
 
-    def reload_from_dump(self) -> None:
+    def _load_dump_data(self):
+        """Read and parse dump.json.
+
+        A corrupt dump (e.g. malformed serialization from an older/non-Python
+        writer) previously failed on EVERY read (~500 errors/24h) with no
+        self-healing (issue #316). Now the broken file is quarantined once
+        (renamed to dump.json.corrupt.<ts>) so the next Firebase dump rebuilds
+        a fresh cache instead of retrying the same broken file forever.
+
+        Returns the parsed dict, or None when the file is missing, corrupt or
+        not a JSON object.
+        """
         if not os.path.exists(self.dump_path):
-            return
+            return None
         try:
             with open(self.dump_path, "r", encoding="utf-8") as fh:
                 data = json.load(fh)
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            corrupt_path = f"{self.dump_path}.corrupt.{int(time.time())}"
+            try:
+                os.replace(self.dump_path, corrupt_path)
+                logger.error(
+                    "[stats] dump %s is corrupt (%s); quarantined to %s — it will be rebuilt from the next Firebase dump",
+                    self.dump_path, exc, corrupt_path,
+                )
+            except OSError as mv_err:
+                logger.error(
+                    "[stats] dump %s is corrupt (%s) and could not be quarantined: %s",
+                    self.dump_path, exc, mv_err,
+                )
+            return None
         except Exception as exc:
             logger.error(f"[stats] unable to read dump {self.dump_path}: {exc}")
+            return None
+        return data if isinstance(data, dict) else None
+
+    def reload_from_dump(self) -> None:
+        data = self._load_dump_data()
+        if data is None:
             return
         bot_root = (
             data.get("bot", {})
@@ -1558,14 +1589,8 @@ class StatsCollector:
         result = []
         
         # Получаем логи напрямую из dump.json
-        if not os.path.exists(self.dump_path):
-            return result
-        
-        try:
-            with open(self.dump_path, "r", encoding="utf-8") as fh:
-                data = json.load(fh)
-        except Exception as exc:
-            logger.error(f"[stats] unable to read dump {self.dump_path}: {exc}")
+        data = self._load_dump_data()
+        if data is None:
             return result
         
         bot_root = (

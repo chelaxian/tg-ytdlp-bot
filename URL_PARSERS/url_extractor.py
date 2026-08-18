@@ -1217,6 +1217,31 @@ def url_distractor(app, message):
                                 send_error_to_user(message, safe_get_messages(user_id).PORN_CONTENT_CANNOT_DOWNLOAD_MSG, url=raw_url)
                                 return
 
+                        # DRM pre-filter: streaming services protect all audio
+                        # content with DRM, which yt-dlp will never support.
+                        # Block early with a clear message instead of spending
+                        # a yt-dlp extraction that only produces error logs
+                        # (issues #353, #449). Hostname-based, so track/album/
+                        # playlist paths and any query params are all covered.
+                        _DRM_DOMAINS = {
+                            'spotify.com': 'Spotify',
+                            'deezer.com': 'Deezer',
+                            'tidal.com': 'Tidal',
+                            'qobuz.com': 'Qobuz',
+                        }
+                        for _drm_domain, _drm_name in _DRM_DOMAINS.items():
+                            if url_hostname == _drm_domain or url_hostname.endswith('.' + _drm_domain):
+                                logger.info(f"URL_EXTRACTOR: blocking DRM-protected domain '{url_hostname}' for URL '{raw_url}'")
+                                drm_msg = (
+                                    f"<blockquote>{safe_get_messages(user_id).ERROR_CHECK_SUPPORTED_SITES_MSG}</blockquote>\n"
+                                    f"────────────────\n"
+                                    f"❌ <b>Error Code:</b> <code>DRM_PROTECTED</code>\n"
+                                    f"📝 <b>Description:</b> This content ({_drm_name}) is protected by DRM and cannot be downloaded.\n"
+                                    f"   yt-dlp does not support DRM-protected streaming services. Please use another source."
+                                )
+                                send_error_to_user(message, drm_msg, url=raw_url)
+                                return
+
                 # Reject raw CDN / media-segment URLs early (issue #388).
                 # These are HLS playlists, range fragments, or thumbnails copied
                 # from DevTools — they cannot be processed as a single video and

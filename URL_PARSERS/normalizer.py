@@ -151,3 +151,63 @@ def strip_range_from_url(url: str) -> str:
         logger.info(f"strip_range_from_url: '{original_url}' -> '{result}'")
     return result
 
+
+def resolve_facebook_share_url(url: str) -> str:
+    """Resolve Facebook /share/v/, /share/r/, /share/<id>/ and fb.watch redirect
+    URLs to canonical video URLs that yt-dlp can extract (issue #392).
+
+    Facebook share links redirect to ``facebook.com/watch?v=<id>`` or
+    ``facebook.com/<user>/videos/<id>/``, which yt-dlp CAN extract. The raw
+    ``/share/`` URL is not recognised by yt-dlp's extractor.
+
+    Returns the resolved canonical URL, or the original URL if the URL is not a
+    Facebook share link or if resolution fails (timeout, network error, JS-only
+    redirect). The function is defensive: any exception returns the original URL.
+    """
+    if not isinstance(url, str) or not url:
+        return url
+    try:
+        parsed = urlparse(url)
+        netloc = (parsed.netloc or '').lower()
+        is_fb = (
+            netloc in ('facebook.com', 'www.facebook.com', 'm.facebook.com')
+            or netloc.endswith('.facebook.com')
+        )
+        is_fb_watch = netloc in ('fb.watch', 'www.fb.watch')
+        if not (is_fb or is_fb_watch):
+            return url
+
+        path = parsed.path or ''
+        # Only resolve share-redirect patterns
+        is_share = is_fb and '/share/' in path
+        if not (is_share or is_fb_watch):
+            return url
+
+        import requests
+        resp = requests.head(
+            url,
+            allow_redirects=True,
+            timeout=6,
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'},
+        )
+        final_url = resp.url
+        if not final_url or final_url == url:
+            return url
+
+        # Accept the resolved URL only if it is still Facebook and no longer a
+        # /share/ link (i.e. it resolved to a canonical video path).
+        final_parsed = urlparse(final_url)
+        final_netloc = (final_parsed.netloc or '').lower()
+        final_path = final_parsed.path or ''
+        final_is_fb = (
+            final_netloc in ('facebook.com', 'www.facebook.com', 'm.facebook.com')
+            or final_netloc.endswith('.facebook.com')
+        )
+        if final_is_fb and '/share/' not in final_path:
+            logger.info(f"resolve_facebook_share_url: '{url}' -> '{final_url}'")
+            return final_url
+        return url
+    except Exception as e:
+        logger.debug(f"resolve_facebook_share_url: could not resolve '{url}': {e}")
+        return url
+

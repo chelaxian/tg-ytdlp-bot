@@ -2837,6 +2837,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Unable to rename file" in error_message:
                         error_code = "FILE_RENAME_ERROR"
                         error_description = "Failed to finalize download file. This may be a temporary issue — please try again."
+                    elif "unable to open for writing" in error_message.lower():
+                        # yt-dlp could not create the output file: its target
+                        # directory disappeared mid-download (cleanup race,
+                        # issue #451). Previously fell into UNKNOWN_ERROR with
+                        # an irrelevant cookies hint.
+                        error_code = "FILE_OPEN_ERROR"
+                        error_description = "Failed to create the output file — the download directory was cleared while downloading. This is a temporary issue — please try again."
+                    elif "Skipping unsupported file type in playlist" in error_message:
+                        # The site (e.g. tvp.pl) returned a playlist whose
+                        # entries are not downloadable video formats — most
+                        # likely DRM-protected or region-locked content
+                        # (issue #450).
+                        error_code = "PLAYLIST_UNSUPPORTED_ENTRY"
+                        error_description = "The site returned a playlist without supported video formats (the content may be DRM-protected or unavailable in this region)."
+                    elif "Unexpected response from webpage request" in error_message:
+                        # Upstream extractor regression (e.g. TikTok challenge
+                        # change, issue #452): yt-dlp cannot parse the page.
+                        error_code = "EXTRACTOR_ERROR"
+                        error_description = "The site returned an unexpected response that yt-dlp could not parse. The extractor may need an update — please try again later."
                     elif "PhantomJS not found" in error_message:
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "This site requires PhantomJS which is not installed. The video cannot be downloaded at this time."
@@ -2846,6 +2865,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "page needs to be reloaded" in error_message.lower():
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "YouTube is challenging the request (bot detection). Please try again in a few minutes. If the problem persists, the bot's yt-dlp may need updating."
+                    elif "try again later" in error_message.lower() or "please try again" in error_message.lower():
+                        error_code = "YT_RATE_LIMITED"
+                        error_description = "YouTube is temporarily limiting access (rate-limit). Please try again in a few minutes."
                     elif "Cannot parse data" in error_message or "cannot parse data" in error_message.lower():
                         error_code = "EXTRACTOR_ERROR"
                         error_description = "Failed to parse the page. The website may have changed its structure. Please try again later or use a different link."
