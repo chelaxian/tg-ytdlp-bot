@@ -20,6 +20,10 @@ from HELPERS.fallback_helper import should_fallback_to_gallery_dl, gallery_dl_ha
 _RATE_LIMIT_INDICATORS = (
     'rate limit', 'rate-limit', 'rate-limited', 'too many requests',
     '429', 'has been rate-limited',
+    # YouTube "Please try again later" (issue #446) — transient server-side
+    # throttle; retrying immediately worsens it. Abort retries and let the
+    # caller show a clear "try again in a few minutes" message.
+    'try again later', 'please try again',
 )
 _PERMANENT_UNAVAILABLE_INDICATORS = (
     'does not exist', 'not exist', 'playlist does not exist',
@@ -37,6 +41,16 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
     'page needs to be reloaded',
     # YouTube community post / tab page (issue #391) — not a downloadable video
     'does not have a',
+    # Upstream extractor regressions — the extractor received a structurally
+    # unparseable response (TikTok challenge change, issue #452/#445) or a
+    # playlist with no supported entries (tvp.pl DRM/geo, issue #450).
+    # Cookie/proxy retries cannot fix a broken extractor: abort immediately.
+    'unexpected response from webpage request',
+    'skipping unsupported file type',
+    # Instagram post inaccessible without an account (issue #373): the API
+    # returns an empty media payload; cookies are the only possible fix, so
+    # abort retries and let the menu show the cookie hint.
+    'empty media response',
 )
 
 
@@ -57,6 +71,18 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
     logger.info(f"   playlist_end_index: {playlist_end_index}")
     logger.info(f"   cookies_already_checked: {cookies_already_checked}")
     logger.info(f"   use_proxy: {use_proxy}")
+    
+    # Resolve Facebook share-redirect URLs (/share/v/, /share/r/, fb.watch) to
+    # canonical video URLs that yt-dlp can extract (issue #392). Defensive: on
+    # any failure the original URL is used unchanged.
+    try:
+        from URL_PARSERS.normalizer import resolve_facebook_share_url
+        _resolved = resolve_facebook_share_url(url)
+        if _resolved != url:
+            logger.info(f"get_video_formats: resolved Facebook share URL '{url}' -> '{_resolved}'")
+            url = _resolved
+    except Exception as _fb_err:
+        logger.debug(f"get_video_formats: Facebook share resolution skipped: {_fb_err}")
     
     # ВНИМАНИЕ ПО ПРОИЗВОДИТЕЛЬНОСТИ:
     # Раньше здесь безусловно сбрасывался кеш проверенных источников YouTube‑куки.
