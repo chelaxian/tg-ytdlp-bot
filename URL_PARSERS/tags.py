@@ -199,7 +199,8 @@ def extract_url_range_tags(text: str):
     
     # YouTube Music playlist URLs reject the *N*M playlist range syntax with HTTP 400
     # (issue #370). Strip any *N*M suffix so no range is applied to music.youtube.com.
-    if 'music.youtube.com' in text.lower():
+    from URL_PARSERS.playlist_utils import is_youtube_music_url
+    if is_youtube_music_url(text):
         stripped = re.sub(r'\*[-]?\d+\*[-]?\d+', '', text)
         if stripped != text:
             logger.info(f"🔍 [DEBUG] extract_url_range_tags: YouTube Music URL — удалён диапазон *N*M (issue #370)")

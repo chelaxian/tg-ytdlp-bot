@@ -139,9 +139,20 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
     # extractors, which causes "No videos found in playlist" for single
     # videos (issue #389). The download path already sets noplaylist, but
     # this discovery function is called FIRST and must also set it.
+    from urllib.parse import urlparse as _urlparse
+    try:
+        _url_host = (_urlparse(url).hostname or '').lower()
+    except ValueError:
+        _url_host = ''
+    _is_youtube_host = (
+        _url_host == 'youtube.com'
+        or _url_host.endswith('.youtube.com')
+        or _url_host == 'youtu.be'
+        or _url_host.endswith('.youtu.be')
+    )
     _url_lower = url.lower()
     _is_playlist_url = (
-        ('list=' in _url_lower and ('youtube.com' in _url_lower or 'youtu.be' in _url_lower))
+        ('list=' in _url_lower and _is_youtube_host)
         or ('/playlist' in _url_lower)
     )
     if not _is_playlist_url:

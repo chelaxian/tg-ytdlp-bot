@@ -19,11 +19,17 @@ def is_playlist_with_range(text: str) -> bool:
     range_pattern = r'\*-?\d+\*-?\d+|-?\d+\*-?\d+|(?<!\S)\*(?!\S)'
     return bool(re.search(range_pattern, text))
 
+# Хост music.youtube.com ищем только в позиции настоящего URL (после http(s)://),
+# чтобы подстрока в query-параметре чужого сайта не давала ложного срабатывания
+# (CodeQL py/incomplete-url-substring-sanitization).
+_YT_MUSIC_URL_RE = re.compile(r'https?://(?:[a-z0-9-]+\.)*music\.youtube\.com(?=[/:?#]|$)', re.IGNORECASE)
+
+
 def is_youtube_music_url(url: str) -> bool:
-    """Return True if the URL points to YouTube Music (music.youtube.com)."""
+    """Return True if the text contains an http(s) URL pointing to YouTube Music (music.youtube.com)."""
     if not isinstance(url, str):
         return False
-    return 'music.youtube.com' in url.lower()
+    return bool(_YT_MUSIC_URL_RE.search(url))
 
 
 def is_playlist_url(url: str) -> bool:

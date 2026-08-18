@@ -743,6 +743,18 @@ def gallery_dl_hook(extractor, url, info):
 
 # ---------- New utilities for batching ----------
 
+def _is_instagram_url(url: str) -> bool:
+    """Точная проверка хоста Instagram (dot-boundary), а не подстрока в URL."""
+    try:
+        from urllib.parse import urlparse
+        hostname = (urlparse(url).hostname or '').lower()
+    except Exception:
+        return False
+    if hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am'):
+        return True
+    return hostname.endswith('.instagram.com') or hostname.endswith('.instagr.am')
+
+
 def get_total_media_count(url: str, user_id=None, use_proxy: bool = False) -> int | None:
     """
     Estimate total media count using gallery-dl extractor to get all media (images + videos).
@@ -776,21 +788,10 @@ def get_total_media_count(url: str, user_id=None, use_proxy: bool = False) -> in
                 return _get_total_media_count_fallback(url, user_id, use_proxy, cfg_path)
             
             # For Instagram, use special method with Instagram-specific config
-            # Безопасная проверка домена через urlparse
-            is_instagram_url = False
-            try:
-                from urllib.parse import urlparse
-                parsed_url = urlparse(url)
-                instagram_hostname = (parsed_url.hostname or '').lower()
-                is_instagram_url = instagram_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
-                                  instagram_hostname.endswith('.instagram.com') or instagram_hostname.endswith('.instagr.am')
-            except Exception:
-                pass
-            
-            if is_instagram_url:
+            if _is_instagram_url(url):
                 # Check if Instagram should skip simulation (from GALLERYDL_FALLBACK_DOMAINS)
                 from CONFIG.domains import DomainsConfig
-                if 'instagram.com' in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS:
+                if any(d == 'instagram.com' for d in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS):
                     logger.info("Instagram domain in GALLERYDL_FALLBACK_DOMAINS, skipping simulation")
                     return None  # Skip simulation for fallback domains
                 else:
@@ -843,21 +844,10 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
     """Fallback method using --get-urls for sites that don't work with --simulate"""
     try:
         # Special handling for Instagram - use different approach
-        # Безопасная проверка домена через urlparse
-        is_instagram_url = False
-        try:
-            from urllib.parse import urlparse
-            parsed_url = urlparse(url)
-            instagram_hostname = (parsed_url.hostname or '').lower()
-            is_instagram_url = instagram_hostname in ('instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am') or \
-                              instagram_hostname.endswith('.instagram.com') or instagram_hostname.endswith('.instagr.am')
-        except Exception:
-            pass
-        
-        if is_instagram_url:
+        if _is_instagram_url(url):
             # Check if Instagram should skip simulation (from GALLERYDL_FALLBACK_DOMAINS)
             from CONFIG.domains import DomainsConfig
-            if 'instagram.com' in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS:
+            if any(d == 'instagram.com' for d in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS):
                 logger.info("Instagram domain in GALLERYDL_FALLBACK_DOMAINS, skipping simulation in fallback")
                 return None  # Skip simulation for fallback domains
             else:
