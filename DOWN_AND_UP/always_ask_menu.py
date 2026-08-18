@@ -195,7 +195,7 @@ def create_safe_callback_data(prefix, data, max_length=50):
         return full_data
     
     # If too long, use hash
-    data_hash = hashlib.md5(data.encode()).hexdigest()[:16]
+    data_hash = hashlib.sha256(data.encode()).hexdigest()[:16]
     safe_callback = f"{prefix}|{data_hash}"
     
     # Store mapping for later retrieval

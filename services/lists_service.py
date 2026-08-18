@@ -230,7 +230,30 @@ def _validate_url_for_ssrf(url: str, allowed_urls: set[str] | None = None) -> tu
             # Блокируем домены, содержащие localhost
             if 'localhost' in host_lower:
                 return False, f"Blocked hostname containing localhost: {host}"
-        
+
+        # Резолвим hostname и отклоняем имена, указывающие на внутренние сети:
+        # проверки литеральных IP недостаточно — DNS-имя вида attacker.example
+        # может резолвиться в 127.0.0.1 или 169.254.169.254 (SSRF).
+        import socket
+        try:
+            addrinfos = socket.getaddrinfo(host, None)
+        except socket.gaierror:
+            return False, f"Cannot resolve hostname: {host}"
+        for *_, sockaddr in addrinfos:
+            try:
+                resolved_ip = ipaddress.ip_address(sockaddr[0].split('%')[0])
+            except ValueError:
+                continue
+            if (
+                resolved_ip.is_private
+                or resolved_ip.is_loopback
+                or resolved_ip.is_link_local
+                or resolved_ip.is_reserved
+                or resolved_ip.is_multicast
+                or resolved_ip.is_unspecified
+            ):
+                return False, f"Hostname resolves to a private/reserved address: {host}"
+
         return True, ""
     except Exception as e:
         return False, f"URL validation error: {str(e)}"

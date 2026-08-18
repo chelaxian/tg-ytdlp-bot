@@ -139,9 +139,20 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
     # extractors, which causes "No videos found in playlist" for single
     # videos (issue #389). The download path already sets noplaylist, but
     # this discovery function is called FIRST and must also set it.
+    from urllib.parse import urlparse as _urlparse
+    try:
+        _url_host = (_urlparse(url).hostname or '').lower()
+    except ValueError:
+        _url_host = ''
+    _is_youtube_host = (
+        _url_host == 'youtube.com'
+        or _url_host.endswith('.youtube.com')
+        or _url_host == 'youtu.be'
+        or _url_host.endswith('.youtu.be')
+    )
     _url_lower = url.lower()
     _is_playlist_url = (
-        ('list=' in _url_lower and ('youtube.com' in _url_lower or 'youtu.be' in _url_lower))
+        ('list=' in _url_lower and _is_youtube_host)
         or ('/playlist' in _url_lower)
     )
     if not _is_playlist_url:
@@ -429,6 +440,20 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
             if _is_permanent_unavailable(_error_lower):
                 logger.warning(f"Permanent unavailable error, no retries for {url}: {error_text[:200]}")
                 return {'error': 'PERMANENT_UNAVAILABLE', 'original_error': error_text}
+
+            # Auto-retry: --live-from-start fails for non-live streams on VK and
+            # other platforms. Retry with live_from_start=False (issue #80/vk).
+            if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_text:
+                logger.info(f"live-from-start not supported for this URL, retrying with --no-live-from-start: {url}")
+                retry_opts = opts.copy()
+                retry_opts['live_from_start'] = False
+                try:
+                    retry_result = extract_info_operation(retry_opts)
+                    if retry_result is not None:
+                        logger.info(f"Retry with --no-live-from-start successful for {url}")
+                        return retry_result
+                except Exception as retry_e:
+                    logger.warning(f"Retry with --no-live-from-start also failed for {url}: {retry_e}")
 
             # Unsupported URL: only allow gallery-dl fallback (non-YouTube); otherwise bail out
             # without proxy/impersonate retries which cannot help unsupported domains (issue #323).

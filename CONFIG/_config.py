@@ -247,3 +247,7 @@ class Config(object):
     DASHBOARD_PASSWORD = "admin123"
     ACTIVE_SESSIONS_FILE = "CONFIG/.active_sessions.json"
     #######################################################
+    # Verbose logging for yt-dlp options (issue #57)
+    # When True, logs ytdl_opts (format string, cookie presence, proxy host)
+    # at INFO level for every download operation. Sensitive data is redacted.
+    VERBOSE_LOGGING = False

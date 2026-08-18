@@ -190,6 +190,7 @@ def classify_yt_dlp_error(error_message, url=None):
     if (
         "sign in to confirm" in error_lower
         or "not a bot" in error_lower
+        or "sign in to confirm your" in error_lower
     ):
         return "SIGN_IN_REQUIRED"
 

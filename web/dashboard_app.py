@@ -21,6 +21,30 @@ from services.auth_service import get_auth_service
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_GENERIC_ERROR_MSG = "Operation failed. See server logs for details."
+
+
+def _sanitize_service_result(result: Any, operation: str) -> Any:
+    """Log service error details server-side and strip them from the API response.
+
+    The service layer embeds raw exception messages and subprocess stderr into
+    error dicts; returning those to the client can leak paths, hostnames and
+    internal details (CodeQL py/stack-trace-exposure). The response shape
+    (status/error/message keys) is preserved so the frontend keeps working.
+    """
+    if not isinstance(result, dict):
+        return result
+    if result.get("status") != "error" and "error" not in result:
+        return result
+    logger.warning("[dashboard] %s failed: %r", operation, result)
+    sanitized = dict(result)
+    sanitized["status"] = "error"
+    if "error" in sanitized:
+        sanitized["error"] = _GENERIC_ERROR_MSG
+    sanitized["message"] = _GENERIC_ERROR_MSG
+    sanitized.pop("output", None)
+    return sanitized
+
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
@@ -112,7 +136,13 @@ async def api_login(payload: LoginRequest, request: Request):
     try:
         token = auth_service.login(payload.username, payload.password, client_ip)
     except ValueError as e:
-        return JSONResponse(status_code=401, content={"detail": str(e)})
+        # Map to static messages: raw exception text must not reach the client.
+        detail = (
+            "Too many failed attempts. Try again later."
+            if "Too many failed" in str(e)
+            else "Invalid username or password"
+        )
+        return JSONResponse(status_code=401, content={"detail": detail})
 
     response = JSONResponse(content={"status": "ok"})
     response.set_cookie(
@@ -284,7 +314,8 @@ async def api_unblock_user(payload: BlockRequest):
     try:
         stats_service.unblock_user(payload.user_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("[dashboard] unblock_user(%s) failed: %s", payload.user_id, exc)
+        raise HTTPException(status_code=400, detail=_GENERIC_ERROR_MSG) from exc
     return {"status": "ok"}
 
 
@@ -294,7 +325,7 @@ async def api_unblock_user(payload: BlockRequest):
 
 @app.get("/api/system-metrics")
 async def api_system_metrics():
-    return system_service.get_system_metrics()
+    return _sanitize_service_result(system_service.get_system_metrics(), "get_system_metrics")
 
 
 @app.get("/api/package-versions")
@@ -321,7 +352,8 @@ async def api_update_config(payload: ConfigUpdateRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("[dashboard] update_config failed: %s", exc)
+        raise HTTPException(status_code=400, detail=_GENERIC_ERROR_MSG) from exc
     return {"status": "ok"}
 
 
@@ -354,43 +386,47 @@ async def api_update_domain_list(payload: DomainListUpdateRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("[dashboard] update_domain_list failed: %s", exc)
+        raise HTTPException(status_code=400, detail=_GENERIC_ERROR_MSG) from exc
     return {"status": "ok"}
 
 
 @app.post("/api/rotate-ip")
 async def api_rotate_ip():
-    return system_service.rotate_ip()
+    return _sanitize_service_result(system_service.rotate_ip(), "rotate_ip")
 
 
 @app.post("/api/restart-service")
 async def api_restart_service():
-    return system_service.restart_service()
+    return _sanitize_service_result(system_service.restart_service(), "restart_service")
 
 
 @app.post("/api/restart-panel")
 async def api_restart_panel():
-    return system_service.restart_panel()
+    return _sanitize_service_result(system_service.restart_panel(), "restart_panel")
 
 
 @app.post("/api/update-engines")
 async def api_update_engines():
-    return system_service.update_engines()
+    return _sanitize_service_result(system_service.update_engines(), "update_engines")
 
 
 @app.post("/api/cleanup-user-files")
 async def api_cleanup_user_files():
-    return system_service.cleanup_user_files()
+    return _sanitize_service_result(system_service.cleanup_user_files(), "cleanup_user_files")
 
 
 @app.post("/api/update-lists")
 async def api_update_lists():
-    return lists_service.update_lists()
+    return _sanitize_service_result(lists_service.update_lists(), "update_lists")
 
 
 @app.post("/api/update-lists-from-urls")
 async def api_update_lists_from_urls(payload: ListsUpdateFromUrlsRequest):
-    return lists_service.update_lists_from_urls(payload.porn_domains_url, payload.porn_keywords_url)
+    return _sanitize_service_result(
+        lists_service.update_lists_from_urls(payload.porn_domains_url, payload.porn_keywords_url),
+        "update_lists_from_urls",
+    )
 
 
 @app.get("/health")

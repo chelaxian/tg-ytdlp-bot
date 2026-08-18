@@ -257,7 +257,7 @@ def generate_task_id(user_id: int, url: str, service: str = None) -> str:
     """
     import hashlib
     task_data = f"{user_id}_{url}_{service}_{time.time()}"
-    return hashlib.md5(task_data.encode()).hexdigest()[:16]
+    return hashlib.sha256(task_data.encode()).hexdigest()[:16]
 
 def start_cookie_task(user_id: int, url: str, service: str = None) -> str:
     """

@@ -483,8 +483,33 @@ def _check_24h_activity(ud: _UserData, now: float) -> Optional[str]:
 
 # ── Channel ban (blocking — for admin commands & background bans) ────────
 
+def _run_async(coro, timeout=30):
+    """Run an async coroutine from a synchronous context (background thread).
+
+    Pyrogram Client methods are async under the hood.  When the main event loop
+    is already running (the normal case — ``app.start()`` was called), the
+    sync wrapper returns a bare coroutine instead of executing it.  This helper
+    schedules the coroutine on the running loop via
+    ``asyncio.run_coroutine_threadsafe`` and blocks until completion.
+    """
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            return future.result(timeout=timeout)
+        else:
+            return asyncio.run(coro)
+    except RuntimeError:
+        return asyncio.run(coro)
+
+
 def ban_user_from_channel(user_id: int, reason: str = "manual"):
-    """Ban user from subscribe channel if bot is admin."""
+    """Ban user from subscribe channel if bot is admin.
+
+    Uses ``_run_async`` to properly execute Pyrogram async coroutines from
+    this synchronous function (which runs in a background thread).
+    """
     logger.info(f"[CHANNEL_BAN] Attempting to ban user {user_id} from channel, reason: {reason}")
 
     try:
@@ -502,7 +527,7 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
 
         try:
             from pyrogram.enums import ChatMemberStatus
-            bot_member = app.get_chat_member(subscribe_channel, "me")
+            bot_member = _run_async(app.get_chat_member(subscribe_channel, "me"))
             logger.info(f"[CHANNEL_BAN] Bot status in channel: {bot_member.status}")
 
             if bot_member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
@@ -523,7 +548,7 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
             logger.error(f"[CHANNEL_BAN] Failed to check bot permissions in channel: {check_error}")
 
         try:
-            user_member = app.get_chat_member(subscribe_channel, user_id)
+            user_member = _run_async(app.get_chat_member(subscribe_channel, user_id))
             logger.info(f"[CHANNEL_BAN] User {user_id} status in channel: {user_member.status}")
 
             if user_member.status == ChatMemberStatus.BANNED:
@@ -539,11 +564,11 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
 
         try:
             logger.info(f"[CHANNEL_BAN] Calling ban_chat_member for user {user_id} in channel {subscribe_channel}")
-            result = app.ban_chat_member(
+            result = _run_async(app.ban_chat_member(
                 chat_id=subscribe_channel,
                 user_id=user_id,
                 until_date=0,
-            )
+            ))
             logger.info(f"[CHANNEL_BAN] Successfully banned user {user_id} from channel {subscribe_channel} due to: {reason}")
             logger.debug(f"[CHANNEL_BAN] ban_chat_member result: {result}")
         except Exception as e:

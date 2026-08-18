@@ -1939,14 +1939,41 @@ def get_user_ytdlp_args(user_id: int, url: str = None) -> Dict[str, Any]:
 
 def log_ytdlp_options(user_id: int, ytdlp_opts: dict, operation: str = "download"):
     messages = get_messages_instance(user_id)
-    """Log the final yt-dlp options for debugging"""
+    """Log the final yt-dlp options for debugging.
+
+    Only logs when Config.VERBOSE_LOGGING is True (issue #57).
+    Sensitive data is always redacted:
+    - cookiefile → '[SET]' or '[NOT_SET]'
+    - proxy URL → scheme://host:port (credentials stripped)
+    """
     try:
+        verbose = getattr(Config, 'VERBOSE_LOGGING', False)
+        if not verbose:
+            return
+
         # Create a copy to avoid modifying the original
         opts_copy = ytdlp_opts.copy()
-        
-        # Remove sensitive information
+
+        # Redact sensitive information
         if 'cookiefile' in opts_copy:
-            opts_copy['cookiefile'] = '[REDACTED]'
+            cookie_path = opts_copy['cookiefile']
+            opts_copy['cookiefile'] = '[SET: cookie.txt present]' if cookie_path else '[NOT_SET]'
+
+        # Redact proxy credentials — keep host:port for debugging
+        if 'proxy' in opts_copy and opts_copy['proxy']:
+            proxy_val = str(opts_copy['proxy'])
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(proxy_val)
+                if parsed.hostname:
+                    redacted = f"{parsed.scheme or 'proxy'}://{parsed.hostname}"
+                    if parsed.port:
+                        redacted += f":{parsed.port}"
+                    opts_copy['proxy'] = redacted
+                else:
+                    opts_copy['proxy'] = '[REDACTED]'
+            except Exception:
+                opts_copy['proxy'] = '[REDACTED]'
         
         # Recursive sanitization for JSON: functions/objects -> string
         def _sanitize(value):
