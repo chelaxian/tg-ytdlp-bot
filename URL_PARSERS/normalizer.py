@@ -199,7 +199,11 @@ def resolve_facebook_share_url(url: str) -> str:
         final_parsed = urlparse(final_url)
         final_netloc = (final_parsed.netloc or '').lower()
         final_path = final_parsed.path or ''
-        if 'facebook.com' in final_netloc and '/share/' not in final_path:
+        final_is_fb = (
+            final_netloc in ('facebook.com', 'www.facebook.com', 'm.facebook.com')
+            or final_netloc.endswith('.facebook.com')
+        )
+        if final_is_fb and '/share/' not in final_path:
             logger.info(f"resolve_facebook_share_url: '{url}' -> '{final_url}'")
             return final_url
         return url
