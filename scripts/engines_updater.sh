@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+VENV_PY="$(dirname "$(readlink -f "$0")")/venv/bin/python"
 
 # Определяем корректный интерпретатор Python.
 # 1) Если передан PYTHON_BIN — используем его.
@@ -11,6 +12,8 @@ if [[ -n "${PYTHON_BIN}" ]]; then
   PY="${PYTHON_BIN}"
 elif command -v python >/dev/null 2>&1; then
   PY="python"
+elif [[ -x "$VENV_PY" ]]; then
+  PY="$VENV_PY"
 elif command -v python3 >/dev/null 2>&1; then
   PY="python3"
 else
