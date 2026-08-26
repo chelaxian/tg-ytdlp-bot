@@ -14,6 +14,8 @@ elif command -v python >/dev/null 2>&1; then
   PY="python"
 elif [[ -x "$VENV_PY" ]]; then
   PY="$VENV_PY"
+elif [[ -x "${VENV_PY%/*}/../venv/bin/python" ]]; then
+  PY="${VENV_PY%/*}/../venv/bin/python"
 elif command -v python3 >/dev/null 2>&1; then
   PY="python3"
 else
