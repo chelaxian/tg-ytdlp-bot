@@ -54,8 +54,25 @@ _PERMANENT_UNAVAILABLE_INDICATORS = (
 )
 
 
+# Transient network-level failures (issue #464): a single read timeout from
+# YouTube during WG-tunnel degradation is not permanent — retry once with a
+# longer socket_timeout before falling through to the proxy fallback chain.
+_TRANSIENT_TIMEOUT_INDICATORS = (
+    'read timed out',
+    'connection reset',
+    'connection aborted',
+    'connection refused',
+    'temporary failure in name resolution',
+    'name or service not known',
+)
+
+
 def _is_rate_limited(error_lower):
     return any(k in error_lower for k in _RATE_LIMIT_INDICATORS)
+
+
+def _is_transient_network_timeout(error_lower):
+    return any(k in error_lower for k in _TRANSIENT_TIMEOUT_INDICATORS)
 
 
 def _is_permanent_unavailable(error_lower):
@@ -440,6 +457,25 @@ def get_video_formats(url, user_id=None, playlist_start_index=1, cookies_already
             if _is_permanent_unavailable(_error_lower):
                 logger.warning(f"Permanent unavailable error, no retries for {url}: {error_text[:200]}")
                 return {'error': 'PERMANENT_UNAVAILABLE', 'original_error': error_text}
+
+            # Transient network timeout (issue #464): retry once with a longer
+            # socket_timeout before any proxy/cookie fallback — the endpoint is
+            # usually reachable again immediately after a single read timeout.
+            if _is_transient_network_timeout(_error_lower):
+                retry_opts = opts.copy()
+                _base_to = opts.get('socket_timeout') or 60
+                retry_opts['socket_timeout'] = max(120, int(_base_to) * 2)
+                logger.warning(
+                    f"Transient network timeout, retrying with socket_timeout="
+                    f"{retry_opts['socket_timeout']}s for {url}: {error_text[:200]}"
+                )
+                try:
+                    retry_result = extract_info_operation(retry_opts)
+                    if retry_result is not None:
+                        logger.info(f"Retry after network timeout successful for {url}")
+                        return retry_result
+                except Exception as retry_e:
+                    logger.warning(f"Retry after network timeout also failed for {url}: {retry_e}")
 
             # Auto-retry: --live-from-start fails for non-live streams on VK and
             # other platforms. Retry with live_from_start=False (issue #80/vk).
