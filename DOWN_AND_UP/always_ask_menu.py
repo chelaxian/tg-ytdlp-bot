@@ -400,8 +400,12 @@ _PROC_MSG_CACHE = {}
 # When a user retries the same URL that just failed extraction, short-circuit
 # with a "recently tried" message instead of re-running the expensive
 # yt-dlp extraction (prevents retry storms: one user, 20+ retries of one URL).
-_RECENT_EXTRACT_FAILS = {}          # {(user_id, norm_url): fail_ts}
+# The cooldown engages only after EXTRACT_FAIL_THRESHOLD consecutive failures:
+# a single failure (e.g. stale cookies) must stay retryable so the user can
+# fix cookies and re-send the same link without waiting out a cooldown.
+_RECENT_EXTRACT_FAILS = {}          # {(user_id, norm_url): (fail_ts, fail_count)}
 EXTRACT_FAIL_COOLDOWN_SEC = 180     # 3-minute cooldown per URL
+EXTRACT_FAIL_THRESHOLD = 3          # block retries only after N consecutive failures
 
 
 def _extract_fail_key(user_id, url):
@@ -414,24 +418,37 @@ def _extract_fail_key(user_id, url):
 
 
 def _check_extract_cooldown(user_id, url):
-    """Return remaining cooldown seconds if (user_id, url) recently failed, else 0."""
+    """Return remaining cooldown seconds if (user_id, url) failed at least
+    EXTRACT_FAIL_THRESHOLD times recently, else 0."""
     import time
     key = _extract_fail_key(user_id, url)
-    fail_ts = _RECENT_EXTRACT_FAILS.get(key)
-    if not fail_ts:
+    entry = _RECENT_EXTRACT_FAILS.get(key)
+    if not entry:
         return 0
+    fail_ts, fail_count = entry
     remaining = EXTRACT_FAIL_COOLDOWN_SEC - (time.time() - fail_ts)
-    if remaining > 0:
+    if remaining <= 0:
+        _RECENT_EXTRACT_FAILS.pop(key, None)
+        return 0
+    if fail_count >= EXTRACT_FAIL_THRESHOLD:
         return int(remaining)
-    _RECENT_EXTRACT_FAILS.pop(key, None)
     return 0
 
 
 def _record_extract_fail(user_id, url):
-    """Record an extraction failure for (user_id, url)."""
+    """Record an extraction failure for (user_id, url), incrementing the
+    consecutive-failure counter. Counter resets on success or when the
+    previous failure is older than the cooldown window."""
     key = _extract_fail_key(user_id, url)
     import time
-    _RECENT_EXTRACT_FAILS[key] = time.time()
+    now = time.time()
+    entry = _RECENT_EXTRACT_FAILS.get(key)
+    if entry:
+        _prev_ts, prev_count = entry
+        if now - _prev_ts < EXTRACT_FAIL_COOLDOWN_SEC:
+            _RECENT_EXTRACT_FAILS[key] = (now, prev_count + 1)
+            return
+    _RECENT_EXTRACT_FAILS[key] = (now, 1)
 
 
 def _clear_extract_fail(user_id, url):

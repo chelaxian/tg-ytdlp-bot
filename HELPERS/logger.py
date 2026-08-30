@@ -129,12 +129,14 @@ def send_to_logger(message, msg):
 
 # Send Message to User Only
 
-def send_to_user(message, msg):
+def send_to_user(message, msg, parse_mode=None):
     _capture_message_context(message)
     user_id = message.chat.id
     # Маскируем секретные данные перед отправкой пользователю
     sanitized_msg = sanitize_error_message(str(msg))
-    safe_send_message(user_id, sanitized_msg, parse_mode=_html_parse_mode(), message=message)
+    # parse_mode kwarg accepted for call-site compatibility (issue #459);
+    # HTML remains the default exactly as before.
+    safe_send_message(user_id, sanitized_msg, parse_mode=parse_mode or _html_parse_mode(), message=message)
 
 # Send Message to All ...
 

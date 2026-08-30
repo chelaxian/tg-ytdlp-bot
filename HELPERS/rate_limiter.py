@@ -60,8 +60,15 @@ def _get_user(user_id: int) -> _UserData:
 _dirty = threading.Event()
 _save_stop = threading.Event()
 
+# Throttle repeated save-failure logs (issue #460): a full disk (Errno 122)
+# makes every 30s save cycle fail; logging each one produced 90 identical
+# errors per 24h. Log at most once per 10 minutes.
+_last_save_error_log_ts = 0.0
+_SAVE_ERROR_LOG_INTERVAL = 600.0
+
 
 def _save_worker():
+    global _last_save_error_log_ts
     while not _save_stop.is_set():
         _dirty.wait(timeout=_SAVE_INTERVAL)
         _dirty.clear()
@@ -69,8 +76,15 @@ def _save_worker():
             return
         try:
             _do_save()
+            _last_save_error_log_ts = 0.0  # reset on success
         except Exception as exc:
-            logger.error(f"Rate-limiter save failed: {exc}")
+            now = time.time()
+            if now - _last_save_error_log_ts >= _SAVE_ERROR_LOG_INTERVAL:
+                _last_save_error_log_ts = now
+                logger.error(
+                    f"Rate-limiter save failed (logging throttled to 1/10min; "
+                    f"persistent failures usually mean disk full — Errno 122): {exc}"
+                )
 
 
 def _do_save():

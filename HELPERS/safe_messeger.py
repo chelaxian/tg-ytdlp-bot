@@ -79,7 +79,12 @@ def run_pyrogram_client_coroutine(app, coro, timeout=30):
         running = None
     if running is loop:
         try:
-            return asyncio.create_task(coro)
+            # Never lose the exception of a fire-and-forget send (issue #462):
+            # safe_create_task logs task failures instead of letting them
+            # surface as "Task exception was never retrieved" at GC time.
+            from HELPERS.app_instance import safe_create_task
+            task = safe_create_task(coro)
+            return task if task is not None else None
         except Exception:
             return None
 
