@@ -1875,11 +1875,29 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     info_dict = extract_info_operation(ytdl_opts)
                 except Exception as e:
                     error_text = str(e)
-                    original_error_text = error_text  # Сохраняем оригинальный текст
+                    original_error_text = error_text  # Сохраняем оригинальный текст ошибки
                     logger.info(f"Initial extract_info failed: {error_text[:200]}")
                     last_error_info['error'] = e
                     last_error_info['error_text'] = error_text
-                    
+
+                    # Permanent / rate-limit yt-dlp errors (e.g. YouTube
+                    # "The page needs to be reloaded", "Sign in to confirm")
+                    # cannot be fixed by proxy rotation or impersonation.
+                    # Skip the proxy/impersonate fallback storm entirely and
+                    # re-raise so the outer classifier shows the proper
+                    # user-facing message (issue #436 recurrence: extract-phase
+                    # bypassed the guard that only existed in the download
+                    # phase and in get_video_formats).
+                    try:
+                        from DOWN_AND_UP.yt_dlp_hook import _is_permanent_unavailable, _is_rate_limited
+                        _extract_err_lower = error_text.lower()
+                        if _is_permanent_unavailable(_extract_err_lower) or _is_rate_limited(_extract_err_lower):
+                            logger.warning(f"Permanent/rate-limit extract error, skipping proxy fallback for {url}: {error_text[:200]}")
+                            # Not an ImportError: propagates out of this try block
+                            raise Exception(f"Failed to extract video information: {error_text}")
+                    except ImportError:
+                        logger.debug("yt_dlp_hook guard import failed, proceeding with fallbacks")
+
                     # If it's a Cloudflare error, try impersonate fallback first
                     if is_cloudflare_error(error_text):
                         logger.info(f"Cloudflare error detected for {url}, trying impersonate fallback first")

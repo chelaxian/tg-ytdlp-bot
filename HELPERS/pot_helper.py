@@ -54,19 +54,40 @@ def check_pot_provider_availability(base_url: str) -> bool:
                 pass
         
         # Быстрая проверка доступности провайдера (всегда локально, в обход прокси — сервис на том же сервере/в докере)
-        # PO token провайдер может возвращать 404 для корневого пути, но это означает что сервис работает
+        # Любой HTTP-ответ (включая 400/404/405) доказывает, что процесс жив и порт
+        # слушается — провайдер считается доступным. Только 5xx означает сломанный
+        # сервис. Раньше status 400 ошибочно классифицировался как "not available"
+        # и бот отваливался на стандартную YouTube-экстракцию без PO token (issue #465).
         response = requests.get(base_url, timeout=5, proxies={'http': None, 'https': None})
-        is_available = response.status_code in [200, 404]  # 404 означает что сервис работает, но эндпоинт не найден
-        
+        is_available = response.status_code < 500
+
         # Обновляем кэш
         _pot_provider_cache['available'] = is_available
         _pot_provider_cache['last_check'] = current_time
-        
-        if is_available:
+
+        if is_available and response.status_code not in (200, 404):
+            # Неожиданный, но "живой" статус — логируем тело ответа для диагностики
+            _body_snippet = ''
+            try:
+                _body_snippet = (response.text or '')[:200].strip()
+            except Exception:
+                pass
+            logger.warning(
+                f"PO token provider returned status {response.status_code} at {base_url} "
+                f"(treated as available): {_body_snippet}"
+            )
+        elif is_available:
             logger.info(f"PO token provider is available at {base_url} (status: {response.status_code})")
         else:
-            logger.warning(f"PO token provider returned status {response.status_code} at {base_url}")
-        
+            _body_snippet = ''
+            try:
+                _body_snippet = (response.text or '')[:200].strip()
+            except Exception:
+                pass
+            logger.error(
+                f"PO token provider returned server error {response.status_code} at {base_url}: {_body_snippet}"
+            )
+
         return is_available
         
     except requests.exceptions.RequestException as e:
