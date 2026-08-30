@@ -198,8 +198,10 @@ class ChannelGuard:
             except Exception as exc:
                 logger.error(f"[ChannelGuard] Failed to start user session: {exc}")
                 self._user_client = None
-        self._scan_task = self._loop.create_task(self._scan_loop())
-        self._auto_task = self._loop.create_task(self._auto_loop())
+        # safe_create_task logs loop failures instead of losing them (issue #462)
+        from HELPERS.app_instance import safe_create_task
+        self._scan_task = safe_create_task(self._scan_loop(), loop=self._loop, name="channel_guard_scan")
+        self._auto_task = safe_create_task(self._auto_loop(), loop=self._loop, name="channel_guard_auto")
         logger.info("[ChannelGuard] Guard started")
 
     async def stop(self) -> None:
@@ -665,7 +667,8 @@ def start_channel_guard(app) -> None:
     if not loop:
         logger.error("[ChannelGuard] App loop is not available, cannot start guard")
         return
-    loop.create_task(_channel_guard.start(app))
+    from HELPERS.app_instance import safe_create_task
+    safe_create_task(_channel_guard.start(app), loop=loop, name="channel_guard_start")
 
 
 async def stop_channel_guard() -> None:
