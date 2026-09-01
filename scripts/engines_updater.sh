@@ -1,21 +1,21 @@
 #!/bin/bash
 
 set -e
-VENV_PY="$(dirname "$(readlink -f "$0")")/venv/bin/python"
+# Скрипт лежит в <repo>/scripts/, venv — в <repo>/venv/.
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+VENV_PY="$(dirname "$SCRIPT_DIR")/venv/bin/python"
 
 # Определяем корректный интерпретатор Python.
 # 1) Если передан PYTHON_BIN — используем его.
-# 2) Иначе пробуем python из PATH (например, из venv).
-# 3) Если его нет, пробуем python3.
+# 2) Иначе venv репозитория (основной сценарий cron/systemd).
+# 3) Иначе python/python3 из PATH.
 
 if [[ -n "${PYTHON_BIN}" ]]; then
   PY="${PYTHON_BIN}"
-elif command -v python >/dev/null 2>&1; then
-  PY="python"
 elif [[ -x "$VENV_PY" ]]; then
   PY="$VENV_PY"
-elif [[ -x "${VENV_PY%/*}/../venv/bin/python" ]]; then
-  PY="${VENV_PY%/*}/../venv/bin/python"
+elif command -v python >/dev/null 2>&1; then
+  PY="python"
 elif command -v python3 >/dev/null 2>&1; then
   PY="python3"
 else
