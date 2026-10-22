@@ -674,6 +674,11 @@ def _recover_from_download_error(first_error, url, user_id, ytdl_opts, extract_i
         return terminal
     _error_lower = error_text.lower()
 
+    # Generic HTTP 403: после единственного прохода cookies не перебираем
+    # браузеры/прокси и форматы на том же отказе сайта (#477).
+    if '[generic]' in _error_lower and 'http error 403' in _error_lower:
+        return {'error': 'PERMANENT_UNAVAILABLE', 'original_error': error_text}
+
     # Check for TikTok private account error
     try:
         from urllib.parse import urlparse

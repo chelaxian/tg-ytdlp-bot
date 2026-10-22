@@ -31,14 +31,26 @@ NEED_BACKUP = 1
 
 # Configuration
 REPO_URL = "https://github.com/chelaxian/tg-ytdlp-bot.git"
-# Use explicit branch
-# BRANCH = "newdesign2"
-BRANCH = "main"
+def resolve_update_branch(project_root):
+    """Сохранить выбранную ветку между обновлениями, не меняя код на сервере."""
+    configured = os.environ.get('TGYTDLP_UPDATE_BRANCH', '').strip()
+    if configured:
+        return configured
+    try:
+        configured = (Path(project_root) / '.update-branch').read_text(encoding='utf-8').strip()
+    except FileNotFoundError:
+        configured = ''
+    return configured or 'main'
+
+
+BRANCH = resolve_update_branch(PROJECT_ROOT)
 
 EXCLUDED_FILES = [
     "CONFIG/domains.py",
     "CONFIG/config.py",
     ".env",
+    ".update-branch",
+    ".deployed_commit",
     ".bot_pid",
     "bot.log",
     "runtime.log",

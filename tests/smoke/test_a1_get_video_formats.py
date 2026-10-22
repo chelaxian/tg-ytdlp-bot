@@ -280,11 +280,10 @@ run('#386 douyin', 'https://www.douyin.com/video/7300000000000000000',
 print('== #477 generic HTTP 400 / 403')
 run('#477 generic 400', 'https://example.org/track', raises('ERROR: [generic] track: Unable to download webpage: HTTP Error 400: Bad Request'),
     1, 'PERMANENT_UNAVAILABLE')
-# 403: one cookie pass (4) + impersonate (4 basic targets, no curl_cffi), original NOT repeated; no gallery-dl
-# offer (stubbed gallery_dl has no 'find' that returns a specific extractor -> MagicMock); then the error is raised
+# 403: один проход cookies, затем terminal; число браузеров curl_cffi не влияет.
 with mock.patch.object(hook, 'gallery_dl_has_extractor', lambda url: False):
     run('#477 generic 403 (no proxy)', 'https://example.org/track', raises('ERROR: [generic] track: Unable to download webpage: HTTP Error 403: Forbidden'),
-        1 + 4 + 4, 'RAISE')
+        1 + 4, 'PERMANENT_UNAVAILABLE')
 
 print('== #469/#471 ok.ru json.loads(dict): non-DownloadError TypeError -> EXTRACTION_ERROR, 1 attempt')
 
