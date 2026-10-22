@@ -1,4 +1,6 @@
 # ===================== /img command =====================
+from HELPERS.safe_messeger import safe_callback_answer
+import html
 import os
 import re
 import subprocess
@@ -8,7 +10,11 @@ import time
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyParameters, InputMediaPhoto, InputMediaVideo, InputPaidMediaPhoto, InputPaidMediaVideo
 from pyrogram import enums
-from pyrogram.errors import FloodWait
+from pyrogram.errors import FloodWait, BadRequest
+try:
+    from PIL import Image as PILImage
+except ImportError:  # Pillow is in requirements; degrade to size-only photo checks (#472)
+    PILImage = None
 from HELPERS.logger import send_to_logger, logger, get_log_channel, log_error_to_channel
 from CONFIG.logger_msg import LoggerMsg
 from CONFIG.messages import safe_get_messages
@@ -24,7 +30,13 @@ from DOWN_AND_UP.gallery_dl_hook import (
     get_total_media_count,
     download_image_range,
     download_image_range_cli,
+    classify_gallery_dl_failure,
+    GDL_FAILURE_TWITTER_UNAVAILABLE,
+    GDL_FAILURE_UNSPLASH_BLOCKED,
+    GDL_FAILURE_NOT_FOUND,
+    GDL_FAILURE_RATE_LIMITED,
 )
+from CONFIG.errors import is_cookie_error
 from HELPERS.filesystem_hlp import create_directory
 from COMMANDS.proxy_cmd import is_proxy_enabled
 from CONFIG.limits import LimitsConfig
@@ -781,6 +793,157 @@ def convert_file_to_telegram_format(file_path):
     except Exception as e:
         logger.error(LoggerMsg.IMG_CONVERSION_ERROR_LOG_MSG.format(file_path=file_path, e=e))
         return file_path
+
+# Telegram limits for photos (sendPhoto / InputMediaPhoto), issue #472:
+# violating any of them makes the whole media group fail with
+# PHOTO_SAVE_FILE_INVALID / PHOTO_INVALID_DIMENSIONS.
+TG_PHOTO_MAX_BYTES = 10 * 1024 * 1024
+TG_PHOTO_MAX_DIMENSIONS_SUM = 10000
+TG_PHOTO_MAX_ASPECT_RATIO = 20
+TG_PHOTO_FORMATS = frozenset({"JPEG", "PNG", "WEBP", "GIF"})
+
+# RPC error IDs meaning "this file can't be a photo" - retrying the same group
+# can never succeed, but the same files are accepted as documents.
+TG_INVALID_PHOTO_ERROR_IDS = (
+    "PHOTO_SAVE_FILE_INVALID",
+    "PHOTO_INVALID_DIMENSIONS",
+    "PHOTO_EXT_INVALID",
+    "PHOTO_INVALID",
+    "IMAGE_PROCESS_FAILED",
+)
+
+
+def _photo_send_problem(file_path):
+    """Return why file_path can't be sent as a Telegram photo, or None if it can (#472)."""
+    try:
+        size = os.path.getsize(file_path)
+    except OSError as e:
+        return f"unreadable: {e}"
+    if size == 0:
+        return "empty file"
+    if size > TG_PHOTO_MAX_BYTES:
+        return f"size {size} bytes > {TG_PHOTO_MAX_BYTES}"
+    if PILImage is None:
+        # Pillow missing: only size checks are possible
+        return None
+    try:
+        with PILImage.open(file_path) as img:
+            width, height = img.size
+            img_format = (img.format or "").upper()
+    except PILImage.DecompressionBombError:
+        return "image too large (decompression bomb guard)"
+    except (OSError, ValueError, SyntaxError) as e:
+        # UnidentifiedImageError is an OSError subclass; truncated/corrupt files too
+        return f"not a valid image: {e}"
+    if img_format not in TG_PHOTO_FORMATS:
+        return f"unsupported photo format {img_format or 'unknown'}"
+    if width <= 0 or height <= 0:
+        return f"invalid dimensions {width}x{height}"
+    if width + height > TG_PHOTO_MAX_DIMENSIONS_SUM:
+        return f"dimensions {width}x{height} exceed width+height {TG_PHOTO_MAX_DIMENSIONS_SUM}"
+    if max(width, height) / min(width, height) > TG_PHOTO_MAX_ASPECT_RATIO:
+        return f"aspect ratio of {width}x{height} exceeds {TG_PHOTO_MAX_ASPECT_RATIO}"
+    return None
+
+
+def _is_invalid_photo_rpc_error(error):
+    """True if a Telegram RPC error says a photo in the request is unusable as photo (#472)."""
+    error_id = str(getattr(error, "ID", "") or "")
+    text = f"{error_id} {error}".upper()
+    return any(marker in text for marker in TG_INVALID_PHOTO_ERROR_IDS)
+
+
+def _send_files_as_documents(app, user_id, message, file_paths, caption=None, message_thread_id=None):
+    """Send files one by one as documents; returns list of sent messages (#472).
+
+    Used when Telegram rejects a media group because one of the photos is
+    invalid: documents have no photo constraints, so nothing is lost.
+    """
+    sent_messages = []
+    for index, path in enumerate(file_paths):
+        if not os.path.exists(path):
+            logger.warning(f"[IMG #472] File vanished before document fallback: {path}")
+            continue
+        sent_doc = timed_upload(lambda p=path, c=(caption if index == 0 else None): app.send_document(
+            user_id,
+            document=p,
+            caption=c,
+            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+            message_thread_id=message_thread_id
+        ))
+        if sent_doc is not None:
+            sent_messages.append(sent_doc)
+    return sent_messages
+
+
+def _report_gallery_dl_fatal_error(message, user_id, url, status_msg, result):
+    """Show a fatal gallery-dl error to the user and log it (issues #486, #473, #480).
+
+    Known permanent/temporary failures get a human-readable message instead of
+    raw gallery-dl stderr. Expected content states (deleted tweet, 404) are not
+    sent to the LOG_EXCEPTION channel to keep it free of noise.
+    """
+    logger.error(LoggerMsg.IMG_FATAL_ERROR_DETECTED_LOG_MSG.format(result=result))
+    messages = safe_get_messages(user_id)
+    if ':' in result:
+        error_type, error_details = result.split(':', 1)
+        error_details = error_details.strip()
+    else:
+        error_type, error_details = messages.GALLERY_DL_UNKNOWN_ERROR_MSG, result.strip()
+
+    failure_kind = classify_gallery_dl_failure(error_details)
+    safe_url = html.escape(url or '')
+    send_cookie_hint = False
+    log_to_channel = True
+    if failure_kind == GDL_FAILURE_TWITTER_UNAVAILABLE:
+        # The message already explains when /cookie can help.
+        error_msg = messages.IMG_TWITTER_UNAVAILABLE_MSG.format(url=safe_url)
+        log_to_channel = False
+    elif failure_kind == GDL_FAILURE_NOT_FOUND:
+        error_msg = messages.IMG_CONTENT_NOT_FOUND_MSG.format(url=safe_url)
+        log_to_channel = False
+    elif failure_kind == GDL_FAILURE_UNSPLASH_BLOCKED:
+        # Keep logging: admins should see if Unsplash starts blocking the server.
+        error_msg = messages.IMG_UNSPLASH_BLOCKED_MSG.format(url=safe_url)
+    elif failure_kind == GDL_FAILURE_RATE_LIMITED:
+        error_msg = messages.IMG_RATE_LIMITED_MSG.format(url=safe_url)
+    elif "instagram" in error_details.lower():
+        error_msg = messages.IMG_INSTAGRAM_AUTH_ERROR_MSG.format(
+            error_type=html.escape(error_type),
+            url=safe_url,
+            error_details=html.escape(error_details),
+        )
+        send_cookie_hint = True
+    else:
+        # Generic message; raw stderr may contain '<' / '&' - escape for HTML parse mode
+        error_msg = (
+            f"❌ <b>{html.escape(error_type)}</b>\n\n<b>URL:</b> <code>{safe_url}</code>\n\n"
+            f"<b>Details:</b> {html.escape(error_details)}\n\nDownload stopped due to critical error."
+        )
+        send_cookie_hint = True
+
+    if status_msg:
+        safe_edit_message_text(
+            status_msg.chat.id, status_msg.id,
+            error_msg,
+            parse_mode=enums.ParseMode.HTML
+        )
+    else:
+        safe_send_message(user_id, error_msg, parse_mode=enums.ParseMode.HTML)
+
+    if log_to_channel:
+        log_error_to_channel(message, f"Fatal error in image download: {result}", url)
+    else:
+        logger.info(f"[IMG] Expected gallery-dl failure ({failure_kind}) for {url}, not logged to channel")
+
+    # Send cookie hint if this is a cookie/authentication error
+    if send_cookie_hint and is_cookie_error(result):
+        try:
+            safe_send_message(user_id, messages.SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+            logger.info(f"Sent cookie hint to user {user_id} after gallery-dl error")
+        except Exception as _cookie_hint_err:
+            logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
+
 
 def get_message_thread_id(message):
     """Extract message_thread_id from message, handling fake messages with original message reference"""
@@ -1911,6 +2074,11 @@ def image_command(app, message):
                     # Для обратного порядка gallery-dl может не поддерживать напрямую
                     # Скачиваем по одному элементу в обратном порядке
                     result = run_and_collect_reverse(current_start, next_end, batch_size)
+                    # Reverse ranges must stop on fatal gallery-dl errors too,
+                    # otherwise every remaining index is retried (#486).
+                    if isinstance(result, str):
+                        _report_gallery_dl_fatal_error(message, user_id, url, status_msg, result)
+                        return
                     # Обновляем current_start для обратного порядка (next_end всегда int в этой ветке)
                     current_start = (next_end - 1) if next_end is not None else (current_start or 1)
                 else:
@@ -1921,45 +2089,12 @@ def image_command(app, message):
                     # Debug: Log the result type and content
                     logger.info(f"[IMG DEBUG] run_and_collect result: type={type(result)}, value={result}")
                     
-                    # Check for fatal errors
-                    if isinstance(result, str) and ":" in result and any(error_type in result for error_type in [
-                        "Authentication Error", "Account Not Found", "Account Unavailable", 
-                        "Rate Limit Exceeded", "Network Error", "Content Unavailable",
-                        "Geographic Restrictions", "Verification Required", "Policy Violation",
-                        "Unknown Error", "Fatal Error", "Critical Error", "Unexpected Error"
-                    ]):
-                        logger.error(LoggerMsg.IMG_FATAL_ERROR_DETECTED_LOG_MSG.format(result=result))
-                        logger.info(f"[IMG DEBUG] Processing fatal error: status_msg={status_msg}, status_msg.id={status_msg.id if status_msg else 'None'}")
-                        # Send error message to user and stop downloading
-                        error_type = result.split(':')[0]
-                        error_details = result.split(':', 1)[1].strip()
-                        
-                        # Use appropriate error message based on error type
-                        if "Instagram" in error_details or "instagram" in error_details.lower():
-                            error_msg = safe_get_messages(user_id).IMG_INSTAGRAM_AUTH_ERROR_MSG.format(
-                                error_type=error_type,
-                                url=url,
-                                error_details=error_details
-                            )
-                        else:
-                            # Generic error message for other platforms
-                            error_msg = f"❌ <b>{error_type}</b>\n\n<b>URL:</b> <code>{url}</code>\n\n<b>Details:</b> {error_details}\n\nDownload stopped due to critical error."
-                        
-                        logger.info(f"[IMG DEBUG] Updating status message with error: {error_msg[:100]}...")
-                        safe_edit_message_text(
-                            status_msg.chat.id, status_msg.id,
-                            error_msg,
-                            parse_mode=enums.ParseMode.HTML
-                        )
-                        log_error_to_channel(message, f"Fatal error in image download: {result}", url)
-                        # Send cookie hint if this is a cookie/authentication error
-                        from CONFIG.errors import is_cookie_error
-                        if is_cookie_error(result):
-                            try:
-                                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
-                                logger.info(f"Sent cookie hint to user {user_id} after gallery-dl error")
-                            except Exception as _cookie_hint_err:
-                                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
+                    # Both gallery-dl download helpers return a str ONLY for fatal
+                    # errors (see download_image_range*). The old check matched
+                    # English type labels and missed localized ones, so non-EN
+                    # users fell through into further range retries (#486).
+                    if isinstance(result, str):
+                        _report_gallery_dl_fatal_error(message, user_id, url, status_msg, result)
                         return
                     
                     # Wait for download to complete before processing files
@@ -2072,7 +2207,15 @@ def image_command(app, message):
                             continue
                         ext = os.path.splitext(converted)[1].lower()
                         if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']:
-                            photos_videos_buffer.append((converted, 'photo', original_path))
+                            # Issue #472: one photo Telegram can't save (>10 MB, extreme
+                            # dimensions, corrupt/non-image) fails the whole media group
+                            # with PHOTO_SAVE_FILE_INVALID - send such files as documents.
+                            photo_problem = _photo_send_problem(converted)
+                            if photo_problem:
+                                logger.info(f"[IMG #472] Sending {converted} as document instead of photo: {photo_problem}")
+                                others_buffer.append((converted, original_path))
+                            else:
+                                photos_videos_buffer.append((converted, 'photo', original_path))
                         elif ext in ['.mp4']:
                             photos_videos_buffer.append((converted, 'video', original_path))
                         elif ext in ['.avi', '.mov', '.mkv', '.webm', '.flv', '.m4v']:
@@ -4382,18 +4525,32 @@ def image_command(app, message):
                     if status_msg and status_msg.id:
                         _start_upload_logging(user_id, status_msg.id)
                     try:
-                        sent = timed_upload(lambda: app.send_media_group(
-                            user_id,
-                            media=media_group,
-                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                        ))
+                        try:
+                            sent = timed_upload(lambda: app.send_media_group(
+                                user_id,
+                                media=media_group,
+                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
+                            ))
+                        except BadRequest as group_err:
+                            # Issue #472: a photo slipped past _photo_send_problem() and
+                            # Telegram rejected the whole group. Retrying the same group
+                            # is pointless - resend every item as a document instead.
+                            if not _is_invalid_photo_rpc_error(group_err):
+                                raise
+                            logger.warning(f"[IMG #472] Final media group rejected ({group_err}); resending {len(photos_videos_buffer)} item(s) as documents")
+                            sent = _send_files_as_documents(
+                                app, user_id, message,
+                                [p for p, _t, _orig in photos_videos_buffer],
+                                caption=getattr(media_group[0], 'caption', None),
+                                message_thread_id=message_thread_id,
+                            )
                     finally:
                         # Stop upload logging after upload completes or fails
                         if status_msg and status_msg.id:
                             _stop_upload_logging(user_id, status_msg.id)
                     sent_message_ids.extend([m.id for m in sent])
-                    total_sent += len(media_group)
-                    
+                    total_sent += len(sent)
+
                     # Forward to logs and cache
                     try:
                         orig_ids = [m.id for m in sent]
@@ -4630,13 +4787,13 @@ def img_help_callback(app, callback_query: CallbackQuery):
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
         try:
-            callback_query.answer(safe_get_messages(user_id).IMG_HELP_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).IMG_HELP_CLOSED_MSG)
         except Exception:
             pass
         return
     
     try:
-        callback_query.answer()
+        safe_callback_answer(callback_query)
     except Exception:
         pass
 
@@ -4650,7 +4807,7 @@ def img_range_callback(app, callback_query: CallbackQuery):
         logger.info(f"[IMG_RANGE_CALLBACK] Data parts: {data_parts}")
         
         if len(data_parts) < 2:
-            callback_query.answer("❌ Data error")
+            safe_callback_answer(callback_query, "❌ Data error")
             return
         
         if data_parts[1] == "cancel":
@@ -4659,13 +4816,13 @@ def img_range_callback(app, callback_query: CallbackQuery):
             except Exception:
                 callback_query.edit_message_reply_markup(reply_markup=None)
             try:
-                callback_query.answer("❌ Cancelled")
+                safe_callback_answer(callback_query, "❌ Cancelled")
             except Exception:
                 pass
             return
         
         if len(data_parts) < 4:
-            callback_query.answer("❌ Invalid data format")
+            safe_callback_answer(callback_query, "❌ Invalid data format")
             return
         
         start = int(data_parts[1])
@@ -4675,7 +4832,7 @@ def img_range_callback(app, callback_query: CallbackQuery):
         logger.info(f"[IMG_RANGE_CALLBACK] Parsed: start={start}, end={end}, url={url}")
         
         # Answer callback
-        callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_IMAGES_MSG} {start}-{end}")
+        safe_callback_answer(callback_query, f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_IMAGES_MSG} {start}-{end}")
         
         # Delete the original message with the buttons immediately
         try:
@@ -4709,6 +4866,6 @@ def img_range_callback(app, callback_query: CallbackQuery):
         
     except Exception as e:
         try:
-            callback_query.answer(f"{safe_get_messages(user_id).IMAGE_ERROR_MSG}")
+            safe_callback_answer(callback_query, f"{safe_get_messages(user_id).IMAGE_ERROR_MSG}")
         except Exception:
             pass

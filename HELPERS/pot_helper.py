@@ -13,91 +13,110 @@ from HELPERS.logger import logger
 _pot_provider_cache = {
     'available': None,
     'last_check': 0,
-    'check_interval': 30  # Проверяем каждые 30 секунд
+    'check_interval': 30,  # Проверяем каждые 30 секунд
+    # Last logged probe state ('ok' / 'degraded' / 'down' / 'blocked'):
+    # probe results are logged only when the state changes (issue #465).
+    'state': None,
 }
+
+# Dedicated health endpoint of the bgutil HTTP server: GET /ping returns
+# 200 + {"version": "..."}. The root URL is NOT a health endpoint — server 2.x
+# answers it with HTTP 400 "This server is not meant to be accessed directly",
+# which produced a WARNING on every probe (~20/h) and was misread as a broken
+# provider (issues #465, #394, #436).
+_POT_PING_PATH = '/ping'
+
+
+def _log_pot_state(state: str, level: str, text: str) -> None:
+    """Log a provider probe result only when the probe state changes."""
+    if _pot_provider_cache.get('state') == state:
+        logger.debug(text)
+        return
+    _pot_provider_cache['state'] = state
+    getattr(logger, level)(text)
+
 
 def check_pot_provider_availability(base_url: str) -> bool:
     """
-    Проверяет доступность PO token провайдера
-    
+    Проверяет доступность PO token провайдера через GET {base_url}/ping.
+
+    200 → доступен; прочие 4xx → процесс жив (доступен, но endpoint неожиданный);
+    5xx и сетевые ошибки → недоступен. Логируются только смены состояния.
+
     Args:
         base_url (str): URL провайдера
-        
+
     Returns:
         bool: True если провайдер доступен, False иначе
     """
     current_time = time.time()
-    
+
     # Проверяем кэш
-    if (_pot_provider_cache['available'] is not None and 
+    if (_pot_provider_cache['available'] is not None and
         current_time - _pot_provider_cache['last_check'] < _pot_provider_cache['check_interval']):
         return _pot_provider_cache['available']
-    
+
+    # Валидация URL для предотвращения SSRF (но разрешаем localhost для локального сервиса)
+    from urllib.parse import urlparse
+    import ipaddress
+    parsed_url = urlparse(base_url)
+    url_host = (parsed_url.hostname or '').lower()
+    # Разрешаем localhost для локального PO token провайдера, но блокируем другие внутренние ресурсы
+    if url_host not in ('localhost', '127.0.0.1', '::1') and        (url_host.endswith('.local') or url_host.endswith('.internal') or 'localhost' in url_host):
+        try:
+            ip = ipaddress.ip_address(url_host)
+            if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or str(ip) == '169.254.169.254') and                str(ip) not in ('127.0.0.1', '::1'):
+                _log_pot_state('blocked', 'warning', f"Blocked SSRF attempt: invalid PO token provider URL {base_url}")
+                _pot_provider_cache['available'] = False
+                _pot_provider_cache['last_check'] = current_time
+                return False
+        except ValueError:
+            pass
+
+    ping_url = base_url.rstrip('/') + _POT_PING_PATH
     try:
-        # Валидация URL для предотвращения SSRF (но разрешаем localhost для локального сервиса)
-        from urllib.parse import urlparse
-        import ipaddress
-        parsed_url = urlparse(base_url)
-        url_host = (parsed_url.hostname or '').lower()
-        # Разрешаем localhost для локального PO token провайдера, но блокируем другие внутренние ресурсы
-        if url_host not in ('localhost', '127.0.0.1', '::1') and \
-           (url_host.endswith('.local') or url_host.endswith('.internal') or 'localhost' in url_host):
-            try:
-                ip = ipaddress.ip_address(url_host)
-                if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or str(ip) == '169.254.169.254') and \
-                   str(ip) not in ('127.0.0.1', '::1'):
-                    logger.warning(f"Blocked SSRF attempt: invalid PO token provider URL {base_url}")
-                    _pot_provider_cache['available'] = False
-                    _pot_provider_cache['last_check'] = current_time
-                    return False
-            except ValueError:
-                pass
-        
-        # Быстрая проверка доступности провайдера (всегда локально, в обход прокси — сервис на том же сервере/в докере)
-        # Любой HTTP-ответ (включая 400/404/405) доказывает, что процесс жив и порт
-        # слушается — провайдер считается доступным. Только 5xx означает сломанный
-        # сервис. Раньше status 400 ошибочно классифицировался как "not available"
-        # и бот отваливался на стандартную YouTube-экстракцию без PO token (issue #465).
-        response = requests.get(base_url, timeout=5, proxies={'http': None, 'https': None})
-        is_available = response.status_code < 500
-
-        # Обновляем кэш
-        _pot_provider_cache['available'] = is_available
-        _pot_provider_cache['last_check'] = current_time
-
-        if is_available and response.status_code not in (200, 404):
-            # Неожиданный, но "живой" статус — логируем тело ответа для диагностики
-            _body_snippet = ''
-            try:
-                _body_snippet = (response.text or '')[:200].strip()
-            except Exception:
-                pass
-            logger.warning(
-                f"PO token provider returned status {response.status_code} at {base_url} "
-                f"(treated as available): {_body_snippet}"
-            )
-        elif is_available:
-            logger.info(f"PO token provider is available at {base_url} (status: {response.status_code})")
-        else:
-            _body_snippet = ''
-            try:
-                _body_snippet = (response.text or '')[:200].strip()
-            except Exception:
-                pass
-            logger.error(
-                f"PO token provider returned server error {response.status_code} at {base_url}: {_body_snippet}"
-            )
-
-        return is_available
-        
+        # Всегда локально, в обход прокси — сервис на том же сервере/в докере
+        response = requests.get(ping_url, timeout=5, proxies={'http': None, 'https': None})
     except requests.exceptions.RequestException as e:
-        logger.warning(f"PO token provider is not available at {base_url}: {e}")
-        
-        # Обновляем кэш
         _pot_provider_cache['available'] = False
         _pot_provider_cache['last_check'] = current_time
-        
+        _log_pot_state('down', 'warning', f"PO token provider is not available at {ping_url}: {e}")
         return False
+
+    status = response.status_code
+    is_available = status < 500
+    _pot_provider_cache['available'] = is_available
+    _pot_provider_cache['last_check'] = current_time
+
+    if status == 200:
+        version = ''
+        try:
+            payload = response.json()
+            if isinstance(payload, dict):
+                version = str(payload.get('version') or '')
+        except ValueError:
+            # Non-JSON 200 still proves the server is alive
+            pass
+        _log_pot_state(
+            'ok', 'info',
+            f"PO token provider is available at {base_url}" + (f" (server version {version})" if version else ''),
+        )
+    else:
+        body_snippet = (response.text or '')[:200].strip()
+        if is_available:
+            # Alive, but /ping is not served as expected (e.g. a very old server)
+            _log_pot_state(
+                'degraded', 'warning',
+                f"PO token provider answered {ping_url} with status {status} "
+                f"(treated as available): {body_snippet}",
+            )
+        else:
+            _log_pot_state(
+                'down', 'error',
+                f"PO token provider returned server error {status} at {ping_url}: {body_snippet}",
+            )
+
+    return is_available
 
 def add_pot_to_ytdl_opts(ytdl_opts: dict, url: str) -> dict:
     """
@@ -128,8 +147,9 @@ def add_pot_to_ytdl_opts(ytdl_opts: dict, url: str) -> dict:
     
     # Проверяем доступность PO token провайдера
     if not check_pot_provider_availability(base_url):
+        # The state change is already logged once by the probe (issue #465)
         messages = safe_get_messages()
-        logger.warning(messages.HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG.format(base_url=base_url))
+        logger.debug(messages.HELPER_POT_PROVIDER_NOT_AVAILABLE_MSG.format(base_url=base_url))
         return ytdl_opts
 
     # Добавляем extractor_args к опциям yt-dlp
@@ -197,6 +217,7 @@ def clear_pot_provider_cache():
     global _pot_provider_cache
     _pot_provider_cache['available'] = None
     _pot_provider_cache['last_check'] = 0
+    _pot_provider_cache['state'] = None
     messages = safe_get_messages()
     logger.info(messages.HELPER_POT_PROVIDER_CACHE_CLEARED_MSG)
 

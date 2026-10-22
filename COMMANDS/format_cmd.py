@@ -1,5 +1,6 @@
 
 # Command /Format Handler
+from HELPERS.safe_messeger import safe_callback_answer
 from pyrogram import filters
 from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
@@ -337,7 +338,7 @@ def format_option_callback(app, callback_query):
             callback_query.message.delete()
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).FORMAT_CHOICE_UPDATED_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).FORMAT_CHOICE_UPDATED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_SELECTION_CLOSED_LOG_MSG)
         return
 
@@ -353,7 +354,7 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
             reply_parameters=ReplyParameters(message_id=callback_query.message.id),
             reply_markup=keyboard
         )
-        callback_query.answer(safe_get_messages(user_id).FORMAT_HINT_SENT_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).FORMAT_HINT_SENT_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_CUSTOM_HINT_SENT_LOG_MSG)
         return
 
@@ -399,7 +400,7 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
         ])
         safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).FORMAT_RESOLUTION_MENU_MSG, reply_markup=full_res_keyboard)
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_RESOLUTION_MENU_SENT_LOG_MSG)
@@ -419,7 +420,7 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
         ])
         safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).FORMAT_MENU_MSG + "\n" + safe_get_messages(user_id).FORMAT_MENU_ADDITIONAL_MSG + "\n" + safe_get_messages(user_id).FORMAT_8K_QUALITY_MSG, reply_markup=main_keyboard)
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_RETURNED_MAIN_MENU_LOG_MSG)
@@ -525,7 +526,7 @@ safe_get_messages(user_id).FORMAT_CUSTOM_HINT_MSG,
         f.write(chosen_format)
     safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).FORMAT_UPDATED_MSG.format(format=chosen_format))
     try:
-        callback_query.answer(safe_get_messages(user_id).FORMAT_SAVED_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).FORMAT_SAVED_MSG)
     except Exception:
         pass
     send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_UPDATED_CALLBACK_LOG_MSG.format(format=chosen_format))
@@ -549,7 +550,7 @@ def format_codec_callback(app, callback_query):
     
     if data in ["avc1", "av01", "vp9"]:
         set_user_codec_preference(user_id, data)
-        callback_query.answer(safe_get_messages(user_id).FORMAT_CODEC_SET_MSG.format(codec=data.upper()))
+        safe_callback_answer(callback_query, safe_get_messages(user_id).FORMAT_CODEC_SET_MSG.format(codec=data.upper()))
 
         # Refresh the menu to show updated codec selection
         current_codec = get_user_codec_preference(user_id)
@@ -621,7 +622,7 @@ def format_container_callback(app, callback_query):
         except Exception:
             pass
         try:
-            callback_query.answer(safe_get_messages(user_id).FORMAT_MKV_TOGGLE_MSG.format(status='ON' if mkv_on else 'OFF'))
+            safe_callback_answer(callback_query, safe_get_messages(user_id).FORMAT_MKV_TOGGLE_MSG.format(status='ON' if mkv_on else 'OFF'))
         except Exception:
             pass
     elif data == "hdr_toggle":
@@ -647,7 +648,7 @@ def format_container_callback(app, callback_query):
         except Exception:
             pass
         try:
-            callback_query.answer(safe_get_messages(user_id).FORMAT_HDR_TOGGLE_MSG.format(status='ON' if hdr_on else 'OFF'))
+            safe_callback_answer(callback_query, safe_get_messages(user_id).FORMAT_HDR_TOGGLE_MSG.format(status='ON' if hdr_on else 'OFF'))
         except Exception:
             pass
 
@@ -663,7 +664,7 @@ def format_custom_callback(app, callback_query):
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
         try:
-            callback_query.answer(safe_get_messages(user_id).FORMAT_CUSTOM_MENU_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).FORMAT_CUSTOM_MENU_CLOSED_MSG)
         except Exception:
             pass
         send_to_logger(callback_query.message, safe_get_messages(user_id).FORMAT_CUSTOM_MENU_CLOSED_LOG_MSG)

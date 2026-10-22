@@ -35,6 +35,23 @@ _active_uploads_lock = threading.Lock()
 # "send_videos returned None" error log and an aborted cache save (issue #331).
 SPLIT_SUCCESS_SENTINEL = object()
 
+# Why the last send_videos() call in this thread returned None (issue #331).
+# Every None-return records a short reason code so the caller can log WHY the
+# upload produced no message (file vanished, FloodWait, user blocked, ...)
+# instead of the bare "send_videos returned None for single video".
+_send_failure = threading.local()
+
+
+def _send_failed(reason):
+    _send_failure.reason = reason
+    logger.warning(f"send_videos: returning None (reason={reason})")
+    return None
+
+
+def get_last_send_failure():
+    """Reason code of the last None returned by send_videos() in this thread."""
+    return getattr(_send_failure, 'reason', None)
+
 _user_blocked_flag = set()
 
 def _timed_upload(upload_fn, timeout=None, dedup_key=None):
@@ -118,6 +135,7 @@ def send_videos(
 
     import re
     import os
+    _send_failure.reason = None
     user_id = message.chat.id
     messages = safe_get_messages(user_id)
     text = message.text or ""
@@ -131,13 +149,13 @@ def send_videos(
         logger.error(f"File not found before sending: {video_abs_path}")
         from HELPERS.logger import send_error_to_user
         send_error_to_user(message, messages.ERROR_SENDING_VIDEO_MSG.format(error=f"File not found: {os.path.basename(video_abs_path)}"))
-        return None
+        return _send_failed("file_not_found_before_send")
     file_size = os.path.getsize(video_abs_path)
     if file_size == 0:
         logger.error(f"File is empty (0 bytes) before sending: {video_abs_path}")
         from HELPERS.logger import send_error_to_user
         send_error_to_user(message, messages.ERROR_SENDING_VIDEO_MSG.format(error=f"File is empty (0 bytes): {os.path.basename(video_abs_path)}"))
-        return None
+        return _send_failed("file_empty_before_send")
     logger.info(f"File validated before sending: {video_abs_path} ({humanbytes(file_size)})")
     
     # --- ASCII-safe hardlink for Pyrogram fallback compatibility ---
@@ -240,7 +258,7 @@ def send_videos(
                             reply_parameters=ReplyParameters(message_id=message.id),
                             message=message
                         )
-                        return None
+                        return _send_failed("split_failed_no_parts")
                     
                     # Send each part separately
                     logger.info(f"Sending {len(part_paths)} parts of split video")
@@ -360,7 +378,7 @@ def send_videos(
                         return SPLIT_SUCCESS_SENTINEL  # Parts were sent separately (issue #331)
                     else:
                         logger.error("Failed to send any parts of split video")
-                        return None
+                        return _send_failed("split_no_part_sent")
         except Exception as size_check_error:
                 logger.warning(f"Error checking/splitting file size: {size_check_error}")
                 # Continue with normal send if splitting fails
@@ -1060,7 +1078,7 @@ def send_videos(
                             logger.error(f"Video file vanished before upload (race): {video_abs_path}")
                             from HELPERS.logger import send_error_to_user
                             send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
-                            return None
+                            return _send_failed("file_vanished_before_upload")
                         video_msg = _try_send_video(cap)
                         break
                     except PaidMediaSendError as e:
@@ -1075,13 +1093,13 @@ def send_videos(
                         safe_send_message(user_id,
                             safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
                             parse_mode=enums.ParseMode.HTML, message=message)
-                        return None
+                        return _send_failed("upload_already_in_progress")
                     except Exception as e:
                         error_str = str(e)
                         if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in error_str:
                             logger.warning(f"User {user_id} has blocked the bot, aborting send")
                             mark_user_blocked(user_id)
-                            return None
+                            return _send_failed("user_blocked_bot")
 
                         if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
                             logger.warning(f"Thumbnail file error, trying as document: {e}")
@@ -1093,7 +1111,7 @@ def send_videos(
                                 logger.error(f"Failed to decode: file no longer exists on disk: {video_abs_path}")
                                 from HELPERS.logger import send_error_to_user
                                 send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
-                                return None
+                                return _send_failed("file_vanished_failed_to_decode")
                             logger.warning(f"Failed to decode error, trying as document: {e}")
                             video_msg = _fallback_send_document(cap)
                             break
@@ -1143,7 +1161,7 @@ def send_videos(
                                         parse_mode=enums.ParseMode.HTML)
                                 except Exception:
                                     pass
-                                return None
+                                return _send_failed("telegram_flood_wait")
 
                         if "Request timed out" in error_str or isinstance(e, TimeoutError):
                             attempts_left -= 1
@@ -1159,12 +1177,12 @@ def send_videos(
             safe_send_message(user_id,
                 safe_get_messages(user_id).UPLOAD_ALREADY_IN_PROGRESS_MSG,
                 parse_mode=enums.ParseMode.HTML, message=message)
-            return None
+            return _send_failed("upload_already_in_progress")
         except Exception as e:
             if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in str(e):
                 logger.warning(f"User {user_id} has blocked the bot, aborting send (outer handler)")
                 mark_user_blocked(user_id)
-                return None
+                return _send_failed("user_blocked_bot")
             if "MEDIA_CAPTION_TOO_LONG" in str(e):
                 logger.info(safe_get_messages(user_id).SENDER_CAPTION_TOO_LONG_MSG)
                 # If the caption is too long, try sending only with the main information
@@ -1196,7 +1214,7 @@ def send_videos(
                                 if isinstance(e2, UserIsBlocked) or "USER_IS_BLOCKED" in error_str2:
                                     logger.warning(f"User {user_id} has blocked the bot, aborting send (minimal cap)")
                                     mark_user_blocked(user_id)
-                                    return None
+                                    return _send_failed("user_blocked_bot")
 
                                 if "No such file or directory" in error_str2 and ("__tgthumb" in error_str2 or "thumb" in error_str2.lower()):
                                     logger.warning(f"Thumbnail file error with minimal caption, retrying without thumbnail: {e2}")
@@ -1208,7 +1226,7 @@ def send_videos(
                                         logger.error(f"Failed to decode (minimal cap): file no longer exists on disk: {video_abs_path}")
                                         from HELPERS.logger import send_error_to_user
                                         send_error_to_user(message, safe_get_messages(user_id).VIDEO_FILE_NOT_FOUND_MSG.format(filename=os.path.basename(video_abs_path)))
-                                        return None
+                                        return _send_failed("file_vanished_failed_to_decode")
                                     logger.warning(f"Failed to decode error with minimal caption, trying as document: {e2}")
                                     video_msg = _fallback_send_document(minimal_cap)
                                     break
@@ -1265,7 +1283,7 @@ def send_videos(
                         if isinstance(e3, UserIsBlocked) or "USER_IS_BLOCKED" in error_str3:
                             logger.warning(f"User {user_id} has blocked the bot, aborting send (empty cap)")
                             mark_user_blocked(user_id)
-                            return None
+                            return _send_failed("user_blocked_bot")
                         # Handle thumbnail file errors
                         if "No such file or directory" in error_str3 and ("__tgthumb" in error_str3 or "thumb" in error_str3.lower()):
                             logger.warning(f"Thumbnail file error, trying as document: {e3}")
@@ -1274,7 +1292,7 @@ def send_videos(
                         elif "Failed to decode" in error_str3:
                             if not os.path.exists(video_abs_path):
                                 logger.error(f"Failed to decode (empty cap): file no longer exists on disk: {video_abs_path}")
-                                return None
+                                return _send_failed("file_vanished_failed_to_decode")
                             logger.warning(f"Failed to decode error, trying as document: {e3}")
                             video_msg = _fallback_send_document("")
                         elif "Request timed out" in error_str3 or isinstance(e3, TimeoutError):
@@ -1286,7 +1304,7 @@ def send_videos(
                 if isinstance(e, UserIsBlocked) or "USER_IS_BLOCKED" in error_str:
                     logger.warning(f"User {user_id} has blocked the bot, aborting send (else branch)")
                     mark_user_blocked(user_id)
-                    return None
+                    return _send_failed("user_blocked_bot")
                 # Handle thumbnail file errors
                 if "No such file or directory" in error_str and ("__tgthumb" in error_str or "thumb" in error_str.lower()):
                     logger.warning(f"Thumbnail file error in main handler, trying as document: {e}")
@@ -1301,7 +1319,7 @@ def send_videos(
                 elif "Failed to decode" in error_str:
                     if not os.path.exists(video_abs_path):
                         logger.error(f"Failed to decode (else branch): file no longer exists on disk: {video_abs_path}")
-                        return None
+                        return _send_failed("file_vanished_failed_to_decode")
                     logger.warning(f"Failed to decode error in main handler, trying as document: {e}")
                     try:
                         video_msg = _fallback_send_document(cap if 'cap' in locals() else "")
@@ -1343,6 +1361,8 @@ def send_videos(
                 # not alarm the user or pollute the LOG_EXCEPTION channel:
                 # log a warning and continue the workflow (issue #447).
                 logger.warning(safe_get_messages(user_id).SENDER_ERROR_SENDING_FULL_DESCRIPTION_FILE_MSG.format(error=e))
+        if not video_msg:
+            return _send_failed("telegram_returned_no_message")
         return video_msg
     finally:
         # Remove ASCII-safe hardlink if it was created

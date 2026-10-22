@@ -1,4 +1,5 @@
 # ===================== /settings =====================
+from HELPERS.safe_messeger import safe_callback_answer
 from pyrogram import filters
 from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
@@ -108,7 +109,7 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_MENU_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_MENU_CLOSED_MSG)
         except Exception:
             pass
         return
@@ -121,12 +122,12 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -168,7 +169,7 @@ safe_get_messages(user_id).SETTINGS_CLEAN_TITLE_MSG,
                                parse_mode=enums.ParseMode.HTML)
 
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
 
@@ -191,7 +192,7 @@ safe_get_messages(user_id).SETTINGS_COOKIES_TITLE_MSG,
                                parse_mode=enums.ParseMode.HTML)
 
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
 
@@ -214,7 +215,7 @@ safe_get_messages(user_id).SETTINGS_MEDIA_TITLE_MSG,
                                parse_mode=enums.ParseMode.HTML)
 
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
 
@@ -234,7 +235,7 @@ safe_get_messages(user_id).SETTINGS_LOGS_TITLE_MSG,
                                parse_mode=enums.ParseMode.HTML)
 
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
 
@@ -255,7 +256,7 @@ safe_get_messages(user_id).SETTINGS_MORE_TITLE_MSG,
                                parse_mode=enums.ParseMode.HTML)
 
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
 
@@ -285,7 +286,7 @@ safe_get_messages(user_id).SETTINGS_MORE_TITLE_MSG,
                                parse_mode=enums.ParseMode.HTML)
 
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
 
@@ -332,7 +333,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         except Exception:
             pass
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
         return
@@ -343,12 +344,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -359,12 +360,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -375,12 +376,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -392,7 +393,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
                           parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
 
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
         except Exception:
             pass
 
@@ -404,11 +405,11 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
             return
 
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
 
@@ -421,11 +422,11 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
             return
 
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
 
@@ -439,11 +440,11 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
             return
 
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
 
@@ -455,11 +456,11 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
             return
 
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
 
@@ -470,9 +471,9 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
             return
-        callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         return
     if data == "audio":
         keyboard = InlineKeyboardMarkup([
@@ -486,7 +487,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
                           _callback_query=callback_query,
                           _fallback_notice=safe_get_messages(user_id).FLOOD_LIMIT_TRY_LATER_MSG)
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
         except Exception:
             pass
 
@@ -497,11 +498,11 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_WAIT_ACTIVE_MSG, show_alert=False)
             return
 
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -514,19 +515,19 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             _write_flood_wait_file(user_id, e.value)
 
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         # If safe_send_message returned None due to FloodWait, notify via callback
         if res is None:
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
         else:
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
             except Exception:
                 pass
 
@@ -539,12 +540,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             _write_flood_wait_file(user_id, e.value)
 
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
 
@@ -557,12 +558,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             _write_flood_wait_file(user_id, e.value)
 
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
 
@@ -581,7 +582,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             parse_mode=enums.ParseMode.HTML,
         )
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
         except Exception:
             pass
         return
@@ -596,7 +597,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
                           _callback_query=callback_query,
                           _fallback_notice=safe_get_messages(user_id).FLOOD_LIMIT_TRY_LATER_MSG)
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
         except Exception:
             pass
         return
@@ -607,12 +608,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -623,12 +624,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -666,7 +667,7 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
         )
         
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_SEARCH_HELPER_OPENED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_SEARCH_HELPER_OPENED_MSG)
         except Exception:
             pass
         return
@@ -677,12 +678,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -694,12 +695,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
@@ -711,17 +712,17 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
             try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
         except Exception:
             pass
         return
     try:
-        callback_query.answer(safe_get_messages(user_id).SETTINGS_UNKNOWN_COMMAND_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_UNKNOWN_COMMAND_MSG, show_alert=True)
     except Exception:
         pass
 
@@ -737,12 +738,12 @@ def hint_callback(app, callback_query: CallbackQuery):
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SETTINGS_HINT_CLOSED_MSG)
         except Exception:
             pass
         return
     
     try:
-        callback_query.answer()
+        safe_callback_answer(callback_query)
     except Exception:
         pass

@@ -2359,4 +2359,50 @@ class Messages(object):
         "<b>После обновления cookies попробуйте снова!</b>"
     )
 
+    # gallery-dl known failures (issues #486, #473, #480)
+    IMG_TWITTER_UNAVAILABLE_MSG = (
+        "🚫 <b>Пост недоступен</b>\n\n"
+        "X/Twitter сообщает, что пост или его медиа недоступны: скорее всего, они удалены, "
+        "скрыты автором или аккаунт заблокирован.\n\n"
+        "<b>URL:</b> <code>{url}</code>\n\n"
+        "Если пост виден вам в браузере (например, контент 18+ или закрытый аккаунт), "
+        "отправьте свои cookies X командой <code>/cookie</code> и попробуйте снова."
+    )
+    IMG_UNSPLASH_BLOCKED_MSG = (
+        "🚫 <b>Unsplash сейчас недоступен</b>\n\n"
+        "Unsplash отклонил анонимный запрос бота (401 Unauthorized). "
+        "Это ограничение на стороне Unsplash, cookies и настройки не помогут.\n\n"
+        "<b>URL:</b> <code>{url}</code>\n\n"
+        "Скачайте изображение напрямую с сайта Unsplash или попробуйте позже."
+    )
+    IMG_CONTENT_NOT_FOUND_MSG = (
+        "🚫 <b>Контент не найден</b>\n\n"
+        "Сайт сообщает, что такого контента нет (404): он удалён или ссылка неверна.\n\n"
+        "<b>URL:</b> <code>{url}</code>"
+    )
+    IMG_RATE_LIMITED_MSG = (
+        "⏳ <b>Временное ограничение запросов</b>\n\n"
+        "Сайт сейчас ограничивает запросы бота. С самим контентом всё может быть в порядке.\n\n"
+        "<b>URL:</b> <code>{url}</code>\n\n"
+        "Попробуйте снова через несколько минут."
+    )
+
+    # Always Ask menu: classified extraction errors (issues #386, #387, #477, #481)
+    ALWAYS_ASK_PREMIERE_PENDING_MSG = "\U0001F3AC <b>Это премьера, которая ещё не началась.</b>\nВернитесь, когда премьера стартует."
+    ALWAYS_ASK_COOKIES_REQUIRED_MSG = "\U0001F36A <b>Сайт требует свежие cookies для доступа к видео.</b>\nЭкспортируйте cookies этого сайта из браузера и отправьте их командой <code>/cookie</code>, затем повторите попытку."
+    ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG = "\U0001F6AB <b>Сайт отклонил запрос (HTTP 4xx).</b>\nСсылка может быть битой, устаревшей или недоступной публично. Проверьте её в браузере или попробуйте другую."
+    ALWAYS_ASK_MENU_EXPIRED_MSG = "⌛ Это меню устарело. Пожалуйста, отправьте ссылку ещё раз."
+
     #######################################################
+
+    # Post-processing failure with the real cause (issue #485): the old text
+    # blamed "invalid characters in the filename" for every ffmpeg failure.
+    FILE_PROCESSING_ERROR_POSTPROCESS_MSG = (
+        "❌ <b>Ошибка обработки файла</b>\n\n"
+        "Видео скачано, но постобработка ffmpeg (склейка/конвертация/ремукс) завершилась ошибкой, "
+        "Исходный поток может быть повреждён или иметь неподдерживаемый формат. "
+        "Попробуйте другое качество/формат или повторите позже.\n\n"
+    )
+
+    # Image-only Pinterest fallback (issue #480)
+    ALWAYS_ASK_PINTEREST_NO_VIDEO_MSG = '<b>В этом Pinterest-пине не найдены видеоформаты.</b> Возможно, в нём только изображения. Используйте <code>/img</code> или кнопку gallery-dl ниже.'

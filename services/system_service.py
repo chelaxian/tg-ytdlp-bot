@@ -652,42 +652,20 @@ def update_engines() -> Dict[str, Any]:
 
 
 def cleanup_user_files() -> Dict[str, Any]:
-    """Удаляет файлы из папок пользователей (кроме системных)."""
-    try:
-        base_dir = Path(__file__).resolve().parent.parent
-        users_dir = getattr(Config, "USERS_DIR", "users")
-        users_path = Path(users_dir)
-        if not users_path.is_absolute():
-            users_path = base_dir / users_path
-        result = subprocess.run(
-            [
-                "/usr/bin/find",
-                str(users_path),
-                "-type", "f",
-                "!", "-name", "lang.txt",
-                "!", "-name", "args.txt",
-                "!", "-name", "keyboard.txt",
-                "!", "-name", "subs.txt",
-                "!", "-name", "subs_auto.txt",
-                "!", "-name", "mediainfo.txt",
-                "!", "-name", "split.txt",
-                "!", "-name", "tags.txt",
-                "!", "-name", "cookie.txt",
-                "!", "-name", "logs.txt",
-                "!", "-name", "format.txt",
-                "-delete",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            check=False,
-        )
-        if result.returncode == 0:
-            return {"status": "ok", "message": "User files cleaned up successfully"}
-        else:
-            return {"status": "error", "message": result.stderr or "Failed to cleanup files"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    """Fail closed: dashboard runs outside the bot's active-task registry.
+
+    A recursive find -delete here removed active .part / split files (#385,
+    #460). Importing the in-memory registry in the dashboard does NOT share
+    the bot's state. Cleanup must run in the bot process with its task locks.
+    """
+    return {
+        "status": "error",
+        "message": (
+            "Manual dashboard cleanup is disabled to protect active downloads. "
+            "Use the bot /clean command; stale download temp directories are "
+            "purged automatically by the bot (default age: 48 hours)."
+        ),
+    }
 
 
 def update_lists() -> Dict[str, Any]:

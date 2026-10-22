@@ -1,3 +1,4 @@
+from HELPERS.atomic_io import atomic_write_json
 # --- Callback Processor ---
 import os
 import hashlib
@@ -9,17 +10,10 @@ from pyrogram.errors import FloodWait
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters, WebAppInfo
 import requests
 
-def safe_callback_answer(callback_query, text, show_alert=False):
-    """Safely answer callback query, handling QueryIdInvalid errors"""
-    try:
-        callback_query.answer(text, show_alert=show_alert)
-    except Exception:
-        pass  # Query ID might be invalid after long operation
-
 from HELPERS.app_instance import get_app
 from HELPERS.decorators import get_main_reply_keyboard, background_handler
 from HELPERS.logger import send_to_logger, logger, send_error_to_user, log_error_to_channel
-from HELPERS.safe_messeger import safe_send_message, safe_delete_messages, safe_edit_message_text
+from HELPERS.safe_messeger import safe_send_message, safe_delete_messages, safe_edit_message_text, safe_callback_answer
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.qualifier import get_quality_by_min_side, get_real_height_for_quality
@@ -417,44 +411,150 @@ def _extract_fail_key(user_id, url):
         return (user_id, url)
 
 
-def _check_extract_cooldown(user_id, url):
-    """Return remaining cooldown seconds if (user_id, url) failed at least
-    EXTRACT_FAIL_THRESHOLD times recently, else 0."""
+# Per-(user, URL) download-failure counter (issues #476, #479). Format
+# extraction can succeed while every download attempt fails (e.g. ffmpeg
+# exit code 1 on one myket.ir URL resent 9 times): a successful extraction
+# clears _RECENT_EXTRACT_FAILS, so terminal download failures are tracked
+# separately and are NOT reset by the next successful extraction. Download
+# code reports them via record_download_fail(); the Always Ask menu consults
+# both counters before re-running extraction.
+_RECENT_DOWNLOAD_FAILS = {}         # {(user_id, norm_url): (fail_ts, fail_count)}
+DOWNLOAD_FAIL_COOLDOWN_SEC = 600    # downloads are slow: wider window than extraction
+
+
+def _fail_cooldown_remaining(store, key, window_sec):
     import time
-    key = _extract_fail_key(user_id, url)
-    entry = _RECENT_EXTRACT_FAILS.get(key)
+    entry = store.get(key)
     if not entry:
         return 0
     fail_ts, fail_count = entry
-    remaining = EXTRACT_FAIL_COOLDOWN_SEC - (time.time() - fail_ts)
+    remaining = window_sec - (time.time() - fail_ts)
     if remaining <= 0:
-        _RECENT_EXTRACT_FAILS.pop(key, None)
+        store.pop(key, None)
         return 0
     if fail_count >= EXTRACT_FAIL_THRESHOLD:
         return int(remaining)
     return 0
 
 
+def _bump_fail_counter(store, key, window_sec):
+    import time
+    now = time.time()
+    entry = store.get(key)
+    if entry and now - entry[0] < window_sec:
+        store[key] = (now, entry[1] + 1)
+    else:
+        store[key] = (now, 1)
+
+
+def _check_extract_cooldown(user_id, url):
+    """Return remaining cooldown seconds if (user_id, url) failed extraction
+    or download at least EXTRACT_FAIL_THRESHOLD times recently, else 0."""
+    key = _extract_fail_key(user_id, url)
+    return max(
+        _fail_cooldown_remaining(_RECENT_EXTRACT_FAILS, key, EXTRACT_FAIL_COOLDOWN_SEC),
+        _fail_cooldown_remaining(_RECENT_DOWNLOAD_FAILS, key, DOWNLOAD_FAIL_COOLDOWN_SEC),
+    )
+
+
 def _record_extract_fail(user_id, url):
     """Record an extraction failure for (user_id, url), incrementing the
     consecutive-failure counter. Counter resets on success or when the
     previous failure is older than the cooldown window."""
-    key = _extract_fail_key(user_id, url)
-    import time
-    now = time.time()
-    entry = _RECENT_EXTRACT_FAILS.get(key)
-    if entry:
-        _prev_ts, prev_count = entry
-        if now - _prev_ts < EXTRACT_FAIL_COOLDOWN_SEC:
-            _RECENT_EXTRACT_FAILS[key] = (now, prev_count + 1)
-            return
-    _RECENT_EXTRACT_FAILS[key] = (now, 1)
+    _bump_fail_counter(_RECENT_EXTRACT_FAILS, _extract_fail_key(user_id, url), EXTRACT_FAIL_COOLDOWN_SEC)
+
+
+def record_download_fail(user_id, url):
+    """Record a terminal download failure for (user_id, url) (issue #476).
+
+    Call once per user request after the whole format/proxy/cookie cascade
+    has failed — not per internal attempt."""
+    _bump_fail_counter(_RECENT_DOWNLOAD_FAILS, _extract_fail_key(user_id, url), DOWNLOAD_FAIL_COOLDOWN_SEC)
+
+
+def clear_download_fail(user_id, url):
+    """Clear the download-failure counter for (user_id, url) after a successful upload."""
+    _RECENT_DOWNLOAD_FAILS.pop(_extract_fail_key(user_id, url), None)
 
 
 def _clear_extract_fail(user_id, url):
     """Clear the extraction-failure cache for (user_id, url) on success."""
     key = _extract_fail_key(user_id, url)
     _RECENT_EXTRACT_FAILS.pop(key, None)
+
+
+# classify_yt_dlp_error() category -> localized Always Ask message key.
+# Several aliases are accepted for the HTTP-4xx / cookie-required categories
+# so the menu keeps working whichever name CONFIG/errors.py settles on.
+_ASK_ERROR_CATEGORY_MESSAGES = {
+    'MEMBERS_ONLY': 'ALWAYS_ASK_MEMBERS_ONLY_MSG',              # issue #352
+    'LIVE_ENDED': 'ALWAYS_ASK_LIVE_ENDED_MSG',                  # issue #354
+    'PREMIERE_PENDING': 'ALWAYS_ASK_PREMIERE_PENDING_MSG',      # issue #387
+    'GEO_RESTRICTED': 'ALWAYS_ASK_GEO_RESTRICTED_MSG',          # issue #359
+    'AGE_RESTRICTED': 'ALWAYS_ASK_AGE_RESTRICTED_MSG',          # issue #360
+    'HTTP_500': 'ALWAYS_ASK_HTTP_500_MSG',                      # issue #356
+    'SIGN_IN_REQUIRED': 'ALWAYS_ASK_SIGN_IN_REQUIRED_MSG',      # issue #440
+    'YT_RATE_LIMITED': 'ALWAYS_ASK_YT_RATE_LIMITED_MSG',        # issue #446
+    'EXTRACTOR_ERROR': 'ALWAYS_ASK_EXTRACTOR_ERROR_MSG',        # issues #328, #484
+    'EMPTY_DOWNLOAD': 'ALWAYS_ASK_EMPTY_DOWNLOAD_MSG',          # issue #403
+    'VIDEO_UNAVAILABLE': 'ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG',    # issues #373, #479
+    'AUTH_REQUIRED': 'ALWAYS_ASK_COOKIES_REQUIRED_MSG',         # issue #386
+    'COOKIES_REQUIRED': 'ALWAYS_ASK_COOKIES_REQUIRED_MSG',
+    'CLIENT_HTTP_ERROR': 'ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG',  # issue #477
+    'HTTP_CLIENT_ERROR': 'ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG',
+    'HTTP_4XX': 'ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG',
+}
+
+# Categories where sending cookies cannot change the outcome: skip the
+# /cookie hint so the user is not sent on a pointless detour.
+_ASK_ERROR_NO_COOKIE_HINT = frozenset({
+    'LIVE_ENDED', 'PREMIERE_PENDING', 'HTTP_500', 'YT_RATE_LIMITED', 'EMPTY_DOWNLOAD',
+    'CLIENT_HTTP_ERROR', 'HTTP_CLIENT_ERROR', 'HTTP_4XX',
+})
+
+# HTTP 401/403 from a generic extractor: the site refuses the request; a
+# cookie may help, so these are reported as "site rejected" + cookie hint.
+_HTTP_AUTH_4XX_RE = re.compile(r'http error 40[13]\b')
+
+
+def _classify_ask_error(error_text, url=None):
+    """Return a semantic category for a yt-dlp/gallery-dl error, or None.
+
+    Primary source is CONFIG.errors.classify_yt_dlp_error(); the shared
+    retryability classifier (HELPERS.ytdlp_errors) fills the gaps for
+    cookie-required, HTTP 4xx and generic permanent-unavailable errors
+    (issues #386, #477, #479, #486)."""
+    if not error_text:
+        return None
+    from CONFIG.errors import classify_yt_dlp_error
+    category = classify_yt_dlp_error(error_text, url)
+    if category:
+        return category
+    from HELPERS import ytdlp_errors
+    retry_cat = ytdlp_errors.classify_retryability(error_text)
+    if retry_cat == ytdlp_errors.AUTH_REQUIRED:
+        return 'AUTH_REQUIRED'
+    if retry_cat == ytdlp_errors.CLIENT_HTTP_ERROR:
+        return 'CLIENT_HTTP_ERROR'
+    if retry_cat == ytdlp_errors.PERMANENT:
+        return 'VIDEO_UNAVAILABLE'
+    low = error_text.lower()
+    if _HTTP_AUTH_4XX_RE.search(low):
+        return 'HTTP_4XX_AUTH'
+    # gallery-dl reports deleted/hidden tweets as "[twitter][error] 'Unavailable'" (issue #486)
+    if "'unavailable'" in low:
+        return 'VIDEO_UNAVAILABLE'
+    return None
+
+
+def _ask_error_message(user_id, category):
+    """Localized user-facing text for a category from _classify_ask_error(), or None."""
+    if category == 'HTTP_4XX_AUTH':
+        return safe_get_messages(user_id).ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG
+    key = _ASK_ERROR_CATEGORY_MESSAGES.get(category)
+    if not key:
+        return None
+    return getattr(safe_get_messages(user_id), key)
 
 def get_filters(user_id):
     f = _ASK_FILTERS.get(str(user_id))
@@ -662,8 +762,7 @@ def save_subs_langs_cache(user_id: int, url: str, normal_langs, auto_langs) -> N
             "normal": list(normal_langs or []),
             "auto": list(auto_langs or []),
         }
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False)
+        atomic_write_json(path, data, ensure_ascii=False)
     except Exception:
         pass
 
@@ -686,7 +785,17 @@ def delete_subs_langs_cache(user_id: int, url: str) -> None:
     except Exception:
         pass
 
+def _is_error_info(info):
+    """True for the {'error': ...} dicts get_video_formats() returns on failure."""
+    return isinstance(info, dict) and bool(info.get('error')) and not info.get('formats') and not info.get('entries')
+
+
 def save_ask_info(user_id, url, info, download_dir=None):
+    # Never cache a failure dict: it would be served as "video info" on the
+    # next open of the menu and render a broken, format-less menu.
+    if _is_error_info(info):
+        logger.debug(f"Not caching extraction error for {url}: {info.get('error')}")
+        return
     try:
         # Use stored download directory if not provided
         if download_dir is None:
@@ -705,8 +814,7 @@ def save_ask_info(user_id, url, info, download_dir=None):
                 "formats": info.get("formats", []),
                 "duration": info.get("duration")
             }
-            with open(download_ask_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(download_ask_file, data, ensure_ascii=False, indent=2)
             logger.info(f"Created ask_formats.json in download directory: {download_ask_file}")
         else:
             # Fallback to user root directory if download directory not available
@@ -721,8 +829,7 @@ def save_ask_info(user_id, url, info, download_dir=None):
                 "formats": info.get("formats", []),
                 "duration": info.get("duration")
             }
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(path, data, ensure_ascii=False, indent=2)
             logger.info(f"Created ask_formats.json in user directory: {path}")
     except Exception as e:
         logger.warning(f"Failed to save ask_formats.json: {e}")
@@ -795,8 +902,7 @@ def save_trim_state(user_id, url, video_duration, original_message_id=None, orig
             "original_chat_id": original_chat_id,  # Save original chat ID
             "timestamp": datetime.now().isoformat()
         }
-        with open(trim_state_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(trim_state_file, data, ensure_ascii=False, indent=2)
         logger.info(f"Saved trim state for user {user_id}, URL: {url}, duration: {video_duration}, message_id: {original_message_id}")
         
         # Also save to in-memory state for quick access
@@ -839,8 +945,7 @@ def clear_trim_state(user_id, url):
                 data = json.load(f)
             if url in data:
                 del data[url]
-                with open(trim_state_file, "w", encoding="utf-8") as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
+                atomic_write_json(trim_state_file, data, ensure_ascii=False, indent=2)
             logger.info(f"Cleared trim state for user {user_id}, URL: {url}")
         # Also clear in-memory state if it matches
         if user_id in trim_input_states and trim_input_states[user_id].get("url") == url:
@@ -876,8 +981,7 @@ def clear_trim_sections_for_url(user_id, url):
                     cleared = True
             
             if cleared:
-                with open(trim_sections_file, "w", encoding="utf-8") as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
+                atomic_write_json(trim_sections_file, data, ensure_ascii=False, indent=2)
                 logger.info(f"Cleared trim sections for user {user_id}, URL: {url}, normalized URLs: {set(normalized_urls)}")
     except Exception as e:
         logger.error(f"Failed to clear trim sections: {e}")
@@ -1411,8 +1515,7 @@ def save_trim_sections(user_id, url, download_sections):
         for normalized_url in set(normalized_urls):
             data[normalized_url] = download_sections
         
-        with open(trim_sections_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(trim_sections_file, data, ensure_ascii=False, indent=2)
         logger.info(f"Saved trim sections for user {user_id}, URL: {url}, normalized URLs: {set(normalized_urls)}, sections: {download_sections}")
     except Exception as e:
         logger.error(f"Failed to save trim sections: {e}")
@@ -1458,8 +1561,7 @@ def load_trim_sections(user_id, url, clear_after_use=False):
                     for normalized_url in set(normalized_urls):
                         if normalized_url in data:
                             del data[normalized_url]
-                    with open(trim_sections_file, "w", encoding="utf-8") as f:
-                        json.dump(data, f, ensure_ascii=False, indent=2)
+                    atomic_write_json(trim_sections_file, data, ensure_ascii=False, indent=2)
                 return sections
     except Exception as e:
         logger.error(f"Failed to load trim sections: {e}")
@@ -1475,7 +1577,8 @@ def load_ask_info(user_id, url):
                 with open(download_cache_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 logger.info(f"Using ask_formats.json from download directory: {download_cache_file}")
-                return data.get(url)
+                cached = data.get(url)
+                return None if _is_error_info(cached) else cached
         
         # Fallback to user root directory
         path = _ask_cache_path(user_id)
@@ -1483,7 +1586,9 @@ def load_ask_info(user_id, url):
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             logger.info(f"Using ask_formats.json from user directory: {path}")
-            return data.get(url)
+            cached = data.get(url)
+            # Error dicts cached by older versions must not mask a fresh extraction
+            return None if _is_error_info(cached) else cached
     except Exception as e:
         logger.warning(f"Failed to load ask_formats.json: {e}")
         return None
@@ -1527,7 +1632,7 @@ def ask_filter_callback(app, callback_query):
                 
             original_message = callback_query.message.reply_to_message
             if not original_message:
-                callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
                 return
             url_text = original_message.text or (original_message.caption or "")
             import re as _re
@@ -1567,7 +1672,7 @@ def ask_filter_callback(app, callback_query):
             
             original_message = callback_query.message.reply_to_message
             if not original_message:
-                callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
                 return
             url_text = original_message.text or (original_message.caption or "")
             import re as _re
@@ -1587,7 +1692,7 @@ def ask_filter_callback(app, callback_query):
                 callback_query.edit_message_reply_markup(reply_markup=kb)
             except Exception:
                 pass
-            callback_query.answer(safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1))
+            safe_callback_answer(callback_query, safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1))
             return
         if kind == "subs" and value in ("back", "close"):
             if value == "back":
@@ -1604,7 +1709,7 @@ def ask_filter_callback(app, callback_query):
                 safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             except Exception:
                 app.edit_message_reply_markup(chat_id=callback_query.message.chat.id, message_id=callback_query.message.id, reply_markup=None)
-            callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         if kind == "subs_lang":
             fstate = get_filters(user_id)
@@ -1700,9 +1805,9 @@ def ask_filter_callback(app, callback_query):
                             pass
                 try:
                     if value == "ALL_DUBS":
-                        callback_query.answer("✅ All dubs subtitles selected")
+                        safe_callback_answer(callback_query, "✅ All dubs subtitles selected")
                     else:
-                        callback_query.answer("Language toggled")
+                        safe_callback_answer(callback_query, "Language toggled")
                 except Exception:
                     pass
             else:
@@ -1726,7 +1831,7 @@ def ask_filter_callback(app, callback_query):
                     # Close subs keyboard and rebuild Always Ask menu with selected lang in summary
                     ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
                 try:
-                    callback_query.answer(safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=value))
+                    safe_callback_answer(callback_query, safe_get_messages(user_id).SUBTITLE_LANGUAGE_SET_MSG.format(value=value))
                 except Exception:
                     pass
             return
@@ -1734,7 +1839,7 @@ def ask_filter_callback(app, callback_query):
         if kind == "dubs" and value == "open":
             original_message = callback_query.message.reply_to_message
             if not original_message:
-                callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
                 return
             url_text = original_message.text or (original_message.caption or "")
             import re as _re
@@ -1743,7 +1848,7 @@ def ask_filter_callback(app, callback_query):
             fstate = get_filters(user_id)
             langs = fstate.get("available_dubs", [])
             if not langs or len(langs) <= 1:
-                callback_query.answer(safe_get_messages(user_id).NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG, show_alert=True)
                 return
             # Check if MKV format is selected
             sel_ext = fstate.get("ext", "mp4")
@@ -1816,7 +1921,7 @@ def ask_filter_callback(app, callback_query):
             except Exception:
                 pass
             try:
-                callback_query.answer(safe_get_messages(user_id).CHOOSE_AUDIO_LANGUAGE_MSG)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).CHOOSE_AUDIO_LANGUAGE_MSG)
             except Exception:
                 pass
             return
@@ -1899,11 +2004,11 @@ def ask_filter_callback(app, callback_query):
                             pass
                 try:
                     if value == "ALL":
-                        callback_query.answer("✅ All audio tracks selected" if fstate.get("audio_all_dubs", False) else "All audio tracks deselected")
+                        safe_callback_answer(callback_query, "✅ All audio tracks selected" if fstate.get("audio_all_dubs", False) else "All audio tracks deselected")
                     elif value == "OFF":
-                        callback_query.answer("All audio tracks deselected")
+                        safe_callback_answer(callback_query, "All audio tracks deselected")
                     else:
-                        callback_query.answer("Language toggled")
+                        safe_callback_answer(callback_query, "Language toggled")
                 except Exception:
                     pass
             else:
@@ -1920,7 +2025,7 @@ def ask_filter_callback(app, callback_query):
                     url = m.group(0) if m else url_text
                     ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
                 try:
-                    callback_query.answer(safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
+                    safe_callback_answer(callback_query, safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
                 except Exception:
                     pass
             return
@@ -1933,7 +2038,7 @@ def ask_filter_callback(app, callback_query):
                 url = m.group(0) if m else url_text
                 ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
             try:
-                callback_query.answer(safe_get_messages(user_id).FILTERS_UPDATED_MSG)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).FILTERS_UPDATED_MSG)
             except Exception:
                 pass
             return
@@ -1967,12 +2072,12 @@ def ask_filter_callback(app, callback_query):
             ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
             # After starting download from menu, we will remove temp subs cache in down_and_up_with_format
             try:
-                callback_query.answer(safe_get_messages(user_id).FILTERS_UPDATED_MSG)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).FILTERS_UPDATED_MSG)
             except Exception:
                 pass
             return
         try:
-            callback_query.answer(safe_get_messages(user_id).FILTERS_UPDATED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).FILTERS_UPDATED_MSG)
         except Exception:
             pass
 
@@ -2440,7 +2545,7 @@ def askq_callback(app, callback_query):
             safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
         except Exception:
             app.edit_message_reply_markup(chat_id=callback_query.message.chat.id, message_id=callback_query.message.id, reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_MENU_CLOSED_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_MENU_CLOSED_MSG)
         return
         
     # Handle LINK button - get direct link with BV+BA/BEST format
@@ -2448,7 +2553,7 @@ def askq_callback(app, callback_query):
         # Get original URL from the reply message
         original_message = callback_query.message.reply_to_message
         if not original_message:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             return
             
         url_text = original_message.text or (original_message.caption or "")
@@ -2457,7 +2562,7 @@ def askq_callback(app, callback_query):
         url = m.group(0) if m else url_text
         
         try:
-            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_GETTING_DIRECT_LINK_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_GETTING_DIRECT_LINK_MSG)
         except Exception:
             pass
         
@@ -2550,7 +2655,7 @@ def askq_callback(app, callback_query):
         # Get original URL from the reply message
         original_message = callback_query.message.reply_to_message
         if not original_message:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             return
             
         url_text = original_message.text or (original_message.caption or "")
@@ -2559,7 +2664,7 @@ def askq_callback(app, callback_query):
         url = m.group(0) if m else url_text
         
         try:
-            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_GETTING_CAPTION_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_GETTING_CAPTION_MSG)
         except Exception:
             pass
         
@@ -2655,7 +2760,7 @@ def askq_callback(app, callback_query):
         # Get original URL from the reply message
         original_message = callback_query.message.reply_to_message
         if not original_message:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             return
             
         url_text = original_message.text or (original_message.caption or "")
@@ -2664,7 +2769,7 @@ def askq_callback(app, callback_query):
         url = m.group(0) if m else url_text
         
         try:
-            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_GETTING_FORMATS_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_GETTING_FORMATS_MSG)
         except Exception:
             pass
         
@@ -2788,7 +2893,7 @@ def askq_callback(app, callback_query):
     if data == "image":
         original_message = callback_query.message.reply_to_message
         if not original_message:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             return
         # ЖЕСТКО: Получаем полный текст сообщения
         url_text = original_message.text or (original_message.caption or "")
@@ -2813,7 +2918,7 @@ def askq_callback(app, callback_query):
             end_range = 1
             logger.info(f"{LoggerMsg.ALWAYS_ASK_FALLBACK_DEBUG_NO_RANGE_FOUND_LOG_MSG}: {url}")
         try:
-            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_STARTING_GALLERY_DL_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_STARTING_GALLERY_DL_MSG)
         except Exception:
             pass
         try:
@@ -2866,18 +2971,18 @@ def askq_callback(app, callback_query):
         # Get original URL from the reply message
         original_message = callback_query.message.reply_to_message
         if not original_message:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             return
             
         url = original_message.text
         if not url:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
             return
             
         # Transform URL
         embed_url = transform_to_embed_url(url)
         if embed_url == url:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_URL_NOT_EMBEDDABLE_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_URL_NOT_EMBEDDABLE_MSG, show_alert=True)
             return
             
         # Send transformed URL
@@ -2908,13 +3013,13 @@ def askq_callback(app, callback_query):
         if kind in ("codec", "ext"):
             # Handle empty callback (fixed format)
             if value == "empty":
-                callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_FORMAT_FIXED_VIA_ARGS_MSG, show_alert=True)
                 return
                 
             # Get original message and URL
             original_message = callback_query.message.reply_to_message
             if not original_message:
-                callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
                 return
             url = original_message.text or (original_message.caption or "")
             # try to extract url
@@ -2929,24 +3034,24 @@ def askq_callback(app, callback_query):
             if kind == "codec":
                 if value not in available_formats["codecs"] and available_formats["codecs"]:
                     # Codec is not available, show warning
-                    callback_query.answer(safe_get_messages(user_id).AA_ERROR_CODEC_NOT_AVAILABLE_MSG.format(codec=value.upper()), show_alert=True)
+                    safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_CODEC_NOT_AVAILABLE_MSG.format(codec=value.upper()), show_alert=True)
                     return
             elif kind == "ext":
                 if value not in available_formats["formats"] and available_formats["formats"]:
                     # Format is not available, show warning
-                    callback_query.answer(safe_get_messages(user_id).AA_ERROR_FORMAT_NOT_AVAILABLE_MSG.format(format=value.upper()), show_alert=True)
+                    safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_FORMAT_NOT_AVAILABLE_MSG.format(format=value.upper()), show_alert=True)
                     return
             
             # Set filter and reopen menu
             set_filter(callback_query.from_user.id, kind, value)
-            callback_query.answer(safe_get_messages(user_id).FILTERS_UPDATED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).FILTERS_UPDATED_MSG)
             ask_quality_menu(app, original_message, url, [], playlist_start_index=1, cb=callback_query)
             return
         if kind == "dubs" and value == "open":
             # Build and show dubs selection menu with flags
             original_message = callback_query.message.reply_to_message
             if not original_message:
-                callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
                 return
             url_text = original_message.text or (original_message.caption or "")
             import re as _re
@@ -2989,7 +3094,7 @@ def askq_callback(app, callback_query):
                 callback_query.edit_message_reply_markup(reply_markup=kb)
             except Exception:
                 pass
-            callback_query.answer(safe_get_messages(user_id).AA_CHOOSE_AUDIO_LANGUAGE_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_CHOOSE_AUDIO_LANGUAGE_MSG)
             return
         # LINK MENU HANDLER REMOVED - now using direct link approach
         if kind == "subs_page":
@@ -3002,7 +3107,7 @@ def askq_callback(app, callback_query):
             
             original_message = callback_query.message.reply_to_message
             if not original_message:
-                callback_query.answer(safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
                 return
             url_text = original_message.text or (original_message.caption or "")
             import re as _re
@@ -3019,7 +3124,7 @@ def askq_callback(app, callback_query):
                 callback_query.edit_message_reply_markup(reply_markup=kb)
             except Exception:
                 pass
-            callback_query.answer(safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1))
+            safe_callback_answer(callback_query, safe_get_messages(user_id).PAGE_NUMBER_MSG.format(page=page + 1))
             return
         if kind == "subs" and value == "back":
             # Go back to main Always Ask menu
@@ -3037,7 +3142,7 @@ def askq_callback(app, callback_query):
                 safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             except Exception:
                 app.edit_message_reply_markup(chat_id=callback_query.message.chat.id, message_id=callback_query.message.id, reply_markup=None)
-            callback_query.answer(safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SUBTITLE_MENU_CLOSED_MSG)
             return
         # OLD LINK TOGGLE HANDLER REMOVED - now using submenu approach
         # subs_lang handler is now at the top of the function (line 688) to handle MKV multiple selection
@@ -3053,7 +3158,7 @@ def askq_callback(app, callback_query):
             return
         if kind == "audio_lang":
             set_filter(callback_query.from_user.id, kind, value)
-            callback_query.answer(safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AUDIO_SET_MSG.format(value=value))
             # Return to main menu with updated summary
             original_message = callback_query.message.reply_to_message
             if original_message:
@@ -3181,7 +3286,7 @@ def askq_callback(app, callback_query):
         # Extract URL and tags to regenerate the original menu
         original_message = callback_query.message.reply_to_message
         if not original_message:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             return
         
@@ -3206,7 +3311,7 @@ def askq_callback(app, callback_query):
             safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             ask_quality_menu(app, original_message, url, tags)
         else:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
             safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
         return
     
@@ -3219,25 +3324,19 @@ def askq_callback(app, callback_query):
         format_id = get_original_data_from_callback("askq|other_id", callback_query.data)
         logger.info(f"Retrieved format_id from callback: '{format_id}' for hash '{format_id_hash}'")
         
-        # If format_id is still a hash, try to get it from the cache
-        if format_id == format_id_hash:
-            logger.warning(f"Format ID is still a hash, trying to get from cache")
-            # Try to get format_id from the cached formats
-            try:
-                user_id = callback_query.from_user.id
-                user_dir = os.path.join("users", str(user_id))
-                cache_file = os.path.join(user_dir, "formats_cache_75170fc2.json")
-                if os.path.exists(cache_file):
-                    import json
-                    with open(cache_file, 'r') as f:
-                        formats = json.load(f)
-                    # Find format by hash or try to use the hash as format_id
-                    format_id = format_id_hash
-                    logger.info(f"Using hash as format_id: {format_id}")
-                else:
-                    logger.error(f"Cache file not found: {cache_file}")
-            except Exception as e:
-                logger.error(f"Error reading cache file: {e}")
+        # Short format IDs (e.g. "137", "hls-1080p") are carried in the
+        # callback data verbatim, so format_id == format_id_hash is the normal
+        # case. The old code treated it as a lookup failure and read a
+        # hard-coded "formats_cache_75170fc2.json" that never exists, logging
+        # "Cache file not found" at ERROR on every Other-menu pick (issue #481).
+        # Only a 16-hex hash from create_safe_callback_data() whose in-memory
+        # mapping is gone (bot restarted after the menu was shown) is a real
+        # miss: ask the user to resend the link instead of downloading a
+        # non-existent format.
+        if format_id == format_id_hash and re.fullmatch(r'[0-9a-f]{16}', format_id or ''):
+            logger.warning(f"Other-menu format hash {format_id} has no mapping (menu created before restart) for user {user_id}")
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_MENU_EXPIRED_MSG, show_alert=True)
+            return
         
         # Delete the menu message immediately to prevent multiple menus
         try:
@@ -3246,13 +3345,13 @@ def askq_callback(app, callback_query):
         except Exception as e:
             logger.warning(f"Failed to delete Other menu message: {e}")
         
-        callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_FORMAT_MSG} {format_id}...")
+        safe_callback_answer(callback_query, f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_FORMAT_MSG} {format_id}...")
         logger.info(f"Starting download process for format_id: {format_id}")
         
         original_message = callback_query.message.reply_to_message
         if not original_message:
             logger.error("Original message not found")
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             return
         
         url = None
@@ -3269,7 +3368,7 @@ def askq_callback(app, callback_query):
         logger.info(f"Extracted URL: {url}")
         if not url:
             logger.error("URL not found in message")
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
             return
         
         # Extract tags from the user's source message
@@ -3293,12 +3392,12 @@ def askq_callback(app, callback_query):
             else:
                 video_count = video_end_with - video_start_with + 1
             # Delete processing message before starting download
-            delete_processing_message(app, user_id, None)
+            delete_processing_message(app, user_id, proc_msg)
             down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=format_id, cookies_already_checked=True, cached_video_info=None, clear_subs_cache_on_start=False)
         else:
             logger.info("Single video, using down_and_up_with_format")
             # Delete processing message before starting download
-            delete_processing_message(app, user_id, None)
+            delete_processing_message(app, user_id, proc_msg)
             # Load trim sections if available
             download_sections = load_trim_sections(user_id, url, clear_after_use=False)
             down_and_up_with_format(app, original_message, url, format_override, tags_text, quality_key=format_id, proc_msg=None, download_sections=download_sections)
@@ -3308,11 +3407,11 @@ def askq_callback(app, callback_query):
     # Handle manual quality selection
     if data.startswith("manual_"):
         quality = data.replace("manual_", "")
-        callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_QUALITY_MSG} {quality}...")
+        safe_callback_answer(callback_query, f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_QUALITY_MSG} {quality}...")
         
         original_message = callback_query.message.reply_to_message
         if not original_message:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_ORIGINAL_NOT_FOUND_MSG, show_alert=True)
             safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             return
         
@@ -3328,7 +3427,7 @@ def askq_callback(app, callback_query):
                 url = url_match.group(0)
         
         if not url:
-            callback_query.answer(safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).AA_ERROR_URL_NOT_FOUND_MSG, show_alert=True)
             safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
             return
         
@@ -3399,7 +3498,7 @@ def askq_callback(app, callback_query):
 
     original_message = callback_query.message.reply_to_message
     if not original_message:
-        callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_DETAILED_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_DETAILED_MSG, show_alert=True)
         safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
         return
 
@@ -3414,7 +3513,7 @@ def askq_callback(app, callback_query):
         if url_match:
             url = url_match.group(0)
     if not url:
-        callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_URL_NOT_FOUND_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_URL_NOT_FOUND_MSG, show_alert=True)
         safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
         return
 
@@ -3513,7 +3612,7 @@ def askq_callback(app, callback_query):
         
         if cached_videos:
             # Reposting cached videos
-            callback_query.answer("🚀 Found in cache! Reposting...", show_alert=False)
+            safe_callback_answer(callback_query, "🚀 Found in cache! Reposting...", show_alert=False)
             try:
                 target_chat_id = getattr(original_message.chat, 'id', user_id)
             except Exception:
@@ -3754,7 +3853,7 @@ def askq_callback(app, callback_query):
                 logger.warning(f"⚠️ [CACHE] Ошибка при проверке кэша для одиночного видео: {e}")
         
         if message_ids:
-            callback_query.answer("🚀 Found in cache! Forwarding instantly...", show_alert=False)
+            safe_callback_answer(callback_query, "🚀 Found in cache! Forwarding instantly...", show_alert=False)
             # found_type = None
             try:
                 try:
@@ -3909,7 +4008,7 @@ def fallback_gallery_dl_callback(app, callback_query):
         logger.info(f"Fallback to gallery-dl requested for user {user_id}: {url} (range: {video_start_with}-{video_end_with})")
         
         # Answer callback query
-        callback_query.answer("🔄 Switching to gallery-dl...")
+        safe_callback_answer(callback_query, "🔄 Switching to gallery-dl...")
         
         # Delete the fallback message after clicking the button
         try:
@@ -3945,7 +4044,7 @@ def fallback_gallery_dl_callback(app, callback_query):
     except Exception as e:
         logger.error(f"Error in fallback_gallery_dl_callback: {e}")
         try:
-            callback_query.answer("❌ Error switching to gallery-dl", show_alert=True)
+            safe_callback_answer(callback_query, "❌ Error switching to gallery-dl", show_alert=True)
         except Exception:
             pass
 
@@ -3962,7 +4061,7 @@ def show_manual_quality_menu(app, callback_query):
     # Extract URL and tags from the callback
     original_message = callback_query.message.reply_to_message
     if not original_message:
-        callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG, show_alert=True)
         callback_query.message.delete()
         return
     
@@ -3978,7 +4077,7 @@ def show_manual_quality_menu(app, callback_query):
             url = url_match.group(0)
     
     if not url:
-        callback_query.answer("❌ Error: URL not found.", show_alert=True)
+        safe_callback_answer(callback_query, "❌ Error: URL not found.", show_alert=True)
         callback_query.message.delete()
         return
     
@@ -4220,7 +4319,7 @@ def show_manual_quality_menu(app, callback_query):
                 callback_query.edit_message_caption(caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
             else:
                 callback_query.edit_message_text(text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
-            callback_query.answer("Меню выбора качества открыто.")
+            safe_callback_answer(callback_query, "Меню выбора качества открыто.")
             return
         except Exception as ee:
             # Если не получилось отредактировать (например, MESSAGE_ID_INVALID) — шлём новое сообщение
@@ -4233,13 +4332,14 @@ def show_manual_quality_menu(app, callback_query):
         app.send_message(chat_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard,
                          reply_parameters=ReplyParameters(message_id=ref_id))
         if callback_query:
-            callback_query.answer("Меню выбора качества открыто.")
+            safe_callback_answer(callback_query, "Меню выбора качества открыто.")
     except Exception as e2:
         logger.error(f"Error showing manual quality menu (fallback): {e2}")
         if callback_query:
-            callback_query.answer("❌ Не удалось открыть меню выбора качества.", show_alert=True)
+            safe_callback_answer(callback_query, "❌ Не удалось открыть меню выбора качества.", show_alert=True)
 
 def show_other_qualities_menu(app, callback_query, page=0):
+    safe_callback_answer(callback_query, "")  # Issue #470: acknowledge before extraction
     messages = safe_get_messages(callback_query.from_user.id)
     """Show all available qualities from yt-dlp -F output with pagination"""
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -4247,19 +4347,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
     
     # Local safe wrapper to avoid noisy QueryIdInvalid when answering twice/late
     def _safe_answer(text, show_alert=False):
-        messages = safe_get_messages(user_id)
-        try:
-            callback_query.answer(text, show_alert=show_alert)
-        except Exception as e:
-            if 'QUERY_ID_INVALID' in str(e).upper():
-                return
-            try:
-                # Some environments provide .MESSAGE_ID_INVALID
-                if 'MESSAGE_ID_INVALID' in str(e).upper():
-                    return
-            except Exception:
-                pass
-            raise
+        safe_callback_answer(callback_query, text, show_alert=show_alert)
     
     # Check if we have cached formats for this URL
     url = None
@@ -4322,7 +4410,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
     # Extract URL from the callback
     original_message = callback_query.message.reply_to_message
     if not original_message:
-        callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_ERROR_ORIGINAL_MESSAGE_NOT_FOUND_MSG, show_alert=True)
         callback_query.message.delete()
         return
     
@@ -4338,7 +4426,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
             url = url_match.group(0)
     
     if not url:
-        callback_query.answer("❌ Error: URL not found.", show_alert=True)
+        safe_callback_answer(callback_query, "❌ Error: URL not found.", show_alert=True)
         callback_query.message.delete()
         return
     
@@ -4731,7 +4819,7 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
             callback_query.edit_message_caption(caption=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
         else:
             callback_query.edit_message_text(text=cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard)
-        callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG} {page + 1}/{total_pages} {safe_get_messages(user_id).ALWAYS_ASK_FROM_CACHE_MSG}")
+        safe_callback_answer(callback_query, f"{safe_get_messages(user_id).ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG} {page + 1}/{total_pages} {safe_get_messages(user_id).ALWAYS_ASK_FROM_CACHE_MSG}")
     except Exception as e:
         # Fallback: send new message
         try:
@@ -4739,10 +4827,10 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
             ref_id = callback_query.message.reply_to_message.id if callback_query.message.reply_to_message else None
             app.send_message(chat_id, cap, parse_mode=enums.ParseMode.HTML, reply_markup=keyboard,
                            reply_parameters=ReplyParameters(message_id=ref_id) if ref_id else None)
-            callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG} {page + 1}/{total_pages} {safe_get_messages(user_id).ALWAYS_ASK_FROM_CACHE_MSG}")
+            safe_callback_answer(callback_query, f"{safe_get_messages(user_id).ALWAYS_ASK_FORMATS_PAGE_FROM_CACHE_MSG} {page + 1}/{total_pages} {safe_get_messages(user_id).ALWAYS_ASK_FROM_CACHE_MSG}")
         except Exception as e2:
             logger.error(f"Error showing cached formats: {e2}")
-            callback_query.answer("❌ Error showing formats menu", show_alert=True)
+            safe_callback_answer(callback_query, "❌ Error showing formats menu", show_alert=True)
 
 # --- Always ask processing ---
 def sort_quality_key(quality_key):
@@ -5073,7 +5161,17 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
 
 # @reply_with_keyboard
 def delete_processing_message(app, user_id, proc_msg):
-    """Delete processing message if it exists"""
+    """Delete processing message if it exists.
+
+    proc_msg is legitimately absent in most callback flows (issue #474): the
+    "Processing..." message is already removed when the quality menu is
+    rendered, delete_processing_message() runs several times per download
+    (callback handler, then down_and_up_with_format) and clears the cache on
+    the first call, some callers pass None explicitly, and the in-memory cache
+    is empty after a bot restart. Fall back to the per-user cache and treat
+    "nothing to delete" as a normal no-op."""
+    if proc_msg is None:
+        proc_msg = get_user_proc_msg(user_id)
     if proc_msg:
         try:
 
@@ -5081,12 +5179,13 @@ def delete_processing_message(app, user_id, proc_msg):
             from HELPERS.safe_messeger import safe_delete_messages
             safe_delete_messages(chat_id=user_id, message_ids=[proc_msg.id], revoke=True)
             logger.info(f"Successfully deleted processing message {proc_msg.id}")
-            # Clear from cache after successful deletion
-            clear_user_proc_msg(user_id)
+            # Do not clear a newer session's processing message (issue #474).
+            if get_user_proc_msg(user_id) is proc_msg:
+                clear_user_proc_msg(user_id)
         except Exception as e:
             logger.warning(f"Failed to delete processing message: {e}")
     else:
-        logger.warning(f"proc_msg is None for user {user_id}, cannot delete processing message")
+        logger.debug(f"No processing message to delete for user {user_id} (already removed)")
 
 def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, download_dir=None, original_message_id=None):
     """Show quality selection menu for video"""
@@ -5108,7 +5207,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         messages = safe_get_messages(message.chat.id)
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     user_id = message.chat.id
-    
+    if cb is not None:
+        safe_callback_answer(cb, "")  # Issue #470: acknowledge before extraction
+
     # Per-URL extraction-failure cooldown (issue #445): if this user just tried
     # this URL and it failed extraction, short-circuit with a "recently tried"
     # message instead of re-running the expensive yt-dlp extraction. This breaks
@@ -5306,8 +5407,15 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             try:
                 info = get_video_formats(url, user_id, playlist_start_index, cookies_already_checked=True, playlist_end_index=playlist_end_index)
                 logger.info(f"✅ [DEBUG] get_video_formats выполнен успешно")
-                # Clear per-URL extraction-failure cache on success (issue #445)
-                _clear_extract_fail(user_id, url)
+                # Clear per-URL extraction-failure cache on success (issue #445).
+                # get_video_formats() reports most failures as an {'error': ...}
+                # dict instead of raising; clearing on those reset the counter
+                # right before _record_extract_fail() below, so it never got
+                # past 1 and the cooldown never engaged (issues #476, #479).
+                if info and not _is_error_info(info):
+                    _clear_extract_fail(user_id, url)
+                if not info:
+                    raise ValueError("No video information returned by extractor")
                 logger.info(f"   info type: {type(info)}")
                 if isinstance(info, dict):
                     logger.info(f"   info keys: {list(info.keys())}")
@@ -5316,10 +5424,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     if 'formats' in info:
                         logger.info(f"   formats count: {len(info.get('formats', []))}")
             except Exception as e:
-                logger.error(f"❌ [DEBUG] Ошибка в get_video_formats: {e}")
-                logger.error(f"   Тип ошибки: {type(e)}")
-                logger.error(f"   Строка ошибки: {str(e)}")
-                raise e
+                # Re-raised to the outer handler, which classifies and logs it
+                # once at the right level; avoid three extra ERROR lines here.
+                logger.debug(f"get_video_formats raised {type(e).__name__}: {e}")
+                raise
             
             # Check for live stream detection (only if detection is enabled)
             if isinstance(info, dict) and info.get('error') == 'LIVE_STREAM_DETECTED':
@@ -5335,13 +5443,17 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         "• You can see the final video length</blockquote>\n\n"
                         "Once the stream is completed, you'll be able to download it as a regular video."
                     )
+                    _record_extract_fail(user_id, url)  # Issue #445: terminal extraction outcome
                     send_error_to_user(message, live_stream_message)
                     return
             
             # Check for TikTok private account error
             if isinstance(info, dict) and info.get('error') == 'TIKTOK_PRIVATE_ACCOUNT':
                 logger.info(f"TikTok private account detected in ask_quality_menu for user {user_id}: {url}")
-                
+                # Deterministic until the user sends cookies: count it for the
+                # per-URL cooldown like other terminal failures (issue #445).
+                _record_extract_fail(user_id, url)
+
                 # Extract username from TikTok URL
                 import re
                 username_match = re.search(r'tiktok\.com/@([^/?]+)', url)
@@ -5384,9 +5496,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     range_info = ""
                     range_examples = ""
                 
+                # Issue #480: image-only pins are a normal gallery-dl use case.
+                # Raw extractor errors belong in logs, not the fallback menu.
+                logger.info(f"Gallery-dl recommendation for {url}: {original_error}")
+                _fallback_intro = _ask_error_message(user_id, _classify_ask_error(original_error, url))
+                if '[pinterest]' in original_error.lower() and 'no video formats found' in original_error.lower():
+                    _fallback_intro = safe_get_messages(user_id).ALWAYS_ASK_PINTEREST_NO_VIDEO_MSG
+                if not _fallback_intro:
+                    _fallback_intro = f"{safe_get_messages(user_id).ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG}{range_info}</b>"
                 fallback_message = (
-                    f"{safe_get_messages(user_id).ALWAYS_ASK_YTDLP_CANNOT_PROCESS_MSG}{range_info}</b>\n\n"
-                    f"<b>Error:</b> <code>{original_error[:200]}{'...' if len(original_error) > 200 else ''}</code>\n\n"
+                    f"{_fallback_intro}\n\n"
                     f"{safe_get_messages(user_id).ALWAYS_ASK_SYSTEM_RECOMMENDS_GALLERY_DL_MSG}\n\n"
                     f"{safe_get_messages(user_id).ALWAYS_ASK_OPTIONS_MSG}\n"
                     f"{range_examples}"
@@ -5451,34 +5570,36 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 logger.warning(f"ask_quality_menu: get_video_formats returned {_ask_err_kind} for {url}")
                 # Record extraction failure for per-URL cooldown (issue #445)
                 _record_extract_fail(user_id, url)
+                _ask_err_cat = None
+                _ask_err_preformatted = False
                 if _ask_err_kind == 'PERMANENT_UNAVAILABLE':
-                    # Use classify_yt_dlp_error on the original error text for a more
-                    # specific user-facing message when available (issues #436, #394, #440).
+                    # Map the original error text to a specific user-facing
+                    # message (issues #352 members-only, #360 age, #359 geo,
+                    # #386 cookies required, #436/#394/#440 sign-in, #477 HTTP
+                    # 4xx, #484 extractor). Those messages carry their own
+                    # emoji/markup, so they are sent as-is.
                     _orig_err = info.get('original_error') or ''
-                    from CONFIG.errors import classify_yt_dlp_error
-                    _perm_cat = classify_yt_dlp_error(_orig_err, url)
-                    if _perm_cat == 'SIGN_IN_REQUIRED':
-                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_SIGN_IN_REQUIRED_MSG
-                    elif _perm_cat == 'EXTRACTOR_ERROR':
-                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
-                    elif _perm_cat == 'VIDEO_UNAVAILABLE':
-                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG
+                    _ask_err_cat = _classify_ask_error(_orig_err, url)
+                    _ask_err_text = _ask_error_message(user_id, _ask_err_cat)
+                    # The playlist-specific wording is only accurate for
+                    # playlist URLs; single videos (youtu.be/<id>, /live/,
+                    # m.youtube.com/watch?v=, Instagram reels) that fail
+                    # with a permanent error used to be shown "No videos
+                    # found in playlist" which misled users (issue #389).
+                    _looks_like_playlist = False
+                    try:
+                        from URL_PARSERS.playlist_utils import is_playlist_url as _is_pl
+                        _looks_like_playlist = _is_pl(url)
+                    except Exception:
+                        _looks_like_playlist = ('list=' in url.lower()) or ('/playlist' in url.lower())
+                    if _looks_like_playlist and _ask_err_cat in (None, 'VIDEO_UNAVAILABLE'):
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
+                    elif _ask_err_text:
+                        _ask_err_preformatted = True
                     else:
-                        # The playlist-specific wording is only accurate for
-                        # playlist URLs; single videos (youtu.be/<id>, /live/,
-                        # m.youtube.com/watch?v=, Instagram reels) that fail
-                        # with a permanent error used to be shown "No videos
-                        # found in playlist" which misled users (issue #389).
-                        _looks_like_playlist = False
-                        try:
-                            from URL_PARSERS.playlist_utils import is_playlist_url as _is_pl
-                            _looks_like_playlist = _is_pl(url)
-                        except Exception:
-                            _looks_like_playlist = ('list=' in url.lower()) or ('/playlist' in url.lower())
-                        if _looks_like_playlist:
-                            _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG
-                        else:
-                            _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG
+                        _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG
+                        _ask_err_preformatted = True
+                    logger.info(f"ask_quality_menu: permanent error category={_ask_err_cat} for {url}")
                 elif _ask_err_kind == 'RATE_LIMITED':
                     # Distinguish YouTube "try again later" (issue #446) from a
                     # generic 429/rate-limit for a more accurate message.
@@ -5490,7 +5611,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_PLEASE_TRY_AGAIN_LATER_MSG
                 else:
                     _ask_err_text = safe_get_messages(user_id).ALWAYS_ASK_UNSUPPORTED_URL_MSG
-                send_error_to_user(message, f"❌ <b>{_ask_err_text}</b>")
+                send_error_to_user(message, _ask_err_text if _ask_err_preformatted else f"❌ <b>{_ask_err_text}</b>")
                 if _ask_err_kind == 'UNSUPPORTED_URL':
                     try:
                         safe_send_message(user_id, safe_get_messages(user_id).ERROR_CHECK_SUPPORTED_SITES_MSG, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
@@ -5498,7 +5619,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         logger.warning(f"Failed to send supported-sites hint: {_hint_err}")
                 # If videos in a playlist are unavailable (private/age/deleted) the
                 # playlist itself may still exist and a cookie can grant access (issue #357).
-                if _ask_err_kind == 'PERMANENT_UNAVAILABLE':
+                # Skip the hint where cookies cannot help (premiere, HTTP 4xx, ...).
+                if _ask_err_kind == 'PERMANENT_UNAVAILABLE' and _ask_err_cat not in _ASK_ERROR_NO_COOKIE_HINT:
                     try:
                         safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
                     except Exception as _cookie_hint_err:
@@ -5515,6 +5637,18 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 # Record extraction failure for per-URL cooldown (issue #445)
                 _record_extract_fail(user_id, url)
                 send_error_to_user(message, f"❌ <b>{safe_get_messages(user_id).ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG}</b>")
+                return
+
+            # Any other failure dict (e.g. "Failed to extract video information
+            # with all available proxies" after the proxy chain gave up) used to
+            # be cached by save_ask_info() and rendered as a format-less menu,
+            # without counting towards the per-URL cooldown (issues #445, #476).
+            if _is_error_info(info):
+                _other_err = str(info.get('original_error') or info.get('error'))
+                logger.warning(f"ask_quality_menu: get_video_formats failed for {url}: {_other_err[:200]}")
+                _record_extract_fail(user_id, url)
+                _other_text = _ask_error_message(user_id, _classify_ask_error(_other_err, url))
+                send_error_to_user(message, _other_text or f"❌ <b>{safe_get_messages(user_id).ALWAYS_ASK_ERROR_GETTING_AVAILABLE_FORMATS_MSG}</b>")
                 return
 
             # Save minimal info to cache
@@ -7221,10 +7355,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         else:
             # Fallback: send new message
             if proc_msg:
-                try:
-                    safe_delete_messages(chat_id=user_id, message_ids=[proc_msg.id])
-                except Exception:
-                    pass
+                # Also drops it from the per-user cache so later callbacks do
+                # not try to delete an already-removed message (issue #474).
+                delete_processing_message(app, user_id, proc_msg)
                 proc_msg = None
             # Try to send with keyboard first
             try:
@@ -7282,8 +7415,20 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         return
     except Exception as e:
         import traceback
-        logger.error(f"Error retrieving video information for user {user_id}: {str(e)}")
-        logger.error(f"Full traceback:\n{traceback.format_exc()}")
+        # Must exist before any branch reads it: it was only assigned inside the
+        # gallery-dl fallback, so the cookie-hint check after a successful edit
+        # raised UnboundLocalError -> logged "Error editing processing message",
+        # sent the error to the user a second time and logged it twice.
+        _gallery_dl_fallback_error = None
+        # Recognised source-side failures (members-only, age gate, extractor
+        # broken, HTTP 4xx, ...) are expected outcomes, not bot bugs: log them
+        # once at WARNING without a traceback (issues #352, #360, #328, #484).
+        _err_category = _classify_ask_error(str(e), url)
+        if _err_category:
+            logger.warning(f"Error retrieving video information for user {user_id} [{_err_category}]: {str(e)}")
+        else:
+            logger.error(f"Error retrieving video information for user {user_id}: {str(e)}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
         # ГЛОБАЛЬНАЯ ЗАЩИТА: messages уже инициализирована в начале функции
         # Если по какой-то причине она не инициализирована, используем safe_get_messages
         if 'messages' not in locals():
@@ -7427,53 +7572,51 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         )
         
         # Override the generic message with a specific, actionable one when the
-        # yt-dlp error is recognisable (issues #352, #354, #356, #359, #360).
-        # The detailed_error above is still used for the LOG channel; only the
-        # user-facing text changes. Cookie hint keeps appending for cookie-fixable
-        # categories (members/geo/age) via the existing is_cookie_error() check.
-        from CONFIG.errors import classify_yt_dlp_error
-        _err_category = classify_yt_dlp_error(str(e), url)
-        if _err_category == "MEMBERS_ONLY":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_MEMBERS_ONLY_MSG
-        elif _err_category == "LIVE_ENDED":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_LIVE_ENDED_MSG
-        elif _err_category == "GEO_RESTRICTED":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_GEO_RESTRICTED_MSG
-        elif _err_category == "AGE_RESTRICTED":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_AGE_RESTRICTED_MSG
-        elif _err_category == "HTTP_500":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_HTTP_500_MSG
-        elif _err_category == "SIGN_IN_REQUIRED":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_SIGN_IN_REQUIRED_MSG
-        elif _err_category == "YT_RATE_LIMITED":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_YT_RATE_LIMITED_MSG
-        elif _err_category == "EXTRACTOR_ERROR":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_EXTRACTOR_ERROR_MSG
-        elif _err_category == "EMPTY_DOWNLOAD":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_EMPTY_DOWNLOAD_MSG
-        elif _err_category == "VIDEO_UNAVAILABLE":
-            error_text = safe_get_messages(user_id).ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG
-        
+        # error is recognisable (issues #352, #354, #356, #359, #360, #386,
+        # #477, #484, #486). The raw error stays in logs only; the user gets
+        # the localized explanation. A gallery-dl fallback error is classified
+        # too when yt-dlp's own error was not recognised (twitter 'Unavailable').
+        if not _err_category and _gallery_dl_fallback_error:
+            _err_category = _classify_ask_error(_gallery_dl_fallback_error, url)
+        _classified_text = _ask_error_message(user_id, _err_category)
+        if _classified_text:
+            error_text = _classified_text
+        _menu_error_log = safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error)
+        # Plain copy for the closures below: the except-variable is unbound at block end
+        _menu_err_str = str(e)
+
+        def _report_menu_error():
+            # Classified failures are source-side outcomes (paywall, age gate,
+            # broken extractor, dead link) and go to the general log channel;
+            # LOG_EXCEPTION stays reserved for unexpected errors.
+            if _err_category:
+                send_to_logger(message, f"[{_err_category}] {_menu_error_log}")
+            else:
+                log_error_to_channel(message, _menu_error_log, url)
+
+        def _send_cookie_hint_if_useful(path_label):
+            from CONFIG.errors import is_cookie_error
+            if _err_category in _ASK_ERROR_NO_COOKIE_HINT:
+                return
+            _combined_errors = f"{_menu_err_str} {_gallery_dl_fallback_error or ''}"
+            if is_cookie_error(_combined_errors):
+                try:
+                    safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                    logger.info(f"Sent cookie hint to user {user_id} after cookie-related error ({path_label})")
+                except Exception as _cookie_hint_err:
+                    logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
+
         # Try to edit the processing message to show error first
         try:
             if proc_msg:
                 result = app.edit_message_text(chat_id=user_id, message_id=proc_msg.id, text=error_text, parse_mode=enums.ParseMode.HTML)
                 if result is not None:
-                    # Successfully edited the processing message, now log to channel (with full error text)
-                    log_error_to_channel(
-                        message,
-                        safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
-                        url,
-                    )
-                    # Send cookie hint if this is a cookie/authentication error
-                    from CONFIG.errors import is_cookie_error
-                    _combined_errors = str(e) + " " + (_gallery_dl_fallback_error or "")
-                    if is_cookie_error(_combined_errors):
-                        try:
-                            safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
-                            logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu)")
-                        except Exception as _cookie_hint_err:
-                            logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
+                    # The processing message now shows the error: drop it from
+                    # the per-user cache so it is not deleted later (issue #474).
+                    if get_user_proc_msg(user_id) is proc_msg:
+                        clear_user_proc_msg(user_id)
+                    _report_menu_error()
+                    _send_cookie_hint_if_useful("always_ask_menu")
                     return
         except Exception as e2:
             # MESSAGE_ID_INVALID means the user deleted the processing message
@@ -7484,26 +7627,16 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                 logger.debug(f"Processing message {getattr(proc_msg, 'id', '?')} was deleted by user {user_id}; skipping edit (issue #453)")
             else:
                 logger.error(f"Error editing processing message: {e2}")
-        
+
         # If editing failed or no proc_msg, send new message to user
-        # В лог пишем подробную ошибку, чтобы в LOG_EXCEPTION был понятный стек
-        logger.error(f"Always Ask menu error for user {user_id}: {detailed_error}")
+        if _err_category:
+            logger.info(f"Always Ask menu error for user {user_id} [{_err_category}]: {detailed_error}")
+        else:
+            # В лог пишем подробную ошибку, чтобы в LOG_EXCEPTION был понятный стек
+            logger.error(f"Always Ask menu error for user {user_id}: {detailed_error}")
         safe_send_message(user_id, error_text, parse_mode=enums.ParseMode.HTML, message=message)
-        # В канал логирования тоже отправляем полное описание исключения
-        log_error_to_channel(
-            message,
-            safe_get_messages(user_id).ALWAYS_ASK_MENU_ERROR_LOG_MSG.format(url=url, error=detailed_error),
-            url,
-        )
-        # Send cookie hint if this is a cookie/authentication error
-        from CONFIG.errors import is_cookie_error
-        _combined_errors = str(e) + " " + (_gallery_dl_fallback_error if '_gallery_dl_fallback_error' in dir() else "")
-        if is_cookie_error(_combined_errors):
-            try:
-                safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
-                logger.info(f"Sent cookie hint to user {user_id} after cookie-related error (always_ask_menu fallback path)")
-            except Exception as _cookie_hint_err:
-                logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
+        _report_menu_error()
+        _send_cookie_hint_if_useful("always_ask_menu fallback path")
         return
 
 def askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs, proc_msg=None):
@@ -7515,7 +7648,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     if get_link_mode(user_id):
         # Get direct link instead of downloading
         try:
-            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_GETTING_DIRECT_LINK_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_GETTING_DIRECT_LINK_MSG)
         except Exception:
             pass
         
@@ -7611,7 +7744,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         pass
     if data == "mp3":
         try:
-            callback_query.answer("🎧 Downloading audio...")
+            safe_callback_answer(callback_query, "🎧 Downloading audio...")
         except Exception:
             pass
         # Extract playlist parameters from the original message
@@ -7633,7 +7766,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     if data == "subs_only":
         try:
-            callback_query.answer("💬 Downloading subtitles only...")
+            safe_callback_answer(callback_query, "💬 Downloading subtitles only...")
         except Exception:
             pass
         
@@ -7684,7 +7817,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     
     if data == "trim":
         try:
-            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_TRIM_BUTTON_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_TRIM_BUTTON_MSG)
         except Exception:
             pass
         
@@ -7759,7 +7892,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
     # Logic for forming the format with the real height
     if data == "best":
         try:
-            callback_query.answer(safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_BEST_QUALITY_MSG)
         except Exception:
             pass
         # Use format with AVC codec and MP4 container priority for {safe_get_messages(user_id).ALWAYS_ASK_BEST_BUTTON_MSG} quality
@@ -7890,11 +8023,11 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
             
             quality_key = data
             try:
-                callback_query.answer(f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_QUALITY_MSG} {data}...")
+                safe_callback_answer(callback_query, f"{safe_get_messages(user_id).ALWAYS_ASK_DOWNLOADING_QUALITY_MSG} {data}...")
             except Exception:
                 pass
         except ValueError:
-            callback_query.answer("Unknown quality.")
+            safe_callback_answer(callback_query, "Unknown quality.")
             return
     
     # Delete processing message before starting download
@@ -8186,8 +8319,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
             "qualities": sorted(list(quality_map.keys()), key=sort_quality_key)
         }
         import json as _json
-        with open(qfile, "w", encoding="utf-8") as f:
-            f.write(_json.dumps(payload, ensure_ascii=False, indent=2))
+        atomic_write_json(qfile, payload, ensure_ascii=False, indent=2)
     except Exception as e:
         logger.warning(f"Failed to save available_qualities.txt: {e}")
 

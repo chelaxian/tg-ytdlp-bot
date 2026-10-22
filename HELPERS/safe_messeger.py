@@ -9,7 +9,10 @@ import inspect
 from types import SimpleNamespace
 from HELPERS.app_instance import get_app
 from CONFIG.messages import Messages, safe_get_messages
-from pyrogram.errors import FloodWait
+from pyrogram.errors import (
+    FloodWait, QueryIdInvalid, PeerIdInvalid, UserIsBlocked,
+    InputUserDeactivated, ChatWriteForbidden, ChannelPrivate, RPCError,
+)
 import os
 from pyrogram.types import ReplyParameters
 from pyrogram import enums
@@ -30,6 +33,54 @@ _MSG_TS_CLEANUP_INTERVAL = 300  # Every 5 minutes
 # Module-level storage for last edit timestamps per chat (throttle edits in groups)
 _last_edit_ts_per_chat = {}
 _last_edit_cleanup_ts = 0
+
+# Permanent "chat unreachable" RPC errors (issue #472): the user blocked the
+# bot, deleted the account, never started a dialog (peer unknown) or the bot
+# lost write access. Retrying the same request can never succeed.
+_PERMANENT_PEER_ERRORS = (
+    PeerIdInvalid, UserIsBlocked, InputUserDeactivated, ChatWriteForbidden, ChannelPrivate,
+)
+# Log an unreachable chat at WARNING once per window, then at DEBUG, so one
+# blocked user does not flood the log with identical lines.
+_UNREACHABLE_LOG_WINDOW_SEC = 600
+_unreachable_logged = {}  # {chat_id: last_warning_ts}
+
+
+def _log_unreachable_chat(chat_id, action, error):
+    now = time.time()
+    last = _unreachable_logged.get(chat_id, 0)
+    if now - last >= _UNREACHABLE_LOG_WINDOW_SEC:
+        _unreachable_logged[chat_id] = now
+        if len(_unreachable_logged) > 5000:
+            cutoff = now - _UNREACHABLE_LOG_WINDOW_SEC
+            for cid in [c for c, ts in _unreachable_logged.items() if ts < cutoff]:
+                _unreachable_logged.pop(cid, None)
+        logger.warning(f"Chat {chat_id} is unreachable, {action} skipped without retries: {error}")
+    else:
+        logger.debug(f"Chat {chat_id} is still unreachable, {action} skipped: {error}")
+
+
+def safe_callback_answer(callback_query, text=None, **kwargs):
+    """Answer a callback, ignoring only expiration (issue #470).
+
+    Preserve the sync/async return convention of Pyrogram. Other RPC errors
+    propagate unchanged so callers do not hide real Telegram failures.
+    """
+    try:
+        result = callback_query.answer(text, **kwargs)
+    except QueryIdInvalid:
+        logger.debug("Callback query expired before answer (QUERY_ID_INVALID)")
+        return False
+    if inspect.isawaitable(result):
+        async def _await_answer():
+            try:
+                return await result
+            except QueryIdInvalid:
+                logger.debug("Callback query expired before answer (QUERY_ID_INVALID)")
+                return False
+        return _await_answer()
+    return result
+
 
 # Get app instance dynamically to avoid None issues
 def get_app_safe():
@@ -372,14 +423,18 @@ def safe_send_message(chat_id, text, **kwargs):
             logger.warning(f"Flood wait detected ({e.value}s) while sending message to {chat_id}")
             try:
                 if cb is not None:
-                    cb.answer(notice or safe_get_messages(user_id).HELPER_FLOOD_LIMIT_TRY_LATER_MSG, show_alert=False)
-            except Exception:
-                pass
+                    safe_callback_answer(cb, notice or safe_get_messages(user_id).HELPER_FLOOD_LIMIT_TRY_LATER_MSG, show_alert=False)
+            except RPCError as cb_err:
+                logger.debug(f"Could not answer callback with flood notice for {chat_id}: {cb_err}")
+            return None
+        except _PERMANENT_PEER_ERRORS as e:
+            # Issue #472: the chat is unreachable — retrying cannot help.
+            _log_unreachable_chat(chat_id, "send_message", e)
             return None
         except Exception as e:
             if _should_retry(e, user_id, retry_delay) and attempt < max_retries - 1:
                 continue
-            logger.error(f"Failed to send message after {max_retries} attempts: {e}")
+            logger.error(f"Failed to send message to {chat_id} (attempt {attempt + 1}/{max_retries}): {e}")
             return None
 
 # Helper function for safe message forwarding with flood wait handling
@@ -414,10 +469,14 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
             _write_flood_wait_file(chat_id, e.value)
             logger.warning(f"Flood wait detected ({e.value}s) while forwarding messages to {chat_id}")
             return None
+        except _PERMANENT_PEER_ERRORS as e:
+            # Issue #472: the chat is unreachable — retrying cannot help.
+            _log_unreachable_chat(chat_id, "forward_messages", e)
+            return None
         except Exception as e:
             if _should_retry(e, user_id, retry_delay) and attempt < max_retries - 1:
                 continue
-            logger.error(f"Failed to forward messages after {max_retries} attempts: {e}")
+            logger.error(f"Failed to forward messages to {chat_id} (attempt {attempt + 1}/{max_retries}): {e}")
             return None
 
 # Helper function for safely editing message text with flood wait handling

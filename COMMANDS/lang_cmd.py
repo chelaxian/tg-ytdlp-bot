@@ -1,3 +1,4 @@
+from HELPERS.safe_messeger import safe_callback_answer
 """
 Language Selection Command
 Handles /lang command for user language selection
@@ -316,7 +317,7 @@ def lang_callback_handler(update, context):
             if '{lang_name}' in confirmation_msg:
                 confirmation_msg = confirmation_msg.format(lang_name=lang_name)
             
-            query.answer(confirmation_msg)
+            safe_callback_answer(query, confirmation_msg)
             query.edit_message_text(
                 confirmation_msg,
                 parse_mode='HTML'
@@ -325,12 +326,12 @@ def lang_callback_handler(update, context):
             error_msg = getattr(messages, 'LANG_ERROR_MSG', 
                 "❌ Error changing language"
             )
-            query.answer(error_msg)
+            safe_callback_answer(query, error_msg)
             
     elif query.data == 'lang_close':
         # Close language selection
         close_msg = getattr(messages, 'LANG_CLOSED_MSG', "Language selection closed")
-        query.answer(close_msg)
+        safe_callback_answer(query, close_msg)
         query.edit_message_text(close_msg)
 
 def register_lang_handlers(application):

@@ -493,9 +493,9 @@ def merge_working_proxies_to_proxy_file(
         all_entries.append((p["type"], line_fmt))
     # Save geo cache (values as lists for JSON)
     try:
-        os.makedirs(os.path.dirname(geo_cache_path) or ".", exist_ok=True)
-        with open(geo_cache_path, "w", encoding="utf-8") as f:
-            json.dump(geo_cache, f, ensure_ascii=False)
+        # Atomic write so a concurrent reader never sees a torn file (issue #316)
+        from HELPERS.atomic_io import atomic_write_json
+        atomic_write_json(geo_cache_path, geo_cache, ensure_ascii=False)
     except Exception as e:
         logger.debug(f"merge_working_proxies: write geo cache: {e}")
     # Read proxy.txt: keep only lines before the first "online" block (manual proxies/headers)

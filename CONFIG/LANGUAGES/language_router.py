@@ -7,6 +7,7 @@ import os
 import sys
 import ast
 import logging
+import threading
 from typing import Dict, Any, Optional
 
 # Setup logger
@@ -49,6 +50,9 @@ class LanguageRouter:
         }
         self.default_language = 'en'
         self._cached_messages = {}
+        # Последовательная первая загрузка: все обработчики получают один
+        # полностью заполненный словарь локали (#482).
+        self._load_lock = threading.RLock()
         
     def get_user_language(self, user_id) -> str:
         """
@@ -92,10 +96,9 @@ class LanguageRouter:
             with open(lang_file, 'w', encoding='utf-8') as f:
                 f.write(language_code)
             
-            # Clear cache for this user to force reload with new language
-            if language_code in self._cached_messages:
-                del self._cached_messages[language_code]
-            
+            # Cached per-language dicts are user-independent, so there is
+            # nothing to invalidate here (dropping them only forced a racy
+            # re-import for every other user of that language, issue #482).
             return True
         except Exception as e:
             logger.error(f"Error saving user language for {user_id}: {e}")
@@ -109,10 +112,19 @@ class LanguageRouter:
         if language_code is None:
             language_code = self.default_language
             
-        # Check if already cached
-        if language_code in self._cached_messages:
-            return self._cached_messages[language_code]
-        
+        # Check if already cached (lock-free fast path)
+        cached = self._cached_messages.get(language_code)
+        if cached is not None:
+            return cached
+
+        with self._load_lock:
+            cached = self._cached_messages.get(language_code)
+            if cached is not None:
+                return cached
+            return self._load_messages_locked(language_code)
+
+    def _load_messages_locked(self, language_code: str) -> Dict[str, Any]:
+        """Load and cache one language; caller holds self._load_lock."""
         # Validate language code
         if language_code not in self.available_languages:
             language_code = self.default_language
@@ -296,10 +308,8 @@ class LanguageRouter:
             
             # logger.info(f"🔍 [import] Attempting to import {module_name} from {messages_path}")
             
-            # Clear any existing module from cache to force reload
-            if module_name in sys.modules:
-                # logger.info(f"🔍 [import] Clearing cached module {module_name}")
-                del sys.modules[module_name]
+            # Модули сообщений неизменяемы до рестарта. Их принудительное
+            # удаление ломало параллельные импорты через другой router (#482).
             
             # Import the module using absolute import
             messages_module = None
@@ -316,8 +326,8 @@ class LanguageRouter:
                     spec = importlib.util.spec_from_file_location(module_name, messages_path)
                     if spec and spec.loader:
                         messages_module = importlib.util.module_from_spec(spec)
-                        # Register module in sys.modules so it can be found later
-                        sys.modules[module_name] = messages_module
+                        # Fallback выполняется локально, без публикации
+                        # частично загруженного модуля в sys.modules.
                         # logger.info(f"🔍 [import] Executing module via importlib")
                         spec.loader.exec_module(messages_module)
                         # logger.info(f"✅ [import] importlib import successful")

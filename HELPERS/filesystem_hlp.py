@@ -115,9 +115,15 @@ def cleanup_user_temp_files(user_id):
         logger.error(LoggerMsg.FILESYSTEM_ERROR_LISTING_FILES_LOG_MSG.format(user_dir=user_dir, error=e))
         return
     
+    # The user root itself is the fallback download directory: when an
+    # in-flight download writes there, its root-level media must survive
+    # (issues #385, #451). Download subfolders are checked individually below.
+    root_in_use = is_download_dir_in_use(user_dir, include_children=False)
+    if root_in_use:
+        logger.info(f"Skipping root-level cleanup for {user_dir}: an active download uses it")
     try:
         # Clean files in root directory
-        for filename in os.listdir(user_dir):
+        for filename in ([] if root_in_use else os.listdir(user_dir)):
             file_path = os.path.join(user_dir, filename)
             
             # Skip subdirectories (download folders are handled separately)
@@ -152,6 +158,9 @@ def cleanup_user_temp_files(user_id):
 
 def cleanup_media_in_download_folder(folder_path):
     """Clean up media files in download folder, keeping txt, json, jpg, jpeg, png files"""
+    if is_directory_protected(folder_path):
+        logger.info(f"Skipping cleanup of active download directory: {folder_path}")
+        return
     try:
         for root, dirs, files in os.walk(folder_path):
             # Skip subdirectories that are protected (parallel downloads in progress)
@@ -248,7 +257,7 @@ def check_disk_space(path, required_bytes):
     """
     try:
         total, used, free = shutil.disk_usage(path)
-        if free and free < required_bytes:
+        if free < required_bytes:
             logger.warning(
                 f"Not enough disk space. Required: {humanbytes(required_bytes)}, Available: {humanbytes(free)}")
             return False
@@ -300,6 +309,9 @@ def remove_media(message, only=None, force_clean=False):
     protected_txt_files = {'logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt', 'cookie.txt'}
 
     def _remove_matching_files(file_list):
+        if is_download_dir_in_use(dir, include_children=False):
+            logger.info(f"Skipping removal of media in active download directory: {dir}")
+            return
         for extension in file_extensions:
             files = [f for f in file_list if f.endswith(extension)]
             for file in files:
@@ -521,11 +533,96 @@ def remove_protection_file(directory_path):
 
 def is_directory_protected(directory_path):
     """
-    Check if directory is protected by do_not_delete_me file.
+    Check if directory is protected: either by a do_not_delete_me file or
+    because an in-flight download (this process) uses it or a subdirectory
+    of it (issues #385, #451).
     """
+    if is_download_dir_in_use(directory_path):
+        return True
     try:
         protection_file = os.path.join(directory_path, "do_not_delete_me")
         return os.path.exists(protection_file)
     except Exception as e:
         logger.error(LoggerMsg.FILESYSTEM_ERROR_CHECKING_PROTECTION_FILE_LOG_MSG.format(directory_path=directory_path, error=e))
         return False
+
+
+# ---------------------------------------------------------------------------
+# In-process registry of download directories used by in-flight downloads
+# (issues #385, #451).
+# ---------------------------------------------------------------------------
+# The do_not_delete_me marker is only created for parallel-allowed chats
+# (admins / groups) and is a single non-refcounted file, yet every user may
+# run up to MAX_CONCURRENT_DOWNLOADS tasks, and video + audio for the same
+# URL share one downloads/<url> directory. A finishing task's pre-cleanup,
+# post-upload rmtree or cleanup_user_temp_files() therefore deleted the files
+# of another task that was still downloading/merging/splitting/sending:
+# "unable to open for writing: [Errno 2]", "Unable to rename file: [Errno 2]",
+# "Split part file not found", "Video file not found". Every download task
+# registers its directory here for its whole lifetime; all cleanup paths
+# consult is_directory_protected(), which honours this registry.
+_ACTIVE_DOWNLOAD_DIRS = {}  # {normalized abs path: refcount}
+_ACTIVE_DOWNLOAD_DIRS_LOCK = threading.Lock()
+
+
+def _download_dir_key(path):
+    return os.path.normcase(os.path.abspath(path))
+
+
+def acquire_download_dir(path):
+    """Register path as used by an in-flight download.
+
+    Returns the number of OTHER in-flight downloads already using exactly this
+    directory (0 means the caller is the only user and may pre-clean it).
+    """
+    key = _download_dir_key(path)
+    with _ACTIVE_DOWNLOAD_DIRS_LOCK:
+        others = _ACTIVE_DOWNLOAD_DIRS.get(key, 0)
+        _ACTIVE_DOWNLOAD_DIRS[key] = others + 1
+    return others
+
+
+def release_download_dir(path):
+    """Drop one registration of path made by acquire_download_dir()."""
+    key = _download_dir_key(path)
+    with _ACTIVE_DOWNLOAD_DIRS_LOCK:
+        count = _ACTIVE_DOWNLOAD_DIRS.get(key, 0)
+        if count <= 1:
+            _ACTIVE_DOWNLOAD_DIRS.pop(key, None)
+        else:
+            _ACTIVE_DOWNLOAD_DIRS[key] = count - 1
+
+
+def is_download_dir_in_use(path, include_children=True):
+    """True if an in-flight download uses path (or, by default, a directory
+    inside it, so that removing path would delete the active download)."""
+    key = _download_dir_key(path)
+    prefix = key.rstrip(os.sep) + os.sep
+    with _ACTIVE_DOWNLOAD_DIRS_LOCK:
+        if key in _ACTIVE_DOWNLOAD_DIRS:
+            return True
+        if include_children:
+            return any(k.startswith(prefix) for k in _ACTIVE_DOWNLOAD_DIRS)
+    return False
+
+
+def remove_finished_download_dir(user_id, download_dir):
+    """Remove a task's own downloads/<name> directory after a successful upload.
+
+    Never removes the user root or anything outside users/<id>/downloads/, and
+    never a directory still used by another in-flight download (the caller
+    must release its own registration first).
+    """
+    if not download_dir or not os.path.isdir(download_dir):
+        return False
+    downloads_root = _download_dir_key(os.path.join("users", str(user_id), "downloads"))
+    key = _download_dir_key(download_dir)
+    if not key.startswith(downloads_root.rstrip(os.sep) + os.sep):
+        logger.info(f"Not removing {download_dir}: outside {downloads_root}")
+        return False
+    if is_directory_protected(download_dir):
+        logger.info(f"Skipping directory cleanup: {download_dir} is still used by another download")
+        return False
+    shutil.rmtree(download_dir)
+    logger.info(f"Successfully removed download subdirectory: {download_dir}")
+    return True

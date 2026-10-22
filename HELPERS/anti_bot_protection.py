@@ -505,40 +505,68 @@ def _run_async(coro, timeout=30):
     ``asyncio.run_coroutine_threadsafe`` and blocks until completion.
     """
     import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            future = asyncio.run_coroutine_threadsafe(coro, loop)
+    import concurrent.futures
+    app = get_app()
+    loop = getattr(app, 'loop', None)
+    if loop is None:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = None
+    if loop is not None and loop.is_running():
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+        if current_loop is loop:
+            coro.close()
+            raise RuntimeError('Blocking channel ban cannot run on the Pyrogram event-loop thread')
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        try:
             return future.result(timeout=timeout)
-        else:
-            return asyncio.run(coro)
-    except RuntimeError:
-        return asyncio.run(coro)
+        except concurrent.futures.TimeoutError:
+            future.cancel()
+            raise
+    # Worker threads have no default loop; still enforce the per-call timeout.
+    async def _bounded():
+        return await asyncio.wait_for(coro, timeout=timeout)
+    return asyncio.run(_bounded())
 
 
-def _run_async_retry(make_coro, timeout=30, attempts=2, backoff=2.0, what=""):
-    """Run an async Pyrogram call with a bounded retry on TimeoutError.
+# Channel-ban retry policy (issue #463): during sustained Telegram DC
+# degradation one retry after 2s was not enough (both attempts timed out), so
+# use 3 attempts with exponential backoff (2s, 8s).
+_CHANNEL_BAN_ATTEMPTS = 3
+_CHANNEL_BAN_BACKOFF = 2.0
+_CHANNEL_BAN_BACKOFF_FACTOR = 4.0
+def _is_timeout_error(exc: BaseException) -> bool:
+    import asyncio
+    import concurrent.futures as _cf
+    return isinstance(exc, (TimeoutError, _cf.TimeoutError, asyncio.TimeoutError))
+
+
+def _run_async_retry(make_coro, timeout=30, attempts=_CHANNEL_BAN_ATTEMPTS,
+                     backoff=_CHANNEL_BAN_BACKOFF, factor=_CHANNEL_BAN_BACKOFF_FACTOR, what=""):
+    """Run an async Pyrogram call with bounded exponential-backoff retries on timeout.
 
     Network degradation (e.g. Telegram DC timeouts) can make a single MTProto
-    call time out even though the call itself is valid; one retry with a short
-    backoff recovers most of these instead of failing the permission check /
-    ban (issue #463: 12 TimeoutErrors per 24h on DE).
+    call time out even though the call itself is valid (issue #463). Each
+    attempt gets a freshly created coroutine; non-timeout errors propagate
+    immediately. After the last attempt the timeout error is re-raised.
     """
-    import concurrent.futures as _cf
-    last_exc = None
+    delay = backoff
     for attempt in range(1, attempts + 1):
         try:
             return _run_async(make_coro(), timeout=timeout)
-        except (TimeoutError, _cf.TimeoutError) as exc:
-            last_exc = exc
+        except TimeoutError:
             if attempt >= attempts:
-                break
+                raise
             logger.warning(
                 f"[CHANNEL_BAN] Timeout during {what or 'Pyrogram call'} "
-                f"(attempt {attempt}/{attempts}), retrying in {backoff}s"
+                f"(attempt {attempt}/{attempts}), retrying in {delay:.0f}s"
             )
-            time.sleep(backoff)
-    raise last_exc
+            time.sleep(delay)
+            delay *= factor
 
 
 def ban_user_from_channel(user_id: int, reason: str = "manual"):
@@ -585,7 +613,14 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
                     )
                     return
         except Exception as check_error:
-            logger.error(f"[CHANNEL_BAN] Failed to check bot permissions in channel: {check_error}")
+            if _is_timeout_error(check_error):
+                # Transient: the ban call itself will tell whether we have rights
+                logger.warning(
+                    f"[CHANNEL_BAN] Bot permission check in channel {subscribe_channel} timed out "
+                    f"after {_CHANNEL_BAN_ATTEMPTS} attempts, proceeding with ban attempt"
+                )
+            else:
+                logger.error(f"[CHANNEL_BAN] Failed to check bot permissions in channel {subscribe_channel}: {type(check_error).__name__}: {check_error}")
 
         try:
             user_member = _run_async_retry(
@@ -620,6 +655,17 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
         except Exception as e:
             error_msg = str(e)
             error_type = type(e).__name__
+
+            if _is_timeout_error(e):
+                # Distinct final-failure event so persistent DC degradation is
+                # visible instead of looking like a single timeout (issue #463)
+                logger.error(
+                    f"[CHANNEL_BAN] BAN_FAILED_TIMEOUT: ban_chat_member for user {user_id} in channel "
+                    f"{subscribe_channel} timed out after {_CHANNEL_BAN_ATTEMPTS} attempts"
+
+                )
+                return
+
             logger.error(f"[CHANNEL_BAN] Exception type: {error_type}, message: {error_msg}")
 
             if "CHAT_ADMIN_REQUIRED" in error_msg or "not enough rights" in error_msg.lower() or "ADMIN_RIGHTS_REQUIRED" in error_msg:

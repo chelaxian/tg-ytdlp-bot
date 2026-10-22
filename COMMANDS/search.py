@@ -1,6 +1,7 @@
 # Search Command Module
 # This module handles the /search command to activate inline search via @vid bot
 
+from HELPERS.safe_messeger import safe_callback_answer
 from HELPERS.app_instance import get_app
 from HELPERS.logger import send_to_all, send_to_logger
 from CONFIG.logger_msg import LoggerMsg
@@ -76,7 +77,7 @@ def handle_search_callback(client, callback_query):
                 )
             
             # Answer callback query
-            callback_query.answer(safe_get_messages(user_id).SEARCH_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SEARCH_CLOSED_MSG)
             
             # Log the action (pass message object, not callback_query)
             send_to_logger(callback_query.message, LoggerMsg.SEARCH_HELPER_CLOSED.format(user_id=user_id))
@@ -84,4 +85,4 @@ def handle_search_callback(client, callback_query):
     except Exception as e:
         # Log error and answer callback
         send_to_logger(callback_query.message, LoggerMsg.SEARCH_CALLBACK_ERROR.format(error=e))
-        callback_query.answer(safe_get_messages(user_id).ERROR_OCCURRED_SHORT_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).ERROR_OCCURRED_SHORT_MSG, show_alert=True)

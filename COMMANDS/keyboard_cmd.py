@@ -1,4 +1,5 @@
 # Keyboard Command Module
+from HELPERS.safe_messeger import safe_callback_answer
 import os
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove, ReplyKeyboardMarkup, ReplyParameters
 from pyrogram import enums
@@ -120,10 +121,10 @@ def keyboard_callback_handler(app, callback_query):
     if setting == "close":
         try:
             callback_query.message.delete()
-            callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
             return
         except Exception as e:
-            callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
             return
     
     user_dir = f'./users/{user_id}'
@@ -159,7 +160,7 @@ def keyboard_callback_handler(app, callback_query):
             )
 
         # Answer callback query
-        callback_query.answer(safe_get_messages(user_id).KEYBOARD_SET_TO_MSG.format(setting=setting))
+        safe_callback_answer(callback_query, safe_get_messages(user_id).KEYBOARD_SET_TO_MSG.format(setting=setting))
 
         # Apply visual keyboard immediately
         if setting == "OFF":
@@ -209,7 +210,7 @@ safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
         send_to_logger(callback_query.message, safe_get_messages(user_id).KEYBOARD_SET_CALLBACK_LOG_MSG.format(user_id=user_id, setting=setting))
 
     except Exception as e:
-        callback_query.answer(safe_get_messages(user_id).KEYBOARD_ERROR_PROCESSING_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).KEYBOARD_ERROR_PROCESSING_MSG, show_alert=True)
         from HELPERS.logger import logger
         logger.error(f"Error processing keyboard setting: {e}")
 

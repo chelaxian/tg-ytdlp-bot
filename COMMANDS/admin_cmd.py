@@ -7,6 +7,7 @@ from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
 from datetime import datetime
 import subprocess
+import html
 import sys
 import math
 import time
@@ -36,6 +37,24 @@ starting_point = [time.time()]
 
 # Get app instance for decorators
 app = get_app()
+
+def _script_failure_details(result):
+    """Причина сбоя перед баннером: Telegram ограничивает длину сообщения (#487)."""
+    stderr = (result.stderr or '').strip()[-1800:]
+    stdout = (result.stdout or '').strip()[-700:]
+    parts = [f"Exit code: {result.returncode}", "stderr:", stderr or '(empty)']
+    if stdout:
+        parts.extend(("stdout (tail):", stdout))
+    chunks = []
+    size = 0
+    for char in chr(10).join(parts):
+        escaped = html.escape(char)
+        if size + len(escaped) > 3000:
+            break
+        chunks.append(escaped)
+        size += len(escaped)
+    return ''.join(chunks)
+
 
 @app.on_message(filters.command("reload_cache") & filters.private)
 @background_handler(label="reload_cache")
@@ -103,12 +122,14 @@ def reload_firebase_cache_command(app, message):
         
         result = subprocess.run([sys.executable, script_path], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=os.path.dirname(os.path.dirname(script_path)), timeout=1500)
         if result.returncode != 0:
-            error_msg = safe_get_messages(message.chat.id).ADMIN_ERROR_SCRIPT_MSG.format(script_path=script_path, stdout=result.stdout, stderr=result.stderr)
+            failure_details = _script_failure_details(result)
+            error_msg = safe_get_messages(message.chat.id).ADMIN_ERROR_SCRIPT_MSG.format(
+                script_path=html.escape(script_path), stdout=failure_details, stderr='')
             if is_fake_message:
                 # Do not send anything to chat on fake_message
                 from HELPERS.logger import log_error_to_channel
                 log_error_to_channel(message, error_msg)
-                send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG.format(script_path=script_path, stdout=result.stdout, stderr=result.stderr))
+                send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG.format(script_path=html.escape(script_path), stdout=failure_details, stderr=''))
             else:
                 safe_edit_message_text(message.chat.id, status_msg.id, error_msg)
                 # Schedule deletion after 60 seconds for real messages
@@ -119,7 +140,7 @@ def reload_firebase_cache_command(app, message):
                 threading.Thread(target=delete_msg, daemon=True).start()
                 from HELPERS.logger import log_error_to_channel
                 log_error_to_channel(message, error_msg)
-                send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG.format(script_path=script_path, stdout=result.stdout, stderr=result.stderr))
+                send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_ERROR_RUNNING_SCRIPT_LOG_MSG.format(script_path=html.escape(script_path), stdout=failure_details, stderr=''))
             return
         
         # Update status to reloading

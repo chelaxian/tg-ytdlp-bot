@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 sys.path.append(os.path.join(os.path.dirname(__file__), 'LANGUAGES'))
 
 try:
-    from language_router import get_messages, get_message, set_user_language
+    from CONFIG.LANGUAGES.language_router import get_messages, get_message, set_user_language
 except ImportError:
     # Fallback if language router is not available
     def get_messages(user_id=None, language_code=None):
@@ -67,10 +67,20 @@ class Messages(object):
         if name.startswith('_'):
             return super().__getattribute__(name)
         
-        # STRICT: Only use language-specific messages, NO fallback to English
         if hasattr(self, '_messages') and self._messages and name in self._messages:
             return self._messages[name]
-        
+
+        # Key missing in the selected locale (new message not translated yet,
+        # or the locale failed to load): show English instead of a raw
+        # "[KEY]" placeholder to the user.
+        if self.language_code != 'en':
+            try:
+                english = get_messages(None, 'en')
+            except Exception:
+                english = None
+            if english and name in english:
+                return english[name]
+
         # Debug: log missing message (only first few to avoid spam)
         if hasattr(self, '_messages') and self._messages:
             if not hasattr(self, '_missing_logged'):

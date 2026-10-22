@@ -1,3 +1,4 @@
+from HELPERS.safe_messeger import safe_callback_answer
 from HELPERS.app_instance import get_app
 from pyrogram import filters
 import os
@@ -74,5 +75,5 @@ def tags_close_callback(app, callback_query):
             callback_query.message.delete()
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).TAGS_MESSAGE_CLOSED_MSG)

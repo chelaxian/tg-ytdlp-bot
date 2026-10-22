@@ -2,6 +2,7 @@
 # List Command - Get available formats for video URL
 # ####################################################################################
 
+from HELPERS.safe_messeger import safe_callback_answer
 import os
 import tempfile
 from pyrogram import filters
@@ -267,7 +268,7 @@ def list_help_callback(app, callback_query):
         data = callback_query.data.split("|")[1]
         if data == "close":
             callback_query.message.delete()
-            callback_query.answer(safe_get_messages(user_id).HELP_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).HELP_CLOSED_MSG)
     except Exception as e:
         logger.error(LoggerMsg.LIST_ERROR_IN_HELP_CALLBACK_LOG_MSG.format(e=e))
-        callback_query.answer(safe_get_messages(user_id).LIST_ERROR_CALLBACK_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).LIST_ERROR_CALLBACK_MSG, show_alert=True)

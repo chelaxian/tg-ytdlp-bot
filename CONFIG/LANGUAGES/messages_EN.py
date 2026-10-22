@@ -2357,4 +2357,50 @@ Learn more: /playlist"""
         "<b>After updating cookies, try again!</b>"
     )
 
+    # gallery-dl known failures (issues #486, #473, #480)
+    IMG_TWITTER_UNAVAILABLE_MSG = (
+        "🚫 <b>Post unavailable</b>\n\n"
+        "X/Twitter reports this post or its media as unavailable: it was most likely deleted, "
+        "hidden by the author, or the account is suspended.\n\n"
+        "<b>URL:</b> <code>{url}</code>\n\n"
+        "If the post is visible to you in the browser (for example, age-restricted content or a protected account), "
+        "send your X cookies with the <code>/cookie</code> command and try again."
+    )
+    IMG_UNSPLASH_BLOCKED_MSG = (
+        "🚫 <b>Unsplash is not available right now</b>\n\n"
+        "Unsplash rejected the anonymous request from the bot (401 Unauthorized). "
+        "This is a restriction on Unsplash's side; cookies or settings will not help.\n\n"
+        "<b>URL:</b> <code>{url}</code>\n\n"
+        "Please download the image directly from the Unsplash website or try again later."
+    )
+    IMG_CONTENT_NOT_FOUND_MSG = (
+        "🚫 <b>Content not found</b>\n\n"
+        "The site reports that this content does not exist (404): it may have been deleted or the link is wrong.\n\n"
+        "<b>URL:</b> <code>{url}</code>"
+    )
+    IMG_RATE_LIMITED_MSG = (
+        "⏳ <b>Temporarily rate-limited</b>\n\n"
+        "The site is limiting requests from the bot right now. The content itself may be fine.\n\n"
+        "<b>URL:</b> <code>{url}</code>\n\n"
+        "Please try again in a few minutes."
+    )
+
+    # Always Ask menu: classified extraction errors (issues #386, #387, #477, #481)
+    ALWAYS_ASK_PREMIERE_PENDING_MSG = "\U0001F3AC <b>This video is a premiere that has not started yet.</b>\nPlease come back when the premiere begins."
+    ALWAYS_ASK_COOKIES_REQUIRED_MSG = "\U0001F36A <b>This site requires fresh cookies to give access to the video.</b>\nExport cookies for this site from your browser and send them with <code>/cookie</code>, then try again."
+    ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG = "\U0001F6AB <b>The site rejected the request (HTTP 4xx).</b>\nThe link may be broken, expired or not publicly accessible. Check the link in a browser or try another one."
+    ALWAYS_ASK_MENU_EXPIRED_MSG = "⌛ This menu is outdated. Please send the link again."
+
     #######################################################
+
+    # Post-processing failure with the real cause (issue #485): the old text
+    # blamed "invalid characters in the filename" for every ffmpeg failure.
+    FILE_PROCESSING_ERROR_POSTPROCESS_MSG = (
+        "❌ <b>File processing error</b>\n\n"
+        "The video was downloaded, but ffmpeg post-processing (merge/convert/remux) failed, "
+        "The source stream may be corrupted or use an unsupported format. "
+        "Try another quality/format or try again later.\n\n"
+    )
+
+    # Image-only Pinterest fallback (issue #480)
+    ALWAYS_ASK_PINTEREST_NO_VIDEO_MSG = '<b>No video formats were found in this Pinterest pin.</b> It may contain images only. Use <code>/img</code> or the gallery-dl button below.'
