@@ -1,4 +1,6 @@
 import os
+import inspect
+import functools
 import threading
 import concurrent.futures
 import time
@@ -109,6 +111,73 @@ def _infer_file_size(file_path, dedup_key):
     return None
 
 
+# Stall-based waiting (issue #372): over the degraded WARP tunnel a 300-500 MB
+# file can take longer than the size-scaled timeout while still moving; such
+# uploads used to be reported as failed and then delivered late anyway. Now the
+# wait is extended while Telegram keeps accepting chunks of this file, up to a
+# hard limit; only a stalled upload is given up.
+_UPLOAD_STALL_SECONDS = getattr(LimitsConfig, 'UPLOAD_STALL_SECONDS', 180)
+_UPLOAD_HARD_TIMEOUT_FACTOR = getattr(LimitsConfig, 'UPLOAD_HARD_TIMEOUT_FACTOR', 4)
+_UPLOAD_PROGRESS = {}  # abspath -> time.monotonic() of the last uploaded chunk
+
+
+def note_upload_progress(path):
+    _UPLOAD_PROGRESS[os.path.abspath(path)] = time.monotonic()
+
+
+def _last_upload_progress(path):
+    return _UPLOAD_PROGRESS.get(os.path.abspath(path)) if path else None
+
+
+def _with_progress_heartbeat(path, progress):
+    """Progress callback for Client.save_file that records per-file activity and
+    keeps the caller's callback (sync or async) working unchanged."""
+    if progress is None:
+        # async: Pyrogram awaits it on the loop instead of queueing every chunk
+        # into Client.executor, which sync handlers also use
+        async def heartbeat(current, total, *args):
+            note_upload_progress(path)
+    elif inspect.iscoroutinefunction(progress):
+        async def heartbeat(current, total, *args):
+            note_upload_progress(path)
+            return await progress(current, total, *args)
+    else:
+        def heartbeat(current, total, *args):
+            note_upload_progress(path)
+            return progress(current, total, *args)
+    return heartbeat
+
+
+def _install_save_file_heartbeat():
+    try:
+        from pyrogram import Client
+    except ImportError:
+        return
+    original = Client.save_file
+    if getattr(original, '_upload_heartbeat', False):
+        return
+
+    @functools.wraps(original)
+    def save_file(self, path, *args, **kwargs):
+        if isinstance(path, str) and len(args) < 3:
+            kwargs['progress'] = _with_progress_heartbeat(path, kwargs.get('progress'))
+        return original(self, path, *args, **kwargs)
+
+    save_file._upload_heartbeat = True
+    Client.save_file = save_file
+
+
+_install_save_file_heartbeat()
+
+
+def _upload_watch_path(file_path, dedup_key):
+    if file_path:
+        return file_path
+    if isinstance(dedup_key, tuple):
+        return next((x for x in dedup_key if isinstance(x, str)), None)
+    return None
+
+
 def compute_upload_timeout(file_size, base_timeout=None):
     """Timeout for uploading file_size bytes: never below the base timeout,
     scaled at _UPLOAD_MIN_RATE_BPS for large files, capped."""
@@ -190,6 +259,30 @@ def _dump_zombies_on_shutdown():
 atexit.register(_dump_zombies_on_shutdown)
 
 
+def _wait_upload(future, timeout, watch_path):
+    """future.result() with a deadline that is pushed forward while the file
+    keeps uploading (see _UPLOAD_STALL_SECONDS); raises TimeoutError on stall or
+    once the hard limit is reached."""
+    started = time.monotonic()
+    deadline = started + timeout
+    hard_deadline = started + timeout * _UPLOAD_HARD_TIMEOUT_FACTOR
+    while True:
+        try:
+            return future.result(timeout=max(deadline - time.monotonic(), 0))
+        except concurrent.futures.TimeoutError:
+            if future.done():
+                raise
+            now = time.monotonic()
+            last = _last_upload_progress(watch_path)
+            if last is None or now - last >= _UPLOAD_STALL_SECONDS or now >= hard_deadline:
+                raise
+            deadline = min(last + _UPLOAD_STALL_SECONDS, hard_deadline)
+            logger.info(
+                f"[Upload] Still uploading after {int(now - started)}s "
+                f"(last chunk {int(now - last)}s ago), extending wait for {watch_path}"
+            )
+
+
 def timed_upload(upload_fn, timeout=None, dedup_key=None, file_path=None):
     """Run an upload with timeout and concurrency control.
 
@@ -241,13 +334,12 @@ def timed_upload(upload_fn, timeout=None, dedup_key=None, file_path=None):
     try:
         _ensure_app_started()
         future = _UPLOAD_EXECUTOR.submit(upload_fn)
-        result = future.result(timeout=timeout)
-        return result
+        return _wait_upload(future, timeout, _upload_watch_path(file_path, dedup_key))
     except concurrent.futures.TimeoutError:
         if future is not None and future.done():
             # The upload function itself raised TimeoutError, not our wait.
             return future.result()
-        logger.error(f"[Upload] Timed out after {timeout}s, releasing slot (background thread may still run)")
+        logger.error(f"[Upload] Timed out (no progress for {_UPLOAD_STALL_SECONDS}s or over the hard limit, base {timeout}s), releasing slot (background thread may still run)")
         if future is not None:
             # Not-yet-started work is dropped; a running upload cannot be killed
             # (Python threads), so its late outcome is only logged.
@@ -267,3 +359,6 @@ def timed_upload(upload_fn, timeout=None, dedup_key=None, file_path=None):
         if dedup_key is not None and (future is None or future.done()):
             with _ACTIVE_UPLOAD_LOCK:
                 _ACTIVE_UPLOAD_KEYS.discard(dedup_key)
+        watch_path = _upload_watch_path(file_path, dedup_key)
+        if watch_path and (future is None or future.done()):
+            _UPLOAD_PROGRESS.pop(os.path.abspath(watch_path), None)

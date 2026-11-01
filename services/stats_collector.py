@@ -241,6 +241,25 @@ def _window_bounds(period: str) -> Tuple[int, Optional[int]]:
 # --------------------------------------------------------------------------------------
 
 
+# Quarantined copies are ~40 MB each; a burst of bad reads once left 286 of them
+# (11 GB) on DE. Keep only the newest few for diagnostics.
+_CORRUPT_DUMPS_KEEP = 3
+
+
+def _prune_corrupt_dumps(dump_path, keep=_CORRUPT_DUMPS_KEEP):
+    folder = os.path.dirname(os.path.abspath(dump_path))
+    prefix = os.path.basename(dump_path) + ".corrupt."
+    try:
+        copies = sorted(
+            (os.path.join(folder, name) for name in os.listdir(folder) if name.startswith(prefix)),
+            key=os.path.getmtime,
+        )
+        for old in copies[:-keep] if keep > 0 else copies:
+            os.remove(old)
+    except OSError as exc:
+        logger.warning("[stats] could not prune quarantined dumps: %s", exc)
+
+
 @dataclass
 class ProfileInfo:
     user_id: int
@@ -618,6 +637,7 @@ class StatsCollector:
                     "[stats] dump %s is corrupt (%s); quarantined to %s — it will be rebuilt from the next Firebase dump",
                     self.dump_path, exc, corrupt_path,
                 )
+                _prune_corrupt_dumps(self.dump_path)
             except OSError as mv_err:
                 logger.error(
                     "[stats] dump %s is corrupt (%s) and could not be quarantined: %s",
