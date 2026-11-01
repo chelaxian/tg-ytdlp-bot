@@ -1,3 +1,4 @@
+from HELPERS.cookie_file import validated_cookie_options
 
 import os
 import math
@@ -1123,7 +1124,7 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
             # Add PO token
             info_opts = add_pot_to_ytdl_opts(info_opts, url)
             
-            with yt_dlp.YoutubeDL(info_opts) as ydl:
+            with yt_dlp.YoutubeDL(validated_cookie_options(info_opts)) as ydl:
                 info = ydl.extract_info(url, download=False)
         
         # Find original audio language - use multiple methods for better accuracy
@@ -1304,7 +1305,7 @@ def download_all_audio_tracks(url, user_id, video_dir, available_langs=None, use
                 download_opts = add_pot_to_ytdl_opts(download_opts, url)
                 
                 # Download
-                with yt_dlp.YoutubeDL(download_opts) as ydl:
+                with yt_dlp.YoutubeDL(validated_cookie_options(download_opts)) as ydl:
                     ydl.download([url])
                 
                 # Check if file was downloaded
@@ -1572,6 +1573,15 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         all_selected: If True, download all available (or filtered by available_dubs if provided)
         available_dubs: If provided and all_selected=True, filter subtitles to only languages that have dubs
     """
+    from HELPERS.subtitle_rate_limit import subtitles_rate_limited, block_subtitles
+
+    class _SubtitleRateLimited(Exception):
+        """Unwind format/proxy/language loops immediately after HTTP 429 (#355)."""
+
+    if subtitles_rate_limited(url, user_id):
+        logger.info("Skipping MKV subtitle fetch during shared HTTP 429 cooldown")
+        return []
+
     try:
         import yt_dlp
         from COMMANDS.subtitles_cmd import get_available_subs_languages, lang_match
@@ -1585,7 +1595,11 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
         # Get available languages
         auto_mode = get_user_subs_auto_mode(user_id)
         normal_langs = get_available_subs_languages(url, user_id, auto_only=False)
+        if subtitles_rate_limited(url, user_id):
+            return []
         auto_langs = get_available_subs_languages(url, user_id, auto_only=True)
+        if subtitles_rate_limited(url, user_id):
+            return []
         all_available = sorted(set(normal_langs) | set(auto_langs))
         
         logger.info(f"[DEBUG] download_all_subtitles: normal_langs={normal_langs}, auto_langs={auto_langs}, all_available={all_available}")
@@ -1681,7 +1695,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
             # If client is None and no extractor_args, don't set it (use default client)
             
             try:
-                ydl = yt_dlp.YoutubeDL(info_opts)
+                ydl = yt_dlp.YoutubeDL(validated_cookie_options(info_opts))
                 info = ydl.extract_info(url, download=False)
             except yt_dlp.utils.DownloadError as e:
                 if 'Requested format is not available' in str(e):
@@ -1771,6 +1785,8 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                     
                     def _download_with_ydl_instance(ydl_instance, url_tt: str, dst_path: str) -> bool:
                         """Download using yt-dlp transport - no delays, just try once"""
+                        if subtitles_rate_limited(url, user_id):
+                            raise _SubtitleRateLimited()
                         try:
                             with ydl_instance.urlopen(url_tt) as resp:
                                 data = resp.read()
@@ -1781,7 +1797,9 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                         except Exception as e:
                             err_str = str(e)
                             if "429" in err_str or "Too Many Requests" in err_str:
-                                logger.debug(f"timedtext 429 for {lang}, will try different format/proxy")
+                                block_subtitles(url, user_id)
+                                logger.info(f"timedtext HTTP 429 for {lang}; stopping all subtitle attempts")
+                                raise _SubtitleRateLimited() from e
                             else:
                                 logger.debug(f"timedtext download error for {lang}: {e}")
                         return False
@@ -1842,7 +1860,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                                 # Add PO token
                                 from HELPERS.pot_helper import add_pot_to_ytdl_opts
                                 proxy_info_opts = add_pot_to_ytdl_opts(proxy_info_opts, url)
-                                with yt_dlp.YoutubeDL(proxy_info_opts) as proxy_ydl:
+                                with yt_dlp.YoutubeDL(validated_cookie_options(proxy_info_opts)) as proxy_ydl:
                                     # Try all formats with proxy1
                                     if _download_with_ydl_instance(proxy_ydl, track_url, subtitle_path):
                                         ok = True
@@ -1855,6 +1873,8 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                                             if _download_with_ydl_instance(proxy_ydl, fmt_url, subtitle_path):
                                                 ok = True
                                                 break
+                        except _SubtitleRateLimited:
+                            raise
                         except Exception as e:
                             logger.debug(f"Failed to try proxy1 for {lang}: {e}")
                     
@@ -1888,7 +1908,7 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                                 # Add PO token
                                 from HELPERS.pot_helper import add_pot_to_ytdl_opts
                                 proxy_info_opts = add_pot_to_ytdl_opts(proxy_info_opts, url)
-                                with yt_dlp.YoutubeDL(proxy_info_opts) as proxy_ydl:
+                                with yt_dlp.YoutubeDL(validated_cookie_options(proxy_info_opts)) as proxy_ydl:
                                     # Try all formats with proxy2
                                     if _download_with_ydl_instance(proxy_ydl, track_url, subtitle_path):
                                         ok = True
@@ -1901,6 +1921,8 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                                             if _download_with_ydl_instance(proxy_ydl, fmt_url, subtitle_path):
                                                 ok = True
                                                 break
+                        except _SubtitleRateLimited:
+                            raise
                         except Exception as e:
                             logger.debug(f"Failed to try proxy2 for {lang}: {e}")
                     
@@ -1950,12 +1972,18 @@ def download_all_subtitles(url, user_id, video_dir, selected_langs=None, all_sel
                             'language': lang
                         })
                         logger.info(f"Downloaded subtitle: {lang} -> {subtitle_path}")
+                except _SubtitleRateLimited:
+                    raise
                 except Exception as e:
                     logger.error(f"Failed to download subtitle {lang}: {e}")
                     continue
         
         return downloaded_subs
+    except _SubtitleRateLimited:
+        return []
     except Exception as e:
+        if "429" in str(e) or "Too Many Requests" in str(e):
+            block_subtitles(url, user_id)
         logger.error(f"Error in download_all_subtitles: {e}")
         import traceback
         logger.error(traceback.format_exc())

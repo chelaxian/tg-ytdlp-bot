@@ -16,6 +16,7 @@ try:
     from sdnotify import SystemdNotifier  # optional, used for watchdog
 except Exception:
     SystemdNotifier = None
+from HELPERS.safe_messeger import safe_callback_answer
 from datetime import datetime, timedelta
 import logging
 import os
@@ -42,7 +43,7 @@ from CONFIG.limits import LimitsConfig
 from CONFIG.messages import Messages, safe_get_messages
 
 # HELPERS (только те, что не содержат обработчики)
-from HELPERS.app_instance import set_app
+from HELPERS.app_instance import set_app, mark_app_stopping
 from HELPERS.download_status import *
 from HELPERS.channel_guard import start_channel_guard, stop_channel_guard
 from HELPERS.filesystem_hlp import *
@@ -370,7 +371,7 @@ def vid_help_callback(app, callback_query):
             except Exception:
                 pass
         try:
-            callback_query.answer(_messages.MAGIC_HELP_CLOSED_MSG)
+            safe_callback_answer(callback_query, _messages.MAGIC_HELP_CLOSED_MSG)
         except Exception:
             pass
         return
@@ -417,13 +418,30 @@ def cleanup_on_exit():
 # Register cleanup function
 atexit.register(cleanup_on_exit)
 
+
+def _exit_now(code=0):
+    """Terminate without waiting for worker threads.
+
+    Interpreter shutdown joins every non-daemon thread (upload pool, running
+    yt-dlp/ffmpeg jobs) *before* atexit handlers run, so a restart during work
+    hung past TimeoutStopSec and systemd sent SIGKILL with no cleanup at all.
+    Cleanup is done explicitly by the caller; JSON state is written atomically.
+    """
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except Exception:
+        pass
+    os._exit(code)
+
 # Register signal handlers for graceful shutdown
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
     _messages = safe_get_messages(None)
     print(_messages.MAGIC_SIGNAL_RECEIVED_MSG.format(signal=sig))
+    mark_app_stopping()
     cleanup_on_exit()
-    sys.exit(0)
+    _exit_now(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
@@ -431,9 +449,20 @@ signal.signal(signal.SIGTERM, signal_handler)
 if __name__ == "__main__":
     app.start()
     start_channel_guard(app)
+    # Periodic purge of stale users/*/downloads/* dirs, never touching
+    # directories of active downloads (issues #460, #385)
+    from HELPERS.downloads_janitor import start_downloads_janitor
+    start_downloads_janitor()
     idle()
+    # From here on worker threads that still send messages/uploads get
+    # "Client has not been started yet": flag the shutdown so they can fail
+    # fast and log it as expected instead of as a runtime error (issue #326).
+    logger.info("Shutdown requested: stopping Pyrogram client")
+    mark_app_stopping()
     try:
         app.loop.run_until_complete(stop_channel_guard())
     except Exception:
         pass
     app.stop()
+    cleanup_on_exit()
+    _exit_now(0)

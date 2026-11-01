@@ -1,4 +1,6 @@
+from HELPERS.cookie_file import validated_cookie_options
 # Subtitles command
+from HELPERS.safe_messeger import safe_callback_answer
 import yt_dlp
 import requests
 import time
@@ -15,6 +17,7 @@ from HELPERS.safe_messeger import safe_forward_messages
 from DOWN_AND_UP.yt_dlp_hook import get_video_formats
 from URL_PARSERS.youtube import is_youtube_url
 from HELPERS.pot_helper import add_pot_to_ytdl_opts
+from HELPERS.subtitle_rate_limit import block_subtitles, subtitles_rate_limited
 import math
 from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyParameters
@@ -492,7 +495,7 @@ def subs_page_callback(app, callback_query):
         "• <code>/subs ru auto</code> - set language with AUTO/TRANS",
         reply_markup=get_language_keyboard(page, user_id=user_id)
     )
-    callback_query.answer()
+    safe_callback_answer(callback_query)
 
 
 @app.on_callback_query(filters.regex(r"^subs_lang\|"))
@@ -509,7 +512,7 @@ def subs_lang_callback(app, callback_query):
         status = safe_get_messages(user_id).SUBS_LANGUAGE_SET_STATUS_MSG.format(flag=LANGUAGES[lang_code]['flag'], name=LANGUAGES[lang_code]['name'])
     
     callback_query.edit_message_text(status)
-    callback_query.answer(safe_get_messages(user_id).SUBS_LANGUAGE_UPDATED_MSG)
+    safe_callback_answer(callback_query, safe_get_messages(user_id).SUBS_LANGUAGE_UPDATED_MSG)
     send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG.format(lang_code=lang_code))
 
 @app.on_callback_query(filters.regex(r"^subs_auto\|"))
@@ -530,7 +533,7 @@ def subs_auto_callback(app, callback_query):
         notification = safe_get_messages(user_id).SUBS_AUTO_MODE_TOGGLE_MSG.format(status=auto_text)
         
         # We answer only by notification, do not close the menu
-        callback_query.answer(notification, show_alert=False)
+        safe_callback_answer(callback_query, notification, show_alert=False)
         
         # We update the menu with the new Auto state
         current_lang = get_user_subs_language(user_id)
@@ -569,7 +572,7 @@ def subs_always_ask_callback(app, callback_query):
         # Show notification
         always_ask_text = "enabled" if new_always_ask else "disabled"
         notification = safe_get_messages(user_id).SUBS_ALWAYS_ASK_TOGGLE_MSG.format(status=always_ask_text)
-        callback_query.answer(notification, show_alert=False)
+        safe_callback_answer(callback_query, notification, show_alert=False)
         
         # Auto-close menu after toggling Always Ask
         try:
@@ -589,7 +592,7 @@ def subs_lang_close_callback(app, callback_query):
             callback_query.message.delete()
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
-        callback_query.answer(safe_get_messages(user_id).SUBS_MENU_CLOSED_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).SUBS_MENU_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_LANGUAGE_MENU_CLOSED_MSG)
         return
 
@@ -899,7 +902,8 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
     """Returns a list of available languages of subtitles. Circrats 429 and 'Requested Format ...'."""
-    # import os, random, time, yt_dlp
+    if subtitles_rate_limited(url, user_id):
+        return []
 
     MAX_RETRIES = 2
     def backoff(i):  # short, because the listing itself usually does not meet the limits
@@ -934,7 +938,7 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             if client:
                 opts['extractor_args'] = {'youtube': {'player_client': [client]}}
             try:
-                with yt_dlp.YoutubeDL(opts) as ydl:
+                with yt_dlp.YoutubeDL(validated_cookie_options(opts)) as ydl:
                     info = ydl.extract_info(url, download=False)
             except yt_dlp.utils.DownloadError as e:
                 if 'Requested format is not available' in str(e):
@@ -1003,11 +1007,10 @@ def get_available_subs_languages(url, user_id=None, auto_only=False):
             return result
 
         except yt_dlp.utils.DownloadError as e:
-            if "429" in str(e) and attempt < MAX_RETRIES - 1:
-                delay = backoff(attempt)
-                logger.warning(f"{LoggerMsg.SUBS_429_TOO_MANY_REQUESTS_SLEEP_LOG_MSG}")
-                time.sleep(delay)
-                continue
+            if "429" in str(e) or "too many requests" in str(e).lower():
+                block_subtitles(url, user_id)
+                logger.warning("Subtitle listing rate-limited; skipping subtitles for this URL for one hour")
+                return []
             logger.error(f"{LoggerMsg.SUBS_DOWNLOAD_ERROR_GETTING_SUBTITLES_LOG_MSG}")
             break
         except Exception as e:
@@ -1347,6 +1350,9 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
     One income Info, select 1 track. For URL with auto transmission (tlang =)
     We do not sort out the FMT so as not to catch 429. Json3/SRV3 convertibly locally.
     """
+    if subtitles_rate_limited(url, user_id):
+        logger.debug("Skipping rate-limited subtitles (cached HTTP 429)")
+        return None
     MAX_RETRIES = 3
     RTL_CJK = {'ar', 'fa', 'ur', 'ps', 'iw', 'he', 'zh', 'zh-Hans', 'zh-Hant', 'ja', 'ko'}
 
@@ -1405,11 +1411,10 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 data = b""
                 err_str = str(e)
                 if "429" in err_str or "Too Many Requests" in err_str:
-                    # Exponential backoff: 60s, 120s, 240s, 300s max
-                    wait = min(60 * (2 ** i), 300) + random.uniform(0, 10)
-                    logger.warning(f"timedtext 429 ({url_tt}), sleep {wait:.1f}s")
-                    time.sleep(wait)
-                    continue
+                    # Прерываем все вложенные форматы/прокси, а не только
+                    # текущую попытку timedtext (#355).
+                    block_subtitles(url, user_id)
+                    raise yt_dlp.utils.DownloadError("Subtitle HTTP Error 429: Too Many Requests") from e
                 logger.error(f"timedtext download error: {e}")
                 time.sleep(_rand_jitter(5, 2))
                 continue
@@ -1531,7 +1536,7 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 # If client is None and no extractor_args, don't set it (use default client)
                 
                 try:
-                    ydl = yt_dlp.YoutubeDL(opts)
+                    ydl = yt_dlp.YoutubeDL(validated_cookie_options(opts))
                     info = ydl.extract_info(url, download=False)
                 except yt_dlp.utils.DownloadError as e:
                     if 'Requested format is not available' in str(e):
@@ -1732,17 +1737,9 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
             return None
 
         except yt_dlp.utils.DownloadError as e:
-            if "429" in str(e):
-                logger.warning(f"{LoggerMsg.SUBS_429_TOO_MANY_REQUESTS_LOG_MSG}")
-                if attempt < MAX_RETRIES - 1:
-                    # Reduced backoff for retries with different IP (proxy rotation)
-                    # Since we're using different IPs, we can reduce wait time
-                    wait_time = _rand_jitter(15 + (attempt * 5), 5) if attempt > 0 else _rand_jitter(30, 10)
-                    proxy_name = 'PROXY' if attempt == 1 else 'PROXY_2' if attempt == 2 else 'default proxy'
-                    logger.warning(f"429 error, waiting {wait_time:.1f}s before retry {attempt + 2}/{MAX_RETRIES} with {proxy_name}")
-                    time.sleep(wait_time)
-                    continue
-                logger.error(LoggerMsg.SUBS_FINAL_ATTEMPT_FAILED_429_LOG_MSG)
+            if "429" in str(e) or "too many requests" in str(e).lower():
+                block_subtitles(url, user_id)
+                logger.warning("Subtitle download rate-limited; continuing video without subtitles")
                 return None
             logger.error(f"{LoggerMsg.SUBS_DOWNLOAD_ERROR_LOG_MSG}: {e}")
             if attempt < MAX_RETRIES - 1:

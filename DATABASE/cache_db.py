@@ -77,12 +77,24 @@ def _sync_local_cache_to_file():
     global firebase_cache
     use_firebase = getattr(Config, 'USE_FIREBASE', True)
     if not use_firebase:
-        try:
-            cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'dump.json')
-            with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(firebase_cache, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logger.error(f"Ошибка синхронизации локального кэша: {e}")
+        # Atomic write (tmp + os.replace): the dump is read concurrently by
+        # stats_collector / the dashboard, and a plain open('w') exposed a
+        # truncated file to them (or left one behind on Errno 122) (issue #316).
+        from HELPERS.atomic_io import atomic_write_json
+        cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'dump.json')
+        for attempt in (1, 2):
+            try:
+                with _thread_lock:
+                    atomic_write_json(cache_file, firebase_cache, ensure_ascii=False, indent=2)
+                break
+            except RuntimeError as e:
+                # "dictionary changed size during iteration": a writer that does
+                # not hold _thread_lock mutated the cache; retry once.
+                if attempt == 2:
+                    logger.error(f"Ошибка синхронизации локального кэша: {e}")
+            except (OSError, TypeError, ValueError) as e:
+                logger.error(f"Ошибка синхронизации локального кэша: {e}")
+                break
 
 def get_from_local_cache(path_parts):
     """
@@ -341,7 +353,7 @@ def _persist_reload_interval_in_config(new_hours: int) -> bool:
 
 def set_reload_interval_hours(new_hours: int) -> bool:
     """Set a new reload interval in hours (1..168). Restarts the reloader if needed and persists to config.py."""
-    global reload_interval_hours
+    global reload_interval_hours, auto_cache_enabled
     try:
         new_val = int(new_hours)
     except Exception:

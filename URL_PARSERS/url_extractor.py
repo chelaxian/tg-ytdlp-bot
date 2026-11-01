@@ -2,6 +2,7 @@
 
 # Checking Actions
 # Text Message Handler for General Commands
+from HELPERS.safe_messeger import safe_callback_answer
 from HELPERS.app_instance import get_app
 from HELPERS.decorators import reply_with_keyboard, background_handler
 from HELPERS.limitter import is_user_in_channel, check_user, is_user_allowed
@@ -9,7 +10,7 @@ from HELPERS.logger import send_to_all, send_to_logger, send_to_user
 from CONFIG.logger_msg import LoggerMsg, get_logger_msg
 from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.caption import caption_editor
-from HELPERS.filesystem_hlp import remove_media
+from HELPERS.filesystem_hlp import remove_media, is_directory_protected
 from COMMANDS.cookies_cmd import save_as_cookie_file, download_cookie, checking_cookie_file, cookies_from_browser
 from COMMANDS.subtitles_cmd import subs_command, clear_subs_check_cache
 from COMMANDS.other_handlers import audio_command_handler, playlist_command
@@ -297,6 +298,13 @@ def url_distractor(app, message):
             def scan_and_remove_recursive_emoji(path, prefix=""):
                 """Recursively scan and remove files/folders, building a detailed structure list (emoji version)"""
                 items = []
+                # Cancellation is cooperative: a short sleep does not mean the worker
+                # has finished. Keep active download files and their ancestor folders
+                # until the worker releases its directory registration (#385/#451).
+                protected_path = path if os.path.isdir(path) else os.path.dirname(path)
+                if is_directory_protected(protected_path):
+                    logger.info(f"Skipping /clean removal of active download path: {path}")
+                    return items
                 try:
                     if os.path.isfile(path):
                         if os.path.basename(path) not in ["keyboard.txt", "tags.txt", "logs.txt", "lang.txt"]:
@@ -315,6 +323,9 @@ def url_distractor(app, message):
                             logger.error(get_logger_msg().URL_EXTRACTOR_ERROR_SCANNING_DIRECTORY_LOG_MSG.format(path=path, e=e))
                         
                         # Then remove the directory itself
+                        if is_directory_protected(path):
+                            logger.info(f"Skipping /clean rmtree of newly active download path: {path}")
+                            return items
                         shutil.rmtree(path)
                         items.append(f"{prefix}📁 {os.path.basename(path)}/")
                         items.extend(dir_items)
@@ -778,10 +789,7 @@ def url_distractor(app, message):
             )
             
             # Show custom cookie hint
-            try:
-                app.answer_callback_query(fake_callback.id)
-            except Exception:
-                pass
+            # Искусственное сообщение не имеет callback id для ответа.
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_SAVE_AS_COOKIE_HINT_CLOSE_BUTTON_MSG, callback_data="save_as_cookie_hint|close")]
             ])
@@ -940,6 +948,13 @@ def url_distractor(app, message):
             def scan_and_remove_recursive_all(path, prefix=""):
                 """Recursively scan and remove files/folders, building a detailed structure list (NO EXCEPTIONS)"""
                 items = []
+                # Cancellation is cooperative: a short sleep does not mean the worker
+                # has finished. Keep active download files and their ancestor folders
+                # until the worker releases its directory registration (#385/#451).
+                protected_path = path if os.path.isdir(path) else os.path.dirname(path)
+                if is_directory_protected(protected_path):
+                    logger.info(f"Skipping /clean removal of active download path: {path}")
+                    return items
                 try:
                     if os.path.isfile(path):
                         os.remove(path)
@@ -957,6 +972,9 @@ def url_distractor(app, message):
                             logger.error(get_logger_msg().URL_EXTRACTOR_ERROR_SCANNING_DIRECTORY_LOG_MSG.format(path=path, e=e))
                         
                         # Then remove the directory itself
+                        if is_directory_protected(path):
+                            logger.info(f"Skipping /clean rmtree of newly active download path: {path}")
+                            return items
                         shutil.rmtree(path)
                         items.append(f"{prefix}📁 {os.path.basename(path)}/")
                         items.extend(dir_items)
@@ -1003,6 +1021,13 @@ def url_distractor(app, message):
             def scan_and_remove_recursive(path, prefix=""):
                 """Recursively scan and remove files/folders, building a detailed structure list"""
                 items = []
+                # Cancellation is cooperative: a short sleep does not mean the worker
+                # has finished. Keep active download files and their ancestor folders
+                # until the worker releases its directory registration (#385/#451).
+                protected_path = path if os.path.isdir(path) else os.path.dirname(path)
+                if is_directory_protected(protected_path):
+                    logger.info(f"Skipping /clean removal of active download path: {path}")
+                    return items
                 try:
                     if os.path.isfile(path):
                         if os.path.basename(path) not in ["keyboard.txt", "tags.txt", "logs.txt", "lang.txt"]:
@@ -1021,6 +1046,9 @@ def url_distractor(app, message):
                             logger.error(get_logger_msg().URL_EXTRACTOR_ERROR_SCANNING_DIRECTORY_LOG_MSG.format(path=path, e=e))
                         
                         # Then remove the directory itself
+                        if is_directory_protected(path):
+                            logger.info(f"Skipping /clean rmtree of newly active download path: {path}")
+                            return items
                         shutil.rmtree(path)
                         items.append(f"{prefix}📁 {os.path.basename(path)}/")
                         items.extend(dir_items)
@@ -1562,7 +1590,7 @@ def add_group_msg_callback(app, callback_query):
                 )
             
             # Answer callback query
-            callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
             
             # Log the action
             send_to_logger(callback_query.message, safe_get_messages(user_id).URL_EXTRACTOR_ADD_GROUP_USER_CLOSED_MSG.format(user_id=user_id))
@@ -1570,7 +1598,7 @@ def add_group_msg_callback(app, callback_query):
     except Exception as e:
         # Log error and answer callback
         send_to_logger(callback_query.message, LoggerMsg.URL_EXTRACTOR_ADD_GROUP_CALLBACK_ERROR_LOG_MSG.format(e=e))
-        callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
 
 # Callback handler for audio hint close button
 @app.on_callback_query(filters.regex(r"^audio_hint\|"))
@@ -1587,7 +1615,7 @@ def audio_hint_callback(app, callback_query):
             except Exception:
                 pass
             # Answer callback query
-            callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
             
             # Log the action
             send_to_logger(callback_query.message, safe_get_messages(user_id).URL_EXTRACTOR_AUDIO_HINT_CLOSED_MSG.format(user_id=user_id))
@@ -1595,7 +1623,7 @@ def audio_hint_callback(app, callback_query):
     except Exception as e:
         # Log error and answer callback
         send_to_logger(callback_query.message, LoggerMsg.URL_EXTRACTOR_AUDIO_HINT_CALLBACK_ERROR_LOG_MSG.format(e=e))
-        callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
 
 # Callback handler for link hint close button
 @app.on_callback_query(filters.regex(r"^link_hint\|"))
@@ -1612,7 +1640,7 @@ def link_hint_callback(app, callback_query):
             except Exception:
                 pass
             # Answer callback query
-            callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_CLOSED_MSG)
             
             # Log the action
             send_to_logger(callback_query.message, safe_get_messages(user_id).URL_EXTRACTOR_LINK_HINT_CLOSED_MSG.format(user_id=user_id))
@@ -1620,7 +1648,7 @@ def link_hint_callback(app, callback_query):
     except Exception as e:
         # Log error and answer callback
         send_to_logger(callback_query.message, LoggerMsg.URL_EXTRACTOR_LINK_HINT_CALLBACK_ERROR_LOG_MSG.format(e=e))
-        callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
 
 # Callback handler for language selection
 @app.on_callback_query(filters.regex(r"^lang_"))
@@ -1661,25 +1689,25 @@ def lang_callback(app, callback_query):
                 if '{lang_name}' in confirmation_msg:
                     confirmation_msg = confirmation_msg.format(lang_name=lang_name)
                 
-                callback_query.answer(confirmation_msg)
+                safe_callback_answer(callback_query, confirmation_msg)
                 callback_query.edit_message_text(
                     confirmation_msg,
                     parse_mode=enums.ParseMode.HTML
                 )
             else:
                 error_msg = safe_get_messages(user_id).LANG_ERROR_MSG if hasattr(safe_get_messages(user_id), 'LANG_ERROR_MSG') else "❌ Error changing language"
-                callback_query.answer(error_msg)
+                safe_callback_answer(callback_query, error_msg)
                 
         elif data == 'lang_close':
             # Close language selection
             close_msg = safe_get_messages(user_id).LANG_CLOSED_MSG if hasattr(safe_get_messages(user_id), 'LANG_CLOSED_MSG') else "Language selection closed"
-            callback_query.answer(close_msg)
+            safe_callback_answer(callback_query, close_msg)
             callback_query.edit_message_text(close_msg)
             
     except Exception as e:
         # Log error and answer callback
         from CONFIG.logger_msg import LoggerMsg
         send_to_logger(callback_query.message, LoggerMsg.URL_EXTRACTOR_LANGUAGE_CALLBACK_ERROR_LOG_MSG.format(e=e))
-        callback_query.answer(safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).URL_EXTRACTOR_ERROR_OCCURRED_MSG, show_alert=True)
 
 ######################################################  

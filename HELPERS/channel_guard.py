@@ -381,7 +381,10 @@ class ChannelGuard:
     async def _auto_block_user(self, user_id: int, reason: str) -> bool:
         if self._block_executor:
             try:
-                self._block_executor(user_id, reason)
+                # The executor is blocking (Firebase + channel ban that waits on
+                # this very loop): run it in a worker thread, otherwise the ban
+                # either deadlocks the loop or is rejected outright.
+                await asyncio.to_thread(self._block_executor, user_id, reason)
                 return True
             except Exception as exc:
                 logger.error(f"[ChannelGuard] Block executor failed for {user_id}: {exc}")

@@ -1,3 +1,4 @@
+from HELPERS.safe_messeger import safe_callback_answer
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram import enums
@@ -43,7 +44,7 @@ def clean_option_callback(app, callback_query):
     if data in _CLEAN_OPTIONS:
         cmd_name, msg_attr = _CLEAN_OPTIONS[data]
         url_distractor(app, fake_message(f"/clean {cmd_name}", user_id))
-        callback_query.answer(getattr(messages, msg_attr))
+        safe_callback_answer(callback_query, getattr(messages, msg_attr))
         return
 
     if data == "back":
@@ -63,4 +64,4 @@ def clean_option_callback(app, callback_query):
             reply_markup=keyboard,
             parse_mode=enums.ParseMode.HTML
         )
-        callback_query.answer()
+        safe_callback_answer(callback_query)

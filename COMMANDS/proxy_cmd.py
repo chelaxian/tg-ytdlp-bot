@@ -1,4 +1,5 @@
 # /Proxy Command
+from HELPERS.safe_messeger import safe_callback_answer
 import os
 import tempfile
 from pyrogram import filters
@@ -294,7 +295,7 @@ def proxy_option_callback(app, callback_query):
         except Exception:
             callback_query.edit_message_reply_markup(reply_markup=None)
         try:
-            callback_query.answer(safe_get_messages(user_id).PROXY_MENU_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).PROXY_MENU_CLOSED_MSG)
         except Exception:
             pass
         send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_MENU_CLOSED_LOG_MSG)
@@ -312,7 +313,7 @@ def proxy_option_callback(app, callback_query):
         except Exception:
             pass
         try:
-            callback_query.answer()
+            safe_callback_answer(callback_query)
         except Exception:
             pass
         return
@@ -326,7 +327,7 @@ def proxy_option_callback(app, callback_query):
             if set_user_selected_country(user_id, None):
                 messages = safe_get_messages(user_id)
                 try:
-                    callback_query.answer(messages.PROXY_COUNTRY_CLEARED_CALLBACK_MSG)
+                    safe_callback_answer(callback_query, messages.PROXY_COUNTRY_CLEARED_CALLBACK_MSG)
                 except Exception:
                     pass
                 # Close menu
@@ -345,7 +346,7 @@ def proxy_option_callback(app, callback_query):
         if country == "header":
             # Just a header button, do nothing
             try:
-                callback_query.answer()
+                safe_callback_answer(callback_query)
             except Exception:
                 pass
             return
@@ -387,7 +388,7 @@ def proxy_option_callback(app, callback_query):
             
             send_to_logger(callback_query.message, f"User {user_id} selected proxy country: {country} (code: {country_code})")
             try:
-                callback_query.answer(messages.PROXY_COUNTRY_SELECTED_CALLBACK_MSG.format(country=country))
+                safe_callback_answer(callback_query, messages.PROXY_COUNTRY_SELECTED_CALLBACK_MSG.format(country=country))
             except Exception:
                 pass
             return
@@ -401,7 +402,7 @@ def proxy_option_callback(app, callback_query):
             country_code = get_country_code(selected_country)
             if not safe_write_file(proxy_file, country_code):
                 try:
-                    callback_query.answer(safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
+                    safe_callback_answer(callback_query, safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
                 except Exception:
                     pass
                 return
@@ -409,7 +410,7 @@ def proxy_option_callback(app, callback_query):
             # No country selected - write "ON" to proxy.txt
             if not safe_write_file(proxy_file, "ON"):
                 try:
-                    callback_query.answer(safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
+                    safe_callback_answer(callback_query, safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
                 except Exception:
                     pass
                 return
@@ -457,7 +458,7 @@ def proxy_option_callback(app, callback_query):
         
         send_to_logger(callback_query.message, messages.PROXY_ENABLED_LOG_MSG)
         try:
-            callback_query.answer(messages.PROXY_ENABLED_CALLBACK_MSG)
+            safe_callback_answer(callback_query, messages.PROXY_ENABLED_CALLBACK_MSG)
         except Exception:
             pass
         return
@@ -465,7 +466,7 @@ def proxy_option_callback(app, callback_query):
     if data == "off":
         if not safe_write_file(proxy_file, "OFF"):
             try:
-                callback_query.answer(safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
+                safe_callback_answer(callback_query, safe_get_messages(user_id).PROXY_ERROR_SAVING_CALLBACK_MSG)
             except Exception:
                 pass
             return
@@ -487,7 +488,7 @@ def proxy_option_callback(app, callback_query):
         
         send_to_logger(callback_query.message, messages.PROXY_DISABLED_LOG_MSG)
         try:
-            callback_query.answer(messages.PROXY_DISABLED_CALLBACK_MSG)
+            safe_callback_answer(callback_query, messages.PROXY_DISABLED_CALLBACK_MSG)
         except Exception:
             pass
         return

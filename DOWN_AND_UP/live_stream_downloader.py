@@ -1,3 +1,4 @@
+from HELPERS.cookie_file import validated_cookie_options
 # Live Stream Downloader
 # Downloads live streams in chunks by size and sends them immediately
 
@@ -15,6 +16,7 @@ from DOWN_AND_UP.down_and_up import _save_video_cache_with_logging
 from COMMANDS.split_sizer import get_user_split_size
 from HELPERS.download_status import register_download_cancel_event, unregister_download_cancel_event
 from pyrogram.errors import FloodWait
+from pyrogram import enums
 from HELPERS.app_instance import get_app
 
 app = get_app()
@@ -345,7 +347,7 @@ def download_live_stream_chunked(
                         logger.error(f"Error updating progress: {e}")
                     break
                 
-                with yt_dlp.YoutubeDL(chunk_opts) as ydl:
+                with yt_dlp.YoutubeDL(validated_cookie_options(chunk_opts)) as ydl:
                     ydl.download([url])
                 
                 # Check if file was created (might have different extension)
@@ -786,7 +788,7 @@ def download_live_stream_chunked(
                     chunk_opts['live_from_start'] = False
                     # Retry the download for this chunk
                     try:
-                        with yt_dlp.YoutubeDL(chunk_opts) as ydl:
+                        with yt_dlp.YoutubeDL(validated_cookie_options(chunk_opts)) as ydl:
                             ydl.download([url])
                         # Continue with the rest of the chunk processing (checking file, sending, etc.)
                         # We'll need to duplicate the logic here or extract it to a function

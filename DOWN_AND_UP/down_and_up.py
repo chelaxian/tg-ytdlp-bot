@@ -1,3 +1,4 @@
+from HELPERS.cookie_file import validated_cookie_options
 # Version: 1.0.1
 # ########################################
 # Download_and_up function
@@ -19,9 +20,9 @@ from CONFIG.messages import Messages, safe_get_messages
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user, check_file_size_limit, check_subs_limits
 from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, playlist_errors_lock, playlist_errors, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
-from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, cleanup_user_temp_files, cleanup_subtitle_files, create_directory, check_disk_space
+from HELPERS.filesystem_hlp import create_protection_file, sanitize_filename, sanitize_filename_strict, cleanup_user_temp_files, cleanup_subtitle_files, create_directory, check_disk_space
 from DOWN_AND_UP.ffmpeg import get_duration_thumb, get_video_info_ffprobe, embed_subs_to_video, create_default_thumbnail, split_video_2
-from DOWN_AND_UP.sender import send_videos, is_user_blocked_flagged, clear_user_blocked_flag
+from DOWN_AND_UP.sender import send_videos, is_user_blocked_flagged, clear_user_blocked_flag, get_last_send_failure
 from DATABASE.firebase_init import write_logs
 from URL_PARSERS.tags import generate_final_tags, save_user_tags
 from services.stats_events import update_download_progress
@@ -42,7 +43,7 @@ from URL_PARSERS.playlist_utils import is_playlist_with_range, is_playlist_url, 
 from URL_PARSERS.normalizer import get_clean_playlist_url
 from urllib.parse import urlparse
 from DATABASE.cache_db import get_cached_playlist_videos, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache
-from HELPERS.qualifier import get_quality_by_min_side
+from HELPERS.qualifier import get_quality_by_min_side, ceil_to_popular
 from HELPERS.logger import send_to_all  # Импорт в самом конце для гарантии видимости
 from HELPERS.safe_messeger import safe_forward_messages  # Дублирующий импорт для устранения ошибки видимости
 from pyrogram import enums
@@ -52,9 +53,20 @@ from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.tags import extract_url_range_tags
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
 from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
+from HELPERS.ytdlp_errors import should_abort_retries, is_format_unavailable, is_missing_local_file, classify_retryability
 
 # Get app instance for decorators
 app = get_app()
+
+# Last-resort format selector after "Requested format is not available":
+# yt-dlp's own default, which also works when no pre-merged format exists.
+FORMAT_FALLBACK_SELECTOR = 'bv*+ba/b'
+
+
+def _retry_backoff_seconds(n):
+    """yt-dlp retry_sleep_functions callback (yt-dlp calls it as func(n=retry_index)):
+    1, 2, 4, 8, 15, 15... seconds (issue #384)."""
+    return min(2 ** max(int(n), 0), 15)
 
 
 def is_skippable_video_error(error_message: str) -> bool:
@@ -163,6 +175,11 @@ def _record_net_error(user_id):
 def _clear_net_errors(user_id):
     """Reset the network-error counter (called on successful download)."""
     _NET_ERROR_TRACKER.pop(user_id, None)
+
+
+# try_download() results after which further format attempts cannot help:
+# the single format / no-ffmpeg fallback has already run (issues #362, #476, #485).
+_TERMINAL_ATTEMPT_RESULTS = ("TERMINAL_ERROR", "FORMAT_NOT_AVAILABLE", "FFMPEG_ERROR", "POSTPROCESSING_ERROR", "LIVE_STREAM")
 
 
 def _handle_quality_key_error(e: Exception, split_msg_ids: list, is_playlist: bool, successful_uploads: int, indices_to_download: list, video_count: int, user_id: int, proc_msg_id: int, message, app, url: str = None, safe_quality_key: str = None):
@@ -338,6 +355,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         send_error_to_user(message, f"⚠️ {_cooldown_msg}")
         return
 
+    # Shared failed-download counter is not cleared by metadata success (#476).
+    from DOWN_AND_UP.always_ask_menu import _check_extract_cooldown
+    if _check_extract_cooldown(user_id, url) > 0:
+        send_error_to_user(message, safe_get_messages(user_id).ALWAYS_ASK_RECENTLY_FAILED_MSG)
+        return
+
     if not cookies_already_checked:
         from COMMANDS.cookies_cmd import reset_checked_cookie_sources
         reset_checked_cookie_sources(user_id)
@@ -392,6 +415,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     did_cookie_retry = False
     did_live_from_start_retry = False
     did_format_fallback = False
+    # Single-shot retry guards per item (issues #476, #485, #451/#385, #384)
+    did_no_pp_retry = False
+    did_local_file_retry = False
+    did_resume_retry = False
+    download_stage = "init"  # last pipeline stage reached by try_download (issue #483)
     is_hls = False
     error_message_sent = False  # Flag to prevent duplicate error messages
     
@@ -794,6 +822,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     proc_msg_id = None
     # Per-user cancel event: /clean sets this to abort the download
     _cancel_ev = register_download_cancel_event(user_id)
+    # Download directory registered as in use for this task's lifetime (#385, #451)
+    _registered_download_dir = None
+    _request_failed = False
+    _delivery_confirmed = False
     try:
         # Check if there is a saved waiting time
         from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
@@ -945,17 +977,28 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.warning(f"Failed to create unique thread directory, using shared directory: {e}")
 
 
+        # Register the directory as in use for the whole task (issues #385, #451):
+        # another task of this user (second video, audio of the same URL) must
+        # not pre-clean or rmtree it while we download/merge/split/send.
+        from HELPERS.filesystem_hlp import acquire_download_dir, release_download_dir
+        _other_users_of_dir = acquire_download_dir(user_dir_name)
+        _registered_download_dir = user_dir_name
+
         # Pre-cleanup: remove all media files from unique download directory before starting
-        # CRITICAL: Skip pre-cleanup if directory is already in use by another parallel download
-        # (protection file present) to prevent deleting files belonging to other threads.
+        # CRITICAL: Skip pre-cleanup if directory is already in use by another download
+        # (registered in-flight task or protection file) to prevent deleting its files.
         try:
-            from HELPERS.filesystem_hlp import is_parallel_download_allowed, is_directory_protected
-            if is_directory_protected(user_dir_name):
-                logger.warning(f"Skipping pre-cleanup: directory {user_dir_name} is protected (parallel download in progress)")
+            from HELPERS.filesystem_hlp import is_parallel_download_allowed
+            if _other_users_of_dir > 0 or os.path.exists(os.path.join(user_dir_name, "do_not_delete_me")):
+                logger.warning(f"Skipping pre-cleanup: directory {user_dir_name} is used by another in-flight download")
             else:
                 logger.info(f"Pre-cleanup: removing old media files from unique directory {user_dir_name}")
                 if os.path.exists(user_dir_name):
+                    from HELPERS.filesystem_hlp import is_directory_protected
                     for root, dirs, files in os.walk(user_dir_name):
+                        # Never descend into directories of other in-flight downloads
+                        # (user_dir_name may be the users/<id> fallback root).
+                        dirs[:] = [d for d in dirs if not is_directory_protected(os.path.join(root, d))]
                         for file in files:
                             file_path = os.path.join(root, file)
                             try:
@@ -1091,7 +1134,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             elif os.path.exists(user_cookie_path):
                 ydl_opts['cookiefile'] = user_cookie_path
                 logger.info(f"Using cookies from user directory: {user_cookie_path}")
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(validated_cookie_options(ydl_opts)) as ydl:
                 pre_info = ydl.extract_info(url, download=False)
             # Normalize to dict and check None
             if isinstance(pre_info, list):
@@ -1353,6 +1396,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         def try_download(url, attempt_opts):
             messages = safe_get_messages(message.chat.id)
             nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, did_format_fallback, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections, hls_file_found, auto_range_added
+            nonlocal did_no_pp_retry, did_local_file_retry, did_resume_retry, download_stage
             # Initialize hls_file_found for this download attempt
             hls_file_found = False
 
@@ -1368,8 +1412,43 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 except Exception:
                     pass
                 return False
-            
-            # Ensure download directory exists before setting outtmpl
+
+            def _partial_file_exists_on_disk():
+                """True if a non-empty .part file (resumable download) is in the download directory."""
+                try:
+                    for f in os.listdir(user_dir_name):
+                        if f.endswith('.part') and os.path.getsize(os.path.join(user_dir_name, f)) > 0:
+                            return True
+                except OSError as e:
+                    logger.debug(f"Could not inspect {user_dir_name} for .part files: {e}")
+                return False
+
+            def _retry_without_ffmpeg_processing(reason):
+                """The single per-item retry after an ffmpeg failure (issues #476, #485).
+
+                Drops ffmpeg post-processors, uses the native HLS downloader
+                instead of ffmpeg and a short ASCII name (vid_<url-hash>.<ext>).
+                The caller sets did_no_pp_retry BEFORE calling, so a failing
+                retry cannot recurse (the old unguarded recursion produced ~76
+                "ffmpeg exited with code 1" errors per request on myket.ir).
+                """
+                import hashlib as _hl
+                logger.warning(f"{reason}: retrying once without ffmpeg post-processing / ffmpeg HLS downloader: {error_message[:200]}")
+                no_pp_opts = attempt_opts.copy()
+                no_pp_opts['postprocessors'] = []
+                no_pp_opts['hls_prefer_native'] = True
+                no_pp_opts['outtmpl'] = os.path.join(user_dir_name, f"vid_{_hl.md5(url.encode('utf-8')).hexdigest()[:12]}.%(ext)s")
+                return try_download(url, no_pp_opts)
+
+            def _postprocessing_error_text():
+                return (
+                    safe_get_messages(user_id).FILE_PROCESSING_ERROR_POSTPROCESS_MSG +
+                    f"<code>{sanitize_error_message(error_message)[:300]}</code>"
+                )
+
+            # Ensure download directory exists before setting outtmpl. It is
+            # re-created here on every (re)try, so a directory removed by a
+            # cleanup race is restored before yt-dlp opens files (issue #451).
             try:
                 os.makedirs(user_dir_name, exist_ok=True)
             except Exception as e:
@@ -1437,6 +1516,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Disabled restrictfilenames to preserve Unicode filenames (Arabic, Persian, CJK, etc.)
                 # Our sanitize_filename() handles sanitization preserving non-Latin scripts.
                 'restrictfilenames': False,
+                'windowsfilenames': True,
+                'trim_file_name': 100,
                 # YouTube extraction increasingly requires an explicit JS runtime.
                 # We ship Node.js in Docker and allow it here to avoid missing formats.
                 'js_runtimes': {'node': {}},
@@ -1448,9 +1529,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 'geo_bypass': True,
                 # check_certificate and no_check_certificates are set from user_args (default: check_certificate=False, no_check_certificates=True)
                 'live_from_start': True if not did_live_from_start_retry else False,
-                # Network resilience: retry on transient failures (incomplete downloads, timeouts)
+                # Network resilience: retry on transient failures (incomplete downloads, timeouts).
+                # yt-dlp resumes the .part file on each retry; without a sleep
+                # the 5 retries were burnt within a second against a throttling
+                # CDN ("Got error: N bytes read, M more expected. Giving up
+                # after 5 retries", issue #384). Exponential backoff spreads them.
                 'retries': 5,
                 'fragment_retries': 10,
+                'continuedl': True,
+                'retry_sleep_functions': {'http': _retry_backoff_seconds, 'fragment': _retry_backoff_seconds},
                 'file_access_retries': 3,
                 'socket_timeout': 60,
                 'source_address': '0.0.0.0',
@@ -1673,6 +1760,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 pass
 
             ytdl_opts = {**common_opts, **attempt_opts}
+            ytdl_opts['windowsfilenames'] = True
+            ytdl_opts['trim_file_name'] = min(int(ytdl_opts.get('trim_file_name') or 100), 100)
             
             # Ensure MKV format is applied even if it wasn't in attempts
             if mkv_on:
@@ -1735,6 +1824,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 logger.info(f"yt-dlp options: {ytdl_opts}")
                 
                 # First, check if the requested format is available using cached info or get_video_formats
+                download_stage = "format_check"
                 check_info = None
                 if cached_video_info:
                     check_info = cached_video_info
@@ -1745,6 +1835,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     check_info = get_video_formats(url, user_id, cookies_already_checked=cookies_already_checked, use_proxy=use_proxy)
                     logger.info("Format check completed")
                 
+                if isinstance(check_info, dict) and check_info.get('error') in (
+                    'PERMANENT_UNAVAILABLE', 'RATE_LIMITED', 'UNSUPPORTED_URL'
+                ):
+                    error_message = check_info.get('original_error') or str(check_info['error'])
+                    logger.warning(f"Terminal format-check error for {url}: {error_message}")
+                    return "TERMINAL_ERROR"
+
                 # Re-check if playlist using info_dict (more accurate than URL pattern)
                 # This is done after getting check_info, so we can use yt-dlp's determination
                 if not auto_range_added and check_info:
@@ -1754,10 +1851,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             auto_range_added = True
                             logger.info(f"🔍 [DEBUG] Auto-range added detected from info_dict for URL: {url}")
                 
-                # Check if requested format exists
+                # Check if requested format exists. get_video_formats may return
+                # None or an {'error': ...} dict without 'formats': then nothing
+                # can be concluded here and the real extraction below reports
+                # the actual error (issue #483).
                 requested_format = attempt_opts.get('format', '')
-                if requested_format and requested_format != 'best':
-                    available_formats = check_info.get('formats', [])
+                available_formats = (check_info.get('formats') or []) if isinstance(check_info, dict) else []
+                if requested_format and requested_format != 'best' and available_formats:
                     format_found = False
                     
                     # Check if requested format is available
@@ -1772,6 +1872,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         
                         if not format_found:
                             logger.warning(f"Format ID {requested_id} not found for this video")
+                            error_message = f"[format_check] Requested format ID {requested_id} is not available for this video"
+                            error_message_sent = True  # the user is notified right below
                             # Notify user and stop download
                             try:
                                 available_ids = [fmt.get('format_id', 'unknown') for fmt in available_formats[:10]]
@@ -1785,7 +1887,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             except Exception as e:
                                 logger.error(f"Error sending format not found message: {e}")
                             return None
-                    elif 'av01' in requested_format:
+                    elif 'av01' in requested_format and '/' not in requested_format:
+                        # Only a strict AV1-only selector can fail here. Selectors
+                        # with '/' alternatives (the /format AV1 presets end in
+                        # .../bv+ba/best) let yt-dlp fall back to another codec;
+                        # aborting them returned None with no error_message for
+                        # every non-AV1 source (issue #483).
                         # Check for AV1 format specifically
                         for fmt in available_formats:
                             vcodec = fmt.get('vcodec')
@@ -1835,14 +1942,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             send_to_user(message, 
                                 safe_get_messages(user_id).AV1_FORMAT_NOT_AVAILABLE_MSG.format(formats_text=formats_text) +
                                 safe_get_messages(user_id).AV1_NOT_AVAILABLE_FORMAT_SELECT_MSG)
-                            
+                            error_message = "[format_check] AV1 format requested but not available for this video"
+                            error_message_sent = True
                             return None
                 
                 # Try with proxy fallback if user proxy is enabled
                 def extract_info_operation(opts):
                     messages = safe_get_messages(message.chat.id)
                     try:
-                        with yt_dlp.YoutubeDL(opts) as ydl:
+                        with yt_dlp.YoutubeDL(validated_cookie_options(opts)) as ydl:
                             logger.info("yt-dlp instance created, starting extract_info...")
                             info_dict = ydl.extract_info(url, download=False)
                             logger.info("extract_info completed successfully")
@@ -1852,7 +1960,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.warning(f"Error in extract_info_operation: {error_text[:200]}")
                         raise  # Re-raise to let caller handle it
                 
-                from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error
+                from HELPERS.proxy_helper import try_with_proxy_fallback, try_with_impersonate_fallback, is_cloudflare_error, has_alternative_proxy_route
                 
                 # Track last error for Cloudflare detection
                 last_error_info = {'error': None, 'error_text': None}
@@ -1869,6 +1977,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         raise  # Re-raise to let caller handle it
                 
                 # First, try with original options to detect Cloudflare errors early
+                download_stage = "extract_info"
                 info_dict = None
                 original_error_text = None  # Сохраняем оригинальный текст ошибки
                 try:
@@ -1888,15 +1997,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # user-facing message (issue #436 recurrence: extract-phase
                     # bypassed the guard that only existed in the download
                     # phase and in get_video_formats).
-                    try:
-                        from DOWN_AND_UP.yt_dlp_hook import _is_permanent_unavailable, _is_rate_limited
-                        _extract_err_lower = error_text.lower()
-                        if _is_permanent_unavailable(_extract_err_lower) or _is_rate_limited(_extract_err_lower):
-                            logger.warning(f"Permanent/rate-limit extract error, skipping proxy fallback for {url}: {error_text[:200]}")
-                            # Not an ImportError: propagates out of this try block
-                            raise Exception(f"Failed to extract video information: {error_text}")
-                    except ImportError:
-                        logger.debug("yt_dlp_hook guard import failed, proceeding with fallbacks")
+                    # "Requested format is not available" does not depend on
+                    # the egress IP either: re-raise the original DownloadError
+                    # so the format handler below runs its single bv*+ba/b
+                    # fallback, instead of logging "Proxy fallback failed" once
+                    # per proxy and per format attempt (issue #362).
+                    if is_format_unavailable(error_text):
+                        logger.warning(f"Requested format unavailable at extract stage, skipping proxy fallback for {url}: {error_text[:200]}")
+                        raise
+                    if should_abort_retries(error_text):
+                        logger.warning(f"Permanent/rate-limit extract error, skipping proxy fallback for {url}: {error_text[:200]}")
+                        raise Exception(f"Failed to extract video information: {error_text}")
 
                     # If it's a Cloudflare error, try impersonate fallback first
                     if is_cloudflare_error(error_text):
@@ -1926,6 +2037,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if info_dict is None:
                                 raise Exception("Failed to extract video information with all available proxies and impersonate versions")
                     else:
+                        # No alternate route means the identical extraction would
+                        # just run again; preserve the real error instead (#362).
+                        if not has_alternative_proxy_route(url, user_id):
+                            raise
                         # Not a Cloudflare error, try proxy fallback
                         logger.info(f"Non-Cloudflare error detected for {url}, trying proxy fallback")
                         try:
@@ -2000,6 +2115,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             return info_dict
                         else:
                             logger.error("Live stream download failed")
+                            download_stage = "live_stream"
+                            if not error_message:
+                                error_message = "[live_stream] Live stream chunked download produced no result"
                             return None
 
                 # Detect HLS not only by URL/top-level protocol, but by requested formats too
@@ -2020,7 +2138,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     is_hls = True
                     # Force ffmpeg for HLS and disable chunked HTTP to avoid Conflicting range on fragments
                     ytdl_opts["downloader"] = "ffmpeg"
-                    ytdl_opts["hls_prefer_native"] = False
+                    # ...unless this is the single no-ffmpeg retry (issue #476)
+                    ytdl_opts["hls_prefer_native"] = bool(attempt_opts.get('hls_prefer_native', False))
+                    if ytdl_opts["hls_prefer_native"]:
+                        ytdl_opts["downloader"] = "native"
                     ytdl_opts["hls_use_mpegts"] = True
                     ytdl_opts.pop("http_chunk_size", None)
                     # Reduce parallelism for fragile HLS endpoints
@@ -2055,6 +2176,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         _handle_quality_key_error(e, split_msg_ids, is_playlist, successful_uploads, indices_to_download, video_count, user_id, proc_msg_id, message, app)
                 
                 logger.info("Starting download phase...")
+                download_stage = "download"
                 # Initialize cycle_stop and cycle_thread for HLS at outer level to ensure cleanup on any error
                 cycle_stop = None
                 cycle_thread = None
@@ -2069,6 +2191,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Try with proxy fallback if user proxy is enabled
                 try:
                     def download_operation(opts):
+                        os.makedirs(user_dir_name, exist_ok=True)
                         messages = safe_get_messages(user_id)
                         
                         # Если используется прокси и HLS - добавляем таймаут для быстрого прерывания
@@ -2117,7 +2240,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             timeout_thread = threading.Thread(target=timeout_handler, daemon=True)
                             timeout_thread.start()
                         
-                        with yt_dlp.YoutubeDL(opts) as ydl:
+                        with yt_dlp.YoutubeDL(validated_cookie_options(opts)) as ydl:
                             if is_hls and opts.get('proxy'):
                                 try:
                                     # Запускаем скачивание в отдельном потоке для возможности прерывания
@@ -2125,7 +2248,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     
                                     def download_wrapper():
                                         try:
-                                            ydl.download([url])
+                                            if ydl.download([url]):
+                                                raise yt_dlp.utils.DownloadError("[download] yt-dlp returned a non-zero exit status; see downloader log")
                                         except Exception as e:
                                             download_exception[0] = e
                                     
@@ -2163,7 +2287,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     # Re-raise all errors
                                     raise
                             else:
-                                ydl.download([url])
+                                if ydl.download([url]):
+                                    raise yt_dlp.utils.DownloadError("[download] yt-dlp returned a non-zero exit status; see downloader log")
                             return True
                     
                     from HELPERS.proxy_helper import try_with_proxy_fallback
@@ -2239,7 +2364,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     cycle_thread.join(timeout=1)
                 
                 error_message = str(e)
-                logger.error(f"DownloadError: {error_message}")
+                logger.error(f"DownloadError [stage={download_stage}, domain={urlparse(url).netloc}]: {error_message}")
                 
                 # Handle broken thumbnail URL scheme (e.g. "litthttps" from generic extractor)
                 # Retry without thumbnails — ffmpeg will generate a frame-grab thumbnail later
@@ -2267,7 +2392,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         log_error_to_channel(message, f"Thumbnail URL scheme error — retry without thumbs also failed: {str(retry_e)[:300]}", url)
                 
                 # Handle "File name too long" (Errno 36) — retry with a short hashed filename
-                if "File name too long" in error_message or "Errno 36" in error_message:
+                if ("File name too long" in error_message or "Errno 36" in error_message) and not did_no_pp_retry:
+                    did_no_pp_retry = True
                     logger.warning(f"Filename too long, retrying with short hashed filename")
                     import hashlib as _hl
                     _short_hash = _hl.md5(url.encode('utf-8')).hexdigest()[:12]
@@ -2275,7 +2401,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     short_opts = attempt_opts.copy()
                     short_opts['outtmpl'] = _short_outtmpl
                     try:
-                        short_info = ytdl.extract_info(url, download=True)
+                        with yt_dlp.YoutubeDL(validated_cookie_options({**ytdl_opts, **short_opts})) as short_ydl:
+                            short_info = short_ydl.extract_info(url, download=True)
                         if short_info:
                             logger.info(f"Successfully downloaded with short filename: {_short_outtmpl}")
                             return short_info
@@ -2357,110 +2484,67 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.warning("Thumbnail error detected but cannot verify file existence - letting normal error handling proceed")
                         # Don't return here - let it fall through to normal error handling
                     
-                    # Check for conversion failed errors (common with m3u8 streams)
-                    if "Conversion failed" in error_message:
-                        # Try to find downloaded file on disk before sending error
-                        try:
-                            if os.path.exists(user_dir_name):
-                                files = os.listdir(user_dir_name)
-                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
-                                if video_files:
-                                    logger.info(f"Found video file(s) despite conversion error: {video_files[0]}, continuing processing")
-                                    if info_dict:
-                                        return info_dict
-                        except Exception as check_e:
-                            logger.debug(f"Error checking for video files after conversion error: {check_e}")
-                        
-                        # Only send error if no file found
-                        postprocessing_message = (
-                            safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
-                            "**Possible causes:**\n"
-                            "• Video format conversion failed (common with HLS/m3u8 streams)\n"
-                            "• Corrupted or incomplete download\n"
-                            "• Unsupported codec or format\n"
-                            "• Insufficient system resources\n\n"
-                            "**Solutions:**\n"
-                            "• Try downloading again - the system will retry automatically\n"
-                            "• Try a different quality or format\n"
-                            "• Check if you have enough disk space\n"
-                            "• If the problem persists, the stream may be unstable or incompatible\n"
-                        )
-                        send_error_to_user(message, postprocessing_message)
-                        logger.error(f"Postprocessing conversion error: {error_message}")
+                    # Conversion / output-file failures of ffmpeg post-processing
+                    # (issue #485). The output template is ID-based
+                    # (vid_<id>.<ext>), so these are almost never caused by the
+                    # title: they are ffmpeg conversion/merge failures or a
+                    # vanished output directory. Retry ONCE without ffmpeg
+                    # post-processing under a short ASCII name, then report the
+                    # real cause (the old text blamed "invalid characters in the
+                    # filename") and stop the cascade.
+                    if "Conversion failed" in error_message or "Error opening output files" in error_message:
+                        if _video_file_exists_on_disk() and info_dict:
+                            logger.info("Video file found despite post-processing error, continuing with the downloaded file")
+                            return info_dict
+                        if not did_no_pp_retry:
+                            did_no_pp_retry = True
+                            pp_retry_result = _retry_without_ffmpeg_processing("Post-processing error")
+                            if isinstance(pp_retry_result, dict):
+                                return pp_retry_result
+                            if pp_retry_result is not None or error_message_sent:
+                                return pp_retry_result if pp_retry_result is not None else "POSTPROCESSING_ERROR"
+                        if not error_message_sent:
+                            send_error_to_user(message, _postprocessing_error_text())
+                            error_message_sent = True
+                        logger.error(f"Postprocessing error (after no-postprocessing retry): {error_message}")
                         return "POSTPROCESSING_ERROR"
-                    elif "Error opening output files" in error_message:
-                        # Try to find downloaded file on disk before sending error
-                        try:
-                            if os.path.exists(user_dir_name):
-                                files = os.listdir(user_dir_name)
-                                video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
-                                if video_files:
-                                    logger.info(f"Found video file(s) despite output file error: {video_files[0]}, continuing processing")
-                                    if info_dict:
-                                        return info_dict
-                        except Exception as check_e:
-                            logger.debug(f"Error checking for video files after output file error: {check_e}")
-                        
-                        # Only send error if no file found
-                        postprocessing_message = (
-                            safe_get_messages(user_id).FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
-                            "**Solutions:**\n"
-                            "• Try downloading again - the system will use a safer filename\n"
-                            "• If the problem persists, the video title may contain unsupported characters\n"
-                            "• Consider using a different video source if available\n\n"
-                            "The download will be retried automatically with a cleaned filename."
-                        )
-                        send_error_to_user(message, postprocessing_message)
-                        logger.error(f"Postprocessing error: {error_message}")
-                        return "POSTPROCESSING_ERROR"
-                
+
                 # Check for postprocessing errors with Invalid data (non-video files like PDF)
                 if "Postprocessing" in error_message and "Invalid data found when processing input" in error_message:
                     logger.error(f"Postprocessing error (Invalid data - non-video file): {error_message}")
+                    messages = safe_get_messages(user_id)
+                    detail_msg = messages.FILE_PROCESSING_ERROR_INVALID_DATA_MSG
                     # Check if downloaded file is actually a video file
                     try:
                         if os.path.exists(user_dir_name):
                             files = os.listdir(user_dir_name)
-                            # Check for non-video files
                             non_video_extensions = ('.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.7z', '.unknown')
                             non_video_files = [f for f in files if any(f.lower().endswith(ext) for ext in non_video_extensions)]
                             if non_video_files:
-                                messages = safe_get_messages(user_id)
-                                postprocessing_message = (
-                                    messages.FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
-                                    messages.FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG
-                                )
-                                send_error_to_user(message, postprocessing_message)
                                 logger.error(f"Non-video file detected: {non_video_files}")
-                                return "POSTPROCESSING_ERROR"
-                    except Exception as check_e:
+                                detail_msg = messages.FILE_PROCESSING_ERROR_NON_VIDEO_FILE_MSG
+                    except OSError as check_e:
                         logger.debug(f"Error checking file type: {check_e}")
-                    # If we can't determine file type, still return error
-                    messages = safe_get_messages(user_id)
-                    postprocessing_message = (
-                        messages.FILE_PROCESSING_ERROR_INVALID_CHARS_MSG +
-                        messages.FILE_PROCESSING_ERROR_INVALID_DATA_MSG
-                    )
-                    send_error_to_user(message, postprocessing_message)
+                    if not error_message_sent:
+                        send_error_to_user(message, messages.FILE_PROCESSING_ERROR_POSTPROCESS_MSG + detail_msg)
+                        error_message_sent = True
                     return "POSTPROCESSING_ERROR"
-                
+
                 # Check for postprocessing errors with Invalid argument
                 if "Postprocessing" in error_message and "Invalid argument" in error_message:
-                    # Try to find downloaded file on disk before sending error
-                    try:
-                        if os.path.exists(user_dir_name):
-                            files = os.listdir(user_dir_name)
-                            video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts'))]
-                            if video_files:
-                                logger.info(f"Found video file(s) despite invalid argument error: {video_files[0]}, continuing processing")
-                                if info_dict:
-                                    return info_dict
-                    except Exception as check_e:
-                        logger.debug(f"Error checking for video files after invalid argument error: {check_e}")
-                    
+                    if _video_file_exists_on_disk() and info_dict:
+                        logger.info("Video file found despite invalid argument error, continuing processing")
+                        return info_dict
+                    if not did_no_pp_retry:
+                        did_no_pp_retry = True
+                        pp_retry_result = _retry_without_ffmpeg_processing("Post-processing error (Invalid argument)")
+                        if isinstance(pp_retry_result, dict):
+                            return pp_retry_result
+                        if pp_retry_result is not None or error_message_sent:
+                            return pp_retry_result if pp_retry_result is not None else "POSTPROCESSING_ERROR"
                     logger.error(f"Postprocessing error (Invalid argument): {error_message}")
                     return "POSTPROCESSING_ERROR"
-                
+
                 # Check for postprocessing errors with .meta file (non-critical, can be ignored)
                 if "Postprocessing" in error_message and ".meta" in error_message and "No such file or directory" in error_message:
                     logger.warning(f"Postprocessing .meta file error (non-critical, continuing): {error_message}")
@@ -2505,50 +2589,49 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # This is a network interruption during download — skip retries (network issue)
                 if "bytes read," in error_message and "more expected" in error_message:
                     logger.warning(f"Incomplete download detected (network interruption): {error_message}")
-                    if _video_file_exists_on_disk():
-                        logger.info("Partial download exists on disk, attempting to continue")
-                        return info_dict
+                    # yt-dlp already retried with backoff (retry_sleep_functions)
+                    # and kept the .part file (continuedl). One bot-level resume
+                    # continues from the bytes already on disk; a second
+                    # failure is terminal for this item (issue #384).
+                    if not did_resume_retry and _partial_file_exists_on_disk():
+                        did_resume_retry = True
+                        logger.warning(f"Incomplete download, resuming once from the .part file for user {user_id}")
+                        resume_result = try_download(url, attempt_opts)
+                        if isinstance(resume_result, dict):
+                            logger.info(f"Resume after incomplete download succeeded for user {user_id}")
+                            return resume_result
+                        if resume_result is not None:
+                            return resume_result
                     logger.error(f"Incomplete download failed, no file on disk: {error_message}")
                     log_error_to_channel(message, f"Incomplete download: {error_message[:300]}", url)
                     _record_net_error(user_id)
                     return "NETWORK_ERROR"
                 
-                # Check for HTTP 429 Too Many Requests - sleep and retry
+                # Server rate limiting is terminal for this request (#362/#476).
                 if "HTTP Error 429" in error_message or "Too Many Requests" in error_message:
-                    logger.warning(f"HTTP 429 rate limit detected: {error_message}")
-                    if not hasattr(try_download, '_429_count'):
-                        try_download._429_count = 0
-                    try_download._429_count += 1
-                    if try_download._429_count <= 2:
-                        sleep_time = 10 * try_download._429_count  # 10s, 20s
-                        logger.info(f"Rate limited, sleeping {sleep_time}s before retry (attempt {try_download._429_count}/2)")
-                        time.sleep(sleep_time)
-                        retry_result = try_download(url, attempt_opts)
-                        if retry_result is not None:
-                            logger.info(f"Rate limit retry successful for user {user_id}")
-                            try_download._429_count = 0
-                            return retry_result
-                    logger.error(f"HTTP 429 rate limit persisted after retries: {error_message}")
-                    log_error_to_channel(message, f"HTTP 429 rate limit: {error_message[:300]}", url)
-                    try_download._429_count = 0
-                    return None
-                
+                    return "TERMINAL_ERROR"
+
                 # Check for format not available error
-                if "Requested format is not available" in error_message:
-                    if not did_format_fallback:
-                        logger.warning(f"Format not available, retrying with format='best': {error_message}")
+                if is_format_unavailable(error_message):
+                    # One fallback per item to yt-dlp's own default selector
+                    # (bv*+ba/b). Plain 'best' needs a pre-merged format, which
+                    # YouTube often lacks, so it failed exactly where the
+                    # fallback was needed (issue #362). After this the error is
+                    # terminal: the cascade stops on FORMAT_NOT_AVAILABLE.
+                    if not did_format_fallback and attempt_opts.get('format') != FORMAT_FALLBACK_SELECTOR:
+                        logger.warning(f"Format not available, retrying once with format='{FORMAT_FALLBACK_SELECTOR}': {error_message}")
                         did_format_fallback = True
                         fallback_opts = attempt_opts.copy()
-                        fallback_opts['format'] = 'best'
-                        # Remove YouTube-specific extractor args that may constrain formats
-                        if 'extractor_args' in fallback_opts and 'youtube' in fallback_opts['extractor_args']:
-                            del fallback_opts['extractor_args']['youtube']
+                        fallback_opts['format'] = FORMAT_FALLBACK_SELECTOR
                         retry_result = try_download(url, fallback_opts)
-                        if retry_result is not None:
-                            logger.info(f"Format fallback to 'best' successful for user {user_id}")
+                        if isinstance(retry_result, dict):
+                            logger.info(f"Format fallback to '{FORMAT_FALLBACK_SELECTOR}' successful for user {user_id}")
                             return retry_result
-                        else:
-                            logger.warning(f"Format fallback to 'best' also failed for user {user_id}")
+                        logger.warning(f"Format fallback to '{FORMAT_FALLBACK_SELECTOR}' also failed for user {user_id}: {retry_result}")
+                        if retry_result is not None:
+                            # The fallback hit a different, already handled error
+                            return retry_result
+                    did_format_fallback = True
                     logger.error(f"Format not available error (after fallback): {error_message}")
                     return "FORMAT_NOT_AVAILABLE"
                 
@@ -2578,11 +2661,35 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 return info_dict
                             except Exception as rename_err:
                                 logger.error(f"Manual rename also failed: {rename_err}")
-                    # Return None to trigger retry with next attempt
-                    logger.error(f"File rename error, retrying with next attempt: {error_message}")
-                    log_error_to_channel(message, f"File rename error: {error_message[:300]}", url)
-                    return None
-                
+                    # Neither the .part nor the destination exists: the files
+                    # were removed under us. Handled by the single re-create +
+                    # retry below (issues #385, #451).
+
+                # Local ENOENT on the download directory ("unable to open for
+                # writing: [Errno 2]", "Unable to rename file: [Errno 2]"): the
+                # directory or the .part file vanished mid-download. Re-create
+                # the directory and retry the same attempt ONCE; a second
+                # failure is terminal (LOCAL_FILE_ERROR stops the cascade).
+                if is_missing_local_file(error_message) and (
+                    "unable to open for writing" in error_message.lower()
+                    or "unable to rename file" in error_message.lower()
+                ):
+                    _dir_exists = os.path.isdir(user_dir_name)
+                    logger.warning(f"Local file vanished during download (dir={os.path.abspath(user_dir_name)}, dir_exists={_dir_exists}): {error_message[:300]}")
+                    if not did_local_file_retry:
+                        did_local_file_retry = True
+                        try:
+                            os.makedirs(user_dir_name, exist_ok=True)
+                        except OSError as mk_err:
+                            logger.error(f"Failed to re-create download directory {user_dir_name}: {mk_err}")
+                        local_retry_result = try_download(url, attempt_opts)
+                        if isinstance(local_retry_result, dict):
+                            logger.info(f"Download succeeded after re-creating the download directory for user {user_id}")
+                            return local_retry_result
+                        if local_retry_result is not None or error_message_sent:
+                            return local_retry_result
+                    log_error_to_channel(message, f"Local file error after retry (dir={os.path.abspath(user_dir_name)}): {error_message[:300]}", url)
+
                 # Check for --live-from-start error and retry with --no-live-from-start
                 if "--live-from-start is passed, but there are no formats that can be downloaded from the start" in error_message and not did_live_from_start_retry:
                     logger.info(f"Live-from-start error detected for user {user_id}, retrying with --no-live-from-start")
@@ -2678,7 +2785,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
                     # 1) Ошибки авторизации/куков (в т.ч. "Sign in to confirm you’re not a bot")
                     # 1) Ошибки авторизации/куков (в т.ч. "Sign in to confirm you're not a bot")
-                    if not _is_perm_bot and is_youtube_cookie_error(error_message):
+                    if not _is_perm_bot and not did_cookie_retry and (not should_abort_retries(error_message) or classify_retryability(error_message) == "AUTH_REQUIRED") and is_youtube_cookie_error(error_message):
+                        did_cookie_retry = True
                         logger.info(f"YouTube cookie-related error detected for user {user_id}, attempting retry with different cookies")
                         try:
                             retry_result = retry_download_with_different_cookies(
@@ -2697,7 +2805,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # 1.5) Age restriction retry с web_creator client
                     # web_creator использует studio.youtube.com endpoint, который позволяет
                     # скачивать age-restricted видео при наличии cookies + po_token
-                    if is_age_restriction_error(error_message):
+                    if is_age_restriction_error(error_message) and not should_abort_retries(error_message):
                         logger.info(f"YouTube age restriction detected for user {user_id}, attempting retry with web_creator client")
                         try:
                             web_creator_opts = add_web_creator_to_opts(attempt_opts)
@@ -2746,7 +2854,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Проверяем, связана ли ошибка с куки
                     error_str = error_message.lower()
-                    if any(keyword in error_str for keyword in ['cookie', 'auth', 'login', 'sign in', '403', '401', 'forbidden', 'unauthorized']):
+                    if not did_cookie_retry and (not should_abort_retries(error_str) or classify_retryability(error_str) == 'AUTH_REQUIRED') and any(keyword in error_str for keyword in ['cookie', 'auth', 'login', 'sign in', '403', '401', 'forbidden', 'unauthorized']):
+                        did_cookie_retry = True
                         logger.info(f"Error appears to be cookie-related for {url}, trying cookie fallback")
                         
                         # Пробуем перебор куки с новой системой
@@ -2765,19 +2874,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Retry without postprocessors when ffmpeg fails
                 # (e.g. X/Twitter videos that fail during FFmpegMetadata embedding)
-                if "ffmpeg exited with code" in error_message or ("ERROR: ffmpeg" in error_message and "Postprocessing" not in error_message):
-                    logger.warning(f"FFmpeg error detected, retrying without postprocessors: {error_message[:200]}")
-                    no_pp_opts = attempt_opts.copy()
-                    no_pp_opts['postprocessors'] = []
-                    try:
-                        no_pp_result = try_download(url, no_pp_opts)
-                        if no_pp_result is not None and isinstance(no_pp_result, dict):
-                            logger.info(f"Successfully downloaded without postprocessors after ffmpeg error")
-                            return no_pp_result
-                        logger.warning(f"Retry without postprocessors returned non-dict: {no_pp_result}")
-                    except Exception as no_pp_e:
-                        logger.warning(f"Retry without postprocessors also failed: {no_pp_e}")
-                
+                # (also HLS fetched by the ffmpeg downloader, e.g. myket.ir, issue #476).
+                # At most ONE such retry per item; afterwards the error is
+                # terminal (FFMPEG_ERROR stops the format cascade).
+                _is_ffmpeg_error = "ffmpeg exited with code" in error_message or ("ERROR: ffmpeg" in error_message and "Postprocessing" not in error_message)
+                if _is_ffmpeg_error and not did_no_pp_retry:
+                    did_no_pp_retry = True
+                    no_pp_result = _retry_without_ffmpeg_processing("FFmpeg error")
+                    if isinstance(no_pp_result, dict):
+                        logger.info("Successfully downloaded without ffmpeg processing after ffmpeg error")
+                        return no_pp_result
+                    logger.warning(f"Retry without ffmpeg processing failed: {no_pp_result}")
+                    if no_pp_result is not None or error_message_sent:
+                        # The retry already reported its failure to the user
+                        return no_pp_result if no_pp_result is not None else "FFMPEG_ERROR"
+
                 # Check if this is a skippable video error (private error for specific video in playlist)
                 # This check should be done before sending error message to avoid stopping entire playlist
                 if is_playlist and is_skippable_video_error(error_message):
@@ -2937,6 +3048,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"Sent cookie hint to user {user_id} after cookie-related error")
                         except Exception as _cookie_hint_err:
                             logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
+                if _is_ffmpeg_error:
+                    # The single no-ffmpeg retry is used up: terminal (issue #476)
+                    return "FFMPEG_ERROR"
                 return None
             except Exception as e:
                 error_message = str(e)
@@ -2945,18 +3059,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Если все прокси уже провалились - пробуем без прокси как последний fallback
                 if "Failed to download video with all available proxies" in error_message:
-                    logger.warning(f"All proxies failed, attempting direct download without proxy as fallback")
-                    try:
-                        direct_opts = attempt_opts.copy()
-                        direct_opts.pop('proxy', None)
-                        # Also remove cookiefile to avoid cookie-related issues
-                        direct_result = try_download(url, direct_opts)
-                        if direct_result is not None and isinstance(direct_result, dict):
-                            logger.info(f"Direct download (no proxy) succeeded for user {user_id}")
-                            return direct_result
-                    except Exception as direct_e:
-                        logger.warning(f"Direct download fallback also failed: {direct_e}")
-                    
+                    logger.warning("All available download routes failed; not re-entering the same proxy chain")
                     if not error_message_sent:
                         # Only show proxy-specific message if user actually has proxy enabled
                         try:
@@ -3218,16 +3321,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             did_proxy_retry = False
             did_live_from_start_retry = False
             did_format_fallback = False
+            did_no_pp_retry = False
+            did_local_file_retry = False
+            did_resume_retry = False
+            download_stage = "init"
+            error_message = ""  # Do not report a previous item's error for this one (issue #483)
             error_message_sent = False  # Reset error message flag for each playlist item
             network_error = False
+            result = None  # last try_download() result, reported if no error_message (#483)
 
             info_dict = None
             skip_item = False
             stop_all = False
             
-            # Define safe filename template for fallback
-            timestamp = int(time.time())
-            safe_outtmpl = os.path.join(user_dir_name, f"download_{timestamp}.%(ext)s")
             
             # Для отрицательных индексов не используем reuse_range_download, скачиваем каждый индекс отдельно
             reuse_range_download = use_range_download and range_entries_metadata is not None and not has_negative_indices_for_download
@@ -3247,11 +3353,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 else:
                     current_playlist_items_override = None
 
-                for attempt in attempts:
+                for attempt_no, attempt in enumerate(attempts, 1):
                     result = try_download(url, attempt)
                     
                     # If download failed and it's a YouTube URL, try automatic cookie retry
-                    if result is None and is_youtube_url(url) and not did_cookie_retry:
+                    # (skipped for deterministic errors: no cookie can fix them)
+                    if result is None and is_youtube_url(url) and not did_cookie_retry and not should_abort_retries(error_message):
                         logger.info(f"Video download failed for user {user_id}, attempting automatic cookie retry")
                         
                         # Try retry with different cookies
@@ -3296,34 +3403,25 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info(f"Gallery-dl fallback triggered for item {current_index}, continuing with next item")
                         skip_item = True
                         break
-                    elif result is not None and isinstance(result, dict):
+                    elif isinstance(result, dict):
                         info_dict = result
                         consecutive_no_videos_skips = 0  # Reset on successful download
                         _clear_net_errors(user_id)  # Reset network-error cooldown (issue #384)
                         break
-                    elif result is not None and isinstance(result, str):
-                        # Handle string return values (like "POSTPROCESSING_ERROR")
+                    elif isinstance(result, str):
                         logger.info(f"Download attempt returned string result: {result}")
-                        if result == "POSTPROCESSING_ERROR":
-                            # Try again with safe filename if this was the first attempt
-                            if attempt == attempts[0]:  # First attempt failed
-                                logger.info("First attempt failed with postprocessing error, retrying with safe filename")
-                                # Modify the attempt to use safe filename
-                                safe_attempt = attempt.copy()
-                                safe_attempt['outtmpl'] = safe_outtmpl
-                                safe_result = try_download(url, safe_attempt)
-                                if safe_result is not None and isinstance(safe_result, dict):
-                                    info_dict = safe_result
-                                    break
-                                elif safe_result is not None and isinstance(safe_result, str):
-                                    logger.info(f"Safe filename attempt also failed: {safe_result}")
-                                    continue
-                            else:
-                                # Already tried safe filename, skip this attempt
-                                continue
-                        else:
-                            # Other string results, skip this attempt
-                            continue
+                        if result in _TERMINAL_ATTEMPT_RESULTS:
+                            # The single format / no-ffmpeg fallback already ran
+                            # inside try_download; other formats cannot help.
+                            logger.warning(f"Terminal result {result} for {url} at attempt {attempt_no}/{len(attempts)}, not trying further formats")
+                            break
+                        continue
+                    # result is None: stop the cascade on deterministic errors
+                    # (rate limit, removed/private content, auth, 4xx, local file
+                    # errors) instead of one ERROR line per format attempt.
+                    if should_abort_retries(error_message):
+                        logger.warning(f"Deterministic error at attempt {attempt_no}/{len(attempts)} for {url}, not trying further formats: {error_message[:200]}")
+                        break
 
                 current_playlist_items_override = None
 
@@ -3359,6 +3457,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 continue
 
             if info_dict is None:
+                if not error_message:
+                    error_message = f"[{download_stage}] Downloader produced no result (domain={urlparse(url).netloc}, last_result={result!r})"
+                logger.error(f"Download failed [stage={download_stage}, domain={urlparse(url).netloc}]: {error_message}")
                 # Send error message to user only on final failure
                 if error_message and not error_message_sent:
                     # Check for specific error types and send appropriate messages
@@ -3402,28 +3503,14 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         )
                         send_error_to_user(message, generic_error_msg, url)
                         error_message_sent = True
-                elif not error_message and not error_message_sent:
-                    log_error_to_channel(message, f"Download returned None with no error_message for URL: {url}", url)
-                    # The downloader produced no result and no diagnosable error.
-                    # This typically means the media was removed, made private,
-                    # rate-limited, or the link's query parameters confused the
-                    # extractor. Give the user an actionable explanation instead of
-                    # the opaque generic message (issue #408).
-                    _none_download_msg = (
-                        "❌ <b>Couldn't download this media.</b>\n\n"
-                        "The source returned no downloadable content. This usually means:\n"
-                        "• The video was deleted, made private, or is no longer available\n"
-                        "• The platform is rate-limiting access — try again later\n"
-                        "• The link contains extra parameters that confuse the extractor — try the direct video link\n\n"
-                        "💡 Please check the link and try again."
-                    )
-                    send_error_to_user(message, _none_download_msg, url)
-                    error_message_sent = True
-                
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"
                     if error_key not in playlist_errors:
                         playlist_errors[error_key] = True
+
+                # Count deterministic failures of single links for the
+                # per-(user, URL) re-send cooldown (issue #476)
+                _request_failed = True
 
                 if is_playlist and network_error:
                     logger.info(f"Skipping video {current_index} due to network error, continuing with remaining playlist items")
@@ -4333,6 +4420,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.error(f"Split upload timed out after {_upload_max_retries + 1} attempts, giving up: {part_path}")
                             raise
                     if not video_msg:
+                        _request_failed = True
                         if is_user_blocked_flagged(user_id):
                             logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
                             break
@@ -4340,8 +4428,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if flood_remaining_check_split is not None:
                             logger.warning(f"FloodWait active ({flood_remaining_check_split}s remaining), stopping playlist at split part index {current_index}")
                             break
-                        logger.error("send_videos returned None for split part; skipping cache save for this part")
+                        logger.error(f"send_videos returned None for split part (reason={get_last_send_failure()}); skipping cache save for this part")
                         continue
+                    _delivery_confirmed = True
                     #found_type = None
                     # Note: Forwarding to log channels is now handled in send_videos function
                     # We need to get the forwarded message IDs from the log channel for caching
@@ -4495,12 +4584,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                         save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
                                     else:
-                                        logger.info(f"NSFW content not cached (found_type={found_type}, auto_mode={auto_mode})")
+                                        logger.info(f"NSFW content not cached (found_type={found_type})")
                                 else:
                                     if should_disable_cache:
                                         logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
                                     else:
-                                        logger.info(f"Video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode})")
+                                        logger.info(f"Video with subtitles is not cached (found_type={found_type})")
                                 cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), rounded_quality_key, [current_video_index])
                                 logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                 playlist_indices.append(current_video_index)
@@ -5022,9 +5111,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # single message id to cache, but the upload itself succeeded (issue #331).
                             successful_uploads += 1
                             last_video_msg_id = None
+                            _delivery_confirmed = True
                             logger.info("send_videos: split video sent as multiple parts; skipping per-item cache and logging")
                             continue
                         if not video_msg:
+                            _request_failed = True
                             if is_user_blocked_flagged(user_id):
                                 logger.warning(f"User {user_id} blocked the bot, stopping playlist at index {current_index}")
                                 break
@@ -5037,9 +5128,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     f"The bot will resume automatically after the wait period.",
                                     parse_mode=enums.ParseMode.HTML)
                                 break
-                            logger.error("send_videos returned None for single video; aborting cache save for this item")
+                            logger.error(f"send_videos returned None for single video (reason={get_last_send_failure()}); aborting cache save for this item")
                             continue
                         
+                        _delivery_confirmed = True
                         # Send MKV/AV1/VP9 playback hint if non-default format
                         if video_msg and after_rename_abs_path:
                             try:
@@ -5607,37 +5699,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             except Exception as hint_error:
                 logger.error(f"Error sending playlist auto-range hint: {hint_error}")
             
-            # Clean up download subdirectory after successful upload
-            # CRITICAL: Only remove directory if no other parallel downloads are using it
+            # Clean up download subdirectory after successful upload.
+            # Remove THIS task's directory (user_dir_name), not the per-user
+            # "last Always Ask menu" directory: the latter may belong to another
+            # in-flight download of the same user (issues #385, #451). The
+            # directory is kept while any other download still uses it.
             try:
-                from DOWN_AND_UP.always_ask_menu import get_user_download_dir
-                from HELPERS.filesystem_hlp import is_directory_protected, remove_protection_file
-                download_dir = get_user_download_dir(user_id)
-                if download_dir and os.path.exists(download_dir):
-                    # Remove protection file first (our download is done)
-                    remove_protection_file(download_dir)
-                    
-                    # Check if other parallel downloads are still active
-                    if is_directory_protected(download_dir):
-                        logger.info(f"Skipping directory cleanup: other parallel downloads still active in {download_dir}")
-                    else:
-                        # Check if any media files remain (other threads may still need them)
-                        remaining_media = False
-                        try:
-                            for f in os.listdir(download_dir):
-                                if f.lower().endswith(('.mp4', '.mkv', '.webm', '.avi', '.mov', '.flv', '.m4v', '.ts', '.mpegts', '.mp3', '.m4a')):
-                                    remaining_media = True
-                                    break
-                        except Exception:
-                            pass
-                        
-                        if remaining_media:
-                            logger.info(f"Skipping directory cleanup: media files still present in {download_dir} (other downloads may be in progress)")
-                        else:
-                            logger.info(f"Cleaning up download subdirectory after successful upload: {download_dir}")
-                            import shutil
-                            shutil.rmtree(download_dir)
-                            logger.info(f"Successfully removed download subdirectory: {download_dir}")
+                from HELPERS.filesystem_hlp import remove_protection_file, remove_finished_download_dir
+                remove_protection_file(user_dir_name)
+                if _registered_download_dir:
+                    release_download_dir(_registered_download_dir)
+                    _registered_download_dir = None
+                logger.info(f"Cleaning up download subdirectory after successful upload: {user_dir_name}")
+                remove_finished_download_dir(user_id, user_dir_name)
             except Exception as cleanup_error:
                 logger.error(f"Error cleaning up download subdirectory for user {user_id}: {cleanup_error}")
 
@@ -5649,6 +5723,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     except Exception as e:
         import traceback as tb_module
         error_traceback = tb_module.format_exc()
+        _request_failed = True
         logger.error(f"Exception caught in down_and_up: type={type(e)}, value={e}, traceback:\n{error_traceback}")
         
         if e is None:
@@ -5701,11 +5776,22 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         except Exception as cleanup_error:
             logger.error(f"Error cleaning up temp files after error for user {user_id}: {cleanup_error}")
     finally:
+        # Once per request, never per format/proxy/playlist entry (#476).
+        from DOWN_AND_UP.always_ask_menu import record_download_fail, clear_download_fail
+        if _delivery_confirmed:
+            clear_download_fail(user_id, url)
+        elif _request_failed:
+            record_download_fail(user_id, url)
         # Always unregister cancel event to prevent memory leaks
         try:
             unregister_download_cancel_event(user_id, _cancel_ev)
         except Exception:
             pass
+        # Release the in-flight registration of the download directory (#385, #451)
+        if _registered_download_dir:
+            from HELPERS.filesystem_hlp import release_download_dir as _release_dir
+            _release_dir(_registered_download_dir)
+            _registered_download_dir = None
         # Always stop hourglass animation to prevent resource leaks
         try:
             stop_anim.set()

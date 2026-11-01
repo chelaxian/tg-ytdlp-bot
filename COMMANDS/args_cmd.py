@@ -2,6 +2,7 @@
 # Args Command - Interactive yt-dlp parameters configuration
 # ####################################################################################
 
+from HELPERS.safe_messeger import safe_callback_answer
 import os
 import json
 import re
@@ -1190,12 +1191,12 @@ def args_callback_handler(app, callback_query):
     try:
         if data == "args_close":
             callback_query.message.delete()
-            callback_query.answer(messages.ARGS_CLOSED_MSG)
+            safe_callback_answer(callback_query, messages.ARGS_CLOSED_MSG)
             return
         
         elif data == "args_empty":
             # Ignore separator buttons
-            callback_query.answer()
+            safe_callback_answer(callback_query)
             return
         
         elif data == "args_back":
@@ -1219,7 +1220,7 @@ def args_callback_handler(app, callback_query):
                 # If editing failed (deleted/invalid) — just ignore
                 pass
             try:
-                callback_query.answer()
+                safe_callback_answer(callback_query)
             except Exception:
                 pass
             return
@@ -1232,7 +1233,7 @@ def args_callback_handler(app, callback_query):
                 [InlineKeyboardButton(messages.ARGS_BACK_BUTTON_MSG, callback_data="args_back")]
             ])
             callback_query.edit_message_text(message, reply_markup=keyboard)
-            callback_query.answer()
+            safe_callback_answer(callback_query)
             return
         
         elif data == "args_export":
@@ -1242,7 +1243,7 @@ def args_callback_handler(app, callback_query):
                 InlineKeyboardButton(messages.ARGS_BACK_BUTTON_MSG, callback_data="args_view_current")
             ]])
             callback_query.edit_message_text(export_message, reply_markup=keyboard)
-            callback_query.answer(messages.ARGS_SETTINGS_READY_MSG)
+            safe_callback_answer(callback_query, messages.ARGS_SETTINGS_READY_MSG)
             return
         
         elif data == "args_reset_all":
@@ -1252,15 +1253,15 @@ def args_callback_handler(app, callback_query):
                     messages.ARGS_CONFIG_TITLE_MSG.format(groups_msg=messages.ARGS_MENU_DESCRIPTION_MSG) + "\n\n" + messages.ARGS_RESET_SUCCESS_MSG,
                     reply_markup=keyboard
                 )
-                callback_query.answer(messages.ARGS_ALL_RESET_MSG)
+                safe_callback_answer(callback_query, messages.ARGS_ALL_RESET_MSG)
             else:
-                callback_query.answer(messages.ARGS_RESET_ERROR_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_RESET_ERROR_MSG, show_alert=True)
             return
         
         elif data.startswith("args_set_"):
             param_name = data.replace("args_set_", "")
             if not param_name or param_name not in YTDLP_PARAMS:
-                callback_query.answer(messages.ARGS_INVALID_PARAM_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_PARAM_MSG, show_alert=True)
                 return
             
             param_config = YTDLP_PARAMS[param_name]
@@ -1324,7 +1325,7 @@ def args_callback_handler(app, callback_query):
             # Parse: args_bool_{param_name}_{true/false}
             remaining = data.replace("args_bool_", "")
             if not remaining:
-                callback_query.answer(messages.ARGS_INVALID_BOOL_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_BOOL_MSG, show_alert=True)
                 return
                 
             value = None  # Initialize value
@@ -1335,17 +1336,17 @@ def args_callback_handler(app, callback_query):
                 param_name = remaining[:-6]  # Remove "_false"
                 value = False
             else:
-                callback_query.answer(messages.ARGS_INVALID_BOOL_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_BOOL_MSG, show_alert=True)
                 return
             
             # Validate param_name exists in YTDLP_PARAMS
             if param_name not in YTDLP_PARAMS:
-                callback_query.answer(messages.ARGS_INVALID_PARAM_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_PARAM_MSG, show_alert=True)
                 return
             
             # Ensure value is defined
             if value is None:
-                callback_query.answer(messages.ARGS_INVALID_BOOL_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_BOOL_MSG, show_alert=True)
                 return
             
             user_args = get_user_args(user_id)
@@ -1385,13 +1386,13 @@ def args_callback_handler(app, callback_query):
                     reply_markup=keyboard
                 )
                 try:
-                    callback_query.answer(messages.ARGS_BOOL_SET_MSG.format(value='True' if value else 'False'))
+                    safe_callback_answer(callback_query, messages.ARGS_BOOL_SET_MSG.format(value='True' if value else 'False'))
                 except Exception:
                     pass
             else:
                 # Value is the same, just acknowledge
                 try:
-                    callback_query.answer(messages.ARGS_BOOL_ALREADY_SET_MSG.format(value='True' if value else 'False'))
+                    safe_callback_answer(callback_query, messages.ARGS_BOOL_ALREADY_SET_MSG.format(value='True' if value else 'False'))
                 except Exception:
                     pass
             return
@@ -1400,24 +1401,24 @@ def args_callback_handler(app, callback_query):
             # Parse: args_select_{param_name}_{value}
             remaining = data.replace("args_select_", "")
             if not remaining:
-                callback_query.answer(messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
                 return
                 
             # Find the last underscore to separate param_name and value
             last_underscore = remaining.rfind("_")
             if last_underscore == -1:
-                callback_query.answer(messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
                 return
             param_name = remaining[:last_underscore]
             value = remaining[last_underscore + 1:]
             
             if not param_name or not value:
-                callback_query.answer(messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
                 return
             
             # Validate param_name exists in YTDLP_PARAMS
             if param_name not in YTDLP_PARAMS:
-                callback_query.answer(messages.ARGS_INVALID_PARAM_MSG, show_alert=True)
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_PARAM_MSG, show_alert=True)
                 return
             
             user_args = get_user_args(user_id)
@@ -1437,13 +1438,13 @@ def args_callback_handler(app, callback_query):
                     reply_markup=keyboard
                 )
                 try:
-                    callback_query.answer(messages.ARGS_VALUE_SET_MSG.format(value=value))
+                    safe_callback_answer(callback_query, messages.ARGS_VALUE_SET_MSG.format(value=value))
                 except Exception:
                     pass
             else:
                 # Value is the same, just acknowledge
                 try:
-                    callback_query.answer(messages.ARGS_VALUE_ALREADY_SET_MSG.format(value=value))
+                    safe_callback_answer(callback_query, messages.ARGS_VALUE_ALREADY_SET_MSG.format(value=value))
                 except Exception:
                     pass
             return
@@ -1451,7 +1452,7 @@ def args_callback_handler(app, callback_query):
         else:
             # Unknown callback_data
             logger.warning(f"Unknown args callback_data: {data}")
-            callback_query.answer(messages.ERROR_OCCURRED_SHORT_MSG, show_alert=False)
+            safe_callback_answer(callback_query, messages.ERROR_OCCURRED_SHORT_MSG, show_alert=False)
             return
         
     except Exception as e:
@@ -1461,7 +1462,7 @@ def args_callback_handler(app, callback_query):
         logger.error(f"Callback data: {data}")
         logger.error(f"Traceback:\n{error_trace}")
         try:
-            callback_query.answer(messages.ERROR_OCCURRED_SHORT_MSG, show_alert=False)
+            safe_callback_answer(callback_query, messages.ERROR_OCCURRED_SHORT_MSG, show_alert=False)
         except Exception:
             pass
         # Clear any input states to prevent further errors

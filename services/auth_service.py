@@ -164,9 +164,9 @@ class AuthService:
     
     def _save_sessions(self) -> None:
         try:
-            self._sessions_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self._sessions_file, "w", encoding="utf-8") as fh:
-                json.dump(self._sessions, fh)
+            # Atomic write: a torn file logged every dashboard user out (issue #316)
+            from HELPERS.atomic_io import atomic_write_json
+            atomic_write_json(str(self._sessions_file), self._sessions)
         except Exception as exc:
             logger.warning(f"[auth] Failed to persist dashboard sessions: {exc}")
 

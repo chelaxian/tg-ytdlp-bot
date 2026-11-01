@@ -7,6 +7,7 @@ gallery-dl integration (robust, version-agnostic)
 """
 
 import os
+import re
 import time
 import shutil
 import gallery_dl
@@ -1179,12 +1180,84 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
         return False
 
 
+# ---------- Known gallery-dl failure kinds (issues #486, #473, #480) ----------
+
+# Kinds returned by classify_gallery_dl_failure(); image_cmd maps them to
+# localized, human-readable messages instead of echoing raw gallery-dl stderr.
+GDL_FAILURE_TWITTER_UNAVAILABLE = "twitter_unavailable"
+GDL_FAILURE_UNSPLASH_BLOCKED = "unsplash_blocked"
+GDL_FAILURE_NOT_FOUND = "not_found"
+GDL_FAILURE_RATE_LIMITED = "rate_limited"
+
+# gallery-dl twitter extractor aborts with "'<reason>'" (no-cookie REST endpoint)
+# or "Tweet unavailable ('<reason>')" (detail endpoint). Reasons below mean the
+# tweet/media is deleted, withheld or the author is suspended - permanent state.
+# 'Protected' / 'NsfwLoggedOut' are NOT here: cookies can fix those (auth path).
+_TWITTER_REASON_RE = re.compile(
+    r"\[twitter\]\[error\]\s+(?:tweet unavailable\s*\(\s*)?'([^']+)'",
+    re.IGNORECASE,
+)
+_TWITTER_PERMANENT_REASONS = frozenset({
+    "unavailable", "suspended", "deleted", "withheld", "tombstone",
+})
+
+# gallery-dl NotFoundError / HTTP 404/410 - the resource does not exist anymore.
+# Retrying another range or the Python API fallback can never succeed (#486).
+_NOT_FOUND_MARKERS = (
+    "notfounderror",
+    "404 not found",
+    "410 gone",
+)
+
+_RATE_LIMIT_MARKERS = (
+    "rate limit exceeded",
+    "too many requests",
+    "quota exceeded",
+)
+
+
+def classify_gallery_dl_failure(error_text: str) -> str | None:
+    """Return a GDL_FAILURE_* kind for well-known gallery-dl failures, else None.
+
+    Rate limits are reported separately from permanent unavailability so the
+    user gets "try later" instead of "deleted" (issue #486).
+    """
+    if not error_text:
+        return None
+    lower = error_text.lower()
+
+    if any(marker in lower for marker in _RATE_LIMIT_MARKERS):
+        return GDL_FAILURE_RATE_LIMITED
+
+    match = _TWITTER_REASON_RE.search(error_text)
+    if match and match.group(1).strip().lower() in _TWITTER_PERMANENT_REASONS:
+        return GDL_FAILURE_TWITTER_UNAVAILABLE
+
+    # Issue #473: gallery-dl's unsplash extractor uses the anonymous web API
+    # (unsplash.com/napi/...) and has no client-id/API-key option, so a 401
+    # means Unsplash rejects anonymous requests from this server - neither a
+    # config key nor user cookies are a supported fix.
+    if "[unsplash]" in lower and "401" in lower:
+        return GDL_FAILURE_UNSPLASH_BLOCKED
+
+    if any(marker in lower for marker in _NOT_FOUND_MARKERS):
+        return GDL_FAILURE_NOT_FOUND
+
+    return None
+
+
 def _is_fatal_error(stderr_text: str) -> bool:
     """
     Check if the error is fatal and should stop the download process.
     Returns True if the error indicates that continuing would be pointless.
     """
     stderr_lower = stderr_text.lower()
+
+    # Known permanent/structural failures (deleted tweet, 404, unsplash 401,
+    # rate limit): never retry with the next range or the API fallback,
+    # regardless of the social-media "unknown error" exemption below (#486).
+    if classify_gallery_dl_failure(stderr_text) is not None:
+        return True
     
     # Instagram-specific errors that should be treated as fatal (handle early)
     #  - extractor breakage: KeyError - 'data'

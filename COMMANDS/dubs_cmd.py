@@ -1,4 +1,5 @@
 # Dubs (audio tracks) command
+from HELPERS.safe_messeger import safe_callback_answer
 import os
 import math
 from pyrogram import filters, enums
@@ -190,7 +191,7 @@ def dubs_page_callback(app, callback_query):
         )
     except Exception:
         pass
-    callback_query.answer()
+    safe_callback_answer(callback_query)
 
 
 @app.on_callback_query(filters.regex(r"^dubs_lang\|"))
@@ -228,7 +229,7 @@ def dubs_lang_callback(app, callback_query):
         )
     except Exception:
         pass
-    callback_query.answer(notification, show_alert=False)
+    safe_callback_answer(callback_query, notification, show_alert=False)
     send_to_logger(callback_query.message, f"Dubs language set to '{lang_code}' by user {user_id}")
 
 
@@ -239,7 +240,7 @@ def dubs_lang_close_callback(app, callback_query):
         callback_query.message.delete()
     except Exception:
         callback_query.edit_message_reply_markup(reply_markup=None)
-    callback_query.answer()
+    safe_callback_answer(callback_query)
     return
 
 

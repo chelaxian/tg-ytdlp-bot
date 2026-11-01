@@ -1,3 +1,4 @@
+from HELPERS.cookie_file import validated_cookie_options
 import re
 from urllib.parse import urlparse
 from CONFIG.config import Config
@@ -204,7 +205,7 @@ def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_i
                 ydl_opts['cookiefile'] = cookie_path
         
         # Extract video info
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(validated_cookie_options(ydl_opts)) as ydl:
             info = ydl.extract_info(url, download=False)
             
         if not info:
@@ -263,7 +264,15 @@ def get_direct_link_with_proxy(url: str, format_spec: str = "bv+ba/best", user_i
         }
         
     except Exception as e:
-        logger.error(f"Error getting direct link with proxy: {e}")
+        # Known content/extractor conditions (deleted video, upstream extractor
+        # crash such as ok.ru's json.loads(dict), issues #469/#471) are expected:
+        # WARNING with the category; ERROR only for unclassified failures.
+        from HELPERS.ytdlp_errors import classify_retryability
+        _category = classify_retryability(str(e))
+        if _category:
+            logger.warning(f"Error getting direct link with proxy ({_category}): {e}")
+        else:
+            logger.error(f"Error getting direct link with proxy: {e}")
         return {
             'success': False,
             'error': str(e)

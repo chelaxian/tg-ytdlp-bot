@@ -141,8 +141,9 @@ def classify_yt_dlp_error(error_message, url=None):
     """Classify a yt-dlp/extractor error string into a semantic category.
 
     Returns one of: MEMBERS_ONLY, LIVE_ENDED, PREMIERE_PENDING, GEO_RESTRICTED, AGE_RESTRICTED,
-    SIGN_IN_REQUIRED, YT_RATE_LIMITED, HTTP_500, EXTRACTOR_ERROR, EMPTY_DOWNLOAD — or None if
-    the error is not recognised (fall through to generic handling).
+    SIGN_IN_REQUIRED, COOKIES_REQUIRED, YT_RATE_LIMITED, HTTP_500, HTTP_CLIENT_ERROR,
+    EXTRACTOR_ERROR, EMPTY_DOWNLOAD, VIDEO_UNAVAILABLE — or None if the error
+    is not recognised (fall through to generic handling).
 
     Note: a geo/members/age error can still be actionable via cookies, so the
     caller keeps appending the cookie hint for those categories.
@@ -151,8 +152,14 @@ def classify_yt_dlp_error(error_message, url=None):
         return None
     error_lower = error_message.lower()
 
-    # Members-only content (issue #352)
-    if "members-only" in error_lower or "join this channel" in error_lower:
+    # Members-only content (issue #352). yt-dlp has two wordings: "Join this
+    # channel to get access to members-only content" and "This video is
+    # available to this channel's members on level: ...".
+    if (
+        "members-only" in error_lower
+        or "join this channel" in error_lower
+        or "available to this channel's members" in error_lower
+    ):
         return "MEMBERS_ONLY"
 
     # Live stream ended / not started (issue #354)
@@ -179,6 +186,9 @@ def classify_yt_dlp_error(error_message, url=None):
         "take a few minutes to verify your age" in error_lower
         or "sign in to confirm your age" in error_lower
         or "age verification required" in error_lower
+        or "verify your age" in error_lower
+        or "confirm your age" in error_lower
+        or "inappropriate for some users" in error_lower
     ):
         return "AGE_RESTRICTED"
 
@@ -194,6 +204,13 @@ def classify_yt_dlp_error(error_message, url=None):
     ):
         return "SIGN_IN_REQUIRED"
 
+    # Site needs (fresh) cookies: Douyin "Fresh cookies (not necessarily
+    # logged in) are needed" (issue #386), generic login walls. The bot runs
+    # one cookie fallback pass; after that the user must provide /cookie.
+    from HELPERS.ytdlp_errors import is_auth_required, is_client_http_error
+    if is_auth_required(error_message):
+        return "COOKIES_REQUIRED"
+
     # YouTube temporary rate-limit / "Please try again later" (issue #446) —
     # YouTube asks the client to retry later when rate-limiting access. This is
     # transient on the YouTube side; show a clear message and do not retry
@@ -207,6 +224,12 @@ def classify_yt_dlp_error(error_message, url=None):
     # Upstream server error (issue #356) — transient, show "try again later"
     if "http error 500" in error_lower or "internal server error" in error_lower:
         return "HTTP_500"
+
+    # The site rejected the request with a client 4xx (issue #477): 400/404/
+    # 405/410/451 never succeed on retry. 401/403 are left unclassified here
+    # (cookies can fix them; the Always Ask menu adds its own 401/403 hint).
+    if is_client_http_error(error_message):
+        return "HTTP_CLIENT_ERROR"
 
     # Extractor/parse failure (issue #328) — Facebook and other platforms change
     # page structure, breaking yt-dlp's extractor. Show a friendly message
@@ -226,6 +249,11 @@ def classify_yt_dlp_error(error_message, url=None):
         or "page needs to be reloaded" in error_lower
         or "unexpected response from webpage request" in error_lower
         or "skipping unsupported file type" in error_lower
+        # yt-dlp wraps extractor KeyErrors, e.g. KeyError('INNERTUBE_CONTEXT')
+        # on a YouTube bot-check page (issue #475): "An extractor error has
+        # occurred" is matched by "extractor error" above; ok.ru json.loads on
+        # a dict (upstream bug, issues #469/#471):
+        or "the json object must be str, bytes or bytearray" in error_lower
     ):
         return "EXTRACTOR_ERROR"
 

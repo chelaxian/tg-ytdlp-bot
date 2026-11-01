@@ -167,6 +167,36 @@ class FirebaseDBAdapter:
             return _get_local_fallback_child(self._path).remove()
 
 
+# RTDB REST timeouts as a (connect, read) tuple. A flat 60s (or the 1200s
+# used by the dump downloader) kept a request hanging for minutes during WG
+# tunnel degradation; a short connect timeout plus a bounded retry recovers
+# faster and fails fast on a dead network (issue #464).
+_REST_TIMEOUT = (10, 30)
+_REST_RETRY_DELAYS = (1.0, 3.0)  # backoff before attempt 2 and 3
+_REST_TRANSIENT_ERRORS = (requests.exceptions.Timeout, requests.exceptions.ConnectionError)
+
+
+def _rest_request(session, method: str, url: str, *, retry: bool = True, **kwargs):
+    """Perform an RTDB REST call; retry idempotent calls on transient network errors."""
+    kwargs.setdefault("timeout", _REST_TIMEOUT)
+    delays = _REST_RETRY_DELAYS if retry else ()
+    attempts = len(delays) + 1
+    for attempt in range(1, attempts + 1):
+        try:
+            r = session.request(method, url, **kwargs)
+            r.raise_for_status()
+            return r
+        except _REST_TRANSIENT_ERRORS as e:
+            if attempt >= attempts:
+                raise
+            delay = delays[attempt - 1]
+            logger.warning(
+                f"Firebase REST {method} transient error (attempt {attempt}/{attempts}), "
+                f"retrying in {delay:.0f}s: {type(e).__name__}"
+            )
+            time.sleep(delay)
+
+
 class RestDBAdapter:
     """Pyrebase-like adapter using Firebase Realtime Database REST API with idToken.
 
@@ -275,8 +305,7 @@ class RestDBAdapter:
         if _local_fallback_active:
             return _get_local_fallback_child(self._path).set(data)
         try:
-            r = self._session.put(self._url(), params=self._auth_params(), json=data, timeout=60)
-            r.raise_for_status()
+            _rest_request(self._session, "PUT", self._url(), params=self._auth_params(), json=data)
         except Exception as e:
             logger.error(f"❌ Firebase REST set() failed, switching to local JSON: {e}")
             return _get_local_fallback_child(self._path).set(data)
@@ -285,8 +314,7 @@ class RestDBAdapter:
         if _local_fallback_active:
             return _get_local_fallback_child(self._path).update(data)
         try:
-            r = self._session.patch(self._url(), params=self._auth_params(), json=data, timeout=60)
-            r.raise_for_status()
+            _rest_request(self._session, "PATCH", self._url(), params=self._auth_params(), json=data)
         except Exception as e:
             logger.error(f"❌ Firebase REST update() failed, switching to local JSON: {e}")
             return _get_local_fallback_child(self._path).update(data)
@@ -295,8 +323,7 @@ class RestDBAdapter:
         if _local_fallback_active:
             return _get_local_fallback_child(self._path).remove()
         try:
-            r = self._session.delete(self._url(), params=self._auth_params(), timeout=60)
-            r.raise_for_status()
+            _rest_request(self._session, "DELETE", self._url(), params=self._auth_params())
         except Exception as e:
             logger.error(f"❌ Firebase REST remove() failed, switching to local JSON: {e}")
             return _get_local_fallback_child(self._path).remove()
@@ -306,8 +333,8 @@ class RestDBAdapter:
             return _get_local_fallback_child(self._path).push(data)
         try:
             parent_url = f"{self._database_url}{self._path}.json"
-            r = self._session.post(parent_url, params=self._auth_params(), json=data, timeout=60)
-            r.raise_for_status()
+            # POST is not idempotent (creates a new key): no automatic retry
+            r = _rest_request(self._session, "POST", parent_url, retry=False, params=self._auth_params(), json=data)
             return r.json()
         except Exception as e:
             logger.error(f"❌ Firebase REST push() failed, switching to local JSON: {e}")
@@ -317,8 +344,7 @@ class RestDBAdapter:
         if _local_fallback_active:
             return _get_local_fallback_child(self._path).get()
         try:
-            r = self._session.get(self._url(), params=self._auth_params(), timeout=60)
-            r.raise_for_status()
+            r = _rest_request(self._session, "GET", self._url(), params=self._auth_params())
             return _SnapshotCompat(r.json())
         except Exception as e:
             logger.error(f"❌ Firebase REST get() failed, switching to local JSON: {e}")
@@ -352,6 +378,22 @@ class RestDBAdapter:
                 pass
 
 
+# One lock per cache file shared by ALL LocalDBAdapter instances: every
+# .child() creates a new adapter, so a per-instance lock serialized nothing and
+# concurrent load-modify-save cycles interleaved (issue #316).
+_local_file_locks: Dict[str, threading.RLock] = {}
+_local_file_locks_guard = threading.Lock()
+
+
+def _local_file_lock(cache_file: str) -> threading.RLock:
+    key = os.path.abspath(cache_file)
+    with _local_file_locks_guard:
+        lock = _local_file_locks.get(key)
+        if lock is None:
+            lock = _local_file_locks[key] = threading.RLock()
+        return lock
+
+
 class LocalDBAdapter:
     """Локальный адаптер для работы с JSON файлом вместо Firebase.
     
@@ -362,14 +404,15 @@ class LocalDBAdapter:
     def __init__(self, cache_file: str, path: str = "/"):
         self._cache_file = cache_file
         self._path = path if path.startswith("/") else f"/{path}"
-        self._lock = threading.RLock()
-        self._ensure_cache_file()
+        self._lock = _local_file_lock(cache_file)
+        with self._lock:
+            self._ensure_cache_file()
     
     def _ensure_cache_file(self):
         """Создает файл кэша если его нет."""
         if not os.path.exists(self._cache_file):
-            with open(self._cache_file, 'w', encoding='utf-8') as f:
-                json.dump({}, f, ensure_ascii=False, indent=2)
+            from HELPERS.atomic_io import atomic_write_json
+            atomic_write_json(self._cache_file, {}, ensure_ascii=False, indent=2)
     
     def _load_cache(self) -> Dict[str, Any]:
         """Загружает данные из JSON файла."""
@@ -384,10 +427,13 @@ class LocalDBAdapter:
     
     def _save_cache(self, data: Dict[str, Any]) -> None:
         """Сохраняет данные в JSON файл."""
+        # Atomic (tmp + os.replace): dump.json is read concurrently by the
+        # stats collector / dashboard, and a plain open('w') exposed or left
+        # behind a truncated file on Errno 122 (issue #316).
+        from HELPERS.atomic_io import atomic_write_json
         try:
-            with open(self._cache_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-        except Exception as e:
+            atomic_write_json(self._cache_file, data, ensure_ascii=False, indent=2)
+        except (OSError, TypeError, ValueError) as e:
             logger.error(f"Ошибка сохранения локального кэша: {e}")
             raise
     

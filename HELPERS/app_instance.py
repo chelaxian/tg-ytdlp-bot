@@ -5,6 +5,24 @@ from CONFIG.messages import Messages, safe_get_messages
 
 app = None
 
+# Set once the process starts shutting the Pyrogram client down (SIGTERM from
+# systemd/watchdog restart, Ctrl+C). Worker threads that are still running at
+# that moment hit "Client has not been started yet"; with this flag they can
+# tell an expected shutdown from a real runtime failure (issue #326).
+import threading as _threading
+_app_stopping = _threading.Event()
+
+
+def mark_app_stopping():
+    """Mark that the bot is shutting down (called right before app.stop())."""
+    _app_stopping.set()
+
+
+def is_app_stopping() -> bool:
+    """True once shutdown of the Pyrogram client has begun."""
+    return _app_stopping.is_set()
+
+
 def set_app(app_instance):
     """Set the global app instance"""
     global app

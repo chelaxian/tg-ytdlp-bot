@@ -64,20 +64,22 @@ docker run -d \
   --restart unless-stopped \
   "${IMAGE}" >/dev/null
 
-# Health-check (корень может отвечать 404 — это нормально, главное что TCP/HTTP живой)
-log "Health-check: http://127.0.0.1:${PORT}/ (до ${HEALTHCHECK_RETRIES} попыток, timeout ${HEALTHCHECK_TIMEOUT_SECONDS}s)"
+# Health-check via the provider's dedicated /ping endpoint (200 + {"version": ...}).
+# The root URL is not a health endpoint: bgutil server 2.x answers it with
+# HTTP 400 "This server is not meant to be accessed directly" (issue #465).
+log "Health-check: http://127.0.0.1:${PORT}/ping (до ${HEALTHCHECK_RETRIES} попыток, timeout ${HEALTHCHECK_TIMEOUT_SECONDS}s)"
 if command -v curl >/dev/null 2>&1; then
   http_code=""
   for ((i = 1; i <= HEALTHCHECK_RETRIES; i++)); do
-    http_code="$(curl -sS -m "${HEALTHCHECK_TIMEOUT_SECONDS}" -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/" 2>/dev/null || true)"
-    if [[ "${http_code}" == "200" || "${http_code}" == "404" ]]; then
+    http_code="$(curl -sS -m "${HEALTHCHECK_TIMEOUT_SECONDS}" -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/ping" 2>/dev/null || true)"
+    if [[ "${http_code}" == "200" ]]; then
       break
     fi
     if [[ "${i}" -lt "${HEALTHCHECK_RETRIES}" ]]; then
       sleep "${HEALTHCHECK_RETRY_DELAY_SECONDS}"
     fi
   done
-  if [[ "${http_code}" != "200" && "${http_code}" != "404" ]]; then
+  if [[ "${http_code}" != "200" ]]; then
     log "Health-check failed (http ${http_code}). Последние логи контейнера:"
     docker logs --tail 50 "${CONTAINER_NAME}" || true
     fail "bgutil-provider не прошёл health-check"

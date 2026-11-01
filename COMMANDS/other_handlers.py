@@ -1,5 +1,6 @@
 # #############################################################################################################################
 
+from HELPERS.safe_messeger import safe_callback_answer
 import os
 import re
 from pyrogram import filters, enums
@@ -61,7 +62,7 @@ def _close_callback(callback_query, answer_msg_key: str, log_msg_key: str) -> No
         callback_query.message.delete()
     except Exception:
         callback_query.edit_message_reply_markup(reply_markup=None)
-    callback_query.answer(getattr(_messages, answer_msg_key, ""))
+    safe_callback_answer(callback_query, getattr(_messages, answer_msg_key, ""))
     send_to_logger(callback_query.message, getattr(_messages, log_msg_key, ""))
 
 

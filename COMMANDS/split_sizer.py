@@ -1,3 +1,4 @@
+from HELPERS.safe_messeger import safe_callback_answer
 from pyrogram import filters
 from CONFIG.config import Config
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -151,7 +152,7 @@ def split_size_callback(app, callback_query):
                 except Exception:
                     pass
         try:
-            callback_query.answer(safe_get_messages(user_id).SPLIT_MENU_CLOSED_MSG)
+            safe_callback_answer(callback_query, safe_get_messages(user_id).SPLIT_MENU_CLOSED_MSG)
         except Exception:
             pass
         send_to_logger(callback_query.message, safe_get_messages(user_id).SPLIT_SELECTION_CLOSED_LOG_MSG)
@@ -159,7 +160,7 @@ def split_size_callback(app, callback_query):
     try:
         size = int(data)
     except Exception:
-        callback_query.answer(safe_get_messages(user_id).SPLIT_INVALID_SIZE_CALLBACK_MSG)
+        safe_callback_answer(callback_query, safe_get_messages(user_id).SPLIT_INVALID_SIZE_CALLBACK_MSG)
         return
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
