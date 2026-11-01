@@ -92,6 +92,7 @@ class FakeApp:
 APP = FakeApp()
 app_stub = types.ModuleType("HELPERS.app_instance")
 app_stub.get_app = lambda: APP
+app_stub.is_app_stopping = lambda: False
 sys.modules["HELPERS.app_instance"] = app_stub
 
 failures = []

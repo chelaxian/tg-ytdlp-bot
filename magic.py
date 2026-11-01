@@ -418,6 +418,22 @@ def cleanup_on_exit():
 # Register cleanup function
 atexit.register(cleanup_on_exit)
 
+
+def _exit_now(code=0):
+    """Terminate without waiting for worker threads.
+
+    Interpreter shutdown joins every non-daemon thread (upload pool, running
+    yt-dlp/ffmpeg jobs) *before* atexit handlers run, so a restart during work
+    hung past TimeoutStopSec and systemd sent SIGKILL with no cleanup at all.
+    Cleanup is done explicitly by the caller; JSON state is written atomically.
+    """
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except Exception:
+        pass
+    os._exit(code)
+
 # Register signal handlers for graceful shutdown
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
@@ -425,7 +441,7 @@ def signal_handler(sig, frame):
     print(_messages.MAGIC_SIGNAL_RECEIVED_MSG.format(signal=sig))
     mark_app_stopping()
     cleanup_on_exit()
-    sys.exit(0)
+    _exit_now(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
@@ -448,3 +464,5 @@ if __name__ == "__main__":
     except Exception:
         pass
     app.stop()
+    cleanup_on_exit()
+    _exit_now(0)
