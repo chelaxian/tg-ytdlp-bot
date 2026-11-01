@@ -506,6 +506,10 @@ def _run_async(coro, timeout=30):
     """
     import asyncio
     import concurrent.futures
+    import inspect
+    if not inspect.isawaitable(coro):
+        # pyrogram.sync already ran the call synchronously and returned its result
+        return coro
     app = get_app()
     loop = getattr(app, 'loop', None)
     if loop is None:
@@ -543,6 +547,21 @@ def _is_timeout_error(exc: BaseException) -> bool:
     import asyncio
     import concurrent.futures as _cf
     return isinstance(exc, (TimeoutError, _cf.TimeoutError, asyncio.TimeoutError))
+
+
+def _pyro_coro(app, name, *args, **kwargs):
+    """Return a real coroutine for a Pyrogram Client method.
+
+    pyrogram.sync wraps every method: from a worker thread the wrapper blocks
+    on the main loop itself (no timeout) and returns the *result*, so the
+    per-call timeout/retry of ``_run_async`` would never apply. Calling the
+    original coroutine function (kept by functools.wraps) avoids that.
+    """
+    method = getattr(type(app), name)
+    original = getattr(method, '__wrapped__', None)
+    if original is None:
+        return getattr(app, name)(*args, **kwargs)
+    return original(app, *args, **kwargs)
 
 
 def _run_async_retry(make_coro, timeout=30, attempts=_CHANNEL_BAN_ATTEMPTS,
@@ -593,7 +612,7 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
         try:
             from pyrogram.enums import ChatMemberStatus
             bot_member = _run_async_retry(
-                lambda: app.get_chat_member(subscribe_channel, "me"),
+                lambda: _pyro_coro(app, "get_chat_member", subscribe_channel, "me"),
                 what="bot permission check",
             )
             logger.info(f"[CHANNEL_BAN] Bot status in channel: {bot_member.status}")
@@ -624,7 +643,7 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
 
         try:
             user_member = _run_async_retry(
-                lambda: app.get_chat_member(subscribe_channel, user_id),
+                lambda: _pyro_coro(app, "get_chat_member", subscribe_channel, user_id),
                 what="user membership check",
             )
             logger.info(f"[CHANNEL_BAN] User {user_id} status in channel: {user_member.status}")
@@ -643,7 +662,8 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
         try:
             logger.info(f"[CHANNEL_BAN] Calling ban_chat_member for user {user_id} in channel {subscribe_channel}")
             result = _run_async_retry(
-                lambda: app.ban_chat_member(
+                lambda: _pyro_coro(
+                    app, "ban_chat_member",
                     chat_id=subscribe_channel,
                     user_id=user_id,
                     until_date=0,
