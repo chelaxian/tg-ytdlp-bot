@@ -52,8 +52,56 @@ class Config(object):
     ###########################################################
     # FOR DOCKER DEPLOYMENT YOU CAN STOP FILL IN HERE
     ###########################################################
-    # Firebase initialization
+    ###########################################################
+    # DATABASE
+    ###########################################################
+    # USE_FIREBASE = True  -> Google Firebase Realtime Database (cloud; the bot keeps
+    #                          a dump.json copy that is re-downloaded every RELOAD_CACHE_EVERY
+    #                          hours to save the free download quota)
+    # USE_FIREBASE = False -> local/self-hosted database selected by DB_ENGINE:
+    #   "json"     - dump.json file (FIREBASE_CACHE_FILE); simple, but every write
+    #                rewrites the whole file - only for small bots
+    #   "sqlite"   - SQLite file (SQLITE_DB_PATH); fast, zero setup, one server
+    #   "postgres" - PostgreSQL on this or another VM (several bots can share one
+    #                database); remote connections are TLS-encrypted
+    # SQL engines are always up to date: no dump download / reload is needed.
+    # Same tree as Firebase (bot/<BOT_NAME_FOR_USERS>/..., bot/video_cache/...);
+    # move data between engines with: python scripts/db_migrate.py --help
     USE_FIREBASE = False
+    DB_ENGINE = "sqlite"  # "json" | "sqlite" | "postgres" (used when USE_FIREBASE = False)
+    # SQLite: database file (created automatically)
+    SQLITE_DB_PATH = "DATABASE/data/tgytdlp.sqlite3"
+    # PostgreSQL: server set up by scripts/db/setup_postgres_server.sh
+    POSTGRES_HOST = "127.0.0.1"  # or the DB VM address / DNS name for a remote DB
+    POSTGRES_PORT = 5432
+    POSTGRES_DB = "tgytdlp"
+    POSTGRES_USER = "tgytdlp"
+    POSTGRES_PASSWORD = ""  # printed by setup_postgres_server.sh
+    # TLS: "verify-full" (encrypted + server certificate and hostname checked against
+    # POSTGRES_SSLROOTCERT) is required for a remote DB; "disable" only for 127.0.0.1
+    POSTGRES_SSLMODE = "verify-full"  # disable | require | verify-ca | verify-full
+    POSTGRES_SSLROOTCERT = "CONFIG/db/ca.crt"  # CA certificate copied from the DB server
+    # Optional client certificate (mutual TLS, if the server requires it)
+    POSTGRES_SSLCERT = ""  # e.g. "CONFIG/db/client.crt"
+    POSTGRES_SSLKEY = ""   # e.g. "CONFIG/db/client.key" (chmod 600)
+    POSTGRES_DSN = ""  # optional libpq DSN/URI; overrides the POSTGRES_* fields above
+    POSTGRES_POOL_MAX = 16  # max connections of this bot
+    DB_CONNECT_WAIT_SECONDS = 60  # how long to wait for the DB at startup
+    ###########################################################
+    # Per-task WARP tunnels (see docs/WARP_PER_TASK.md)
+    ###########################################################
+    # True: the bot (Telegram, DB) uses the direct internet connection; every user
+    # task that reaches an external site (download, formats, /img, /link, /list,
+    # cookie checks...) gets its own isolated Cloudflare WARP tunnel with a fresh
+    # egress IPv6, stopped when the task ends. No shared tunnel to restart, no
+    # IP rotation affecting Telegram or other users. Prepare the server with
+    # scripts/warp/setup_warp_per_task.sh. A proxy chosen via /proxy or PROXY_* wins.
+    WARP_PER_TASK = False
+    WARP_WIREPROXY_BIN = "/usr/local/bin/wireproxy"
+    WARP_PROFILES_DIR = "CONFIG/warp"  # wgcf-profile.conf files (one or more WARP accounts)
+    WARP_ENDPOINT = "162.159.192.1:2408"  # engage.cloudflareclient.com over IPv4
+    WARP_PROXY_HOST = "127.0.0.1"  # "172.17.0.1" when the bgutil PO-token container runs on Docker
+    WARP_MAX_TUNNELS = 40  # concurrent tunnels; beyond that tasks share one fallback tunnel
     # your firebase DB path
     BOT_DB_PATH = f"bot/{BOT_NAME_FOR_USERS}/"
     VIDEO_CACHE_DB_PATH = f"bot/video_cache"
@@ -111,7 +159,7 @@ class Config(object):
     # Do not chanege this
     PIC_FILE_PATH = "pic.jpg"
     FIREBASE_CACHE_FILE = "dump.json"
-    RELOAD_CACHE_EVERY = 1 # in hours
+    RELOAD_CACHE_EVERY = 1 # in hours (Firebase only: SQL engines are always current)
     DOWNLOAD_FIREBASE_SCRIPT_PATH = "DATABASE/download_firebase.py"
     AUTO_CACHE_RELOAD_ENABLED = True # Enable/disable automatic cache reloading
     ########################################################

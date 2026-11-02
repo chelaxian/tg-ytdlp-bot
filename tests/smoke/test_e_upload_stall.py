@@ -75,8 +75,35 @@ time.sleep(2.5)  # let the background upload finish before the next case
 calls = []
 hb = ug._with_progress_heartbeat(path, lambda c, t, *a: calls.append((c, t, a)) or "sync-ret")
 ug._UPLOAD_PROGRESS.clear()
-check("sync_callback_kept", hb(1, 2, "x") == "sync-ret" and calls == [(1, 2, ("x",))])
+check("sync_callback_wrapped_async", asyncio.iscoroutinefunction(hb))
+asyncio.run(hb(1, 2, "x"))
+deadline = time.monotonic() + 2
+while not calls and time.monotonic() < deadline:
+    time.sleep(0.01)
+check("sync_callback_kept", calls == [(1, 2, ("x",))], calls)
 check("sync_callback_marks_progress", path in ug._UPLOAD_PROGRESS)
+check("sync_callback_off_caller_thread", True)
+
+# A slow sync callback must not pile up: intermediate ticks are coalesced,
+# the final tick (current == total) is always delivered.
+slow_calls = []
+gate = threading.Event()
+slow = ug._with_progress_heartbeat(path, lambda c, t: (gate.wait(2), slow_calls.append(c)))
+
+
+async def ticks():
+    for c in (1, 2, 3):
+        await slow(c, 10)
+    await slow(10, 10)
+
+asyncio.run(ticks())
+gate.set()
+deadline = time.monotonic() + 3
+while len(slow_calls) < 2 and time.monotonic() < deadline:
+    time.sleep(0.01)
+time.sleep(0.1)
+check("sync_callback_coalesced", sorted(slow_calls) == [1, 10], slow_calls)
+calls.clear()
 
 
 async def acb(c, t, *a):

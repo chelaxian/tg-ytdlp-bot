@@ -23,7 +23,12 @@ Environment=PYTHONUNBUFFERED=1
 StandardOutput=journal
 StandardError=journal
 KillSignal=SIGINT
-TimeoutStopSec=20
+# shutdown waits up to 10s (ChannelGuard) + 15s (Pyrogram stop) before exiting
+TimeoutStopSec=35
+# The bot sends WATCHDOG=1 every 30s only while its event loop responds;
+# a loop stuck for 3 minutes is restarted by systemd itself.
+WatchdogSec=180
+NotifyAccess=main
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=full

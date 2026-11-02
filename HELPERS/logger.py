@@ -72,10 +72,31 @@ def close_logger():
 if SDNOTIFY_AVAILABLE:
     notifier = SystemdNotifier()
     
+    def _loop_responsive(timeout=20):
+        """True if the Pyrogram event loop runs a no-op within timeout (or is not up yet).
+
+        A blindly sent WATCHDOG=1 kept systemd convinced the bot was alive while
+        its loop was blocked; now a stuck loop stops the heartbeat, so a unit
+        with WatchdogSec= gets restarted by systemd itself.
+        """
+        import asyncio
+        try:
+            from HELPERS.app_instance import get_app, is_app_stopping
+            app = get_app()
+            loop = getattr(app, "loop", None)
+            if app is None or loop is None or not loop.is_running() or is_app_stopping():
+                return True
+            asyncio.run_coroutine_threadsafe(asyncio.sleep(0), loop).result(timeout=timeout)
+            return True
+        except Exception as e:
+            logger.error(f"[Watchdog] event loop unresponsive for {timeout}s ({type(e).__name__}); heartbeat withheld")
+            return False
+
     def watchdog_loop():
         while True:
-            notifier.notify("WATCHDOG=1")
-            logger.info("[Watchdog] Sent WATCHDOG=1")
+            if _loop_responsive():
+                notifier.notify("WATCHDOG=1")
+                logger.debug("[Watchdog] Sent WATCHDOG=1")
             time.sleep(30)  # Frequency is less than WatchdogSec
 
     # Start watchdog thread

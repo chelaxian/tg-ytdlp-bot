@@ -17,6 +17,9 @@ pillow
 chardet
 sdnotify
 firebase-admin
+# Self-hosted database (DB_ENGINE = "postgres"); SQLite needs nothing extra
+psycopg[binary]>=3.2
+psycopg-pool>=3.2
 bgutil-ytdlp-pot-provider
 urllib3
 brotlicffi>=1.2.0.0

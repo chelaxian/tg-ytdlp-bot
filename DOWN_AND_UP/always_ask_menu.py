@@ -1615,6 +1615,8 @@ def _dub_flag(lang_code: str) -> str:
         return '🌐'
 
 @app.on_callback_query(filters.regex(r"^askf\|"))
+# heavy (download/network): own pool, never the dispatcher threads
+@background_handler(label="ask_filter_callback")
 def ask_filter_callback(app, callback_query):
     messages = safe_get_messages(callback_query.from_user.id)
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -2495,6 +2497,8 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
 
 @app.on_callback_query(filters.regex(r"^askq\|"))
 # @reply_with_keyboard
+# heavy (download/network): own pool, never the dispatcher threads
+@background_handler(label="askq_callback")
 def askq_callback(app, callback_query):
     messages = safe_get_messages(callback_query.from_user.id)
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -3976,6 +3980,8 @@ def askq_callback(app, callback_query):
 ###########################
 
 @app.on_callback_query(filters.regex(r"^fallback_gallery_dl\|"))
+# heavy (download/network): own pool, never the dispatcher threads
+@background_handler(label="fallback_gallery_dl_callback")
 def fallback_gallery_dl_callback(app, callback_query):
     """Handle fallback to gallery-dl when yt-dlp fails"""
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -8324,7 +8330,8 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
         logger.warning(f"Failed to save available_qualities.txt: {e}")
 
 # Filter function to check if user is in trim input mode
-def _has_trim_state(flt, client, message) -> bool:
+async def _has_trim_state(flt, client, message) -> bool:
+    # async: a sync filter runs in Client.executor and stalls when handlers saturate it
     try:
         user_id = message.chat.id
         return user_id in trim_input_states

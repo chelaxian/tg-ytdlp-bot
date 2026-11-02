@@ -191,6 +191,47 @@ def _format_handler_context(func_name, message_obj):
     return f"{func_name} chat={chat_id} type={chat_type} from={from_id} text={text!r}"
 
 
+# Two pools keep handler work off Pyrogram's dispatcher threads (Client.executor,
+# 8 threads by default): once every one of them was busy with a download, the
+# bot accepted no updates at all while systemd still reported it alive.
+#   * heavy: handlers explicitly marked @background_handler (downloads, uploads);
+#     bounded by an inflight semaphore so overload is reported to the user;
+#   * light: every other sync message/callback handler (menus, settings), routed
+#     here by install_handler_offload(); never starved by downloads.
+_BG_EXECUTOR = None
+_BG_INFLIGHT_SEM = None
+_LIGHT_EXECUTOR = None
+_POOL_INIT_LOCK = threading.Lock()
+_BG_QUEUED = [0]  # heavy tasks accepted but not yet started
+_BG_QUEUED_LOCK = threading.Lock()
+_OFFLOAD_WRAPPERS = set()  # ids of wrappers that already offload themselves
+
+
+def _init_pools():
+    global _BG_EXECUTOR, _BG_INFLIGHT_SEM, _LIGHT_EXECUTOR
+    with _POOL_INIT_LOCK:
+        if _BG_EXECUTOR is not None:
+            return
+        from CONFIG.limits import LimitsConfig
+        res = LimitsConfig.detect_system_resources()
+        bg_workers = int(os.getenv("TG_YTDLP_BG_WORKERS", str(res['bg_workers'])))
+        inflight = int(os.getenv("TG_YTDLP_BG_INFLIGHT", str(res['inflight'])))
+        light_workers = int(os.getenv("TG_YTDLP_LIGHT_WORKERS", str(res.get('light_workers', 32))))
+        _BG_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=bg_workers, thread_name_prefix="bg")
+        _BG_INFLIGHT_SEM = threading.Semaphore(inflight)
+        _LIGHT_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=light_workers, thread_name_prefix="light")
+        logger.info(
+            f"[WORKERS] Auto-detected CPU={res['cpu_count']}: "
+            f"bg_workers={bg_workers}, inflight={inflight}, light_workers={light_workers}, "
+            f"max_uploads={res['max_uploads']}"
+        )
+
+
+def background_queue_depth() -> int:
+    """Heavy handler tasks waiting for a free worker (0 when the pool keeps up)."""
+    return max(0, _BG_QUEUED[0])
+
+
 def background_handler(func=None, *, label=None):
     """
     Decorator that offloads a handler into a background ThreadPoolExecutor
@@ -199,29 +240,9 @@ def background_handler(func=None, *, label=None):
     if func is None:
         return lambda f: background_handler(f, label=label)
 
-    # Global shared executor for background handlers.
-    # Keep it here to avoid importing in every call and to share capacity across handlers.
-    global _BG_EXECUTOR, _BG_INFLIGHT_SEM
-    try:
-        _BG_EXECUTOR
-    except NameError:
-        from CONFIG.limits import LimitsConfig
-        _res = LimitsConfig.detect_system_resources()
-        _BG_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
-            max_workers=int(os.getenv("TG_YTDLP_BG_WORKERS", str(_res['bg_workers'])))
-        )
-        _BG_INFLIGHT_SEM = threading.Semaphore(
-            int(os.getenv("TG_YTDLP_BG_INFLIGHT", str(_res['inflight'])))
-        )
-        logger.info(
-            f"[WORKERS] Auto-detected CPU={_res['cpu_count']}: "
-            f"bg_workers={_BG_EXECUTOR._max_workers}, "
-            f"inflight={_res['inflight']}, "
-            f"max_uploads={_res['max_uploads']}"
-        )
-
     @wraps(func)
     def wrapper(*args, **kwargs):
+        _init_pools()
         message_obj = _extract_message_arg(args, kwargs)
         context = _format_handler_context(label or func.__name__, message_obj)
         logger.info(f"[INBOUND] {context}")
@@ -244,11 +265,19 @@ def background_handler(func=None, *, label=None):
                 logger.warning(f"[HANDLER-DROP] {context} (background queue full)")
                 return None
 
-            logger.info(f"[HANDLER-START] {context}")
+            with _BG_QUEUED_LOCK:
+                _BG_QUEUED[0] += 1
+            logger.info(f"[HANDLER-QUEUED] {context} (waiting={background_queue_depth()})")
 
             def _run():
+                with _BG_QUEUED_LOCK:
+                    _BG_QUEUED[0] -= 1
+                logger.info(f"[HANDLER-START] {context}")
                 try:
-                    result = func(*args, **kwargs)
+                    # one private WARP tunnel per task (WARP_PER_TASK), stopped when it ends
+                    from HELPERS.warp_tunnel import task_scope
+                    with task_scope(context):
+                        result = func(*args, **kwargs)
                     logger.info(f"[HANDLER-DONE] {context}")
                     return result
                 except Exception:
@@ -273,7 +302,60 @@ def background_handler(func=None, *, label=None):
             logger.exception(f"[HANDLER-CRASH] {context}")
             raise
 
+    _OFFLOAD_WRAPPERS.add(id(wrapper))
     return wrapper
+
+
+def _light_offload(func):
+    """Run a sync handler on the light pool and return to the dispatcher at once."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        _init_pools()
+
+        def _run():
+            try:
+                from HELPERS.warp_tunnel import task_scope
+                with task_scope(f"{func.__name__} chat={getattr(getattr(_extract_message_arg(args, kwargs), 'chat', None), 'id', None)}"):
+                    func(*args, **kwargs)
+            except Exception:
+                message_obj = _extract_message_arg(args, kwargs)
+                logger.exception(f"[HANDLER-CRASH] {_format_handler_context(func.__name__, message_obj)}")
+
+        _LIGHT_EXECUTOR.submit(_run)
+
+    return wrapper
+
+
+def install_handler_offload(client):
+    """Make every sync on_message/on_callback_query handler of `client` return to
+    the Pyrogram dispatcher immediately.
+
+    Registration still happens through Pyrogram's own decorators; the module-level
+    name keeps the original function, so direct calls stay synchronous. Handlers
+    already wrapped by @background_handler (the outermost decorator) keep their
+    own heavy-pool offload.
+    """
+    import inspect
+
+    def patch(name):
+        original = getattr(client, name)
+
+        def decorator_factory(*args, **kwargs):
+            register = original(*args, **kwargs)
+
+            def decorator(func):
+                target = func
+                if not inspect.iscoroutinefunction(func) and id(func) not in _OFFLOAD_WRAPPERS:
+                    target = _light_offload(func)
+                register(target)
+                return func
+
+            return decorator
+
+        setattr(client, name, decorator_factory)
+
+    for name in ("on_message", "on_callback_query"):
+        patch(name)
 
 def check_user_not_blocked(func):
     """Decorator to check if user is blocked before processing command."""

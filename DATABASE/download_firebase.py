@@ -62,7 +62,9 @@ FIREBASE_PASSWORD = getattr(Config, 'FIREBASE_PASSWORD', None)
 OUTPUT_FILE = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
 TMP_OUTPUT_FILE = f"{OUTPUT_FILE}.tmp"
 
-if not FIREBASE_CONFIG or not FIREBASE_USER or not FIREBASE_PASSWORD:
+# Exit only when run as a script: the bot imports this module and must start
+# without Firebase credentials when it runs on SQLite/PostgreSQL/dump.json.
+if __name__ == "__main__" and (not FIREBASE_CONFIG or not FIREBASE_USER or not FIREBASE_PASSWORD):
     print(safe_get_messages().DB_NOT_ALL_PARAMETERS_SET_MSG)
     print("DUMP FAILED: FIREBASE_CONF / FIREBASE_USER / FIREBASE_PASSWORD not set", file=sys.stderr)
     sys.exit(1)
@@ -212,6 +214,10 @@ def download_firebase_dump():
     if requests is None or Session is None:
         print(safe_get_messages().DB_DEPENDENCY_NOT_AVAILABLE_MSG)
         _fail("python 'requests' dependency is missing")
+        return False
+    if not FIREBASE_CONFIG or not FIREBASE_USER or not FIREBASE_PASSWORD:
+        print(safe_get_messages().DB_NOT_ALL_PARAMETERS_SET_MSG)
+        _fail("FIREBASE_CONF / FIREBASE_USER / FIREBASE_PASSWORD not set")
         return False
 
     # Create managed session for connection pooling

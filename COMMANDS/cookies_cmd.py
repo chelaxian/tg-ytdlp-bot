@@ -737,6 +737,8 @@ def cookies_from_browser(app, message):
 
 # Callback Handler for Browser Selection
 @app.on_callback_query(filters.regex(r"^browser_choice\|"))
+# heavy (download/network): own pool, never the dispatcher threads
+@background_handler(label="browser_choice_callback")
 def browser_choice_callback(app, callback_query):
     """
     Обрабатывает выбор браузера для извлечения куки.
@@ -911,6 +913,8 @@ def save_my_cookie(app, message):
     send_to_logger(message, safe_get_messages(user_id).COOKIES_FILE_SAVED_USER_LOG_MSG.format(user_id=user_id))
 
 @app.on_callback_query(filters.regex(r"^download_cookie\|"))
+# heavy (download/network): own pool, never the dispatcher threads
+@background_handler(label="download_cookie_callback")
 def download_cookie_callback(app, callback_query):
     """
     Обрабатывает выбор сервиса для скачивания куки.

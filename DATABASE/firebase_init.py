@@ -8,8 +8,7 @@ from typing import Any, Dict, List, Optional
 import requests
 from requests import Session
 from requests.adapters import HTTPAdapter
-import firebase_admin
-from firebase_admin import credentials, db as admin_db
+# firebase_admin is imported lazily: SQLite/PostgreSQL/json installs don't need it
 
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
@@ -41,6 +40,8 @@ def _init_firebase_admin_if_needed() -> bool:
     Prefers credentials from GOOGLE_APPLICATION_CREDENTIALS or
     Config.FIREBASE_SERVICE_ACCOUNT (path to service account JSON).
     """
+    import firebase_admin
+    from firebase_admin import credentials
     if firebase_admin._apps:
         return True
 
@@ -115,6 +116,7 @@ class FirebaseDBAdapter:
 
     def _ref(self):
         messages = safe_get_messages(None)
+        from firebase_admin import db as admin_db
         return admin_db.reference(self._path)
 
     def set(self, data: Any) -> None:
@@ -414,8 +416,24 @@ class LocalDBAdapter:
             from HELPERS.atomic_io import atomic_write_json
             atomic_write_json(self._cache_file, {}, ensure_ascii=False, indent=2)
     
+    def _mirror(self):
+        """cache_db keeps dump.json in memory (firebase_cache) and rewrites the whole
+        file from it. Writing the file behind its back made the next sync drop
+        those writes (e.g. users added by check_user). Once the mirror is loaded,
+        operate on that same dict and persist through cache_db."""
+        import sys
+        if os.path.abspath(self._cache_file) != os.path.abspath(getattr(Config, "FIREBASE_CACHE_FILE", "dump.json")):
+            return None
+        cdb = sys.modules.get("DATABASE.cache_db")
+        if cdb is None or not getattr(cdb, "_mirror_loaded", False):
+            return None
+        return cdb
+
     def _load_cache(self) -> Dict[str, Any]:
         """Загружает данные из JSON файла."""
+        cdb = self._mirror()
+        if cdb is not None:
+            return cdb.firebase_cache
         try:
             if os.path.exists(self._cache_file):
                 with open(self._cache_file, 'r', encoding='utf-8') as f:
@@ -430,6 +448,10 @@ class LocalDBAdapter:
         # Atomic (tmp + os.replace): dump.json is read concurrently by the
         # stats collector / dashboard, and a plain open('w') exposed or left
         # behind a truncated file on Errno 122 (issue #316).
+        cdb = self._mirror()
+        if cdb is not None and data is cdb.firebase_cache:
+            cdb._sync_local_cache_to_file()
+            return
         from HELPERS.atomic_io import atomic_write_json
         try:
             atomic_write_json(self._cache_file, data, ensure_ascii=False, indent=2)
@@ -544,6 +566,91 @@ class LocalDBAdapter:
         pass
 
 
+class SqlDBAdapter:
+    """Pyrebase-like adapter over SqlTreeStore (USE_FIREBASE = False, DB_ENGINE = sqlite/postgres).
+
+    Errors are logged and swallowed like the Firebase adapters do (callers were
+    written against an API that never raises); reads then return an empty
+    snapshot. There is no fallback to dump.json: a second, silently diverging
+    copy of the data is worse than a logged failed write.
+    """
+
+    def __init__(self, store, path: str = "/"):
+        self._store = store
+        self._path = path if path.startswith("/") else f"/{path}"
+
+    def child(self, *path_parts: str) -> "SqlDBAdapter":
+        path = self._path.rstrip("/")
+        for part in path_parts:
+            part = str(part).strip("/")
+            if not part:
+                continue
+            path = f"{path}/{part}"
+        return SqlDBAdapter(self._store, path)
+
+    def get(self) -> _SnapshotCompat:
+        try:
+            return _SnapshotCompat(self._store.get(self._path))
+        except Exception as e:
+            logger.error(f"❌ DB get({self._path}) failed: {type(e).__name__}: {e}")
+            return _SnapshotCompat(None)
+
+    def set(self, data: Any) -> None:
+        try:
+            self._store.set(self._path, data)
+        except Exception as e:
+            logger.error(f"❌ DB set({self._path}) failed: {type(e).__name__}: {e}")
+
+    def update(self, data: Dict[str, Any]) -> None:
+        try:
+            self._store.update(self._path, data)
+        except Exception as e:
+            logger.error(f"❌ DB update({self._path}) failed: {type(e).__name__}: {e}")
+
+    def remove(self) -> None:
+        try:
+            self._store.remove(self._path)
+        except Exception as e:
+            logger.error(f"❌ DB remove({self._path}) failed: {type(e).__name__}: {e}")
+
+    def push(self, data: Any):
+        try:
+            return {"name": self._store.push(self._path, data)}
+        except Exception as e:
+            logger.error(f"❌ DB push({self._path}) failed: {type(e).__name__}: {e}")
+            return None
+
+    def close(self):
+        pass
+
+
+_sql_store = None
+
+
+def get_sql_store():
+    """The SqlTreeStore in use, or None when the bot runs on Firebase / dump.json."""
+    return _sql_store
+
+
+def _open_sql_store(engine: str):
+    """Connect with retries: a remote DB that is briefly unreachable at boot must
+    not make the bot fall back to a local file."""
+    from DATABASE.sql_store import open_store_from_config
+    deadline = time.time() + float(getattr(Config, "DB_CONNECT_WAIT_SECONDS", 60))
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            store = open_store_from_config(Config, engine)
+            store.ping()
+            return store
+        except Exception as e:
+            if time.time() >= deadline:
+                raise RuntimeError(f"{engine} database is unreachable: {type(e).__name__}: {e}") from e
+            logger.warning(f"⏳ {engine} database not ready (attempt {attempt}): {type(e).__name__}: {e}")
+            time.sleep(min(10, 2 * attempt))
+
+
 # ------------------------------------------------------------------------------
 # Глобальный фолбэк на локальный JSON (dump.json), если Firebase недоступен
 # ------------------------------------------------------------------------------
@@ -565,6 +672,8 @@ def _get_local_fallback_root():
             _local_fallback_root = LocalDBAdapter(cache_file, "/")
             logger.info(f"✅ Активирован локальный режим БД (fallback, файл: {cache_file})")
         _local_fallback_active = True
+        from DATABASE.db_mode import set_active_engine, JSON
+        set_active_engine(JSON)
         try:
             setattr(Config, "USE_FIREBASE", False)
         except Exception:
@@ -588,54 +697,62 @@ def _get_local_fallback_child(path: str):
     return adapter
 
 
-# Initialize db adapter (admin, REST fallback, or local)
-use_firebase = getattr(Config, "USE_FIREBASE", True)
-try:
-    if not use_firebase:
-        # Локальный режим - используем JSON файл
-        cache_file = getattr(Config, "FIREBASE_CACHE_FILE", "dump.json")
-        db = LocalDBAdapter(cache_file, "/")
-        logger.info(f"✅ Локальный режим активирован (кэш: {cache_file})")
-    else:
-        # Firebase режим - используем облачную базу
-        use_admin = _init_firebase_admin_if_needed()
-        if use_admin:
-            db = FirebaseDBAdapter("/")
+# Initialize db adapter (Firebase admin / REST, dump.json, SQLite or PostgreSQL)
+from DATABASE.db_mode import configured_engine, FIREBASE as _ENGINE_FIREBASE, JSON as _ENGINE_JSON
+_engine = configured_engine()
+use_firebase = _engine == _ENGINE_FIREBASE
+if _engine not in (_ENGINE_FIREBASE, _ENGINE_JSON):
+    # SQL engines: no silent fallback to dump.json (see SqlDBAdapter)
+    _sql_store = _open_sql_store(_engine)
+    db = SqlDBAdapter(_sql_store, "/")
+    logger.info(f"✅ Database engine: {_engine}")
+else:
+    try:
+        if not use_firebase:
+            # Локальный режим - используем JSON файл
+            cache_file = getattr(Config, "FIREBASE_CACHE_FILE", "dump.json")
+            db = LocalDBAdapter(cache_file, "/")
+            logger.info(f"✅ Локальный режим активирован (кэш: {cache_file})")
         else:
-            database_url = _get_database_url()
-            api_key = getattr(Config, "FIREBASE_CONF", {}).get("apiKey")
-            if not api_key:
-                raise RuntimeError("FIREBASE_CONF.apiKey отсутствует — нужен для REST аутентификации")
-            # Sign in via REST using managed session
-            from HELPERS.http_manager import get_managed_session
+            # Firebase режим - используем облачную базу
+            use_admin = _init_firebase_admin_if_needed()
+            if use_admin:
+                db = FirebaseDBAdapter("/")
+            else:
+                database_url = _get_database_url()
+                api_key = getattr(Config, "FIREBASE_CONF", {}).get("apiKey")
+                if not api_key:
+                    raise RuntimeError("FIREBASE_CONF.apiKey отсутствует — нужен для REST аутентификации")
+                # Sign in via REST using managed session
+                from HELPERS.http_manager import get_managed_session
 
-            auth_manager = get_managed_session("firebase-auth")
-            auth_session = auth_manager.get_session()
-            try:
-                auth_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
-                resp = auth_session.post(
-                    auth_url,
-                    json={
-                        "email": getattr(Config, "FIREBASE_USER", None),
-                        "password": getattr(Config, "FIREBASE_PASSWORD", None),
-                        "returnSecureToken": True,
-                    },
-                    timeout=60,
-                )
-                resp.raise_for_status()
-                payload = resp.json()
-                id_token = payload.get("idToken")
-                refresh_token = payload.get("refreshToken")
-                if not id_token:
-                    raise RuntimeError("Не удалось получить idToken через REST аутентификацию")
-                logger.info("✅ REST Firebase auth successful")
-                db = RestDBAdapter(database_url, id_token, refresh_token, api_key, "/")
-            finally:
-                auth_manager.close()
-except Exception as e:
-    # Любая ошибка инициализации Firebase — мягко падаем в локальный режим
-    logger.error(f"❌ Ошибка инициализации Firebase, включаю локальный режим: {e}")
-    db = _get_local_fallback_root()
+                auth_manager = get_managed_session("firebase-auth")
+                auth_session = auth_manager.get_session()
+                try:
+                    auth_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
+                    resp = auth_session.post(
+                        auth_url,
+                        json={
+                            "email": getattr(Config, "FIREBASE_USER", None),
+                            "password": getattr(Config, "FIREBASE_PASSWORD", None),
+                            "returnSecureToken": True,
+                        },
+                        timeout=60,
+                    )
+                    resp.raise_for_status()
+                    payload = resp.json()
+                    id_token = payload.get("idToken")
+                    refresh_token = payload.get("refreshToken")
+                    if not id_token:
+                        raise RuntimeError("Не удалось получить idToken через REST аутентификацию")
+                    logger.info("✅ REST Firebase auth successful")
+                    db = RestDBAdapter(database_url, id_token, refresh_token, api_key, "/")
+                finally:
+                    auth_manager.close()
+    except Exception as e:
+        # Любая ошибка инициализации Firebase — мягко падаем в локальный режим
+        logger.error(f"❌ Ошибка инициализации Firebase, включаю локальный режим: {e}")
+        db = _get_local_fallback_root()
 
 db = wrap_db_adapter(db)
 
@@ -645,6 +762,28 @@ def db_child_by_path(db_adapter, path: str):
     for part in path.strip("/").split("/"):
         db_adapter = db_adapter.child(part)
     return db_adapter
+
+
+def _user_list_has(list_name: str, user_id) -> bool:
+    """True if bot/<BOT>/<list_name>/<user_id> exists.
+
+    One key lookup instead of fetching the whole list: with Firebase every
+    message used to download users (~2k) and blocked_users (~3.5k) in full,
+    up to ~90 s each over a degraded network, on the handler thread.
+    """
+    key = str(user_id)
+    from DATABASE.db_mode import is_json
+    if is_json():
+        from DATABASE.cache_db import get_from_local_cache
+        data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, list_name])
+        return isinstance(data, dict) and key in data
+    if _sql_store is not None:
+        try:
+            return _sql_store.exists(["bot", Config.BOT_NAME_FOR_USERS, list_name, key])
+        except Exception as e:
+            logger.error(f"❌ DB lookup {list_name}/{key} failed: {type(e).__name__}: {e}")
+            return False
+    return db.child("bot").child(Config.BOT_NAME_FOR_USERS).child(list_name).child(key).get().val() is not None
 
 
 # Cheking Users are in Main User Directory in DB
@@ -665,21 +804,9 @@ def check_user(message):
         shutil.copy(cookie_src, cookie_dest)
 
     # Register the User in the Database if Not Already Registered
-    use_firebase = getattr(Config, 'USE_FIREBASE', True)
-    if use_firebase:
-        user_db = db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("users").get().each()
-        users = [user.key() for user in user_db] if user_db else []
-        if user_id_str not in users:
-            data = {"ID": message.chat.id, "timestamp": math.floor(time.time())}
-            db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("users").child(user_id_str).set(data)
-    else:
-        # В локальном режиме проверяем через локальный кэш
-        from DATABASE.cache_db import get_from_local_cache
-        users_data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "users"])
-        users = list(users_data.keys()) if isinstance(users_data, dict) else []
-        if user_id_str not in users:
-            data = {"ID": message.chat.id, "timestamp": math.floor(time.time())}
-            db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("users").child(user_id_str).set(data)
+    if not _user_list_has("users", user_id_str):
+        data = {"ID": message.chat.id, "timestamp": math.floor(time.time())}
+        db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("users").child(user_id_str).set(data)
 
 
 # Checking user is Ignored or not
@@ -688,59 +815,18 @@ def is_user_ignored(message):
     Проверяет, игнорируется ли пользователь.
     Игнорируемые пользователи не получают никаких ответов от бота.
     """
-    user_id = int(message.chat.id)
-    use_firebase = getattr(Config, 'USE_FIREBASE', True)
-    
-    if use_firebase:
-        ignored = db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("ignored_users").get().each()
-        ignored_users = [int(i_user.key()) for i_user in ignored] if ignored else []
-    else:
-        # В локальном режиме проверяем через локальный кэш
-        from DATABASE.cache_db import get_from_local_cache
-        ignored_data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "ignored_users"])
-        ignored_users = [int(k) for k in ignored_data.keys()] if isinstance(ignored_data, dict) else []
-    
-    return user_id in ignored_users
+    return _user_list_has("ignored_users", int(message.chat.id))
 
 # Checking user is Blocked or not
 def is_user_blocked(message):
-    messages = safe_get_messages(message.chat.id)
     user_id = int(message.chat.id)
-    use_firebase = getattr(Config, 'USE_FIREBASE', True)
-    
-    if use_firebase:
-        # Проверяем список разблокированных пользователей (приоритет)
-        unblocked = db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("unblocked_users").get().each()
-        unblocked_users = [int(u_user.key()) for u_user in unblocked] if unblocked else []
-        
-        # Если пользователь в списке разблокированных, он не заблокирован
-        if user_id in unblocked_users:
-            return False
-        
-        # Проверяем список заблокированных пользователей
-        blocked = db.child("bot").child(Config.BOT_NAME_FOR_USERS).child("blocked_users").get().each()
-        blocked_users = [int(b_user.key()) for b_user in blocked] if blocked else []
-    else:
-        # В локальном режиме проверяем через локальный кэш
-        from DATABASE.cache_db import get_from_local_cache
-        
-        # Проверяем список разблокированных пользователей (приоритет)
-        unblocked_data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "unblocked_users"])
-        unblocked_users = [int(k) for k in unblocked_data.keys()] if isinstance(unblocked_data, dict) else []
-        
-        # Если пользователь в списке разблокированных, он не заблокирован
-        if user_id in unblocked_users:
-            return False
-        
-        # Проверяем список заблокированных пользователей
-        blocked_data = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "blocked_users"])
-        blocked_users = [int(k) for k in blocked_data.keys()] if isinstance(blocked_data, dict) else []
-    
-    if user_id in blocked_users:
+    # Список разблокированных пользователей имеет приоритет
+    if _user_list_has("unblocked_users", user_id):
+        return False
+    if _user_list_has("blocked_users", user_id):
         send_to_all(message, safe_get_messages(message.chat.id).DB_USER_BANNED_MSG)
         return True
-    else:
-        return False
+    return False
 
 
 def _build_stats_metadata(message) -> dict:

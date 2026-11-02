@@ -182,7 +182,8 @@ class ChannelGuard:
             return
         self._app = app
         self._loop = app.loop
-        self.initialize_from_db()
+        # DB reads are blocking network calls: keep them off the Pyrogram loop
+        await asyncio.to_thread(self.initialize_from_db)
         self._running = True
         if self._user_session_string:
             try:
@@ -355,12 +356,12 @@ class ChannelGuard:
                 leaver["last_left_ts"] = event_timestamp
                 leaver["blocked"] = leaver.get("blocked", False)
                 self._leavers[uid] = leaver
-                self._guard_root.child("leavers").child(uid).update(leaver)
+                await asyncio.to_thread(self._guard_root.child("leavers").child(uid).update, leaver)
                 new_count += 1
                 if self._settings.get("auto_enabled"):
                     if await self._auto_block_user(int(uid), reason="auto_immediate"):
                         auto_banned += 1
-            self._guard_root.child("state").update({"last_event_id": self._last_event_id})
+            await asyncio.to_thread(self._guard_root.child("state").update, {"last_event_id": self._last_event_id})
             return new_count, auto_banned
 
     async def _process_auto_window(self) -> None:

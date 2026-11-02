@@ -71,6 +71,14 @@ app = Client(**_client_kwargs)
 
 # Set global app instance BEFORE importing handlers
 set_app(app)
+# Every sync handler registered from here on returns to the dispatcher at once
+# and runs on a worker pool: Pyrogram's own handler threads only dispatch.
+from HELPERS.decorators import install_handler_offload
+install_handler_offload(app)
+# WARP_PER_TASK: external requests of each user task go through its own
+# WARP tunnel; Telegram and the rest of the bot stay on the direct connection.
+from HELPERS.warp_tunnel import install_hooks as _install_warp_hooks
+_install_warp_hooks()
 
 # Кэш для username бота (будет заполнен после старта)
 _bot_username_cache = None
@@ -383,8 +391,8 @@ def vid_help_callback(app, callback_query):
 starting_point = []
 
 # Run the automatic loading of the Firebase cache (only if Firebase is enabled)
-use_firebase = getattr(Config, 'USE_FIREBASE', True)
-if use_firebase:
+from DATABASE.db_mode import is_firebase as _is_firebase
+if _is_firebase():
     start_auto_cache_reloader()
 else:
     print("ℹ️ Автоматическая перезагрузка кэша отключена (локальный режим)")

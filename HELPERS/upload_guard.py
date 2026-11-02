@@ -119,6 +119,9 @@ def _infer_file_size(file_path, dedup_key):
 _UPLOAD_STALL_SECONDS = getattr(LimitsConfig, 'UPLOAD_STALL_SECONDS', 180)
 _UPLOAD_HARD_TIMEOUT_FACTOR = getattr(LimitsConfig, 'UPLOAD_HARD_TIMEOUT_FACTOR', 4)
 _UPLOAD_PROGRESS = {}  # abspath -> time.monotonic() of the last uploaded chunk
+_PROGRESS_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="upload_progress")
+_PROGRESS_RUNNING = set()
+_PROGRESS_LOCK = threading.Lock()
 
 
 def note_upload_progress(path):
@@ -142,9 +145,28 @@ def _with_progress_heartbeat(path, progress):
             note_upload_progress(path)
             return await progress(current, total, *args)
     else:
-        def heartbeat(current, total, *args):
+        # A sync callback would be run by Pyrogram in Client.executor for every
+        # chunk; progress_bar edits messages and sleeps on FloodWait there, so a
+        # few uploads starved every handler. Run it on a separate pool instead,
+        # coalesced per file (a tick is skipped while the previous one runs).
+        key = os.path.abspath(path)
+
+        def _run(current, total, args):
+            try:
+                progress(current, total, *args)
+            except Exception as e:
+                logger.debug(f"[Upload] progress callback failed: {e}")
+            finally:
+                with _PROGRESS_LOCK:
+                    _PROGRESS_RUNNING.discard(key)
+
+        async def heartbeat(current, total, *args):
             note_upload_progress(path)
-            return progress(current, total, *args)
+            with _PROGRESS_LOCK:
+                if key in _PROGRESS_RUNNING and current < total:
+                    return
+                _PROGRESS_RUNNING.add(key)
+            _PROGRESS_EXECUTOR.submit(_run, current, total, args)
     return heartbeat
 
 

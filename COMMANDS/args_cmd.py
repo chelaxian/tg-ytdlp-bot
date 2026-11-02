@@ -1628,7 +1628,8 @@ def handle_args_text_input(app, message):
         # Clear state on error
         clear_input_state_timer(user_id, thread_id)
 
-def _has_args_state(flt, client, message) -> bool:
+async def _has_args_state(flt, client, message) -> bool:
+    # async: a sync filter runs in Client.executor and stalls when handlers saturate it
     try:
         chat_id = message.chat.id
         thread_id = getattr(message, 'message_thread_id', None) or 0

@@ -27,6 +27,7 @@ from DATABASE.firebase_init import db
 from HELPERS.qualifier import ceil_to_popular
 from DATABASE.firebase_init import db_child_by_path
 from DATABASE.download_firebase import download_firebase_dump
+from DATABASE.db_mode import active_engine, is_firebase, is_json, is_sql
 
 # Get app instance
 app = get_app()
@@ -63,6 +64,8 @@ def _expand_quality_keys(quality_key: str) -> list:
 
 # Global variable for local cache Firebase
 firebase_cache = {}
+# True once firebase_cache holds dump.json: LocalDBAdapter then writes through it
+_mirror_loaded = False
 
 # Auto-reload flags and state
 auto_cache_enabled = getattr(Config, 'AUTO_CACHE_RELOAD_ENABLED', True)
@@ -75,8 +78,7 @@ _thread_lock = threading.RLock()
 def _sync_local_cache_to_file():
     """Синхронизирует локальный кэш с файлом (используется при USE_FIREBASE=False)."""
     global firebase_cache
-    use_firebase = getattr(Config, 'USE_FIREBASE', True)
-    if not use_firebase:
+    if is_json():
         # Atomic write (tmp + os.replace): the dump is read concurrently by
         # stats_collector / the dashboard, and a plain open('w') exposed a
         # truncated file to them (or left one behind on Errno 122) (issue #316).
@@ -102,6 +104,16 @@ def get_from_local_cache(path_parts):
     For example: get_from_local_cache (['Bot', 'Video_cache', 'Hash123', '720p'])
     """
     global firebase_cache
+    if is_sql():
+        # SQLite/PostgreSQL are always current: read the store, not a dump copy
+        from DATABASE.firebase_init import get_sql_store
+        try:
+            value = get_sql_store().get(list(path_parts))
+        except Exception as e:
+            logger.error(f"DB read {'/'.join(map(str, path_parts))} failed: {type(e).__name__}: {e}")
+            value = None
+        log_firebase_access_attempt(path_parts, success=value is not None)
+        return value
     current = firebase_cache
     for part in path_parts:
         if isinstance(current, dict) and part in current:
@@ -129,7 +141,11 @@ def log_firebase_access_attempt(path_parts, success=True):
 def load_firebase_cache():
     messages = safe_get_messages(None)
     """Load local Firebase cache from JSON file."""
-    global firebase_cache
+    global firebase_cache, _mirror_loaded
+    if is_sql():
+        firebase_cache = {}
+        print(f"ℹ️ Database engine {active_engine()}: data is read from the database, no dump to load")
+        return
     try:
         cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'dump.json')
         use_firebase = getattr(Config, 'USE_FIREBASE', True)
@@ -146,6 +162,8 @@ def load_firebase_cache():
             else:
                 print(f"ℹ️ Локальный кэш не найден, создан новый файл: {cache_file}")
             firebase_cache = {}
+        # not on a read error: an empty mirror would then overwrite the file
+        _mirror_loaded = True
     except Exception as e:
         use_firebase = getattr(Config, 'USE_FIREBASE', True)
         if use_firebase:
@@ -158,6 +176,8 @@ def reload_firebase_cache():
     messages = safe_get_messages(None)
     """Reloading the local Firebase cache from JSON file"""
     global firebase_cache
+    if is_sql():
+        return True
     try:
         cache_file = getattr(Config, 'FIREBASE_CACHE_FILE', 'firebase_cache.json')
         if os.path.exists(cache_file):
@@ -203,9 +223,8 @@ def auto_reload_firebase_cache():
     """Background thread that reloads local cache every N hours by downloading dump first."""
     global auto_cache_enabled
     
-    # В локальном режиме не нужно перезагружать кэш
-    use_firebase = getattr(Config, 'USE_FIREBASE', True)
-    if not use_firebase:
+    # Dump download/reload only makes sense for Firebase (quota-limited copy)
+    if not is_firebase():
         print("ℹ️ Автоматическая перезагрузка кэша отключена в локальном режиме")
         return
 
@@ -524,8 +543,7 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").remove()
                 logger.info(f"Cleared playlist cache for hash={url_hash}, quality={quality_key}")
                 # Обновляем локальный кэш
-                use_firebase = getattr(Config, 'USE_FIREBASE', True)
-                if not use_firebase:
+                if is_json():
                     path_parts_clear = ["bot", "video_cache", "playlists", url_hash, quality_key]
                     current = firebase_cache
                     for i, part in enumerate(path_parts_clear[:-1]):
@@ -594,8 +612,7 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                     logger.warning(f"⚠️ [CACHE] Не удалось сохранить отдельное видео для index={video_index}, url={video_url}: {e}")
         
         # Синхронизируем локальный кэш с файлом при USE_FIREBASE=False
-        use_firebase = getattr(Config, 'USE_FIREBASE', True)
-        if not use_firebase:
+        if is_json():
             _sync_local_cache_to_file()
 
     except Exception as e:
@@ -685,8 +702,7 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
                 logger.info(f"get_cached_playlist_qualities: found qualities {qualities} for hash {url_hash} (local cache)")
             else:
                 # Если в локальном кэше нет, проверяем Firebase напрямую (если используется)
-                use_firebase = getattr(Config, 'USE_FIREBASE', True)
-                if use_firebase:
+                if is_firebase():
                     try:
                         # Пытаемся получить данные из Firebase напрямую
                         firebase_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}"
@@ -889,8 +905,7 @@ def save_to_image_cache(url: str, post_index: int, message_ids: list):
             logger.info(f"[IMG CACHE] Saved album to cache: {path_dbg_parent}/{int(post_index)}")
             
             # Обновляем локальный кэш для немедленного доступа
-            use_firebase = getattr(Config, 'USE_FIREBASE', True)
-            if not use_firebase:
+            if is_json():
                 current = firebase_cache
                 for part in local_path_parts[:-1]:  # Все кроме последнего (post_index)
                     if part not in current:
@@ -1074,8 +1089,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 logger.info(f"Clearing cache for URL hash {url_hash}, quality {quality_key}")
                 db.child(*path_parts).child(quality_key).remove()
                 # Обновляем локальный кэш
-                use_firebase = getattr(Config, 'USE_FIREBASE', True)
-                if not use_firebase:
+                if is_json():
                     current = firebase_cache
                     for part in ["bot", "video_cache", url_hash]:
                         if part in current and isinstance(current[part], dict):
@@ -1104,8 +1118,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 cache_ref.child(quality_key).set(str(message_ids[0]))
                 logger.info(f"Saved single video to cache: hash={url_hash}, quality={quality_key}, msg_id={message_ids[0]}")
                 # Обновляем локальный кэш
-                use_firebase = getattr(Config, 'USE_FIREBASE', True)
-                if not use_firebase:
+                if is_json():
                     current = firebase_cache
                     for part in ["bot", "video_cache", url_hash]:
                         if part not in current:
@@ -1117,8 +1130,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 cache_ref.child(quality_key).set(ids_string)
                 logger.info(f"Saved split video to cache: hash={url_hash}, quality={quality_key}, msg_ids={ids_string}")
                 # Обновляем локальный кэш
-                use_firebase = getattr(Config, 'USE_FIREBASE', True)
-                if not use_firebase:
+                if is_json():
                     current = firebase_cache
                     for part in ["bot", "video_cache", url_hash]:
                         if part not in current:
@@ -1127,8 +1139,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                     current[quality_key] = ids_string
             
             # Синхронизируем локальный кэш с файлом при USE_FIREBASE=False
-            use_firebase = getattr(Config, 'USE_FIREBASE', True)
-            if not use_firebase:
+            if is_json():
                 _sync_local_cache_to_file()
 
     except Exception as e:

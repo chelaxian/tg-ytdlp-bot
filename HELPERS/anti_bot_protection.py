@@ -237,8 +237,8 @@ def _do_ban_async(user_id: int, reason: str):
             logger.error(f"Failed to block user {user_id}: {exc}")
 
         try:
-            use_firebase = getattr(Config, 'USE_FIREBASE', True)
-            if not use_firebase:
+            from DATABASE.db_mode import is_json
+            if is_json():
                 from DATABASE.cache_db import firebase_cache, _sync_local_cache_to_file
                 if "bot" not in firebase_cache:
                     firebase_cache["bot"] = {}
