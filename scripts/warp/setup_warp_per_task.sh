@@ -103,6 +103,13 @@ done
 # ------------------------------------------------------------------ direct route for the bot
 if [ "$DIRECT_ROUTE" = 1 ]; then
     UNIT=/etc/systemd/system/tg-ytdlp-direct-route.service
+    # Without a native IPv6 default route, "lookup main" falls through to the
+    # wgcf table for IPv6; prohibit it so the bot falls back to IPv4 at once.
+    V6_ADD=""; V6_DEL=""
+    if [ -z "$(ip -6 route show default table main)" ]; then
+        V6_ADD="; ip -6 rule del priority 31001 2>/dev/null; ip -6 rule add uidrange $BOT_UID-$BOT_UID prohibit priority 31001"
+        V6_DEL="; ip -6 rule del priority 31001"
+    fi
     cat > "$UNIT" <<EOF
 [Unit]
 Description=tg-ytdlp-bot: traffic of uid $BOT_UID bypasses the system-wide WARP (wgcf)
@@ -113,15 +120,16 @@ Before=tg-ytdlp-bot.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/sh -c 'ip rule del priority 31000 2>/dev/null; ip rule add uidrange $BOT_UID-$BOT_UID lookup main priority 31000; ip -6 rule del priority 31000 2>/dev/null; ip -6 rule add uidrange $BOT_UID-$BOT_UID lookup main priority 31000'
-ExecStop=/bin/sh -c 'ip rule del priority 31000; ip -6 rule del priority 31000'
+ExecStart=/bin/sh -c 'ip rule del priority 31000 2>/dev/null; ip rule add uidrange $BOT_UID-$BOT_UID lookup main priority 31000; ip -6 rule del priority 31000 2>/dev/null; ip -6 rule add uidrange $BOT_UID-$BOT_UID lookup main priority 31000$V6_ADD'
+ExecStop=/bin/sh -c 'ip rule del priority 31000; ip -6 rule del priority 31000$V6_DEL'
 
 [Install]
 WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
-    systemctl enable --now tg-ytdlp-direct-route.service
-    log "direct route active: $(ip rule show priority 31000)"
+    systemctl enable tg-ytdlp-direct-route.service
+    systemctl restart tg-ytdlp-direct-route.service
+    log "direct route active: $(ip rule show priority 31000) $(ip -6 rule show priority 31001)"
 fi
 
 cat <<EOF
