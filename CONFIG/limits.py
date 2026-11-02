@@ -75,12 +75,17 @@ class LimitsConfig(object):
 
         bg_workers = min(cpu_count * 5, 48)
         max_uploads = min(cpu_count, 8)
-        inflight = bg_workers * 10
+        # Accepted-but-waiting heavy jobs stay small: with *10 up to 180 jobs
+        # queued silently behind busy workers and the bot looked dead.
+        inflight = bg_workers * 3
+        # Menus/settings/callbacks: cheap, but must never wait for downloads
+        light_workers = max(16, min(cpu_count * 8, 64))
 
         return {
             'bg_workers': bg_workers,
             'max_uploads': max_uploads,
             'inflight': inflight,
+            'light_workers': light_workers,
             'cpu_count': cpu_count,
         }
 

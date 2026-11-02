@@ -71,6 +71,10 @@ app = Client(**_client_kwargs)
 
 # Set global app instance BEFORE importing handlers
 set_app(app)
+# Every sync handler registered from here on returns to the dispatcher at once
+# and runs on a worker pool: Pyrogram's own handler threads only dispatch.
+from HELPERS.decorators import install_handler_offload
+install_handler_offload(app)
 
 # Кэш для username бота (будет заполнен после старта)
 _bot_username_cache = None

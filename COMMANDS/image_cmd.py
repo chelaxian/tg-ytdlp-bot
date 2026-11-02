@@ -4798,6 +4798,8 @@ def img_help_callback(app, callback_query: CallbackQuery):
         pass
 
 @app.on_callback_query(filters.regex(r"^img_range\|"))
+# heavy (download/network): own pool, never the dispatcher threads
+@background_handler(label="img_range_callback")
 def img_range_callback(app, callback_query: CallbackQuery):
     """Handle img range selection callback"""
     try:
