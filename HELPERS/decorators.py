@@ -274,7 +274,10 @@ def background_handler(func=None, *, label=None):
                     _BG_QUEUED[0] -= 1
                 logger.info(f"[HANDLER-START] {context}")
                 try:
-                    result = func(*args, **kwargs)
+                    # one private WARP tunnel per task (WARP_PER_TASK), stopped when it ends
+                    from HELPERS.warp_tunnel import task_scope
+                    with task_scope(context):
+                        result = func(*args, **kwargs)
                     logger.info(f"[HANDLER-DONE] {context}")
                     return result
                 except Exception:
@@ -311,7 +314,9 @@ def _light_offload(func):
 
         def _run():
             try:
-                func(*args, **kwargs)
+                from HELPERS.warp_tunnel import task_scope
+                with task_scope(f"{func.__name__} chat={getattr(getattr(_extract_message_arg(args, kwargs), 'chat', None), 'id', None)}"):
+                    func(*args, **kwargs)
             except Exception:
                 message_obj = _extract_message_arg(args, kwargs)
                 logger.exception(f"[HANDLER-CRASH] {_format_handler_context(func.__name__, message_obj)}")

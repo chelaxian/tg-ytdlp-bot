@@ -73,6 +73,8 @@ EXCLUDED_DIRS = [
     "_cursor",
     "DATABASE/data",  # SQLite database
     "CONFIG/db",  # DB TLS certificates / keys
+    "CONFIG/warp",  # WARP account keys (WARP_PER_TASK)
+    ".warp-run",  # live per-task tunnel configs
 ]
 
 INCLUDE_DIRS = [

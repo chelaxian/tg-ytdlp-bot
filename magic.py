@@ -75,6 +75,10 @@ set_app(app)
 # and runs on a worker pool: Pyrogram's own handler threads only dispatch.
 from HELPERS.decorators import install_handler_offload
 install_handler_offload(app)
+# WARP_PER_TASK: external requests of each user task go through its own
+# WARP tunnel; Telegram and the rest of the bot stay on the direct connection.
+from HELPERS.warp_tunnel import install_hooks as _install_warp_hooks
+_install_warp_hooks()
 
 # Кэш для username бота (будет заполнен после старта)
 _bot_username_cache = None

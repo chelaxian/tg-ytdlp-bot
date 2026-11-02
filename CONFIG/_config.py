@@ -87,6 +87,21 @@ class Config(object):
     POSTGRES_DSN = ""  # optional libpq DSN/URI; overrides the POSTGRES_* fields above
     POSTGRES_POOL_MAX = 16  # max connections of this bot
     DB_CONNECT_WAIT_SECONDS = 60  # how long to wait for the DB at startup
+    ###########################################################
+    # Per-task WARP tunnels (see docs/WARP_PER_TASK.md)
+    ###########################################################
+    # True: the bot (Telegram, DB) uses the direct internet connection; every user
+    # task that reaches an external site (download, formats, /img, /link, /list,
+    # cookie checks...) gets its own isolated Cloudflare WARP tunnel with a fresh
+    # egress IPv6, stopped when the task ends. No shared tunnel to restart, no
+    # IP rotation affecting Telegram or other users. Prepare the server with
+    # scripts/warp/setup_warp_per_task.sh. A proxy chosen via /proxy or PROXY_* wins.
+    WARP_PER_TASK = False
+    WARP_WIREPROXY_BIN = "/usr/local/bin/wireproxy"
+    WARP_PROFILES_DIR = "CONFIG/warp"  # wgcf-profile.conf files (one or more WARP accounts)
+    WARP_ENDPOINT = "162.159.192.1:2408"  # engage.cloudflareclient.com over IPv4
+    WARP_PROXY_HOST = "127.0.0.1"  # "172.17.0.1" when the bgutil PO-token container runs on Docker
+    WARP_MAX_TUNNELS = 40  # concurrent tunnels; beyond that tasks share one fallback tunnel
     # your firebase DB path
     BOT_DB_PATH = f"bot/{BOT_NAME_FOR_USERS}/"
     VIDEO_CACHE_DB_PATH = f"bot/video_cache"

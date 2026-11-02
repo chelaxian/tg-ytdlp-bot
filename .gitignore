@@ -198,3 +198,7 @@ CONFIG/db/
 *.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm
+
+# Per-task WARP: account keys and live tunnel configs
+CONFIG/warp/
+.warp-run/

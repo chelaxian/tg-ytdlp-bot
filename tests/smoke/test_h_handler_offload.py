@@ -41,6 +41,17 @@ logs = []
 limits = types.SimpleNamespace(detect_system_resources=lambda: {
     "bg_workers": 2, "inflight": 3, "light_workers": 4, "max_uploads": 1, "cpu_count": 1})
 sys.modules["CONFIG.limits"] = types.SimpleNamespace(LimitsConfig=limits)
+import contextlib  # noqa: E402
+_scopes = []
+
+
+@contextlib.contextmanager
+def _task_scope(label):
+    _scopes.append(label)
+    yield None
+
+
+sys.modules["HELPERS.warp_tunnel"] = types.SimpleNamespace(task_scope=_task_scope)
 g = dict(os=os, threading=threading, concurrent=concurrent, wraps=wraps,
          logger=types.SimpleNamespace(info=logs.append, warning=logs.append, exception=logs.append),
          safe_send_message=lambda *a, **k: logs.append(("busy", a)),
@@ -125,4 +136,5 @@ release.set()
 time.sleep(0.5)
 check("queue_drains", g["background_queue_depth"]() == 0 and len(ran["heavy"]) == 3, ran.get("heavy"))
 check("heavy_runs_on_bg_pool", all(n.startswith("bg") for n in ran["heavy"]), ran["heavy"])
+check("every_task_runs_in_a_warp_scope", any("askq" in l for l in _scopes) and any("page_callback" in l for l in _scopes), _scopes[:4])
 print("ALL", len(PASSED), "CHECKS PASSED")

@@ -24,6 +24,13 @@ import sys
 import tempfile
 
 
+def _warp_env():
+    """gallery-dl CLI children use the task's WARP tunnel (WARP_PER_TASK);
+    None keeps the inherited environment."""
+    from HELPERS.warp_tunnel import enabled, subprocess_env
+    return subprocess_env() if enabled() else None
+
+
 # ---------- Low-level helpers ----------
 
 def get_user_gallery_dl_args(user_id: int) -> dict:
@@ -805,7 +812,7 @@ def get_total_media_count(url: str, user_id=None, use_proxy: bool = False) -> in
             cmd = _add_cookies_to_cmd(cmd, url, user_id)
             logger.info(f"Counting total media via: {' '.join(cmd)}")
             try:
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+                result = subprocess.run(cmd, capture_output=True, text=True, env=_warp_env(), timeout=15)
             except subprocess.TimeoutExpired:
                 logger.warning("--simulate timed out after 15s, falling back to --get-urls")
                 return _get_total_media_count_fallback(url, user_id, use_proxy, cfg_path)
@@ -882,7 +889,7 @@ def _get_total_media_count_fallback(url: str, user_id, use_proxy: bool, cfg_path
         # VK альбомы могут быть большими – увеличим таймаут для VK
         timeout_sec = 30 if is_vk_url else 15
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
+            result = subprocess.run(cmd, capture_output=True, text=True, env=_warp_env(), timeout=timeout_sec)
         except subprocess.TimeoutExpired:
             logger.warning(f"--get-urls timed out after {timeout_sec}s")
             # For VK, try without cookies if timeout
@@ -959,7 +966,7 @@ def _get_instagram_media_count(url: str, user_id, use_proxy: bool, cfg_path: str
             cmd = [sys.executable, "-m", "gallery_dl", "--config", instagram_cfg_path, "--simulate", url]
             logger.info(f"Instagram media count via --simulate: {' '.join(cmd)}")
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+            result = subprocess.run(cmd, capture_output=True, text=True, env=_warp_env(), timeout=15)
             
             if result.returncode == 0:
                 # Count lines that contain media info
@@ -974,7 +981,7 @@ def _get_instagram_media_count(url: str, user_id, use_proxy: bool, cfg_path: str
                 cmd = _add_cookies_to_cmd(cmd, url, user_id)
                 logger.info(f"Instagram fallback via --get-urls: {' '.join(cmd)}")
                 
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+                result = subprocess.run(cmd, capture_output=True, text=True, env=_warp_env(), timeout=15)
                 if result.returncode == 0:
                     lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
                     media_count = len(lines)
@@ -1028,7 +1035,7 @@ def _try_without_cookies(url: str, cfg_path: str, user_id: int = None) -> int | 
             cmd = [sys.executable, "-m", "gallery_dl", "--config", no_cookies_cfg_path, "--get-urls", url]
             # Don't add cookies - this is the "without cookies" function
             logger.info(f"[VK] Trying without cookies: {' '.join(cmd)}" if is_vk_url else f"Without cookies: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
+            result = subprocess.run(cmd, capture_output=True, text=True, env=_warp_env(), timeout=timeout_sec)
             if result.returncode == 0:
                 lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
                 logger.info(f"[VK] Without cookies detected {len(lines)} media items" if is_vk_url else f"Without cookies detected {len(lines)} media items")
@@ -1547,7 +1554,7 @@ def download_image_range_cli(url: str, range_expr: str, user_id=None, use_proxy:
                 logger.error(f"Safety check failed for command (missing --range): {cmd_pretty}")
                 return False
             logger.info(f"Downloading range via CLI: {cmd_pretty}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            result = subprocess.run(cmd, capture_output=True, text=True, env=_warp_env(), timeout=600)
             if result.returncode != 0:
                 stderr_text = result.stderr[:400]
                 logger.warning(f"CLI range download failed [{result.returncode}]: {stderr_text}")
@@ -1594,7 +1601,7 @@ def download_image_range_cli(url: str, range_expr: str, user_id=None, use_proxy:
                             # Don't add cookies
                             vk_cmd_pretty = ' '.join(vk_cmd)
                             logger.info(f"[VK] Downloading range via CLI without cookies: {vk_cmd_pretty}")
-                            vk_result = subprocess.run(vk_cmd, capture_output=True, text=True, timeout=600)
+                            vk_result = subprocess.run(vk_cmd, capture_output=True, text=True, env=_warp_env(), timeout=600)
                             if vk_result.returncode == 0:
                                 logger.info("[VK] CLI download succeeded without cookies")
                                 return True

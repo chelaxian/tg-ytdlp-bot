@@ -2032,13 +2032,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         error_description = "Sign in required - cookies needed"
                         # Автоматический rotate IP при SIGN_IN_REQUIRED
                         try:
-                            from services.system_service import rotate_ip
-                            logger.warning(f"Auto-rotating IP due to SIGN_IN_REQUIRED error for user {user_id}")
-                            rotate_result = rotate_ip()
-                            if rotate_result.get("status") == "ok":
-                                logger.info(f"IP rotated successfully: IPv4={rotate_result.get('ipv4')}, IPv6={rotate_result.get('ipv6')}")
+                            from HELPERS.warp_tunnel import enabled as _warp_per_task
+                            if _warp_per_task():
+                                # every task already runs on its own fresh WARP egress; restarting
+                                # the shared tunnel would only break other users' downloads
+                                logger.warning(f"SIGN_IN_REQUIRED for user {user_id}: the next task gets a new WARP egress")
                             else:
-                                logger.error(f"Failed to auto-rotate IP: {rotate_result.get('message')}")
+                                from services.system_service import rotate_ip
+                                logger.warning(f"Auto-rotating IP due to SIGN_IN_REQUIRED error for user {user_id}")
+                                rotate_result = rotate_ip()
+                                if rotate_result.get("status") == "ok":
+                                    logger.info(f"IP rotated successfully: IPv4={rotate_result.get('ipv4')}, IPv6={rotate_result.get('ipv6')}")
+                                else:
+                                    logger.error(f"Failed to auto-rotate IP: {rotate_result.get('message')}")
                         except Exception as rotate_error:
                             logger.error(f"Error during auto-rotate IP: {rotate_error}")
                     elif "No video formats found" in error_text:
