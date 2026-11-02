@@ -95,14 +95,21 @@ log "Done."
 if [[ "${SYNC_PY_PLUGIN}" == "1" ]]; then
   if [[ -x "${BOT_VENV_PIP}" ]]; then
     log "Syncing Python plugin in venv: bgutil-ytdlp-pot-provider (pip -U)"
+    plugin_ver_cmd='import importlib.metadata as m; print(m.version("bgutil-ytdlp-pot-provider"))'
+    old_plugin_ver="$("${BOT_VENV_PYTHON}" -c "${plugin_ver_cmd}" 2>/dev/null || true)"
     "${BOT_VENV_PIP}" install -U bgutil-ytdlp-pot-provider >/dev/null
-    plugin_ver="$("${BOT_VENV_PYTHON}" -c 'import importlib.metadata as m; print(m.version("bgutil-ytdlp-pot-provider"))' 2>/dev/null || true)"
+    plugin_ver="$("${BOT_VENV_PYTHON}" -c "${plugin_ver_cmd}" 2>/dev/null || true)"
     if [[ -n "${plugin_ver}" ]]; then
-      log "Python plugin version: ${plugin_ver}"
+      log "Python plugin version: ${plugin_ver} (was: ${old_plugin_ver:-none})"
     fi
 
-    # Перезапуск бота, если он управляется systemd
-    if command -v systemctl >/dev/null 2>&1; then
+    # Перезапуск бота, если он управляется systemd — только когда плагин
+    # действительно обновился: ежедневный рестарт без изменений обрывал
+    # идущие загрузки пользователей. Провайдер в Docker бот находит по
+    # тому же порту и без рестарта.
+    if [[ -n "${plugin_ver}" && "${plugin_ver}" == "${old_plugin_ver}" && "${FORCE_BOT_RESTART:-0}" != "1" ]]; then
+      log "Plugin unchanged; bot restart not needed (FORCE_BOT_RESTART=1 to force)"
+    elif command -v systemctl >/dev/null 2>&1; then
       if systemctl list-unit-files --type=service --no-pager 2>/dev/null | awk '{print $1}' | grep -qx "${BOT_SYSTEMD_SERVICE}.service"; then
         log "Restarting systemd service: ${BOT_SYSTEMD_SERVICE}"
         systemctl restart "${BOT_SYSTEMD_SERVICE}"
