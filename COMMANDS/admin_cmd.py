@@ -79,6 +79,16 @@ def reload_firebase_cache_command(app, message):
     # Check if this is a fake message (called programmatically)
     is_fake_message = getattr(message, '_is_fake_message', False) or message.id == 0
     
+    # SQLite/PostgreSQL are read live: there is no dump to download or reload
+    from DATABASE.db_mode import is_sql, active_engine
+    if is_sql():
+        sql_msg = f"✅ База данных ({active_engine()}) всегда актуальна — перезагрузка кэша не требуется"
+        if is_fake_message:
+            send_to_logger(message, sql_msg)
+        else:
+            safe_send_message_with_auto_delete(message.chat.id, sql_msg, delete_after_seconds=10)
+        return
+
     # В локальном режиме просто перезагружаем кэш из файла
     use_firebase = getattr(Config, 'USE_FIREBASE', True)
     if not use_firebase:

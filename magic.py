@@ -387,8 +387,8 @@ def vid_help_callback(app, callback_query):
 starting_point = []
 
 # Run the automatic loading of the Firebase cache (only if Firebase is enabled)
-use_firebase = getattr(Config, 'USE_FIREBASE', True)
-if use_firebase:
+from DATABASE.db_mode import is_firebase as _is_firebase
+if _is_firebase():
     start_auto_cache_reloader()
 else:
     print("ℹ️ Автоматическая перезагрузка кэша отключена (локальный режим)")

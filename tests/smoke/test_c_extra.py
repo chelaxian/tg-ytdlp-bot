@@ -50,7 +50,8 @@ from HELPERS.cookie_file import validate_cookie_bytes
 assert not validate_cookie_bytes(b'# Netscape HTTP Cookie File\n.x\tTRUE\t/\tTRUE\t0\ta\tb\nbroken tail')[0]
 env=dict(os=os,json=json,time=time,threading=threading,Dict=Dict,Any=Any,List=List,
          logger=Mock(), _local_file_locks={}, _local_file_locks_guard=threading.Lock(),
-         _SnapshotCompat=lambda value: value)
+         _SnapshotCompat=lambda value: value,
+         Config=__import__('types').SimpleNamespace(FIREBASE_CACHE_FILE='dump.json'))
 extract('DATABASE/firebase_init.py', {'_local_file_lock','LocalDBAdapter'},env)
 with tempfile.TemporaryDirectory(prefix='c-local-db-') as temp:
     path=os.path.join(temp,'dump.json')

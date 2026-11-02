@@ -260,6 +260,45 @@ def _prune_corrupt_dumps(dump_path, keep=_CORRUPT_DUMPS_KEEP):
         logger.warning("[stats] could not prune quarantined dumps: %s", exc)
 
 
+_stats_sql_store = None
+_stats_sql_lock = threading.Lock()
+
+
+def _load_bot_tree_from_sql():
+    """dump.json-shaped {"bot": {<BOT>: ...}} read live from SQLite/PostgreSQL.
+
+    Only this bot's subtree is read (logs, users, blocked lists...); the shared
+    video cache is not needed for statistics. The dashboard runs in its own
+    process, so it opens its own store when the bot's one is not loaded here.
+    """
+    global _stats_sql_store
+    import sys
+    bot_name = getattr(Config, "BOT_NAME_FOR_USERS", "tgytdlp_bot")
+    try:
+        fi = sys.modules.get("DATABASE.firebase_init")
+        if fi is not None:
+            # bot process: reuse its store; while firebase_init is still importing
+            # (the collector is created during that import) skip, the periodic
+            # reload picks the data up
+            getter = getattr(fi, "get_sql_store", None)
+            store = getter() if getter else None
+            if store is None:
+                return None
+        else:
+            # dashboard process: own connection
+            with _stats_sql_lock:
+                if _stats_sql_store is None:
+                    from DATABASE.db_mode import active_engine
+                    from DATABASE.sql_store import open_store_from_config
+                    _stats_sql_store = open_store_from_config(Config, active_engine())
+                store = _stats_sql_store
+        subtree = store.get(["bot", bot_name])
+    except Exception as exc:
+        logger.error(f"[stats] unable to read bot data from the database: {type(exc).__name__}: {exc}")
+        return None
+    return {"bot": {bot_name: subtree if isinstance(subtree, dict) else {}}}
+
+
 @dataclass
 class ProfileInfo:
     user_id: int
@@ -624,6 +663,9 @@ class StatsCollector:
         Returns the parsed dict, or None when the file is missing, corrupt or
         not a JSON object.
         """
+        from DATABASE.db_mode import is_sql
+        if is_sql():
+            return _load_bot_tree_from_sql()
         if not os.path.exists(self.dump_path):
             return None
         try:

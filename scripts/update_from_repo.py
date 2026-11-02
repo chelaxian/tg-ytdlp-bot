@@ -57,6 +57,7 @@ EXCLUDED_FILES = [
     "magic.session",
     "magic.session-journal",
     "dump.json",
+    "dump.json.bak",
     "script.sh",
 ]
 
@@ -70,6 +71,8 @@ EXCLUDED_DIRS = [
     "TXT",
     "_arabic_fonts_amiri",
     "_cursor",
+    "DATABASE/data",  # SQLite database
+    "CONFIG/db",  # DB TLS certificates / keys
 ]
 
 INCLUDE_DIRS = [

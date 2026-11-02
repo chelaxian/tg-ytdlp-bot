@@ -191,3 +191,10 @@ yt-dlp
 # configuration-webserver: real cookie files (create them from the *.example templates); never commit secrets
 docker/configuration-webserver/site/cookies/*.txt
 !docker/configuration-webserver/site/cookies/README.txt
+
+# Self-hosted database files and TLS material
+DATABASE/data/
+CONFIG/db/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
