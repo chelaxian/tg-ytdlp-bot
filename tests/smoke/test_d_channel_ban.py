@@ -175,5 +175,41 @@ try:
 except ImportError:
     print("skip real_pyrogram_keeps_original_coroutine_fn (pyrogram not installed)")
 
+# ------------------------------------------------------------------ bounded client stop (#489)
+stop_loop = asyncio.new_event_loop()
+mg = extract("magic.py", {"_stop_client_bounded", "_CLIENT_STOP_TIMEOUT"}, {"logger": lg})
+
+
+class HangingClient:
+    loop = stop_loop
+
+    async def _stop(self, block=True):
+        await asyncio.sleep(30)  # dispatcher waiting for a long upload handler
+
+    stop = functools.wraps(_stop)(lambda self, block=True: None)
+    stop.__wrapped__ = _stop
+
+
+cap.records.clear()
+t0 = time.monotonic()
+mg["_stop_client_bounded"](HangingClient(), timeout=0.3)
+check("client_stop_bounded", time.monotonic() - t0 < 2, time.monotonic() - t0)
+check("client_stop_timeout_warned", any("did not stop within" in m for m in cap.at(logging.WARNING)))
+
+
+class QuickClient:
+    loop = stop_loop
+    stopped = False
+
+    async def _stop(self, block=True):
+        QuickClient.stopped = True
+
+    stop = functools.wraps(_stop)(lambda self, block=True: None)
+    stop.__wrapped__ = _stop
+
+
+mg["_stop_client_bounded"](QuickClient(), timeout=1)
+check("client_stop_normal_path", QuickClient.stopped)
+
 loop.call_soon_threadsafe(loop.stop)
 print("ALL", len(PASSED), "CHECKS PASSED")

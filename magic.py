@@ -419,6 +419,29 @@ def cleanup_on_exit():
 atexit.register(cleanup_on_exit)
 
 
+_CLIENT_STOP_TIMEOUT = 15
+
+
+def _stop_client_bounded(client, timeout=_CLIENT_STOP_TIMEOUT):
+    """app.stop() with a time limit.
+
+    Pyrogram's terminate() saves the session first and then the dispatcher
+    awaits every running handler, i.e. downloads/uploads that take minutes, so
+    a restart during work still ended in SIGKILL after TimeoutStopSec (#489).
+    """
+    import asyncio
+    stop = getattr(type(client).stop, '__wrapped__', None)
+    if stop is None:
+        client.stop()
+        return
+    try:
+        client.loop.run_until_complete(asyncio.wait_for(stop(client), timeout))
+    except asyncio.TimeoutError:
+        logger.warning(f"Pyrogram client did not stop within {timeout}s (handlers still running), exiting anyway")
+    except Exception as e:
+        logger.warning(f"Error while stopping Pyrogram client: {type(e).__name__}: {e}")
+
+
 def _exit_now(code=0):
     """Terminate without waiting for worker threads.
 
@@ -460,9 +483,10 @@ if __name__ == "__main__":
     logger.info("Shutdown requested: stopping Pyrogram client")
     mark_app_stopping()
     try:
-        app.loop.run_until_complete(stop_channel_guard())
+        import asyncio
+        app.loop.run_until_complete(asyncio.wait_for(stop_channel_guard(), 10))
     except Exception:
         pass
-    app.stop()
+    _stop_client_bounded(app)
     cleanup_on_exit()
     _exit_now(0)
