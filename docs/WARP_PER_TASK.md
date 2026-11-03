@@ -54,10 +54,12 @@ scripts/warp/setup_warp_per_task.sh --bot-dir /root/Telegram/tg-ytdlp-bot --dire
   rate-limits registrations — the script waits and retries; one account is
   enough, `--accounts N` only spreads load);
 * `--direct-route` is only needed when the server also runs a system-wide
-  `wg-quick@wgcf` (e.g. as a VPN exit): it adds `ip rule uidrange 0-0 lookup
-  main` (unit `tg-ytdlp-direct-route.service`) so locally generated traffic of
-  the bot's user bypasses that tunnel, while forwarded VPN/container traffic
-  keeps using it.
+  `wg-quick@wgcf` (e.g. as a VPN exit): packets of the bot's user get WARP's
+  own fwmark (`iptables -t mangle OUTPUT -m owner --uid-owner 0 -j MARK`, unit
+  `tg-ytdlp-direct-route.service`), so wg-quick's `not fwmark ... lookup 51820`
+  rule lets them use the main table, while forwarded VPN/container traffic keeps
+  using WARP. (A `uidrange` ip rule does not work: wg-quick inserts its rules
+  ahead of all others again on every restart.)
 
 Then in `CONFIG/config.py`:
 

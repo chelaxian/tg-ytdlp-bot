@@ -8,7 +8,7 @@ from HELPERS.app_instance import get_app
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.logger import send_to_logger, logger
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
-from HELPERS.decorators import background_handler
+from HELPERS.decorators import background_handler, light_only
 from HELPERS.limitter import humanbytes, is_user_in_channel
 from CONFIG.messages import safe_get_messages
 import re
@@ -60,7 +60,7 @@ def parse_size_argument(arg):
 app = get_app()
 
 @app.on_message(filters.command("split") & filters.private)
-@background_handler(label="split_command")
+@background_handler(label="split_command", heavy_if=light_only)
 def split_command(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN

@@ -12,6 +12,7 @@ import requests
 
 from HELPERS.app_instance import get_app
 from HELPERS.decorators import get_main_reply_keyboard, background_handler
+from HELPERS import daily_quota
 from HELPERS.logger import send_to_logger, logger, send_error_to_user, log_error_to_channel
 from HELPERS.safe_messeger import safe_send_message, safe_delete_messages, safe_edit_message_text, safe_callback_answer
 from CONFIG.logger_msg import LoggerMsg
@@ -2495,10 +2496,75 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
     
     return rows, action_buttons
 
+# Menu navigation answers at once; everything else may download.
+_ASKQ_LIGHT_KEYS = {"close", "other_back", "manual_back", "other_qualities"}
+# Clicks that deliver no video/audio (daily quota is not checked for them)
+_ASKQ_NO_DOWNLOAD_KEYS = _ASKQ_LIGHT_KEYS | {"link", "list", "trim", "caption", "subs_only", "quick_embed", "image"}
+# Typical video bitrate per height in Mbit/s (video + audio), for queue ordering only.
+_ASKQ_MBPS = ((144, 0.15), (240, 0.3), (360, 0.6), (480, 1.0), (720, 2.0), (1080, 4.0),
+              (1440, 9.0), (2160, 18.0), (4320, 40.0))
+
+
+def _askq_key(callback_query):
+    key = (getattr(callback_query, "data", "") or "").split("|", 1)[-1]
+    return key[len("manual_"):] if key.startswith("manual_") else key
+
+
+def _askq_height(key, info):
+    k = key.lower()
+    if k in ("best", "bestvideo"):
+        heights = [f.get("height") or 0 for f in (info or {}).get("formats") or []]
+        return max(heights) if heights and max(heights) else 1080
+    m = re.search(r"(\d{3,4})p", k)
+    if m:
+        return int(m.group(1))
+    return {"8k": 4320, "4k": 2160, "2k": 1440}.get(k)
+
+
+def askq_cost_mb(callback_query):
+    """Estimated size of a quality click, so short/low-quality jobs start first.
+
+    Cached qualities cost ~nothing (a repost); otherwise the size reported for the
+    matching format, else duration x typical bitrate of the chosen height."""
+    key = _askq_key(callback_query)
+    if not key or key in _ASKQ_LIGHT_KEYS or key.startswith("other_page_"):
+        return 0.0
+    original = getattr(getattr(callback_query, "message", None), "reply_to_message", None)
+    text = (getattr(original, "text", None) or getattr(original, "caption", None) or "") if original else ""
+    m = re.search(r'https?://[^\s\*#]+', text)
+    if not m:
+        return None
+    url = m.group(0)
+    try:
+        if get_cached_message_ids(url, key):
+            return 1.0
+    except Exception:
+        pass
+    user_id = getattr(getattr(callback_query, "from_user", None), "id", None)
+    info = load_ask_info(user_id, url) if user_id else None
+    duration = float((info or {}).get("duration") or 0)
+    if key in ("mp3", "audio", "subs_only"):
+        return max(1.0, duration * 0.16 / 8) if duration else 5.0
+    height = _askq_height(key, info)
+    if not height:
+        return None
+    sizes = [f.get("filesize") or f.get("filesize_approx") for f in (info or {}).get("formats") or []
+             if f.get("height") == height and (f.get("filesize") or f.get("filesize_approx"))]
+    if sizes:
+        return max(sizes) / 1048576 + (duration * 0.13 / 8 if duration else 0)
+    mbps = next((rate for h, rate in _ASKQ_MBPS if height <= h), _ASKQ_MBPS[-1][1])
+    return (duration or 600) * mbps / 8
+
+
+def _askq_needs_worker(callback_query):
+    key = _askq_key(callback_query)
+    return not (key in _ASKQ_LIGHT_KEYS or key.startswith("other_page_"))
+
+
 @app.on_callback_query(filters.regex(r"^askq\|"))
 # @reply_with_keyboard
-# heavy (download/network): own pool, never the dispatcher threads
-@background_handler(label="askq_callback")
+# heavy (download/network): own pool, never the dispatcher threads; lighter jobs first
+@background_handler(label="askq_callback", heavy_if=_askq_needs_worker, cost_mb=askq_cost_mb)
 def askq_callback(app, callback_query):
     messages = safe_get_messages(callback_query.from_user.id)
     from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -2513,7 +2579,16 @@ def askq_callback(app, callback_query):
     found_type = None
     
     logger.info(f"Processing callback data: '{data}' for user {user_id}")
-    
+
+    # Daily quota (cache reposts included): a fresh "come back in N h M min" on every attempt
+    if data not in _ASKQ_NO_DOWNLOAD_KEYS and not data.startswith("other_page_") and not get_link_mode(user_id):
+        if daily_quota.deny_if_exhausted(callback_query.message, daily_quota.VIDEO):
+            try:
+                safe_callback_answer(callback_query, "⏳")
+            except Exception:
+                pass
+            return
+
     # Get processing message from cache (created in ask_quality_menu)
     proc_msg = get_user_proc_msg(user_id)
     if data == "close":
@@ -3665,6 +3740,7 @@ def askq_callback(app, callback_query):
                                 message_ids=[cached_videos[index]],
                                 message_thread_id=thread_id
                             )
+                            daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
                         else:
                             from HELPERS.logger import get_log_channel
                             from HELPERS.porn import is_porn
@@ -3707,6 +3783,7 @@ def askq_callback(app, callback_query):
                             if getattr(original_message.chat, "type", None) != enums.ChatType.PRIVATE and thread_id:
                                 forward_kwargs['message_thread_id'] = thread_id
                             app.forward_messages(**forward_kwargs)
+                            daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
                     except Exception as e:
                         logger.warning(f"askq_callback: cached video for index {index} not found: {e}")
             
@@ -3939,6 +4016,7 @@ def askq_callback(app, callback_query):
                         from_chat_id=from_chat_id,
                         message_ids=message_ids
                     )
+                daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
                 app.send_message(target_chat_id, safe_get_messages(user_id).VIDEO_SENT_FROM_CACHE_MSG, reply_parameters=ReplyParameters(message_id=original_message.id))
                 media_type = safe_get_messages(user_id).ALWAYS_ASK_AUDIO_TYPE_MSG if data == "mp3" else safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TYPE_MSG
                 log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"

@@ -53,6 +53,7 @@ from HELPERS.safe_messeger import safe_send_message
 from URL_PARSERS.tags import extract_url_range_tags
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
 from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
+from HELPERS import daily_quota
 from HELPERS.ytdlp_errors import should_abort_retries, is_format_unavailable, is_missing_local_file, classify_retryability
 
 # Get app instance for decorators
@@ -723,6 +724,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if thread_id:
                                     forward_kwargs['message_thread_id'] = thread_id
                             app.forward_messages(**forward_kwargs)
+                            daily_quota.record(message, daily_quota.VIDEO, cached=True)
                         except Exception as e:
                             logger.error(f"down_and_up: error reposting cached video index={index}: {e}")
             else:
@@ -788,6 +790,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if thread_id:
                                 forward_kwargs['message_thread_id'] = thread_id
                         app.forward_messages(**forward_kwargs)
+                        daily_quota.record(message, daily_quota.VIDEO, cached=True)
                         app.send_message(user_id, safe_get_messages(user_id).VIDEO_SENT_FROM_CACHE_MSG, reply_parameters=ReplyParameters(message_id=message.id))
                         send_to_logger(message, LoggerMsg.VIDEO_SENT_FROM_CACHE.format(quality=safe_quality_key, user_id=user_id))
                         return
@@ -3287,6 +3290,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         consecutive_no_videos_skips = 0
         MAX_CONSECUTIVE_NO_VIDEOS_SKIPS = 5
         for idx, current_index in enumerate(indices_to_download):
+            _quota_item_counted = False  # one item = one quota unit, however many parts it is sent in
+            if daily_quota.remaining(message, daily_quota.VIDEO) == 0:
+                daily_quota.deny_if_exhausted(message, daily_quota.VIDEO)
+                break
             logger.info(f"🔍 [DEBUG] Processing video {idx + 1}/{len(indices_to_download)}: current_index={current_index}")
             
             # Check for active FloodWait before starting next video in playlist.
@@ -4437,6 +4444,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.error(f"send_videos returned None for split part (reason={get_last_send_failure()}); skipping cache save for this part")
                         continue
                     _delivery_confirmed = True
+                    if not _quota_item_counted:
+                        _quota_item_counted = True
+                        daily_quota.record(message, daily_quota.VIDEO)
                     #found_type = None
                     # Note: Forwarding to log channels is now handled in send_videos function
                     # We need to get the forwarded message IDs from the log channel for caching
@@ -5118,6 +5128,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             successful_uploads += 1
                             last_video_msg_id = None
                             _delivery_confirmed = True
+                            if not _quota_item_counted:
+                                _quota_item_counted = True
+                                daily_quota.record(message, daily_quota.VIDEO)
                             logger.info("send_videos: split video sent as multiple parts; skipping per-item cache and logging")
                             continue
                         if not video_msg:
@@ -5138,6 +5151,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             continue
                         
                         _delivery_confirmed = True
+                        if not _quota_item_counted:
+                            _quota_item_counted = True
+                            daily_quota.record(message, daily_quota.VIDEO)
                         # Send MKV/AV1/VP9 playback hint if non-default format
                         if video_msg and after_rename_abs_path:
                             try:

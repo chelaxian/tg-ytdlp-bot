@@ -226,11 +226,11 @@ Adicione meus bots aos seus grupos para obter recursos aprimorados e limites mai
 • Tamanho máximo de 1 arquivo: <b>8 GB </b>
 • Qualidade máxima de 1 arquivo: <b>ILIMITADO</b>
 • Duração máxima de 1 arquivo: <b>ILIMITADO</b>
-• Número máximo de downloads: <b>ILIMITADO</b>
+• Número máximo de downloads: <b>100 vídeos + 250 imagens por dia</b>
 • Máximo de URLs em uma mensagem: <b>10</b> (apenas no modo de seleção de qualidade)
-• Máximo de itens de playlist por vez: <b>50</b>
-• Máximo de vídeos do TikTok por vez: <b>500</b>
-• Máximo de imagens por vez: <b>1000</b>
+• Máximo de itens de playlist por vez: <b>10</b>
+• Máximo de vídeos do TikTok por vez: <b>100</b>
+• Máximo de imagens por vez: <b>250</b>
 • Limites de taxa de URL: <b>5/min, 60/hora, 1000/dia</b>
 • Limite de comandos: <b>20/min</b>
 • Tempo máximo de 1 download: <b>2 horas</b>
@@ -244,16 +244,17 @@ Adicione meus bots aos seus grupos para obter recursos aprimorados e limites mai
 • Tamanho máximo de arquivo de vídeo+legendas: <b>500 MB</b>
 • Qualidade máxima de vídeo+legendas: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Benefícios de Grupo Pago (2️⃣x Limites):</b>
+🚀 <b>Benefícios de Grupo Pago (🔟x Limites):</b>
 <blockquote>•  🗂 Cofre de mídia organizado e estruturado ordenado por tópicos 👍
 •  📁 Bots respondem no tópico em que você os chama
 •  📌 Fixar automaticamente mensagem de status com progresso do download
 •  🖼 Comando /img baixa mídia como álbuns de 10 itens
 • Tamanho máximo de 1 arquivo: <b>16 GB</b> ⬆️
-• Máximo de URLs em uma mensagem: <b>20</b> ⬆️ (apenas no modo de seleção de qualidade)
+• Máximo de URLs em uma mensagem: <b>100</b> ⬆️ (apenas no modo de seleção de qualidade)
 • Máximo de itens de playlist por vez: <b>100</b> ⬆️
 • Máximo de vídeos do TikTok por vez: 1000 ⬆️
-• Máximo de imagens por vez: 2000 ⬆️
+• Máximo de imagens por vez: 2500 ⬆️
+• Número máximo de downloads: <b>ILIMITADO</b> ⬆️
 • Limites de taxa de URL: <b>10/min, 120/hora, 2000/dia</b> ⬆️
 • Limite de comandos: <b>40/min</b> ⬆️
 • Tempo máximo de 1 download: <b>4 horas</b> ⬆️
@@ -273,7 +274,7 @@ Adicione meus bots aos seus grupos para obter recursos aprimorados e limites mai
 • Pagamento: 💎TON ou outros métodos💲
 • Suporte: Suporte técnico completo incluído</blockquote>
 ————————————
-Você pode adicionar meus bots ao seu grupo para desbloquear 🔞<b>NSFW</b> gratuito e dobrar (x2️⃣) todos os limites.
+Você pode adicionar meus bots ao seu grupo para desbloquear 🔞<b>NSFW</b> gratuito e multiplicar por 10 (x🔟) todos os limites.
 Entre em contato comigo se quiser que eu permita que seu grupo use meus bots @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>DICA:</b> <blockquote>Você pode juntar dinheiro com qualquer quantidade de seus amigos (por exemplo, 100 pessoas) e fazer 1 compra para todo o grupo - TODOS OS MEMBROS DO GRUPO TERÃO ACESSO TOTAL ILIMITADO a todas as funções dos bots nesse grupo por apenas <b>0.05$</b></blockquote>

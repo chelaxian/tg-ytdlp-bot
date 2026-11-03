@@ -12,7 +12,7 @@ from HELPERS.app_instance import get_app
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.logger import send_to_logger, logger, send_to_all
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
-from HELPERS.decorators import background_handler
+from HELPERS.decorators import background_handler, light_only
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.proxy_file_helper import (
     parse_proxy_file,
@@ -143,7 +143,7 @@ def safe_write_file(file_path, content):
         return False
 
 @app.on_message(filters.command("proxy") & filters.private)
-@background_handler(label="proxy_command")
+@background_handler(label="proxy_command", heavy_if=light_only)
 def proxy_command(app, message):
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id

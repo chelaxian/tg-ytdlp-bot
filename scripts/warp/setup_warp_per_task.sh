@@ -101,27 +101,51 @@ while [ "$n" -lt "$ACCOUNTS" ]; do
 done
 
 # ------------------------------------------------------------------ direct route for the bot
+# wg-quick sends everything "not fwmark <its mark>" into the WARP table and puts
+# that rule ahead of all others again on every restart, so a uid ip-rule only
+# lasts until the first rotation. Instead the bot's own packets get WARP's
+# fwmark (iptables mangle OUTPUT, uid owner): they then use the main table
+# whatever the rule order. Forwarded traffic (VPN clients, containers) never
+# passes OUTPUT and keeps using WARP. Without native IPv6 the marked IPv6
+# packets meet "no route" at once and the bot falls back to IPv4.
 if [ "$DIRECT_ROUTE" = 1 ]; then
+    MARK=$(ip rule show | sed -n 's/.*not from all fwmark \(0x[0-9a-f]*\) .*/\1/p' | head -1)
+    MARK=${MARK:-0xca6c}
+    HELPER=/usr/local/sbin/tg-ytdlp-direct-route
+    cat > "$HELPER" <<EOF
+#!/bin/sh
+# tg-ytdlp-bot: packets of uid $BOT_UID carry the WARP fwmark $MARK and bypass wg-quick's table
+MATCH="-m owner --uid-owner $BOT_UID -m comment --comment tg-ytdlp-direct -j MARK --set-mark $MARK"
+case "\$1" in
+start)
+    for t in iptables ip6tables; do
+        \$t -t mangle -C OUTPUT \$MATCH 2>/dev/null || \$t -t mangle -A OUTPUT \$MATCH
+    done
+    # rules of earlier versions (uid ip rules, lost on every wgcf restart)
+    ip rule del priority 31000 2>/dev/null; ip -6 rule del priority 31000 2>/dev/null; ip -6 rule del priority 31001 2>/dev/null
+    ;;
+stop)
+    for t in iptables ip6tables; do
+        while \$t -t mangle -D OUTPUT \$MATCH 2>/dev/null; do :; done
+    done
+    ;;
+esac
+exit 0
+EOF
+    chmod 755 "$HELPER"
     UNIT=/etc/systemd/system/tg-ytdlp-direct-route.service
-    # Without a native IPv6 default route, "lookup main" falls through to the
-    # wgcf table for IPv6; prohibit it so the bot falls back to IPv4 at once.
-    V6_ADD=""; V6_DEL=""
-    if [ -z "$(ip -6 route show default table main)" ]; then
-        V6_ADD="; ip -6 rule del priority 31001 2>/dev/null; ip -6 rule add uidrange $BOT_UID-$BOT_UID prohibit priority 31001"
-        V6_DEL="; ip -6 rule del priority 31001"
-    fi
     cat > "$UNIT" <<EOF
 [Unit]
 Description=tg-ytdlp-bot: traffic of uid $BOT_UID bypasses the system-wide WARP (wgcf)
-After=network-online.target wg-quick@wgcf.service
+After=network-online.target
 Wants=network-online.target
 Before=tg-ytdlp-bot.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/sh -c 'ip rule del priority 31000 2>/dev/null; ip rule add uidrange $BOT_UID-$BOT_UID lookup main priority 31000; ip -6 rule del priority 31000 2>/dev/null; ip -6 rule add uidrange $BOT_UID-$BOT_UID lookup main priority 31000$V6_ADD'
-ExecStop=/bin/sh -c 'ip rule del priority 31000; ip -6 rule del priority 31000$V6_DEL'
+ExecStart=$HELPER start
+ExecStop=$HELPER stop
 
 [Install]
 WantedBy=multi-user.target
@@ -129,7 +153,7 @@ EOF
     systemctl daemon-reload
     systemctl enable tg-ytdlp-direct-route.service
     systemctl restart tg-ytdlp-direct-route.service
-    log "direct route active: $(ip rule show priority 31000) $(ip -6 rule show priority 31001)"
+    log "direct route active (fwmark $MARK): $(iptables -t mangle -S OUTPUT | grep tg-ytdlp-direct)"
 fi
 
 cat <<EOF

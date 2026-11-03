@@ -470,7 +470,7 @@ def check_playlist_range_limits(url, video_start_with, video_end_with, app, mess
         if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
             # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
             if should_apply_limits_to_admin(user_id=user_id, message=message):
-                mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                mult = getattr(LimitsConfig, 'GROUP_COUNT_MULTIPLIER', 10)
                 max_count = int(max_count * mult)
     except Exception:
         pass

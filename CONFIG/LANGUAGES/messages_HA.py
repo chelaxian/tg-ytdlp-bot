@@ -227,11 +227,11 @@ Danna maɓallin da ke ƙasa don kunna bincike na cikin layi ta hanyar @vid.
 • Matsakaicin girman fayil 1: <b>8 GB </b>
 • Matsakaicin ingancin fayil 1: <b>BA IYAKA</b>
 • Matsakaicin tsawon fayil 1: <b>BA IYAKA</b>
-• Matsakaicin adadin saukewa: <b>BA IYAKA</b>
+• Matsakaicin adadin saukewa: <b>bidiyo 100 + hotuna 250 a kowace rana</b>
 • Matsakaicin URLs a cikin saƙo ɗaya: <b>10</b> (kawai a cikin yanayin zaɓin inganci)
-• Matsakaicin abubuwan jerin bidiyo a kowane lokaci 1: <b>50</b>
-• Matsakaicin bidiyoyin TikTok a kowane lokaci 1: <b>500</b>
-• Matsakaicin hotuna a kowane lokaci 1: <b>1000</b>
+• Matsakaicin abubuwan jerin bidiyo a kowane lokaci 1: <b>10</b>
+• Matsakaicin bidiyoyin TikTok a kowane lokaci 1: <b>100</b>
+• Matsakaicin hotuna a kowane lokaci 1: <b>250</b>
 • Iyakokin ƙimar URL: <b>5/min, 60/hour, 1000/day</b>
 • Iyakar umarni: <b>20/min</b>
 • 1 Saukewa matsakaicin lokaci: <b>sa'o'i 2</b>
@@ -245,16 +245,17 @@ Danna maɓallin da ke ƙasa don kunna bincike na cikin layi ta hanyar @vid.
 • Matsakaicin girman fayil na bidiyo+rubutun ƙasa: <b>500 MB</b>
 • Matsakaicin ingancin bidiyo+rubutun ƙasa: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Fa'idodin Ƙungiyar da Ake Biya (Iyaka 2️⃣x):</b>
+🚀 <b>Fa'idodin Ƙungiyar da Ake Biya (Iyaka 🔟x):</b>
 <blockquote>•  🗂 Rumbun kafofin watsa labarai masu tsari da aka tsara ta batutuwa 👍
 •  📁 Bots suna amsawa a cikin batun da kuka kira su
 •  📌 Auto pin saƙon matsayi tare da ci gaban saukewa
 •  🖼 Umarnin /img yana saukewa kafofin watsa labarai azaman kundin abubuwa 10
 • Matsakaicin girman fayil 1: <b>16 GB</b> ⬆️
-• Matsakaicin URLs a cikin saƙo ɗaya: <b>20</b> ⬆️ (kawai a cikin yanayin zaɓin inganci)
+• Matsakaicin URLs a cikin saƙo ɗaya: <b>100</b> ⬆️ (kawai a cikin yanayin zaɓin inganci)
 • Matsakaicin abubuwan jerin bidiyo a kowane lokaci 1: <b>100</b> ⬆️
 • Matsakaicin bidiyoyin TikTok a kowane lokaci 1: 1000 ⬆️
-• Matsakaicin hotuna a kowane lokaci 1: 2000 ⬆️
+• Matsakaicin hotuna a kowane lokaci 1: 2500 ⬆️
+• Matsakaicin adadin saukewa: <b>BA IYAKA</b> ⬆️
 • Iyakokin ƙimar URL: <b>10/min, 120/hour, 2000/day</b> ⬆️
 • Iyakar umarni: <b>40/min</b> ⬆️
 • 1 Saukewa matsakaicin lokaci: <b>sa'o'i 4</b> ⬆️
@@ -274,7 +275,7 @@ Danna maɓallin da ke ƙasa don kunna bincike na cikin layi ta hanyar @vid.
 • Biyan kuɗi: 💎TON ko wasu hanyoyi💲
 • Taimako: Cikakken tallafin fasaha ya haɗa</blockquote>
 ————————————
-Zaka iya ƙara bots dina zuwa ƙungiyar ku don buɗe kyauta 🔞<b>NSFW</b> kuma don ninka (x2️⃣) duk iyakoki.
+Zaka iya ƙara bots dina zuwa ƙungiyar ku don buɗe kyauta 🔞<b>NSFW</b> kuma don ninka duk iyakoki sau 10 (x🔟).
 Tuntuɓe ni idan kana son in ba ƙungiyar ku damar amfani da bots dina @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>SHAWARA:</b> <blockquote>Zaka iya ba da kuɗi tare da kowane adadin abokanka (misali mutane 100) kuma ka yi siyayya 1 don dukan ƙungiya - DUK MEMBONIN ƘUNGIYA ZA SU SAMI CIKAKKIYAR DAMAR BA IYAKA ga duk ayyukan bots a cikin wannan ƙungiya don kawai <b>$0.05</b></blockquote>

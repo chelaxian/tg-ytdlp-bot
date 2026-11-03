@@ -9,7 +9,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyPara
 
 from HELPERS.app_instance import get_app
 
-from HELPERS.decorators import reply_with_keyboard, background_handler
+from HELPERS.decorators import reply_with_keyboard, background_handler, light_only
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.logger import send_to_logger, logger, send_to_user, send_to_all
 from HELPERS.filesystem_hlp import create_directory
@@ -623,7 +623,7 @@ def get_unchecked_cookie_sources(user_id: int, cookie_urls: list) -> list:
     return unchecked_indices
 
 @app.on_message(filters.command("cookies_from_browser") & filters.private)
-@background_handler(label="cookies_from_browser")
+@background_handler(label="cookies_from_browser", heavy_if=light_only)
 def cookies_from_browser(app, message):
     """
     Позволяет пользователю выбрать браузер для извлечения куки.

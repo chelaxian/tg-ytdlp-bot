@@ -13,10 +13,17 @@ class LimitsConfig(object):
     MAX_SUB_QUALITY = 720 # 720p
     MAX_SUB_DURATION = 5400 # in seconds
     MAX_SUB_SIZE = 500 # in MB      
-    MAX_PLAYLIST_COUNT = 50
-    MAX_TIKTOK_COUNT = 500        
+    # Per-request limits for regular users (groups: x GROUP_COUNT_MULTIPLIER, admins: none)
+    MAX_PLAYLIST_COUNT = 10
+    MAX_TIKTOK_COUNT = 100
     # Max number of media files to download/send for /img
-    MAX_IMG_FILES = 1000
+    MAX_IMG_FILES = 250
+    #######################################################
+    # Daily quotas per user (successfully delivered items, cached reposts included),
+    # reset at 00:00 server local time, persisted on disk. Admins and groups are exempt.
+    DAILY_VIDEO_LIMIT = 100   # videos and audio; 0 = no quota
+    DAILY_IMAGE_LIMIT = 250   # images (/img, gallery-dl); 0 = no quota
+    DAILY_QUOTA_COUNT_CACHED = True  # count reposts from the cache as well
     # Max single video duration in seconds for yt-dlp downloads (default 12 hours)
     MAX_VIDEO_DURATION = 43200
     #######################################################
@@ -144,12 +151,13 @@ class LimitsConfig(object):
     COMMAND_COOLDOWN_MULTIPLIER = 2
     #######################################################
     # Group multipliers (applied in groups/channels) - except quality
-    GROUP_MULTIPLIER = 2
+    GROUP_MULTIPLIER = 2  # max file size
+    GROUP_COUNT_MULTIPLIER = 10  # URLs per message, playlist / TikTok / image counts
     #######################################################
     # Multiple URLs in one message limits (for non-Always Ask mode)
     # Maximum number of URLs per message for regular users
     MAX_MULTI_URL_LIMIT = 10
-    # For groups, the limit is MAX_MULTI_URL_LIMIT * GROUP_MULTIPLIER (20)
+    # For groups, the limit is MAX_MULTI_URL_LIMIT * GROUP_COUNT_MULTIPLIER (100)
     # Admins have no limit (0 means unlimited)
     #######################################################
     NSFW_STAR_COST = 1

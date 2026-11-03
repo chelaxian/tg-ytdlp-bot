@@ -225,11 +225,11 @@ Add my bots to your groups to get enhanced features and higher limits!
 • Max 1 file size: <b>8 GB </b>
 • Max 1 file quality: <b>UNLIM</b>
 • Max 1 file duration: <b>UNLIM</b>
-• Max number of downloads: <b>UNLIM</b>
+• Max number of downloads: <b>100 videos + 250 images / day</b>
 • Max URLs in one message: <b>10</b> (only in quality selection mode)
-• Max playlist items per 1 time: <b>50</b>
-• Max TikTok videos per 1 time: <b>500</b>
-• Max images per 1 time: <b>1000</b>
+• Max playlist items per 1 time: <b>10</b>
+• Max TikTok videos per 1 time: <b>100</b>
+• Max images per 1 time: <b>250</b>
 • URL rate limits: <b>5/min, 60/hour, 1000/day</b>
 • Command limit: <b>20/min</b>
 • 1 Download max time: <b>2 hours</b>
@@ -243,16 +243,17 @@ Add my bots to your groups to get enhanced features and higher limits!
 • Max video+subs file size: <b>500 MB</b>
 • Max video+subs quality: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Paid Group Benefits (2️⃣x Limits):</b>
+🚀 <b>Paid Group Benefits (🔟x Limits):</b>
 <blockquote>•  🗂 Structured neat media vault sorted by topics 👍
 •  📁 Bots reply in the topic you call them
 •  📌 Auto pin status message with download progress
 •  🖼 /img command downloads media as 10-item albums
 • Max 1 file size: <b>16 GB</b> ⬆️
-• Max URLs in one message: <b>20</b> ⬆️ (only in quality selection mode)
+• Max URLs in one message: <b>100</b> ⬆️ (only in quality selection mode)
 • Max playlist items per 1 time: <b>100</b> ⬆️
 • Max TikTok videos per 1 time: 1000 ⬆️
-• Max images per 1 time: 2000 ⬆️
+• Max images per 1 time: 2500 ⬆️
+• Max number of downloads: <b>UNLIM</b> ⬆️
 • URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
 • Command limit: <b>40/min</b> ⬆️
 • 1 Download max time: <b>4 hours</b> ⬆️
@@ -272,7 +273,7 @@ Add my bots to your groups to get enhanced features and higher limits!
 • Payment: 💎TON or other methods💲
 • Support: Full technical support included</blockquote>
 ————————————
-You can add my bots to your group to unblock free 🔞<b>NSFW</b> and to double (x2️⃣) all limits.
+You can add my bots to your group to unblock free 🔞<b>NSFW</b> and to multiply all limits by 10 (x🔟).
 Contact me if you want me to allow your group to use my bots @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>TIP:</b> <blockquote>You can chip in money with any amount of your friends (for example 100 people) and made 1 purchase for whole group - ALL GROUP MEMBERS WILL HAVE FULL UNLIMITED ACCESS to all bots functions in that group for just <b>0.05$</b></blockquote>

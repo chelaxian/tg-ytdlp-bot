@@ -94,7 +94,7 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
     if not should_apply_limits_to_admin(user_id=user_id, message=message):
         url_limit = 0  # 0 means unlimited для админов/ADMIN_GROUP с отключенными ограничениями
     elif is_group:
-        url_limit = LimitsConfig.MAX_MULTI_URL_LIMIT * LimitsConfig.GROUP_MULTIPLIER
+        url_limit = LimitsConfig.MAX_MULTI_URL_LIMIT * LimitsConfig.GROUP_COUNT_MULTIPLIER
     else:
         url_limit = LimitsConfig.MAX_MULTI_URL_LIMIT
     
@@ -257,6 +257,10 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
 # Called from url_distractor - no decorator needed
 def video_url_extractor(app, message):
     user_id = message.chat.id
+    # Daily quota used up: answer with the time left instead of extracting formats
+    from HELPERS import daily_quota
+    if daily_quota.deny_if_exhausted(message, daily_quota.VIDEO):
+        return
     user_dir = os.path.join("users", str(user_id))
     
     # Create user directory (subscription already checked in url_distractor)
