@@ -5,7 +5,7 @@ import math
 from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from HELPERS.app_instance import get_app
-from HELPERS.decorators import reply_with_keyboard, background_handler
+from HELPERS.decorators import reply_with_keyboard, background_handler, light_only
 from HELPERS.logger import logger, send_to_logger
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.filesystem_hlp import create_directory
@@ -248,7 +248,7 @@ def dubs_lang_close_callback(app, callback_query):
 
 @app.on_message(filters.command("dubs") & filters.private)
 @reply_with_keyboard
-@background_handler(label="dubs_command")
+@background_handler(label="dubs_command", heavy_if=light_only)
 def dubs_command(app, message):
     """Handle /dubs command - set default dub (audio track) language.
 

@@ -22,7 +22,7 @@ from CONFIG.domains import DomainsConfig
 from HELPERS.app_instance import get_app
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
 from HELPERS.download_status import progress_bar
-from HELPERS.decorators import background_handler
+from HELPERS.decorators import background_handler, message_has_url
 import HELPERS.safe_messeger as sm
 from DOWN_AND_UP.gallery_dl_hook import (
     get_image_info,
@@ -959,7 +959,7 @@ def get_reply_message_id(message):
     else:
         return message.id
 
-@background_handler(label="image_command")
+@background_handler(label="image_command", heavy_if=message_has_url)
 def image_command(app, message):
     """Handle /img command for downloading images"""
     user_id = message.from_user.id

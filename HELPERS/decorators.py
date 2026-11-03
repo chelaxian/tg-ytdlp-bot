@@ -34,6 +34,12 @@ app = get_app()
 reply_keyboard_msg_ids = {}  # user_id: message_id
 _reply_kb_cleanup_counter = 0
 _REPLY_KB_CLEANUP_INTERVAL = 500  # Clean every 500 calls
+# One keyboard refresh per user at a time: concurrent commands used to race on
+# reply_keyboard_msg_ids and leave several empty "⁣" messages in the chat.
+_reply_kb_locks = {}  # user_id: Lock
+_reply_kb_locks_guard = threading.Lock()
+_reply_kb_last = {}  # user_id: (mode, monotonic time of the last refresh)
+_REPLY_KB_MIN_INTERVAL = 20  # seconds; a burst of commands refreshes the keyboard once
 
 def get_main_reply_keyboard(mode="2x3"):
     messages = safe_get_messages(None)
@@ -64,6 +70,20 @@ def get_main_reply_keyboard(mode="2x3"):
 
 def send_reply_keyboard_always(user_id, mode="2x3"):
     """Send persistent reply keyboard to user"""
+    import time
+    with _reply_kb_locks_guard:
+        lock = _reply_kb_locks.setdefault(user_id, threading.Lock())
+    with lock:
+        last = _reply_kb_last.get(user_id)
+        if (last and last[0] == mode and reply_keyboard_msg_ids.get(user_id)
+                and time.monotonic() - last[1] < _REPLY_KB_MIN_INTERVAL):
+            return
+        _send_reply_keyboard_locked(user_id, mode)
+        if reply_keyboard_msg_ids.get(user_id):
+            _reply_kb_last[user_id] = (mode, time.monotonic())
+
+
+def _send_reply_keyboard_locked(user_id, mode):
     global reply_keyboard_msg_ids, _reply_kb_cleanup_counter
     try:
         # Periodic cleanup: limit dict size to prevent unbounded growth
@@ -73,6 +93,11 @@ def send_reply_keyboard_always(user_id, mode="2x3"):
             # Keep only last 2000 users
             if len(reply_keyboard_msg_ids) > 2000:
                 reply_keyboard_msg_ids = dict(list(reply_keyboard_msg_ids.items())[-2000:])
+                with _reply_kb_locks_guard:
+                    for uid in list(_reply_kb_locks):
+                        if uid not in reply_keyboard_msg_ids and not _reply_kb_locks[uid].locked():
+                            _reply_kb_locks.pop(uid, None)
+                            _reply_kb_last.pop(uid, None)
                 logger.debug(f"[KB-CLEANUP] Trimmed reply_keyboard_msg_ids to 2000 entries")
         msg_id = reply_keyboard_msg_ids.get(user_id)
         if msg_id:
@@ -227,24 +252,71 @@ def _init_pools():
         )
 
 
+_URL_RE = None
+
+
+def message_has_url(message) -> bool:
+    """True when the message text/caption carries a link (work that may download)."""
+    global _URL_RE
+    if _URL_RE is None:
+        import re
+        _URL_RE = re.compile(r"(?i)(?:https?://|www\.)\S|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}/\S")
+    text = (getattr(message, "text", None) or getattr(message, "caption", None) or "") if message else ""
+    if not isinstance(text, str):
+        return True
+    if getattr(message, "entities", None) or getattr(message, "caption_entities", None):
+        for ent in (getattr(message, "entities", None) or getattr(message, "caption_entities", None) or []):
+            etype = str(getattr(ent, "type", "")).upper()
+            if "URL" in etype or "TEXT_LINK" in etype:
+                return True
+    return bool(_URL_RE.search(text))
+
+
+def light_only(message=None) -> bool:
+    """heavy_if for menu/settings handlers: they never download, never wait for the heavy pool."""
+    return False
+
+
 def background_queue_depth() -> int:
     """Heavy handler tasks waiting for a free worker (0 when the pool keeps up)."""
     return max(0, _BG_QUEUED[0])
 
 
-def background_handler(func=None, *, label=None):
+def background_handler(func=None, *, label=None, heavy_if=None):
     """
     Decorator that offloads a handler into a background ThreadPoolExecutor
     and logs its lifecycle so long-running jobs don't block Pyrogram updates.
+
+    heavy_if(message) -> bool: when given and False for this update, the call runs
+    on the light pool instead, so commands and menus never queue behind downloads.
     """
     if func is None:
-        return lambda f: background_handler(f, label=label)
+        return lambda f: background_handler(f, label=label, heavy_if=heavy_if)
+
+    def _run_light(context, args, kwargs):
+        logger.info(f"[HANDLER-START] {context}")
+        try:
+            from HELPERS.warp_tunnel import task_scope
+            with task_scope(context):
+                func(*args, **kwargs)
+            logger.info(f"[HANDLER-DONE] {context}")
+        except Exception:
+            logger.exception(f"[HANDLER-CRASH] {context}")
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         _init_pools()
         message_obj = _extract_message_arg(args, kwargs)
         context = _format_handler_context(label or func.__name__, message_obj)
+        if heavy_if is not None:
+            try:
+                heavy = bool(heavy_if(message_obj))
+            except Exception:
+                heavy = True
+            if not heavy:
+                logger.info(f"[INBOUND] {context} (light)")
+                _LIGHT_EXECUTOR.submit(_run_light, context, args, kwargs)
+                return None
         logger.info(f"[INBOUND] {context}")
         # Try to enqueue into background pool. If overloaded, fail fast to avoid
         # unbounded queue growth and "bot looks alive but doesn't respond".

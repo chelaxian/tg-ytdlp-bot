@@ -12,7 +12,7 @@ from HELPERS.logger import send_to_logger, logger
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
-from HELPERS.decorators import background_handler
+from HELPERS.decorators import background_handler, light_only
 from urllib.parse import urlparse
 import os
 import json
@@ -159,7 +159,7 @@ def clear_session_hdr_override(user_id):
 app = get_app()
 
 @app.on_message(filters.command("format") & filters.private)
-@background_handler(label="format_command")
+@background_handler(label="format_command", heavy_if=light_only)
 def set_format(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN

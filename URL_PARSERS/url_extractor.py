@@ -4,7 +4,7 @@
 # Text Message Handler for General Commands
 from HELPERS.safe_messeger import safe_callback_answer
 from HELPERS.app_instance import get_app
-from HELPERS.decorators import reply_with_keyboard, background_handler
+from HELPERS.decorators import reply_with_keyboard, background_handler, message_has_url
 from HELPERS.limitter import is_user_in_channel, check_user, is_user_allowed
 from HELPERS.logger import send_to_all, send_to_logger, send_to_user
 from CONFIG.logger_msg import LoggerMsg, get_logger_msg
@@ -95,9 +95,23 @@ def is_command_separated(text: str, command: str) -> bool:
     
     return True
 
+def _distractor_is_heavy(message):
+    """Links and the few commands that reach the network go to the download pool;
+    /clean, /help, menus and the keyboard buttons are answered at once."""
+    if message_has_url(message):
+        return True
+    text = (getattr(message, "text", None) or "").strip()
+    command, _, rest = text.partition(" ")
+    command = command.split("@", 1)[0].lower()
+    if command == Config.DOWNLOAD_COOKIE_COMMAND:
+        return bool(rest.strip())  # /cookie <service> downloads; bare /cookie shows a menu
+    heavy_commands = (Config.CHECK_COOKIE_COMMAND, Config.BROADCAST_MESSAGE, Config.RELOAD_CACHE_COMMAND)
+    return command in heavy_commands or text == "✅"  # ✅ = /check_cookie
+
+
 @app.on_message(filters.text & filters.private)
 @reply_with_keyboard
-@background_handler(label="url_distractor")
+@background_handler(label="url_distractor", heavy_if=_distractor_is_heavy)
 def url_distractor(app, message):
     # Явно импортируем re в начале функции для избежания UnboundLocalError
     import re
@@ -401,8 +415,7 @@ def url_distractor(app, message):
             from COMMANDS.proxy_cmd import proxy_command
             return proxy_command(app, fake_msg)
         elif mapped == Config.CHECK_COOKIE_COMMAND:
-            from COMMANDS.cookies_cmd import check_cookie_command
-            return check_cookie_command(app, fake_msg)
+            return checking_cookie_file(app, fake_msg)
         elif mapped == Config.IMG_COMMAND:
             from COMMANDS.image_cmd import image_command
             return image_command(app, fake_msg)

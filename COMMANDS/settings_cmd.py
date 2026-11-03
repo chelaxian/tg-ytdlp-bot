@@ -11,7 +11,7 @@ from HELPERS.limitter import is_user_in_channel
 
 from HELPERS.app_instance import get_app
 from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_message_text
-from HELPERS.decorators import background_handler
+from HELPERS.decorators import background_handler, light_only
 from pyrogram.errors import FloodWait
 import os
 # Lazy imports to avoid circular dependency - import url_distractor inside functions
@@ -48,7 +48,7 @@ def command2(app, message):
 app = get_app()
 
 @app.on_message(filters.command("settings") & filters.private)
-@background_handler(label="settings_command")
+@background_handler(label="settings_command", heavy_if=light_only)
 def settings_command(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN

@@ -8,7 +8,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyPara
 from HELPERS.safe_messeger import safe_send_message
 
 from HELPERS.app_instance import get_app
-from HELPERS.decorators import background_handler
+from HELPERS.decorators import background_handler, light_only, message_has_url
 from HELPERS.logger import send_to_logger, send_to_user
 from HELPERS.limitter import is_user_in_channel, check_user, check_playlist_range_limits
 from HELPERS.download_status import get_active_download, can_start_download
@@ -78,7 +78,7 @@ def help_msg_callback(app, callback_query):
 
 # Command to Download Audio from a Video url
 @app.on_message(filters.command("audio") & filters.private)
-@background_handler(label="audio_command")
+@background_handler(label="audio_command", heavy_if=message_has_url)
 def audio_command_handler(app, message):
     user_id = message.chat.id
     is_admin = int(user_id) in Config.ADMIN
@@ -154,7 +154,7 @@ def audio_command_handler(app, message):
 
 # /Link Command
 @app.on_message(filters.command("link") & filters.private)
-@background_handler(label="link_command")
+@background_handler(label="link_command", heavy_if=message_has_url)
 def link_command_handler(app, message):
     if not _check_access(message):
         return
@@ -162,7 +162,7 @@ def link_command_handler(app, message):
 
 # /Proxy Command
 @app.on_message(filters.command("proxy") & filters.private)
-@background_handler(label="proxy_command")
+@background_handler(label="proxy_command", heavy_if=light_only)
 def proxy_command_handler(app, message):
     if not _check_access(message, require_channel=False):
         return
@@ -171,7 +171,7 @@ def proxy_command_handler(app, message):
 
 # /Playlist Command
 @app.on_message(filters.command("playlist") & filters.private)
-@background_handler(label="playlist_command")
+@background_handler(label="playlist_command", heavy_if=light_only)
 def playlist_command(app, message):
     user_id = message.chat.id
 
