@@ -199,9 +199,13 @@ def _extract_message_arg(args, kwargs):
     return None
 
 
-def _format_handler_context(func_name, message_obj):
+def _format_handler_context(func_name, message_obj, update=None):
     chat = getattr(message_obj, "chat", None) if message_obj else None
     from_user = getattr(message_obj, "from_user", None) if message_obj else None
+    if update is not None and getattr(update, "data", None) is not None:
+        # button click: the menu message is the bot's own; log who clicked and what
+        from_user = getattr(update, "from_user", None) or from_user
+        message_obj = update
     chat_id = getattr(chat, "id", None)
     chat_type = getattr(chat, "type", None)
     from_id = getattr(from_user, "id", None)
@@ -403,7 +407,7 @@ def background_handler(func=None, *, label=None, heavy_if=None, cost_mb=None):
     def wrapper(*args, **kwargs):
         _init_pools()
         message_obj = _extract_message_arg(args, kwargs)
-        context = _format_handler_context(label or func.__name__, message_obj)
+        context = _format_handler_context(label or func.__name__, message_obj, _extract_update(args, kwargs))
         if heavy_if is not None:
             try:
                 heavy = bool(heavy_if(_extract_update(args, kwargs)))
