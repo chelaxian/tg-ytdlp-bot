@@ -27,6 +27,8 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
+      # WARP account of the warp container, read by per-task tunnels (WARP_PER_TASK)
+      - warp-data:/app/CONFIG/warp:ro
     working_dir: /app
     network_mode: "service:warp"
 
@@ -95,6 +97,11 @@ services:
     restart: unless-stopped
     logging: *default-logging
     privileged: true
+    environment:
+      # 1 with WARP_PER_TASK = True in CONFIG/config.py: the bot's own traffic
+      # (Telegram, database) leaves directly instead of through this tunnel;
+      # downloads use their own per-task WARP tunnels
+      - WARP_DIRECT_BOT=${WARP_DIRECT_BOT:-0}
     dns:
       - 1.1.1.1
       - 1.0.0.1

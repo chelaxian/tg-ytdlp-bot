@@ -31,7 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
            /root/.cache
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# strip Windows line endings (checkouts with core.autocrlf) so the shebang works
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/entrypoint.sh"]

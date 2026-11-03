@@ -55,6 +55,22 @@ RUN mkdir -p /etc/apt/keyrings \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# wireproxy (userspace WireGuard -> local HTTP proxy) for per-task WARP tunnels
+# (WARP_PER_TASK, docs/WARP_PER_TASK.md); pinned and checksum-verified
+ARG TARGETARCH
+ARG WIREPROXY_VER=1.1.3
+RUN ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" \
+    && case "$ARCH" in \
+         amd64) SHA=e88c1d090740373fc606c1bafd81d9a5eadc642cce5667616e20e9d7a444f51c ;; \
+         arm64) SHA=370e00bd2167960d1ecd1c3c1439715bbaa94a0a110a2040468670c9af6021b6 ;; \
+         *) echo "unsupported arch $ARCH" && exit 1 ;; \
+       esac \
+    && curl -fsSL "https://github.com/windtf/wireproxy/releases/download/v${WIREPROXY_VER}/wireproxy_linux_${ARCH}.tar.gz" -o /tmp/wp.tgz \
+    && echo "$SHA  /tmp/wp.tgz" | sha256sum -c - \
+    && tar -xzf /tmp/wp.tgz -C /usr/local/bin wireproxy \
+    && chmod 755 /usr/local/bin/wireproxy \
+    && rm -f /tmp/wp.tgz
+
 WORKDIR /app
 
 # Copy requirements first for better layer caching

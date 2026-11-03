@@ -52,6 +52,12 @@ WAL mode, one connection per thread; the dashboard process reads the same file.
 Backup: `sqlite3 DATABASE/data/tgytdlp.sqlite3 ".backup '/backup/tgytdlp-$(date +%F).sqlite3'"`
 or `python scripts/db_migrate.py --from sqlite --to json --json-file backup.json`.
 
+Docker Compose: the project directory is mounted into the containers (`.:/app`),
+so `DATABASE/data/` stays on the host and survives rebuilds. Run the migration
+inside the bot container, e.g.
+`docker compose run --rm --no-deps bot python scripts/db_migrate.py --from firebase --to sqlite --verify`,
+then set `USE_FIREBASE = False` / `DB_ENGINE = "sqlite"` and `docker compose up -d`.
+
 ## PostgreSQL (local or on a dedicated VM)
 
 On the database VM (Debian/Ubuntu, as root):

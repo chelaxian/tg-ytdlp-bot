@@ -75,5 +75,17 @@ bgutil runs on the host.
 Logs: `[WARP] tunnel up for <task> in N ms, egress=<IPv6>` /
 `[WARP] tunnel down for <task> after Ns`.
 
-The Docker Compose deployment still uses the shared `warp` container; this mode
-is off there by default.
+## Docker Compose
+
+The bot image ships `wireproxy`, and the bot container reads the WARP account of
+the `warp` container (`warp-data` mounted read-only at `CONFIG/warp`), so no
+extra registration is needed. To switch it on:
+
+1. `.env`: `WARP_DIRECT_BOT=1` — the `warp` container then lets the bot's own
+   traffic (Telegram, database) leave directly instead of through its tunnel;
+2. `CONFIG/config.py`: `WARP_PER_TASK = True` (keep `WARP_PROXY_HOST = "127.0.0.1"`:
+   bgutil shares the `warp` network namespace);
+3. `scripts/UPDATE_DOCKER.sh` (or `docker compose build && docker compose up -d`).
+
+Without these two settings the stack works as before: everything goes through
+the shared `warp` tunnel.

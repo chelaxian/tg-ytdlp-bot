@@ -14,6 +14,12 @@
 Мощный Telegram-бот, который загружает видео, аудио и изображения с YouTube, TikTok, Instagram и более чем 1500 других платформ, используя yt-dlp и gallery-dl. Отличается расширенным выбором форматов, поддержкой кодеков, интеллектуальной обработкой субтитров, поддержкой прокси и прямыми ссылками на потоковое воспроизведение. \
 <img width="320" height="938" alt="tgytdlp1" src="https://github.com/user-attachments/assets/7a8398da-0968-454d-8a60-f81cbfe13e2f" /><img width="323" height="938" alt="tgytdlp2" src="https://github.com/user-attachments/assets/4e1a9e46-0a37-4bfe-a440-70688929c2b3" />
 
+**Главное в последних версиях:**
+- ⚡ **Всегда на связи**: команды и меню работают в отдельном пуле и никогда не ждут загрузок; загрузки идут через очередь с приоритетами (одиночные ссылки первыми, лёгкие задачи раньше тяжёлых, плейлисты и несколько ссылок в сообщении — последними)
+- 🛡️ **Честные лимиты**: дневные квоты на пользователя (по умолчанию 100 видео + 250 изображений) и лимиты на один запрос против злоупотреблений и агрегаторов трафика
+- 💾 **Своя база данных**: локальная SQLite (по умолчанию), PostgreSQL (локально или на отдельной ВМ по TLS) или Google Firebase — переключается в конфиге, есть инструмент миграции между любыми вариантами
+- 🌐 **Новый IP на каждую загрузку**: по желанию — отдельный туннель Cloudflare WARP с новым IPv6 для каждой задачи, а сам бот остаётся на прямом подключении
+
 ---
 
 ## 📋 Оглавление
@@ -205,14 +211,15 @@ https://youtube.com/watch?v=video3
 2. Используйте `/cookie youtube` для получения свежих cookies
 3. Проверьте доступность видео
 
-### Ошибки подключения к Firebase
+### Ошибки подключения к базе данных
 
 **Причины:**
-- Неверные учетные данные Firebase
-- Неверные правила доступа к базе данных
+- SQLite: нет прав на запись в `DATABASE/data/`
+- PostgreSQL: неверные параметры подключения или сертификаты (`POSTGRES_*`, `POSTGRES_SSLMODE`)
+- Firebase: неверные учетные данные или правила доступа к базе данных
 
 **Решения:**
-1. Проверьте проект Firebase и учетные данные
+1. Проверьте настройки базы в `config.py` и [docs/DATABASE.md](docs/DATABASE.md); для Firebase — проект и учетные данные
 2. Убедитесь что правила Realtime Database разрешают чтение/запись
 3. Проверьте подключение к сети
 
@@ -256,6 +263,7 @@ cp CONFIG/_config.py CONFIG/config.py
 - **ALLOWED_GROUP** – ID разрешенных групп (опционально)
 - **ALLOWED_USERS** – ID пользователей, которым разрешён бот в личных чатах; пустой список (по умолчанию) — доступ всем (опционально)
 - **API_ID**, **API_HASH** – из [my.telegram.org](https://my.telegram.org)
+- **USE_FIREBASE / DB_ENGINE** – по умолчанию (`USE_FIREBASE = False`, `DB_ENGINE = "sqlite"`) ничего настраивать не нужно; PostgreSQL и Firebase — см. [Настройка базы данных](#настройка-базы-данных)
 - **BOT_TOKEN** – из [@BotFather](https://t.me/BotFather)
 - **LOGS_*** – все лог-каналы
 - **SUBSCRIBE_CHANNEL** и **SUBSCRIBE_CHANNEL_URL** – канал подписки (опционально: `0` или пусто в `SUBSCRIBE_CHANNEL` отключает требование подписки)
@@ -316,6 +324,10 @@ docker compose up -d --build
 - `bgutil-provider` будет доступен по `http://bgutil-provider:4416` для YouTube PO токенов
 - **Dashboard панель** будет доступна по `http://localhost:5555` (или `http://<ваш-ip>:5555`)
 
+**По желанию – новый IP на каждую загрузку (WARP для каждой задачи):** укажите `WARP_DIRECT_BOT=1` в `.env` и `WARP_PER_TASK = True` в `CONFIG/config.py`, затем `docker compose up -d --build`. Каждая загрузка пойдёт через свой туннель WARP с новым IPv6 (используется аккаунт контейнера `warp`), а собственный трафик бота к Telegram — напрямую, поэтому перезапуски туннеля его не обрывают. Подробности: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
+
+**База данных в Docker:** папка проекта подключена в контейнеры, поэтому файл SQLite `DATABASE/data/tgytdlp.sqlite3` хранится на хосте и переживает пересборку.
+
 **Шаг 4 – Доступ к Dashboard Panel:**
 
 После запуска контейнеров веб-панель запустится на порту **5555** (настраивается через `DASHBOARD_PORT` в `CONFIG/config.py`):
@@ -361,7 +373,7 @@ sudo apt install -y git python3.11 python3-pip python3.11-venv mediainfo rsync
 python3.11 -m venv venv
 source venv/bin/activate
 
-# Установка Python пакетов
+# Установка Python пакетов (psycopg / psycopg-pool нужны только при DB_ENGINE = "postgres")
 pip install --no-cache-dir -r requirements.txt
 ```
 
@@ -484,9 +496,14 @@ YOUTUBE_COOKIE_URL_1 = "https://your-domain.com/cookies/youtube/cookie2.txt"
 YOUTUBE_COOKIE_URL_2 = "https://your-domain.com/cookies/youtube/cookie3.txt"
 # ... до YOUTUBE_COOKIE_URL_9
 
-# Firebase Configuration
-USE_FIREBASE = True
+# База данных (см. «Настройка базы данных» ниже и docs/DATABASE.md)
+USE_FIREBASE = False          # True = Google Firebase Realtime Database
+DB_ENGINE = "sqlite"          # при USE_FIREBASE = False: "sqlite" | "postgres" | "json"
+SQLITE_DB_PATH = "DATABASE/data/tgytdlp.sqlite3"
+# PostgreSQL: POSTGRES_HOST / PORT / DB / USER / PASSWORD, POSTGRES_SSLMODE = "verify-full",
+# POSTGRES_SSLROOTCERT / SSLCERT / SSLKEY, POSTGRES_DSN, POSTGRES_POOL_MAX
 
+# Firebase (нужен только при USE_FIREBASE = True)
 FIREBASE_USER = "your-email@gmail.com"
 FIREBASE_PASSWORD = "your-firebase-password"
 FIREBASE_CONF = {
@@ -530,9 +547,41 @@ FIREBASE_CONF = {
 3. ID групп начинаются с `-100` (супергруппы) или отрицательные числа (обычные группы)
 4. Добавьте ID групп в `ADMIN_GROUP` (группы без лимитов) или `ALLOWED_GROUP` (группы с увеличенными лимитами) в config.py
 
-### Настройка Firebase
+### Настройка базы данных
 
-Подробные инструкции по настройке Firebase см. в разделе [Firebase Setup for Telegram Bot](#firebase-setup-for-telegram-bot) ниже.
+Бот хранит пользователей, настройки, логи и кэш видео в одной древовидной базе. Движок выбирается в `CONFIG/config.py`:
+
+- **SQLite (по умолчанию)** – `USE_FIREBASE = False`, `DB_ENGINE = "sqlite"`. Ничего настраивать не нужно: файл `DATABASE/data/tgytdlp.sqlite3` создаётся при первом запуске.
+- **PostgreSQL** – `DB_ENGINE = "postgres"`, на том же сервере или на отдельной ВМ. Удалённое подключение шифруется и проверяется (`POSTGRES_SSLMODE = "verify-full"`, пароли SCRAM, по желанию клиентские сертификаты); `scripts/db/setup_postgres_server.sh` готовит такой сервер, так что несколько ботов могут работать с одной базой.
+- **Google Firebase** – `USE_FIREBASE = True` (прежний вариант по умолчанию).
+
+Перенос данных между движками (в любую сторону, `--verify` сверяет результат с источником):
+
+```bash
+python scripts/db_migrate.py --from firebase --to sqlite --verify
+python scripts/db_migrate.py --from sqlite --to postgres --verify
+```
+
+У локальных движков нет лимитов на скачивание дампа и не нужна периодическая перезагрузка кэша. Подробности, резервные копии и удалённый PostgreSQL: [docs/DATABASE.md](docs/DATABASE.md).
+
+#### WARP для каждой задачи
+
+Каждая задача пользователя (загрузка, список форматов, проверка cookie, `/img`, `/link`, `/list`...) получает свой туннель Cloudflare WARP (`wireproxy`) с новым IPv6: он поднимается при первом внешнем запросе и гасится по завершении задачи, а сам бот (Telegram, база данных) работает напрямую. Блокировка YouTube «Sign in to confirm you're not a bot» больше не требует ротации общего IP: следующая задача просто получит новый.
+
+```python
+WARP_PER_TASK = True
+WARP_WIREPROXY_BIN = "/usr/local/bin/wireproxy"
+WARP_PROFILES_DIR = "CONFIG/warp"        # аккаунт(ы) WARP, создаёт скрипт установки
+WARP_ENDPOINT = "162.159.192.1:2408"
+WARP_PROXY_HOST = "127.0.0.1"            # "172.17.0.1", если bgutil в Docker рядом с ботом на systemd
+WARP_MAX_TUNNELS = 40
+```
+
+Ручная установка: `sudo scripts/warp/setup_warp_per_task.sh --bot-dir "$PWD"` (плюс `--direct-route`, если на сервере ещё работает общий `wg-quick@wgcf`, например как выход VPN). Docker: см. шаг 3 установки в Docker. Подробно: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
+
+#### По желанию: Firebase
+
+Подробные инструкции по настройке Firebase см. в разделе [Firebase Setup for Telegram Bot](#-настройка-firebase-для-telegram-bot) ниже.
 
 **Быстрая настройка:**
 1. Перейдите в [Firebase Console](https://console.firebase.google.com/)
@@ -614,8 +663,10 @@ FIREBASE_CONF = {
 
 `CONFIG/limits.py` - это центральное место где все рабочие лимиты бота настроены. Перед деплоем, просмотрите этот файл и настройте значения для вашего железа и хостинга:
 
-- **Загрузки и субтитры:** `MAX_FILE_SIZE_GB`, `MAX_VIDEO_DURATION`, и `MAX_SUB_*` предотвращают вход очень больших видео/субтитров в очередь. В группах применяется `GROUP_MULTIPLIER`.
-- **Множественные URL:** `MAX_MULTI_URL_LIMIT` (по умолчанию: 10) контролирует сколько URL можно отправить в одном сообщении когда формат качества установлен. В группах это умножается на `GROUP_MULTIPLIER` (по умолчанию: 20). Админы без лимитов.
+- **Загрузки и субтитры:** `MAX_FILE_SIZE_GB`, `MAX_VIDEO_DURATION`, и `MAX_SUB_*` предотвращают вход очень больших видео/субтитров в очередь. В группах максимальный размер файла умножается на `GROUP_MULTIPLIER` (по умолчанию: 2).
+- **Множественные URL:** `MAX_MULTI_URL_LIMIT` (по умолчанию: 10) контролирует сколько URL можно отправить в одном сообщении когда формат качества установлен. В группах это умножается на `GROUP_COUNT_MULTIPLIER` (по умолчанию: 10, т.е. 100 URL). Админы без лимитов.
+- **Количество за один запрос:** `MAX_PLAYLIST_COUNT` (по умолчанию: 10 элементов плейлиста), `MAX_TIKTOK_COUNT` (по умолчанию: 100 видео TikTok/Instagram) и `MAX_IMG_FILES` (по умолчанию: 250 изображений за запрос `/img`). В группах умножаются на `GROUP_COUNT_MULTIPLIER` (10).
+- **Дневные квоты:** `DAILY_VIDEO_LIMIT` (по умолчанию: 100 видео/аудио) и `DAILY_IMAGE_LIMIT` (по умолчанию: 250 изображений) на пользователя за календарный день; считаются только успешно доставленные (`DAILY_QUOTA_COUNT_CACHED = True` учитывает и отправку из кэша). Счётчики хранятся в `CONFIG/.daily_quota.json` (перезапуск их не сбрасывает) и обнуляются в 00:00 по времени сервера. При исчерпании квоты пользователь на каждую попытку получает сообщение с оставшимся временем. Админы и группы не ограничены; `0` отключает квоту.
 - **Изображения и live streams:** `MAX_IMG_*`, `ENABLE_LIVE_STREAM_BLOCKING`, и `MAX_LIVE_STREAM_DURATION` защищают от бесконечных альбом/live-stream загрузок. На медленных соединениях, увеличьте `MAX_IMG_TOTAL_WAIT_TIME`.
 - **Cookie кэш:** `COOKIE_CACHE_DURATION`, `COOKIE_CACHE_MAX_LIFETIME`, и `YOUTUBE_COOKIE_RETRY_LIMIT_PER_HOUR` контролируют как агрессивно YouTube cookies используются повторно и сколько попыток повтора получает пользователь в час.
 - **Rate limits:** `RATE_LIMIT_PER_MINUTE|HOUR|DAY` и соответствующие `RATE_LIMIT_COOLDOWN_*` значения реализуют anti‑spam. Когда пользователь превышает лимиты, он ставится на кулдаун на 5/60/1440 минут.
@@ -638,7 +689,7 @@ ADMIN_USERNAME = "@"  # Admin username (например, "@" или "@your_user
 # Список ID админских групп (группы без лимитов)
 ADMIN_GROUP = [-1001234567890, -1001234567891]  # ID админских групп
 
-# Список разрешенных групп (группы с увеличенными лимитами через GROUP_MULTIPLIER)
+# Список разрешенных групп (группы с увеличенными лимитами через GROUP_COUNT_MULTIPLIER / GROUP_MULTIPLIER)
 ALLOWED_GROUP = [-1001234567890, -1001234567891]  # ID разрешенных групп
 ```
 
@@ -667,20 +718,22 @@ class LimitsConfig(object):
 
 - **Админские группы** (группы в списке `ADMIN_GROUP`):
   - ✅ Все те же преимущества что и у индивидуальных админов
-  - ✅ Не применяется `GROUP_MULTIPLIER` (лимиты полностью отключены)
+  - ✅ Множители групп не применяются (лимиты полностью отключены)
+  - ✅ Нет дневных квот
   - ✅ Проверка подписки отключена
 
 **Когда `TURN_OFF_LIMITS_FOR_ADMINS = False`:**
 
 - Админы и админские группы подчиняются тем же лимитам что и обычные пользователи
-- `GROUP_MULTIPLIER` применяется к админским группам (то же что и к `ALLOWED_GROUP`)
+- Множители групп применяются к админским группам (то же что и к `ALLOWED_GROUP`)
 
 **Админские группы против разрешенных групп:**
 
 - **`ADMIN_GROUP`**: Группы которые обходят **все лимиты** когда `TURN_OFF_LIMITS_FOR_ADMINS = True`
-- **`ALLOWED_GROUP`**: Группы с **увеличенными лимитами** через `GROUP_MULTIPLIER` (по умолчанию: 2x)
+- **`ALLOWED_GROUP`**: Группы с **увеличенными лимитами**
   - NSFW контент бесплатен в группах (всегда)
-  - Лимиты умножаются на `GROUP_MULTIPLIER`
+  - Количество (URL в сообщении, плейлист, TikTok, изображения) умножается на `GROUP_COUNT_MULTIPLIER` (по умолчанию: 10x), максимальный размер файла — на `GROUP_MULTIPLIER` (по умолчанию: 2x)
+  - Дневные квоты не действуют
   - Проверка подписки отключена
 
 **Примечание:** Если группа указана и в `ADMIN_GROUP` и в `ALLOWED_GROUP`, `ADMIN_GROUP` имеет приоритет (все лимиты отключены).
@@ -708,13 +761,14 @@ ALLOWED_GROUP = [-1001234567891]  # ID обычной разрешенной г�
 
 # CONFIG/limits.py
 TURN_OFF_LIMITS_FOR_ADMINS = True  # Включить неограниченный доступ для админов
-GROUP_MULTIPLIER = 2  # 2x лимиты для ALLOWED_GROUP
+GROUP_COUNT_MULTIPLIER = 10  # 10x количество для ALLOWED_GROUP
+GROUP_MULTIPLIER = 2  # 2x максимальный размер файла для ALLOWED_GROUP
 ```
 
 **Результат:**
 - Пользователь `123456789` без лимитов
 - Группа `-1001234567890` без лимитов
-- Группа `-1001234567891` с 2x лимитами (через `GROUP_MULTIPLIER`)
+- Группа `-1001234567891`: количество x10, размер файла x2, без дневных квот
 
 ---
 
@@ -736,7 +790,7 @@ GROUP_MULTIPLIER = 2  # 2x лимиты для ALLOWED_GROUP
 | Команда | Описание | Пример |
 |----------|-------------|---------|
 | **Video URL** | Скачать видео (авто-определение) | `https://youtube.com/watch?v=...` |
-| **Multiple URLs** | Скачать несколько видео в очереди (только в режиме качества) | Отправить до 10 URL (20 в группах) в одном сообщении |
+| **Multiple URLs** | Скачать несколько видео в очереди (только в режиме качества) | Отправить до 10 URL (100 в группах) в одном сообщении |
 | `/vid` | Скачать видео | `/vid https://youtube.com/watch?v=...` |
 | `/audio` | Скачать только аудио | `/audio https://youtube.com/watch?v=...` |
 | `/link` | Получить прямые ссылки на видео | `/link 720 https://youtube.com/watch?v=...` |
@@ -857,10 +911,10 @@ GROUP_MULTIPLIER = 2  # 2x лимиты для ALLOWED_GROUP
 Загрузка нескольких видео в одном сообщении когда формат качества установлен:
 
 - **Требуется режим качества**: Работает только когда вы установили формат качества через команду `/format` (не в режиме "Always Ask")
-- **Обработка в очереди**: URL обрабатываются последовательно с обновлением прогресса в реальном времени
+- **Обработка в очереди**: URL обрабатываются последовательно с обновлением прогресса в реальном времени; сообщения с несколькими ссылками получают низший приоритет в очереди загрузок
 - **Лимиты**: 
   - Личные чаты: до **10 URL** на сообщение
-  - Группы: до **20 URL** на сообщение (2x множитель)
+  - Группы: до **100 URL** на сообщение (`GROUP_COUNT_MULTIPLIER`, 10x)
   - Админы: без ограничений
 - **Формат**: Каждый URL на новой строке или разделённый пробелами
 - **Отображение статуса**: Показывает прогресс как при загрузке плейлиста: "URL: X / Y"
@@ -1317,14 +1371,14 @@ UPDATE_PORN_SCRIPT_PATH = "./script.sh"  # Настраиваемый путь �
 - **Добавление бота в группу**: Добавьте бота как админа в вашу группу/супергруппу чтобы использовать команды внутри чата.
   - **Типы групп:**
     - **ADMIN_GROUP**: Группы перечисленные в `ADMIN_GROUP` обходят все лимиты (когда `TURN_OFF_LIMITS_FOR_ADMINS = True` в `CONFIG/limits.py`)
-    - **ALLOWED_GROUP**: Группы перечисленные в `ALLOWED_GROUP` имеют увеличенные лимиты через `GROUP_MULTIPLIER` (по умолчанию: 2x)
-    - **Обычные группы**: Лимиты умножаются на `GROUP_MULTIPLIER` (по умолчанию: 2x), уменьшая fallbacks к режиму документа для больших файлов
+    - **ALLOWED_GROUP**: Группы перечисленные в `ALLOWED_GROUP` имеют увеличенные лимиты: количество x`GROUP_COUNT_MULTIPLIER` (по умолчанию: 10x), размер файла x`GROUP_MULTIPLIER` (по умолчанию: 2x), без дневных квот
+    - **Обычные группы**: действуют те же множители, уменьшая fallbacks к режиму документа для больших файлов
   - Все другие функции (форматы, прокси, cookies, прямые ссылки) работают так же как в личных чатах.
   - NSFW контент бесплатен в группах (всегда бесплатен в группах)
 
 **Конфигурация:**
 - Добавьте ID групп в `ADMIN_GROUP` или `ALLOWED_GROUP` в `CONFIG/config.py` (см. раздел [Getting API Credentials](#получение-api-учетных-данных) для как получить ID групп)
-- Настройте `GROUP_MULTIPLIER` и `TURN_OFF_LIMITS_FOR_ADMINS` в `CONFIG/limits.py` (см. раздел [Admin Limits Configuration](#-конфигурация-лимитов-админов))
+- Настройте `GROUP_COUNT_MULTIPLIER`, `GROUP_MULTIPLIER` и `TURN_OFF_LIMITS_FOR_ADMINS` в `CONFIG/limits.py` (см. раздел [Admin Limits Configuration](#-конфигурация-лимитов-админов))
 
 Примечание: Вы можете настроить точные значения лимитов и поведение в `CONFIG/limits.py` и `CONFIG/config.py` согласно вашему хостингу и потребностям.
 
@@ -1349,7 +1403,7 @@ UPDATE_PORN_SCRIPT_PATH = "./script.sh"  # Настраиваемый путь �
 | `/run_time` | Показать время работы бота | `/run_time` |
 | `/log` | Получить логи пользователя | `/log 123456789` |
 | `/broadcast` | Рассылка сообщения | `/broadcast` (ответ на сообщение) |
-| `/reload_cache` | Перезагрузить кэш Firebase | `/reload_cache` |
+| `/reload_cache` | Перезагрузить кэш Firebase (с локальной базой только подтверждает, что данные всегда актуальны) | `/reload_cache` |
 | `/auto_cache` | Управление авто кэшом | `/auto_cache 24` |
 
 ### Управление контентом
@@ -1380,7 +1434,7 @@ UPDATE_PORN_SCRIPT_PATH = "./script.sh"  # Настраиваемый путь �
 
 ### Auto cache – как это работает (on/off/N)
 
-Бот поддерживает локальный JSON кэш (dump) данных Firebase. Фоновый релоадер может периодически обновлять этот кэш сначала скачивая свежий dump и затем перезагружая его в память.
+Касается только `USE_FIREBASE = True` (с SQLite/PostgreSQL бот читает базу напрямую, дампа и перезагрузки нет). Бот поддерживает локальный JSON кэш (dump) данных Firebase. Фоновый релоадер может периодически обновлять этот кэш сначала скачивая свежий dump и затем перезагружая его в память.
 
 - Цикл обновления:
   - Скачать dump через REST (`download_firebase.py` logic)
@@ -1468,6 +1522,7 @@ RELOAD_CACHE_EVERY = 24  # в часах
 - ❌ `script.sh` - ваш пользовательский скрипт обновления для списков porn.
 - ❌ `TXT/` директория - ваши cookie файлы и списки
 - ❌ `users/`, `cookies/`, `_backup/` директории
+- ❌ `DATABASE/data/` (база SQLite), `CONFIG/db/` (TLS-сертификаты PostgreSQL), `CONFIG/warp/` и `.warp-run/` (аккаунты и туннели WARP для задач)
 - ❌ Session файлы, логи, и runtime данные
 
 ### Обновление локальной установки (без Docker)
@@ -1717,6 +1772,8 @@ https://youtu.be/STeeOaX2FBs?si=5rz1QhvuiauZ7A4d#youtube#mytag#tag123
 
 ## 🔥 Настройка Firebase для Telegram Bot
 
+> Нужна только при `USE_FIREBASE = True`. По умолчанию бот использует локальную базу SQLite — см. [Настройка базы данных](#настройка-базы-данных).
+
 Этот раздел описывает как создать Firebase проект, настроить Realtime Database с аутентификацией, создать тестового пользователя, и интегрировать Firebase в ваш Telegram бот.
 
 ### 1. Создать Firebase проект
@@ -1759,11 +1816,13 @@ https://youtu.be/STeeOaX2FBs?si=5rz1QhvuiauZ7A4d#youtube#mytag#tag123
 
 ### 5. Автостарт сервиса
 
-Чтобы создать сервис автозапуска для этого бота - скопируйте текст из этого файла https://github.com/chelaxian/tg-ytdlp-bot/blob/main/etc/systemd/system/tg-ytdlp-bot.service и вставьте его в
+Чтобы создать сервис автозапуска для этого бота - скопируйте текст из этого файла https://github.com/chelaxian/tg-ytdlp-bot/blob/main/_etc/systemd/system/tg-ytdlp-bot.service и вставьте его в
 ```bash
 /etc/systemd/system/tg-ytdlp-bot.service
 ```
 не забудьте изменить путь в сервисе на ваш реальный путь
+
+Юнит использует `WatchdogSec=180` (бот сообщает systemd о себе каждые 30 с, только пока его цикл событий отвечает, поэтому зависший бот перезапускается автоматически) и `TimeoutStopSec=35` для корректной остановки. После обновления бота скопируйте юнит заново и выполните `systemctl daemon-reload`.
 
 перезагрузите systemctl и включить/запустить сервис
 ```bash
@@ -1817,7 +1876,7 @@ journalctl -u tg-ytdlp-dashboard -f
 
 ## 🚀 Панель статистики (порт 5555)
 
-Мы предоставляем отдельный FastAPI сервис с мульти-табличным UI и REST API который показывает ключевые метрики бота в реальном времени без постоянного попадания в Firebase.
+Мы предоставляем отдельный FastAPI сервис с мульти-табличным UI и REST API который показывает ключевые метрики бота в реальном времени без постоянных обращений к базе данных.
 
 ### Как запустить
 
@@ -1840,7 +1899,7 @@ pip install -r requirements.txt           # убедитесь что fastapi/uv
 
 ### Откуда данные берутся
 
-- Базовый снимок читается из локального `dump.json`, который уже обновляется `DATABASE/download_firebase.py`.
+- Базовый снимок читается из базы: напрямую из SQLite/PostgreSQL или (с Firebase) из локального `dump.json`, который обновляет `DATABASE/download_firebase.py`.
 - Хуки в `DATABASE/firebase_init.py` и `HELPERS/logger.py`, плюс `StatsAwareDBAdapter` proxy, перехватывают все DB записи и обновляют in‑memory кэш без дополнительных REST вызов.
 - Информация о пользователе обогащается через Telegram Bot API (`getChat`) с локальным кэшем, и мгновенные данные берутся напрямую из входящих `message` объектов.
 
@@ -1857,9 +1916,9 @@ UI использует простые JSON endpoints (`/api/active-users`, `/ap
    - Вкладка **Active Users** показывает live сессии; кнопка ❌ мгновенно блокирует пользователя.  
    - **Top Downloads / Domains** помогает вам заметить паттерны злоупотреблений.  
    - **Channel Events / Blocked Users** позволяет вам управлять подписками и списком блокировок не касаясь базы данных напрямую.
-5. **Отладка.** Если dashboard перестаёт отвечать, проверьте `journalctl -u tg-ytdlp-dashboard -f` (или Docker логи) и убедитесь что `DATABASE/download_firebase.py` всё ещё обновляет `dump.json`.
+5. **Отладка.** Если dashboard перестаёт отвечать, проверьте `journalctl -u tg-ytdlp-dashboard -f` (или Docker логи) и, при работе с Firebase, убедитесь что `DATABASE/download_firebase.py` всё ещё обновляет `dump.json`.
 
-Добавьте специализированный systemd unit (см. `etc/systemd/system/tg-ytdlp-bot.service` как референс) или Docker healthcheck чтобы dashboard автоматически перезапускался после перезапуска хоста или контейнера.
+Добавьте специализированный systemd unit (см. `_etc/systemd/system/tg-ytdlp-dashboard.service`) или Docker healthcheck чтобы dashboard автоматически перезапускался после перезапуска хоста или контейнера.
 
 ---
 

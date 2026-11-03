@@ -325,9 +325,14 @@ def download_video(url: str, user_id: int, quality: str = "best") -> bool:
 tg-ytdlp-bot/
 ├── COMMANDS/          # Bot command handlers
 ├── CONFIG/           # Configuration files
+├── DATABASE/         # Database engines (Firebase / JSON / SQLite / PostgreSQL) and cache
 ├── DOWN_AND_UP/      # Download and upload logic
-├── HELPERS/          # Utility functions
+├── HELPERS/          # Utility functions (worker pools, daily quotas, per-task WARP...)
 ├── URL_PARSERS/      # URL parsing and extraction
+├── scripts/          # Update, DB migration (db_migrate.py, db/), WARP setup (warp/)
+├── docs/             # DATABASE.md, WARP_PER_TASK.md, ...
+├── tests/smoke/      # Offline smoke tests: python tests/smoke/test_<name>.py
+├── warp/             # WARP container for Docker Compose
 ├── magic.py          # Main bot file
 ├── requirements.txt  # Dependencies
 └── README.md         # Documentation

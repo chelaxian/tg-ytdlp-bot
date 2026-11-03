@@ -32,6 +32,10 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 - 🖼️ **Image Support**: Download images from various platforms using gallery-dl
 - 🔞 **NSFW Content Management**: Advanced NSFW detection and content filtering
 - ⏱️ **Flood Wait Protection**: Smart rate limiting and flood wait handling
+- ⚡ **Always Responsive**: commands and menus run on their own worker pool and never wait for downloads; downloads go through a priority queue (single links first, lighter jobs before heavier ones, playlists and multi-URL messages last)
+- 🛡️ **Fair-use Limits**: daily per-user quotas (100 videos + 250 images by default) and per-request limits against abusers and traffic aggregators
+- 💾 **Your Own Database**: local SQLite (default), PostgreSQL (local or remote over TLS) or Google Firebase — switchable in config, with a migration tool between any of them
+- 🌐 **Fresh IP per Download**: optional per-task Cloudflare WARP tunnels — every download gets its own tunnel and a new IPv6, while the bot itself stays on a direct connection
 
 ![photo_2025-12-22_00-47-22](https://github.com/user-attachments/assets/c88dd650-92d6-4718-ab1e-288731099066)
 ![image](https://github.com/user-attachments/assets/bf7fe9f6-aecb-40ba-b40b-1db39c8c9ca3)
@@ -63,13 +67,13 @@ https://youtube.com/watch?v=dQw4w9WgXcQ
 ```
 
 **Multiple URLs (in quality selection mode):**
-When you have set a quality format (via `/format` command), you can send up to **10 URLs** in one message (20 in groups). Each URL on a new line or separated by spaces:
+When you have set a quality format (via `/format` command), you can send up to **10 URLs** in one message (100 in groups). Each URL on a new line or separated by spaces:
 ```
 https://youtube.com/watch?v=video1
 https://youtube.com/watch?v=video2
 https://youtube.com/watch?v=video3
 ```
-The bot will process them in queue with progress status updates.
+The bot will process them in queue with progress status updates. Such messages (and playlists) get the lowest priority in the download queue, so single links of other users are never stuck behind them.
 
 ## 📋 Table of Contents
 
@@ -81,7 +85,8 @@ The bot will process them in queue with progress status updates.
   - [Optional Configuration](#optional-configuration)
   - [Admin Limits Configuration](#-admin-limits-configuration)
   - [Getting API Credentials](#getting-api-credentials)
-  - [Firebase Setup](#firebase-setup)
+  - [Database Setup](#database-setup)
+  - [Per-task WARP](#per-task-warp)
   - [Cookie Setup](#cookie-setup)
 - [Limits & Cooldowns](#-limits--cooldowns-configlimitspy)
 - [User Commands](#-user-commands)
@@ -144,6 +149,7 @@ Then edit `CONFIG/config.py` and fill in at least:
 - **ALLOWED_GROUP** – list of allowed group IDs (groups with increased limits, optional but recommended)
 - **ALLOWED_USERS** – list of user IDs allowed to use the bot in private chats; empty list (default) means everyone is allowed (optional)
 - **API_ID**, **API_HASH** – from [my.telegram.org](https://my.telegram.org) (see section [Getting API Credentials](#getting-api-credentials))
+- **USE_FIREBASE / DB_ENGINE** – the default (`USE_FIREBASE = False`, `DB_ENGINE = "sqlite"`) needs no setup; see [Database Setup](#database-setup) for PostgreSQL or Firebase
 - **BOT_TOKEN** – from [@BotFather](https://t.me/BotFather) (see section [Getting API Credentials](#getting-api-credentials))
 - **LOGS\_*** (LOGS_ID, LOGS_VIDEO_ID, LOGS_NSFW_ID, LOGS_IMG_ID, LOGS_PAID_ID, LOG_EXCEPTION) – Fill in all the fields, if you want you can use the same channel for all
 - **SUBSCRIBE_CHANNEL** and **SUBSCRIBE_CHANNEL_URL** – channel ID and invite link users must join (optional: set `SUBSCRIBE_CHANNEL` to `0` or leave empty to disable the subscription requirement)
@@ -208,6 +214,10 @@ The bot container will be built from the included `Dockerfile`, and:
 - `bgutil-provider` will be available at `http://bgutil-provider:4416` for YouTube PO tokens
 - **Dashboard panel** will be available at `http://localhost:5555` (or `http://<your-server-ip>:5555`)
 
+**Optional – fresh IP per download (per-task WARP):** set `WARP_DIRECT_BOT=1` in `.env` and `WARP_PER_TASK = True` in `CONFIG/config.py`, then `docker compose up -d --build`. Every download then uses its own WARP tunnel with a new IPv6 (the account of the `warp` container is reused), and the bot's own traffic to Telegram goes directly, so tunnel restarts never cut it. Details: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
+
+**Database in Docker:** the project folder is mounted into the containers, so the SQLite file `DATABASE/data/tgytdlp.sqlite3` stays on the host and survives rebuilds.
+
 **Step 4 – Access the Dashboard Panel:**
 
 After starting the containers, the web dashboard panel will automatically start on port **5555** (configurable via `DASHBOARD_PORT` in `CONFIG/config.py`). You can access it at:
@@ -255,7 +265,7 @@ sudo apt install -y git python3.11 python3-pip python3.11-venv mediainfo rsync
 python3.11 -m venv venv
 source venv/bin/activate
 
-# Install Python packages
+# Install Python packages (psycopg / psycopg-pool are used only with DB_ENGINE = "postgres")
 pip install --no-cache-dir -r requirements.txt
 ```
 
@@ -376,9 +386,14 @@ YOUTUBE_COOKIE_URL_1 = "https://your-domain.com/cookies/youtube/cookie2.txt"
 YOUTUBE_COOKIE_URL_2 = "https://your-domain.com/cookies/youtube/cookie3.txt"
 # ... up to YOUTUBE_COOKIE_URL_9 
 
-# Firebase Configuration
-USE_FIREBASE = True
+# Database (see "Database Setup" below and docs/DATABASE.md)
+USE_FIREBASE = False          # True = Google Firebase Realtime Database
+DB_ENGINE = "sqlite"          # used when USE_FIREBASE = False: "sqlite" | "postgres" | "json"
+SQLITE_DB_PATH = "DATABASE/data/tgytdlp.sqlite3"
+# PostgreSQL: POSTGRES_HOST / PORT / DB / USER / PASSWORD, POSTGRES_SSLMODE = "verify-full",
+# POSTGRES_SSLROOTCERT / SSLCERT / SSLKEY, POSTGRES_DSN, POSTGRES_POOL_MAX
 
+# Firebase (only needed with USE_FIREBASE = True)
 FIREBASE_USER = "your-email@gmail.com"
 FIREBASE_PASSWORD = "your-firebase-password"
 FIREBASE_CONF = {
@@ -396,6 +411,21 @@ FIREBASE_CONF = {
 #### Proxy Support
 
 For proxy configuration details, see the [Proxy Support](#-proxy-support) section in Advanced Features.
+
+#### Per-task WARP
+
+Every user task (download, format list, cookie check, `/img`, `/link`, `/list`...) gets its own Cloudflare WARP tunnel (userspace `wireproxy`) with a fresh IPv6, started on its first external request and stopped when the task ends; the bot itself (Telegram, database) stays on the direct connection. YouTube "Sign in to confirm you're not a bot" no longer requires rotating a shared IP: the next task simply gets a new one.
+
+```python
+WARP_PER_TASK = True
+WARP_WIREPROXY_BIN = "/usr/local/bin/wireproxy"
+WARP_PROFILES_DIR = "CONFIG/warp"        # WARP account(s), created by the setup script
+WARP_ENDPOINT = "162.159.192.1:2408"
+WARP_PROXY_HOST = "127.0.0.1"            # "172.17.0.1" if the bgutil container runs on Docker next to a systemd bot
+WARP_MAX_TUNNELS = 40
+```
+
+Manual install: `sudo scripts/warp/setup_warp_per_task.sh --bot-dir "$PWD"` (add `--direct-route` if the server also runs a system-wide `wg-quick@wgcf`, e.g. as a VPN exit). Docker: see Step 3 of the Docker deployment. Full description: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
 
 #### PO Token Provider (YouTube Bypass)
 
@@ -467,7 +497,24 @@ CHANNEL_GUARD_SESSION_STRING = "your_session_string_here"
 3. Group IDs start with `-100` (supergroups) or negative numbers (regular groups)
 4. Add group IDs to `ADMIN_GROUP` (groups that bypass all limits) or `ALLOWED_GROUP` (groups with increased limits) in config.py
 
-### Firebase Setup
+### Database Setup
+
+The bot keeps users, settings, logs and the video cache in one tree-shaped database. Choose the engine in `CONFIG/config.py`:
+
+- **SQLite (default)** – `USE_FIREBASE = False`, `DB_ENGINE = "sqlite"`. Nothing to set up: the file `DATABASE/data/tgytdlp.sqlite3` is created on first start.
+- **PostgreSQL** – `DB_ENGINE = "postgres"`, on the same server or on another VM. Remote connections are encrypted and verified (`POSTGRES_SSLMODE = "verify-full"`, SCRAM passwords, optional client certificates); `scripts/db/setup_postgres_server.sh` prepares such a server, so several bots can share one database.
+- **Google Firebase** – `USE_FIREBASE = True` (the previous default).
+
+Move data between engines (any to any, `--verify` compares the result with the source):
+
+```bash
+python scripts/db_migrate.py --from firebase --to sqlite --verify
+python scripts/db_migrate.py --from sqlite --to postgres --verify
+```
+
+Local engines have no dump-download limits and need no periodic cache reload. Details, backups and remote PostgreSQL: [docs/DATABASE.md](docs/DATABASE.md).
+
+#### Optional: Firebase
 
 For detailed Firebase setup instructions, see the [Firebase Setup for Telegram Bot](#firebase-setup-for-telegram-bot) section below.
 
@@ -563,8 +610,10 @@ If you need to support extra languages such as arabic, chinese, japanese, korean
 
 `CONFIG/limits.py` is the single place where all runtime limits for the bot are configured. Before deploying, review this file and tune values for your hardware and hosting:
 
-- **Downloads & subtitles:** `MAX_FILE_SIZE_GB`, `MAX_VIDEO_DURATION`, and `MAX_SUB_*` prevent extremely large videos/subtitles from entering the queue. In groups, `GROUP_MULTIPLIER` is applied automatically.
-- **Multiple URLs:** `MAX_MULTI_URL_LIMIT` (default: 10) controls how many URLs can be sent in one message when quality format is set. In groups, this is multiplied by `GROUP_MULTIPLIER` (default: 20). Admins have no limit.
+- **Downloads & subtitles:** `MAX_FILE_SIZE_GB`, `MAX_VIDEO_DURATION`, and `MAX_SUB_*` prevent extremely large videos/subtitles from entering the queue. In groups, the max file size is multiplied by `GROUP_MULTIPLIER` (default: 2).
+- **Multiple URLs:** `MAX_MULTI_URL_LIMIT` (default: 10) controls how many URLs can be sent in one message when quality format is set. In groups, this is multiplied by `GROUP_COUNT_MULTIPLIER` (default: 10, i.e. 100 URLs). Admins have no limit.
+- **Per-request counts:** `MAX_PLAYLIST_COUNT` (default: 10 playlist items), `MAX_TIKTOK_COUNT` (default: 100 TikTok/Instagram items) and `MAX_IMG_FILES` (default: 250 images per `/img` request). In groups they are multiplied by `GROUP_COUNT_MULTIPLIER` (10).
+- **Daily quotas:** `DAILY_VIDEO_LIMIT` (default: 100 videos/audio) and `DAILY_IMAGE_LIMIT` (default: 250 images) per user and calendar day; only successfully delivered items count (`DAILY_QUOTA_COUNT_CACHED = True` also counts reposts from the cache). Counters are stored in `CONFIG/.daily_quota.json` (a restart keeps them) and reset at 00:00 server time. A user who reaches a quota gets a message with the time left on every new attempt. Admins and groups are exempt; `0` disables a quota.
 - **Images & live streams:** `MAX_IMG_*`, `ENABLE_LIVE_STREAM_BLOCKING`, and `MAX_LIVE_STREAM_DURATION` protect you from endless album/live-stream downloads. On slow connections, increase `MAX_IMG_TOTAL_WAIT_TIME`.
 - **Cookie cache:** `COOKIE_CACHE_DURATION`, `COOKIE_CACHE_MAX_LIFETIME`, and `YOUTUBE_COOKIE_RETRY_LIMIT_PER_HOUR` control how aggressively YouTube cookies are reused and how many retry attempts a single user gets per hour.
 - **Rate limits:** `RATE_LIMIT_PER_MINUTE|HOUR|DAY` and the corresponding `RATE_LIMIT_COOLDOWN_*` values implement anti‑spam. When a user exceeds limits, they are put on cooldown for 5/60/1440 minutes.
@@ -587,7 +636,7 @@ ADMIN_USERNAME = "@"  # Admin username (e.g., "@" or "@your_username")
 # List of admin group IDs (groups that bypass all limits)
 ADMIN_GROUP = [-1001234567890, -1001234567891]  # Admin group IDs
 
-# List of allowed groups (groups with increased limits via GROUP_MULTIPLIER)
+# List of allowed groups (groups with increased limits via GROUP_COUNT_MULTIPLIER / GROUP_MULTIPLIER)
 ALLOWED_GROUP = [-1001234567890, -1001234567891]  # Allowed group IDs
 ```
 
@@ -616,20 +665,22 @@ class LimitsConfig(object):
 
 - **Admin Groups** (groups in `ADMIN_GROUP` list):
   - ✅ All the same benefits as individual admins
-  - ✅ No `GROUP_MULTIPLIER` applied (limits are completely disabled)
+  - ✅ No group multipliers applied (limits are completely disabled)
+  - ✅ No daily quotas
   - ✅ Subscription check bypassed
 
 **When `TURN_OFF_LIMITS_FOR_ADMINS = False`:**
 
 - Admins and admin groups are subject to the same limits as regular users
-- `GROUP_MULTIPLIER` applies to admin groups (same as `ALLOWED_GROUP`)
+- Group multipliers apply to admin groups (same as `ALLOWED_GROUP`)
 
 **Admin Groups vs Allowed Groups:**
 
 - **`ADMIN_GROUP`**: Groups that bypass **all limits** when `TURN_OFF_LIMITS_FOR_ADMINS = True`
-- **`ALLOWED_GROUP`**: Groups with **increased limits** via `GROUP_MULTIPLIER` (default: 2x)
+- **`ALLOWED_GROUP`**: Groups with **increased limits**
   - NSFW content is free in groups (always)
-  - Limits are multiplied by `GROUP_MULTIPLIER`
+  - Item counts (URLs per message, playlist, TikTok, images) are multiplied by `GROUP_COUNT_MULTIPLIER` (default: 10x), the max file size by `GROUP_MULTIPLIER` (default: 2x)
+  - Daily quotas do not apply
   - Subscription check bypassed
 
 **Note:** If a group is listed in both `ADMIN_GROUP` and `ALLOWED_GROUP`, `ADMIN_GROUP` takes priority (all limits disabled).
@@ -657,13 +708,14 @@ ALLOWED_GROUP = [-1001234567891]  # Regular allowed group ID
 
 # CONFIG/limits.py
 TURN_OFF_LIMITS_FOR_ADMINS = True  # Enable unlimited access for admins
-GROUP_MULTIPLIER = 2  # 2x limits for ALLOWED_GROUP
+GROUP_COUNT_MULTIPLIER = 10  # 10x item counts for ALLOWED_GROUP
+GROUP_MULTIPLIER = 2  # 2x max file size for ALLOWED_GROUP
 ```
 
 **Result:**
 - User `123456789` has no limits
 - Group `-1001234567890` has no limits
-- Group `-1001234567891` has 2x limits (via `GROUP_MULTIPLIER`)
+- Group `-1001234567891` has 10x item counts and 2x max file size, no daily quotas
 
 ---
 
@@ -685,7 +737,7 @@ GROUP_MULTIPLIER = 2  # 2x limits for ALLOWED_GROUP
 | Command | Description | Example |
 |---------|-------------|---------|
 | **Video URL** | Download video (auto-detect) | `https://youtube.com/watch?v=...` |
-| **Multiple URLs** | Download multiple videos in queue (quality mode only) | Send up to 10 URLs (20 in groups) in one message |
+| **Multiple URLs** | Download multiple videos in queue (quality mode only) | Send up to 10 URLs (100 in groups) in one message |
 | `/vid` | Download video | `/vid https://youtube.com/watch?v=...` |
 | `/audio` | Download audio only | `/audio https://youtube.com/watch?v=...` |
 | `/link` | Get direct video links | `/link 720 https://youtube.com/watch?v=...` |
@@ -918,10 +970,10 @@ CONFIG/LANGUAGES/
 Download multiple videos in one message when quality format is set:
 
 - **Quality Mode Required**: Works only when you've set a quality format via `/format` command (not in "Always Ask" mode)
-- **Queue Processing**: URLs are processed sequentially with real-time progress updates
+- **Queue Processing**: URLs are processed sequentially with real-time progress updates; multi-URL messages get the lowest priority in the download queue
 - **Limits**: 
   - Private chats: up to **10 URLs** per message
-  - Groups: up to **20 URLs** per message (2x multiplier)
+  - Groups: up to **100 URLs** per message (`GROUP_COUNT_MULTIPLIER`, 10x)
   - Admins: unlimited URLs
 - **Format**: Each URL on a new line or separated by spaces
 - **Status Display**: Shows progress like playlist downloads: "URL: X / Y"
@@ -1385,14 +1437,14 @@ Smart rate limiting and flood wait handling:
 - **Adding the bot to a group**: Add the bot as an admin to your group/supergroup to use commands inside the chat.
   - **Group Types:**
     - **ADMIN_GROUP**: Groups listed in `ADMIN_GROUP` bypass all limits (when `TURN_OFF_LIMITS_FOR_ADMINS = True` in `CONFIG/limits.py`)
-    - **ALLOWED_GROUP**: Groups listed in `ALLOWED_GROUP` have increased limits via `GROUP_MULTIPLIER` (default: 2x)
-    - **Regular groups**: Limits are multiplied by `GROUP_MULTIPLIER` (default: 2x), reducing fallbacks to document mode for large files
+    - **ALLOWED_GROUP**: Groups listed in `ALLOWED_GROUP` have increased limits: item counts x`GROUP_COUNT_MULTIPLIER` (default: 10x), max file size x`GROUP_MULTIPLIER` (default: 2x), no daily quotas
+    - **Regular groups**: the same multipliers apply, reducing fallbacks to document mode for large files
   - All other features (formats, proxy, cookies, direct links) work the same as in private chats.
   - NSFW content has no Telegram Stars cost in groups (always free in groups)
 
 **Configuration:**
 - Add group IDs to `ADMIN_GROUP` or `ALLOWED_GROUP` in `CONFIG/config.py` (see [Getting API Credentials](#getting-api-credentials) section for how to get group IDs)
-- Configure `GROUP_MULTIPLIER` and `TURN_OFF_LIMITS_FOR_ADMINS` in `CONFIG/limits.py` (see [Admin Limits Configuration](#-admin-limits-configuration) section)
+- Configure `GROUP_COUNT_MULTIPLIER`, `GROUP_MULTIPLIER` and `TURN_OFF_LIMITS_FOR_ADMINS` in `CONFIG/limits.py` (see [Admin Limits Configuration](#-admin-limits-configuration) section)
 
 Note: You can tune exact limit values and behavior in `CONFIG/limits.py` and `CONFIG/config.py` according to your hosting and needs.
 
@@ -1419,7 +1471,7 @@ Note: You can tune exact limit values and behavior in `CONFIG/limits.py` and `CO
 | `/run_time` | Show bot runtime | `/run_time` |
 | `/log` | Get user logs | `/log 123456789` |
 | `/broadcast` | Broadcast message | `/broadcast` (reply to message) |
-| `/reload_cache` | Reload Firebase cache | `/reload_cache` |
+| `/reload_cache` | Reload the Firebase cache (with a local database it only confirms that data is always current) | `/reload_cache` |
 | `/auto_cache` | Control auto cache | `/auto_cache 24` |
 
 ### Content Management
@@ -1447,7 +1499,7 @@ Note: You can tune exact limit values and behavior in `CONFIG/limits.py` and `CO
 
 ## Auto cache – how it works (on/off/N)
 
-The bot maintains a local JSON cache (dump) of Firebase data. A background reloader can periodically refresh this cache by first downloading a fresh dump and then reloading it into memory.
+This applies only to `USE_FIREBASE = True` (with SQLite/PostgreSQL the bot reads the database directly, there is no dump and no reload). The bot maintains a local JSON cache (dump) of Firebase data. A background reloader can periodically refresh this cache by first downloading a fresh dump and then reloading it into memory.
 
 - Refresh cycle:
   - Download dump via REST (`download_firebase.py` logic)
@@ -1535,6 +1587,7 @@ You can update code from the `newdesign2` branch (or `main` branch) of `chelaxia
 - ❌ `script.sh` - your custom update script for porn lists.
 - ❌ `TXT/` directory - your cookie files and lists
 - ❌ `users/`, `cookies/`, `_backup/` directories
+- ❌ `DATABASE/data/` (SQLite database), `CONFIG/db/` (PostgreSQL TLS certificates), `CONFIG/warp/` and `.warp-run/` (per-task WARP accounts and tunnels)
 - ❌ Session files, logs, and runtime data
 
 ### Updating Local Installation (without Docker)
@@ -1781,6 +1834,8 @@ For example, add the following line to your crontab:
 
 ## Firebase Setup for Telegram Bot
 
+> Only needed with `USE_FIREBASE = True`. By default the bot uses a local SQLite database — see [Database Setup](#database-setup).
+
 This section describes how to create a Firebase project, set up the Realtime Database with authentication, create a test user, and integrate Firebase into your Telegram bot.
 
 ### 1. Create a Firebase Project
@@ -1823,11 +1878,13 @@ These rules allow read and write operations only if the request contains a valid
 
 ### 5. Autostart service
 
-To create auto-start service for this bot - copy text from this file https://github.com/chelaxian/tg-ytdlp-bot/blob/main/etc/systemd/system/tg-ytdlp-bot.service and paste it to 
+To create auto-start service for this bot - copy text from this file https://github.com/chelaxian/tg-ytdlp-bot/blob/main/_etc/systemd/system/tg-ytdlp-bot.service and paste it to 
 ```bash
 /etc/systemd/system/tg-ytdlp-bot.service
 ```
-do not forget to change path in service to yoyr actual path
+do not forget to change path in service to your actual path
+
+The unit uses `WatchdogSec=180` (the bot notifies systemd every 30 s only while its event loop responds, so a frozen bot is restarted automatically) and `TimeoutStopSec=35` for a clean shutdown. After updating the bot, copy the unit again and run `systemctl daemon-reload`.
 
 reload systemctl and enable/start service
 ```bash
@@ -1891,7 +1948,7 @@ Notes:
 1. Check all required fields in `config.py`
 2. Verify API credentials are correct
 3. Ensure channels are set up and bot has admin permissions
-4. Check Firebase configuration and credentials
+4. Check the database settings (`USE_FIREBASE` / `DB_ENGINE`, PostgreSQL connection and certificates, or Firebase credentials)
 5. Verify Python version (3.11+ required)
 
 #### Cookie Download Fails
@@ -1916,11 +1973,16 @@ Notes:
 4. Verify yt-dlp is properly installed and up to date
 5. Try PO Token Provider setup for bypass
 
-#### Firebase Connection Errors
+#### Database Connection Errors
 
-**Symptoms:** Firebase authentication or database errors
+**Symptoms:** the bot cannot open its database or Firebase authentication fails
 
-**Solutions:**
+**Solutions (SQLite / PostgreSQL):**
+1. SQLite: the bot needs write access to `DATABASE/data/`
+2. PostgreSQL: check `POSTGRES_HOST/PORT/DB/USER/PASSWORD`, `POSTGRES_SSLMODE` and the certificate paths (`POSTGRES_SSLROOTCERT`, optional `SSLCERT/SSLKEY`); test the connection with `psql` and `sslmode=verify-full`
+3. See [docs/DATABASE.md](docs/DATABASE.md)
+
+**Solutions (Firebase):**
 1. Verify Firebase project is set up correctly
 2. Check authentication credentials
 3. Ensure Realtime Database rules allow read/write access
@@ -2033,7 +2095,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Statistics dashboard (port 5555)
 
-We provide a separate FastAPI service with a multi-tab UI and REST API that shows key bot metrics in real time without constantly hitting Firebase.
+We provide a separate FastAPI service with a multi-tab UI and REST API that shows key bot metrics in real time without constantly hitting the database.
 
 ### How to run
 
@@ -2056,7 +2118,7 @@ On each tab with long lists, the top‑10 items are displayed with a “Show all
 
 ### Where the data comes from
 
-- The base snapshot is read from local `dump.json`, which is already refreshed by `DATABASE/download_firebase.py`.
+- The base snapshot is read from the database: directly from SQLite/PostgreSQL, or (with Firebase) from the local `dump.json` refreshed by `DATABASE/download_firebase.py`.
 - Hooks in `DATABASE/firebase_init.py` and `HELPERS/logger.py`, plus the `StatsAwareDBAdapter` proxy, intercept all DB writes and update the in‑memory cache without extra REST calls.
 - User information is enriched via Telegram Bot API (`getChat`) with a local cache, and instant data is taken directly from incoming `message` objects.
 
@@ -2073,9 +2135,9 @@ The UI uses simple JSON endpoints (`/api/active-users`, `/api/top-downloaders`, 
    - The **Active Users** tab shows live sessions; the ❌ button instantly blocks a user.  
    - **Top Downloads / Domains** helps you spot abuse patterns.  
    - **Channel Events / Blocked Users** lets you manage subscriptions and the ban‑list without touching the database directly.
-5. **Debugging.** If the dashboard stops responding, check `journalctl -u tg-ytdlp-dashboard -f` (or Docker logs) and verify that `DATABASE/download_firebase.py` is still updating `dump.json`.
+5. **Debugging.** If the dashboard stops responding, check `journalctl -u tg-ytdlp-dashboard -f` (or Docker logs) and, with Firebase, verify that `DATABASE/download_firebase.py` is still updating `dump.json`.
 
-Add a dedicated systemd unit (see `etc/systemd/system/tg-ytdlp-bot.service` as a reference) or a Docker healthcheck so the dashboard is automatically restarted after host or container restarts.
+Add a dedicated systemd unit (see `_etc/systemd/system/tg-ytdlp-dashboard.service`) or a Docker healthcheck so the dashboard is automatically restarted after host or container restarts.
 
 ---
 

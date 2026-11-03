@@ -30,6 +30,24 @@ echo "[+] Starting WireGuard"
 wg-quick up wgcf
 echo "[+] WireGuard is up"
 
+# WARP_DIRECT_BOT=1 (with WARP_PER_TASK in the bot): packets of root processes in
+# this network namespace (the bot shares it) get WARP's own fwmark, so wg-quick's
+# "not fwmark ... lookup 51820" rule sends them to the main table, i.e. directly
+# out of the container. Their source address is picked from the WARP route
+# before the mark is set, hence the masquerade.
+if [ "${WARP_DIRECT_BOT:-0}" = "1" ]; then
+  MARK=$(wg show wgcf fwmark 2>/dev/null || true)
+  case "$MARK" in ""|off) MARK=0xca6c ;; esac
+  ADDR=$(ip -4 -o addr show dev wgcf | awk '{split($4, a, "/"); print a[1]}')
+  for t in iptables ip6tables; do
+    $t -t mangle -C OUTPUT -m owner --uid-owner 0 -j MARK --set-mark "$MARK" 2>/dev/null \
+      || $t -t mangle -A OUTPUT -m owner --uid-owner 0 -j MARK --set-mark "$MARK"
+  done
+  iptables -t nat -C POSTROUTING -s "$ADDR" ! -o wgcf -m mark --mark "$MARK" -j MASQUERADE 2>/dev/null \
+    || iptables -t nat -A POSTROUTING -s "$ADDR" ! -o wgcf -m mark --mark "$MARK" -j MASQUERADE
+  echo "[+] Direct route for the bot (fwmark $MARK, masquerade $ADDR)"
+fi
+
 # Wait for WireGuard to fully initialize
 sleep 3
 

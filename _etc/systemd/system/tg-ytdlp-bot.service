@@ -32,7 +32,7 @@ NotifyAccess=main
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=full
-ProtectHome=true
+# no ProtectHome: the bot usually lives under /root (see the example above)
 
 # Resource limits to prevent hanging
 LimitNOFILE=65535
