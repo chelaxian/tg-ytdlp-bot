@@ -32,6 +32,7 @@ from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
 from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
+from HELPERS import daily_quota
 import subprocess
 from urllib.parse import urlparse
 from PIL import Image
@@ -596,6 +597,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 if thread_id:
                                     forward_kwargs['message_thread_id'] = thread_id
                             app.forward_messages(**forward_kwargs)
+                            daily_quota.record(message, daily_quota.VIDEO, cached=True)
                         except Exception as e:
                             logger.error(f"down_and_audio: error reposting cached audio index={index}: {e}")
             else:
@@ -678,6 +680,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         if thread_id:
                             forward_kwargs['message_thread_id'] = thread_id
                     app.forward_messages(**forward_kwargs)
+                    daily_quota.record(message, daily_quota.VIDEO, cached=True)
                     app.send_message(user_id, safe_get_messages(user_id).AUDIO_SENT_FROM_CACHE_MSG, reply_parameters=ReplyParameters(message_id=message.id))
                     send_to_logger(message, LoggerMsg.AUDIO_SENT_FROM_CACHE.format(quality=quality_key, user_id=user_id))
                     return
@@ -2302,6 +2305,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         range_entries_metadata = None
         current_playlist_items_override = None
         for idx, current_index in enumerate(indices_to_download):
+            if daily_quota.remaining(message, daily_quota.VIDEO) == 0:
+                daily_quota.deny_if_exhausted(message, daily_quota.VIDEO)
+                break
             original_playlist_index = current_index
             playlist_item_index = current_index if is_playlist else current_index + video_start_with
             messages = safe_get_messages(message.chat.id)
@@ -2976,6 +2982,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 if audio_msg and getattr(audio_msg, 'id', None):
                     _delivery_confirmed = True
+                    daily_quota.record(message, daily_quota.VIDEO)
                 else:
                     _request_failed = True
                     raise RuntimeError("[audio_upload] Telegram returned no message")

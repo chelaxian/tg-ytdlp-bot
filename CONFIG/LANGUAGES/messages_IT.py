@@ -226,11 +226,11 @@ Aggiungi i miei bot ai tuoi gruppi per ottenere funzionalità avanzate e limiti 
 • Dimensione max 1 file: <b>8 GB </b>
 • Qualità max 1 file: <b>ILLIMITATA</b>
 • Durata max 1 file: <b>ILLIMITATA</b>
-• Numero max di download: <b>ILLIMITATO</b>
+• Numero max di download: <b>100 video + 250 immagini al giorno</b>
 • Max URL in un messaggio: <b>10</b> (solo in modalità selezione qualità)
-• Max elementi playlist per 1 volta: <b>50</b>
-• Max video TikTok per 1 volta: <b>500</b>
-• Max immagini per 1 volta: <b>1000</b>
+• Max elementi playlist per 1 volta: <b>10</b>
+• Max video TikTok per 1 volta: <b>100</b>
+• Max immagini per 1 volta: <b>250</b>
 • Limiti rate URL: <b>5/min, 60/ora, 1000/giorno</b>
 • Limite comandi: <b>20/min</b>
 • 1 Download tempo max: <b>2 ore</b>
@@ -244,16 +244,17 @@ Aggiungi i miei bot ai tuoi gruppi per ottenere funzionalità avanzate e limiti 
 • Dimensione max file video+sottotitoli: <b>500 MB</b>
 • Qualità max video+sottotitoli: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Vantaggi Gruppo a Pagamento (2️⃣x Limiti):</b>
+🚀 <b>Vantaggi Gruppo a Pagamento (🔟x Limiti):</b>
 <blockquote>•  🗂 Vault media strutturato ordinato per argomenti 👍
 •  📁 I bot rispondono nell'argomento in cui li chiami
 •  📌 Auto pin messaggio di stato con progresso download
 •  🖼 Il comando /img scarica i media come album da 10 elementi
 • Dimensione max 1 file: <b>16 GB</b> ⬆️
-• Max URL in un messaggio: <b>20</b> ⬆️ (solo in modalità selezione qualità)
+• Max URL in un messaggio: <b>100</b> ⬆️ (solo in modalità selezione qualità)
 • Max elementi playlist per 1 volta: <b>100</b> ⬆️
 • Max video TikTok per 1 volta: 1000 ⬆️
-• Max immagini per 1 volta: 2000 ⬆️
+• Max immagini per 1 volta: 2500 ⬆️
+• Numero max di download: <b>ILLIMITATO</b> ⬆️
 • Limiti rate URL: <b>10/min, 120/ora, 2000/giorno</b> ⬆️
 • Limite comandi: <b>40/min</b> ⬆️
 • 1 Download tempo max: <b>4 ore</b> ⬆️
@@ -273,7 +274,7 @@ Aggiungi i miei bot ai tuoi gruppi per ottenere funzionalità avanzate e limiti 
 • Pagamento: 💎TON o altri metodi💲
 • Supporto: Supporto tecnico completo incluso</blockquote>
 ————————————
-Puoi aggiungere i miei bot al tuo gruppo per sbloccare gratuitamente 🔞<b>NSFW</b> e raddoppiare (x2️⃣) tutti i limiti.
+Puoi aggiungere i miei bot al tuo gruppo per sbloccare gratuitamente 🔞<b>NSFW</b> e moltiplicare per 10 (x🔟) tutti i limiti.
 Contattami se vuoi che permetta al tuo gruppo di usare i miei bot @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>SUGGERIMENTO:</b> <blockquote>Puoi mettere insieme i soldi con qualsiasi numero di tuoi amici (ad esempio 100 persone) e fare 1 acquisto per tutto il gruppo - TUTTI I MEMBRI DEL GRUPPO AVRANNO ACCESSO ILLIMITATO COMPLETO a tutte le funzioni dei bot in quel gruppo per soli <b>$0.05</b></blockquote>

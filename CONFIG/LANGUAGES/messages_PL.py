@@ -227,11 +227,11 @@ Dodaj moje boty do swoich grup, aby uzyskać ulepszone funkcje i wyższe limity!
 • Maksymalny rozmiar 1 pliku: <b>8 GB </b>
 • Maksymalna jakość 1 pliku: <b>NIELIMITOWANA</b>
 • Maksymalny czas trwania 1 pliku: <b>NIELIMITOWANY</b>
-• Maksymalna liczba pobrań: <b>NIELIMITOWANA</b>
+• Maksymalna liczba pobrań: <b>100 filmów + 250 obrazów dziennie</b>
 • Maksymalna liczba URL w jednej wiadomości: <b>10</b> (tylko w trybie wyboru jakości)
-• Maksymalna liczba elementów playlisty na 1 raz: <b>50</b>
-• Maksymalna liczba filmów TikTok na 1 raz: <b>500</b>
-• Maksymalna liczba obrazów na 1 raz: <b>1000</b>
+• Maksymalna liczba elementów playlisty na 1 raz: <b>10</b>
+• Maksymalna liczba filmów TikTok na 1 raz: <b>100</b>
+• Maksymalna liczba obrazów na 1 raz: <b>250</b>
 • Limity szybkości URL: <b>5/min, 60/godz, 1000/dzień</b>
 • Limit poleceń: <b>20/min</b>
 • Maksymalny czas 1 pobrania: <b>2 godziny</b>
@@ -245,16 +245,17 @@ Dodaj moje boty do swoich grup, aby uzyskać ulepszone funkcje i wyższe limity!
 • Maksymalny rozmiar pliku wideo+napisy: <b>500 MB</b>
 • Maksymalna jakość wideo+napisy: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Korzyści Płatnej Grupy (2️⃣x Limity):</b>
+🚀 <b>Korzyści Płatnej Grupy (🔟x Limity):</b>
 <blockquote>•  🗂 Uporządkowane schowki mediów posortowane według tematów 👍
 •  📁 Boty odpowiadają w temacie, w którym je wywołasz
 •  📌 Automatyczne przypięcie wiadomości statusu z postępem pobierania
 •  🖼 Polecenie /img pobiera media jako albumy 10-elementowe
 • Maksymalny rozmiar 1 pliku: <b>16 GB</b> ⬆️
-• Maksymalna liczba URL w jednej wiadomości: <b>20</b> ⬆️ (tylko w trybie wyboru jakości)
+• Maksymalna liczba URL w jednej wiadomości: <b>100</b> ⬆️ (tylko w trybie wyboru jakości)
 • Maksymalna liczba elementów playlisty na 1 raz: <b>100</b> ⬆️
 • Maksymalna liczba filmów TikTok na 1 raz: 1000 ⬆️
-• Maksymalna liczba obrazów na 1 raz: 2000 ⬆️
+• Maksymalna liczba obrazów na 1 raz: 2500 ⬆️
+• Maksymalna liczba pobrań: <b>NIELIMITOWANA</b> ⬆️
 • Limity szybkości URL: <b>10/min, 120/godz, 2000/dzień</b> ⬆️
 • Limit poleceń: <b>40/min</b> ⬆️
 • Maksymalny czas 1 pobrania: <b>4 godziny</b> ⬆️
@@ -274,7 +275,7 @@ Dodaj moje boty do swoich grup, aby uzyskać ulepszone funkcje i wyższe limity!
 • Płatność: 💎TON lub inne metody💲
 • Wsparcie: Pełne wsparcie techniczne wliczone</blockquote>
 ————————————
-Możesz dodać moje boty do swojej grupy, aby odblokować darmowe 🔞<b>NSFW</b> i podwoić (x2️⃣) wszystkie limity.
+Możesz dodać moje boty do swojej grupy, aby odblokować darmowe 🔞<b>NSFW</b> i zwiększyć 10-krotnie (x🔟) wszystkie limity.
 Skontaktuj się ze mną, jeśli chcesz, abym zezwolił twojej grupie na używanie moich botów @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>WSKAZÓWKA:</b> <blockquote>Możesz złożyć się z dowolną liczbą przyjaciół (na przykład 100 osób) i zrobić 1 zakup dla całej grupy - WSZYSCY CZŁONKOWIE GRUPY BĘDĄ MIEĆ PEŁNY NIELIMITOWANY DOSTĘP do wszystkich funkcji botów w tej grupie za tylko <b>0.05$</b></blockquote>

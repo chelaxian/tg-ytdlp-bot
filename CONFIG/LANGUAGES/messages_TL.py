@@ -227,11 +227,11 @@ Magdagdag ng aking mga bot sa inyong mga grupo upang makakuha ng mas mahusay na 
 • Max 1 file size: <b>8 GB </b>
 • Max 1 file quality: <b>WALANG LIMIT</b>
 • Max 1 file duration: <b>WALANG LIMIT</b>
-• Max number ng downloads: <b>WALANG LIMIT</b>
+• Max number ng downloads: <b>100 video + 250 larawan bawat araw</b>
 • Max URLs sa isang mensahe: <b>10</b> (lamang sa quality selection mode)
-• Max playlist items bawat 1 beses: <b>50</b>
-• Max TikTok videos bawat 1 beses: <b>500</b>
-• Max images bawat 1 beses: <b>1000</b>
+• Max playlist items bawat 1 beses: <b>10</b>
+• Max TikTok videos bawat 1 beses: <b>100</b>
+• Max images bawat 1 beses: <b>250</b>
 • URL rate limits: <b>5/min, 60/hour, 1000/day</b>
 • Command limit: <b>20/min</b>
 • 1 Download max time: <b>2 oras</b>
@@ -245,16 +245,17 @@ Magdagdag ng aking mga bot sa inyong mga grupo upang makakuha ng mas mahusay na 
 • Max video+subs file size: <b>500 MB</b>
 • Max video+subs quality: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Mga Benepisyo ng Bayad na Grupo (2️⃣x Limits):</b>
+🚀 <b>Mga Benepisyo ng Bayad na Grupo (🔟x Limits):</b>
 <blockquote>•  🗂 Maayos na structured media vault na naka-sort ayon sa topics 👍
 •  📁 Ang mga bot ay tumutugon sa topic kung saan mo sila tinawag
 •  📌 Auto pin status message na may download progress
 •  🖼 Ang /img command ay nagda-download ng media bilang 10-item albums
 • Max 1 file size: <b>16 GB</b> ⬆️
-• Max URLs sa isang mensahe: <b>20</b> ⬆️ (lamang sa quality selection mode)
+• Max URLs sa isang mensahe: <b>100</b> ⬆️ (lamang sa quality selection mode)
 • Max playlist items bawat 1 beses: <b>100</b> ⬆️
 • Max TikTok videos bawat 1 beses: 1000 ⬆️
-• Max images bawat 1 beses: 2000 ⬆️
+• Max images bawat 1 beses: 2500 ⬆️
+• Max number ng downloads: <b>WALANG LIMIT</b> ⬆️
 • URL rate limits: <b>10/min, 120/hour, 2000/day</b> ⬆️
 • Command limit: <b>40/min</b> ⬆️
 • 1 Download max time: <b>4 oras</b> ⬆️
@@ -274,7 +275,7 @@ Magdagdag ng aking mga bot sa inyong mga grupo upang makakuha ng mas mahusay na 
 • Pagbabayad: 💎TON o iba pang paraan💲
 • Suporta: Kasama ang full technical support</blockquote>
 ————————————
-Maaari mong idagdag ang aking mga bot sa inyong grupo upang i-unblock ang libreng 🔞<b>NSFW</b> at i-double (x2️⃣) ang lahat ng limits.
+Maaari mong idagdag ang aking mga bot sa inyong grupo upang i-unblock ang libreng 🔞<b>NSFW</b> at i-multiply nang 10 (x🔟) ang lahat ng limits.
 Makipag-ugnayan sa akin kung nais mong payagan ko ang inyong grupo na gamitin ang aking mga bot @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>TIP:</b> <blockquote>Maaari kayong mag-ambag ng pera kasama ang anumang dami ng inyong mga kaibigan (halimbawa 100 tao) at gumawa ng 1 purchase para sa buong grupo - LAHAT NG MIYEMBRO NG GRUPO AY MAGKAKAROON NG FULL UNLIMITED ACCESS sa lahat ng bot functions sa grupo na iyon para lamang sa <b>$0.05</b></blockquote>

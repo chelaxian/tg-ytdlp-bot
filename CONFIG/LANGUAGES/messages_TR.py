@@ -226,11 +226,11 @@ Gelişmiş özellikler ve daha yüksek limitler için botlarımı gruplarınıza
 • Maks 1 dosya boyutu: <b>8 GB </b>
 • Maks 1 dosya kalitesi: <b>SINIRSIZ</b>
 • Maks 1 dosya süresi: <b>SINIRSIZ</b>
-• Maks indirme sayısı: <b>SINIRSIZ</b>
+• Maks indirme sayısı: <b>günde 100 video + 250 görsel</b>
 • Bir mesajda maks URL: <b>10</b> (yalnızca kalite seçim modunda)
-• 1 seferde maks çalma listesi öğesi: <b>50</b>
-• 1 seferde maks TikTok videosu: <b>500</b>
-• 1 seferde maks görsel: <b>1000</b>
+• 1 seferde maks çalma listesi öğesi: <b>10</b>
+• 1 seferde maks TikTok videosu: <b>100</b>
+• 1 seferde maks görsel: <b>250</b>
 • URL hız limitleri: <b>5/dak, 60/saat, 1000/gün</b>
 • Komut limiti: <b>20/dak</b>
 • 1 İndirme maks süre: <b>2 saat</b>
@@ -244,16 +244,17 @@ Gelişmiş özellikler ve daha yüksek limitler için botlarımı gruplarınıza
 • Maks video+altyazı dosya boyutu: <b>500 MB</b>
 • Maks video+altyazı kalitesi: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Ücretli Grup Avantajları (2️⃣x Limitler):</b>
+🚀 <b>Ücretli Grup Avantajları (🔟x Limitler):</b>
 <blockquote>•  🗂 Konulara göre sıralanmış yapılandırılmış düzenli medya kasası 👍
 •  📁 Botlar onları çağırdığınız konuda yanıt verir
 •  📌 İndirme ilerlemesiyle otomatik sabitleme durum mesajı
 •  🖼 /img komutu medyayı 10 öğeli albümler olarak indirir
 • Maks 1 dosya boyutu: <b>16 GB</b> ⬆️
-• Bir mesajda maks URL: <b>20</b> ⬆️ (yalnızca kalite seçim modunda)
+• Bir mesajda maks URL: <b>100</b> ⬆️ (yalnızca kalite seçim modunda)
 • 1 seferde maks çalma listesi öğesi: <b>100</b> ⬆️
 • 1 seferde maks TikTok videosu: 1000 ⬆️
-• 1 seferde maks görsel: 2000 ⬆️
+• 1 seferde maks görsel: 2500 ⬆️
+• Maks indirme sayısı: <b>SINIRSIZ</b> ⬆️
 • URL hız limitleri: <b>10/dak, 120/saat, 2000/gün</b> ⬆️
 • Komut limiti: <b>40/dak</b> ⬆️
 • 1 İndirme maks süre: <b>4 saat</b> ⬆️
@@ -273,7 +274,7 @@ Gelişmiş özellikler ve daha yüksek limitler için botlarımı gruplarınıza
 • Ödeme: 💎TON veya diğer yöntemler💲
 • Destek: Tam teknik destek dahil</blockquote>
 ————————————
-Ücretsiz 🔞<b>NSFW</b>'yi açmak ve tüm limitleri ikiye katlamak (x2️⃣) için botlarımı grubunuza ekleyebilirsiniz.
+Ücretsiz 🔞<b>NSFW</b>'yi açmak ve tüm limitleri 10 katına çıkarmak (x🔟) için botlarımı grubunuza ekleyebilirsiniz.
 Grubunuzun botlarımı kullanmasına izin vermemi istiyorsanız benimle iletişime geçin @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>İPUCU:</b> <blockquote>Arkadaşlarınızla herhangi bir miktarda para toplayabilirsiniz (örneğin 100 kişi) ve tüm grup için 1 satın alma yapabilirsiniz - TÜM GRUP ÜYELERİ O GRUPTAKİ TÜM BOT İŞLEVLERİNE TAM SINIRSIZ ERİŞİME SAHİP OLACAKTIR sadece <b>$0.05</b> karşılığında</blockquote>

@@ -226,11 +226,11 @@ Kengaytirilgan funksiyalar va yuqori chegaralarni olish uchun botlarimni guruhla
 • Maksimal 1 fayl hajmi: <b>8 GB</b>
 • Maksimal 1 fayl sifat: <b>CHEKSIZ</b>
 • Maksimal 1 fayl davomiyligi: <b>CHEKSIZ</b>
-• Maksimal yuklab olishlar soni: <b>CHEKSIZ</b>
+• Maksimal yuklab olishlar soni: <b>kuniga 100 video + 250 rasm</b>
 • Bir xabarda maksimal URL: <b>10</b> (faqat sifat tanlash rejimida)
-• 1 marta maksimal ro'yxat elementlari: <b>50</b>
-• 1 marta maksimal TikTok videolari: <b>500</b>
-• 1 marta maksimal rasmlar: <b>1000</b>
+• 1 marta maksimal ro'yxat elementlari: <b>10</b>
+• 1 marta maksimal TikTok videolari: <b>100</b>
+• 1 marta maksimal rasmlar: <b>250</b>
 • URL tezlik chegaralari: <b>5/min, 60/soat, 1000/kun</b>
 • Buyruq chegarasi: <b>20/min</b>
 • 1 Yuklab olish maksimal vaqti: <b>2 soat</b>
@@ -244,16 +244,17 @@ Kengaytirilgan funksiyalar va yuqori chegaralarni olish uchun botlarimni guruhla
 • Maksimal video+subs fayl hajmi: <b>500 MB</b>
 • Maksimal video+subs sifat: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Pullik guruh imtiyozlari (2️⃣x chegaralar):</b>
+🚀 <b>Pullik guruh imtiyozlari (🔟x chegaralar):</b>
 <blockquote>•  🗂 Mavzular bo'yicha tartiblangan tartibli media ombori 👍
 •  📁 Botlar siz chaqirgan mavzuda javob beradi
 •  📌 Yuklab olish jarayoni bilan avtomatik pin status xabari
 •  🖼 /img buyrug'i mediani 10 elementli albomlar sifatida yuklab oladi
 • Maksimal 1 fayl hajmi: <b>16 GB</b> ⬆️
-• Bir xabarda maksimal URL: <b>20</b> ⬆️ (faqat sifat tanlash rejimida)
+• Bir xabarda maksimal URL: <b>100</b> ⬆️ (faqat sifat tanlash rejimida)
 • 1 marta maksimal ro'yxat elementlari: <b>100</b> ⬆️
 • 1 marta maksimal TikTok videolari: 1000 ⬆️
-• 1 marta maksimal rasmlar: 2000 ⬆️
+• 1 marta maksimal rasmlar: 2500 ⬆️
+• Maksimal yuklab olishlar soni: <b>CHEKSIZ</b> ⬆️
 • URL tezlik chegaralari: <b>10/min, 120/soat, 2000/kun</b> ⬆️
 • Buyruq chegarasi: <b>40/min</b> ⬆️
 • 1 Yuklab olish maksimal vaqti: <b>4 soat</b> ⬆️
@@ -273,7 +274,7 @@ Kengaytirilgan funksiyalar va yuqori chegaralarni olish uchun botlarimni guruhla
 • To'lov: 💎TON yoki boshqa usullar💲
 • Yordam: To'liq texnik yordam kiritilgan</blockquote>
 ————————————
-Bepul 🔞<b>NSFW</b> blokini ochish va barcha chegaralarni ikki baravar (x2️⃣) qilish uchun botlarimni guruhingizga qo'shishingiz mumkin.
+Bepul 🔞<b>NSFW</b> blokini ochish va barcha chegaralarni 10 baravar (x🔟) qilish uchun botlarimni guruhingizga qo'shishingiz mumkin.
 Guruhingiz botlarimdan foydalanishga ruxsat berishni xohlasangiz, @iilililiiillliiliililliilliliiil bilan bog'laning
 ————————————
 💡<b>MASLAHAT:</b> <blockquote>Do'stlaringiz bilan har qanday miqdorda pul to'plashingiz mumkin (masalan, 100 kishi) va butun guruh uchun 1 xarid qiling - BARCHA GURUH A'ZOLARI shunchaki <b>0.05$</b> evaziga o'sha guruhdagi barcha bot funksiyalariga TO'LIQ CHEKSIZ KIRISH imkoniyatiga ega bo'ladi</blockquote>

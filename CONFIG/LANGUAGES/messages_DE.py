@@ -226,11 +226,11 @@ Fügen Sie meine Bots zu Ihren Gruppen hinzu, um erweiterte Funktionen und höhe
 • Max. 1 Dateigröße: <b>8 GB </b>
 • Max. 1 Dateiqualität: <b>UNLIM</b>
 • Max. 1 Dateidauer: <b>UNLIM</b>
-• Max. Anzahl Downloads: <b>UNLIM</b>
+• Max. Anzahl Downloads: <b>100 Videos + 250 Bilder pro Tag</b>
 • Max. URLs in einer Nachricht: <b>10</b> (nur im Qualitätsauswahlmodus)
-• Max. Wiedergabelisten-Items pro 1 Mal: <b>50</b>
-• Max. TikTok-Videos pro 1 Mal: <b>500</b>
-• Max. Bilder pro 1 Mal: <b>1000</b>
+• Max. Wiedergabelisten-Items pro 1 Mal: <b>10</b>
+• Max. TikTok-Videos pro 1 Mal: <b>100</b>
+• Max. Bilder pro 1 Mal: <b>250</b>
 • URL-Ratenlimits: <b>5/min, 60/Stunde, 1000/Tag</b>
 • Befehlslimit: <b>20/min</b>
 • 1 Download max. Zeit: <b>2 Stunden</b>
@@ -244,16 +244,17 @@ Fügen Sie meine Bots zu Ihren Gruppen hinzu, um erweiterte Funktionen und höhe
 • Max. Video+Untertitel-Dateigröße: <b>500 MB</b>
 • Max. Video+Untertitel-Qualität: <b>720p</b></blockquote>
 ————————————
-🚀 <b>Bezahlte Gruppen-Vorteile (2️⃣x Limits):</b>
+🚀 <b>Bezahlte Gruppen-Vorteile (🔟x Limits):</b>
 <blockquote>•  🗂 Strukturiertes, ordentliches Medienarchiv nach Themen sortiert 👍
 •  📁 Bots antworten im Thema, in dem Sie sie aufrufen
 •  📌 Automatisches Anheften von Statusnachrichten mit Download-Fortschritt
 •  🖼 /img-Befehl lädt Medien als 10-Item-Alben herunter
 • Max. 1 Dateigröße: <b>16 GB</b> ⬆️
-• Max. URLs in einer Nachricht: <b>20</b> ⬆️ (nur im Qualitätsauswahlmodus)
+• Max. URLs in einer Nachricht: <b>100</b> ⬆️ (nur im Qualitätsauswahlmodus)
 • Max. Wiedergabelisten-Items pro 1 Mal: <b>100</b> ⬆️
 • Max. TikTok-Videos pro 1 Mal: 1000 ⬆️
-• Max. Bilder pro 1 Mal: 2000 ⬆️
+• Max. Bilder pro 1 Mal: 2500 ⬆️
+• Max. Anzahl Downloads: <b>UNLIM</b> ⬆️
 • URL-Ratenlimits: <b>10/min, 120/Stunde, 2000/Tag</b> ⬆️
 • Befehlslimit: <b>40/min</b> ⬆️
 • 1 Download max. Zeit: <b>4 Stunden</b> ⬆️
@@ -273,7 +274,7 @@ Fügen Sie meine Bots zu Ihren Gruppen hinzu, um erweiterte Funktionen und höhe
 • Zahlung: 💎TON oder andere Methoden💲
 • Support: Vollständiger technischer Support inklusive</blockquote>
 ————————————
-Sie können meine Bots zu Ihrer Gruppe hinzufügen, um kostenloses 🔞<b>NSFW</b> freizuschalten und alle Limits zu verdoppeln (x2️⃣).
+Sie können meine Bots zu Ihrer Gruppe hinzufügen, um kostenloses 🔞<b>NSFW</b> freizuschalten und alle Limits zu verzehnfachen (x🔟).
 Kontaktieren Sie mich, wenn Sie möchten, dass ich Ihrer Gruppe erlaube, meine Bots zu verwenden @iilililiiillliiliililliilliliiil
 ————————————
 💡<b>TIPP:</b> <blockquote>Sie können Geld mit beliebig vielen Ihrer Freunde zusammenlegen (z.B. 100 Personen) und 1 Kauf für die ganze Gruppe tätigen - ALLE GRUPPENMITGLIEDER HABEN VOLLSTÄNDIGEN UNLIMITIERTEN ZUGANG zu allen Bot-Funktionen in dieser Gruppe für nur <b>0.05$</b></blockquote>

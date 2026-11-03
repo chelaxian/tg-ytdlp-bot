@@ -223,8 +223,16 @@ def _format_handler_context(func_name, message_obj):
 #     bounded by an inflight semaphore so overload is reported to the user;
 #   * light: every other sync message/callback handler (menus, settings), routed
 #     here by install_handler_offload(); never starved by downloads.
+# The heavy pool is a priority queue ordered by (class, estimated size in MB):
+# a single link starts first, several links in one message and playlists go to
+# the back and may hold at most 3/4 of the workers and half of the queue, so they
+# never lock single links out; inside a class the lighter job (lower quality,
+# shorter, already cached) goes first, which empties the queue fastest.
+PRIORITY_SINGLE, PRIORITY_NORMAL, PRIORITY_BULK = 0, 1, 2
+UNKNOWN_COST_MB = 300.0
 _BG_EXECUTOR = None
 _BG_INFLIGHT_SEM = None
+_BG_BULK_SEM = None
 _LIGHT_EXECUTOR = None
 _POOL_INIT_LOCK = threading.Lock()
 _BG_QUEUED = [0]  # heavy tasks accepted but not yet started
@@ -232,8 +240,55 @@ _BG_QUEUED_LOCK = threading.Lock()
 _OFFLOAD_WRAPPERS = set()  # ids of wrappers that already offload themselves
 
 
+class _PriorityExecutor:
+    """Fixed worker threads taking the lowest (priority, arrival) task first;
+    bulk tasks run on at most `bulk_max` workers at once."""
+
+    def __init__(self, workers, bulk_max, name):
+        import heapq
+        import itertools
+        self._heapq = heapq
+        self._seq = itertools.count()
+        self._queue = []
+        self._cv = threading.Condition()
+        self._bulk_max = max(1, bulk_max)
+        self._bulk_running = 0
+        for i in range(workers):
+            threading.Thread(target=self._work, name=f"{name}_{i}", daemon=True).start()
+
+    def submit(self, fn, *args, priority=(PRIORITY_NORMAL, UNKNOWN_COST_MB)):
+        if not isinstance(priority, tuple):
+            priority = (priority, UNKNOWN_COST_MB)
+        with self._cv:
+            self._heapq.heappush(self._queue, (priority, next(self._seq), fn, args))
+            self._cv.notify()
+
+    def _take(self):
+        with self._cv:
+            while True:
+                if self._queue and (self._queue[0][0][0] != PRIORITY_BULK or self._bulk_running < self._bulk_max):
+                    priority, _, fn, args = self._heapq.heappop(self._queue)
+                    if priority[0] == PRIORITY_BULK:
+                        self._bulk_running += 1
+                    return priority[0], fn, args
+                self._cv.wait()
+
+    def _work(self):
+        while True:
+            priority, fn, args = self._take()
+            try:
+                fn(*args)
+            except Exception:
+                logger.exception("[WORKERS] heavy task crashed")
+            finally:
+                if priority == PRIORITY_BULK:
+                    with self._cv:
+                        self._bulk_running -= 1
+                        self._cv.notify_all()
+
+
 def _init_pools():
-    global _BG_EXECUTOR, _BG_INFLIGHT_SEM, _LIGHT_EXECUTOR
+    global _BG_EXECUTOR, _BG_INFLIGHT_SEM, _BG_BULK_SEM, _LIGHT_EXECUTOR
     with _POOL_INIT_LOCK:
         if _BG_EXECUTOR is not None:
             return
@@ -242,8 +297,9 @@ def _init_pools():
         bg_workers = int(os.getenv("TG_YTDLP_BG_WORKERS", str(res['bg_workers'])))
         inflight = int(os.getenv("TG_YTDLP_BG_INFLIGHT", str(res['inflight'])))
         light_workers = int(os.getenv("TG_YTDLP_LIGHT_WORKERS", str(res.get('light_workers', 32))))
-        _BG_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=bg_workers, thread_name_prefix="bg")
+        _BG_EXECUTOR = _PriorityExecutor(bg_workers, bulk_max=bg_workers * 3 // 4, name="bg")
         _BG_INFLIGHT_SEM = threading.Semaphore(inflight)
+        _BG_BULK_SEM = threading.Semaphore(max(1, inflight // 2))
         _LIGHT_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=light_workers, thread_name_prefix="light")
         logger.info(
             f"[WORKERS] Auto-detected CPU={res['cpu_count']}: "
@@ -272,6 +328,35 @@ def message_has_url(message) -> bool:
     return bool(_URL_RE.search(text))
 
 
+_PLAYLIST_HINTS = ("/playlist", "/sets/", "/album/", "/albums/")
+
+
+def _request_text(message):
+    """Text carrying the user's links: the message itself, or for a menu click the
+    user's message the menu answers."""
+    for obj in (message, getattr(message, "reply_to_message", None)):
+        text = (getattr(obj, "text", None) or getattr(obj, "caption", None) or "") if obj else ""
+        if isinstance(text, str) and ("http" in text or "www." in text):
+            return text
+    return ""
+
+
+def request_priority(message) -> int:
+    """PRIORITY_SINGLE for one link, PRIORITY_BULK for several links or a
+    playlist (range syntax url*1*10, list=/playlist/sets/album URLs)."""
+    import re
+    text = _request_text(message)
+    urls = re.findall(r"(?i)(?:https?://|www\.)\S+", text)
+    if not urls:
+        return PRIORITY_NORMAL
+    if len(urls) > 1:
+        return PRIORITY_BULK
+    url = urls[0].lower()
+    if re.search(r"\*-?\d+\*-?\d+", text) or ("list=" in url and "v=" not in url.replace("list=", ""))             or any(h in url for h in _PLAYLIST_HINTS):
+        return PRIORITY_BULK
+    return PRIORITY_SINGLE
+
+
 def light_only(message=None) -> bool:
     """heavy_if for menu/settings handlers: they never download, never wait for the heavy pool."""
     return False
@@ -282,16 +367,27 @@ def background_queue_depth() -> int:
     return max(0, _BG_QUEUED[0])
 
 
-def background_handler(func=None, *, label=None, heavy_if=None):
+def _extract_update(args, kwargs):
+    """The Pyrogram update (Message or CallbackQuery) among handler args."""
+    for obj in list(args) + list(kwargs.values()):
+        if hasattr(obj, "data") or hasattr(obj, "chat"):
+            return obj
+    return None
+
+
+def background_handler(func=None, *, label=None, heavy_if=None, cost_mb=None):
     """
     Decorator that offloads a handler into a background ThreadPoolExecutor
     and logs its lifecycle so long-running jobs don't block Pyrogram updates.
 
-    heavy_if(message) -> bool: when given and False for this update, the call runs
+    heavy_if(update) -> bool: when given and False for this update (the Message or
+    CallbackQuery), the call runs
     on the light pool instead, so commands and menus never queue behind downloads.
+    cost_mb(update) -> float | None: estimated size of the job; lighter jobs start
+    first within their priority class.
     """
     if func is None:
-        return lambda f: background_handler(f, label=label, heavy_if=heavy_if)
+        return lambda f: background_handler(f, label=label, heavy_if=heavy_if, cost_mb=cost_mb)
 
     def _run_light(context, args, kwargs):
         logger.info(f"[HANDLER-START] {context}")
@@ -310,7 +406,7 @@ def background_handler(func=None, *, label=None, heavy_if=None):
         context = _format_handler_context(label or func.__name__, message_obj)
         if heavy_if is not None:
             try:
-                heavy = bool(heavy_if(message_obj))
+                heavy = bool(heavy_if(_extract_update(args, kwargs)))
             except Exception:
                 heavy = True
             if not heavy:
@@ -321,8 +417,22 @@ def background_handler(func=None, *, label=None, heavy_if=None):
         # Try to enqueue into background pool. If overloaded, fail fast to avoid
         # unbounded queue growth and "bot looks alive but doesn't respond".
         acquired = False
+        bulk_acquired = False
         try:
+            klass = request_priority(message_obj)
+            cost = None
+            if cost_mb is not None:
+                try:
+                    cost = cost_mb(_extract_update(args, kwargs))
+                except Exception:
+                    logger.debug(f"[HANDLER-QUEUED] cost estimate failed for {context}", exc_info=True)
+            priority = (klass, round(float(UNKNOWN_COST_MB if cost is None else cost), 1))
             acquired = _BG_INFLIGHT_SEM.acquire(blocking=False)
+            if acquired and klass == PRIORITY_BULK:
+                bulk_acquired = _BG_BULK_SEM.acquire(blocking=False)
+                if not bulk_acquired:
+                    _BG_INFLIGHT_SEM.release()
+                    acquired = False
             if not acquired:
                 # Best-effort notify user when we can.
                 try:
@@ -339,7 +449,7 @@ def background_handler(func=None, *, label=None, heavy_if=None):
 
             with _BG_QUEUED_LOCK:
                 _BG_QUEUED[0] += 1
-            logger.info(f"[HANDLER-QUEUED] {context} (waiting={background_queue_depth()})")
+            logger.info(f"[HANDLER-QUEUED] {context} (waiting={background_queue_depth()}, priority={priority})")
 
             def _run():
                 with _BG_QUEUED_LOCK:
@@ -354,23 +464,20 @@ def background_handler(func=None, *, label=None, heavy_if=None):
                     return result
                 except Exception:
                     logger.exception(f"[HANDLER-CRASH] {context}")
-                    raise
                 finally:
-                    try:
-                        _BG_INFLIGHT_SEM.release()
-                    except Exception:
-                        pass
+                    _BG_INFLIGHT_SEM.release()
+                    if bulk_acquired:
+                        _BG_BULK_SEM.release()
 
-            _BG_EXECUTOR.submit(_run)
+            _BG_EXECUTOR.submit(_run, priority=priority)
             # Important: return immediately so Pyrogram handler threads remain free.
             return None
         except Exception:
             # If we acquired but failed before submit, release to avoid capacity leak.
             if acquired:
-                try:
-                    _BG_INFLIGHT_SEM.release()
-                except Exception:
-                    pass
+                _BG_INFLIGHT_SEM.release()
+            if bulk_acquired:
+                _BG_BULK_SEM.release()
             logger.exception(f"[HANDLER-CRASH] {context}")
             raise
 

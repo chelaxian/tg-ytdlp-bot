@@ -35,11 +35,20 @@ names = {"_init_pools", "background_queue_depth", "background_handler", "_light_
          "_BG_QUEUED_LOCK", "_OFFLOAD_WRAPPERS", "message_has_url", "_URL_RE", "light_only",
          "send_reply_keyboard_always", "_send_reply_keyboard_locked", "reply_keyboard_msg_ids",
          "_reply_kb_cleanup_counter", "_REPLY_KB_CLEANUP_INTERVAL", "_reply_kb_locks", "_reply_kb_locks_guard",
-         "_reply_kb_last", "_REPLY_KB_MIN_INTERVAL"}
+         "_reply_kb_last", "_REPLY_KB_MIN_INTERVAL", "_PriorityExecutor", "PRIORITY_SINGLE",
+         "_BG_BULK_SEM", "_PLAYLIST_HINTS", "_request_text", "request_priority",
+         "UNKNOWN_COST_MB", "_extract_update"}
 tree = ast.parse(src)
+
+
+def _targets(n):
+    for t in n.targets:
+        yield from ([getattr(e, "id", None) for e in t.elts] if isinstance(t, ast.Tuple) else [getattr(t, "id", None)])
+
+
 body = [n for n in tree.body
-        if (isinstance(n, ast.FunctionDef) and n.name in names)
-        or (isinstance(n, ast.Assign) and any(getattr(t, "id", None) in names for t in n.targets))]
+        if (isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in names)
+        or (isinstance(n, ast.Assign) and any(t in names for t in _targets(n)))]
 logs = []
 limits = types.SimpleNamespace(detect_system_resources=lambda: {
     "bg_workers": 2, "inflight": 3, "light_workers": 4, "max_uploads": 1, "cpu_count": 1})
@@ -172,6 +181,48 @@ time.sleep(0.5)
 check("queue_drains", g["background_queue_depth"]() == 0 and len(ran["heavy"]) == 3, ran.get("heavy"))
 check("heavy_runs_on_bg_pool", all(n.startswith("bg") for n in ran["heavy"]), ran["heavy"])
 check("every_task_runs_in_a_warp_scope", any("askq" in l for l in _scopes) and any("page_callback" in l for l in _scopes), _scopes[:4])
+# priority queue: single link first, several links / playlists last
+prio = g["request_priority"]
+S, N, B = g["PRIORITY_SINGLE"], g["PRIORITY_NORMAL"], g["PRIORITY_BULK"]
+for t, want in (("https://youtu.be/abc", S), ("https://www.youtube.com/watch?v=abc&list=PLx", S),
+                ("https://youtu.be/a https://youtu.be/b", B), ("https://www.youtube.com/playlist?list=PLx", B),
+                ("https://youtube.com/@chan*1*10", B), ("https://soundcloud.com/u/sets/x", B),
+                ("/check_cookie", N), ("hello", N)):
+    check(f"priority {t!r}", prio(tmsg(t)) == want, prio(tmsg(t)))
+menu = types.SimpleNamespace(text="Choose quality", reply_to_message=tmsg("https://youtu.be/a https://youtu.be/b"))
+check("priority_menu_click_uses_users_links", prio(menu) == B)
+order, gate = [], threading.Event()
+ex = g["_PriorityExecutor"](2, bulk_max=1, name="bg")
+for _ in range(2):
+    ex.submit(gate.wait, 5, priority=N)  # both workers busy
+time.sleep(0.1)
+for name, p_ in (("bulk1", B), ("bulk2", B), ("single1", S), ("single2", S)):
+    ex.submit(order.append, name, priority=p_)
+gate.set()
+deadline = time.monotonic() + 3
+while len(order) < 4 and time.monotonic() < deadline:
+    time.sleep(0.01)
+check("singles_jump_ahead_of_bulk", order[:2] == ["single1", "single2"] and sorted(order[2:]) == ["bulk1", "bulk2"], order)
+hold, started = threading.Event(), []
+
+
+def long_bulk(n):
+    started.append(n)
+    hold.wait(5)
+
+
+ex2 = g["_PriorityExecutor"](2, bulk_max=1, name="bg")
+ex2.submit(long_bulk, "b1", priority=B)
+ex2.submit(long_bulk, "b2", priority=B)
+time.sleep(0.2)
+check("bulk_never_takes_every_worker", started == ["b1"], started)
+done = threading.Event()
+ex2.submit(done.set, priority=S)
+check("single_runs_while_playlist_downloads", done.wait(1))
+hold.set()
+time.sleep(0.2)
+check("bulk_queue_continues_after_slot_frees", started == ["b1", "b2"], started)
+
 # reply keyboard: a burst of commands from one user leaves one keyboard message, not a pile of empty ones
 sent, deleted = [], []
 _ids = iter(range(1000, 2000))

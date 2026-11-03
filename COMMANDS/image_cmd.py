@@ -23,6 +23,7 @@ from HELPERS.app_instance import get_app
 from HELPERS.safe_messeger import safe_send_message, safe_edit_message_text
 from HELPERS.download_status import progress_bar
 from HELPERS.decorators import background_handler, message_has_url
+from HELPERS import daily_quota
 import HELPERS.safe_messeger as sm
 from DOWN_AND_UP.gallery_dl_hook import (
     get_image_info,
@@ -971,6 +972,9 @@ def image_command(app, message):
     
     # Log the command execution
     logger.info(f"image_command called for user {user_id} in chat {chat_id} with text: {text}")
+    # Daily image quota used up: answer with the time left before any work starts
+    if message_has_url(message) and daily_quota.deny_if_exhausted(message, daily_quota.IMAGE):
+        return
     # Get message_thread_id (handles fake messages)
     message_thread_id = get_message_thread_id(message)
     logger.info(f"[IMG DEBUG] message.chat.id={message.chat.id}, message_thread_id={message_thread_id}")
@@ -1119,7 +1123,7 @@ def image_command(app, message):
                         # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
                         from HELPERS.limitter import should_apply_limits_to_admin
                         if should_apply_limits_to_admin(user_id=user_id, message=message):
-                            mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                            mult = getattr(LimitsConfig, 'GROUP_COUNT_MULTIPLIER', 10)
                             max_img_files = int(max_img_files * mult)
                 except Exception:
                     pass
@@ -1238,6 +1242,7 @@ def image_command(app, message):
                     cached_sent += len(ids)
                 except Exception as _e:
                     logger.warning(LoggerMsg.IMG_CACHE_FAILED_FORWARD_ALBUM_LOG_MSG.format(album_idx=album_idx, _e=_e))
+            daily_quota.record(message, daily_quota.IMAGE, cached_sent, cached=True)
             
             # Check if we have all requested content in cache
             if manual_range is not None:
@@ -1404,7 +1409,7 @@ def image_command(app, message):
                                 # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
                                 from HELPERS.limitter import should_apply_limits_to_admin
                                 if should_apply_limits_to_admin(user_id=user_id, message=message):
-                                    mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                                    mult = getattr(LimitsConfig, 'GROUP_COUNT_MULTIPLIER', 10)
                                     fallback_limit = int(fallback_limit * mult)
                         except Exception:
                             pass
@@ -1478,13 +1483,20 @@ def image_command(app, message):
                     # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
                     from HELPERS.limitter import should_apply_limits_to_admin
                     if should_apply_limits_to_admin(user_id=user_id, message=message):
-                        mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                        mult = getattr(LimitsConfig, 'GROUP_COUNT_MULTIPLIER', 10)
                         total_limit = int(total_limit * mult)
             except Exception:
                 pass
         # Гарантируем, что total_limit не None (избегаем ошибки сравнения None с int при fallback gallery-dl с прокси)
         if total_limit is None:
             total_limit = 0 if not should_apply_limits_to_admin(user_id=user_id, message=message) else LimitsConfig.MAX_IMG_FILES
+        # Daily image quota: never send more than what is left for today
+        _img_quota_left = daily_quota.remaining(message, daily_quota.IMAGE)
+        if _img_quota_left is not None:
+            if _img_quota_left <= 0:
+                daily_quota.deny_if_exhausted(message, daily_quota.IMAGE)
+                return
+            total_limit = _img_quota_left if total_limit == 0 else min(total_limit, _img_quota_left)
         
         # Check if domain should skip simulation and go to fallback (before any other logic)
         should_skip_simulation = any(domain in url.lower() for domain in DomainsConfig.GALLERYDL_FALLBACK_DOMAINS)
@@ -1640,7 +1652,7 @@ def image_command(app, message):
                 fallback_limit = LimitsConfig.MAX_IMG_FILES
                 try:
                     if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                        mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                        mult = getattr(LimitsConfig, 'GROUP_COUNT_MULTIPLIER', 10)
                         fallback_limit = int(fallback_limit * mult)
                 except Exception:
                     pass
@@ -1706,7 +1718,7 @@ def image_command(app, message):
                         # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
                         from HELPERS.limitter import should_apply_limits_to_admin
                         if should_apply_limits_to_admin(user_id=user_id, message=message):
-                            mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+                            mult = getattr(LimitsConfig, 'GROUP_COUNT_MULTIPLIER', 10)
                             max_img_files = int(max_img_files * mult)
                 except Exception:
                     pass
@@ -4686,10 +4698,14 @@ def image_command(app, message):
         from HELPERS.filesystem_hlp import remove_protection_file
         remove_protection_file(run_dir)
         
+        daily_quota.record(message, daily_quota.IMAGE, total_sent)
+        _img_quota_recorded = True
         send_to_logger(message, LoggerMsg.STREAMED_AND_SENT_MEDIA.format(total_sent=total_sent, url=url))
             
     except Exception as e:
         logger.error(f"Error in image command: {e}")
+        if not locals().get("_img_quota_recorded"):
+            daily_quota.record(message, daily_quota.IMAGE, locals().get("total_sent") or 0)
         
         # Clean up only the specific media files that were downloaded on general error
         try:
