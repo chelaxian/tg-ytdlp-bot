@@ -105,8 +105,10 @@ done
 # that rule ahead of all others again on every restart, so a uid ip-rule only
 # lasts until the first rotation. Instead the bot's own packets get WARP's
 # fwmark (iptables mangle OUTPUT, uid owner): they then use the main table
-# whatever the rule order. Forwarded traffic (VPN clients, containers) never
-# passes OUTPUT and keeps using WARP. Without native IPv6 the marked IPv6
+# whatever the rule order. The source address is picked before the mark is set
+# (from the WARP route), so packets that leave through another interface with
+# the WARP address are masqueraded. Forwarded traffic (VPN clients, containers)
+# never passes OUTPUT and keeps using WARP. Without native IPv6 the marked IPv6
 # packets meet "no route" at once and the bot falls back to IPv4.
 if [ "$DIRECT_ROUTE" = 1 ]; then
     MARK=$(ip rule show | sed -n 's/.*not from all fwmark \(0x[0-9a-f]*\) .*/\1/p' | head -1)
@@ -116,10 +118,19 @@ if [ "$DIRECT_ROUTE" = 1 ]; then
 #!/bin/sh
 # tg-ytdlp-bot: packets of uid $BOT_UID carry the WARP fwmark $MARK and bypass wg-quick's table
 MATCH="-m owner --uid-owner $BOT_UID -m comment --comment tg-ytdlp-direct -j MARK --set-mark $MARK"
+nat_rules() {  # "<wg address> <wg interface>" for every WireGuard interface
+    for i in \$(wg show interfaces 2>/dev/null); do
+        ip -4 -o addr show dev "\$i" | awk -v i="\$i" '{split(\$4, a, "/"); print a[1], i}'
+    done
+}
 case "\$1" in
 start)
     for t in iptables ip6tables; do
         \$t -t mangle -C OUTPUT \$MATCH 2>/dev/null || \$t -t mangle -A OUTPUT \$MATCH
+    done
+    nat_rules | while read -r addr dev; do
+        R="-s \$addr ! -o \$dev -m mark --mark $MARK -m comment --comment tg-ytdlp-direct -j MASQUERADE"
+        iptables -t nat -C POSTROUTING \$R 2>/dev/null || iptables -t nat -I POSTROUTING 1 \$R
     done
     # rules of earlier versions (uid ip rules, lost on every wgcf restart)
     ip rule del priority 31000 2>/dev/null; ip -6 rule del priority 31000 2>/dev/null; ip -6 rule del priority 31001 2>/dev/null
@@ -127,6 +138,9 @@ start)
 stop)
     for t in iptables ip6tables; do
         while \$t -t mangle -D OUTPUT \$MATCH 2>/dev/null; do :; done
+    done
+    iptables -t nat -S POSTROUTING | grep -- "--comment tg-ytdlp-direct" | sed 's/^-A /-D /' | while read -r r; do
+        eval iptables -t nat \$r
     done
     ;;
 esac
@@ -137,7 +151,8 @@ EOF
     cat > "$UNIT" <<EOF
 [Unit]
 Description=tg-ytdlp-bot: traffic of uid $BOT_UID bypasses the system-wide WARP (wgcf)
-After=network-online.target
+# after wgcf: the masquerade rule needs the WARP interface address
+After=network-online.target wg-quick@wgcf.service
 Wants=network-online.target
 Before=tg-ytdlp-bot.service
 
