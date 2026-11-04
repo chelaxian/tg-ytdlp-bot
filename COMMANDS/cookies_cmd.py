@@ -11,7 +11,7 @@ from HELPERS.app_instance import get_app
 
 from HELPERS.decorators import reply_with_keyboard, background_handler, light_only
 from HELPERS.limitter import is_user_in_channel
-from HELPERS.logger import send_to_logger, logger, send_to_user, send_to_all
+from HELPERS.logger import send_to_logger, logger, send_to_user, send_to_all, sanitize_error_message
 from HELPERS.filesystem_hlp import create_directory
 from HELPERS.cookie_file import validate_cookie_bytes, ensure_valid_cookie_file, write_cookie_file
 from HELPERS.ytdlp_errors import is_local_file_error, is_missing_local_file
@@ -2562,8 +2562,9 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
                         failed_for_task.add(proxy_url)
                         
                 except Exception as e:
-                    error_text = str(e)
-                    logger.warning(f"Failed with proxy {i+1}/{len(proxies_to_try)} ({proxy_country}, {proxy_type}): {error_text[:200]}")
+                    # yt-dlp errors can quote the proxy URL with its credentials: mask before truncating
+                    error_text = sanitize_error_message(str(e))
+                    logger.warning(f"Failed with proxy {i+1}/{len(proxies_to_try)} ({proxy_country}, {proxy_type}): {type(e).__name__}: {error_text[:200]}")
                     failed_for_task.add(proxy_url)
                     continue
             
@@ -2611,7 +2612,9 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
             else:
                 proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
         
-        logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_URL_LOG_MSG.format(proxy_url=proxy_url))
+        # log the endpoint only: proxy_url may carry the proxy login and password
+        logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_URL_LOG_MSG.format(
+            proxy_url=f"{proxy_config.get('type')}://{proxy_config.get('ip')}:{proxy_config.get('port')}"))
         
         # Повторяем скачивание с прокси
         try:

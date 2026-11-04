@@ -186,7 +186,8 @@ def add_pot_to_ytdl_opts(ytdl_opts: dict, url: str) -> dict:
     logger.info(f"🔗 PO Token Base URL: {base_url}")
     logger.info(f"🧩 PO Token Providers: {active_providers}")
     logger.info(f"⚙️  PO Token Config: disable_innertube={disable_innertube}")
-    logger.info(f"📋 extractor_args.youtubepot: {ytdl_opts['extractor_args'].get('youtubepot')}")
+    # option names only: values may include provider URLs or tokens
+    logger.info(f"📋 extractor_args.youtubepot keys: {sorted((ytdl_opts['extractor_args'].get('youtubepot') or {}).keys())}")
     
     return ytdl_opts
 

@@ -145,7 +145,10 @@ def _apply_config(config: dict, user_id=None):
             logger.debug(safe_get_messages(user_id).GALLERY_DL_SKIPPING_NON_DICT_CONFIG_MSG.format(section=section, opts=opts))
             continue
         for key, value in opts.items():
-            logger.info(safe_get_messages(user_id).GALLERY_DL_SETTING_CONFIG_MSG.format(section=section, key=key, value=value))
+            # values may be a proxy URL with credentials or a cookie path: log only the
+            # value type for those; plain numbers/flags (timeouts, retries) stay visible
+            shown = value if isinstance(value, (bool, int, float)) else f"<{type(value).__name__}>"
+            logger.info(safe_get_messages(user_id).GALLERY_DL_SETTING_CONFIG_MSG.format(section=section, key=key, value=shown))
             _gdl_set(section, key, value)
 
 
