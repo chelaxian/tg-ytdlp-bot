@@ -165,6 +165,9 @@ def build_proxy_url(proxy_config):
     """
     if not proxy_config or 'type' not in proxy_config or 'ip' not in proxy_config or 'port' not in proxy_config:
         return None
+    # an emptied PROXY_IP / PROXY_PORT means "no proxy", not "http://:port"
+    if not str(proxy_config['ip'] or '').strip() or not str(proxy_config['port'] or '').strip():
+        return None
     
     ptype = proxy_config['type']
     ip = proxy_config['ip']
@@ -633,29 +636,28 @@ def try_auto_proxy_fallback(ytdl_opts: dict, url: str, user_id: int = None, oper
     logger.warning(f"[AUTO_PROXY] All proxies exhausted for {url}")
     return None
 
-def get_proxy_config():
-    """Get proxy configuration from config"""
+def _config_proxy(prefix):
+    """PROXY_* / PROXY_2_* from config, or None when the IP or port is empty or unset."""
     from CONFIG.config import Config
-    
+    ip = str(getattr(Config, prefix + 'IP', '') or '').strip()
+    port = getattr(Config, prefix + 'PORT', '')
+    if not ip or not str(port or '').strip():
+        return None
     return {
-        'type': Config.PROXY_TYPE,
-        'ip': Config.PROXY_IP,
-        'port': Config.PROXY_PORT,
-        'user': Config.PROXY_USER,
-        'password': Config.PROXY_PASSWORD
+        'type': getattr(Config, prefix + 'TYPE', 'http') or 'http',
+        'ip': ip,
+        'port': port,
+        'user': getattr(Config, prefix + 'USER', ''),
+        'password': getattr(Config, prefix + 'PASSWORD', ''),
     }
 
+def get_proxy_config():
+    """Get proxy configuration from config (None if PROXY_IP / PROXY_PORT is empty)"""
+    return _config_proxy('PROXY_')
+
 def get_proxy_2_config():
-    """Get second proxy configuration from config"""
-    from CONFIG.config import Config
-    
-    return {
-        'type': Config.PROXY_2_TYPE,
-        'ip': Config.PROXY_2_IP,
-        'port': Config.PROXY_2_PORT,
-        'user': Config.PROXY_2_USER,
-        'password': Config.PROXY_2_PASSWORD
-    }
+    """Get second proxy configuration from config (None if PROXY_2_IP / PROXY_2_PORT is empty)"""
+    return _config_proxy('PROXY_2_')
 
 def get_all_proxy_configs():
     """Get all available proxy configurations"""
