@@ -241,7 +241,8 @@ def add_proxy_to_ytdl_opts(ytdl_opts: dict, url: str, user_id: int = None) -> di
             ytdl_opts['proxy'] = proxy_url
             logger.info(f"Added domain-specific proxy for {url}: [redacted]")
         else:
-            logger.warning(f"Failed to build proxy URL from config: {proxy_config}")
+            # never log the whole config: it holds the proxy password
+            logger.warning(f"Failed to build proxy URL from config: {proxy_config.get('type')}://{proxy_config.get('ip')}:{proxy_config.get('port')}")
     else:
         logger.info(f"No domain-specific proxy found for {url}")
     
@@ -822,7 +823,8 @@ def add_proxy_to_gallery_dl_config(config: dict, url: str, user_id: int = None) 
             config['extractor']['proxy'] = proxy_url
             logger.info(f"Added domain-specific proxy for {url}: [redacted]")
         else:
-            logger.warning(f"Failed to build proxy URL from config: {proxy_config}")
+            # never log the whole config: it holds the proxy password
+            logger.warning(f"Failed to build proxy URL from config: {proxy_config.get('type')}://{proxy_config.get('ip')}:{proxy_config.get('port')}")
     else:
         logger.info(f"No domain-specific proxy found for {url}")
     

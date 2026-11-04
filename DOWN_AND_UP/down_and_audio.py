@@ -1352,7 +1352,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             proxy_url = f"http://{proxy_config['ip']}:{proxy_config['port']}"
                     
                     ytdl_opts['proxy'] = proxy_url
-                    logger.info(f"Force using proxy for audio download: {proxy_url}")
+                    # endpoint only: proxy_url may carry the proxy login and password
+                    logger.info(f"Force using proxy for audio download: {proxy_config.get('type')}://{proxy_config.get('ip')}:{proxy_config.get('port')}")
                 else:
                     logger.warning("Proxy requested but proxy configuration is incomplete")
             else:

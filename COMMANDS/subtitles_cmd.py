@@ -1490,7 +1490,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 proxy_url = build_proxy_url(proxy_config)
                 if proxy_url:
                     base_opts['proxy'] = proxy_url
-                    logger.info(f"Using PROXY for subtitle download attempt {attempt + 1}: {proxy_url}")
+                    logger.info(f"Using PROXY for subtitle download attempt {attempt + 1}: "
+                                f"{Config.PROXY_TYPE}://{Config.PROXY_IP}:{Config.PROXY_PORT}")
             elif attempt == 2:
                 # Third attempt: use PROXY_2
                 proxy_config = {
@@ -1503,7 +1504,8 @@ def download_subtitles_ytdlp(url, user_id, video_dir, available_langs):
                 proxy_url = build_proxy_url(proxy_config)
                 if proxy_url:
                     base_opts['proxy'] = proxy_url
-                    logger.info(f"Using PROXY_2 for subtitle download attempt {attempt + 1}: {proxy_url}")
+                    logger.info(f"Using PROXY_2 for subtitle download attempt {attempt + 1}: "
+                                f"{Config.PROXY_2_TYPE}://{Config.PROXY_2_IP}:{Config.PROXY_2_PORT}")
             
             # Add PO token provider for YouTube domains
             base_opts = add_pot_to_ytdl_opts(base_opts, url)

@@ -506,8 +506,11 @@ def api_domain_list_save(name: str, body: DomainListBody, request: Request):
         raise HTTPException(404)
     try:
         stored = lists_service.update_domain_list(name, body.items)
-    except lists_service.ListError as exc:
-        return JSONResponse({"error": "invalid_list", "detail": str(exc)[:120]}, status_code=400)
+    except lists_service.ListError:
+        # build the answer from the input, never from the exception text
+        bad = lists_service.first_invalid_item(name, body.items)
+        detail = f"invalid_item:{bad}" if bad is not None else "invalid_list"
+        return JSONResponse({"error": "invalid_list", "detail": detail}, status_code=400)
     _audit(request, "domain_list_saved", target=name, count=len(stored))
     return {"ok": True, "count": len(stored), "restart_required": True}
 

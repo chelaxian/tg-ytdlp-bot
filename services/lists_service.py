@@ -109,6 +109,21 @@ def get_domain_lists() -> Dict[str, List[str]]:
 # Writing
 # --------------------------------------------------------------------------------------
 
+def first_invalid_item(list_name: str, items: List[Any]) -> Optional[str]:
+    """The first item the validator would reject (for the UI), without raising."""
+    kind = EDITABLE_LISTS.get(list_name)
+    if kind is None or not isinstance(items, list):
+        return None
+    pattern = {"domain": _DOMAIN, "path": _PATH, "keyword": _KEYWORD}[kind]
+    for raw in items:
+        if not isinstance(raw, str):
+            return ""
+        item = raw.strip().lower() if kind == "domain" else raw.strip()
+        if item and (len(item) > MAX_ITEM_LEN or not pattern.match(item)):
+            return item[:60]
+    return None
+
+
 def validate_items(list_name: str, items: List[Any]) -> List[str]:
     kind = EDITABLE_LISTS.get(list_name)
     if kind is None:
@@ -197,8 +212,12 @@ def _prune_backups(folder: Path, prefix: str, keep: int) -> None:
 # --------------------------------------------------------------------------------------
 
 def _bad_ip(ip: ipaddress._BaseAddress) -> bool:
+    # ::ffff:127.0.0.1 and similar: judge the embedded IPv4 address, not the wrapper
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        ip = mapped
     return (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
-            or ip.is_multicast or ip.is_unspecified)
+            or ip.is_multicast or ip.is_unspecified or not ip.is_global)
 
 
 def _validate_url_for_ssrf(url: str) -> Tuple[bool, str]:
