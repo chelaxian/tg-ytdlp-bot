@@ -28,6 +28,9 @@ import time
 import threading
 
 from pyrogram import Client, filters, idle
+# Telegram started sending channel#83259464, unknown to the installed Pyrogram (see HELPERS/tl_compat.py)
+from HELPERS import tl_compat as _tl_compat
+_tl_compat.install()
 from pyrogram import enums
 from pyrogram.types import (
     InlineKeyboardMarkup,

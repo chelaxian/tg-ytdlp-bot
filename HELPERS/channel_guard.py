@@ -5,6 +5,9 @@ from typing import Any, Dict, List, Optional, Tuple, Callable, Union
 
 from pyrogram import Client as PyroClient
 from pyrogram.errors import RPCError
+from HELPERS import tl_compat
+
+tl_compat.install()  # the guard user session also receives channel#83259464
 from pyrogram.raw.functions.channels import GetAdminLog
 from pyrogram.raw.types import (
     ChannelAdminLogEventActionParticipantLeave,
@@ -306,7 +309,7 @@ class ChannelGuard:
             except asyncio.CancelledError:
                 break
             except Exception as exc:
-                logger.error(f"[ChannelGuard] Scan loop error: {exc}")
+                logger.error(f"[ChannelGuard] Scan loop error: {type(exc).__name__}: {exc}")
 
     async def _auto_loop(self) -> None:
         while self._running:
@@ -318,7 +321,7 @@ class ChannelGuard:
             except asyncio.CancelledError:
                 break
             except Exception as exc:
-                logger.error(f"[ChannelGuard] Auto loop error: {exc}")
+                logger.error(f"[ChannelGuard] Auto loop error: {type(exc).__name__}: {exc}")
             await asyncio.sleep(self._settings["auto_interval"])
 
     async def _scan_once(self) -> Tuple[int, int]:
