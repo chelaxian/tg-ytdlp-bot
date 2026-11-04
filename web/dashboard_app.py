@@ -531,8 +531,9 @@ class ListUrlsBody(BaseModel):
 def _start(request: Request, kind: str, target, params=None, cancellable=False):
     try:
         job = jobs.manager.start(kind, _user(request), target, params, cancellable=cancellable)
-    except jobs.JobBusy as busy:
-        return JSONResponse({"error": "busy", "job_id": str(busy)}, status_code=409)
+    except jobs.JobBusy:
+        # the running job's id comes from the job registry, not from the exception
+        return JSONResponse({"error": "busy", "job_id": jobs.manager.running_id(kind)}, status_code=409)
     _audit(request, f"job_{kind}", mode=(params or {}).get("mode"))
     return {"ok": True, "job": job.public()}
 

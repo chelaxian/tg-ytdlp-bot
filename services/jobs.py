@@ -124,6 +124,13 @@ class JobManager:
             job.finished = time.time()
             logger.info("[jobs] %s finished: %s", job.kind, job.state)
 
+    def running_id(self, kind: str) -> Optional[str]:
+        """Id of the job of this kind that is still running, if any."""
+        with self._lock:
+            job_id = self._running.get(kind)
+            job = self._jobs.get(job_id) if job_id else None
+            return job.id if job and job.state in ("running", "waiting") else None
+
     def get(self, job_id: str) -> Optional[Job]:
         with self._lock:
             return self._jobs.get(job_id)
