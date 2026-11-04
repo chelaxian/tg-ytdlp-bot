@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Sequence
 
 import logging
@@ -17,7 +17,7 @@ class DBWriteEvent:
     path: str
     operation: str
     payload: Any
-    timestamp: float = time.time()
+    timestamp: float = field(default_factory=time.time)
 
 
 def emit_db_event(path: str, operation: str, payload: Any) -> None:

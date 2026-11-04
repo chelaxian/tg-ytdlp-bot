@@ -155,6 +155,38 @@ def get_network_speed() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
+_ip_cache = {"value": {"ipv4": "unknown", "ipv6": "unknown"}, "ts": 0.0, "running": False}
+_ip_lock = __import__("threading").Lock()
+EXTERNAL_IP_TTL = 600
+
+
+def get_external_ip_cached() -> Dict[str, Any]:
+    """External IPs from cache; refreshed in a background thread every 10 min.
+
+    The lookup itself (curl via the WARP container or direct HTTP) can take
+    seconds, so a request never waits for it.
+    """
+    import threading
+    now = time.time()
+    with _ip_lock:
+        stale = now - _ip_cache["ts"] > EXTERNAL_IP_TTL
+        if stale and not _ip_cache["running"]:
+            _ip_cache["running"] = True
+
+            def _refresh():
+                try:
+                    value = get_external_ip()
+                except Exception:
+                    value = {"ipv4": "unknown", "ipv6": "unknown"}
+                with _ip_lock:
+                    _ip_cache.update(value=value, ts=time.time(), running=False)
+
+            threading.Thread(target=_refresh, name="external_ip", daemon=True).start()
+        result = dict(_ip_cache["value"])
+        result["checked_at"] = int(_ip_cache["ts"]) or None
+    return result
+
+
 def get_external_ip() -> Dict[str, str]:
     """Получает внешний IPv4 и IPv6 адреса через warp контейнер (если доступен) или напрямую."""
     ipv4 = "unknown"
@@ -170,16 +202,16 @@ def get_external_ip() -> Dict[str, str]:
             try:
                 # Получаем IPv4 через warp контейнер
                 ipv4_result = _run_docker_cmd(
-                    [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-4", "https://ifconfig.io"],
-                    timeout=10,
+                    [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-4", "--max-time", "4", "https://ifconfig.io"],
+                    timeout=8,
                 )
                 if ipv4_result.returncode == 0 and ipv4_result.stdout.strip():
                     ipv4 = ipv4_result.stdout.strip()
                 
                 # Получаем IPv6 через warp контейнер
                 ipv6_result = _run_docker_cmd(
-                    [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-6", "https://ifconfig.io"],
-                    timeout=10,
+                    [docker_path, "exec", WARP_CONTAINER_NAME, "curl", "-s", "-6", "--max-time", "4", "https://ifconfig.io"],
+                    timeout=8,
                 )
                 if ipv6_result.returncode == 0 and ipv6_result.stdout.strip():
                     ipv6 = ipv6_result.stdout.strip()
@@ -211,7 +243,7 @@ def get_external_ip() -> Dict[str, str]:
         # Получаем IPv6 через curl -6 ifconfig.io
         try:
             result = subprocess.run(
-                ["curl", "-6", "ifconfig.io"],
+                ["curl", "-s", "-6", "--max-time", "4", "https://ifconfig.io"],
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -246,7 +278,7 @@ def get_external_ip() -> Dict[str, str]:
 def get_system_metrics() -> Dict[str, Any]:
     """Возвращает метрики системы."""
     try:
-        cpu_percent = psutil.cpu_percent(interval=0.1)
+        cpu_percent = psutil.cpu_percent(interval=None)  # vs. the previous call: never blocks
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage("/")
         net_io = psutil.net_io_counters()
@@ -266,8 +298,8 @@ def get_system_metrics() -> Dict[str, Any]:
         # Скорость сети
         network_speed = get_network_speed()
         
-        # Внешний IP
-        external_ip = get_external_ip()
+        # Внешний IP (cached, refreshed in the background)
+        external_ip = get_external_ip_cached()
         
         return {
             "cpu_percent": round(cpu_percent, 1),
@@ -301,7 +333,22 @@ def get_system_metrics() -> Dict[str, Any]:
             "status": "online",
         }
     except Exception as e:
-        return {"error": str(e)}
+        logger.warning("[system] metrics failed: %s", e)
+        return {"error": "metrics unavailable"}
+
+
+_versions_cache = {"value": None, "ts": 0.0}
+
+
+def get_package_versions_cached(max_age: int = 600) -> Dict[str, str]:
+    if _versions_cache["value"] is None or time.time() - _versions_cache["ts"] > max_age:
+        _versions_cache["value"] = get_package_versions()
+        _versions_cache["ts"] = time.time()
+    return dict(_versions_cache["value"])
+
+
+def invalidate_package_versions() -> None:
+    _versions_cache["value"] = None
 
 
 def _read_package_version(
@@ -666,266 +713,3 @@ def cleanup_user_files() -> Dict[str, Any]:
             "purged automatically by the bot (default age: 48 hours)."
         ),
     }
-
-
-def update_lists() -> Dict[str, Any]:
-    """Обновляет списки через script.sh."""
-    try:
-        script_path = "/root/Telegram/tg-ytdlp-bot/script.sh"
-        result = subprocess.run(
-            ["bash", script_path],
-            capture_output=True,
-            text=True,
-            timeout=300,  # 5 минут
-            check=False,
-        )
-        if result.returncode == 0:
-            return {"status": "ok", "message": "Lists updated successfully", "output": result.stdout}
-        else:
-            return {"status": "error", "message": result.stderr or "Failed to update lists"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-
-def get_config_settings() -> Dict[str, Any]:
-    """Возвращает редактируемые настройки из конфига."""
-    # Собираем все YouTube cookie URLs, включая пустые значения
-    # Используем getattr с дефолтом "" для безопасной обработки отсутствующих атрибутов
-    youtube_cookie_urls = []
-    try:
-        # Основной URL
-        main_url = getattr(Config, "YOUTUBE_COOKIE_URL", "")
-        youtube_cookie_urls.append(str(main_url) if main_url else "")
-    except (AttributeError, TypeError):
-        youtube_cookie_urls.append("")
-    
-    # Дополнительные URL (1-10)
-    for idx in range(1, 11):
-        try:
-            url = getattr(Config, f"YOUTUBE_COOKIE_URL_{idx}", "")
-            youtube_cookie_urls.append(str(url) if url else "")
-        except (AttributeError, TypeError):
-            youtube_cookie_urls.append("")
-    return {
-        "proxy": {
-            "type": getattr(Config, "PROXY_TYPE", ""),
-            "ip": getattr(Config, "PROXY_IP", ""),
-            "port": getattr(Config, "PROXY_PORT", ""),
-            "user": getattr(Config, "PROXY_USER", ""),
-            "password": getattr(Config, "PROXY_PASSWORD", ""),
-        },
-        "proxy_2": {
-            "type": getattr(Config, "PROXY_2_TYPE", ""),
-            "ip": getattr(Config, "PROXY_2_IP", ""),
-            "port": getattr(Config, "PROXY_2_PORT", ""),
-            "user": getattr(Config, "PROXY_2_USER", ""),
-            "password": getattr(Config, "PROXY_2_PASSWORD", ""),
-        },
-        "proxy_select": getattr(Config, "PROXY_SELECT", "random"),
-        "cookies": {
-            "youtube": getattr(Config, "YOUTUBE_COOKIE_URL", ""),
-            "instagram": getattr(Config, "INSTAGRAM_COOKIE_URL", ""),
-            "tiktok": getattr(Config, "TIKTOK_COOKIE_URL", ""),
-            "twitter": getattr(Config, "TWITTER_COOKIE_URL", ""),
-            "vk": getattr(Config, "VK_COOKIE_URL", ""),
-        },
-        "youtube_cookies": {
-            "order": getattr(Config, "YOUTUBE_COOKIE_ORDER", "round_robin"),
-            "test_url": getattr(Config, "YOUTUBE_COOKIE_TEST_URL", ""),
-            "cookie_url": getattr(Config, "COOKIE_URL", ""),
-            "pot_base_url": getattr(Config, "YOUTUBE_POT_BASE_URL", ""),
-            "list": youtube_cookie_urls,
-        },
-        "channels": {
-            "logs_id": getattr(Config, "LOGS_ID", ""),
-            "logs_video_id": getattr(Config, "LOGS_VIDEO_ID", ""),
-            "logs_nsfw_id": getattr(Config, "LOGS_NSFW_ID", ""),
-            "logs_img_id": getattr(Config, "LOGS_IMG_ID", ""),
-            "logs_paid_id": getattr(Config, "LOGS_PAID_ID", ""),
-            "log_exception": getattr(Config, "LOG_EXCEPTION", ""),
-            "subscribe_channel": getattr(Config, "SUBSCRIBE_CHANNEL", ""),
-        },
-        "allowed_groups": getattr(Config, "ALLOWED_GROUP", []),
-        "admins": getattr(Config, "ADMIN", []),
-        "miniapp_url": getattr(Config, "MINIAPP_URL", ""),
-        "subscribe_channel_url": getattr(Config, "SUBSCRIBE_CHANNEL_URL", ""),
-        "dashboard": {
-            "username": getattr(Config, "DASHBOARD_USERNAME", "admin"),
-            "password": getattr(Config, "DASHBOARD_PASSWORD", ""),  # Не показываем пароль в API
-        },
-    }
-
-
-def update_config_setting(key: str, value: Any) -> bool:
-    """Обновляет настройку в CONFIG/config.py."""
-    config_path = Path(__file__).parent.parent / "CONFIG" / "config.py"
-    try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        
-        # Простое обновление через поиск строки
-        patterns = {
-            "PROXY_TYPE": r'^\s*PROXY_TYPE\s*=',
-            "PROXY_IP": r'^\s*PROXY_IP\s*=',
-            "PROXY_PORT": r'^\s*PROXY_PORT\s*=',
-            "PROXY_USER": r'^\s*PROXY_USER\s*=',
-            "PROXY_PASSWORD": r'^\s*PROXY_PASSWORD\s*=',
-            "PROXY_2_TYPE": r'^\s*PROXY_2_TYPE\s*=',
-            "PROXY_2_IP": r'^\s*PROXY_2_IP\s*=',
-            "PROXY_2_PORT": r'^\s*PROXY_2_PORT\s*=',
-            "PROXY_2_USER": r'^\s*PROXY_2_USER\s*=',
-            "PROXY_2_PASSWORD": r'^\s*PROXY_2_PASSWORD\s*=',
-            "PROXY_SELECT": r'^\s*PROXY_SELECT\s*=',
-            "MINIAPP_URL": r'^\s*MINIAPP_URL\s*=',
-            "SUBSCRIBE_CHANNEL_URL": r'^\s*SUBSCRIBE_CHANNEL_URL\s*=',
-            "YOUTUBE_COOKIE_URL": r'^\s*YOUTUBE_COOKIE_URL\s*=',
-            "INSTAGRAM_COOKIE_URL": r'^\s*INSTAGRAM_COOKIE_URL\s*=',
-            "TIKTOK_COOKIE_URL": r'^\s*TIKTOK_COOKIE_URL\s*=',
-            "TWITTER_COOKIE_URL": r'^\s*TWITTER_COOKIE_URL\s*=',
-            "VK_COOKIE_URL": r'^\s*VK_COOKIE_URL\s*=',
-            "COOKIE_URL": r'^\s*COOKIE_URL\s*=',
-            "YOUTUBE_COOKIE_ORDER": r'^\s*YOUTUBE_COOKIE_ORDER\s*=',
-            "YOUTUBE_COOKIE_TEST_URL": r'^\s*YOUTUBE_COOKIE_TEST_URL\s*=',
-            "YOUTUBE_POT_BASE_URL": r'^\s*YOUTUBE_POT_BASE_URL\s*=',
-            "LOGS_ID": r'^\s*LOGS_ID\s*=',
-            "LOGS_VIDEO_ID": r'^\s*LOGS_VIDEO_ID\s*=',
-            "LOGS_NSFW_ID": r'^\s*LOGS_NSFW_ID\s*=',
-            "LOGS_IMG_ID": r'^\s*LOGS_IMG_ID\s*=',
-            "LOGS_PAID_ID": r'^\s*LOGS_PAID_ID\s*=',
-            "LOG_EXCEPTION": r'^\s*LOG_EXCEPTION\s*=',
-            "SUBSCRIBE_CHANNEL": r'^\s*SUBSCRIBE_CHANNEL\s*=',
-            "DASHBOARD_USERNAME": r'^\s*DASHBOARD_USERNAME\s*=',
-            "DASHBOARD_PASSWORD": r'^\s*DASHBOARD_PASSWORD\s*=',
-        }
-        integer_keys = {
-            "LOGS_ID",
-            "LOGS_VIDEO_ID",
-            "LOGS_NSFW_ID",
-            "LOGS_IMG_ID",
-            "LOGS_PAID_ID",
-            "LOG_EXCEPTION",
-            "SUBSCRIBE_CHANNEL",
-            "PROXY_PORT",
-            "PROXY_2_PORT",
-        }
-        
-        updated = False
-        for i, line in enumerate(lines):
-            if key in patterns and re.match(patterns[key], line):
-                if key in integer_keys:
-                    try:
-                        coerced = int(value)
-                        lines[i] = f"    {key} = {coerced}\n"
-                    except (ValueError, TypeError):
-                        # Если не удалось преобразовать в int, сохраняем как строку
-                        lines[i] = f"    {key} = \"{value}\"\n"
-                elif isinstance(value, (int, float)) and key not in integer_keys:
-                    lines[i] = f"    {key} = {value}\n"
-                elif isinstance(value, bool):
-                    lines[i] = f"    {key} = {str(value)}\n"
-                else:
-                    # Экранируем кавычки в строке
-                    escaped_value = str(value).replace('"', '\\"')
-                    lines[i] = f"    {key} = \"{escaped_value}\"\n"
-                updated = True
-                break
-            elif key == "ADMIN" and re.match(r'^\s*ADMIN\s*=', line):
-                if isinstance(value, list):
-                    list_str = ", ".join(str(v) for v in value)
-                    lines[i] = f"    ADMIN = [{list_str}]\n"
-                    updated = True
-                    break
-            elif key == "ALLOWED_GROUP" and re.match(r'^\s*ALLOWED_GROUP\s*=', line):
-                if isinstance(value, list):
-                    list_str = ", ".join(str(v) for v in value)
-                    lines[i] = f"    ALLOWED_GROUP = [{list_str}]\n"
-                    updated = True
-                    break
-            elif key.startswith("YOUTUBE_COOKIE_URL"):
-                # Проверяем активную строку (приоритет)
-                active_match = re.match(rf'^\s*{re.escape(key)}\s*=', line)
-                if active_match:
-                    # Обрабатываем пустые значения корректно
-                    escaped_value = str(value).replace('"', '\\"') if value else ""
-                    lines[i] = f"    {key} = \"{escaped_value}\"\n"
-                    updated = True
-                    break
-                # Проверяем закомментированную строку (если активной не нашли)
-                commented_match = re.match(rf'^\s*#\s*{re.escape(key)}\s*=', line)
-                if commented_match and not updated:
-                    # Обрабатываем пустые значения корректно
-                    escaped_value = str(value).replace('"', '\\"') if value else ""
-                    # Раскомментируем строку и обновляем значение
-                    lines[i] = f"    {key} = \"{escaped_value}\"\n"
-                    updated = True
-                    break
-            elif key == "DASHBOARD_PASSWORD" and re.match(r'^\s*DASHBOARD_PASSWORD\s*=', line):
-                # Для пароля обновляем только если передано непустое значение
-                if value and str(value).strip():
-                    escaped_value = str(value).replace('"', '\\"')
-                    lines[i] = f"    DASHBOARD_PASSWORD = \"{escaped_value}\"\n"
-                    updated = True
-                break
-        
-        if not updated and key.startswith("YOUTUBE_COOKIE_URL"):
-            # Ищем место после последнего YOUTUBE_COOKIE_URL (активного или закомментированного) или перед INSTAGRAM_COOKIE_URL
-            insert_at = len(lines)
-            # Сначала ищем последний YOUTUBE_COOKIE_URL (активный или закомментированный)
-            for idx in range(len(lines) - 1, -1, -1):
-                # Проверяем как активную, так и закомментированную строку
-                if re.match(r'^\s*#?\s*YOUTUBE_COOKIE_URL', lines[idx]):
-                    insert_at = idx + 1
-                    break
-            # Если не нашли, ищем перед INSTAGRAM_COOKIE_URL
-            if insert_at == len(lines):
-                insert_at = next(
-                    (idx for idx, line in enumerate(lines) if "INSTAGRAM_COOKIE_URL" in line),
-                    len(lines),
-                )
-            # Обрабатываем пустые значения корректно
-            escaped_value = str(value).replace('"', '\\"') if value else ""
-            lines.insert(insert_at, f"    {key} = \"{escaped_value}\"\n")
-            updated = True
-        elif not updated and key == "DASHBOARD_PASSWORD":
-            # Ищем место после DASHBOARD_USERNAME
-            insert_at = next(
-                (idx for idx, line in enumerate(lines) if "DASHBOARD_USERNAME" in line),
-                len(lines),
-            )
-            if insert_at < len(lines):
-                lines.insert(insert_at + 1, f"    DASHBOARD_PASSWORD = \"{value}\"\n")
-            else:
-                lines.append(f"    DASHBOARD_PASSWORD = \"{value}\"\n")
-            updated = True
-        elif not updated and key in patterns:
-            if key in integer_keys:
-                try:
-                    coerced = int(value)
-                except Exception:
-                    coerced = value
-                lines.append(f"    {key} = {coerced}\n")
-            else:
-                lines.append(f"    {key} = \"{value}\"\n")
-            updated = True
-        
-        if updated:
-            with open(config_path, "w", encoding="utf-8") as f:
-                f.writelines(lines)
-            
-            # Если обновили логин или пароль дашборда, перезагружаем конфиг в auth_service
-            if key in ("DASHBOARD_USERNAME", "DASHBOARD_PASSWORD"):
-                try:
-                    from services.auth_service import get_auth_service
-                    auth_service = get_auth_service()
-                    auth_service.reload_config()
-                except Exception as auth_error:
-                    logger.warning(f"Failed to reload auth config: {auth_error}")
-            
-            return True
-        return False
-    except Exception as e:
-        logger.error(f"Error updating config: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return False
-

@@ -51,7 +51,7 @@ services:
     working_dir: /app
     command: ["python", "-m", "uvicorn", "web.dashboard_app:app", "--host", "0.0.0.0", "--port", "5555"]
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     environment:
       - BOT_CONTAINER_NAME=tg-ytdlp-bot
       - WARP_CONTAINER_NAME=tg-ytdlp-warp

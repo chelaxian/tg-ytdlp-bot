@@ -1,368 +1,338 @@
+"""Domain lists (CONFIG/domains.py) and NSFW word lists (TXT/*.txt) for the dashboard.
+
+Writes are safe by construction:
+* only the lists shown in the dashboard can be changed (whitelist);
+* every item is validated (printable, no quotes/backslashes/newlines, length cap);
+* the new block is generated with repr(), the whole file is checked with
+  ast.parse() before it replaces the old one atomically, and a backup is kept.
+"""
+
 from __future__ import annotations
 
+import ast
+import ipaddress
 import os
 import re
-import subprocess
-from pathlib import Path
-from typing import Dict, Any, List
 import shutil
-from urllib.parse import urlparse
-import ipaddress
+import socket
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urljoin, urlparse
 
-from CONFIG.domains import DomainsConfig
 from CONFIG.config import Config
 
+BASE_DIR = Path(os.environ.get("TG_DASHBOARD_PROJECT_DIR", str(Path(__file__).resolve().parent.parent)))
+DOMAINS_FILE = BASE_DIR / "CONFIG" / "domains.py"
 
-def get_file_line_count(file_path: str) -> int:
-    """Подсчитывает количество строк в файле."""
+EDITABLE_LISTS: Dict[str, str] = {
+    # name: kind -> validator
+    "WHITE_KEYWORDS": "keyword",
+    "GALLERYDL_ONLY_DOMAINS": "domain",
+    "GALLERYDL_ONLY_PATH": "path",
+    "GALLERYDL_FALLBACK_DOMAINS": "domain",
+    "YTDLP_ONLY_DOMAINS": "domain",
+    "WHITELIST": "domain",
+    "GREYLIST": "domain",
+    "NO_COOKIE_DOMAINS": "domain",
+    "PROXY_1_DOMAINS": "domain",
+    "PROXY_2_DOMAINS": "domain",
+    "NO_FILTER_DOMAINS": "domain",
+    "TIKTOK_DOMAINS": "domain",
+    "CLEAN_QUERY": "domain",
+    "BLACK_LIST": "domain",
+}
+
+MAX_ITEMS = 20_000
+MAX_ITEM_LEN = 200
+_DOMAIN = re.compile(r"^[A-Za-z0-9*](?:[A-Za-z0-9*._-]{0,198}[A-Za-z0-9])?$")
+_PATH = re.compile(r"^[A-Za-z0-9._~:/?#@!$&()*+,;=%\[\]-]{1,200}$")
+_KEYWORD = re.compile(r"^[^\"'\\\x00-\x1f\x7f]{1,200}$")
+
+DOWNLOAD_LIMIT = 20 * 1024 * 1024
+MIN_LIST_LINES = 10
+
+
+class ListError(ValueError):
+    pass
+
+
+# --------------------------------------------------------------------------------------
+# Reading
+# --------------------------------------------------------------------------------------
+
+def get_file_line_count(file_path) -> int:
     try:
-        if not os.path.exists(file_path):
-            return 0
-        with open(file_path, "r", encoding="utf-8") as f:
-            return sum(1 for _ in f if _.strip())
-    except Exception:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            return sum(1 for line in f if line.strip())
+    except OSError:
         return 0
 
 
 def get_lists_stats() -> Dict[str, Any]:
-    """Возвращает статистику по файлам списков."""
-    base_dir = Path(__file__).parent.parent
     return {
-        "porn_domains": get_file_line_count(base_dir / Config.PORN_DOMAINS_FILE),
-        "porn_keywords": get_file_line_count(base_dir / Config.PORN_KEYWORDS_FILE),
-        "supported_sites": get_file_line_count(base_dir / Config.SUPPORTED_SITES_FILE),
+        "porn_domains": get_file_line_count(BASE_DIR / Config.PORN_DOMAINS_FILE),
+        "porn_keywords": get_file_line_count(BASE_DIR / Config.PORN_KEYWORDS_FILE),
+        "supported_sites": get_file_line_count(BASE_DIR / Config.SUPPORTED_SITES_FILE),
     }
+
+
+def _list_nodes(tree: ast.AST) -> Dict[str, ast.Assign]:
+    """`NAME = [...]` assignments inside class DomainsConfig (or at module level)."""
+    found: Dict[str, ast.Assign] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            if isinstance(node.value, (ast.List, ast.Tuple)) and node.targets[0].id in EDITABLE_LISTS:
+                found.setdefault(node.targets[0].id, node)
+    return found
 
 
 def get_domain_lists() -> Dict[str, List[str]]:
-    """Возвращает все списки доменов из CONFIG/domains.py."""
-    return {
-        "WHITE_KEYWORDS": list(getattr(DomainsConfig, "WHITE_KEYWORDS", [])),
-        "GALLERYDL_ONLY_DOMAINS": list(getattr(DomainsConfig, "GALLERYDL_ONLY_DOMAINS", [])),
-        "GALLERYDL_ONLY_PATH": list(getattr(DomainsConfig, "GALLERYDL_ONLY_PATH", [])),
-        "GALLERYDL_FALLBACK_DOMAINS": list(getattr(DomainsConfig, "GALLERYDL_FALLBACK_DOMAINS", [])),
-        "YTDLP_ONLY_DOMAINS": list(getattr(DomainsConfig, "YTDLP_ONLY_DOMAINS", [])),
-        "WHITELIST": list(getattr(DomainsConfig, "WHITELIST", [])),
-        "GREYLIST": list(getattr(DomainsConfig, "GREYLIST", [])),
-        "NO_COOKIE_DOMAINS": list(getattr(DomainsConfig, "NO_COOKIE_DOMAINS", [])),
-        "PROXY_1_DOMAINS": list(getattr(DomainsConfig, "PROXY_1_DOMAINS", [])),
-        "PROXY_2_DOMAINS": list(getattr(DomainsConfig, "PROXY_2_DOMAINS", [])),
-        "NO_FILTER_DOMAINS": list(getattr(DomainsConfig, "NO_FILTER_DOMAINS", [])),
-        "TIKTOK_DOMAINS": list(getattr(DomainsConfig, "TIKTOK_DOMAINS", [])),
-        "CLEAN_QUERY": list(getattr(DomainsConfig, "CLEAN_QUERY", [])),
-        "BLACK_LIST": list(getattr(DomainsConfig, "BLACK_LIST", [])),
-    }
-
-
-def update_domain_list(list_name: str, items: List[str]) -> bool:
-    """Обновляет список доменов в CONFIG/domains.py."""
-    domains_path = Path(__file__).parent.parent / "CONFIG" / "domains.py"
-    try:
-        with open(domains_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        
-        # Ищем начало списка
-        start_idx = None
-        end_idx = None
-        indent = "    "
-        # Экранируем специальные символы regex для безопасности
-        escaped_list_name = re.escape(list_name)
-        for i, line in enumerate(lines):
-            if re.match(rf'^\s*{escaped_list_name}\s*=\s*\[', line):
-                start_idx = i
-                # Определяем отступ
-                indent_match = re.match(r'^(\s*)', line)
-                if indent_match:
-                    indent = indent_match.group(1)
-                break
-        
-        if start_idx is None:
-            return False
-        
-        # Ищем конец списка
-        bracket_count = 0
-        found_open = False
-        for i in range(start_idx, len(lines)):
-            line = lines[i]
-            for char in line:
-                if char == '[':
-                    bracket_count += 1
-                    found_open = True
-                elif char == ']':
-                    bracket_count -= 1
-                    if found_open and bracket_count == 0:
-                        end_idx = i
-                        break
-            if end_idx is not None:
-                break
-        
-        if end_idx is None:
-            return False
-        
-        # Формируем новый список (экранируем \ и " для корректного Python)
-        new_lines = [f"{indent}{list_name} = [\n"]
-        for item in items:
-            escaped = str(item).replace("\\", "\\\\").replace('"', '\\"')
-            new_lines.append(f'{indent}    "{escaped}",\n')
-        new_lines.append(f"{indent}]\n")
-        
-        # Заменяем старый список новым
-        lines[start_idx:end_idx + 1] = new_lines
-        
-        with open(domains_path, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-        return True
-    except Exception as e:
-        print(f"Error updating domain list {list_name}: {e}")
-        return False
-
-
-def update_lists() -> Dict[str, Any]:
-    """
-    Обновляет списки.
-    - Если есть docker и контейнер бота: возвращает специальный статус для запроса URL.
-    - Иначе: запускаем локальный script.sh (старое поведение).
-    """
-    try:
-        def _has_docker() -> bool:
-            """Проверяет наличие docker CLI и сокета."""
-            docker_path = shutil.which("docker")
-            docker_sock = Path("/var/run/docker.sock")
-            return bool(docker_path) and docker_sock.exists()
-
-        def _container_is_running(name: str) -> bool:
-            """Проверяет, что контейнер с именем name запущен (docker ps)."""
-            if not _has_docker():
-                return False
-            try:
-                result = subprocess.run(
-                    ["docker", "ps", "--filter", f"name={name}", "--format", "{{.Names}}"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                    check=False,
-                )
-                if result.returncode != 0:
-                    return False
-                names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
-                return any(n == name for n in names)
-            except Exception:
-                return False
-
-        # Docker режим: возвращаем специальный статус для запроса URL (только если контейнер запущен)
-        if _has_docker() and _container_is_running("tg-ytdlp-bot"):
-            return {
-                "status": "need_urls",
-                "message": "Please provide .txt URLs for porn_domains and porn_keywords",
-            }
-
-        # Локальный режим — старое поведение
-        script_path = Path(__file__).resolve().parent.parent / "script.sh"
-        if not script_path.exists():
-            return {"status": "error", "message": f"{script_path} not found"}
-        result = subprocess.run(
-            ["bash", str(script_path)],
-            capture_output=True,
-            text=True,
-            timeout=300,  # 5 минут
-            check=False,
-        )
-        if result.returncode == 0:
-            return {"status": "ok", "message": "Lists updated successfully", "output": result.stdout}
-        else:
-            return {"status": "error", "message": result.stderr or "Failed to update lists"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-
-def _validate_url_for_ssrf(url: str, allowed_urls: set[str] | None = None) -> tuple[bool, str]:
-    """
-    Валидирует URL для предотвращения SSRF атак.
-    Возвращает (is_valid, error_message).
-    allowed_urls: набор точных URL, которым доверяем (напр. cookie-webserver из Config).
-    Они проходят без SSRF-фильтрации хоста. Совпадение строго по полному URL,
-    поэтому послабление не открывает остальной localhost/приватную сеть.
-    """
-    if not url:
-        return False, "URL is empty"
-    # Explicitly trusted exact URLs (e.g. cookie-webserver URLs from Config) bypass the host filter
-    if allowed_urls and url in allowed_urls:
-        return True, ""
-
-    try:
-        parsed = urlparse(url)
-        
-        # Разрешаем только HTTP и HTTPS
-        if parsed.scheme not in ('http', 'https'):
-            return False, f"Invalid scheme: {parsed.scheme}. Only http and https are allowed"
-        
-        # Проверяем хост
-        host = parsed.hostname
-        if not host:
-            return False, "URL must have a hostname"
-        
-        host_lower = host.lower()
-        
-        # Блокируем localhost и его варианты
-        blocked_hosts = {
-            'localhost',
-            '127.0.0.1',
-            '0.0.0.0',
-            '::1',
-            '[::1]',
-        }
-        if host_lower in blocked_hosts:
-            return False, f"Blocked hostname: {host}"
-        
-        # Блокируем внутренние IP адреса
+    """Current lists, read from the file (not the imported module) so edits show at once."""
+    source = DOMAINS_FILE.read_text(encoding="utf-8")
+    nodes = _list_nodes(ast.parse(source))
+    result: Dict[str, List[str]] = {}
+    for name in EDITABLE_LISTS:
+        node = nodes.get(name)
+        if node is None:
+            continue
         try:
-            ip = ipaddress.ip_address(host)
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                return False, f"Blocked private/reserved IP: {host}"
-            # Блокируем метаданные облачных сервисов (169.254.169.254)
-            if str(ip) == '169.254.169.254':
-                return False, f"Blocked metadata service IP: {host}"
+            value = ast.literal_eval(node.value)
+        except Exception:
+            continue
+        result[name] = [str(v) for v in value]
+    return result
+
+
+# --------------------------------------------------------------------------------------
+# Writing
+# --------------------------------------------------------------------------------------
+
+def validate_items(list_name: str, items: List[Any]) -> List[str]:
+    kind = EDITABLE_LISTS.get(list_name)
+    if kind is None:
+        raise ListError("unknown_list")
+    if not isinstance(items, list) or len(items) > MAX_ITEMS:
+        raise ListError("too_many_items")
+    pattern = {"domain": _DOMAIN, "path": _PATH, "keyword": _KEYWORD}[kind]
+    clean: List[str] = []
+    seen = set()
+    for raw in items:
+        if not isinstance(raw, str):
+            raise ListError("invalid_item")
+        item = raw.strip()
+        if kind == "domain":
+            item = item.lower()
+        if not item:
+            continue
+        if len(item) > MAX_ITEM_LEN or not pattern.match(item):
+            raise ListError(f"invalid_item:{item[:60]}")
+        if item not in seen:
+            seen.add(item)
+            clean.append(item)
+    return clean
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        try:
+            shutil.copymode(path, tmp)
+        except OSError:
+            pass
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def update_domain_list(list_name: str, items: List[Any]) -> List[str]:
+    """Replace one list in CONFIG/domains.py. Returns the stored items; raises ListError."""
+    clean = validate_items(list_name, items)
+    raw = DOMAINS_FILE.read_bytes()
+    newline = "\r\n" if b"\r\n" in raw else "\n"
+    source = raw.decode("utf-8").replace("\r\n", "\n")
+    node = _list_nodes(ast.parse(source)).get(list_name)
+    if node is None:
+        raise ListError("list_not_found")
+    lines = source.split("\n")
+    start, end = node.lineno - 1, node.end_lineno - 1
+    indent = re.match(r"\s*", lines[start]).group(0)
+    block = [f"{indent}{list_name} = ["] + [f"{indent}    {item!r}," for item in clean] + [f"{indent}]"]
+    # keep anything after the closing bracket on its line (e.g. a comment)
+    tail = lines[end][node.end_col_offset:]
+    if tail.strip():
+        block[-1] += tail
+    new_source = "\n".join(lines[:start] + block + lines[end + 1:])
+    check = _list_nodes(ast.parse(new_source)).get(list_name)  # raises SyntaxError if broken
+    if check is None or ast.literal_eval(check.value) != clean:
+        raise ListError("verify_failed")
+    backup_dir = BASE_DIR / "CONFIG" / ".backups"
+    backup_dir.mkdir(exist_ok=True)
+    shutil.copy2(DOMAINS_FILE, backup_dir / f"domains.py.{int(time.time())}")
+    _prune_backups(backup_dir, "domains.py.", keep=20)
+    _atomic_write_text(DOMAINS_FILE, new_source.replace("\n", newline))
+    return clean
+
+
+def _prune_backups(folder: Path, prefix: str, keep: int) -> None:
+    copies = sorted(folder.glob(prefix + "*"), key=lambda p: p.stat().st_mtime)
+    for old in copies[:-keep]:
+        try:
+            old.unlink()
+        except OSError:
+            pass
+
+
+# --------------------------------------------------------------------------------------
+# NSFW lists from URLs (Docker mode, where script.sh is not available)
+# --------------------------------------------------------------------------------------
+
+def _bad_ip(ip: ipaddress._BaseAddress) -> bool:
+    return (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+            or ip.is_multicast or ip.is_unspecified)
+
+
+def _validate_url_for_ssrf(url: str) -> Tuple[bool, str]:
+    if not url or len(url) > 2000:
+        return False, "empty_or_long"
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return False, "scheme"
+    host = parsed.hostname
+    if not host:
+        return False, "host"
+    lowered = host.lower()
+    if lowered in {"localhost", "0.0.0.0"} or "localhost" in lowered or lowered.endswith((".local", ".internal")):
+        return False, "internal_host"
+    try:
+        if _bad_ip(ipaddress.ip_address(host)):
+            return False, "internal_ip"
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80))
+    except socket.gaierror:
+        return False, "dns"
+    for *_, sockaddr in infos:
+        try:
+            if _bad_ip(ipaddress.ip_address(sockaddr[0].split("%")[0])):
+                return False, "internal_ip"
         except ValueError:
-            # Не IP адрес, проверяем домен
-            # Блокируем домены, которые могут указывать на внутренние ресурсы
-            if host_lower.endswith('.local') or host_lower.endswith('.internal'):
-                return False, f"Blocked internal domain: {host}"
-            # Блокируем домены, содержащие localhost
-            if 'localhost' in host_lower:
-                return False, f"Blocked hostname containing localhost: {host}"
+            continue
+    return True, ""
 
-        # Резолвим hostname и отклоняем имена, указывающие на внутренние сети:
-        # проверки литеральных IP недостаточно — DNS-имя вида attacker.example
-        # может резолвиться в 127.0.0.1 или 169.254.169.254 (SSRF).
-        import socket
+
+def _download_text(url: str, timeout: int = 30) -> str:
+    """Fetch only public endpoints; pin DNS before connecting, including redirects.
+
+    HTTP Host and TLS SNI still use the original hostname. No environment proxy,
+    cookies or authorization are forwarded. Total time and body size are bounded.
+    """
+    import http.client
+    import ssl
+    current = url
+    deadline = time.monotonic() + timeout
+    for _ in range(6):
+        parsed = urlparse(current)
+        if (parsed.scheme not in ("http", "https") or not parsed.hostname
+                or parsed.username is not None or parsed.password is not None
+                or any(ord(c) < 33 for c in current)):
+            raise ListError("url_rejected:invalid_url")
+        host = parsed.hostname
         try:
-            addrinfos = socket.getaddrinfo(host, None)
-        except socket.gaierror:
-            return False, f"Cannot resolve hostname: {host}"
-        for *_, sockaddr in addrinfos:
-            try:
-                resolved_ip = ipaddress.ip_address(sockaddr[0].split('%')[0])
-            except ValueError:
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        except (OSError, ValueError):
+            raise ListError("url_rejected:dns") from None
+        if not addresses or any(_bad_ip(ipaddress.ip_address(a[4][0].split("%")[0])) for a in addresses):
+            raise ListError("url_rejected:internal_ip")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ListError("download_timeout")
+        family, socktype, proto, _, sockaddr = addresses[0]
+        sock = socket.socket(family, socktype, proto)
+        conn = http.client.HTTPConnection(host, port, timeout=min(remaining, 10))
+        try:
+            sock.settimeout(min(remaining, 10))
+            sock.connect(sockaddr)  # validated address, no second DNS resolution
+            if parsed.scheme == "https":
+                sock = ssl.create_default_context().wrap_socket(sock, server_hostname=host)
+            conn.sock = sock
+            path = parsed.path or "/"
+            if parsed.query:
+                path += "?" + parsed.query
+            conn.request("GET", path, headers={"User-Agent": "tg-ytdlp-dashboard",
+                                               "Accept-Encoding": "identity"})
+            resp = conn.getresponse()
+            if resp.status in (301, 302, 303, 307, 308) and resp.getheader("Location"):
+                current = urljoin(current, resp.getheader("Location"))
                 continue
-            if (
-                resolved_ip.is_private
-                or resolved_ip.is_loopback
-                or resolved_ip.is_link_local
-                or resolved_ip.is_reserved
-                or resolved_ip.is_multicast
-                or resolved_ip.is_unspecified
-            ):
-                return False, f"Hostname resolves to a private/reserved address: {host}"
-
-        return True, ""
-    except Exception as e:
-        return False, f"URL validation error: {str(e)}"
-
-
-def _safe_get_with_redirect_validation(url: str, timeout: int = 30) -> requests.Response:
-    """
-    Безопасный GET запрос с валидацией редиректов для предотвращения SSRF.
-    """
-    import requests
-    from requests.adapters import HTTPAdapter
-    from urllib3.util.retry import Retry
-    from urllib.parse import urljoin
-    
-    # Валидация входного URL для предотвращения SSRF
-    is_valid, error_msg = _validate_url_for_ssrf(url)
-    if not is_valid:
-        raise ValueError(f"Invalid URL: {error_msg}")
-    
-    session = requests.Session()
-    
-    # Настраиваем retry стратегию
-    retry_strategy = Retry(
-        total=3,
-        backoff_factor=1,
-        status_forcelist=[429, 500, 502, 503, 504],
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    
-    # Отключаем автоматические редиректы и обрабатываем их вручную с валидацией
-    current_url = url
-    response = session.get(current_url, timeout=timeout, allow_redirects=False)
-    
-    # Обрабатываем редиректы вручную с валидацией
-    max_redirects = 10
-    redirect_count = 0
-    while response.status_code in (301, 302, 303, 307, 308) and redirect_count < max_redirects:
-        redirect_location = response.headers.get('Location')
-        if not redirect_location:
-            break
-        
-        # Обрабатываем относительные редиректы
-        if redirect_location.startswith('/'):
-            redirect_url = urljoin(current_url, redirect_location)
-        elif not redirect_location.startswith(('http://', 'https://')):
-            redirect_url = urljoin(current_url, redirect_location)
-        else:
-            redirect_url = redirect_location
-        
-        # Валидируем URL редиректа
-        is_valid, error_msg = _validate_url_for_ssrf(redirect_url)
-        if not is_valid:
-            raise ValueError(f"Invalid redirect URL: {error_msg}")
-        
-        redirect_count += 1
-        current_url = redirect_url
-        response = session.get(current_url, timeout=timeout, allow_redirects=False)
-    
-    if redirect_count >= max_redirects:
-        raise ValueError("Too many redirects")
-    
-    return response
+            if resp.status != 200:
+                raise ListError("download_http_error")
+            chunks, size = [], 0
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ListError("download_timeout")
+                sock.settimeout(min(remaining, 10))
+                chunk = resp.read1(64 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > DOWNLOAD_LIMIT:
+                    raise ListError("too_large")
+                chunks.append(chunk)
+            return b"".join(chunks).decode("utf-8", errors="strict")
+        finally:
+            conn.close()
+            sock.close()
+    raise ListError("too_many_redirects")
 
 
-def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str) -> Dict[str, Any]:
-    """
-    Обновляет списки из URL (для Docker режима).
-    Скачивает файлы по URL и сохраняет их в соответствующие файлы.
-    """
-    base_dir = Path(__file__).resolve().parent.parent
-    
-    try:
-        # Скачиваем porn_domains.txt
-        if porn_domains_url:
-            # Валидация URL для предотвращения SSRF
-            is_valid, error_msg = _validate_url_for_ssrf(porn_domains_url)
-            if not is_valid:
-                return {"status": "error", "message": f"Invalid porn_domains URL: {error_msg}"}
-            
-            try:
-                response = _safe_get_with_redirect_validation(porn_domains_url, timeout=30)
-                response.raise_for_status()
-                domains_file = base_dir / Config.PORN_DOMAINS_FILE
-                domains_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(domains_file, "w", encoding="utf-8") as f:
-                    f.write(response.text)
-            except Exception as e:
-                return {"status": "error", "message": f"Failed to download porn_domains: {str(e)}"}
-        
-        # Скачиваем porn_keywords.txt
-        if porn_keywords_url:
-            # Валидация URL для предотвращения SSRF
-            is_valid, error_msg = _validate_url_for_ssrf(porn_keywords_url)
-            if not is_valid:
-                return {"status": "error", "message": f"Invalid porn_keywords URL: {error_msg}"}
-            
-            try:
-                response = _safe_get_with_redirect_validation(porn_keywords_url, timeout=30)
-                response.raise_for_status()
-                keywords_file = base_dir / Config.PORN_KEYWORDS_FILE
-                keywords_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(keywords_file, "w", encoding="utf-8") as f:
-                    f.write(response.text)
-            except Exception as e:
-                return {"status": "error", "message": f"Failed to download porn_keywords: {str(e)}"}
-        
-        return {"status": "ok", "message": "Lists updated successfully from URLs"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+def _check_list_text(text: str) -> str:
+    head = text[:2000].lower()
+    if "<html" in head or "<!doctype" in head:
+        raise ListError("not_a_list")
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) < MIN_LIST_LINES:
+        raise ListError("too_few_lines")
+    return "\n".join(lines) + "\n"
 
+
+def update_lists_from_urls(porn_domains_url: str, porn_keywords_url: str, log=None) -> Dict[str, int]:
+    """Download, validate and atomically replace the NSFW lists. Raises ListError."""
+    targets = [(porn_domains_url, Config.PORN_DOMAINS_FILE), (porn_keywords_url, Config.PORN_KEYWORDS_FILE)]
+    staged = []
+    for url, rel in targets:
+        if not url:
+            continue
+        if log:
+            log(f"Downloading {urlparse(url).netloc}{urlparse(url).path}")
+        staged.append((BASE_DIR / rel, _check_list_text(_download_text(url))))
+    if not staged:
+        raise ListError("no_urls")
+    counts = {}
+    for path, text in staged:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            shutil.copy2(path, path.with_name(path.name + ".bak"))
+        _atomic_write_text(path, text)
+        counts[path.name] = text.count("\n")
+        if log:
+            log(f"{path.name}: {counts[path.name]} lines")
+    return counts
+
+
+def local_update_script() -> Optional[Path]:
+    """script.sh next to the bot (systemd installs); None in Docker."""
+    script = BASE_DIR / "script.sh"
+    return script if script.exists() else None

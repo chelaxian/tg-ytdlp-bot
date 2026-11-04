@@ -1,106 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Bot Dashboard</title>
-    <link rel="stylesheet" href="/static/dashboard.css">
-    <style>
-        .login-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: #0f172a;
-        }
-        .login-card {
-            background: #121a2c;
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 24px;
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 400px;
-        }
-        .login-card h1 {
-            margin: 0 0 1.5rem 0;
-            text-align: center;
-            color: #e2e8f0;
-        }
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #94a3b8;
-            font-size: 0.9rem;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            background: #0f172a;
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-size: 1rem;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #22d3ee;
-        }
-        .login-button {
-            width: 100%;
-            padding: 0.75rem;
-            background: linear-gradient(120deg, #22d3ee, #a855f7);
-            color: #0f172a;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .login-button:hover {
-            opacity: 0.9;
-        }
-        .login-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .error-message {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: rgba(248, 113, 113, 0.2);
-            border: 1px solid rgba(248, 113, 113, 0.4);
-            border-radius: 8px;
-            color: #f87171;
-            font-size: 0.9rem;
-            display: none;
-        }
-        .error-message.show {
-            display: block;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{{ bot_name }}</title>
+  <link rel="icon" href="/static/icon.svg?v={{ v }}" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css?v={{ v }}">
+  <script src="/static/theme.js?v={{ v }}"></script>
+  <script type="module" src="/static/login.js?v={{ v }}"></script>
 </head>
-<body>
-    <div class="login-container">
-        <div class="login-card">
-            <h1>Bot Dashboard</h1>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required autofocus>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit" class="login-button" id="login-btn">Login</button>
-                <div class="error-message" id="error-msg"></div>
-            </form>
-        </div>
+<body class="login-page">
+  <main class="login">
+    <div class="login-brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name" id="bot-name">{{ bot_name }}</span>
     </div>
-    <script src="/static/login.js"></script>
+    <form class="login-form" id="login-form" novalidate>
+      <h1 data-i18n="login.title">Вход в панель</h1>
+      <label class="field">
+        <span data-i18n="login.user">Логин</span>
+        <input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="128">
+      </label>
+      <label class="field">
+        <span data-i18n="login.password">Пароль</span>
+        <input name="password" type="password" autocomplete="current-password" required maxlength="256">
+      </label>
+      <p class="form-error" id="login-error" role="alert" hidden></p>
+      <button type="submit" class="primary wide" id="login-submit" data-i18n="login.submit">Войти</button>
+    </form>
+    <button type="button" class="ghost lang-switch" id="lang-toggle"></button>
+  </main>
 </body>
 </html>
-

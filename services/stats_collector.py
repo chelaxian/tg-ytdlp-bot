@@ -17,7 +17,7 @@ import logging
 from CONFIG.config import Config
 
 logger = logging.getLogger(__name__)
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(os.environ.get("TG_DASHBOARD_PROJECT_DIR", str(Path(__file__).resolve().parent.parent)))
 
 # --------------------------------------------------------------------------------------
 # Утилиты
@@ -397,6 +397,22 @@ class ChannelActivity:
 # --------------------------------------------------------------------------------------
 
 
+_BACKGROUND_PROFILES = False
+_PROFILE_CACHE_MAX = 20_000
+_NEGATIVE_TTL = 24 * 3600
+
+
+def enable_background_profiles() -> None:
+    """Dashboard process: never call Telegram from a request.
+
+    Profiles are then served from cache only; missing or stale ones are fetched
+    one by one by a background worker (rate-limited, failures cached for 24 h).
+    """
+    global _BACKGROUND_PROFILES
+    _BACKGROUND_PROFILES = True
+    get_stats_collector()._profile_fetcher.start_worker()
+
+
 class TelegramProfileFetcher:
     """Локальный кеш для запросов к Telegram Bot API (getChat) и Pyrogram API."""
 
@@ -409,6 +425,49 @@ class TelegramProfileFetcher:
         self._pending_fetches: Set[int] = set()
         self._fetch_lock = threading.Lock()
         self._pyro_app = None  # Будет установлен позже через set_pyro_app
+        self._failed: Dict[int, float] = {}
+        self._queue: Deque[int] = deque()
+        self._queue_cv = threading.Condition()
+        self._worker: Optional[threading.Thread] = None
+
+    def start_worker(self) -> None:
+        if self._worker is not None or not self._token:
+            return
+        self._worker = threading.Thread(target=self._worker_loop, name="profile_fetcher", daemon=True)
+        self._worker.start()
+
+    def _enqueue(self, user_id: int) -> None:
+        now = time.time()
+        with self._queue_cv:
+            if user_id in self._pending_fetches:
+                return
+            if now - self._failed.get(user_id, 0) < _NEGATIVE_TTL:
+                return
+            if len(self._queue) > 5000:
+                return
+            self._pending_fetches.add(user_id)
+            self._queue.append(user_id)
+            self._queue_cv.notify()
+
+    def _worker_loop(self) -> None:
+        while True:
+            with self._queue_cv:
+                while not self._queue:
+                    self._queue_cv.wait()
+                user_id = self._queue.popleft()
+            try:
+                if self._fetch_network(user_id) is None:
+                    with self._queue_cv:
+                        self._failed[user_id] = time.time()
+                        if len(self._failed) > _PROFILE_CACHE_MAX:
+                            for key in list(self._failed)[: len(self._failed) // 4]:
+                                self._failed.pop(key, None)
+            except Exception:
+                pass
+            finally:
+                with self._queue_cv:
+                    self._pending_fetches.discard(user_id)
+            time.sleep(0.35)  # ~3 getChat/s: far below Bot API limits
 
     def set_pyro_app(self, app):
         """Устанавливает Pyrogram Client для получения расширенной информации о пользователях."""
@@ -482,9 +541,17 @@ class TelegramProfileFetcher:
             cached = self._cache.get(user_id)
             if cached and not force_refresh and (now - cached.last_refresh_ts) < self._ttl:
                 return cached
+        if _BACKGROUND_PROFILES:
+            self._enqueue(user_id)
+            return cached
+        return self._fetch_network(user_id)
+
+    def _fetch_network(self, user_id: int) -> Optional[ProfileInfo]:
+        with self._lock:
+            cached = self._cache.get(user_id)
         try:
             url = f"https://api.telegram.org/bot{self._token}/getChat"
-            resp = self._session.get(url, params={"chat_id": user_id}, timeout=10)
+            resp = self._session.get(url, params={"chat_id": user_id}, timeout=5 if _BACKGROUND_PROFILES else 10)
             resp.raise_for_status()
             data = resp.json().get("result", {})
         except Exception as exc:
@@ -512,10 +579,21 @@ class TelegramProfileFetcher:
         
         with self._lock:
             self._cache[user_id] = profile
+            if len(self._cache) > _PROFILE_CACHE_MAX:
+                oldest = sorted(self._cache.items(), key=lambda kv: kv[1].last_refresh_ts)
+                for key, _ in oldest[: len(self._cache) // 4]:
+                    self._cache.pop(key, None)
         return profile
 
     def batch_fetch_profiles(self, user_ids: List[int], max_workers: int = 5) -> Dict[int, ProfileInfo]:
         """Массово получает профили для списка пользователей."""
+        if _BACKGROUND_PROFILES:
+            found = {}
+            for uid in user_ids:
+                profile = self.get_profile(uid)
+                if profile:
+                    found[uid] = profile
+            return found
         from concurrent.futures import ThreadPoolExecutor, as_completed
         results = {}
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -703,6 +781,7 @@ class StatsCollector:
         first_seen: Dict[int, int] = {}
         blocked_users: Dict[int, BlockRecord] = {}
         channel_events: List[ChannelActivity] = []
+        log_names: Dict[int, str] = {}
         latest_ts = 0
 
         logs = bot_root.get("logs")
@@ -711,9 +790,11 @@ class StatsCollector:
                 if not isinstance(entries, dict):
                     continue
                 for ts_str, payload in entries.items():
-                    record = self._record_from_payload(user_id_str, ts_str, payload)
+                    record = self._record_from_payload(user_id_str, ts_str, payload, register_multi=False)
                     if not record:
                         continue
+                    if isinstance(payload, dict) and payload.get("name"):
+                        log_names[record.user_id] = str(payload.get("name"))[:128]
                     download_records.append(record)
                     prev = first_seen.get(record.user_id)
                     if not prev or record.timestamp < prev:
@@ -776,6 +857,14 @@ class StatsCollector:
             )
             # обновляем карту первой активности
             self._first_seen = first_seen
+            # names stored with every log entry: shown without asking Telegram
+            for uid, name in log_names.items():
+                profile = self._profiles.get(uid)
+                if profile is None:
+                    self._profiles[uid] = ProfileInfo(user_id=uid, first_name=name,
+                                                      gender=_guess_gender(name), last_refresh_ts=0)
+                elif not profile.first_name:
+                    profile.first_name = name
         logger.debug(
             "[stats] dump reloaded: downloads=%s blocked=%s events=%s latest_ts=%s",
             len(self._historical_downloads),
@@ -785,7 +874,7 @@ class StatsCollector:
         )
 
     def _record_from_payload(
-        self, user_id_str: str, ts_str: str, payload: Dict[str, Any]
+        self, user_id_str: str, ts_str: str, payload: Dict[str, Any], register_multi: bool = True
     ) -> Optional[DownloadRecord]:
         if not isinstance(payload, dict):
             return None
@@ -799,7 +888,7 @@ class StatsCollector:
             if urls_list:
                 url = urls_list[0]
             multi_total = max(1, len(urls_list))
-            if multi_total > 1:
+            if multi_total > 1 and register_multi:
                 self._register_multi_event(user_id, multi_total, timestamp)
         else:
             url = str(urls_field or "")
@@ -845,7 +934,7 @@ class StatsCollector:
             profile.update_from_payload(hints)
         # Если данных мало — попробуем Telegram API (но не чаще TTL)
         now = time.time()
-        if (now - profile.last_refresh_ts) > self._profile_fetcher.ttl:
+        if _BACKGROUND_PROFILES or (now - profile.last_refresh_ts) > self._profile_fetcher.ttl:
             fetched = self._profile_fetcher.get_profile(user_id)
             if fetched:
                 payload = {
@@ -908,7 +997,7 @@ class StatsCollector:
             stale = [uid for uid, session in self._active_sessions.items() if session.last_event_ts < expiry]
             for uid in stale:
                 self._active_sessions.pop(uid, None)
-            if stale:
+            if stale and not _BACKGROUND_PROFILES:
                 self._persist_active_sessions_locked(force=True)
     
     def _sanitize_metadata(self, metadata: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -942,7 +1031,7 @@ class StatsCollector:
                 for uid, session in self._active_sessions.items()
             }
             path = self._active_sessions_file
-            tmp_path = path.with_suffix(".tmp")
+            tmp_path = path.with_suffix(f".{os.getpid()}.tmp")
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(tmp_path, "w", encoding="utf-8") as fh:
                 json.dump(payload, fh, ensure_ascii=False)
@@ -1002,6 +1091,19 @@ class StatsCollector:
     # Публичный интерфейс
     # ------------------------------------------------------------------
 
+    def _seen_live(self, user_id: int, timestamp: int, url: str) -> bool:
+        """True if this (user, time, url) was already added as a live record. Call under self._lock."""
+        key = (user_id, int(timestamp), url)
+        seen = self.__dict__.setdefault("_live_keys", deque(maxlen=4000))
+        index = self.__dict__.setdefault("_live_key_set", set())
+        if key in index:
+            return True
+        if len(seen) == seen.maxlen:
+            index.discard(seen[0])
+        seen.append(key)
+        index.add(key)
+        return False
+
     def record_download(
         self,
         *,
@@ -1027,7 +1129,8 @@ class StatsCollector:
             profile.country_code = profile_hints.get("country_code") or _country_code_from_language(profile.language_code)
             profile.flag = _flag_from_country(profile.country_code)
         with self._lock:
-            self._live_downloads.append(record)
+            if not self._seen_live(user_id, record.timestamp, record.url):
+                self._live_downloads.append(record)
             ts = record.timestamp
             prev = self._first_seen.get(user_id)
             if not prev or ts < prev:
@@ -1061,6 +1164,8 @@ class StatsCollector:
             if not record:
                 return
             with self._lock:
+                if self._seen_live(record.user_id, record.timestamp, record.url):
+                    return
                 self._live_downloads.append(record)
                 ts = record.timestamp
                 prev = self._first_seen.get(user_id)
@@ -1143,12 +1248,7 @@ class StatsCollector:
         fetched_profiles = self._profile_fetcher.batch_fetch_profiles(user_ids)
         for session in sessions[:limit]:
             user_id = session["user_id"]
-            if user_id in fetched_profiles:
-                profile = fetched_profiles[user_id]
-                with self._lock:
-                    self._profiles[user_id] = profile
-            else:
-                profile = self._get_profile(user_id)
+            profile = self._get_profile(user_id)
             items.append(
                 {
                     **profile.to_public_dict(),
@@ -1272,12 +1372,7 @@ class StatsCollector:
         fetched_profiles = self._profile_fetcher.batch_fetch_profiles(user_ids)
         result = []
         for user_id, count in filtered_top[:limit]:
-            if user_id in fetched_profiles:
-                profile = fetched_profiles[user_id]
-                with self._lock:
-                    self._profiles[user_id] = profile
-            else:
-                profile = self._get_profile(user_id)
+            profile = self._get_profile(user_id)
             result.append({**profile.to_public_dict(), "count": count})
         return result
 
@@ -1564,7 +1659,7 @@ class StatsCollector:
         fetched_profiles = self._profile_fetcher.batch_fetch_profiles(user_ids)
         result = []
         for user_id, stats in ranked[:limit]:
-            profile = fetched_profiles.get(user_id) or self._get_profile(user_id)
+            profile = self._get_profile(user_id)
             result.append(
                 {
                     **profile.to_public_dict(),
