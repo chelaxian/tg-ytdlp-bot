@@ -2156,3 +2156,8 @@ If you find this project helpful, please consider:
 
 
 
+
+
+## Dashboard preview
+
+The rewritten RU/EN dashboard is released in read-only preview mode. It is local-only by default; access it through an SSH tunnel. Administrative actions remain disabled pending integration testing. See [dashboard setup, limitations and rollback](docs/DASHBOARD.md).

@@ -202,3 +202,8 @@ CONFIG/db/
 # Per-task WARP: account keys and live tunnel configs
 CONFIG/warp/
 .warp-run/
+
+# Dashboard runtime state, audit records and private backups
+CONFIG/.dashboard_*
+CONFIG/.bot_runtime.json
+CONFIG/.backups/
