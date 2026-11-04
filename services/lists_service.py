@@ -284,7 +284,9 @@ def _download_text(url: str, timeout: int = 30) -> str:
             sock.settimeout(min(remaining, 10))
             sock.connect(sockaddr)  # validated address, no second DNS resolution
             if parsed.scheme == "https":
-                sock = ssl.create_default_context().wrap_socket(sock, server_hostname=host)
+                context = ssl.create_default_context()
+                context.minimum_version = ssl.TLSVersion.TLSv1_2
+                sock = context.wrap_socket(sock, server_hostname=host)
             conn.sock = sock
             path = parsed.path or "/"
             if parsed.query:

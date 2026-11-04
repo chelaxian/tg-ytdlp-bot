@@ -207,5 +207,5 @@ if __name__ == "__main__":
     import uvicorn
     port = int(sys.argv[sys.argv.index("--serve") + 1]) if "--serve" in sys.argv else 8765
     app, _ = install_stubs()
-    print(f"demo dashboard on http://127.0.0.1:{port}  login {DEMO_USER} / {DEMO_PASSWORD}")
+    print(f"demo dashboard on http://127.0.0.1:{port} (demo login: see DEMO_USER / DEMO_PASSWORD in this file)")
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

@@ -84,8 +84,8 @@ def password_problem(password: str) -> Optional[str]:
 
 
 def _same(a: str, b: str) -> bool:
-    return hmac.compare_digest(hashlib.sha256(a.encode("utf-8")).digest(),
-                               hashlib.sha256(b.encode("utf-8")).digest())
+    """Constant-time comparison of two strings (only their length can leak)."""
+    return hmac.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
 
 
 def check_credentials(username: str, password: str) -> Tuple[bool, bool]:
