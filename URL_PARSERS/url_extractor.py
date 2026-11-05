@@ -595,7 +595,7 @@ def url_distractor(app, message):
         return
         
     # /Keyboard Command
-    if text == Config.KEYBOARD_COMMAND:
+    if text == Config.KEYBOARD_COMMAND or text.startswith(Config.KEYBOARD_COMMAND + " "):
         # Ensure message has command attribute
         if not hasattr(message, 'command') or message.command is None:
             # Parse command from text

@@ -22,27 +22,28 @@ def keyboard_command(app, message):
     if hasattr(message, 'command') and message.command and len(message.command) > 1:
         arg = message.command[1].lower()
         if arg in ["off", "1x3", "2x3", "full"]:
-            # Apply setting directly
+            # Preserve the canonical lowercase x in layout names.
+            setting = arg.upper() if arg in ("off", "full") else arg
             with open(keyboard_file, 'w', encoding='utf-8') as f:
-                f.write(arg.upper())
+                f.write(setting)
             
             # Show confirmation by editing the original message
             result = safe_edit_message_text(
                 message.chat.id,
                 message.id,
-                safe_get_messages(user_id).KEYBOARD_UPDATED_MSG.format(setting=arg.upper()),
+                safe_get_messages(user_id).KEYBOARD_UPDATED_MSG.format(setting=setting),
                 parse_mode=enums.ParseMode.MARKDOWN
             )
             # If editing failed, send new message as fallback
             if result is None:
                 safe_send_message(
                     message.chat.id,
-                    safe_get_messages(user_id).KEYBOARD_UPDATED_MSG.format(setting=arg.upper()),
+                    safe_get_messages(user_id).KEYBOARD_UPDATED_MSG.format(setting=setting),
                     message=message
                 )
             
             # Apply visual keyboard immediately
-            apply_keyboard_setting(app, message.chat.id, arg.upper(), user_id=user_id)
+            apply_keyboard_setting(app, message.chat.id, setting, user_id=user_id)
             
             # Log the action
             send_to_logger(message, safe_get_messages(user_id).KEYBOARD_SET_LOG_MSG.format(user_id=user_id, setting=arg.upper()))
