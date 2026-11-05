@@ -13,7 +13,7 @@ from HELPERS.decorators import reply_with_keyboard, background_handler, light_on
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.logger import send_to_logger, logger, send_to_user, send_to_all, sanitize_error_message
 from HELPERS.filesystem_hlp import create_directory
-from HELPERS.cookie_file import validate_cookie_bytes, ensure_valid_cookie_file, write_cookie_file
+from HELPERS.cookie_file import validate_cookie_bytes, validate_cookie_file, ensure_valid_cookie_file, write_cookie_file
 from HELPERS.ytdlp_errors import is_local_file_error, is_missing_local_file
 from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_message_text
 from pyrogram.errors import FloodWait
@@ -824,6 +824,10 @@ def browser_choice_callback(app, callback_query):
         "vivaldi": "~/.config/vivaldi/",
         "whale": ["~/.config/Whale/", "~/.config/naver-whale/"]
     }
+    if browser_option not in browsers:
+        # Only the names offered in the menu; never pass arbitrary callback data to yt-dlp
+        safe_callback_answer(callback_query, safe_get_messages(user_id).COOKIES_BROWSER_NOT_INSTALLED_CALLBACK_MSG)
+        return
     path = browsers.get(browser_option)
     # If the browser is not installed, we inform the user and do not execute the command
     if (browser_option == "safari") or (
@@ -876,14 +880,15 @@ def save_my_cookie(app, message):
     if message.document.file_size > 100 * 1024:
         send_to_all(message, safe_get_messages(user_id).COOKIES_FILE_TOO_LARGE_MSG)
         return
-    # Check extension
-    if not message.document.file_name.lower().endswith('.txt'):
+    # Check extension (documents may come without a file name)
+    if not (message.document.file_name or '').lower().endswith('.txt'):
         send_to_all(message, safe_get_messages(user_id).COOKIES_INVALID_FORMAT_MSG)
         return
     # Download the file to a temporary folder to check the contents
     import tempfile
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmp_path = os.path.join(tmpdir, message.document.file_name)
+        # Fixed name: the sender-controlled file name never becomes part of a path
+        tmp_path = os.path.join(tmpdir, "upload.txt")
         app.download_media(message, file_name=tmp_path)
         try:
             with open(tmp_path, 'rb') as f:
@@ -1041,9 +1046,10 @@ def checking_cookie_file(app, message):
     file_path = os.path.join("users", user_id, cookie_filename)
 
     if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as cookie:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as cookie:
             cookie_content = cookie.read()
-        if cookie_content.startswith("# Netscape HTTP Cookie File"):
+        # Same header rule yt-dlp applies ("#( Netscape)? HTTP Cookie File" on line 1)
+        if validate_cookie_file(file_path)[0]:
             # Check the functionality of YouTube cookies
             from HELPERS.safe_messeger import safe_send_message
             initial_msg = safe_send_message(message.chat.id, safe_get_messages(user_id).COOKIES_FILE_EXISTS_MSG, parse_mode=enums.ParseMode.HTML)
@@ -1356,7 +1362,9 @@ def save_as_cookie_file(app, message):
         message: Сообщение с куки
     """
     user_id = str(message.chat.id)
-    content = message.text[len(Config.SAVE_AS_COOKIE_COMMAND):].strip()
+    content = message.text[len(Config.SAVE_AS_COOKIE_COMMAND):]
+    # "/save_as_cookie@BotName ..." in groups: drop the bot mention
+    content = re.sub(r'^@\w+', '', content).strip()
     new_cookie = ""
 
     if content.startswith("```"):
@@ -1375,7 +1383,12 @@ def save_as_cookie_file(app, message):
     processed_lines = []
     for line in new_cookie.splitlines():
         if "\t" not in line:
-            line = re.sub(r' {2,}', '\t', line)
+            parts = line.split()
+            if (len(parts) == 7 and parts[1] in ('TRUE', 'FALSE') and parts[3] in ('TRUE', 'FALSE')):
+                # Telegram clients may turn the tabs into single spaces too
+                line = "\t".join(parts)
+            else:
+                line = re.sub(r' {2,}', '\t', line)
         processed_lines.append(line)
     final_cookie = "\n".join(processed_lines)
     # Pasted cookies often lack the "# Netscape HTTP Cookie File" header that
@@ -1392,7 +1405,11 @@ def save_as_cookie_file(app, message):
         cookie_filename = os.path.basename(Config.COOKIE_FILE_PATH)
         file_path = os.path.join(user_dir, cookie_filename)
         write_cookie_file(file_path, final_cookie)
-        send_to_user(message, safe_get_messages(user_id).COOKIES_SUCCESSFULLY_UPDATED_MSG.format(final_cookie=final_cookie))
+        # HTML-escaped and capped: a raw "&"/"<" in a value broke the HTML message,
+        # and the 4000-char cut of safe_send_message could split the <code> tag
+        import html as _html
+        preview = final_cookie if len(final_cookie) <= 3000 else final_cookie[:3000] + "\n…"
+        send_to_user(message, safe_get_messages(user_id).COOKIES_SUCCESSFULLY_UPDATED_MSG.format(final_cookie=_html.escape(preview)))
         send_to_logger(message, safe_get_messages(user_id).COOKIES_FILE_UPDATED_LOG_MSG.format(user_id=user_id))
     else:
         send_to_user(message, safe_get_messages(user_id).COOKIES_NOT_VALID_MSG)

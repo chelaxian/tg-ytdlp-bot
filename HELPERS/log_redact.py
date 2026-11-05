@@ -14,6 +14,17 @@ import re
 
 _HINTS = ("bearer", "basic ", "authoriz", "cookie", "token", "api-key", "api_key", "eyj", "@")
 
+# Netscape cookie-file field separator as it shows up in logs: a real tab, an
+# escaped backslash-t (repr/JSON), or spaces (Telegram clients turn pasted tabs into spaces)
+_SEP = r"(?:\\t|\t| +)"
+
+# Netscape cookie-file lines (/save_as_cookie texts, message dumps):
+# domain  TRUE  /path  FALSE  expires  name  value  -> value masked
+_COOKIE_LINE = re.compile(
+    r"((?:#HttpOnly_)?\.?[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+" + _SEP + r"(?:TRUE|FALSE)" + _SEP
+    + r"[^\s\\]*" + _SEP + r"(?:TRUE|FALSE)" + _SEP + r"-?\d+" + _SEP + r"[^\s\\]+" + _SEP + r")"
+    r"""[^\s\\'"]+""")
+
 _PATTERNS = (
     # Authorization: Bearer xxx / Basic xxx (any quoting, also inside escaped JSON)
     (re.compile(r"\b(Bearer|Basic)(\s+)[A-Za-z0-9._~+/=-]{6,}", re.IGNORECASE), r"\1\2***"),
@@ -34,6 +45,8 @@ def redact(text: str) -> str:
     """Return text with credentials masked (cheap no-op for ordinary lines)."""
     if not text:
         return text
+    if "TRUE" in text or "FALSE" in text:  # never set in Python dumps ("True"), cheap gate
+        text = _COOKIE_LINE.sub(r"\1***", text)
     lowered = text.lower()
     if not any(h in lowered for h in _HINTS):
         return text
