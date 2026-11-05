@@ -37,9 +37,10 @@ from COMMANDS.nsfw_cmd import should_apply_spoiler
 from COMMANDS.dubs_cmd import get_user_dubs_language
 
 from DATABASE.cache_db import (
-    get_cached_qualities, get_cached_playlist_count, get_cached_playlist_videos, 
-    get_cached_playlist_qualities, save_to_video_cache, get_cached_message_ids
+    get_cached_qualities, get_cached_playlist_count, get_cached_playlist_videos, get_cached_playlist_message_ids,
+    get_cached_playlist_qualities, save_to_video_cache, get_cached_message_ids, remove_playlist_cache_entries
 )
+from HELPERS.cache_repost import repost_playlist_items, repost_single
 
 from DOWN_AND_UP.yt_dlp_hook import get_video_formats
 from COMMANDS.format_cmd import set_session_mkv_override
@@ -3639,14 +3640,14 @@ def askq_callback(app, callback_query):
         
         if not is_subs_always_ask(user_id) and not send_as_file:
             # Check cache for selected quality
-            cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), data, requested_indices)
+            cached_videos = get_cached_playlist_message_ids(get_clean_playlist_url(url), data, requested_indices)
             uncached_indices = [i for i in requested_indices if i not in cached_videos]
             used_quality_key = data
             
             # If there is no cache for the selected quality, try fallback to best
             if not cached_videos and data != "best":
                 logger.info(f"{LoggerMsg.ALWAYS_ASK_NO_CACHE_FOR_QUALITY_KEY_LOG_MSG}={data}, trying fallback to best")
-                best_cached = get_cached_playlist_videos(get_clean_playlist_url(url), "best", requested_indices)
+                best_cached = get_cached_playlist_message_ids(get_clean_playlist_url(url), "best", requested_indices)
                 if best_cached:
                     cached_videos = best_cached
                     used_quality_key = "best"
@@ -3659,102 +3660,41 @@ def askq_callback(app, callback_query):
             used_quality_key = data
         
         if cached_videos:
+            from HELPERS.porn import is_porn
+            if is_porn(url, "", "", None):
+                # NSFW goes to the NSFW/paid channels and is never cached: such an entry is stale
+                logger.info(f"[VIDEO CACHE] NSFW playlist, cache not used: url={url}")
+                cached_videos = {}
+                uncached_indices = requested_indices
+        if cached_videos:
             # Reposting cached videos
             safe_callback_answer(callback_query, "🚀 Found in cache! Reposting...", show_alert=False)
             try:
                 target_chat_id = getattr(original_message.chat, 'id', user_id)
             except Exception:
                 target_chat_id = user_id
-            for index in requested_indices:
-                if index in cached_videos:
-                    try:
-                        thread_id = getattr(original_message, 'message_thread_id', None)
-                        # Use forward everywhere; in groups try to keep topic via message_thread_id
-                        if thread_id:
-                            from HELPERS.logger import get_log_channel
-                            from HELPERS.porn import is_porn
-                            # Determine the correct log channel based on content type
-                            is_nsfw = is_porn(url, "", "", None)
-                            is_private_chat = getattr(original_message.chat, "type", None) == enums.ChatType.PRIVATE
-                            is_paid = is_nsfw and is_private_chat
-                            logger.info(f"{LoggerMsg.ALWAYS_ASK_URL_ANALYSIS_LOG_MSG}: url={url}, is_nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}")
-                            
-                            # Get the correct log channel for reposting
-                            if is_paid:
-                                from_chat_id = get_log_channel("video", paid=True)
-                                channel_type = "PAID"
-                            elif is_nsfw:
-                                from_chat_id = get_log_channel("video", nsfw=True)
-                                channel_type = "NSFW"
-                            else:
-                                from_chat_id = get_log_channel("video")
-                                channel_type = "regular"
-                            
-                            logger.info(f"[VIDEO CACHE] Channel selection: nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}, channel_type={channel_type}, from_chat_id={from_chat_id}")
-                            
-                            # Verify we're reposting from a valid log channel
-                            valid_channels = [
-                                get_log_channel("video"),
-                                get_log_channel("video", nsfw=True),
-                                get_log_channel("video", paid=True)
-                            ]
-                            if from_chat_id not in valid_channels:
-                                logger.error(f"CRITICAL: Attempting to repost from wrong channel {from_chat_id}")
-                                continue
-                                
-                            logger.info(f"[VIDEO CACHE] Reposting video {index} from channel {from_chat_id} to user {target_chat_id}, message_id={cached_videos[index]}")
-                            app.forward_messages(
-                                chat_id=target_chat_id,
-                                from_chat_id=from_chat_id,
-                                message_ids=[cached_videos[index]],
-                                message_thread_id=thread_id
-                            )
-                            daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
-                        else:
-                            from HELPERS.logger import get_log_channel
-                            from HELPERS.porn import is_porn
-                            # Determine the correct log channel based on content type
-                            is_nsfw = is_porn(url, "", "", None)
-                            is_private_chat = getattr(original_message.chat, "type", None) == enums.ChatType.PRIVATE
-                            is_paid = is_nsfw and is_private_chat
-                            logger.info(f"{LoggerMsg.ALWAYS_ASK_URL_ANALYSIS_LOG_MSG}: url={url}, is_nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}")
-                            
-                            # Get the correct log channel for reposting
-                            if is_paid:
-                                from_chat_id = get_log_channel("video", paid=True)
-                                channel_type = "PAID"
-                            elif is_nsfw:
-                                from_chat_id = get_log_channel("video", nsfw=True)
-                                channel_type = "NSFW"
-                            else:
-                                from_chat_id = get_log_channel("video")
-                                channel_type = "regular"
-                            
-                            logger.info(f"[VIDEO CACHE] Channel selection: nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}, channel_type={channel_type}, from_chat_id={from_chat_id}")
-                            
-                            # Verify we're reposting from a valid log channel
-                            valid_channels = [
-                                get_log_channel("video"),
-                                get_log_channel("video", nsfw=True),
-                                get_log_channel("video", paid=True)
-                            ]
-                            if from_chat_id not in valid_channels:
-                                logger.error(f"CRITICAL: Attempting to repost from wrong channel {from_chat_id}")
-                                continue
-                                
-                            logger.info(f"[VIDEO CACHE] Reposting video {index} from channel {from_chat_id} to user {target_chat_id}, message_id={cached_videos[index]}")
-                            forward_kwargs = {
-                                'chat_id': target_chat_id,
-                                'from_chat_id': from_chat_id,
-                                'message_ids': [cached_videos[index]]
-                            }
-                            # Only apply thread_id in groups/channels, not in private chats
-                            if getattr(original_message.chat, "type", None) != enums.ChatType.PRIVATE and thread_id:
-                                forward_kwargs['message_thread_id'] = thread_id
-                            app.forward_messages(**forward_kwargs)
-                            daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
-                    except Exception as e:
-                        logger.warning(f"askq_callback: cached video for index {index} not found: {e}")
+            thread_id = None
+            if getattr(original_message.chat, "type", None) != enums.ChatType.PRIVATE:
+                thread_id = getattr(original_message, 'message_thread_id', None)
+            # Cached items inside the range that still has to be downloaded are left to the
+            # downloader: it looks its range up in the cache again and would repost them twice.
+            if uncached_indices:
+                lo, hi = min(uncached_indices), max(uncached_indices)
+                to_repost = [i for i in requested_indices if i in cached_videos and not lo <= i <= hi]
+            else:
+                to_repost = [i for i in requested_indices if i in cached_videos]
+            from HELPERS.logger import get_log_channel
+            stale, undelivered = repost_playlist_items(app, target_chat_id, get_log_channel("video"), to_repost,
+                                                       cached_videos, thread_id=thread_id)
+            if stale:
+                remove_playlist_cache_entries(get_clean_playlist_url(url), used_quality_key, stale)
+            for index in to_repost:
+                if index not in undelivered:
+                    daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
+            if undelivered:
+                for index in undelivered:
+                    cached_videos.pop(index, None)
+                uncached_indices = [i for i in requested_indices if i not in cached_videos]
             
             # If there are missing videos - download them
             if uncached_indices:
@@ -3903,107 +3843,33 @@ def askq_callback(app, callback_query):
                 logger.warning(f"⚠️ [CACHE] Ошибка при проверке кэша для одиночного видео: {e}")
         
         if message_ids:
+            from HELPERS.porn import is_porn
+            if is_porn(url, "", "", None):
+                # NSFW goes to the NSFW/paid channels and is never cached: such an entry is stale
+                logger.info(f"[VIDEO CACHE] NSFW content, cache not used: url={url}")
+                message_ids = None
+        if message_ids:
             safe_callback_answer(callback_query, "🚀 Found in cache! Forwarding instantly...", show_alert=False)
-            # found_type = None
             try:
-                try:
-                    target_chat_id = getattr(original_message.chat, 'id', user_id)
-                except Exception:
-                    target_chat_id = user_id
+                target_chat_id = getattr(original_message.chat, 'id', user_id)
+            except Exception:
+                target_chat_id = user_id
+            thread_id = None
+            if getattr(original_message.chat, "type", None) != enums.ChatType.PRIVATE:
                 thread_id = getattr(original_message, 'message_thread_id', None)
-                # Only apply thread_id in groups/channels, not in private chats
-                if thread_id and getattr(original_message.chat, "type", None) != enums.ChatType.PRIVATE:
-                    # Forward each to ensure thread id is applied
-                    for mid in message_ids:
-                        from HELPERS.logger import get_log_channel
-                        from HELPERS.porn import is_porn
-                        # Determine if this is paid media (NSFW in private chat)
-                        is_nsfw = is_porn(url, "", "", None)
-                        is_private_chat = getattr(original_message.chat, "type", None) == enums.ChatType.PRIVATE
-                        is_paid = is_nsfw and is_private_chat
-                        logger.info(f"[VIDEO CACHE] URL analysis: url={url}, is_nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}")
-                        # Get the correct log channel for reposting
-                        if is_paid:
-                            from_chat_id = get_log_channel("video", paid=True)
-                            channel_type = "PAID"
-                        elif is_nsfw:
-                            from_chat_id = get_log_channel("video", nsfw=True)
-                            channel_type = "NSFW"
-                        else:
-                            from_chat_id = get_log_channel("video")
-                            channel_type = "regular"
-                        
-                        logger.info(f"[VIDEO CACHE] Channel selection: nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}, channel_type={channel_type}, from_chat_id={from_chat_id}")
-                        
-                        # Check channel access restrictions
-                        if is_private_chat and channel_type == "NSFW":
-                            logger.info(f"[VIDEO CACHE] Access denied: NSFW cache not allowed in private chat, skipping message {mid}")
-                            continue  # Skip this message
-                        elif not is_private_chat and channel_type == "PAID":
-                            logger.info(f"[VIDEO CACHE] Access denied: Paid cache not allowed in group chat, skipping message {mid}")
-                            continue  # Skip this message
-                        
-                        app.forward_messages(
-                            chat_id=target_chat_id,
-                            from_chat_id=from_chat_id,
-                            message_ids=[mid],
-                            message_thread_id=thread_id
-                        )
-                else:
-                    from HELPERS.logger import get_log_channel
-                    from HELPERS.porn import is_porn
-                    # Determine if this is paid media (NSFW in private chat)
-                    is_nsfw = is_porn(url, "", "", None)
-                    is_private_chat = getattr(original_message.chat, "type", None) == enums.ChatType.PRIVATE
-                    is_paid = is_nsfw and is_private_chat
-                    logger.info(f"[VIDEO CACHE] URL analysis: url={url}, is_nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}")
-                    # Get the correct log channel for reposting
-                    if is_paid:
-                        from_chat_id = get_log_channel("video", paid=True)
-                        channel_type = "PAID"
-                    elif is_nsfw:
-                        from_chat_id = get_log_channel("video", nsfw=True)
-                        channel_type = "NSFW"
-                    else:
-                        from_chat_id = get_log_channel("video")
-                        channel_type = "regular"
-                    
-                    logger.info(f"[VIDEO CACHE] Channel selection: nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}, channel_type={channel_type}, from_chat_id={from_chat_id}")
-                    
-                    # Check channel access restrictions
-                    if is_private_chat and channel_type == "NSFW":
-                        logger.info(f"[VIDEO CACHE] Access denied: NSFW cache not allowed in private chat, forcing re-download")
-                        # Don't forward, let the function continue to download
-                        return
-                    elif not is_private_chat and channel_type == "PAID":
-                        logger.info(f"[VIDEO CACHE] Access denied: Paid cache not allowed in group chat, forcing re-download")
-                        # Don't forward, let the function continue to download
-                        return
-                    
-                    app.forward_messages(
-                        chat_id=target_chat_id,
-                        from_chat_id=from_chat_id,
-                        message_ids=message_ids
-                    )
+            from HELPERS.logger import get_log_channel
+            reposted, stale = repost_single(app, target_chat_id, get_log_channel("video"), message_ids, thread_id=thread_id)
+            if reposted:
                 daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
                 app.send_message(target_chat_id, safe_get_messages(user_id).VIDEO_SENT_FROM_CACHE_MSG, reply_parameters=ReplyParameters(message_id=original_message.id))
                 media_type = safe_get_messages(user_id).ALWAYS_ASK_AUDIO_TYPE_MSG if data == "mp3" else safe_get_messages(user_id).ALWAYS_ASK_VIDEO_TYPE_MSG
                 log_msg = f"{media_type} sent from cache to user.\nURL: {url}\nUser: {callback_query.from_user.first_name} ({user_id})"
                 send_to_logger(original_message, log_msg)
                 return
-            except Exception as e:
-                logger.error(f"Error forwarding cached video: {e}")
-                # found_type = check_subs_availability(url, user_id, data, return_type=True)
-                subs_enabled = is_subs_enabled(user_id)
-                auto_mode = get_user_subs_auto_mode(user_id)
-                need_subs = (subs_enabled and ((auto_mode and found_type == "auto") or (not auto_mode and found_type == "normal")))
-                if not need_subs:
-                    save_to_video_cache(url, data, [], clear=True)
-                else:
-                    logger.info("Video with subtitles (real subs found and needed) is not cached!")
-                # Don't show error message if we successfully got video from cache
-                # The video was already sent successfully in the try block
-                askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs, proc_msg)
+            if stale:
+                # the cached messages are gone from the log channel: drop the entry and download
+                save_to_video_cache(url, data, [], clear=True)
+            askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs, proc_msg)
             
             # Удаляем Always Ask меню после обработки
             try:

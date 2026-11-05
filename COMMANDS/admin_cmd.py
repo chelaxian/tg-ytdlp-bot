@@ -1024,6 +1024,8 @@ def uncache_command(app, message):
                 h = get_url_hash(norm)
                 db_child_by_path(db, f"{Config.VIDEO_CACHE_DB_PATH}/{h}").remove()
                 db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{h}").remove()
+        from DATABASE.cache_db import invalidate_media_cache_memo
+        invalidate_media_cache_memo()
         # Обновляем локальный кэш после удаления в локальном режиме
         use_firebase = getattr(Config, 'USE_FIREBASE', True)
         if not use_firebase and removed_any:

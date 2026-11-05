@@ -45,7 +45,8 @@ from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
 from URL_PARSERS.playlist_utils import is_playlist_with_range, is_playlist_url, is_playlist_from_info_dict
 from URL_PARSERS.normalizer import get_clean_playlist_url
-from DATABASE.cache_db import get_cached_playlist_videos, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache
+from DATABASE.cache_db import get_cached_playlist_message_ids, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache, remove_playlist_cache_entries
+from HELPERS.cache_repost import repost_playlist_items, repost_single
 from pyrogram.types import ReplyParameters
 from HELPERS.safe_messeger import safe_send_message
 from pyrogram import enums
@@ -576,10 +577,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         elif not is_subs_always_ask(user_id):
             # Check if content is NSFW - if so, skip cache lookup
             from HELPERS.porn import is_porn
-            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+            is_nsfw = user_forced_nsfw or is_porn(url, "", "", None)
+            logger.info(f"[FALLBACK] cache NSFW check for {url}: forced={user_forced_nsfw}, is_nsfw={is_nsfw}")
             if not is_nsfw:
-                cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, requested_indices)
+                cached_videos = get_cached_playlist_message_ids(get_clean_playlist_url(url), quality_key, requested_indices)
                 uncached_indices = [i for i in requested_indices if i not in cached_videos]
             else:
                 logger.info(f"down_and_audio: skipping cache lookup for NSFW playlist content (url={url})")
@@ -597,49 +598,20 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             send_as_file = user_args.get("send_as_file", False)
             
             if not send_as_file:
-                for index in requested_indices:
-                    if index in cached_videos:
-                        try:
-                            # Determine the correct log channel based on content type
-                            from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
-                            is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
-                            is_paid = is_nsfw and is_private_chat
-                            
-                            # Get the correct log channel for reposting
-                            if is_paid:
-                                from_chat_id = get_log_channel("video", paid=True)
-                            elif is_nsfw:
-                                from_chat_id = get_log_channel("video", nsfw=True)
-                            else:
-                                from_chat_id = get_log_channel("video")
-                            
-                            # Verify we're reposting from a valid log channel
-                            valid_channels = [
-                                get_log_channel("video"),
-                                get_log_channel("video", nsfw=True),
-                                get_log_channel("video", paid=True)
-                            ]
-                            if from_chat_id not in valid_channels:
-                                logger.error(f"CRITICAL: Attempting to repost from wrong channel {from_chat_id}")
-                                continue
-                            
-                            logger.info(f"[AUDIO CACHE] Reposting audio {index} from channel {from_chat_id} to user {user_id}, message_id={cached_videos[index]}")
-                            forward_kwargs = {
-                                'chat_id': user_id,
-                                'from_chat_id': from_chat_id,
-                                'message_ids': [cached_videos[index]]
-                            }
-                            # Only apply thread_id in groups/channels, not in private chats
-                            if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
-                                thread_id = getattr(message, 'message_thread_id', None)
-                                if thread_id:
-                                    forward_kwargs['message_thread_id'] = thread_id
-                            app.forward_messages(**forward_kwargs)
-                            daily_quota.record(message, daily_quota.VIDEO, cached=True)
-                        except Exception as e:
-                            logger.error(f"down_and_audio: error reposting cached audio index={index}: {e}")
+                # cached content always lives in the regular channel (NSFW/PAID is never cached)
+                thread_id = None
+                if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
+                    thread_id = getattr(message, 'message_thread_id', None)
+                stale, undelivered = repost_playlist_items(app, user_id, get_log_channel("video"), requested_indices,
+                                                           cached_videos, thread_id=thread_id)
+                if stale:
+                    remove_playlist_cache_entries(get_clean_playlist_url(url), quality_key, stale)
+                if undelivered:
+                    for index in undelivered:
+                        cached_videos.pop(index, None)
+                    uncached_indices = [i for i in requested_indices if i not in cached_videos]
+                for _ in cached_videos:
+                    daily_quota.record(message, daily_quota.VIDEO, cached=True)
             else:
                 # If send_as_file is enabled, treat all indices as uncached
                 logger.info(f"[AUDIO CACHE] send_as_file enabled for user {user_id}, skipping cache repost for playlist")
@@ -648,7 +620,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 app.send_message(user_id, safe_get_messages(user_id).PLAYLIST_CACHE_SENT_MSG.format(cached=len(cached_videos), total=len(requested_indices)), reply_parameters=ReplyParameters(message_id=message.id))
                 send_to_logger(message, LoggerMsg.PLAYLIST_AUDIO_SENT_FROM_CACHE.format(quality=quality_key, user_id=user_id))
                 return
-            else:
+            elif cached_videos:
                 app.send_message(user_id, safe_get_messages(user_id).CACHE_PARTIAL_MSG.format(cached=len(cached_videos), total=len(requested_indices)), reply_parameters=ReplyParameters(message_id=message.id))
         elif cached_videos:
             logger.info("[AUDIO CACHE] Skipping partial cache replay for negative range to avoid duplicate downloads")
@@ -666,8 +638,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         elif not is_subs_always_ask(user_id):
             # Check if content is NSFW - if so, skip cache lookup
             from HELPERS.porn import is_porn
-            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+            is_nsfw = user_forced_nsfw or is_porn(url, "", "", None)
+            logger.info(f"[FALLBACK] cache NSFW check for {url}: forced={user_forced_nsfw}, is_nsfw={is_nsfw}")
             if not is_nsfw:
                 cached_ids = get_cached_message_ids(url, quality_key)
             else:
@@ -684,51 +656,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             send_as_file = user_args.get("send_as_file", False)
             
             if not send_as_file:
-                try:
-                    # Determine the correct log channel based on content type
-                    # is_nsfw already determined above
-                    is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
-                    is_paid = is_nsfw and is_private_chat
-                    
-                    # Get the correct log channel for reposting
-                    if is_paid:
-                        from_chat_id = get_log_channel("video", paid=True)
-                    elif is_nsfw:
-                        from_chat_id = get_log_channel("video", nsfw=True)
-                    else:
-                        from_chat_id = get_log_channel("video")
-                    
-                    # Verify we're reposting from a valid log channel
-                    valid_channels = [
-                        get_log_channel("video"),
-                        get_log_channel("video", nsfw=True),
-                        get_log_channel("video", paid=True)
-                    ]
-                    if from_chat_id not in valid_channels:
-                        logger.error(f"CRITICAL: Attempting to repost from wrong channel {from_chat_id}")
-                        raise Exception("Wrong channel for repost")
-                    
-                    logger.info(f"[AUDIO CACHE] Reposting audio from channel {from_chat_id} to user {user_id}, message_ids={cached_ids}")
-                    forward_kwargs = {
-                        'chat_id': user_id,
-                        'from_chat_id': from_chat_id,
-                        'message_ids': cached_ids
-                    }
-                    # Only apply thread_id in groups/channels, not in private chats
-                    if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
-                        thread_id = getattr(message, 'message_thread_id', None)
-                        if thread_id:
-                            forward_kwargs['message_thread_id'] = thread_id
-                    app.forward_messages(**forward_kwargs)
+                # cached content always lives in the regular channel (NSFW/PAID is never cached)
+                thread_id = None
+                if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
+                    thread_id = getattr(message, 'message_thread_id', None)
+                reposted, stale = repost_single(app, user_id, get_log_channel("video"), cached_ids, thread_id=thread_id)
+                if reposted:
                     daily_quota.record(message, daily_quota.VIDEO, cached=True)
                     app.send_message(user_id, safe_get_messages(user_id).AUDIO_SENT_FROM_CACHE_MSG, reply_parameters=ReplyParameters(message_id=message.id))
                     send_to_logger(message, LoggerMsg.AUDIO_SENT_FROM_CACHE.format(quality=quality_key, user_id=user_id))
                     return
-                except Exception as e:
-                    logger.error(f"Error reposting audio from cache: {e}")
+                if stale:
+                    # the cached messages are gone from the log channel: drop the entry and download
                     save_to_video_cache(url, quality_key, [], clear=True)
-                    # Don't show error message if we successfully got audio from cache
-                    # The audio was already sent successfully in the try block
             else:
                 # If send_as_file is enabled, skip cache repost and continue with download
                 logger.info(f"[AUDIO CACHE] send_as_file enabled for user {user_id}, skipping cache repost for single audio")
@@ -3102,8 +3042,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         current_video_index = original_playlist_index
                         logger.info(f"down_and_audio: saving to playlist cache: index={current_video_index}, msg_ids={msg_ids}")
                         save_to_playlist_cache(get_clean_playlist_url(url), quality_key, [current_video_index], msg_ids, original_text=message.text or message.caption or "", video_urls_dict=None)
-                        cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), quality_key, [current_video_index])
-                        logger.info(f"Checking the cache immediately after writing: {cached_check}")
                         playlist_indices.append(current_video_index)
                         playlist_msg_ids.extend(msg_ids)  # We use msg_ids instead of forwarded_msgs
                     else:
