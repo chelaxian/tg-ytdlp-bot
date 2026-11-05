@@ -1013,7 +1013,6 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
     messages = get_messages_instance(user_id)
     
     if not text:
-        logger.info(f"parse_import_message: No text provided")
         return {}
     
     # Check for args header in any supported language
@@ -1027,7 +1026,6 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
     has_args_header = any(header in text for header in args_headers)
     
     if not has_args_header:
-        logger.info(f"parse_import_message: No header found in text. Text: {text[:200] if text else 'None'}")
         return {}
     
     # For forwarded messages, try to extract the actual content
@@ -1039,7 +1037,6 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
             break
     
     if settings_start == -1:
-        logger.info(f"parse_import_message: Could not find settings start position")
         return {}
     
     # Extract the settings part, skipping any forwarded message metadata
@@ -1066,8 +1063,6 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
     
     # Reconstruct the clean text
     clean_text = '\n'.join(clean_lines)
-    logger.info(f"parse_import_message: Cleaned text length: {len(clean_text)}")
-    logger.info(f"parse_import_message: Cleaned text preview: {clean_text[:200]}...")
     
     # Use the cleaned text for parsing
     text = clean_text
@@ -1081,7 +1076,6 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
     parsed_args = {}
     lines = text.split('\n')
     
-    logger.info(f"parse_import_message: Processing {len(lines)} lines")
     
     for line in lines:
         line = line.strip()
@@ -1108,20 +1102,16 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
                 # Clean value string as well
                 value_str = re.sub(r'<[^>]+>', '', value_str).strip()
                 
-                logger.info(f"parse_import_message: Found param_name='{param_name}'")
                 
                 # Try to map localized name to English parameter name
                 english_param_name = None
                 if param_name in valid_params:
                     # Direct match with English parameter name
                     english_param_name = param_name
-                    logger.info(f"parse_import_message: Direct match found: {param_name}")
                 elif param_name in localized_mapping:
                     # Mapped from localized name
                     english_param_name = localized_mapping[param_name]
-                    logger.info(f"parse_import_message: Mapped '{param_name}' -> '{english_param_name}'")
                 else:
-                    logger.info(f"parse_import_message: Unknown parameter '{param_name}', skipping")
                     continue
                 
                 # Check if the mapped parameter exists in YTDLP_PARAMS
@@ -1136,10 +1126,8 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
                     if param_type == "boolean":
                         if value_str in ["✅ True", "True", "true", "1", "yes", "on", "✅"]:
                             parsed_args[english_param_name] = True
-                            logger.info(f"parse_import_message: Set {english_param_name} = True")
                         elif value_str in ["❌ False", "False", "false", "0", "no", "off", "❌"]:
                             parsed_args[english_param_name] = False
-                            logger.info(f"parse_import_message: Set {english_param_name} = False")
                     elif param_type == "number":
                         numbers = re.findall(r'\d+', value_str)
                         if numbers:
@@ -1148,24 +1136,18 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
                             max_val = param_config.get("max", 999999)
                             if min_val <= num_value <= max_val:
                                 parsed_args[english_param_name] = num_value
-                                logger.info(f"parse_import_message: Set {english_param_name} = {num_value}")
                     elif param_type in ["text", "json"]:
                         value_str = html.unescape(value_str)
                         if (value_str and value_str != "Not set" and value_str != SECRET_MASK
                                 and validate_input(value_str, english_param_name, user_id)[0]):
                             parsed_args[english_param_name] = value_str
-                            logger.info(f"parse_import_message: Set {english_param_name}")
                     elif param_type == "select":
                         if value_str and value_str != "Not set":
                             # Validate that the value is in the allowed options
                             options = param_config.get("options", [])
                             if value_str in options:
                                 parsed_args[english_param_name] = value_str
-                                logger.info(f"parse_import_message: Set {english_param_name} = '{value_str}'")
-                else:
-                    logger.info(f"parse_import_message: Mapped parameter '{english_param_name}' not found in YTDLP_PARAMS")
-    
-    logger.info(f"parse_import_message: Parsed {len(parsed_args)} arguments: {list(parsed_args.keys())}")
+
     return parsed_args
 
 @app.on_message(filters.command("args"))
