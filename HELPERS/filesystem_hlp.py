@@ -273,6 +273,18 @@ def create_directory(path):
         os.makedirs(path, exist_ok=True)
 
 
+# Per-user settings that live next to the media in users/<id>/. Media cleanup
+# (the image pre-cleanup calls remove_media() with no `only`) must never delete
+# them: it used to wipe /proxy, /format, /split, /subs, /args, /nsfw... choices
+# on every image download. /clean <name> still removes them via `only=`.
+USER_SETTINGS_FILES = frozenset({
+    'lang.txt', 'tags.txt', 'keyboard.txt', 'logs.txt', 'cookie.txt',
+    'proxy.txt', 'format.txt', 'format_prefs.json', 'split.txt', 'mediainfo.txt',
+    'subs.txt', 'subs_auto.txt', 'subs_always_ask.txt', 'args.txt', 'nsfw_blur.txt',
+    'link_mode.txt', 'dubs.txt', 'flood_wait.txt',
+})
+
+
 # Remove All User Media Files
 
 def remove_media(message, only=None, force_clean=False):
@@ -306,7 +318,7 @@ def remove_media(message, only=None, force_clean=False):
         '.txt', '.ts', '.m3u8', '.webm', '.wmv', '.avi', '.mpeg', '.wav',
         '.json', '.jsonl', '.srt', '.vtt', '.ass', '.ssa',
     ]
-    protected_txt_files = {'logs.txt', 'tags.txt', 'keyboard.txt', 'lang.txt', 'cookie.txt'}
+    protected_files = USER_SETTINGS_FILES
 
     def _remove_matching_files(file_list):
         if is_download_dir_in_use(dir, include_children=False):
@@ -315,7 +327,7 @@ def remove_media(message, only=None, force_clean=False):
         for extension in file_extensions:
             files = [f for f in file_list if f.endswith(extension)]
             for file in files:
-                if extension == '.txt' and file in protected_txt_files:
+                if file in protected_files:
                     continue
                 # Skip incomplete download artifacts (.part / .ytdl): removing them
                 # mid-download causes "Unable to rename .part" / Errno 2 race conditions
