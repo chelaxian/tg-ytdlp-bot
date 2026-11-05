@@ -13,6 +13,7 @@ ratio (rotation and non-square pixels taken into account) without stretching.
 import os
 import shutil
 import subprocess
+import time
 from typing import List, Optional, Tuple
 
 try:
@@ -25,7 +26,7 @@ except Exception:  # standalone use (tests)
 FRAME_FRACTIONS = (0.5, 0.33, 0.67, 0.2, 0.8, 0.1, 0.9)
 MIN_MEAN_LUMA = 22.0   # 0..255: below this the frame is practically black
 MIN_STDDEV_LUMA = 12.0  # below this it is a flat colour (no picture)
-MAX_THUMB_BYTES = 200 * 1024
+MAX_THUMB_BYTES = 200_000  # strictly below 200 kB
 
 
 def frame_times(duration) -> List[float]:
@@ -76,17 +77,22 @@ def _scale_filters(max_w: int, max_h: int) -> List[str]:
     ]
 
 
-def _extract(ffmpeg: str, video_path: str, seconds: float, dest: str, vfs: List[str], quality: int) -> bool:
+def _extract(ffmpeg: str, video_path: str, seconds: float, dest: str, vfs: List[str], quality: int, deadline: float) -> bool:
     for vf in vfs:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
         try:
             if os.path.exists(dest):
                 os.remove(dest)
             subprocess.run(
                 [ffmpeg, '-y', '-v', 'error', '-ss', str(seconds), '-i', video_path,
                  '-frames:v', '1', '-vf', vf, '-q:v', str(quality), dest],
-                capture_output=True, timeout=45)
-        except (subprocess.TimeoutExpired, OSError):
-            continue
+                capture_output=True, timeout=min(5, remaining))
+        except subprocess.TimeoutExpired:
+            return False
+        except OSError:
+            return False
         if os.path.exists(dest) and os.path.getsize(dest) > 0:
             return True
     return False
@@ -99,12 +105,13 @@ def grab_representative_frame(video_path: str, duration, dest: str, max_w: int =
     try:
         ffmpeg = ffmpeg_path or shutil.which('ffmpeg') or 'ffmpeg'
         vfs = _scale_filters(max_w, max_h)
+        deadline = time.monotonic() + 15
         best_path, best_score = None, -1.0
         tmp_paths = []
         for idx, sec in enumerate(frame_times(duration)):
             cand = f"{dest}.cand{idx}.jpg"
             tmp_paths.append(cand)
-            if not _extract(ffmpeg, video_path, sec, cand, vfs, quality):
+            if not _extract(ffmpeg, video_path, sec, cand, vfs, quality, deadline):
                 continue
             stats = frame_stats(cand)
             if stats is None or is_informative(stats):
@@ -119,10 +126,31 @@ def grab_representative_frame(video_path: str, duration, dest: str, max_w: int =
             if os.path.getsize(best_path) > MAX_THUMB_BYTES and max(max_w, max_h) <= 320:
                 # re-encode smaller (Telegram rejects thumbs over 200 KB)
                 small = best_path + '.small.jpg'
-                if _extract(ffmpeg, best_path, 0, small, vfs, 5):
+                if _extract(ffmpeg, best_path, 0, small, vfs, 5, deadline):
                     os.replace(small, best_path)
+            # ffmpeg may retain non-square pixels in its scale calculation; JPEG
+            # viewers do not reliably honor SAR. Normalize the extracted still to
+            # the video's displayed dimensions before passing it to Telegram.
+            display_w, display_h = video_display_size(video_path, timeout=max(0.1, min(3, deadline - time.monotonic())))
+            if display_w and display_h:
+                try:
+                    from PIL import Image
+                    with Image.open(best_path) as source:
+                        im = source.convert('RGB')
+                    target_ratio = display_w / display_h
+                    if abs(im.width / im.height - target_ratio) > 0.01:
+                        if target_ratio >= 1:
+                            w, h = max_w, max(1, round(max_w / target_ratio))
+                        else:
+                            h, w = max_h, max(1, round(max_h * target_ratio))
+                        im.resize((w, h), Image.Resampling.LANCZOS).save(
+                            best_path, 'JPEG', quality=90, optimize=True)
+                except Exception:
+                    pass
             os.replace(best_path, dest)
-            ok = os.path.getsize(dest) > 0
+            ok = os.path.getsize(dest) > 0 and (max(max_w, max_h) > 320 or os.path.getsize(dest) < MAX_THUMB_BYTES)
+            if not ok:
+                os.remove(dest)
         for p in tmp_paths + [dest + '.cand0.jpg.small.jpg']:
             try:
                 if p != dest and os.path.exists(p):
@@ -135,7 +163,7 @@ def grab_representative_frame(video_path: str, duration, dest: str, max_w: int =
         return False
 
 
-def video_display_size(video_path: str) -> Tuple[int, int]:
+def video_display_size(video_path: str, timeout: float = 30) -> Tuple[int, int]:
     """(width, height) the video is shown with: rotation metadata and non-square
     pixels (SAR) applied. (0, 0) if it cannot be probed."""
     try:
@@ -144,7 +172,7 @@ def video_display_size(video_path: str) -> Tuple[int, int]:
             ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',
              'stream=width,height,sample_aspect_ratio:stream_tags=rotate:stream_side_data=rotation',
              '-of', 'json', video_path],
-            capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=30)
+            capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout)
         st = (json.loads(r.stdout).get('streams') or [{}])[0]
         w, h = int(st.get('width') or 0), int(st.get('height') or 0)
         if w <= 0 or h <= 0:
@@ -237,10 +265,11 @@ def fit_cover_to_aspect(src: str, dest: str, aspect_w: int, aspect_h: int,
         quality = 92
         out.save(dest, 'JPEG', quality=quality, optimize=True)
         if max(max_w, max_h) <= 320:
-            while os.path.getsize(dest) > MAX_THUMB_BYTES and quality > 50:
+            while os.path.getsize(dest) >= MAX_THUMB_BYTES and quality > 50:
                 quality -= 10
                 out.save(dest, 'JPEG', quality=quality, optimize=True)
-        return os.path.getsize(dest) > 0
+        size = os.path.getsize(dest)
+        return size > 0 and (max(max_w, max_h) > 320 or size < MAX_THUMB_BYTES)
     except Exception as e:
         logger.warning(f"fit_cover_to_aspect failed for {src}: {e}")
         return False

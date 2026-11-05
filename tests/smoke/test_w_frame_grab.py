@@ -175,5 +175,14 @@ with tempfile.TemporaryDirectory() as d:
         print("SKIP rotation (ffmpeg without -display_rotation)")
     check("missing video -> (0, 0)", fg.video_display_size(os.path.join(d, "nope.mp4")) == (0, 0))
 
+    # Anamorphic input: pixel size 640x360, SAR 2:1, display ratio 32:9.
+    sar_video = os.path.join(d, "sar.mp4")
+    sar_result = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", base,
+                                 "-vf", "setsar=2/1", sar_video], capture_output=True)
+    sar_thumb = os.path.join(d, "sar.jpg")
+    sar_ok = sar_result.returncode == 0 and fg.grab_representative_frame(sar_video, 2, sar_thumb)
+    check("anamorphic still matches display aspect ratio", sar_ok and
+          abs(Image.open(sar_thumb).width / Image.open(sar_thumb).height - 32 / 9) < 0.06)
+
 print(f"\n{ok} passed, {fail} failed")
 sys.exit(1 if fail else 0)
