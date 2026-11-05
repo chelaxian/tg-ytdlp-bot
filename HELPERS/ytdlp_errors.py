@@ -19,6 +19,14 @@ CLIENT_HTTP_ERROR = 'CLIENT_HTTP_ERROR'
 LOCAL_FILE_ERROR = 'LOCAL_FILE_ERROR'
 FORMAT_UNAVAILABLE = 'FORMAT_UNAVAILABLE'
 TRANSIENT = 'TRANSIENT'
+# The user aborted the request (/clean or the emoji equivalent): every
+# format/proxy/cookie attempt must stop at once, not be retried.
+USER_CANCELLED = 'USER_CANCELLED'
+
+USER_CANCELLED_INDICATORS = (
+    'cancelled by user',
+    'canceled by user',
+)
 
 RATE_LIMIT_INDICATORS = (
     'rate limit', 'rate-limit', 'rate-limited', 'too many requests',
@@ -100,6 +108,11 @@ def _lower(error_text):
     return str(error_text or '').lower()
 
 
+def is_user_cancelled(error_text):
+    low = _lower(error_text)
+    return any(k in low for k in USER_CANCELLED_INDICATORS)
+
+
 def is_rate_limited(error_text):
     low = _lower(error_text)
     return any(k in low for k in RATE_LIMIT_INDICATORS)
@@ -160,6 +173,8 @@ def classify_retryability(error_text):
     """
     if not error_text:
         return None
+    if is_user_cancelled(error_text):
+        return USER_CANCELLED
     if is_rate_limited(error_text):
         return RATE_LIMITED
     if is_permanent_unavailable(error_text):
@@ -185,4 +200,5 @@ def should_abort_retries(error_text):
     """
     return classify_retryability(error_text) in (
         RATE_LIMITED, PERMANENT, AUTH_REQUIRED, CLIENT_HTTP_ERROR, LOCAL_FILE_ERROR,
+        USER_CANCELLED,
     )

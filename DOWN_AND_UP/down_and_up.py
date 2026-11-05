@@ -1250,12 +1250,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         def progress_func(d):
             messages = safe_get_messages(message.chat.id)
             nonlocal last_update, first_progress_update, is_hls, progress_msg_dead
-            # Skip all work if the progress message was deleted by the user (issue #322)
-            if progress_msg_dead:
-                return
-            # Check if /clean was called for this user → abort download
+            # Cancellation must still work if the progress message was deleted.
             if _cancel_ev.is_set():
                 raise Exception("Download cancelled by user (/clean)")
+            # Stop UI updates when the message was deleted (issue #322).
+            if progress_msg_dead:
+                return
             # Check the timeout
             if check_download_timeout(user_id):
                 raise Exception(f"Download timeout exceeded ({safe_get_messages(user_id).DOWNLOAD_TIMEOUT // 3600} hours)")
