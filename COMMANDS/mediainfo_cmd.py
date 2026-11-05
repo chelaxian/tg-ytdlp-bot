@@ -2,6 +2,7 @@
 from HELPERS.safe_messeger import safe_callback_answer
 import os
 import subprocess
+import tempfile
 from pyrogram import filters
 from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
@@ -82,9 +83,16 @@ safe_get_messages(user_id).MEDIAINFO_MENU_TITLE_MSG,
 @app.on_callback_query(filters.regex(r"^mediainfo_option\|"))
 def mediainfo_option_callback(app, callback_query):
     user_id = callback_query.from_user.id
+    chat_id = callback_query.message.chat.id
+    # The group command is available only in configured groups. Old inline
+    # keyboards must not bypass that restriction if a group is later removed.
+    if chat_id < 0 and chat_id not in getattr(Config, "ALLOWED_GROUP", []):
+        safe_callback_answer(callback_query)
+        return
     logger.info(safe_get_messages(user_id).MEDIAINFO_CALLBACK_MSG.format(callback_data=callback_query.data))
     data = callback_query.data.split("|")[1]
-    user_dir = os.path.join("users", str(user_id))
+    # Downloads use the chat ID as their settings key, including in groups.
+    user_dir = os.path.join("users", str(chat_id))
     create_directory(user_dir)
     mediainfo_file = os.path.join(user_dir, "mediainfo.txt")
     if callback_query.data == "mediainfo_option|close":
@@ -143,35 +151,37 @@ def get_mediainfo_cli(file_path):
             timeout=60
         )
         return result.stdout
-    except Exception as e:
-        logger.error(f"mediainfo CLI error: {e}")
-        return "MediaInfo CLI error: " + str(e)
+    except (OSError, subprocess.SubprocessError, UnicodeError) as e:
+        logger.error("mediainfo CLI error: %s", type(e).__name__)
+        raise RuntimeError("MediaInfo could not inspect the file") from e
 
 
 def send_mediainfo_if_enabled(user_id, file_path, message):
-    if is_mediainfo_enabled(user_id):
-        try:
-            # Extract msg_id safely
-            msg_id = message.id if hasattr(message, "id") else message.get("message_id") or message.get("id")
+    if not is_mediainfo_enabled(user_id):
+        return
+    try:
+        msg_id = getattr(message, "id", None)
+        if msg_id is None and isinstance(message, dict):
+            msg_id = message.get("message_id") or message.get("id")
 
-            mediainfo_text = get_mediainfo_cli(file_path)
-            # Remove any absolute paths from mediainfo output for security
-            mediainfo_text = mediainfo_text.replace(os.path.abspath("users"), "users")
-            mediainfo_path = os.path.splitext(file_path)[0] + "_mediainfo.txt"
-
+        mediainfo_text = get_mediainfo_cli(file_path)
+        # Do not expose the server's absolute path to the recipient.
+        mediainfo_text = mediainfo_text.replace(os.path.abspath(file_path), os.path.basename(file_path))
+        mediainfo_text = mediainfo_text.replace(os.path.abspath("users"), "users")
+        report_name = "mediainfo.txt"
+        # A private directory avoids overwriting an existing file or colliding with
+        # concurrent reports; cleanup also runs if Telegram rejects the upload.
+        with tempfile.TemporaryDirectory(prefix="mediainfo-") as temp_dir:
+            mediainfo_path = os.path.join(temp_dir, report_name)
             with open(mediainfo_path, "w", encoding="utf-8") as f:
                 f.write(mediainfo_text)
-
-            app.send_document(user_id, mediainfo_path, caption=safe_get_messages(user_id).MEDIAINFO_DOCUMENT_CAPTION_MSG,
-                              reply_parameters=ReplyParameters(message_id=msg_id))
-            # MediaInfo files are no longer sent to log channel to avoid polluting video cache
-            # from HELPERS.logger import get_log_channel
-            # app.send_document(get_log_channel("video"), mediainfo_path,
-            #                   caption=f"<blockquote>📊 MediaInfo</blockquote> for user {user_id}")
-
-            if os.path.exists(mediainfo_path):
-                os.remove(mediainfo_path)
-
-        except Exception as e:
-            logger.error(f"Error MediaInfo: {e}")
-            send_error_to_user(message, safe_get_messages(user_id).MEDIAINFO_ERROR_SENDING_MSG.format(error=e))
+            kwargs = {"caption": safe_get_messages(user_id).MEDIAINFO_DOCUMENT_CAPTION_MSG}
+            if msg_id:
+                kwargs["reply_parameters"] = ReplyParameters(message_id=msg_id)
+            app.send_document(user_id, mediainfo_path, **kwargs)
+    except Exception as e:
+        logger.error("Error sending MediaInfo: %s", type(e).__name__)
+        try:
+            send_error_to_user(message, safe_get_messages(user_id).MEDIAINFO_ERROR_SENDING_MSG.format(error="MediaInfo unavailable"))
+        except Exception:
+            logger.exception("Could not report MediaInfo failure")
