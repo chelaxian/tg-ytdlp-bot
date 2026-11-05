@@ -18,7 +18,7 @@ from HELPERS.limitter import is_user_in_channel
 app = get_app()
 
 # Like mediainfo: handle private here; groups are registered/wrapped in magic.py
-@app.on_message(filters.command("nsfw"))
+@app.on_message(filters.command("nsfw") & filters.private)
 @background_handler(label="nsfw_command", heavy_if=light_only)
 def nsfw_command(app, message):
     chat_id = message.chat.id
@@ -29,7 +29,7 @@ def nsfw_command(app, message):
     is_admin = int(user_id) in Config.ADMIN
     
     # Check if user is ignored (even admins can be ignored, but ignore/unignore commands are always allowed) - highest priority
-    if chat_type == "private":
+    if chat_type == enums.ChatType.PRIVATE:
         text = getattr(message, 'text', '').strip() if hasattr(message, 'text') else ''
         is_ignore_command = text.startswith(Config.IGNORE_USER_COMMAND) or text.startswith(Config.UNIGNORE_USER_COMMAND)
         
@@ -39,7 +39,7 @@ def nsfw_command(app, message):
                 return  # User is ignored, no response at all (even for admins)
     
     # Check if user is blocked (except for admins and groups)
-    if chat_type == "private" and not is_admin:
+    if chat_type == enums.ChatType.PRIVATE and not is_admin:
         from DATABASE.firebase_init import is_user_blocked
         if is_user_blocked(message):
             return  # User is blocked, message already sent by is_user_blocked
