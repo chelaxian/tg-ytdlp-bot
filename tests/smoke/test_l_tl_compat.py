@@ -184,5 +184,30 @@ check("user: same fields as native Layer 227 parse", not diff_u)
 if diff_u:
     print("  differing:", diff_u)
 
+# ---- legacy field-less userStatus* (arrive inside legacy users) ----
+class _RawStatus:
+    def __init__(self, constructor_id):
+        self.constructor_id = constructor_id
+
+    def write(self):
+        return Int(self.constructor_id, False)
+
+
+legacy_statuses = {
+    tl_compat.USER_STATUS_RECENTLY_LEGACY_ID: types.UserStatusRecently,
+    tl_compat.USER_STATUS_LAST_WEEK_LEGACY_ID: types.UserStatusLastWeek,
+    tl_compat.USER_STATUS_LAST_MONTH_LEGACY_ID: types.UserStatusLastMonth,
+}
+for sid, cls in legacy_statuses.items():
+    check(f"status {hex(sid)} registered", sid in objects)
+    st = TLObject.read(BytesIO(Int(sid, False)))
+    check(f"status {hex(sid)} -> {cls.__name__}(by_me=False)", type(st) is cls and st.by_me is False)
+
+lu_status = legacy_user_bytes(77, first_name="Old", status=_RawStatus(tl_compat.USER_STATUS_RECENTLY_LEGACY_ID))
+users = TLObject.read(BytesIO(vector(lu_status, modern_user)))
+check("legacy user with legacy status", isinstance(users[0], types.User)
+      and isinstance(users[0].status, types.UserStatusRecently) and users[0].first_name == "Old")
+check("stream aligned after legacy status", isinstance(users[1], types.User) and users[1].first_name == "Bob")
+
 print(f"\n{ok} passed, {fail} failed")
 sys.exit(1 if fail else 0)
