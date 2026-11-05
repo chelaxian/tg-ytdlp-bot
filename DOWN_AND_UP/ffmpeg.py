@@ -137,75 +137,33 @@ def get_ytdlp_path():
     return ytdlp_path
 
 def split_video_2(dir, video_name, video_path, video_size, max_size, duration, user_id):
-    messages = safe_get_messages(None)
-    """
-    Split a video into multiple parts
+    """Split video, returning parts only when all were produced successfully."""
+    if max_size <= 0 or video_size <= 0 or duration <= 0:
+        raise ValueError("Cannot split video with invalid size or duration")
 
-    Args:
-        dir: Directory path
-        video_name: Name for the video
-        video_path: Path to the video file
-        video_size: Size of the video in bytes
-        max_size: Maximum size for each part
-        duration: Duration of the video
-
-    Returns:
-        dict: Dictionary with video parts information
-    """
-    rounds = (math.floor(video_size / max_size)) + 1
+    rounds = math.ceil(video_size / max_size)
     n = duration / rounds
     caption_lst = []
     path_lst = []
+    if rounds > 20:
+        logger.warning(safe_get_messages(user_id).FFMPEG_VIDEO_SPLIT_EXCESSIVE_MSG.format(rounds=rounds))
 
-    try:
-        if rounds and rounds > 20:
-            logger.warning(safe_get_messages(user_id).FFMPEG_VIDEO_SPLIT_EXCESSIVE_MSG.format(rounds=rounds))
+    for x in range(rounds):
+        start_time = x * n
+        end_time = min((x + 1) * n, duration)
+        cap_name = video_name + " - Part " + str(x + 1)
+        target_name = os.path.join(dir, cap_name + ".mp4")
+        logger.info(safe_get_messages(user_id).FFMPEG_SPLITTING_VIDEO_PART_MSG.format(
+            current=x + 1, total=rounds, start_time=start_time, end_time=end_time))
+        if not ffmpeg_extract_subclip(video_path, start_time, end_time, targetname=target_name):
+            raise RuntimeError(f"Failed to create split part {x + 1}")
+        if not os.path.isfile(target_name) or not 0 < os.path.getsize(target_name) <= max_size:
+            raise RuntimeError(f"Split part {x + 1} is missing, empty, or exceeds the configured limit")
+        caption_lst.append(cap_name)
+        path_lst.append(target_name)
 
-        for x in range(rounds):
-            start_time = x * n
-            end_time = (x * n) + n
-
-            # Ensure end_time doesn't exceed duration
-            end_time = min(end_time, duration)
-
-            cap_name = video_name + " - Part " + str(x + 1)
-            target_name = os.path.join(dir, cap_name + ".mp4")
-
-            caption_lst.append(cap_name)
-            path_lst.append(target_name)
-
-            try:
-                # Use progress logging
-                logger.info(safe_get_messages(user_id).FFMPEG_SPLITTING_VIDEO_PART_MSG.format(current=x+1, total=rounds, start_time=start_time, end_time=end_time))
-                ffmpeg_extract_subclip(video_path, start_time, end_time, targetname=target_name)
-
-                # Verify the split was successful
-                if not os.path.exists(target_name) or os.path.getsize(target_name) == 0:
-                    logger.error(safe_get_messages(user_id).FFMPEG_FAILED_CREATE_SPLIT_PART_MSG.format(part=x+1, target_name=target_name))
-                else:
-                    logger.info(safe_get_messages(user_id).FFMPEG_SUCCESSFULLY_CREATED_SPLIT_PART_MSG.format(part=x+1, target_name=target_name, size=os.path.getsize(target_name)))
-
-            except Exception as e:
-                logger.error(safe_get_messages(user_id).FFMPEG_ERROR_SPLITTING_VIDEO_PART_MSG.format(part=x+1, error=e))
-                # If a part fails, we continue with the others
-
-        split_vid_dict = {
-            "video": caption_lst,
-            "path": path_lst
-        }
-
-        logger.info(safe_get_messages(user_id).FFMPEG_VIDEO_SPLIT_SUCCESS_MSG.format(count=len(path_lst)))
-        return split_vid_dict
-
-    except Exception as e:
-        logger.error(safe_get_messages(user_id).FFMPEG_ERROR_VIDEO_SPLITTING_PROCESS_MSG.format(error=e))
-        # Return what we have so far
-        split_vid_dict = {
-            "video": caption_lst,
-            "path": path_lst,
-            "duration": duration
-        }
-        return split_vid_dict
+    logger.info(safe_get_messages(user_id).FFMPEG_VIDEO_SPLIT_SUCCESS_MSG.format(count=len(path_lst)))
+    return {"video": caption_lst, "path": path_lst}
 
 
 def get_duration_thumb_(dir, video_path, thumb_name):

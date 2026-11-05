@@ -12,6 +12,11 @@ from HELPERS.decorators import background_handler, light_only
 from HELPERS.limitter import humanbytes, is_user_in_channel
 from CONFIG.messages import safe_get_messages
 import re
+import math
+
+MIN_SPLIT_SIZE = 100 * 1024 * 1024
+MAX_SPLIT_SIZE = 2 * 1024 * 1024 * 1024
+DEFAULT_SPLIT_SIZE = 1950 * 1024 * 1024
 
 def parse_size_argument(arg):
     """
@@ -35,6 +40,8 @@ def parse_size_argument(arg):
         return None
     
     number = float(match.group(1))
+    if not math.isfinite(number) or number > 2048:
+        return None
     unit = match.group(2)
     
     # Convert to bytes
@@ -49,9 +56,9 @@ def parse_size_argument(arg):
     min_size = 100 * 1024 * 1024  # 100MB
     max_size = 2 * 1024 * 1024 * 1024  # 2GB
     
-    if size_bytes and size_bytes < min_size:
+    if size_bytes < min_size:
         return None  # Too small
-    elif size_bytes and size_bytes > max_size:
+    elif size_bytes > max_size:
         return None  # Too large
     
     return size_bytes
@@ -162,11 +169,15 @@ def split_size_callback(app, callback_query):
     except Exception:
         safe_callback_answer(callback_query, safe_get_messages(user_id).SPLIT_INVALID_SIZE_CALLBACK_MSG)
         return
+    if not MIN_SPLIT_SIZE <= size <= MAX_SPLIT_SIZE:
+        safe_callback_answer(callback_query, safe_get_messages(user_id).SPLIT_INVALID_SIZE_CALLBACK_MSG)
+        return
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     split_file = os.path.join(user_dir, "split.txt")
     with open(split_file, "w", encoding="utf-8") as f:
         f.write(str(size))
+    safe_callback_answer(callback_query)
     safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).SPLIT_SIZE_SET_MSG.format(size=humanbytes(size)))
     send_to_logger(callback_query.message, safe_get_messages(user_id).SPLIT_SIZE_SET_CALLBACK_LOG_MSG.format(size=size))
 
@@ -178,8 +189,9 @@ def get_user_split_size(user_id):
         try:
             with open(split_file, "r", encoding="utf-8") as f:
                 size = int(f.read().strip())
-                return size
+                if MIN_SPLIT_SIZE <= size <= MAX_SPLIT_SIZE:
+                    return size
         except Exception:
             pass
-    return 1950 * 1024 * 1024  # default 1.95GB
+    return DEFAULT_SPLIT_SIZE  # default 1.95GB
 
