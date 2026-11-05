@@ -6,6 +6,7 @@ from HELPERS.logger import send_to_logger, send_error_to_user, logger
 from URL_PARSERS.tags import extract_url_range_tags, save_user_tags, get_auto_tags
 from URL_PARSERS.tiktok import is_tiktok_url
 from URL_PARSERS.playlist_utils import is_playlist_url
+from URL_PARSERS.playlist_utils import range_count
 from DOWN_AND_UP.always_ask_menu import ask_quality_menu
 from DOWN_AND_UP.down_and_up import down_and_up
 from HELPERS.download_status import playlist_errors, playlist_errors_lock
@@ -178,13 +179,7 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
             all_tags = tags + auto_tags
             tags_text_full = ' '.join(all_tags)
             
-            # Calculate video_count
-            if video_start_with < 0 and video_end_with < 0:
-                video_count = abs(video_end_with) - abs(video_start_with) + 1
-            elif video_start_with > video_end_with:
-                video_count = abs(video_start_with - video_end_with) + 1
-            else:
-                video_count = video_end_with - video_start_with + 1
+            video_count = range_count(video_start_with, video_end_with)
             
             if playlist_name:
                 with playlist_errors_lock:
@@ -435,16 +430,7 @@ def video_url_extractor(app, message):
         auto_tags = get_auto_tags(url, tags)
         all_tags = tags + auto_tags
         tags_text_full = ' '.join(all_tags)
-        # Правильное вычисление video_count для отрицательных индексов
-        if video_start_with < 0 and video_end_with < 0:
-            # Для отрицательных индексов: -1 до -7 = 7 элементов (от последнего к 7-му с конца)
-            video_count = abs(video_end_with) - abs(video_start_with) + 1
-        elif video_start_with > video_end_with:
-            # Для обратного порядка: считаем абсолютную разницу
-            video_count = abs(video_start_with - video_end_with) + 1
-        else:
-            # Для прямого порядка: обычная формула
-            video_count = video_end_with - video_start_with + 1
+        video_count = range_count(video_start_with, video_end_with)
         if playlist_name:
             with playlist_errors_lock:
                 error_key = f"{user_id}_{playlist_name}"

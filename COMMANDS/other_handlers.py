@@ -92,22 +92,15 @@ def audio_command_handler(app, message):
     user_dir = os.path.join("users", str(user_id))
     create_directory(user_dir)
     text = message.text
-    # Нормализация синтаксиса диапазона: 
-    # поддержка «/audio 1-10 URL» → преобразуем во «/audio URL*1*10» для единого пайплайна
+    # «/audio 1-10 URL [#tags]» -> «/audio URL*1*10 [#tags]» (same rules as /vid: -3-7, 3-)
     try:
         parts = (text or '').split()
         if len(parts) >= 3 and parts[0].lower().startswith('/audio'):
-            if re.match(r"^\d+-\d*$", parts[1]):
-                rng = parts[1]
-                start_str, end_str = rng.split('-')
-                start_val = int(start_str)
-                end_val = int(end_str) if end_str != '' else None
-                if start_val and start_val >= 1:
-                    url_candidate = ' '.join(parts[2:]).strip()
-                    if end_val is not None:
-                        text = f"/audio {url_candidate}*{start_val}*{end_val}"
-                    else:
-                        text = f"/audio {url_candidate}*{start_val}*"
+            from URL_PARSERS.playlist_utils import command_args_to_range_text
+            from HELPERS.limitter import range_limit_for_url
+            converted = command_args_to_range_text(parts[1:], range_limit_for_url(parts[2])[0])
+            if converted:
+                text = f"/audio {converted}"
     except Exception:
         pass
     url, _, _, _, tags, tags_text, tag_error = extract_url_range_tags(text)
@@ -136,13 +129,8 @@ def audio_command_handler(app, message):
     # Extract playlist parameters from the message
     full_string = text or message.caption or ""
     _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
-    # Правильное вычисление video_count для отрицательных индексов
-    if video_start_with < 0 and video_end_with < 0:
-        video_count = abs(video_end_with) - abs(video_start_with) + 1
-    elif video_start_with > video_end_with:
-        video_count = abs(video_start_with - video_end_with) + 1
-    else:
-        video_count = video_end_with - video_start_with + 1
+    from URL_PARSERS.playlist_utils import range_count
+    video_count = range_count(video_start_with, video_end_with)
     
     # Checking the range limit
     if not check_playlist_range_limits(url, video_start_with, video_end_with, app, message):

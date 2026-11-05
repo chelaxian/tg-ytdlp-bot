@@ -324,34 +324,19 @@ def _vid_handler(app, message):
         parts = txt.split()
         url = ""
 
-        # /vid 1-10 https://... -> URL*1*10  (поддерживаем отрицательные числа)
-        if len(parts) >= 3 and re.match(r"^-?\d+-\d*$", parts[1]):
-            rng = parts[1]
-            url = " ".join(parts[2:])
-
-            if rng.startswith("-"):
-                match = re.match(r"^-(\d+)-(\d*)$", rng)
-                if match:
-                    first_num = f"-{match.group(1)}"
-                    second_num = f"-{match.group(2)}" if match.group(2) else None
-                    if url:
-                        url = f"{url}*{first_num}*{second_num}" if second_num else f"{url}*{first_num}*"
-                else:
-                    a, b = rng.split("-", 1)
-                    if b:
-                        b = f"-{b}"
-                    if url:
-                        url = f"{url}*{a}*{b}" if b else f"{url}*{a}*"
-            else:
-                a, b = rng.split("-", 1)
-                b = b if b else None
-                if url:
-                    url = f"{url}*{a}*{b}" if b is not None else f"{url}*{a}*"
-
+        # /vid 1-10 URL [#tags] -> URL*1*10 [#tags]  (also -3-7, 3- ; see command_args_to_range_text)
+        url = ""
+        args = parts[1:]
+        if args and args[0].startswith("@"):
+            args = args[1:]  # /vid @bot 1-10 URL
+        if len(args) >= 2:
+            from URL_PARSERS.playlist_utils import command_args_to_range_text
+            from HELPERS.limitter import range_limit_for_url
+            url = command_args_to_range_text(args, range_limit_for_url(args[1])[0]) or ""
             if url:
                 logger.info(f"🔍 [DEBUG] Преобразовано /vid команда: '{message.text}' -> '{url}'")
-        else:
-            url = parts[1] if len(parts) > 1 else ""
+        if not url:
+            url = " ".join(args)
 
         # Remove @bot mention if present in command (/vid @bot url)
         if url.startswith("@"):

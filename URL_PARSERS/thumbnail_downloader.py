@@ -612,11 +612,11 @@ def download_youtube_thumbnail(video_id: str, dest: str, prefer_320: bool = Fals
 
 
 def _ensure_jpeg(path: str) -> None:
-    """Convert WebP file to JPEG in-place if needed. Telegram requires JPEG thumbnails."""
+    """Convert a non-JPEG image (WebP, PNG, AVIF...) to JPEG in-place. Telegram requires JPEG thumbnails."""
     try:
         with open(path, 'rb') as f:
             header = f.read(12)
-        if header[:4] == b'RIFF' and header[8:12] == b'WEBP':
+        if header[:3] != b'\xff\xd8\xff':
             tmp_path = path + '.convert_tmp.jpg'
             result = subprocess.run(
                 ['ffmpeg', '-y', '-i', path, '-q:v', '2', tmp_path],
@@ -624,15 +624,89 @@ def _ensure_jpeg(path: str) -> None:
             )
             if result.returncode == 0 and os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
                 os.replace(tmp_path, path)
-                logger.info(f"Converted WebP thumbnail to JPEG: {path}")
+                logger.info(f"Converted thumbnail to JPEG: {path}")
             else:
                 try:
                     os.remove(tmp_path)
                 except Exception:
                     pass
-                logger.warning(f"ffmpeg WebP->JPEG conversion failed for {path}")
+                logger.warning(f"ffmpeg ->JPEG conversion failed for {path}")
     except Exception as e:
         logger.warning(f"_ensure_jpeg error for {path}: {e}")
+
+
+_INFO_THUMB_MAX_BYTES = 5 * 1024 * 1024
+
+
+def _info_thumbnail_urls(info: dict) -> list:
+    """Cover URLs yt-dlp already found for this item, best first (at most 3)."""
+    urls = []
+    if not isinstance(info, dict):
+        return urls
+    main = info.get('thumbnail')
+    if isinstance(main, str):
+        urls.append(main)
+    thumbs = info.get('thumbnails')
+    if isinstance(thumbs, list):
+        # yt-dlp sorts thumbnails worst -> best
+        for t in reversed(thumbs):
+            u = t.get('url') if isinstance(t, dict) else None
+            if isinstance(u, str) and u not in urls:
+                urls.append(u)
+            if len(urls) >= 3:
+                break
+    return urls[:3]
+
+
+def download_thumbnail_from_info(info: dict, dest: str) -> bool:
+    """Save the cover from yt-dlp metadata of an already extracted item.
+
+    One plain HTTP request instead of a second full yt-dlp extraction of the page
+    (download_thumbnail_via_ytdlp): on DE that fallback ran ~730 times in 46 h for
+    Instagram/TikTok/Twitter/Facebook items, ~5 s each (up to 275 s), without the
+    user's cookies or proxy. Never raises; returns False if nothing usable.
+    """
+    for thumb_url in _info_thumbnail_urls(info):
+        try:
+            data = b''
+            # follow up to 3 redirects by hand so every hop passes the SSRF check
+            for _hop in range(4):
+                ok, err = _validate_url_for_ssrf(thumb_url)
+                if not ok:
+                    logger.warning(f"Skipping metadata thumbnail ({err})")
+                    break
+                with requests.get(thumb_url, timeout=(5, 15), stream=True, allow_redirects=False,
+                                  headers={'User-Agent': 'Mozilla/5.0'}) as r:
+                    if r.is_redirect and r.headers.get('Location'):
+                        thumb_url = requests.compat.urljoin(thumb_url, r.headers['Location'])
+                        continue
+                    if r.status_code == 200:
+                        for chunk in r.iter_content(65536):
+                            data += chunk
+                            if len(data) > _INFO_THUMB_MAX_BYTES:
+                                data = b''
+                                break
+                break
+            if len(data) < 100:
+                continue
+            dest_dir = os.path.dirname(dest)
+            if dest_dir:
+                os.makedirs(dest_dir, exist_ok=True)
+            with open(dest, 'wb') as f:
+                f.write(data)
+            _ensure_jpeg(dest)
+            with open(dest, 'rb') as f:
+                if f.read(3) == b'\xff\xd8\xff':
+                    logger.info(f"Thumbnail from yt-dlp metadata: {dest}")
+                    return True
+        except Exception as e:
+            logger.info(f"Metadata thumbnail not downloaded: {e}")
+    try:
+        if os.path.exists(dest):
+            os.remove(dest)
+    except OSError:
+        pass
+    return False
 
 
 def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = None) -> bool:
