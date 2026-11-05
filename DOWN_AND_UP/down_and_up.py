@@ -43,7 +43,8 @@ from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
 from URL_PARSERS.playlist_utils import range_indices, playlist_indices_for_range, is_playlist_with_range, is_playlist_url, is_playlist_from_info_dict
 from URL_PARSERS.normalizer import get_clean_playlist_url
 from urllib.parse import urlparse
-from DATABASE.cache_db import get_cached_playlist_videos, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache
+from DATABASE.cache_db import get_cached_playlist_message_ids, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache, remove_playlist_cache_entries
+from HELPERS.cache_repost import repost_playlist_items, repost_single
 from HELPERS.qualifier import get_quality_by_min_side, ceil_to_popular
 from HELPERS.logger import send_to_all  # Импорт в самом конце для гарантии видимости
 from HELPERS.safe_messeger import safe_forward_messages  # Дублирующий импорт для устранения ошибки видимости
@@ -669,12 +670,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         elif not is_subs_always_ask(user_id):
             # Check if content is NSFW before looking in cache
             from HELPERS.porn import is_porn
-            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+            is_nsfw = user_forced_nsfw or is_porn(url, "", "", None)
+            logger.info(f"[FALLBACK] cache NSFW check for {url}: forced={user_forced_nsfw}, is_nsfw={is_nsfw}")
             
             if not is_nsfw:
-                cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, requested_indices)
-                logger.info(f"[VIDEO CACHE] Checking cache for regular playlist: url={url}, quality={safe_quality_key}")
+                cached_videos = get_cached_playlist_message_ids(get_clean_playlist_url(url), safe_quality_key, requested_indices)
             else:
                 logger.info(f"[VIDEO CACHE] Skipping cache check for NSFW playlist: url={url}, quality={safe_quality_key}")
                 cached_videos = {}
@@ -691,28 +691,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             send_as_file = user_args.get("send_as_file", False)
             
             if not send_as_file:
-                for index in requested_indices:
-                    if index in cached_videos:
-                        try:
-                            # For cached content, always use regular channel (no NSFW/PAID in cache)
-                            from_chat_id = get_log_channel("video")
-                            channel_type = "regular"
-                            
-                            logger.info(f"[VIDEO CACHE] Reposting video {index} from channel {from_chat_id} to user {user_id}, message_id={cached_videos[index]}")
-                            forward_kwargs = {
-                                'chat_id': user_id,
-                                'from_chat_id': from_chat_id,
-                                'message_ids': [cached_videos[index]]
-                            }
-                            # Only apply thread_id in groups/channels, not in private chats
-                            if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
-                                thread_id = getattr(message, 'message_thread_id', None)
-                                if thread_id:
-                                    forward_kwargs['message_thread_id'] = thread_id
-                            app.forward_messages(**forward_kwargs)
-                            daily_quota.record(message, daily_quota.VIDEO, cached=True)
-                        except Exception as e:
-                            logger.error(f"down_and_up: error reposting cached video index={index}: {e}")
+                # cached content always lives in the regular channel (NSFW/PAID is never cached)
+                thread_id = None
+                if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
+                    thread_id = getattr(message, 'message_thread_id', None)
+                stale, undelivered = repost_playlist_items(app, user_id, get_log_channel("video"), requested_indices,
+                                                           cached_videos, thread_id=thread_id)
+                if stale:
+                    remove_playlist_cache_entries(get_clean_playlist_url(url), safe_quality_key, stale)
+                if undelivered:
+                    for index in undelivered:
+                        cached_videos.pop(index, None)
+                    uncached_indices = [i for i in requested_indices if i not in cached_videos]
+                for _ in cached_videos:
+                    daily_quota.record(message, daily_quota.VIDEO, cached=True)
             else:
                 # If send_as_file is enabled, treat all indices as uncached
                 logger.info(f"[VIDEO CACHE] send_as_file enabled for user {user_id}, skipping cache repost for playlist")
@@ -722,7 +714,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 app.send_message(user_id, safe_get_messages(user_id).PLAYLIST_SENT_FROM_CACHE_MSG.format(cached=len(cached_videos), total=len(requested_indices)), reply_parameters=ReplyParameters(message_id=message.id))
                 send_to_logger(message, LoggerMsg.PLAYLIST_VIDEOS_SENT_FROM_CACHE.format(quality=safe_quality_key, user_id=user_id))
                 return
-            else:
+            elif cached_videos:
                 app.send_message(user_id, safe_get_messages(user_id).CACHE_PARTIAL_MSG.format(cached=len(cached_videos), total=len(requested_indices)), reply_parameters=ReplyParameters(message_id=message.id))
         elif cached_videos:
             logger.info("[VIDEO CACHE] Skipping partial cache replay for negative range to avoid duplicate downloads")
@@ -740,8 +732,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         elif not need_subs and not is_subs_always_ask(user_id):
             # Check if content is NSFW before looking in cache
             from HELPERS.porn import is_porn
-            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+            is_nsfw = user_forced_nsfw or is_porn(url, "", "", None)
+            logger.info(f"[FALLBACK] cache NSFW check for {url}: forced={user_forced_nsfw}, is_nsfw={is_nsfw}")
             
             cached_ids = None
             if not is_nsfw:
@@ -759,34 +751,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 if not send_as_file:
                     #found_type = None
-                    try:
-                        # For cached content, always use regular channel (no NSFW/PAID in cache)
-                        from_chat_id = get_log_channel("video")
-                        channel_type = "regular"
-                        
-                        logger.info(f"[VIDEO CACHE] Reposting video from channel {from_chat_id} to user {user_id}, message_ids={cached_ids}")
-                        forward_kwargs = {
-                            'chat_id': user_id,
-                            'from_chat_id': from_chat_id,
-                            'message_ids': cached_ids
-                        }
-                        # Only apply thread_id in groups/channels, not in private chats
-                        if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
-                            thread_id = getattr(message, 'message_thread_id', None)
-                            if thread_id:
-                                forward_kwargs['message_thread_id'] = thread_id
-                        app.forward_messages(**forward_kwargs)
+                    # cached content always lives in the regular channel (NSFW/PAID is never cached)
+                    thread_id = None
+                    if getattr(message.chat, "type", None) != enums.ChatType.PRIVATE:
+                        thread_id = getattr(message, 'message_thread_id', None)
+                    reposted, stale = repost_single(app, user_id, get_log_channel("video"), cached_ids, thread_id=thread_id)
+                    if reposted:
                         daily_quota.record(message, daily_quota.VIDEO, cached=True)
                         app.send_message(user_id, safe_get_messages(user_id).VIDEO_SENT_FROM_CACHE_MSG, reply_parameters=ReplyParameters(message_id=message.id))
                         send_to_logger(message, LoggerMsg.VIDEO_SENT_FROM_CACHE.format(quality=safe_quality_key, user_id=user_id))
                         return
-                    except Exception as e:
-                        logger.error(f"Error reposting video from cache: {e}")
-                        # Always save to cache regardless of subtitles or Always Ask mode
-                        # The cache will be used for display purposes (rocket emoji) but not for reposting
-                        _save_video_cache_with_logging(url, safe_quality_key, [], original_text="", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
-                        # Don't show error message if we successfully got video from cache
-                        # The video was already sent successfully in the try block
+                    if stale:
+                        # the cached messages are gone from the log channel: drop the entry and download
+                        save_to_video_cache(url, safe_quality_key, [], clear=True)
                 else:
                     # If send_as_file is enabled, skip cache repost and continue with download
                     logger.info(f"[VIDEO CACHE] send_as_file enabled for user {user_id}, skipping cache repost for single video")
@@ -2710,8 +2687,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             # Check if content is NSFW for fallback
                             from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                            _url_nsfw = is_porn(url, "", "", None)
+                            is_nsfw = _url_nsfw or user_forced_nsfw
+                            logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                             
                             # ЖЕСТКО: Используем сохраненный оригинальный текст с диапазоном
                             logger.info(f"[FALLBACK DEBUG] Using saved original_message_text: {original_message_text}")
@@ -3112,8 +3090,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             # Check if content is NSFW for fallback
                             from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                            _url_nsfw = is_porn(url, "", "", None)
+                            is_nsfw = _url_nsfw or user_forced_nsfw
+                            logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                             
                             # ЖЕСТКО: Используем сохраненный оригинальный текст с диапазоном
                             logger.info(f"[FALLBACK DEBUG] Using saved original_message_text: {original_message_text}")
@@ -4398,8 +4377,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     try:
                         # Determine the correct log channel based on content type
                         from HELPERS.porn import is_porn
-                        is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                        logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                        _url_nsfw = is_porn(url, "", "", None)
+                        is_nsfw = _url_nsfw or user_forced_nsfw
+                        logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                         is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                         is_paid = is_nsfw and is_private_chat
                         logger.info(f"[VIDEO CACHE] URL analysis: url={url}, is_nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}")
@@ -4563,7 +4543,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     need_subs = determine_need_subs(subs_enabled, found_type, user_id)
                     
                     # Only save to cache if subtitles are not needed and functions are not active
-                    if not should_disable_cache and not need_subs:
+                    if not should_disable_cache and not need_subs and not is_nsfw:
                         _save_video_cache_with_logging(url, safe_quality_key, split_msg_ids, original_text=message.text or message.caption or "", user_id=user_id, download_sections=download_sections, has_subs=need_subs, has_dubs=has_dubs)
                     else:
                         if should_disable_cache:
@@ -5186,7 +5166,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     auto_mode = get_user_subs_auto_mode(user_id)
                                     need_subs = determine_need_subs(subs_enabled, found_type, user_id)
                                     # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
-                                    if not should_disable_cache and not need_subs:
+                                    if not should_disable_cache and not need_subs and not is_nsfw:
                                         # Передаем уникальную ссылку видео для дополнительного кэширования
                                         video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                         save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
@@ -5195,8 +5175,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
                                         else:
                                             logger.info("Video with subtitles (subs.txt found) is not cached!")
-                                    cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
-                                    logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                     playlist_indices.append(current_video_index)
                                     playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                 else:
@@ -5336,7 +5314,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 auto_mode = get_user_subs_auto_mode(user_id)
                                                 need_subs = determine_need_subs(subs_enabled, found_type, user_id)
                                                 # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
-                                                if not should_disable_cache and not need_subs:
+                                                if not should_disable_cache and not need_subs and not is_nsfw:
                                                     # Передаем уникальную ссылку видео для дополнительного кэширования
                                                     video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                                     save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
@@ -5345,8 +5323,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                         logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
                                                     else:
                                                         logger.info("Video with subtitles (subs.txt found) is not cached!")
-                                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
-                                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                                 playlist_indices.append(current_video_index)
                                                 playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                             else:
@@ -5385,8 +5361,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 
                                 # Determine the correct log channel based on content type
                                 from HELPERS.porn import is_porn
-                                is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                                logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                                _url_nsfw = is_porn(url, "", "", None)
+                                is_nsfw = _url_nsfw or user_forced_nsfw
+                                logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                                 is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                                 is_paid = is_nsfw and is_private_chat
                                 
@@ -5480,7 +5457,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                         auto_mode = get_user_subs_auto_mode(user_id)
                                         need_subs = determine_need_subs(subs_enabled, found_type, user_id)
                                         # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
-                                        if not should_disable_cache and not need_subs:
+                                        if not should_disable_cache and not need_subs and not is_nsfw:
                                             # Передаем уникальную ссылку видео для дополнительного кэширования
                                             video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
                                             save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
@@ -5489,8 +5466,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                                 logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
                                             else:
                                                 logger.info("Video with subtitles (subs.txt found) is not cached!")
-                                        cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
-                                        logger.info(f"Checking the cache immediately after writing: {cached_check}")
                                         playlist_indices.append(current_video_index)
                                         playlist_msg_ids.extend([m.id for m in forwarded_msgs])
                                     else:
@@ -5709,16 +5684,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             need_subs = determine_need_subs(subs_enabled, found_type, user_id)
             # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
             if not should_disable_cache and not need_subs:
-                # Передаем все уникальные ссылки видео для дополнительного кэширования
-                save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, playlist_indices, playlist_msg_ids, original_text=message.text or message.caption or "", video_urls_dict=playlist_video_urls if playlist_video_urls else None)
+                # every item was already cached right after its upload
+                logger.info(f"[SUMMARY] Playlist cache (quality {safe_quality_key}): indices={playlist_indices}, msg_ids={playlist_msg_ids}")
             else:
                 if should_disable_cache:
                     logger.info(f"Playlist not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
                 else:
                     logger.info("Video with subtitles (subs.txt found) is not cached!")
-            cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, playlist_indices)
-            summary = "\n".join([f"Index {idx}: msg_id={cached_check.get(idx, '-')}" for idx in playlist_indices])
-            logger.info(f"[SUMMARY] Playlist cache (quality {safe_quality_key}):\n{summary}")
         
         # Clear Always Ask menu states (TRIM, SUBS, DUBS) at the end of function
         # This ensures states are cleared after all postprocessing (including MKV embedding) is complete

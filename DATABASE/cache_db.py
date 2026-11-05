@@ -133,10 +133,9 @@ def log_firebase_access_attempt(path_parts, success=True):
     path_str = ' -> '.join(path_parts)  # For example: "bot -> video_cache -> playlists -> url_hash -> quality"
     status = "SUCCESS" if success else "MISS"
     try:
-        logger.info(LoggerMsg.DB_FIREBASE_CACHE_ACCESS_LOG_MSG.format(path=path_str, status=status))
+        logger.debug(LoggerMsg.DB_FIREBASE_CACHE_ACCESS_LOG_MSG.format(path=path_str, status=status))
     except Exception:
-        # Fallback to stdout if logger is not usable for any reason during early init
-        print(f"Firebase local-cache access: {path_str} -> {status}")
+        pass
 
 def load_firebase_cache():
     messages = safe_get_messages(None)
@@ -515,346 +514,310 @@ def auto_cache_command(app, message):
         logger.error(LoggerMsg.DB_AUTO_CACHE_HANDLER_ERROR_LOG_MSG.format(error=e))
 
 
-# Added playlist caching - separate functions for saving and retrieving playlist cache
+# ================= media cache (video / playlist / image) =================
+#
+# Layout (same in Firebase, dump.json and SQL):
+#   bot/video_cache/<url_hash>/<quality>            -> "id" or "id,id,..." (split video)
+#   bot/video_cache/playlists/<url_hash>/<quality>/<index> -> "id" or "id,id,..."
+#   bot/video_cache/images/<url_hash>/<post_index>  -> "id,id,..."
+# message ids point at the regular video log channel.
+#
+# Reads go through _read_node(): one read per URL hash node (all qualities at
+# once), memoized for a few seconds, so building a quality menu costs a few
+# reads instead of one per quality and URL variant. Writes go through
+# _write_values(): one SQL transaction / one dump.json rewrite per save.
+
+_MEMO_TTL = 5.0
+_MEMO_MAX = 512
+_memo = {}
+_memo_lock = threading.Lock()
+
+
+def invalidate_media_cache_memo():
+    """Forget memoized cache nodes (call after writing the cache outside this module)."""
+    with _memo_lock:
+        _memo.clear()
+
+
+def _read_node(path_parts):
+    """Value of a cache node; SQL reads are memoized for _MEMO_TTL seconds."""
+    if not is_sql():
+        return get_from_local_cache(path_parts)
+    key = tuple(path_parts)
+    now = time.monotonic()
+    with _memo_lock:
+        hit = _memo.get(key)
+        if hit is not None and now - hit[0] < _MEMO_TTL:
+            return hit[1]
+    value = get_from_local_cache(path_parts)
+    with _memo_lock:
+        if len(_memo) >= _MEMO_MAX:
+            _memo.clear()
+        _memo[key] = (now, value)
+    return value
+
+
+def _set_in_mirror(path: str, value):
+    """Apply one write to the in-memory dump copy (firebase_cache); value None deletes."""
+    parts = _split_path_to_parts(path)
+    if not parts:
+        return
+    current = firebase_cache
+    for part in parts[:-1]:
+        nxt = current.get(part) if isinstance(current, dict) else None
+        if isinstance(nxt, list):
+            nxt = {str(i): v for i, v in enumerate(nxt) if v is not None}
+            current[part] = nxt
+        elif not isinstance(nxt, dict):
+            if value is None:
+                return
+            nxt = {}
+            current[part] = nxt
+        current = nxt
+    if value is None:
+        current.pop(parts[-1], None)
+    else:
+        current[parts[-1]] = value
+
+
+def _write_values(values: dict) -> bool:
+    """Write {path: value} (value None deletes) in one batch. Returns True on success."""
+    if not values:
+        return True
+    invalidate_media_cache_memo()
+    try:
+        if is_sql():
+            from DATABASE.firebase_init import get_sql_store
+            get_sql_store().update("", values)  # one transaction
+            return True
+        if is_json() and _mirror_loaded:
+            with _thread_lock:
+                for path, value in values.items():
+                    _set_in_mirror(path, value)
+            _sync_local_cache_to_file()  # one dump.json rewrite
+            return True
+        for path, value in values.items():
+            ref = db_child_by_path(db, path)
+            if value is None:
+                ref.remove()
+            else:
+                ref.set(value)
+        if is_firebase():
+            # keep the in-memory dump copy current, so the entry is usable before the next reload
+            with _thread_lock:
+                for path, value in values.items():
+                    _set_in_mirror(path, value)
+        return True
+    except Exception as e:
+        logger.error(f"[CACHE] write of {len(values)} value(s) failed: {type(e).__name__}: {e}")
+        return False
+
+
+def _parse_ids(value) -> list:
+    if value is None or isinstance(value, (dict, list, bool)):
+        return []
+    try:
+        return [int(x) for x in str(value).split(",") if str(x).strip()]
+    except (TypeError, ValueError):
+        return []
+
+
+def _node_value(node, key):
+    """Child `key` of a node that may have come back as a dict or (int keys) as a list."""
+    if isinstance(node, dict):
+        return node.get(str(key))
+    if isinstance(node, list):
+        try:
+            i = int(key)
+        except (TypeError, ValueError):
+            return None
+        return node[i] if 0 <= i < len(node) else None
+    return None
+
+
+def _video_url_hashes(url: str) -> list:
+    """Hashes of every form a video URL is cached under (YouTube: also short/long)."""
+    from URL_PARSERS.normalizer import normalize_url_for_cache
+    from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+    urls = [normalize_url_for_cache(url)]
+    if is_youtube_url(url):
+        urls += [normalize_url_for_cache(youtube_to_short_url(url)),
+                 normalize_url_for_cache(youtube_to_long_url(url))]
+    return list(dict.fromkeys(get_url_hash(u) for u in urls))
+
+
+def _playlist_url_hashes(playlist_url: str) -> list:
+    return list(dict.fromkeys(get_url_hash(u) for u in _normalize_playlist_urls(playlist_url)))
+
+
+def _video_paths(url: str, quality_key: str) -> list:
+    return [f"{Config.VIDEO_CACHE_DB_PATH}/{h}/{quality_key}" for h in _video_url_hashes(url)]
+
+
 def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: list, message_ids: list,
-                           messages = safe_get_messages(None),
+                           messages=None,
                            clear: bool = False, original_text: str = None, video_urls_dict: dict = None):
-    global firebase_cache
-    logger.info(
-        f"save_to_playlist_cache called: playlist_url={playlist_url}, quality_key={quality_key}, video_indices={video_indices}, message_ids={message_ids}, clear={clear}")
-    
+    """Cache playlist items: index -> message id(s) in the log channel.
+
+    One index with several message ids (a split video) is stored as "id,id,...";
+    otherwise indices and ids are paired one to one."""
     if not quality_key:
         logger.warning(LoggerMsg.DB_QUALITY_KEY_EMPTY_LOG_MSG.format(playlist_url=playlist_url))
         return
-
-    if not hasattr(Config, 'PLAYLIST_CACHE_DB_PATH') or not Config.PLAYLIST_CACHE_DB_PATH or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
+    if not getattr(Config, 'PLAYLIST_CACHE_DB_PATH', None) or Config.PLAYLIST_CACHE_DB_PATH.strip() in ('', '/', '.'):
         logger.error(LoggerMsg.DB_PLAYLIST_CACHE_PATH_INVALID_LOG_MSG.format(playlist_url=playlist_url))
         return
-
     try:
-        urls = _normalize_playlist_urls(playlist_url)
-        logger.info(LoggerMsg.DB_NORMALIZED_PLAYLIST_URLS_LOG_MSG.format(urls=urls))
-
-        for u in set(urls):
-            url_hash = get_url_hash(u)
-            logger.info(f"Using playlist URL hash: {url_hash}")
-
-            if clear:
-                db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").remove()
-                logger.info(f"Cleared playlist cache for hash={url_hash}, quality={quality_key}")
-                # Обновляем локальный кэш
-                if is_json():
-                    path_parts_clear = ["bot", "video_cache", "playlists", url_hash, quality_key]
-                    current = firebase_cache
-                    for i, part in enumerate(path_parts_clear[:-1]):
-                        if part in current and isinstance(current[part], dict):
-                            current = current[part]
-                        else:
-                            break
-                    else:
-                        if path_parts_clear[-1] in current:
-                            del current[path_parts_clear[-1]]
-                            _sync_local_cache_to_file()
-                continue
-
+        hashes = _playlist_url_hashes(playlist_url)
+        values = {}
+        if clear:
+            for h in hashes:
+                values[f"{Config.PLAYLIST_CACHE_DB_PATH}/{h}/{quality_key}"] = None
+        else:
             if not message_ids or not video_indices:
-                logger.warning(f"message_ids or video_indices is empty for playlist: {playlist_url}, quality: {quality_key}")
-                continue
-
-            for i, msg_id in zip(video_indices, message_ids):
-                encoded_index = encode_playlist_cache_index(i)
-                
-                path_parts_local = ["bot", "video_cache", "playlists", url_hash, quality_key, encoded_index]
-                path_parts = [Config.PLAYLIST_CACHE_DB_PATH, url_hash, quality_key, encoded_index]
-                already_cached = get_from_local_cache(path_parts_local)
-
-                if already_cached:
-                    logger.info(safe_get_messages().DB_PLAYLIST_PART_ALREADY_CACHED_MSG.format(path_parts=path_parts_local))
-                    continue
-
-                db_child_by_path(db, "/".join(path_parts)).set(str(msg_id))
-                logger.info(f"Saved to playlist cache: path={path_parts}, msg_id={msg_id}")
-                
-                # Обновляем локальный кэш для немедленного доступа (и для Firebase, и для локального режима)
-                current = firebase_cache
-                for part in path_parts_local[:-1]:
-                    if isinstance(current, list):
-                        break
-                    if part not in current:
-                        current[part] = {}
-                    val = current[part]
-                    if not isinstance(val, dict):
-                        current[part] = {}
-                    current = current[part]
-                else:
-                    if isinstance(current, dict):
-                        current[encoded_index] = str(msg_id)
-                logger.info(f"✅ [CACHE] Обновлен локальный кэш: path={path_parts_local}, msg_id={msg_id}")
-
-        logger.info(f"✅ Saved to playlist cache for hash={url_hash}, quality={quality_key}, indices={video_indices}, message_ids={message_ids}")
-        
-        # Дополнительно кэшируем каждое видео отдельно по его уникальной ссылке
-        if video_urls_dict and not clear:
-            logger.info(f"🔍 [CACHE] Дополнительно кэшируем {len(video_urls_dict)} видео по их уникальным ссылкам")
-            for video_index, video_url in video_urls_dict.items():
-                if not video_url:
-                    continue
-                try:
-                    # Извлекаем message_id для этого видео
-                    if video_index in video_indices:
-                        idx_pos = video_indices.index(video_index)
-                        if idx_pos < len(message_ids):
-                            video_msg_id = message_ids[idx_pos]
-                            # Сохраняем видео отдельно по его уникальной ссылке
-                            save_to_video_cache(video_url, quality_key, [video_msg_id], clear=False, original_text=None, user_id=None)
-                            logger.info(f"✅ [CACHE] Сохранено отдельное видео: index={video_index}, url={video_url}, msg_id={video_msg_id}")
-                except Exception as e:
-                    logger.warning(f"⚠️ [CACHE] Не удалось сохранить отдельное видео для index={video_index}, url={video_url}: {e}")
-        
-        # Синхронизируем локальный кэш с файлом при USE_FIREBASE=False
-        if is_json():
-            _sync_local_cache_to_file()
-
+                logger.warning(f"[CACHE] playlist save skipped (no ids/indices): {playlist_url}, quality: {quality_key}")
+                return
+            if len(video_indices) == 1:
+                pairs = [(video_indices[0], ",".join(map(str, message_ids)))]
+            else:
+                pairs = [(i, str(m)) for i, m in zip(video_indices, message_ids)]
+            for h in hashes:
+                for index, ids in pairs:
+                    values[f"{Config.PLAYLIST_CACHE_DB_PATH}/{h}/{quality_key}/{encode_playlist_cache_index(index)}"] = ids
+            # each item is also cached under its own video URL
+            for index, ids in pairs:
+                video_url = (video_urls_dict or {}).get(index)
+                if video_url:
+                    for path in _video_paths(video_url, quality_key):
+                        values[path] = ids
+        if _write_values(values):
+            logger.info(f"[CACHE] playlist {'cleared' if clear else 'saved'}: quality={quality_key}, "
+                        f"indices={video_indices}, ids={message_ids}, paths={len(values)}")
     except Exception as e:
         logger.error(f"Failed to save to playlist cache: {e}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        
 
-def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_indices: list) -> dict:
-    _messages = safe_get_messages(None)
-    logger.info(
-        f"get_cached_playlist_videos called: playlist_url={playlist_url}, quality_key={quality_key}, requested_indices={requested_indices}")
-    if not quality_key:
-        logger.warning(f"get_cached_playlist_videos: quality_key is empty for playlist: {playlist_url}")
-        return {}
+
+def remove_playlist_cache_entries(playlist_url: str, quality_key: str, indices) -> None:
+    """Drop the given playlist items (e.g. their log-channel messages were deleted)."""
+    if not quality_key or not indices:
+        return
     try:
-        urls = _normalize_playlist_urls(playlist_url)
-        quality_keys = _expand_quality_keys(quality_key)
-        found = {}
-        logger.info(f"get_cached_playlist_videos: checking URLs: {urls}")
-        logger.info(f"get_cached_playlist_videos: checking quality keys: {quality_keys}")
+        values = {}
+        for h in _playlist_url_hashes(playlist_url):
+            for qk in _expand_quality_keys(quality_key):
+                for index in indices:
+                    values[f"{Config.PLAYLIST_CACHE_DB_PATH}/{h}/{qk}/{encode_playlist_cache_index(index)}"] = None
+        _write_values(values)
+        logger.info(f"[CACHE] dropped stale playlist entries: quality={quality_key}, indices={list(indices)}")
+    except Exception as e:
+        logger.error(f"Failed to drop playlist cache entries: {e}")
 
-        for u in set(urls):
-            url_hash = get_url_hash(u)
-            logger.info(f"get_cached_playlist_videos: checking URL hash: {url_hash}")
-            for qk in quality_keys:
-                logger.info(f"get_cached_playlist_videos: checking quality: {qk}")
 
-                # A new way for searching in Dump!
-                data = get_from_local_cache(["bot", "video_cache", "playlists", url_hash, qk])
-                if isinstance(data, dict):
-                    for index in requested_indices:
-                        try:
-                            encoded_index = encode_playlist_cache_index(index)
-                            value = data.get(encoded_index)
-                            if value and isinstance(value, (str, int, float)):
-                                found[index] = int(value)
-                                logger.info(
-                                    f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {value}")
-                        except Exception as e:
-                            logger.error(
-                                f"get_cached_playlist_videos: error reading dict cache for url_hash={url_hash}, quality={qk}, index={index}: {e}")
-                            continue
-                elif isinstance(data, list):
-                    for index in requested_indices:
-                        try:
-                            if isinstance(index, int) and index >= 0 and index < len(data) and data[index]:
-                                val = data[index]
-                                if isinstance(val, (str, int, float)):
-                                    found[index] = int(val)
-                                logger.info(
-                                    f"get_cached_playlist_videos: found cached video for index {index} (quality={qk}): {data[index]}")
-                        except Exception as e:
-                            logger.error(
-                                f"get_cached_playlist_videos: error reading list cache for url_hash={url_hash}, quality={qk}, index={index}: {e}")
-                            continue
-                if found:
-                    logger.info(
-                        f"get_cached_playlist_videos: returning cached videos for indices {list(found.keys())}: {found}")
-                    return found
-
-        logger.info(safe_get_messages().DB_GET_CACHED_PLAYLIST_VIDEOS_NO_CACHE_MSG)
+def get_cached_playlist_message_ids(playlist_url: str, quality_key: str, requested_indices: list) -> dict:
+    """{index: [message ids]} for the requested playlist items found in the cache."""
+    if not quality_key or not requested_indices:
         return {}
+    found = {}
+    try:
+        quality_keys = _expand_quality_keys(quality_key)
+        for h in _playlist_url_hashes(playlist_url):
+            node = _read_node(["bot", "video_cache", "playlists", h])
+            if not node:
+                continue
+            for qk in quality_keys:
+                data = _node_value(node, qk)
+                if not data:
+                    continue
+                for index in requested_indices:
+                    if index in found:
+                        continue
+                    ids = _parse_ids(_node_value(data, encode_playlist_cache_index(index)))
+                    if ids:
+                        found[index] = ids
+            if len(found) == len(requested_indices):
+                break
     except Exception as e:
         logger.error(f"Failed to get from playlist cache: {e}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
         return {}
+    logger.debug(f"[CACHE] playlist lookup quality={quality_key}: {len(found)}/{len(requested_indices)} cached")
+    return found
+
+
+def get_cached_playlist_videos(playlist_url: str, quality_key: str, requested_indices: list) -> dict:
+    """{index: first message id} for cached playlist items (see get_cached_playlist_message_ids)."""
+    return {i: ids[0] for i, ids in get_cached_playlist_message_ids(playlist_url, quality_key, requested_indices).items()}
 
 
 def get_cached_playlist_qualities(playlist_url: str) -> set:
     """Gets all available qualities for a cached playlist."""
     try:
-        urls = _normalize_playlist_urls(playlist_url)
-        
-        # Проверяем все варианты URL и собираем все качества
         all_qualities = set()
-        for u in set(urls):
-            url_hash = get_url_hash(u)
-            logger.info(f"get_cached_playlist_qualities: checking hash {url_hash} for URL: {u}")
-            
-            # Проверяем локальный кэш
-            data = get_from_local_cache(["bot", "video_cache", "playlists", url_hash])
+        for url_hash in _playlist_url_hashes(playlist_url):
+            data = _read_node(["bot", "video_cache", "playlists", url_hash])
             if data and isinstance(data, dict):
-                qualities = set(data.keys())
-                all_qualities.update(qualities)
-                logger.info(f"get_cached_playlist_qualities: found qualities {qualities} for hash {url_hash} (local cache)")
-            else:
-                # Если в локальном кэше нет, проверяем Firebase напрямую (если используется)
-                if is_firebase():
-                    try:
-                        # Пытаемся получить данные из Firebase напрямую
-                        firebase_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}"
-                        firebase_data = db.child(firebase_path).get()
-                        if firebase_data and isinstance(firebase_data.val(), dict):
-                            qualities = set(firebase_data.val().keys())
-                            all_qualities.update(qualities)
-                            logger.info(f"get_cached_playlist_qualities: found qualities {qualities} for hash {url_hash} (Firebase)")
-                            # Обновляем локальный кэш для будущих обращений
-                            if "bot" not in firebase_cache:
-                                firebase_cache["bot"] = {}
-                            if "video_cache" not in firebase_cache["bot"]:
-                                firebase_cache["bot"]["video_cache"] = {}
-                            if "playlists" not in firebase_cache["bot"]["video_cache"]:
-                                firebase_cache["bot"]["video_cache"]["playlists"] = {}
-                            firebase_cache["bot"]["video_cache"]["playlists"][url_hash] = firebase_data.val()
-                    except Exception as e:
-                        logger.warning(f"get_cached_playlist_qualities: error checking Firebase for hash {url_hash}: {e}")
-        
-        if all_qualities:
-            logger.info(f"get_cached_playlist_qualities: returning {all_qualities} for playlist: {playlist_url}")
-        else:
-            logger.info(f"get_cached_playlist_qualities: no cached qualities found for playlist: {playlist_url}")
+                all_qualities.update(data.keys())
+            elif is_firebase():
+                # the dump copy may predate items saved by another instance: ask Firebase
+                try:
+                    firebase_data = db.child(f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}").get()
+                    val = firebase_data.val() if firebase_data else None
+                    if isinstance(val, dict):
+                        all_qualities.update(val.keys())
+                        with _thread_lock:
+                            firebase_cache.setdefault("bot", {}).setdefault("video_cache", {}).setdefault("playlists", {})[url_hash] = val
+                except Exception as e:
+                    logger.warning(f"get_cached_playlist_qualities: error checking Firebase for hash {url_hash}: {e}")
         return all_qualities
     except Exception as e:
         logger.error(f"Failed to get cached playlist qualities: {e}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
         return set()
 
 
 def is_any_playlist_index_cached(playlist_url, quality_key, indices):
     """Checks if at least one index from the range is in the playlist cache."""
-    cached = get_cached_playlist_videos(playlist_url, quality_key, indices)
-    return bool(cached)
+    return bool(get_cached_playlist_message_ids(playlist_url, quality_key, indices))
+
 
 def get_cached_qualities(url: str) -> set:
-    """He gets all the castle qualities for the URL."""
-    from URL_PARSERS.normalizer import normalize_url_for_cache
+    """All cached quality keys for a video URL (any of its cached URL forms)."""
     try:
-        url_hash = get_url_hash(normalize_url_for_cache(url))
-        
-        # We use local cache instead of Firebase
-        path_parts = ["bot", "video_cache", url_hash]
-        data = get_from_local_cache(path_parts)
-        
-        if data and isinstance(data, dict):
-            return set(data.keys())
-        return set()
+        qualities = set()
+        for url_hash in _video_url_hashes(url):
+            data = _read_node(["bot", "video_cache", url_hash])
+            if isinstance(data, dict):
+                qualities.update(k for k, v in data.items() if v and not isinstance(v, (dict, list)))
+        return qualities
     except Exception as e:
         logger.error(f"Failed to get cached qualities: {e}")
         return set()
 
-# --- Quickly get the number of cached videos for quality ---
+
 def get_cached_playlist_count(playlist_url: str, quality_key: str, indices: list = None) -> int:
-    """
-    Returns the number of cached videos for the given quality (based on the number of keys in the database),
-    considering and rounded quality_key (ceil_to_popular).
-    If a list of indices is passed, it only counts their intersection with the cache.
-    For large ranges (>100), it uses a fast count.
-    """
-    _messages = safe_get_messages(None)
+    """Number of cached playlist items for quality_key (only `indices` if given)."""
     try:
-        urls = _normalize_playlist_urls(playlist_url)
+        if indices is not None:
+            return len(get_cached_playlist_message_ids(playlist_url, quality_key, indices))
+        found = set()
         quality_keys = _expand_quality_keys(quality_key)
-
-        cached_count = 0
-        for u in set(urls):
-            url_hash = get_url_hash(u)
+        for h in _playlist_url_hashes(playlist_url):
+            node = _read_node(["bot", "video_cache", "playlists", h])
             for qk in quality_keys:
-                data = get_from_local_cache(["bot", "video_cache", "playlists", url_hash, qk])
-                if data is None:
-                    continue
-                if indices is not None:
-                    target_indices = indices
-                    if isinstance(data, dict):
-                        if len(target_indices) > 100:
-                            try:
-                                cached_count = sum(
-                                    1 for index in target_indices
-                                    if data.get(encode_playlist_cache_index(index)) is not None
-                                )
-                                logger.info(safe_get_messages().DB_GET_CACHED_PLAYLIST_COUNT_FAST_COUNT_MSG.format(cached_count=cached_count))
-                                return cached_count
-                            except Exception as e:
-                                logger.error(f"get_cached_playlist_count: error in dict fast count: {e}")
-                                continue
-                        else:
-                            for index in target_indices:
-                                try:
-                                    if data.get(encode_playlist_cache_index(index)) is not None:
-                                        cached_count += 1
-                                        logger.info(
-                                            f"get_cached_playlist_count: found cached video for index {index} (quality={qk})")
-                                except Exception as e:
-                                    logger.error(
-                                        f"get_cached_playlist_count: error reading dict cache for url_hash={url_hash}, quality={qk}, index={index}: {e}")
-                                    continue
-                    elif isinstance(data, list):
-                        if len(target_indices) > 100:
-                            try:
-                                cached_count = sum(
-                                    1 for index in target_indices
-                                    if isinstance(index, int) and index >= 0 and index < len(data) and data[index] is not None
-                                )
-                                logger.info(safe_get_messages().DB_GET_CACHED_PLAYLIST_COUNT_FAST_COUNT_MSG.format(cached_count=cached_count))
-                                return cached_count
-                            except Exception as e:
-                                logger.error(f"get_cached_playlist_count: error in list fast count: {e}")
-                                continue
-                        else:
-                            for index in target_indices:
-                                try:
-                                    if isinstance(index, int) and index >= 0 and index < len(data) and data[index] is not None:
-                                        cached_count += 1
-                                        logger.info(
-                                            f"get_cached_playlist_count: found cached video for index {index} (quality={qk}): {data[index]}")
-                                except Exception as e:
-                                    logger.error(
-                                        f"get_cached_playlist_count: error reading list cache for url_hash={url_hash}, quality={qk}, index={index}: {e}")
-                                    continue
-                else:
-                    # Count all non-empty records
-                    try:
-                        if isinstance(data, dict):
-                            cached_count = sum(1 for item in data.values() if item is not None)
-                        elif isinstance(data, list):
-                            cached_count = sum(1 for item in data if item is not None)
-                        else:
-                            cached_count = 0
-                    except Exception as e:
-                        logger.error(
-                            f"get_cached_playlist_count: error reading cache for url_hash={url_hash}, quality={qk}: {e}")
-                        continue
-
-                if cached_count and cached_count > 0:
-                    logger.info(f"get_cached_playlist_count: returning {cached_count} cached videos for quality {qk}")
-                    return cached_count
-
-        logger.info(f"get_cached_playlist_count: no cached videos found, returning 0")
-        return 0
+                data = _node_value(node, qk)
+                if isinstance(data, dict):
+                    found.update(k for k, v in data.items() if v is not None)
+                elif isinstance(data, list):
+                    found.update(str(i) for i, v in enumerate(data) if v is not None)
+        return len(found)
     except Exception as e:
         logger.error(f"get_cached_playlist_count error: {e}")
         return 0
 
-# --- new functions for caching ---
+
 def get_url_hash(url: str) -> str:
     """Returns a hash of the URL for use as a cache key."""
     import hashlib
-    hash_result = hashlib.md5(url.encode()).hexdigest()
-    logger.info(f"get_url_hash: '{url}' -> '{hash_result}'")
-    return hash_result
+    return hashlib.md5(url.encode()).hexdigest()
+
 
 def _split_path_to_parts(path: str) -> list:
     try:
@@ -862,325 +825,116 @@ def _split_path_to_parts(path: str) -> list:
     except Exception:
         return ["bot", "image_cache"]
 
+
 def save_to_image_cache(url: str, post_index: int, message_ids: list):
-    """Save sent album (post) message IDs for an image URL into cache.
-    Stored under local cache path: bot -> image_cache -> url_hash -> str(post_index) -> comma-separated ids
-    And mirrored to Firebase using db_child_by_path when available.
-    """
-    global firebase_cache
+    """Save sent album (post) message IDs for an image URL:
+    <IMAGE_CACHE_DB_PATH>/<url_hash>/<post_index> -> "id,id,..." (existing entries are kept)."""
     from URL_PARSERS.normalizer import normalize_url_for_cache
     try:
-        logger.info(f"[IMG CACHE] save_to_image_cache called: url={url}, post_index={post_index}, message_ids={message_ids}")
         if not url or not message_ids or post_index is None:
             logger.warning("[IMG CACHE] save_to_image_cache skipped: empty args")
             return
-        u = normalize_url_for_cache(url)
-        url_hash = get_url_hash(u)
-        # Avoid duplicate write if already present in local cache (use config path)
+        url_hash = get_url_hash(normalize_url_for_cache(url))
         image_root = getattr(Config, 'IMAGE_CACHE_DB_PATH', 'bot/video_cache/images')
-        root_parts = _split_path_to_parts(image_root)
-        local_path_parts = root_parts + [url_hash, str(int(post_index))]
-        existing = get_from_local_cache(local_path_parts)
-        if existing:
-            logger.info(f"[IMG CACHE] Skip save: already exists in local cache: {'/'.join(local_path_parts)}")
+        local_path_parts = _split_path_to_parts(image_root) + [url_hash, str(int(post_index))]
+        if get_from_local_cache(local_path_parts):
+            logger.info(f"[IMG CACHE] Skip save: already cached: {'/'.join(local_path_parts)}")
             return
-        ids_string = ",".join(map(str, message_ids))
-        # Write to Firebase dump path (1:1 style with save_to_video_cache)
-        try:
-            # parent path without index, then child(index)
-            path_parts = [*root_parts, url_hash]
-            path_dbg_parent = "/".join(path_parts)
-            logger.info(f"[IMG CACHE] Writing parent path: {path_dbg_parent}; index={post_index}; ids={ids_string}")
-            cache_ref = db.child(*path_parts)
-            try:
-                cache_ref.child(str(int(post_index))).set(ids_string)
-            except Exception as inner:
-                logger.error(f"[IMG CACHE] Primary write failed ({path_dbg_parent}): {inner}")
-                # Fallback to db_child_by_path to mimic other modules exactly
-                try:
-                    db_child_by_path(db, f"{image_root}/{url_hash}/{int(post_index)}").set(ids_string)
-                    logger.info(f"[IMG CACHE] Fallback write via db_child_by_path succeeded: {image_root}/{url_hash}/{int(post_index)}")
-                except Exception as inner2:
-                    logger.error(f"[IMG CACHE] Fallback write failed: {inner2}")
-            logger.info(f"[IMG CACHE] Saved album to cache: {path_dbg_parent}/{int(post_index)}")
-            
-            # Обновляем локальный кэш для немедленного доступа
-            if is_json():
-                current = firebase_cache
-                for part in local_path_parts[:-1]:  # Все кроме последнего (post_index)
-                    if part not in current:
-                        current[part] = {}
-                    current = current[part]
-                current[local_path_parts[-1]] = ids_string
-                _sync_local_cache_to_file()
-            
-            # Optional verification
-            try:
-                val = cache_ref.child(str(int(post_index))).get().val()
-                logger.info(f"[IMG CACHE] Verify read: {path_dbg_parent}/{int(post_index)} -> {val}")
-            except Exception as ve:
-                logger.warning(f"[IMG CACHE] Verify read failed (child-chain): {ve}")
-                try:
-                    val = db_child_by_path(db, f"{image_root}/{url_hash}/{int(post_index)}").get().val()
-                    logger.info(f"[IMG CACHE] Verify read (fallback): {image_root}/{url_hash}/{int(post_index)} -> {val}")
-                except Exception as ve2:
-                    logger.warning(f"[IMG CACHE] Verify read fallback failed: {ve2}")
-        except Exception as we:
-            logger.error(f"[IMG CACHE] Write error: {we}")
+        if _write_values({"/".join(local_path_parts): ",".join(map(str, message_ids))}):
+            logger.info(f"[IMG CACHE] Saved album to cache: {'/'.join(local_path_parts)}")
     except Exception as e:
         logger.error(f"[IMG CACHE] Failed to save image cache: {e}")
+
+
+def _image_posts_node(url: str):
+    from URL_PARSERS.normalizer import normalize_url_for_cache
+    url_hash = get_url_hash(normalize_url_for_cache(url))
+    image_root = getattr(Config, 'IMAGE_CACHE_DB_PATH', 'bot/video_cache/images')
+    return _read_node(_split_path_to_parts(image_root) + [url_hash])
+
+
+def _image_post_items(base):
+    """(1-based post index, raw value) pairs of an image cache node (dict or list layout)."""
+    if isinstance(base, dict):
+        for k, v in base.items():
+            try:
+                yield int(k), v
+            except (TypeError, ValueError):
+                continue
+    elif isinstance(base, list):
+        # [None, "ids", ...] is 1-based already; ["ids", ...] gets shifted to 1-based
+        start_from_one = len(base) > 1 and base[0] in (None, "", [])
+        for i, v in enumerate(base):
+            if start_from_one:
+                if i == 0:
+                    continue
+                yield i, v
+            else:
+                yield i + 1, v
+
 
 def get_cached_image_posts(url: str, requested_indices: list | None = None) -> dict:
     """Return dict {post_index: [msg_ids]} for cached image posts for URL.
     If requested_indices is provided, only return intersection.
     """
-    from URL_PARSERS.normalizer import normalize_url_for_cache
     try:
-        u = normalize_url_for_cache(url)
-        url_hash = get_url_hash(u)
-        image_root = getattr(Config, 'IMAGE_CACHE_DB_PATH', 'bot/video_cache/images')
-        root_parts = _split_path_to_parts(image_root)
-        base = get_from_local_cache(root_parts + [url_hash])
         result = {}
-        # Dict layout: {"1": "id,id,..."}
-        if isinstance(base, dict):
-            for k, v in base.items():
-                try:
-                    idx = int(k)
-                except Exception:
-                    continue
-                if requested_indices is not None and idx not in requested_indices:
-                    continue
-                if isinstance(v, list):
-                    ids = [int(x) for x in v if x]
-                elif isinstance(v, str):
-                    ids = [int(x) for x in v.split(',') if x]
-                else:
-                    continue
-                if ids:
-                    result[idx] = ids
-            return result
-        # List layout: [None, "id,id,...", ...] or ["id,id,...", ...]
-        if isinstance(base, list):
-            start_from_one = False
-            try:
-                start_from_one = (len(base) > 1 and (base[0] is None or base[0] in ("", [])))
-            except Exception:
-                start_from_one = False
-            for i, v in enumerate(base):
-                idx = i if not start_from_one else i
-                if start_from_one:
-                    # Skip index 0 placeholder
-                    if i == 0:
-                        continue
-                    idx = i  # already 1-based positions
-                else:
-                    # convert to 1-based index for consistency
-                    idx = i + 1
-                if requested_indices is not None and idx not in requested_indices:
-                    continue
-                if not v:
-                    continue
-                if isinstance(v, list):
-                    ids = [int(x) for x in v if x]
-                elif isinstance(v, str):
-                    ids = [int(x) for x in v.split(',') if x]
-                else:
-                    continue
-                if ids:
-                    result[idx] = ids
-            return result
-        return {}
+        for idx, v in _image_post_items(_image_posts_node(url)):
+            if requested_indices is not None and idx not in requested_indices:
+                continue
+            if isinstance(v, list):
+                ids = [int(x) for x in v if x]
+            else:
+                ids = _parse_ids(v)
+            if ids:
+                result[idx] = ids
+        return result
     except Exception as e:
         logger.error(f"Failed to get cached image posts: {e}")
         return {}
 
+
 def get_cached_image_post_indices(url: str) -> set:
     """Return set of cached post indices for image URL."""
-    from URL_PARSERS.normalizer import normalize_url_for_cache
     try:
-        u = normalize_url_for_cache(url)
-        url_hash = get_url_hash(u)
-        image_root = getattr(Config, 'IMAGE_CACHE_DB_PATH', 'bot/video_cache/images')
-        root_parts = _split_path_to_parts(image_root)
-        base = get_from_local_cache(root_parts + [url_hash])
-        indices = set()
-        if isinstance(base, dict):
-            for k in base.keys():
-                try:
-                    indices.add(int(k))
-                except Exception:
-                    continue
-            return indices
-        if isinstance(base, list):
-            if len(base) == 0:
-                return set()
-            start_from_one = False
-            try:
-                start_from_one = (len(base) > 1 and (base[0] is None or base[0] in ("", [])))
-            except Exception:
-                start_from_one = False
-            for i, v in enumerate(base):
-                if not v:
-                    continue
-                if start_from_one:
-                    if i == 0:
-                        continue
-                    indices.add(i)
-                else:
-                    indices.add(i + 1)
-            return indices
-        return set()
+        return {idx for idx, v in _image_post_items(_image_posts_node(url)) if v}
     except Exception as e:
         logger.error(f"Failed to get cached image indices: {e}")
         return set()
 
+
 def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bool = False, original_text: str = None, user_id: int = None):
-    """Saves message IDs to Firebase video cache after checking local cache to avoid duplication."""
-    global firebase_cache
-    from URL_PARSERS.normalizer import normalize_url_for_cache
-    from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
+    """Cache (or with clear=True drop) the log-channel message ids of a video for quality_key."""
     from URL_PARSERS.playlist_utils import is_playlist_with_range
-    if user_id is not None:
-        # Lazy import to avoid circular imports at module level
-        try:
-            from COMMANDS.subtitles_cmd import (
-                check_subs_availability,
-                is_subs_enabled,
-                get_user_subs_auto_mode,
-                is_subs_always_ask,
-            )
-        except Exception:
-            check_subs_availability = None
-            is_subs_enabled = lambda _uid: False
-            get_user_subs_auto_mode = lambda _uid: False
-
-        # Always save to cache regardless of subtitles or Always Ask mode
-        # The cache will be used for display purposes (rocket emoji) but not for reposting
-        # Only skip caching if user has send_as_file enabled (handled in _save_video_cache_with_logging)
-
-    logger.info(f"save_to_video_cache called: url={url}, quality_key={quality_key}, message_ids={message_ids}, clear={clear}, original_text={original_text}")
 
     if not quality_key:
         logger.warning(f"save_to_video_cache: quality_key is empty, skipping cache save for URL: {url}")
         return
-
-    if original_text and is_playlist_with_range(original_text):
+    if not clear and original_text and is_playlist_with_range(original_text):
         logger.info(f"Playlist with range detected, skipping cache save for URL: {url}")
         return
-
+    if not clear and not message_ids:
+        logger.warning(f"save_to_video_cache: message_ids is empty for URL: {url}, quality: {quality_key}")
+        return
     try:
-        urls = [normalize_url_for_cache(url)]
-        if is_youtube_url(url):
-            urls += [
-                normalize_url_for_cache(youtube_to_short_url(url)),
-                normalize_url_for_cache(youtube_to_long_url(url))
-            ]
-        
-        logger.info(f"save_to_video_cache: normalized URLs: {urls}")
-
-        for u in set(urls):
-            url_hash = get_url_hash(u)
-            path_parts_local = ["bot", "video_cache", "playlists", url_hash]
-            path_parts = [Config.VIDEO_CACHE_DB_PATH, url_hash]
-            
-            # === CLEAR MODE ===
-            if clear:
-                logger.info(f"Clearing cache for URL hash {url_hash}, quality {quality_key}")
-                db.child(*path_parts).child(quality_key).remove()
-                # Обновляем локальный кэш
-                if is_json():
-                    current = firebase_cache
-                    for part in ["bot", "video_cache", url_hash]:
-                        if part in current and isinstance(current[part], dict):
-                            current = current[part]
-                        else:
-                            break
-                    else:
-                        if quality_key in current:
-                            del current[quality_key]
-                            _sync_local_cache_to_file()
-                continue
-
-            if not message_ids:
-                logger.warning(f"save_to_video_cache: message_ids is empty for URL: {url}, quality: {quality_key}")
-                continue
-
-            # === LOCAL CACHE CHECK ===
-            # Note: We now allow overwriting existing cache to ensure consistency
-            existing = get_from_local_cache(path_parts_local + [quality_key])
-            if existing is not None:
-                logger.info(f"Cache already exists for URL hash {url_hash}, quality {quality_key}, but will update with new message_ids.")
-
-            cache_ref = db.child(*path_parts)
-
-            if len(message_ids) == 1:
-                cache_ref.child(quality_key).set(str(message_ids[0]))
-                logger.info(f"Saved single video to cache: hash={url_hash}, quality={quality_key}, msg_id={message_ids[0]}")
-                # Обновляем локальный кэш
-                if is_json():
-                    current = firebase_cache
-                    for part in ["bot", "video_cache", url_hash]:
-                        if part not in current:
-                            current[part] = {}
-                        current = current[part]
-                    current[quality_key] = str(message_ids[0])
-            else:
-                ids_string = ",".join(map(str, message_ids))
-                cache_ref.child(quality_key).set(ids_string)
-                logger.info(f"Saved split video to cache: hash={url_hash}, quality={quality_key}, msg_ids={ids_string}")
-                # Обновляем локальный кэш
-                if is_json():
-                    current = firebase_cache
-                    for part in ["bot", "video_cache", url_hash]:
-                        if part not in current:
-                            current[part] = {}
-                        current = current[part]
-                    current[quality_key] = ids_string
-            
-            # Синхронизируем локальный кэш с файлом при USE_FIREBASE=False
-            if is_json():
-                _sync_local_cache_to_file()
-
+        value = None if clear else ",".join(map(str, message_ids))
+        if _write_values({path: value for path in _video_paths(url, quality_key)}):
+            logger.info(f"[CACHE] video {'cleared' if clear else 'saved'}: url={url}, quality={quality_key}, ids={message_ids}")
     except Exception as e:
         logger.error(f"Failed to save to video cache: {e}")
-        
+
 
 def get_cached_message_ids(url: str, quality_key: str) -> list:
-    """Searches cache for both versions of YouTube link (long/short)."""
-    messages = safe_get_messages(None)
-    from URL_PARSERS.normalizer import normalize_url_for_cache
-    from URL_PARSERS.youtube import is_youtube_url, youtube_to_short_url, youtube_to_long_url
-    logger.info(f"get_cached_message_ids called: url={url}, quality_key={quality_key}")
+    """Cached log-channel message ids of a video (any cached URL form), or None."""
     if not quality_key:
-        logger.warning(f"get_cached_message_ids: quality_key is empty for URL: {url}")
         return None
     try:
-        urls = [normalize_url_for_cache(url)]
-        if is_youtube_url(url):
-            short_url = youtube_to_short_url(url)
-            long_url = youtube_to_long_url(url)
-            urls.append(normalize_url_for_cache(short_url))
-            urls.append(normalize_url_for_cache(long_url))
-            logger.info(f"get_cached_message_ids: original={url}, short={short_url}, long={long_url}")
-        logger.info(f"get_cached_message_ids: checking URLs: {urls}")
-        for u in set(urls):
-            url_hash = get_url_hash(u)
-            logger.info(f"get_cached_message_ids: checking hash {url_hash} for quality {quality_key}")
-            
-            # We use local cache instead of Firebase
-            path_parts = ["bot", "video_cache", url_hash, quality_key]
-            ids_string = get_from_local_cache(path_parts)
-            
-            logger.info(f"get_cached_message_ids: raw value from local cache: {ids_string} (type: {type(ids_string)})")
-            if ids_string:
-                result = [int(msg_id) for msg_id in ids_string.split(',')]
-                logger.info(
-                    f"get_cached_message_ids: found cached message_ids {result} for URL: {url}, quality: {quality_key}")
-                return result
-            else:
-                logger.info(safe_get_messages().DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_MSG.format(url_hash=url_hash, quality_key=quality_key))
-        logger.info(safe_get_messages().DB_GET_CACHED_MESSAGE_IDS_NO_CACHE_ANY_VARIANT_MSG)
+        for url_hash in _video_url_hashes(url):
+            ids = _parse_ids(_node_value(_read_node(["bot", "video_cache", url_hash]), quality_key))
+            if ids:
+                logger.info(f"[CACHE] hit: url={url}, quality={quality_key}, ids={ids}")
+                return ids
+        logger.debug(f"[CACHE] miss: url={url}, quality={quality_key}")
         return None
     except Exception as e:
         logger.error(f"Failed to get from cache: {e}")
