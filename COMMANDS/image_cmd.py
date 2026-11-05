@@ -844,6 +844,104 @@ def _is_invalid_photo_rpc_error(error):
     return any(marker in text for marker in TG_INVALID_PHOTO_ERROR_IDS)
 
 
+def _retry_photo_upload(send, media, files_to_cleanup):
+    """Re-encode photos once after Telegram explicitly rejects their format."""
+    if PILImage is None:
+        return send()
+    from HELPERS.telegram_photo import prepare_photo, retry_invalid_photo_upload
+
+    def prepare_valid(path):
+        prepared = prepare_photo(path)
+        if prepared and _photo_send_problem(prepared):
+            files_to_cleanup.append(prepared)
+            return None
+        return prepared
+
+    return retry_invalid_photo_upload(
+        send, media,
+        lambda item: isinstance(item, (InputMediaPhoto, InputPaidMediaPhoto)),
+        lambda error: isinstance(error, BadRequest) and _is_invalid_photo_rpc_error(error),
+        prepare_valid, files_to_cleanup,
+    )
+
+
+class _PartialAlbumSendError(Exception):
+    def __init__(self, sent, cause):
+        super().__init__(f"Album partially sent ({len(sent)} messages): {cause}")
+        self.sent = sent
+
+
+def _send_rejected_album_in_parts(app, chat_id, message, media, originals, message_thread_id=None):
+    """Isolate rejected photos, preserving albums for the remaining media.
+
+    Called only after Telegram has explicitly rejected the entire upload. It
+    never retries ambiguous failures, which could duplicate delivered messages.
+    """
+    reply = ReplyParameters(message_id=get_reply_message_id(message))
+    original_by_id = {id(item): original for item, original in zip(media, originals)}
+    sent_so_far = []
+
+    def send_part(items):
+        if len(items) > 1:
+            try:
+                sent_so_far.extend(timed_upload(lambda: app.send_media_group(
+                    chat_id, media=items, reply_parameters=reply, message_thread_id=message_thread_id)))
+            except BadRequest as error:
+                if not _is_invalid_photo_rpc_error(error):
+                    raise
+                middle = len(items) // 2
+                send_part(items[:middle])
+                send_part(items[middle:])
+            return
+        item = items[0]
+        caption = getattr(item, 'caption', None)
+        if isinstance(item, InputMediaPhoto):
+            try:
+                sent = timed_upload(lambda: app.send_photo(chat_id, photo=item.media, caption=caption,
+                                      has_spoiler=getattr(item, 'has_spoiler', False),
+                                      reply_parameters=reply, message_thread_id=message_thread_id))
+            except BadRequest as error:
+                if not _is_invalid_photo_rpc_error(error):
+                    raise
+                sent = timed_upload(lambda: app.send_document(chat_id, document=original_by_id[id(item)], caption=caption,
+                                         reply_parameters=reply, message_thread_id=message_thread_id))
+        else:
+            sent = timed_upload(lambda: app.send_video(chat_id, video=item.media, caption=caption,
+                                  has_spoiler=getattr(item, 'has_spoiler', False),
+                                  reply_parameters=reply, message_thread_id=message_thread_id))
+        if sent is not None:
+            sent_so_far.append(sent)
+
+    try:
+        if len(media) > 1:
+            middle = len(media) // 2
+            send_part(media[:middle])
+            send_part(media[middle:])
+        else:
+            send_part(media)
+    except Exception as error:
+        if sent_so_far:
+            raise _PartialAlbumSendError(sent_so_far, error) from error
+        raise
+    return sent_so_far
+
+
+def _send_regular_photo_album(app, chat_id, message, media, originals, prepared_files, message_thread_id=None):
+    """Send one album, re-encode rejected photos, then isolate persistent failures."""
+    try:
+        return _retry_photo_upload(
+            lambda: timed_upload(lambda: app.send_media_group(
+                chat_id, media=media,
+                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                message_thread_id=message_thread_id)),
+            media, prepared_files,
+        )
+    except BadRequest as error:
+        if not _is_invalid_photo_rpc_error(error):
+            raise
+        return _send_rejected_album_in_parts(app, chat_id, message, media, originals, message_thread_id)
+
+
 def _send_files_as_documents(app, user_id, message, file_paths, caption=None, message_thread_id=None):
     """Send files one by one as documents; returns list of sent messages (#472).
 
@@ -1799,6 +1897,7 @@ def image_command(app, message):
             create_protection_file(run_dir)
         
         files_to_cleanup = []
+        prepared_photo_files = []
 
         # We'll not start full download thread; we'll pull ranges to enforce batching
         completion_sent = False  # Guard to ensure we exit after first completion announcement
@@ -2233,14 +2332,35 @@ def image_command(app, message):
                         if any(p[0] == converted for p in photos_videos_buffer):
                             continue
                         ext = os.path.splitext(converted)[1].lower()
-                        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']:
-                            # Issue #472: one photo Telegram can't save (>10 MB, extreme
-                            # dimensions, corrupt/non-image) fails the whole media group
-                            # with PHOTO_SAVE_FILE_INVALID - send such files as documents.
+                        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']:
+                            # Prefer a Telegram-compatible photo copy; retain the source
+                            # as a document fallback when conversion cannot succeed.
                             photo_problem = _photo_send_problem(converted)
+                            if photo_problem and PILImage is not None:
+                                try:
+                                    from HELPERS.telegram_photo import prepare_photo
+                                    prepared = prepare_photo(converted)
+                                except Exception as exc:
+                                    logger.warning(f"[IMG #472] Photo preparation failed: {exc}")
+                                    prepared = None
+                                if prepared:
+                                    prepared_photo_files.append(prepared)
+                                    if _photo_send_problem(prepared) is None:
+                                        converted = prepared
+                                        photo_problem = None
                             if photo_problem:
-                                logger.info(f"[IMG #472] Sending {converted} as document instead of photo: {photo_problem}")
-                                others_buffer.append((converted, original_path))
+                                is_private_photo = getattr(message.chat, 'type', None) == enums.ChatType.PRIVATE
+                                if getattr(message, '_is_fake_message', False):
+                                    is_private_photo = not str(getattr(message, '_original_chat_id', user_id)).startswith('-')
+                                from HELPERS.limitter import should_apply_limits_to_admin
+                                if nsfw_flag and is_private_photo and should_apply_limits_to_admin(user_id=user_id, message=message):
+                                    # Documents cannot be sent as paid media; never disclose a paid
+                                    # image for free just because photo conversion failed.
+                                    logger.warning(f"[IMG #472] Paid photo could not be prepared: {photo_problem}")
+                                    safe_send_message(user_id, 'Could not prepare an image for paid delivery; the original was not sent as a free document.')
+                                else:
+                                    logger.info(f"[IMG #472] Sending {original_path} as document instead of photo: {photo_problem}")
+                                    others_buffer.append((original_path, original_path))
                             else:
                                 photos_videos_buffer.append((converted, 'photo', original_path))
                         elif ext in ['.mp4']:
@@ -2371,13 +2491,13 @@ def image_command(app, message):
                                                 if status_msg and status_msg.id:
                                                     _start_upload_logging(user_id, status_msg.id)
                                                 try:
-                                                    paid_msg = timed_upload(lambda: app.send_paid_media(
+                                                    paid_msg = timed_upload(lambda: _retry_photo_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=album_items,
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    ))
+                                                    ), album_items, prepared_photo_files))
                                                 finally:
                                                     # Stop upload logging after upload completes or fails
                                                     if status_msg and status_msg.id:
@@ -2677,21 +2797,20 @@ def image_command(app, message):
                                                             except TypeError:
                                                                 paid_media_list.append(InputPaidMediaVideo(media=media_path))
                                                     # CRITICAL: do not fallback to free media if paid send fails
-                                                    sent = timed_upload(lambda: app.send_paid_media(
+                                                    sent = timed_upload(lambda: _retry_photo_upload(lambda: app.send_paid_media(
                                                         chat_id,
                                                         media=paid_media_list,
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                    ))
+                                                    ), paid_media_list, prepared_photo_files))
                                                     sent_paid_media_album = True
                                                 else:
-                                                    sent = timed_upload(lambda: app.send_media_group(
-                                                        chat_id,
-                                                        media=media_group,
-                                                        reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                                        message_thread_id=message_thread_id
-                                                    ))
+                                                    sent = _send_regular_photo_album(
+                                                        app, chat_id, message, media_group,
+                                                        [orig for _p, _t, orig in group_items],
+                                                        prepared_photo_files, message_thread_id,
+                                                    )
                                             finally:
                                                 # Stop upload logging after upload completes or fails
                                                 if status_msg and status_msg.id:
@@ -2966,6 +3085,13 @@ def image_command(app, message):
                                 except Exception:
                                     pass
                             except Exception as e:
+                                if isinstance(e, _PartialAlbumSendError):
+                                    sent_message_ids.extend(m.id for m in e.sent if getattr(m, 'id', None))
+                                    total_sent += len(e.sent)
+                                    raise
+                                if isinstance(e, TimeoutError):
+                                    # The upload worker may still deliver the album.
+                                    raise
                                 logger.error(f"Failed to send media group: {e}")
                                 logger.info(f"[IMG FALLBACK] Entering fallback logic, nsfw_flag={nsfw_flag}, media_group_len={len(media_group)}")
                                 # fallback: send individually
@@ -3027,13 +3153,13 @@ def image_command(app, message):
                                                 if status_msg and status_msg.id:
                                                     _start_upload_logging(user_id, status_msg.id)
                                                 try:
-                                                    paid_msg = timed_upload(lambda: app.send_paid_media(
+                                                    paid_msg = timed_upload(lambda: _retry_photo_upload(lambda: app.send_paid_media(
                                                         user_id,
                                                         media=album_items,
                                                         star_count=LimitsConfig.NSFW_STAR_COST,
                                                         payload=str(Config.STAR_RECEIVER),
                                                         reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                                    ))
+                                                    ), album_items, prepared_photo_files))
                                                 finally:
                                                     # Stop upload logging after upload completes or fails
                                                     if status_msg and status_msg.id:
@@ -3731,13 +3857,13 @@ def image_command(app, message):
                                         if status_msg and status_msg.id:
                                             _start_upload_logging(user_id, status_msg.id)
                                         try:
-                                            paid_msg = timed_upload(lambda: app.send_paid_media(
+                                            paid_msg = timed_upload(lambda: _retry_photo_upload(lambda: app.send_paid_media(
                                                 user_id,
                                                 media=album_items,
                                                 star_count=LimitsConfig.NSFW_STAR_COST,
                                                 payload=str(Config.STAR_RECEIVER),
                                                 reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                                            ))
+                                            ), album_items, prepared_photo_files))
                                         finally:
                                             # Stop upload logging after upload completes or fails
                                             if status_msg and status_msg.id:
@@ -3891,12 +4017,10 @@ def image_command(app, message):
                                     if status_msg and status_msg.id:
                                         _start_upload_logging(user_id, status_msg.id)
                                     try:
-                                        sent = timed_upload(lambda: app.send_media_group(
-                                            chat_id,
-                                            media=media_group,
-                                            reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
-                                            message_thread_id=message_thread_id
-                                        ))
+                                        sent = _send_regular_photo_album(
+                                            app, chat_id, message, media_group,
+                                            [orig for _p, _t, orig in group], prepared_photo_files, message_thread_id,
+                                        )
                                     finally:
                                         # Stop upload logging after upload completes or fails
                                         if status_msg and status_msg.id:
@@ -4119,7 +4243,13 @@ def image_command(app, message):
                                     logger.info(f"[IMG BATCH FALLBACK] Deleted original: {orig}")
                             except Exception as e:
                                 logger.warning(f"[IMG BATCH FALLBACK] Failed to delete original {orig}: {e}")
-                    except Exception:
+                    except Exception as error:
+                        if isinstance(error, _PartialAlbumSendError):
+                            sent_message_ids.extend(m.id for m in error.sent if getattr(m, 'id', None))
+                            total_sent += len(error.sent)
+                            raise
+                        if isinstance(error, TimeoutError):
+                            raise
                         tmp_ids2 = []
                         for p, t, orig in group:
                             try:
@@ -4552,24 +4682,30 @@ def image_command(app, message):
                     if status_msg and status_msg.id:
                         _start_upload_logging(user_id, status_msg.id)
                     try:
-                        try:
-                            sent = timed_upload(lambda: app.send_media_group(
-                                user_id,
-                                media=media_group,
-                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message))
-                            ))
-                        except BadRequest as group_err:
-                            # Issue #472: a photo slipped past _photo_send_problem() and
-                            # Telegram rejected the whole group. Retrying the same group
-                            # is pointless - resend every item as a document instead.
-                            if not _is_invalid_photo_rpc_error(group_err):
-                                raise
-                            logger.warning(f"[IMG #472] Final media group rejected ({group_err}); resending {len(photos_videos_buffer)} item(s) as documents")
-                            sent = _send_files_as_documents(
-                                app, user_id, message,
-                                [p for p, _t, _orig in photos_videos_buffer],
-                                caption=getattr(media_group[0], 'caption', None),
-                                message_thread_id=message_thread_id,
+                        is_private_final = getattr(message.chat, 'type', None) == enums.ChatType.PRIVATE
+                        if getattr(message, '_is_fake_message', False):
+                            is_private_final = not str(getattr(message, '_original_chat_id', user_id)).startswith('-')
+                        from HELPERS.limitter import should_apply_limits_to_admin
+                        is_paid_final = nsfw_flag and is_private_final and should_apply_limits_to_admin(user_id=user_id, message=message)
+                        if is_paid_final:
+                            paid_media = []
+                            for item in media_group:
+                                if isinstance(item, InputMediaPhoto):
+                                    paid_media.append(InputPaidMediaPhoto(media=item.media))
+                                else:
+                                    cover = ensure_paid_cover_embedded(item.media, getattr(item, 'thumb', None))
+                                    paid_media.append(InputPaidMediaVideo(media=item.media, cover=cover))
+                            paid_result = timed_upload(lambda: _retry_photo_upload(lambda: app.send_paid_media(
+                                user_id, media=paid_media, star_count=LimitsConfig.NSFW_STAR_COST,
+                                payload=str(Config.STAR_RECEIVER),
+                                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                            ), paid_media, prepared_photo_files))
+                            sent = paid_result if isinstance(paid_result, list) else ([paid_result] if paid_result else [])
+                        else:
+                            sent = _send_regular_photo_album(
+                                app, user_id, message, media_group,
+                                [orig for _p, _t, orig in photos_videos_buffer],
+                                prepared_photo_files, message_thread_id,
                             )
                     finally:
                         # Stop upload logging after upload completes or fails
@@ -4632,6 +4768,9 @@ def image_command(app, message):
                     
                     photos_videos_buffer = []
                 except Exception as e:
+                    if isinstance(e, _PartialAlbumSendError):
+                        sent_message_ids.extend(m.id for m in e.sent if getattr(m, 'id', None))
+                        total_sent += len(e.sent)
                     logger.error(f"Failed to send final media group: {e}")
 
         # Update status to show completion (after sending all media)
@@ -4744,6 +4883,8 @@ def image_command(app, message):
         if not locals().get("_img_quota_recorded"):
             daily_quota.record(message, daily_quota.IMAGE, locals().get("total_sent") or 0)
         _cleanup_run_dir(locals().get("run_dir"))
+        for prepared_path in locals().get("prepared_photo_files", ()):
+            _unlink_quiet(prepared_path)
 
 @app.on_callback_query(filters.regex(r"^img_help\|"))
 def img_help_callback(app, callback_query: CallbackQuery):
