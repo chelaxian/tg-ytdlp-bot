@@ -44,10 +44,10 @@ A powerful Telegram bot that downloads videos, audio, and images from YouTube, T
 
 ### Try the Bot
 
-** ✅ Live Demo Bots:**
+✅ **Live Demo Bots:**
 - 🇩🇪 [@tgytdlp_de_bot](https://t.me/tgytdlp_de_bot) - DE server
 
-** ❌ Temporary not work:**
+❌ **Temporary not work:**
 - 🇮🇹 [@tgytdlp_it_bot](https://t.me/tgytdlp_it_bot) - Main IT bot
 - 🇦🇪 [@tgytdlp_uae_bot](https://t.me/tgytdlp_uae_bot) - UAE server
 - 🇬🇧 [@tgytdlp_uk_bot](https://t.me/tgytdlp_uk_bot) - UK server
