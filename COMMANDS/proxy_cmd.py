@@ -301,6 +301,14 @@ def proxy_option_callback(app, callback_query):
         send_to_logger(callback_query.message, safe_get_messages(user_id).PROXY_MENU_CLOSED_LOG_MSG)
         return
 
+    # The "Select Country" row is a label: just stop the button spinner
+    if data == "country_header":
+        try:
+            safe_callback_answer(callback_query)
+        except Exception:
+            pass
+        return
+
     # Handle pagination: proxy_option|page|N
     if data == "page" and len(parts) > 2:
         try:
