@@ -155,20 +155,18 @@ def download_live_stream_chunked(
         }
         
         # Add user's custom yt-dlp arguments from /args command
-        from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options
+        from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options, merge_user_ytdlp_args
         user_args = get_user_ytdlp_args(user_id, url)
         if user_args:
             # Update base_opts with user args, but preserve live stream specific settings
             # Don't override critical live stream options
             preserved_keys = {
                 'live_from_start', 'concurrent_fragment_downloads', 'retries', 
-                'fragment_retries', 'retry_sleep', 'continue_dl', 'noverwrites',
+                'fragment_retries', 'retry_sleep', 'continuedl', 'noverwrites',
                 'hls_prefer_ffmpeg', 'hls_use_mpegts', 'downloader', 'downloader_args'
             }
-            for key, value in user_args.items():
-                if key not in preserved_keys:
-                    base_opts[key] = value
-                    logger.info(f"Applied user arg for live stream: {key} = {value}")
+            merge_user_ytdlp_args(base_opts, user_args, skip=preserved_keys)
+            logger.info(f"Applied user args for live stream: {sorted(k for k in user_args if k not in preserved_keys)}")
         
         # Apply format_override if provided (from always_ask_menu or /format)
         if format_override:
