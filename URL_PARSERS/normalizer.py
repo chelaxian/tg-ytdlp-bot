@@ -31,7 +31,7 @@ def normalize_url_for_cache(url: str) -> str:
     if domain.endswith('.pornhub.com'):
         base_domain = 'pornhub.com'
         result = urlunparse((parsed.scheme, base_domain, path, parsed.params, parsed.query, parsed.fragment))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (pornhub)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (pornhub)")
         return result
 
     # Безопасная функция для проверки домена
@@ -47,18 +47,18 @@ def normalize_url_for_cache(url: str) -> str:
     # TikTok: always strip all params, keep only path
     if _is_domain_match(domain, 'tiktok.com'):
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (tiktok)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (tiktok)")
         return result
 
     # Shorts and youtu.be: always strip all params
     if _is_domain_match(domain, 'youtube.com') and path.startswith('/shorts/'):
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (shorts)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (shorts)")
         return result
     if domain == 'youtu.be':
         # For youtu.be always remove query
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (youtu.be)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (youtu.be)")
         return result
 
     # /watch: only v
@@ -71,42 +71,42 @@ def normalize_url_for_cache(url: str) -> str:
         if v:
             new_query = urlencode({'v': v}, doseq=True)
             result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
-            logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (watch)")
+            logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (watch)")
             return result
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (watch no v)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (watch no v)")
         return result
     # /playlist: list only
     if _is_domain_match(domain, 'youtube.com') and path == '/playlist':
         if 'list' in query_params:
             new_query = urlencode({'list': query_params['list']}, doseq=True)
             result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
-            logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (playlist)")
+            logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (playlist)")
             return result
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (playlist no list)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (playlist no list)")
         return result
     # /embed: playlist only
     if _is_domain_match(domain, 'youtube.com') and path.startswith('/embed/'):
         allowed_params = {k: v for k, v in query_params.items() if k == 'playlist'}
         new_query = urlencode(allowed_params, doseq=True)
         result = urlunparse((parsed.scheme, domain, path, '', new_query, ''))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (embed)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (embed)")
         return result
     # live: only way
     if _is_domain_match(domain, 'youtube.com') and (path.startswith('/live/') or path.endswith('/live')):
         result = urlunparse((parsed.scheme, domain, path, '', '', ''))
-        logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (live)")
+        logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (live)")
         return result
     # fallback for CLEAN_QUERY domains (suffix match)
     for clean_domain in getattr(Config, 'CLEAN_QUERY', []):
         if domain == clean_domain or domain.endswith('.' + clean_domain):
             result = urlunparse((parsed.scheme, domain, parsed.path, '', '', ''))
-            logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (clean domain)")
+            logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (clean domain)")
             return result
     # For all other URLs, return them as they are
     result = urlunparse((parsed.scheme, domain, parsed.path, parsed.params, parsed.query, ''))
-    logger.info(f"normalize_url_for_cache: '{original_url}' -> '{result}' (fallback)")
+    logger.debug(f"normalize_url_for_cache: '{original_url}' -> '{result}' (fallback)")
     return result
 
 
@@ -136,9 +136,9 @@ def get_clean_playlist_url(url: str) -> str:
     m = re.search(r'list=([A-Za-z0-9_-]+)', url)
     if m:
         result = f"https://www.youtube.com/playlist?list={m.group(1)}"
-        logger.info(f"get_clean_playlist_url: '{original_url}' -> '{result}'")
+        logger.debug(f"get_clean_playlist_url: '{original_url}' -> '{result}'")
         return result
-    logger.info(f"get_clean_playlist_url: '{original_url}' -> '{original_url}' (no list parameter)")
+    logger.debug(f"get_clean_playlist_url: '{original_url}' -> '{original_url}' (no list parameter)")
     return url
 
 
@@ -148,7 +148,7 @@ def strip_range_from_url(url: str) -> str:
     original_url = url
     result = re.sub(r'\*\d+\*\d+$', '', url)
     if original_url != result:
-        logger.info(f"strip_range_from_url: '{original_url}' -> '{result}'")
+        logger.debug(f"strip_range_from_url: '{original_url}' -> '{result}'")
     return result
 
 
