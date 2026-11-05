@@ -452,7 +452,12 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
 
     if data == "mediainfo":
         try:
-            mediainfo_command(app, fake_message("/mediainfo", user_id))
+            source = callback_query.message
+            mediainfo_command(app, fake_message(
+                "/mediainfo", user_id, original_chat_id=source.chat.id,
+                message_thread_id=getattr(source, "message_thread_id", None),
+                original_message=source,
+            ))
         except FloodWait as e:
             from HELPERS.safe_messeger import _write_flood_wait_file
             _write_flood_wait_file(user_id, e.value)
