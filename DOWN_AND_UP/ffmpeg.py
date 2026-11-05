@@ -211,6 +211,29 @@ def split_video_2(dir, video_name, video_path, video_size, max_size, duration, u
     return {"video": captions, "path": paths}
 
 
+def _thumb_box(orig_w, orig_h, max_dimension=320):
+    """Thumbnail size that keeps the video's aspect ratio (longest side <= max_dimension, even)."""
+    try:
+        ar = float(orig_w) / float(orig_h)
+    except (TypeError, ValueError, ZeroDivisionError):
+        ar = 16 / 9
+    if ar >= 1:
+        w, h = max_dimension, max(2, round(max_dimension / ar))
+    else:
+        h, w = max_dimension, max(2, round(max_dimension * ar))
+    return w + (w % 2), h + (h % 2)
+
+
+def _make_video_thumb(video_path, duration, thumb_path, thumb_w, thumb_h, ffmpeg_path=None):
+    """Representative middle-of-the-video still; falls back to a black placeholder. Never raises."""
+    from HELPERS.frame_grab import grab_representative_frame
+    if grab_representative_frame(video_path, duration, thumb_path, 320, 320, ffmpeg_path=ffmpeg_path):
+        return True
+    logger.warning(f"Could not grab a frame from {video_path}, using placeholder thumbnail")
+    create_default_thumbnail(thumb_path, thumb_w, thumb_h)
+    return os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0
+
+
 def get_duration_thumb_(dir, video_path, thumb_name):
     messages = safe_get_messages(None)
     # Generate a short unique name for the thumbnail
@@ -227,55 +250,9 @@ def get_duration_thumb_(dir, video_path, thumb_name):
         logger.error(traceback.format_exc())
         duration = 0
         orig_w, orig_h = 1920, 1080  # Default dimensions
-    
-        # Determine optimal thumbnail size based on video aspect ratio
-        aspect_ratio = orig_w / orig_h
-        max_dimension = 320
-        
-        if aspect_ratio and aspect_ratio > 1.5:
-            thumb_w = max_dimension
-            thumb_h = int(max_dimension / aspect_ratio)
-        elif aspect_ratio and aspect_ratio < 0.75:
-            thumb_h = max_dimension
-            thumb_w = int(max_dimension * aspect_ratio)
-        else:
-            if orig_w >= orig_h:
-                thumb_w = max_dimension
-                thumb_h = int(max_dimension / aspect_ratio)
-            else:
-                thumb_h = max_dimension
-                thumb_w = int(max_dimension * aspect_ratio)
-    
-    # Ensure minimum size
-    thumb_w = max(thumb_w, 240)
-    thumb_h = max(thumb_h, 240)
-    
-    # Create thumbnail using FFmpeg instead of moviepy
-    try:
-        # Get FFmpeg path using the common function
-        ffmpeg_path = get_ffmpeg_path()
-        if not ffmpeg_path:
-            logger.error(safe_get_messages(None).FFMPEG_NOT_FOUND_MSG)
-            create_default_thumbnail(thumb_dir, thumb_w, thumb_h)
-            return duration, thumb_dir
-        
-        seek_sec = str(max(1, duration // 2)) if duration and duration > 2 else "2"
-        ffmpeg_command = [
-            ffmpeg_path,
-            "-y",
-            "-ss", seek_sec,
-            "-i", video_path,
-            "-vframes", "1",
-            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos,unsharp=3:3:0.5:3:3:0.25",
-            "-q:v", "1",
-            thumb_dir
-        ]
-        subprocess.run(ffmpeg_command, check=True, capture_output=True, encoding='utf-8', errors='replace', timeout=120)
-    except Exception as e:
-        logger.error(safe_get_messages(None).FFMPEG_ERROR_CREATING_THUMBNAIL_WITH_FFMPEG_MSG.format(error=e))
-        # Create default thumbnail as fallback
-        create_default_thumbnail(thumb_dir, thumb_w, thumb_h)
-    
+
+    thumb_w, thumb_h = _thumb_box(orig_w, orig_h)
+    _make_video_thumb(video_path, duration, thumb_dir, thumb_w, thumb_h, get_ffmpeg_path())
     return duration, thumb_dir
 
 def get_duration_thumb(message, dir_path, video_path, thumb_name):
@@ -344,28 +321,9 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
             orig_w, orig_h = 1920, 1080
             logger.warning(safe_get_messages(user_id).FFMPEG_COULD_NOT_DETERMINE_DIMENSIONS_MSG.format(size_result=size_result, width=orig_w, height=orig_h))
         
-        # Determine optimal thumbnail size based on video aspect ratio
-        aspect_ratio = orig_w / orig_h
-        max_dimension = 320
-        
-        if aspect_ratio and aspect_ratio > 1.5:
-            thumb_w = max_dimension
-            thumb_h = int(max_dimension / aspect_ratio)
-        elif aspect_ratio and aspect_ratio < 0.75:
-            thumb_h = max_dimension
-            thumb_w = int(max_dimension * aspect_ratio)
-        else:
-            if orig_w >= orig_h:
-                thumb_w = max_dimension
-                thumb_h = int(max_dimension / aspect_ratio)
-            else:
-                thumb_h = max_dimension
-                thumb_w = int(max_dimension * aspect_ratio)
-        
-        # Ensure minimum size
-        thumb_w = max(thumb_w, 240)
-        thumb_h = max(thumb_h, 240)
-        
+        # Thumbnail keeps the video aspect ratio (no stretching to a 240 px minimum)
+        thumb_w, thumb_h = _thumb_box(orig_w, orig_h)
+
         # Run ffprobe command to get duration FIRST so we can seek to the middle
         duration = 0
         try:
@@ -382,31 +340,9 @@ def get_duration_thumb(message, dir_path, video_path, thumb_name):
             logger.error(safe_get_messages(user_id).FFMPEG_ERROR_PARSING_DURATION_MSG.format(error=e, result=result))
             duration = 0
 
-        # Seek to the middle of the video for a more representative thumbnail
-        seek_sec = str(max(1, duration // 2)) if duration and duration > 2 else "2"
-
-        # FFMPEG Command to create thumbnail with calculated dimensions
-        ffmpeg_command = [
-            "ffmpeg",
-            "-y",
-            "-ss", seek_sec,
-            "-i", video_path,
-            "-vframes", "1",    # Capture 1 Frame
-            "-vf", f"scale={thumb_w}:{thumb_h}:flags=lanczos,unsharp=3:3:0.5:3:3:0.25",
-            "-q:v", "1",
-            thumb_dir
-        ]
-
-        # Run ffmpeg command to create thumbnail
-        ffmpeg_result = subprocess.run(ffmpeg_command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180)
-        if ffmpeg_result.returncode != 0:
-            logger.error(safe_get_messages(user_id).FFMPEG_ERROR_CREATING_THUMBNAIL_MSG.format(stderr=ffmpeg_result.stderr))
-
-        # Verify thumbnail was created
-        if not os.path.exists(thumb_dir):
-            logger.warning(safe_get_messages(user_id).FFMPEG_THUMBNAIL_NOT_CREATED_MSG.format(thumb_dir=thumb_dir))
-            # Create a blank thumbnail as fallback
-            create_default_thumbnail(thumb_dir, thumb_w, thumb_h)
+        # Middle-of-the-video still (skips black/flat frames); a failed thumbnail must not
+        # abort the upload, so any problem ends in a placeholder instead of an exception
+        _make_video_thumb(video_path, duration, thumb_dir, thumb_w, thumb_h)
 
         return duration, thumb_dir
     except subprocess.CalledProcessError as e:
