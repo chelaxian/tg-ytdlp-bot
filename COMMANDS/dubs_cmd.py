@@ -11,7 +11,7 @@ from HELPERS.limitter import is_user_in_channel
 from HELPERS.filesystem_hlp import create_directory
 from CONFIG.config import Config
 from CONFIG.messages import safe_get_messages
-from COMMANDS.subtitles_cmd import LANGUAGES, get_flag
+from COMMANDS.subtitles_cmd import LANGUAGES, get_flag, resolve_language_code, language_info
 
 app = get_app()
 
@@ -52,6 +52,37 @@ def is_dubs_enabled(user_id) -> bool:
     return get_user_dubs_language(user_id) is not None
 
 
+def match_dub_language(preferred, available):
+    """Pick the audio-track language code for `preferred` among `available`.
+
+    Track codes come from yt-dlp formats and often carry a region ("de-DE",
+    "es-US", "en-US") while /dubs stores "de", "es", "en-GB"... An exact
+    (case-insensitive) match wins, then the same base language. Chinese
+    script variants (zh-Hans / zh-Hant) are never swapped for each other.
+    Returns None when the video has no such language.
+    """
+    if not preferred or not available:
+        return None
+    pref = preferred.lower()
+    for code in available:
+        if code and code.lower() == pref:
+            return code
+    base = pref.split('-')[0]
+    pref_script = pref.split('-', 1)[1] if base == 'zh' and '-' in pref else None
+    for code in available:
+        if not code:
+            continue
+        c = code.lower()
+        if c.split('-')[0] != base:
+            continue
+        if base == 'zh' and pref_script and pref_script in ('hans', 'hant'):
+            code_script = c.split('-', 1)[1] if '-' in c else None
+            if code_script in ('hans', 'hant') and code_script != pref_script:
+                continue
+        return code
+    return None
+
+
 def apply_dubs_preference(user_id, filters_state: dict) -> dict:
     """Inject the persistent /dubs preference into the Always Ask filters state.
 
@@ -71,6 +102,17 @@ def apply_dubs_preference(user_id, filters_state: dict) -> dict:
         if filters_state.get("has_dubs") is False:
             logger.debug(f"[DUBS] Skipping /dubs preference: video has no dubs for user {user_id}")
             return filters_state
+
+        # Map the preference onto the video's real track code ("de" -> "de-DE"):
+        # the MKV track download matches codes exactly, so an unmapped "de"
+        # silently embedded nothing. Skip when the video lacks that language.
+        available_dubs = filters_state.get("available_dubs") or []
+        if available_dubs:
+            matched = match_dub_language(dubs_lang, available_dubs)
+            if not matched:
+                logger.info(f"[DUBS] /dubs '{dubs_lang}' not among audio tracks {available_dubs} for user {user_id}; keeping original audio")
+                return filters_state
+            dubs_lang = matched
 
         audio_all_dubs = filters_state.get("audio_all_dubs", False)
         selected_audio_langs = filters_state.get("selected_audio_langs", []) or []
@@ -199,7 +241,14 @@ def dubs_lang_callback(app, callback_query):
     """Handle language selection in dubs language menu."""
     user_id = callback_query.from_user.id
     lang_code = callback_query.data.split("|")[1]
-    page = 0
+    if lang_code != "OFF":
+        lang_code = resolve_language_code(lang_code)
+        if not lang_code:
+            safe_callback_answer(callback_query)
+            return
+    # Stay on the page that holds the chosen language instead of jumping to page 0
+    codes = list(LANGUAGES.keys())
+    page = codes.index(lang_code) // 24 if lang_code in codes else 0
 
     save_user_dubs_language(user_id, lang_code)
 
@@ -290,7 +339,9 @@ def dubs_command(app, message):
             send_to_logger(message, f"Dubs disabled by user {user_id}")
             return
 
-        if arg in LANGUAGES:
+        lang_arg = resolve_language_code(parts[1])
+        if lang_arg:
+            arg = lang_arg
             save_user_dubs_language(user_id, arg)
             lang_info = LANGUAGES[arg]
             flag = lang_info['flag']

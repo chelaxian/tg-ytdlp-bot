@@ -5416,7 +5416,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
     # Clean the cache of subtitles only on initial open (when no callback provided).
     # On filter toggles (when cb is not None), we KEEP the cache to avoid re-fetching subtitles.
     if cb is None:
-        clear_subs_check_cache()
+        clear_subs_check_cache(user_id)
     # --- checking the range of the range for Always ASK Menu ---
     original_text = message.text or message.caption or ""
     is_playlist = is_playlist_with_range(original_text)

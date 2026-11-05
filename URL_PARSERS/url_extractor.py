@@ -302,7 +302,7 @@ def url_distractor(app, message):
             user_dir = f'./users/{str(fake_msg.chat.id)}'
             if not os.path.exists(user_dir):
                 send_to_all(fake_msg, safe_get_messages(user_id).URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG)
-                clear_subs_check_cache()
+                clear_subs_check_cache(user_id)
                 return
 
             removed_items = []
@@ -368,7 +368,7 @@ def url_distractor(app, message):
             else:
                 send_to_all(fake_msg, safe_get_messages(user_id).URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG)
             
-            clear_subs_check_cache()
+            clear_subs_check_cache(user_id)
             logger.info(get_logger_msg().EMOJI_CLEAN_COMPLETED_LOG_MSG.format(user_id=user_id))
             return
         elif mapped == Config.DOWNLOAD_COOKIE_COMMAND:
@@ -921,7 +921,7 @@ def url_distractor(app, message):
             remove_media(message, only=["subs.txt"])
             send_to_all(message, safe_get_messages(user_id).URL_EXTRACTOR_CLEAN_SUBS_SETTINGS_REMOVED_MSG)
             from COMMANDS.subtitles_cmd import clear_subs_check_cache
-            clear_subs_check_cache()
+            clear_subs_check_cache(user_id)
             return
         elif clean_args == "keyboard":
             remove_media(message, only=["keyboard.txt"])
@@ -951,7 +951,7 @@ def url_distractor(app, message):
             if not os.path.exists(user_dir):
                 send_to_all(message, safe_get_messages(user_id).URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG)
                 from COMMANDS.subtitles_cmd import clear_subs_check_cache
-                clear_subs_check_cache()
+                clear_subs_check_cache(user_id)
                 return
 
             removed_items = []
@@ -1024,7 +1024,7 @@ def url_distractor(app, message):
             if not os.path.exists(user_dir):
                 send_to_all(message, safe_get_messages(user_id).URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG)
                 from COMMANDS.subtitles_cmd import clear_subs_check_cache
-                clear_subs_check_cache()
+                clear_subs_check_cache(user_id)
                 return
 
             removed_items = []
@@ -1092,7 +1092,7 @@ def url_distractor(app, message):
                 send_to_all(message, safe_get_messages(user_id).URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG)
             
             from COMMANDS.subtitles_cmd import clear_subs_check_cache
-            clear_subs_check_cache()
+            clear_subs_check_cache(user_id)
             
             # Clear Always Ask menu states (TRIM, SUBS, DUBS)
             try:
@@ -1365,7 +1365,7 @@ def url_distractor(app, message):
                 return
             
             from COMMANDS.subtitles_cmd import clear_subs_check_cache
-            clear_subs_check_cache()
+            clear_subs_check_cache(user_id)
             # Централизованный роутер на gallery-dl для некоторых ссылок
             try:
                 try:
@@ -1570,7 +1570,7 @@ def url_distractor(app, message):
 
     logger.info(LoggerMsg.URL_EXTRACTOR_NO_MATCHING_COMMAND_LOG_MSG.format(user_id=user_id))
     from COMMANDS.subtitles_cmd import clear_subs_check_cache
-    clear_subs_check_cache()
+    clear_subs_check_cache(user_id)
 
 @app.on_callback_query(filters.regex("^keyboard\\|"))
 def keyboard_callback_handler_wrapper(app, callback_query):
