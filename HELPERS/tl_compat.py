@@ -25,14 +25,39 @@ with all remaining fields in the same order:
       usernames:flags2.0?Vector<Username> = Chat;
 
 It is parsed into a regular `raw.types.Channel`, so the rest of Pyrogram and the
-bot see a normal channel. Registration is idempotent and never overrides a
-constructor that Pyrogram itself knows (a future Pyrogram release wins).
+bot see a normal channel.
+
+Since 2026-11-05 the same happens with an older `user` constructor, 0x8f97c628
+(seen in channels.GetAdminLog replies to the ChannelGuard user session:
+"KeyError: 2409088552" / "unknown constructor: 0x8f97c628"). Its definition
+(CRC32 verified, Telethon v1.28 schema) is the Layer 227 `user#31774388` with
+only the first flags2 field (usernames); everything else keeps its order:
+
+    user#8f97c628 flags:# self:flags.10?true contact:flags.11?true
+      mutual_contact:flags.12?true deleted:flags.13?true bot:flags.14?true
+      bot_chat_history:flags.15?true bot_nochats:flags.16?true
+      verified:flags.17?true restricted:flags.18?true min:flags.20?true
+      bot_inline_geo:flags.21?true support:flags.23?true scam:flags.24?true
+      apply_min_photo:flags.25?true fake:flags.26?true
+      bot_attach_menu:flags.27?true premium:flags.28?true
+      attach_menu_enabled:flags.29?true flags2:# id:long
+      access_hash:flags.0?long first_name:flags.1?string last_name:flags.2?string
+      username:flags.3?string phone:flags.4?string photo:flags.5?UserProfilePhoto
+      status:flags.6?UserStatus bot_info_version:flags.14?int
+      restriction_reason:flags.18?Vector<RestrictionReason>
+      bot_inline_placeholder:flags.19?string lang_code:flags.22?string
+      emoji_status:flags.30?EmojiStatus usernames:flags2.0?Vector<Username> = User;
+
+It is parsed into a regular `raw.types.User`. Registration is idempotent and
+never overrides a constructor that Pyrogram itself knows (a future Pyrogram
+release wins).
 """
 
 from io import BytesIO
 from typing import Any
 
 CHANNEL_LEGACY_ID = 0x83259464
+USER_LEGACY_ID = 0x8f97c628
 
 
 def _read_channel_legacy(b: BytesIO, *args: Any):
@@ -107,14 +132,97 @@ class ChannelLegacy:
     read = staticmethod(_read_channel_legacy)
 
 
+def _read_user_legacy(b: BytesIO, *args: Any):
+    from pyrogram.raw import types
+    from pyrogram.raw.core import Int, Long, String, TLObject
+
+    flags = Int.read(b)
+    flags2 = Int.read(b)
+    id_ = Long.read(b)
+    access_hash = Long.read(b) if flags & (1 << 0) else None
+    first_name = String.read(b) if flags & (1 << 1) else None
+    last_name = String.read(b) if flags & (1 << 2) else None
+    username = String.read(b) if flags & (1 << 3) else None
+    phone = String.read(b) if flags & (1 << 4) else None
+    photo = TLObject.read(b) if flags & (1 << 5) else None
+    status = TLObject.read(b) if flags & (1 << 6) else None
+    bot_info_version = Int.read(b) if flags & (1 << 14) else None
+    restriction_reason = TLObject.read(b) if flags & (1 << 18) else []
+    bot_inline_placeholder = String.read(b) if flags & (1 << 19) else None
+    lang_code = String.read(b) if flags & (1 << 22) else None
+    emoji_status = TLObject.read(b) if flags & (1 << 30) else None
+    usernames = TLObject.read(b) if flags2 & (1 << 0) else []
+
+    return types.User(
+        id=id_,
+        is_self=bool(flags & (1 << 10)),
+        contact=bool(flags & (1 << 11)),
+        mutual_contact=bool(flags & (1 << 12)),
+        deleted=bool(flags & (1 << 13)),
+        bot=bool(flags & (1 << 14)),
+        bot_chat_history=bool(flags & (1 << 15)),
+        bot_nochats=bool(flags & (1 << 16)),
+        verified=bool(flags & (1 << 17)),
+        restricted=bool(flags & (1 << 18)),
+        min=bool(flags & (1 << 20)),
+        bot_inline_geo=bool(flags & (1 << 21)),
+        support=bool(flags & (1 << 23)),
+        scam=bool(flags & (1 << 24)),
+        apply_min_photo=bool(flags & (1 << 25)),
+        fake=bool(flags & (1 << 26)),
+        bot_attach_menu=bool(flags & (1 << 27)),
+        premium=bool(flags & (1 << 28)),
+        attach_menu_enabled=bool(flags & (1 << 29)),
+        # flags2 bits this layer lacks: False, exactly as Pyrogram's own read() leaves them
+        bot_can_edit=False,
+        close_friend=False,
+        stories_hidden=False,
+        stories_unavailable=False,
+        contact_require_premium=False,
+        bot_business=False,
+        bot_has_main_app=False,
+        bot_forum_view=False,
+        bot_forum_can_manage_topics=False,
+        bot_can_manage_bots=False,
+        bot_guestchat=False,
+        bot_guard=False,
+        access_hash=access_hash,
+        first_name=first_name,
+        last_name=last_name,
+        username=username,
+        phone=phone,
+        photo=photo,
+        status=status,
+        bot_info_version=bot_info_version,
+        restriction_reason=restriction_reason,
+        bot_inline_placeholder=bot_inline_placeholder,
+        lang_code=lang_code,
+        emoji_status=emoji_status,
+        usernames=usernames,
+    )
+
+
+class UserLegacy:
+    """Registry entry for user#8f97c628."""
+
+    ID = USER_LEGACY_ID
+    QUALNAME = "types.UserLegacy"
+    read = staticmethod(_read_user_legacy)
+
+
+_SHIMS = (ChannelLegacy, UserLegacy)
+
+
 def install() -> bool:
-    """Register the shims in Pyrogram's constructor table. Returns True if added."""
+    """Register the shims in Pyrogram's constructor table. Returns True if any was added."""
     try:
         import pyrogram.raw  # noqa: F401  (resolves the objects table to classes)
         from pyrogram.raw.all import objects
     except Exception:
         return False
-    if CHANNEL_LEGACY_ID in objects:
-        return False
-    objects[CHANNEL_LEGACY_ID] = ChannelLegacy
-    return True
+    added = False
+    for shim in _SHIMS:
+        if shim.ID not in objects:
+            objects[shim.ID] = shim
+            added = True
+    return added
