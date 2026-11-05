@@ -26,18 +26,23 @@ from HELPERS.logger import logger
 _COMMAND_LIMITS_FILE = "CONFIG/.command_limits.json"
 _COMMAND_COOLDOWNS_FILE = "CONFIG/.command_cooldowns.json"
 _SAVE_INTERVAL = 30
+# Forgive old violations after a day without a new violation; cap backoff so
+# even repeated bursts cannot lock a legitimate user out indefinitely.
+_VIOLATION_RESET_AFTER = 86400
+_MAX_COOLDOWN = 86400
 
 
 # ── Per-user state ───────────────────────────────────────────────────────
 
 class _UserData:
     """Command-limit state for a single user."""
-    __slots__ = ('lock', 'commands', 'violations', 'cooldown')
+    __slots__ = ('lock', 'commands', 'violations', 'last_violation', 'cooldown')
 
     def __init__(self):
         self.lock = threading.Lock()
         self.commands: List[float] = []
         self.violations: int = 0
+        self.last_violation: float = 0
         self.cooldown: Optional[Dict] = None  # {'until': float, 'duration': float}
 
 
@@ -102,6 +107,7 @@ def _do_save():
                 limits_data[str(uid)] = {
                     'commands': list(ud.commands),
                     'violations': ud.violations,
+                    'last_violation': ud.last_violation,
                 }
             if ud.cooldown is not None:
                 cooldowns_data[str(uid)] = dict(ud.cooldown)
@@ -148,6 +154,7 @@ def _load_from_disk():
                 ud = _UserData()
                 ud.commands = [float(ts) for ts in user_data.get('commands', [])]
                 ud.violations = int(user_data.get('violations', 0))
+                ud.last_violation = float(user_data.get('last_violation', 0))
                 registry[uid] = ud
         except Exception as exc:
             logger.error(f"Failed to load command limits: {exc}")
@@ -208,13 +215,19 @@ def check_command_limit(user_id: int, is_admin: bool = False) -> Tuple[bool, Opt
         if i:
             del ud.commands[:i]
 
+        # Old persisted records have no timestamp; once their existing cooldown
+        # expires, treat them as forgiven rather than preserving a permanent debt.
+        if ud.violations and now - ud.last_violation >= _VIOLATION_RESET_AFTER:
+            ud.violations = 0
+
         # ── Check limit ───────────────────────────────────────────────
         if len(ud.commands) >= LimitsConfig.COMMAND_LIMIT_PER_MINUTE:
             ud.violations += 1
+            ud.last_violation = now
             violations = ud.violations
-            duration = LimitsConfig.COMMAND_COOLDOWN_INITIAL * (
-                LimitsConfig.COMMAND_COOLDOWN_MULTIPLIER ** violations
-            )
+            duration = min(_MAX_COOLDOWN, LimitsConfig.COMMAND_COOLDOWN_INITIAL * (
+                LimitsConfig.COMMAND_COOLDOWN_MULTIPLIER ** min(violations - 1, 20)
+            ))
             ud.cooldown = {'until': now + duration, 'duration': duration}
             ud.commands.clear()
 
@@ -231,8 +244,6 @@ def check_command_limit(user_id: int, is_admin: bool = False) -> Tuple[bool, Opt
 
         # ── Record command ────────────────────────────────────────────
         ud.commands.append(now)
-        if ud.violations > 0 and len(ud.commands) == 0:
-            ud.violations = 0
 
     _dirty.set()
     return (True, None)
