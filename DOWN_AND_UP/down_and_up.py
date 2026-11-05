@@ -4281,7 +4281,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             # (small videos <10MB and <60s can rely on Telegram's auto-thumbnail)
             if not thumb_dir:
                 _vid_size_mb = os.path.getsize(user_vid_path) / (1024 * 1024) if os.path.exists(user_vid_path) else 0
-                _needs_ffmpeg_thumb = (duration >= 60) or (_vid_size_mb >= 10)
+                # no cover from the service -> always a middle-of-the-video still (short clips
+                # too: Telegram's own first-frame preview is often black)
+                _needs_ffmpeg_thumb = True
                 if _needs_ffmpeg_thumb:
                     result = get_duration_thumb(message, dir_path, user_vid_path, sanitize_filename(caption_name))
                     if result is None:

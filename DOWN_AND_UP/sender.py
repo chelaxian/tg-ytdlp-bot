@@ -449,9 +449,10 @@ def send_videos(
                 dur = float(duration_seconds or 0)
             except Exception:
                 dur = 0.0
-            if is_paid:
-                return True
-            return (dur >= 60.0) or (size_mb >= 10.0)
+            # No cover from the service: always take a still from the video. Even short
+            # clips often start on a black frame, so Telegram's own first-frame preview
+            # is not a good substitute.
+            return True
 
         def _gen_thumb(video_path: str) -> str | None:
             try:
@@ -462,11 +463,8 @@ def send_videos(
                 thumb_path = os.path.join(base_dir, base_name + '.__tgthumb.jpg')
                 if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0:
                     return thumb_path
-                middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
-                subprocess.run([
-                    'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                    '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=3:3:0.5:3:3:0.25', '-q:v', '1', thumb_path
-                ], capture_output=True, text=True, timeout=30)
+                from HELPERS.frame_grab import grab_representative_frame
+                grab_representative_frame(video_path, duration, thumb_path, 320, 320)
                 return thumb_path if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0 else None
             except Exception:
                 return None
@@ -516,9 +514,20 @@ def send_videos(
                 return False
 
         def _resize_to_cover(src_path: str, dest_path: str) -> bool:
-            """Resize for paid media cover (320×320 square)."""
+            """Paid media cover: black bars cropped, aspect ratio kept, up to 1280 px (not a 320 px square)."""
+            import subprocess as _sp
             try:
-                return _thumb_fit_ar(src_path, dest_path, 320, 320)
+                filters = []
+                crop_str = _detect_crop(src_path)
+                if crop_str:
+                    filters.append(f'crop={crop_str}')
+                filters.append("scale=w='min(1280,iw)':h='min(1280,ih)':force_original_aspect_ratio=decrease:flags=lanczos")
+                r = _sp.run(['ffmpeg', '-y', '-i', src_path, '-vf', ','.join(filters),
+                             '-frames:v', '1', '-q:v', '2', dest_path],
+                            capture_output=True, text=True, timeout=30)
+                if r.returncode != 0:
+                    logger.warning(f"_resize_to_cover ffmpeg failed (rc={r.returncode}): {r.stderr[:300]}")
+                return os.path.exists(dest_path) and os.path.getsize(dest_path) > 0
             except Exception:
                 return False
 
@@ -557,11 +566,8 @@ def send_videos(
                 if _should_generate_cover(video_path, duration):
                     try:
                         tmp_frame = os.path.join(base_dir, base_name + '.__frame.jpg')
-                        middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
-                        subprocess.run([
-                            'ffmpeg','-y','-ss', str(middle_sec), '-i', video_path,
-                            '-vframes','1','-q:v','1', tmp_frame
-                        ], capture_output=True, text=True, timeout=30)
+                        from HELPERS.frame_grab import grab_representative_frame
+                        grab_representative_frame(video_path, duration, tmp_frame, 1280, 1280)
                         if os.path.exists(tmp_frame) and os.path.getsize(tmp_frame) > 0:
                             if _resize_to_cover(tmp_frame, cover_path):
                                 try:
@@ -748,7 +754,7 @@ def send_videos(
             skip ffmpeg-generated frames — Telegram handles those itself.
             For large videos: use any available thumbnail.
             """
-            small = _is_small_video()
+            small = False  # a still from the video beats Telegram's (often black) first frame
             # 1) Try generated cover (external download → thumb_file_path → ffmpeg frame)
             try:
                 gen = _gen_free_cover(video_abs_path)
@@ -925,13 +931,9 @@ def send_videos(
             try:
                 if not local_thumb or not os.path.exists(local_thumb):
                     local_thumb = os.path.join(os.path.dirname(video_abs_path), os.path.splitext(os.path.basename(video_abs_path))[0] + ".jpg")
-                    import subprocess
                     try:
-                        middle_sec = max(1, int(duration) // 2 if isinstance(duration, int) else 1)
-                        subprocess.run([
-                            'ffmpeg','-y','-ss', str(middle_sec), '-i', video_abs_path,
-                            '-vframes','1','-vf','scale=320:-1:flags=lanczos,unsharp=3:3:0.5:3:3:0.25', '-q:v', '1', local_thumb
-                        ], capture_output=True, text=True, timeout=30)
+                        from HELPERS.frame_grab import grab_representative_frame
+                        grab_representative_frame(video_abs_path, duration, local_thumb, 320, 320)
                         if not os.path.exists(local_thumb):
                             local_thumb = None
                     except Exception:
