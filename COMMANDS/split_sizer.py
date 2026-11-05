@@ -13,6 +13,7 @@ from HELPERS.limitter import humanbytes, is_user_in_channel
 from CONFIG.messages import safe_get_messages
 import re
 import math
+import tempfile
 
 MIN_SPLIT_SIZE = 100 * 1024 * 1024
 MAX_SPLIT_SIZE = 2 * 1024 * 1024 * 1024
@@ -63,6 +64,19 @@ def parse_size_argument(arg):
     
     return size_bytes
 
+def _write_split_size(user_id, size):
+    """Replace settings atomically so concurrent downloads never read a partial value."""
+    user_dir = os.path.join("users", str(user_id))
+    create_directory(user_dir)
+    fd, temp_path = tempfile.mkstemp(prefix=".split-", suffix=".tmp", dir=user_dir)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            output.write(str(size))
+        os.replace(temp_path, os.path.join(user_dir, "split.txt"))
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
 # Get app instance for decorators
 app = get_app()
 
@@ -97,11 +111,7 @@ def split_command(app, message):
         size = parse_size_argument(arg)
         if size:
             # Apply size directly
-            user_dir = os.path.join("users", str(user_id))
-            create_directory(user_dir)
-            split_file = os.path.join(user_dir, "split.txt")
-            with open(split_file, "w", encoding="utf-8") as f:
-                f.write(str(size))
+            _write_split_size(user_id, size)
             
             safe_send_message(user_id, safe_get_messages(user_id).SPLIT_SIZE_SET_MSG.format(size=humanbytes(size)), message=message)
             send_to_logger(message, safe_get_messages(user_id).SPLIT_SIZE_SET_ARGUMENT_LOG_MSG.format(size=size))
@@ -172,11 +182,7 @@ def split_size_callback(app, callback_query):
     if not MIN_SPLIT_SIZE <= size <= MAX_SPLIT_SIZE:
         safe_callback_answer(callback_query, safe_get_messages(user_id).SPLIT_INVALID_SIZE_CALLBACK_MSG)
         return
-    user_dir = os.path.join("users", str(user_id))
-    create_directory(user_dir)
-    split_file = os.path.join(user_dir, "split.txt")
-    with open(split_file, "w", encoding="utf-8") as f:
-        f.write(str(size))
+    _write_split_size(user_id, size)
     safe_callback_answer(callback_query)
     safe_edit_message_text(callback_query.message.chat.id, callback_query.message.id, safe_get_messages(user_id).SPLIT_SIZE_SET_MSG.format(size=humanbytes(size)))
     send_to_logger(callback_query.message, safe_get_messages(user_id).SPLIT_SIZE_SET_CALLBACK_LOG_MSG.format(size=size))

@@ -9,6 +9,7 @@ import logging
 import time
 import re
 import threading
+import tempfile
 from moviepy.editor import VideoFileClip
 from moviepy.video.fx.all import resize
 from HELPERS.app_instance import get_app
@@ -136,34 +137,78 @@ def get_ytdlp_path():
     
     return ytdlp_path
 
-def split_video_2(dir, video_name, video_path, video_size, max_size, duration, user_id):
-    """Split video, returning parts only when all were produced successfully."""
-    if max_size <= 0 or video_size <= 0 or duration <= 0:
-        raise ValueError("Cannot split video with invalid size or duration")
+def _extract_split_part(video_path, start_time, end_time, targetname):
+    """Re-encode a precise time interval; stream-copy can drop non-keyframes."""
+    ffmpeg_path = get_ffmpeg_path()
+    if not ffmpeg_path:
+        return False
+    command = [
+        ffmpeg_path, "-y", "-v", "error", "-ss", str(start_time),
+        "-i", os.path.abspath(video_path), "-t", str(end_time - start_time),
+        "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264",
+        "-preset", "veryfast", "-crf", "23", "-fps_mode", "passthrough", "-c:a", "aac",
+        "-movflags", "+faststart", os.path.abspath(targetname),
+    ]
+    # Re-encoding a long part on a slow CPU takes time: allow ~1 minute per
+    # second of video (very generous), with a 10-minute floor.
+    timeout = max(600, int(end_time - start_time) * 60)
+    try:
+        subprocess.run(command, check=True, capture_output=True, timeout=timeout)
+        return os.path.isfile(targetname) and os.path.getsize(targetname) > 0
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.error(f"Failed to extract split part: {exc}")
+        return False
 
-    rounds = math.ceil(video_size / max_size)
-    n = duration / rounds
-    caption_lst = []
-    path_lst = []
+
+def split_video_2(dir, video_name, video_path, video_size, max_size, duration, user_id):
+    """Split contiguous intervals, subdividing oversized variable-bitrate parts."""
+    if max_size <= 0 or video_size <= 0:
+        raise ValueError("Cannot split video with invalid size")
+    try:
+        _, _, probed_duration = get_video_info_ffprobe(video_path)
+        duration = float(probed_duration or duration)
+    except (TypeError, ValueError):
+        duration = 0
+    if not math.isfinite(duration) or duration <= 0:
+        raise ValueError("Cannot split video with invalid duration")
+
+    rounds = (video_size + max_size - 1) // max_size
     if rounds > 20:
         logger.warning(safe_get_messages(user_id).FFMPEG_VIDEO_SPLIT_EXCESSIVE_MSG.format(rounds=rounds))
-
-    for x in range(rounds):
-        start_time = x * n
-        end_time = min((x + 1) * n, duration)
-        cap_name = video_name + " - Part " + str(x + 1)
-        target_name = os.path.join(dir, cap_name + ".mp4")
-        logger.info(safe_get_messages(user_id).FFMPEG_SPLITTING_VIDEO_PART_MSG.format(
-            current=x + 1, total=rounds, start_time=start_time, end_time=end_time))
-        if not ffmpeg_extract_subclip(video_path, start_time, end_time, targetname=target_name):
-            raise RuntimeError(f"Failed to create split part {x + 1}")
-        if not os.path.isfile(target_name) or not 0 < os.path.getsize(target_name) <= max_size:
-            raise RuntimeError(f"Split part {x + 1} is missing, empty, or exceeds the configured limit")
-        caption_lst.append(cap_name)
-        path_lst.append(target_name)
-
-    logger.info(safe_get_messages(user_id).FFMPEG_VIDEO_SPLIT_SUCCESS_MSG.format(count=len(path_lst)))
-    return {"video": caption_lst, "path": path_lst}
+    # Limit runaway work for extremely short/high-bitrate or malformed inputs.
+    if rounds > 2000:
+        raise ValueError("Video would require too many split parts")
+    intervals = [(duration * i / rounds, duration * (i + 1) / rounds) for i in range(rounds)]
+    paths, captions = [], []
+    created = []
+    try:
+        while intervals:
+            start, end = intervals.pop(0)
+            fd, path = tempfile.mkstemp(prefix="split-", suffix=".mp4", dir=dir)
+            os.close(fd)
+            created.append(path)
+            if not _extract_split_part(video_path, start, end, path):
+                raise RuntimeError(f"Failed to create split part {len(paths) + 1}")
+            size = os.path.getsize(path)
+            if size > max_size:
+                os.remove(path)
+                created.remove(path)
+                if end - start < 0.5 or len(paths) + len(intervals) + 2 > 2000:
+                    raise RuntimeError("Cannot split video within the configured size limit")
+                midpoint = (start + end) / 2
+                intervals[0:0] = [(start, midpoint), (midpoint, end)]
+                continue
+            captions.append(f"{video_name} - Part {len(paths) + 1}")
+            paths.append(path)
+    except Exception:
+        for path in created:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        raise
+    logger.info(safe_get_messages(user_id).FFMPEG_VIDEO_SPLIT_SUCCESS_MSG.format(count=len(paths)))
+    return {"video": captions, "path": paths}
 
 
 def get_duration_thumb_(dir, video_path, thumb_name):

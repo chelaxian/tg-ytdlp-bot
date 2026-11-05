@@ -429,7 +429,7 @@ def download_live_stream_chunked(
                             chunk_file,
                             chunk_size_bytes,
                             max_chunk_size,
-                            int(duration) if duration else int(accumulated_duration) or 0,
+                            duration or accumulated_duration or 0,
                             user_id
                         )
                         part_captions = split_result.get("video") or []
