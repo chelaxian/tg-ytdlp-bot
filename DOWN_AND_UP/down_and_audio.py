@@ -5,6 +5,7 @@ from HELPERS.cookie_file import validated_cookie_options
 # ########################################
 
 import os
+import re
 from HELPERS.logger import get_log_channel
 from CONFIG.logger_msg import LoggerMsg
 import threading
@@ -175,6 +176,40 @@ def create_telegram_thumbnail(cover_path, output_path, size=320):
         logger.error(f"Error creating Telegram thumbnail: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
+
+_THUMB_EXTS = ('.jpg', '.jpeg', '.png', '.webp')
+_THUMB_ID_RE = re.compile(r'^[A-Za-z0-9_-]{1,32}$')
+
+
+def find_item_thumbnail(folder, audio_path):
+    """Return the thumbnail yt-dlp wrote next to `audio_path` (same stem), or None.
+
+    yt-dlp names it "<stem>.<ext>" (or "<stem>.<thumb id>.<ext>" with several
+    thumbnails). Our own telegram_thumb_N.jpg / yt_thumb_* / universal_thumb* files
+    never match an audio stem, so covers of other playlist items are not picked up.
+    """
+    try:
+        stem = os.path.splitext(os.path.basename(audio_path))[0]
+        if not stem:
+            return None
+        candidates = []
+        for name in os.listdir(folder):
+            lower = name.lower()
+            if not lower.endswith(_THUMB_EXTS):
+                continue
+            base = os.path.splitext(name)[0]
+            if base == stem:
+                candidates.insert(0, name)
+            elif name.startswith(stem + ".") and _THUMB_ID_RE.match(base[len(stem) + 1:]):
+                candidates.append(name)
+        for name in candidates:
+            path = os.path.join(folder, name)
+            if os.path.isfile(path) and os.path.getsize(path) > 0:
+                return path
+    except OSError:
+        pass
+    return None
+
 
 def embed_cover_audio(audio_path, cover_path, title=None, artist=None, album=None):
     """Embed cover art into any audio file via ffmpeg.
@@ -2712,21 +2747,23 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     logger.info(f"User {user_id} embed_thumbnail enabled (default), looking for thumbnails for audio file: {audio_file}")
                     logger.info(f"User folder contents: {os.listdir(user_folder)}")
                     
-                    # Use pre-downloaded thumbnail if available
+                    # The thumbnail yt-dlp wrote for THIS item (same file stem as the audio)
+                    item_cover = find_item_thumbnail(user_folder, audio_file)
                     cover_path = None
-                    if thumbnail_path and os.path.exists(thumbnail_path):
+                    if is_playlist:
+                        # thumbnail_path belongs to the URL (playlist cover or the list's
+                        # first video), and the folder holds covers of the other items
+                        # (plus our telegram_thumb_N.jpg): only this item's own cover is right.
+                        # Without it, keep what yt-dlp's EmbedThumbnail already embedded.
+                        cover_path = item_cover
+                        if cover_path:
+                            logger.info(f"Using playlist item thumbnail: {cover_path}")
+                    elif thumbnail_path and os.path.exists(thumbnail_path):
                         cover_path = thumbnail_path
                         logger.info(f"Using pre-downloaded thumbnail: {cover_path}")
-                    else:
-                        # Fallback: look for any thumbnail files (from write_thumbnail)
-                        logger.info("Pre-downloaded thumbnail not found, searching for any thumbnails")
-                        for file in os.listdir(user_folder):
-                            if file.endswith(('.jpg', '.jpeg', '.png', '.webp')) and file != downloaded_file:
-                                thumb_path = os.path.join(user_folder, file)
-                                if os.path.exists(thumb_path):
-                                    cover_path = thumb_path
-                                    logger.info(f"Found thumbnail: {cover_path}")
-                                    break
+                    elif item_cover:
+                        cover_path = item_cover
+                        logger.info(f"Found thumbnail: {cover_path}")
                     
                     # Embed cover if found
                     if cover_path and os.path.exists(cover_path):
