@@ -2853,30 +2853,15 @@ def askq_callback(app, callback_query):
             pass
         
         # Import list function
-        from COMMANDS.list_cmd import run_ytdlp_list
+        from COMMANDS.list_cmd import run_ytdlp_list, _list_format_ids, _list_caption
         
         # Run yt-dlp list command
-        success, output = run_ytdlp_list(url, user_id)
+        success, output, formats = run_ytdlp_list(url, user_id, include_formats=True)
         
         if success:
-            # Check if any format contains "audio only" and "video only" and extract format IDs
-            audio_only_formats = []
-            video_only_formats = []
-            lines = output.split('\n')
-            for line in lines:
-                if 'audio only' in line.lower() or 'audio_only' in line.lower():
-                    # Extract format ID from the line (usually at the beginning)
-                    parts = line.strip().split()
-                    if parts and parts[0].isdigit():
-                        format_id = parts[0]
-                        audio_only_formats.append(format_id)
-                elif 'video only' in line.lower() or 'video_only' in line.lower():
-                    # Extract format ID from the line (usually at the beginning)
-                    parts = line.strip().split()
-                    if parts and parts[0].isdigit():
-                        format_id = parts[0]
-                        video_only_formats.append(format_id)
-            
+            audio_only_formats, video_only_formats = _list_format_ids(formats)
+            chat_id = callback_query.message.chat.id
+
             # Create temporary file with output
             import tempfile
             with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as temp_file:
@@ -2890,6 +2875,8 @@ def askq_callback(app, callback_query):
                 temp_file.write(f"{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_ID401_MSG}\n")
                 temp_file.write(f"{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_ID_140_AUDIO_MSG}\n")
                 
+                if video_only_formats:
+                    temp_file.write("\nVideo-only format IDs: " + ', '.join(video_only_formats) + "\n")
                 # Add special note for audio-only formats
                 if audio_only_formats:
                     temp_file.write(f"\n{safe_get_messages(user_id).ALWAYS_ASK_AUDIO_ONLY_FORMATS_DETECTED_MSG}: {', '.join(audio_only_formats)}\n")
@@ -2899,30 +2886,10 @@ def askq_callback(app, callback_query):
             
             try:
                 # Send the file
-                # Build caption with audio-only format info
-                caption = f"{safe_get_messages(user_id).ALWAYS_ASK_AVAILABLE_FORMATS_FOR_MSG}:\n<code>{url}</code>\n\n"
-                caption += f"{safe_get_messages(user_id).ALWAYS_ASK_HOW_TO_SET_FORMAT_MSG}\n"
-                caption += f"{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_ID_134_MSG}\n"
-                caption += f"{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_720P_MSG}\n"
-                caption += f"{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_BEST_MSG}\n"
-                caption += f"{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_ASK_MSG}\n\n"
-                
-                # Add video-only formats info first
-                if video_only_formats:
-                    video_formats_text = ', '.join([f'<code>{fmt}</code>' for fmt in video_only_formats])
-                    caption += f"\n{safe_get_messages(user_id).LIST_VIDEO_ONLY_FORMATS_MSG.format(formats=video_formats_text)}\n"
-                
-                # Add special note for audio-only formats with monospace formatting
-                if audio_only_formats:
-                    audio_formats_text = ', '.join([f'<code>{fmt}</code>' for fmt in audio_only_formats])
-                    caption += f"{safe_get_messages(user_id).ALWAYS_ASK_AUDIO_ONLY_FORMATS_MSG}: {audio_formats_text}\n"
-                    caption += f"{safe_get_messages(user_id).ALWAYS_ASK_FORMAT_ID_140_AUDIO_CAPTION_MSG}\n"
-                    caption += f"{safe_get_messages(user_id).ALWAYS_ASK_THESE_WILL_BE_MP3_MSG}\n\n"
-                
-                caption += f"{safe_get_messages(user_id).ALWAYS_ASK_USE_FORMAT_ID_MSG}"
-                
+                caption = _list_caption(url, safe_get_messages(user_id).ALWAYS_ASK_USE_FORMAT_ID_MSG)
+
                 app.send_document(
-                    user_id,
+                    chat_id,
                     document=temp_file_path,
                     file_name=f"formats_{user_id}.txt",
                     caption=caption,
@@ -2933,9 +2900,11 @@ def askq_callback(app, callback_query):
                     
             except Exception as e:
                 logger.error(f"{LoggerMsg.ALWAYS_ASK_ERROR_SENDING_FORMATS_FILE_LOG_MSG}: {e}")
+                from html import escape as _escape
+                from HELPERS.logger import sanitize_error_message as _sanitize_error
                 app.send_message(
-                    user_id,
-                    safe_get_messages(user_id).AA_ERROR_SENDING_FORMATS_MSG.format(error=str(e)),
+                    chat_id,
+                    safe_get_messages(user_id).AA_ERROR_SENDING_FORMATS_MSG.format(error=_escape(_sanitize_error(str(e)))),
                     reply_parameters=ReplyParameters(message_id=original_message.id)
                 )
             finally:
@@ -2956,7 +2925,7 @@ def askq_callback(app, callback_query):
             else:
                 failed_text = f"❌ Failed to get formats:\n<code>{sanitized_output}</code>"
             app.send_message(
-                user_id,
+                callback_query.message.chat.id,
                 failed_text,
                 reply_parameters=ReplyParameters(message_id=original_message.id)
             )

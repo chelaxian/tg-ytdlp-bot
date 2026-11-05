@@ -4,6 +4,7 @@
 
 import os
 import re
+import html
 import yt_dlp
 from pyrogram.types import ReplyParameters
 from pyrogram import enums
@@ -24,6 +25,26 @@ from COMMANDS.cookies_cmd import ensure_working_youtube_cookies
 app = get_app()
 
 from COMMANDS.format_cmd import parse_quality_argument
+
+def _selected_stream_urls(info):
+    """Return the selected video/audio URLs without changing the chosen format."""
+    video_url = audio_url = None
+    requested_formats = info.get('requested_formats') or []
+    for fmt in requested_formats:
+        stream_url = fmt.get('url')
+        if not stream_url:
+            continue
+        if fmt.get('vcodec') not in (None, 'none') or (fmt.get('vcodec') is None and fmt.get('acodec') in (None, 'none')):
+            video_url = video_url or stream_url
+        if fmt.get('acodec') not in (None, 'none') and fmt.get('vcodec') in (None, 'none'):
+            audio_url = audio_url or stream_url
+    if not requested_formats and info.get('url'):
+        if info.get('vcodec') == 'none' and info.get('acodec') != 'none':
+            audio_url = info['url']
+        else:
+            video_url = info['url']
+    return video_url, audio_url
+
 
 def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=False, use_proxy=False):
     # Сбрасываем кеш проверенных источников куки для новой задачи получения ссылки
@@ -134,7 +155,7 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
             logger.info(f"Using --no-cookies for domain in link extraction: {url}")
         
         # Add proxy configuration if needed (same as down_and_up.py)
-        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback
+        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback, has_alternative_proxy_route
         ytdl_opts = add_proxy_to_ytdl_opts(ytdl_opts, url, user_id)
         
         # Add PO token provider for YouTube domains
@@ -145,14 +166,42 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
         
-        # Use try_with_proxy_fallback to try all proxies if first one fails
-        info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
-        
-        # Format fallback: if extraction failed, retry with 'best' format (issue #362)
+        # AUTO proxy fallback can return None without trying the operation. Always
+        # attempt the configured route first; then try the existing proxy fallback.
+        def extract_with_fallback(opts):
+            first_error = None
+            try:
+                result = extract_info_operation(opts)
+                if result is not None:
+                    return result
+            except Exception as error:
+                first_error = error
+            if has_alternative_proxy_route(url, user_id):
+                logger.warning("Initial link extraction failed; trying proxy fallback")
+                try:
+                    result = try_with_proxy_fallback(opts, url, user_id, extract_info_operation)
+                    if result is not None:
+                        return result
+                except Exception:
+                    if first_error is None:
+                        raise
+            if first_error is not None:
+                raise first_error
+            return None
+
+        try:
+            info = extract_with_fallback(ytdl_opts)
+        except yt_dlp.utils.DownloadError:
+            if format_spec == 'best':
+                raise
+            info = None
+
+        # Format fallback: if extraction failed, retry with 'best' (issue #362).
         if info is None and format_spec != 'best':
             logger.info(f"Link extraction failed with format '{format_spec}', retrying with 'best' (issue #362)")
             ytdl_opts['format'] = 'best'
-            info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
+            format_spec = 'best'
+            info = extract_with_fallback(ytdl_opts)
         
         if info is None:
             return {'error': 'Failed to extract video information: all proxies failed or video unavailable'}
@@ -168,51 +217,9 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
         if not info:
             return {'error': 'Failed to extract video information'}
         
-        # Get the best direct URL for VLC players
-        direct_url = None
-        video_url = None
-        audio_url = None
-        
-        # Get requested formats
-        requested_formats = info.get('requested_formats', [])
-        
-        if requested_formats:
-            # There are separate video and audio streams
-            for fmt in requested_formats:
-                if fmt.get('vcodec') != 'none':
-                    video_url = fmt.get('url')
-                    if not direct_url:  # Use first video URL as direct URL
-                        direct_url = video_url
-                elif fmt.get('acodec') != 'none':
-                    audio_url = fmt.get('url')
-            
-            # Create player URLs for separate video/audio streams
-            if video_url and audio_url:
-                # Both video and audio available - use video as direct URL
-                if not direct_url:
-                    direct_url = video_url
-            elif video_url:
-                # Only video available
-                if not direct_url:
-                    direct_url = video_url
-            elif audio_url:
-                # Only audio available
-                if not direct_url:
-                    direct_url = audio_url
-        else:
-            # Fallback: look for best format with video and audio
-            formats = info.get('formats', [])
-            best_format = None
-            
-            for fmt in formats:
-                if fmt.get('vcodec') != 'none' and fmt.get('acodec') != 'none':
-                    if not best_format or fmt.get('height', 0) > best_format.get('height', 0):
-                        best_format = fmt
-            
-            if best_format:
-                direct_url = best_format.get('url')
-                video_url = direct_url
-        
+        video_url, audio_url = _selected_stream_urls(info)
+        direct_url = video_url or audio_url
+
         # If we have a direct URL, create VLC player URLs
         player_urls = {}
         if direct_url:
@@ -232,7 +239,7 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
             player_urls = {
                 'direct': direct_url,
                 'vlc_ios': f"https://vlc.ratu.sh/?url=vlc-x-callback://x-callback-url/stream?url={encoded_url}",
-                'vlc_android': f"https://vlc.ratu.sh/?url=intent://{android_url_clean}#Intent;scheme={scheme};package=org.videolan.vlc;type=video/*;end"
+                'vlc_android': 'https://vlc.ratu.sh/?url=' + quote(f'intent://{android_url_clean}#Intent;scheme={scheme};package=org.videolan.vlc;type=video/*;end', safe='')
             }
         
         if direct_url:
@@ -337,7 +344,7 @@ def link_command(app, message):
         result = get_direct_link(url, user_id, quality_arg, cookies_already_checked=True, use_proxy=True)
         
         if result.get('success'):
-            title = result.get('title', 'Unknown')
+            title = html.escape(str(result.get('title', 'Unknown')))
             duration = result.get('duration', 0)
             video_url = result.get('video_url')
             audio_url = result.get('audio_url')
@@ -349,13 +356,13 @@ def link_command(app, message):
             response += safe_get_messages(user_id).LINK_TITLE_MSG.format(title=title)
             if duration and duration > 0:
                 response += safe_get_messages(user_id).LINK_DURATION_MSG.format(duration=duration)
-            response += safe_get_messages(user_id).LINK_FORMAT_INFO_MSG.format(format_spec=format_spec)
+            response += safe_get_messages(user_id).LINK_FORMAT_INFO_MSG.format(format_spec=html.escape(str(format_spec)))
             
             if video_url:
-                response += safe_get_messages(user_id).LINK_VIDEO_STREAM_MSG.format(video_url=video_url)
+                response += safe_get_messages(user_id).LINK_VIDEO_STREAM_MSG.format(video_url=html.escape(video_url, quote=True))
             
             if audio_url:
-                response += safe_get_messages(user_id).LINK_AUDIO_STREAM_MSG.format(audio_url=audio_url)
+                response += safe_get_messages(user_id).LINK_AUDIO_STREAM_MSG.format(audio_url=html.escape(audio_url, quote=True))
             
             if not video_url and not audio_url:
                 response += safe_get_messages(user_id).LINK_FAILED_GET_STREAMS_MSG
@@ -419,7 +426,8 @@ def link_command(app, message):
             send_to_logger(message, safe_get_messages(user_id).LINK_EXTRACTED_LOG_MSG.format(user_id=user_id, url=url))
             
         else:
-            error_msg = result.get('error', 'Unknown error')
+            from HELPERS.logger import sanitize_error_message
+            error_msg = html.escape(sanitize_error_message(str(result.get('error', 'Unknown error'))))
             app.edit_message_text(
                 chat_id=user_id,
                 message_id=status_msg.id,

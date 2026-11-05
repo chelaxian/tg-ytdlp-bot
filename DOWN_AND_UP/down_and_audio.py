@@ -5,6 +5,7 @@ from HELPERS.cookie_file import validated_cookie_options
 # ########################################
 
 import os
+import html
 import re
 from HELPERS.logger import get_log_channel
 from CONFIG.logger_msg import LoggerMsg
@@ -15,7 +16,7 @@ import json
 import yt_dlp
 from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
-from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, log_error_to_channel
+from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, log_error_to_channel, sanitize_error_message
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user
 from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
@@ -419,9 +420,11 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         user_forced_nsfw = False
     
     # Check if LINK mode is enabled - if yes, get direct link instead of downloading
+    link_mode_active = False
     try:
         from DOWN_AND_UP.always_ask_menu import get_link_mode
         if get_link_mode(user_id):
+            link_mode_active = True
             logger.info(f"LINK mode enabled for user {user_id}, getting direct link instead of downloading audio")
             
             # Import link function
@@ -444,16 +447,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Form response
                 response = safe_get_messages(user_id).DIRECT_LINK_OBTAINED_MSG
-                response += safe_get_messages(user_id).TITLE_FIELD_MSG.format(title=title)
+                response += safe_get_messages(user_id).TITLE_FIELD_MSG.format(title=html.escape(str(title), quote=True))
                 if duration and duration > 0:
                     response += safe_get_messages(user_id).DURATION_FIELD_MSG.format(duration=duration)
-                response += safe_get_messages(user_id).FORMAT_FIELD_MSG.format(format_spec=format_spec)
+                response += safe_get_messages(user_id).FORMAT_FIELD_MSG.format(format_spec=html.escape(str(format_spec), quote=True))
                 
                 if video_url:
-                    response += safe_get_messages(user_id).VIDEO_STREAM_FIELD_MSG.format(video_url=video_url)
+                    response += safe_get_messages(user_id).VIDEO_STREAM_FIELD_MSG.format(video_url=html.escape(str(video_url), quote=True))
                 
                 if audio_url:
-                    response += safe_get_messages(user_id).AUDIO_STREAM_FIELD_MSG.format(audio_url=audio_url)
+                    response += safe_get_messages(user_id).AUDIO_STREAM_FIELD_MSG.format(audio_url=html.escape(str(audio_url), quote=True))
                 
                 if not video_url and not audio_url:
                     response += safe_get_messages(user_id).DOWN_UP_FAILED_STREAM_LINKS_MSG
@@ -472,7 +475,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 error_msg = result.get('error', 'Unknown error')
                 app.send_message(
                     user_id,
-                    safe_get_messages(user_id).DOWN_UP_ERROR_GETTING_LINK_MSG.format(error_msg=error_msg),
+                    safe_get_messages(user_id).DOWN_UP_ERROR_GETTING_LINK_MSG.format(error_msg=html.escape(sanitize_error_message(str(error_msg)), quote=True)),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
                 )
@@ -482,7 +485,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             return
     except Exception as e:
         logger.error(f"Error checking LINK mode for user {user_id}: {e}")
-        # Continue with normal download if LINK mode check fails
+        # Do not start a download after a failure while handling LINK mode.
+        if link_mode_active:
+            return
     
     # We define a playlist not only by the number of videos, but also by the presence of a range in the URL
     original_text = message.text or message.caption or ""
