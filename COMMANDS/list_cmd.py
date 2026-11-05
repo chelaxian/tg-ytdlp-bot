@@ -5,6 +5,7 @@
 from HELPERS.safe_messeger import safe_callback_answer
 import os
 import tempfile
+from html import escape
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -32,13 +33,18 @@ def _format_filesize_list(filesize):
     else:
         return f"{filesize:.0f}B"
 
-def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
+def run_ytdlp_list(url: str, user_id: int, include_formats=False):
     """
     Get available formats using yt-dlp Python API (get_video_formats).
     Uses the same engine as Always Ask Menu for consistent results
     (PO token, js_runtimes, proxy, cookies with fallbacks).
     Returns (success, formatted_output)
     """
+    def result(success, output, formats=None):
+        if include_formats:
+            return success, output, formats or []
+        return success, output
+
     try:
         from DOWN_AND_UP.yt_dlp_hook import get_video_formats
         
@@ -46,15 +52,15 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
         info = get_video_formats(url, user_id)
         
         if not info:
-            return False, "No video info returned"
+            return result(False, "No video info returned")
         
         if isinstance(info, dict) and 'error' in info:
             error = info.get('error', 'Unknown error')
-            return False, f"Error: {error}"
+            return result(False, f"Error: {error}")
         
         formats = info.get('formats', [])
         if not formats:
-            return False, "No formats found"
+            return result(False, "No formats found")
         
         video_id = info.get('id', 'unknown')
         title = info.get('title', 'Unknown')
@@ -78,7 +84,7 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
             if vcodec == 'none' and acodec != 'none':
                 resolution = 'audio only'
             elif vcodec != 'none' and acodec == 'none':
-                resolution = 'video only'
+                resolution = (fmt.get('resolution') or (f"{fmt.get('width')}x{fmt.get('height')}" if fmt.get('width') and fmt.get('height') else 'unknown')) + ' (video only)'
             else:
                 resolution = fmt.get('resolution') or 'unknown'
             
@@ -113,13 +119,36 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
         lines.append(f"Total: {len(formats)} formats")
         
         logger.info(f"Got {len(formats)} formats via Python API for user {user_id}")
-        return True, '\n'.join(lines)
+        return result(True, '\n'.join(lines), formats)
         
     except Exception as e:
         logger.error(f"Error getting formats via Python API: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return False, str(e)
+        return result(False, str(e))
+
+def _list_format_ids(formats):
+    """Classify format IDs using extractor metadata, not rendered table text."""
+    audio, video = [], []
+    for fmt in formats:
+        fid = str(fmt.get('format_id') or '')
+        if not fid or fid.startswith(('[', '(')):
+            continue
+        vcodec = fmt.get('vcodec') or 'none'
+        acodec = fmt.get('acodec') or 'none'
+        if vcodec == 'none' and acodec != 'none':
+            audio.append(fid)
+        elif vcodec != 'none' and acodec == 'none':
+            video.append(fid)
+    return audio, video
+
+
+def _list_caption(url, hint):
+    """Keep captions safely below Telegram's 1024 UTF-16-unit limit."""
+    # URL and localized hint are user-controlled/unbounded; 200 characters of
+    # each stay below the limit even when every character uses two UTF-16 units.
+    return f"<code>{escape(url[:200])}</code>\n{escape(hint[:200])}"
+
 
 @app.on_message(filters.command("list") & filters.private)
 @background_handler(label="list_command", heavy_if=message_has_url)
@@ -132,6 +161,8 @@ def list_command(app, message):
         return  # is_user_in_channel already sends subscription message
     
     # Parse command arguments
+    processing_msg = None
+    temp_file_path = None
     try:
         parts = message.text.strip().split(maxsplit=1)
         if len(parts) < 2:
@@ -165,29 +196,14 @@ safe_get_messages(user_id).LIST_PROCESSING_MSG,
         )
         
         # Run yt-dlp list command
-        success, output = run_ytdlp_list(url, user_id)
+        success, output, formats = run_ytdlp_list(url, user_id, include_formats=True)
         
         if success:
-            # Check if any format contains "audio only" and "video only" and extract format IDs
-            audio_only_formats = []
-            video_only_formats = []
-            lines = output.split('\n')
-            for line in lines:
-                if 'audio only' in line.lower() or 'audio_only' in line.lower():
-                    # Extract format ID from the line (usually at the beginning)
-                    parts = line.strip().split()
-                    if parts and parts[0].isdigit():
-                        format_id = parts[0]
-                        audio_only_formats.append(format_id)
-                elif 'video only' in line.lower() or 'video_only' in line.lower():
-                    # Extract format ID from the line (usually at the beginning)
-                    parts = line.strip().split()
-                    if parts and parts[0].isdigit():
-                        format_id = parts[0]
-                        video_only_formats.append(format_id)
-            
+            audio_only_formats, video_only_formats = _list_format_ids(formats)
+
             # Create temporary file with output
             with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as temp_file:
+                temp_file_path = temp_file.name
                 temp_file.write(safe_get_messages(user_id).LIST_AVAILABLE_FORMATS_HEADER_MSG.format(url=url) + "\n")
                 temp_file.write("=" * 50 + "\n\n")
                 temp_file.write(output)
@@ -199,29 +215,18 @@ safe_get_messages(user_id).LIST_PROCESSING_MSG,
                 temp_file.write(safe_get_messages(user_id).LIST_FORMAT_EXAMPLE_140_AUDIO)
                 temp_file.write(safe_get_messages(user_id).LIST_FORMAT_EXAMPLE_140_AUDIO_SHORT)
                 
+                if video_only_formats:
+                    temp_file.write("\nVideo-only format IDs: " + ', '.join(video_only_formats) + "\n")
                 # Add special note for audio-only formats
                 if audio_only_formats:
                     temp_file.write(f"\n{safe_get_messages(user_id).LIST_AUDIO_FORMATS_DETECTED.format(formats=', '.join(audio_only_formats))}")
                     temp_file.write(safe_get_messages(user_id).LIST_AUDIO_FORMATS_NOTE)
                 
-                temp_file_path = temp_file.name
             
             try:
                 # Send the file
-                caption = safe_get_messages(user_id).LIST_CAPTION_MSG.format(url=url, audio_note="")
-                
-                # Add video-only formats info first
-                if video_only_formats:
-                    video_formats_text = ', '.join([f'<code>{fmt}</code>' for fmt in video_only_formats])
-                    caption += f"\n{safe_get_messages(user_id).LIST_VIDEO_ONLY_FORMATS_MSG.format(formats=video_formats_text)}"
-                
-                # Add special note for audio-only formats with monospace formatting
-                if audio_only_formats:
-                    audio_formats_text = ', '.join([f'<code>{fmt}</code>' for fmt in audio_only_formats])
-                    caption += safe_get_messages(user_id).LIST_AUDIO_FORMATS_MSG.format(formats=audio_formats_text)
-                
-                caption += f"\n{safe_get_messages(user_id).LIST_USE_FORMAT_ID_MSG}"
-                
+                caption = _list_caption(url, safe_get_messages(user_id).LIST_USE_FORMAT_ID_MSG)
+
                 app.send_document(
                     user_id,
                     document=temp_file_path,
@@ -230,12 +235,6 @@ safe_get_messages(user_id).LIST_PROCESSING_MSG,
                     reply_to_message_id=message.id
                 )
                 
-                # Delete processing message
-                try:
-                    processing_msg.delete()
-                except Exception:
-                    pass
-                    
             except Exception as e:
                 logger.error(f"Error sending formats file: {e}")
                 send_error_to_user(message, safe_get_messages(user_id).LIST_ERROR_SENDING_MSG.format(error=str(e)))
@@ -246,12 +245,6 @@ safe_get_messages(user_id).LIST_PROCESSING_MSG,
                 except Exception:
                     pass
         else:
-            # Delete processing message
-            try:
-                processing_msg.delete()
-            except Exception:
-                pass
-                
             # Маскируем секретные данные (прокси с логином/паролем) перед отправкой пользователю
             sanitized_output = sanitize_error_message(output)
             send_error_to_user(message, safe_get_messages(user_id).LIST_ERROR_GETTING_MSG.format(error=sanitized_output))
@@ -259,6 +252,17 @@ safe_get_messages(user_id).LIST_PROCESSING_MSG,
     except Exception as e:
         logger.error(f"Error in list command: {e}")
         send_error_to_user(message, safe_get_messages(user_id).LIST_ERROR_OCCURRED_MSG)
+    finally:
+        if processing_msg:
+            try:
+                processing_msg.delete()
+            except Exception:
+                pass
+        if temp_file_path:
+            try:
+                os.unlink(temp_file_path)
+            except OSError:
+                pass
 
 @app.on_callback_query(filters.regex("^list_help\\|"))
 def list_help_callback(app, callback_query):

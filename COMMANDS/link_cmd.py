@@ -34,7 +34,7 @@ def _selected_stream_urls(info):
         stream_url = fmt.get('url')
         if not stream_url:
             continue
-        if fmt.get('vcodec') not in (None, 'none'):
+        if fmt.get('vcodec') not in (None, 'none') or (fmt.get('vcodec') is None and fmt.get('acodec') in (None, 'none')):
             video_url = video_url or stream_url
         if fmt.get('acodec') not in (None, 'none') and fmt.get('vcodec') in (None, 'none'):
             audio_url = audio_url or stream_url
@@ -155,7 +155,7 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
             logger.info(f"Using --no-cookies for domain in link extraction: {url}")
         
         # Add proxy configuration if needed (same as down_and_up.py)
-        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback
+        from HELPERS.proxy_helper import add_proxy_to_ytdl_opts, try_with_proxy_fallback, has_alternative_proxy_route
         ytdl_opts = add_proxy_to_ytdl_opts(ytdl_opts, url, user_id)
         
         # Add PO token provider for YouTube domains
@@ -166,15 +166,42 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
         
-        # Use try_with_proxy_fallback to try all proxies if first one fails
-        info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
-        
-        # Format fallback: if extraction failed, retry with 'best' format (issue #362)
+        # AUTO proxy fallback can return None without trying the operation. Always
+        # attempt the configured route first; then try the existing proxy fallback.
+        def extract_with_fallback(opts):
+            first_error = None
+            try:
+                result = extract_info_operation(opts)
+                if result is not None:
+                    return result
+            except Exception as error:
+                first_error = error
+            if has_alternative_proxy_route(url, user_id):
+                logger.warning("Initial link extraction failed; trying proxy fallback")
+                try:
+                    result = try_with_proxy_fallback(opts, url, user_id, extract_info_operation)
+                    if result is not None:
+                        return result
+                except Exception:
+                    if first_error is None:
+                        raise
+            if first_error is not None:
+                raise first_error
+            return None
+
+        try:
+            info = extract_with_fallback(ytdl_opts)
+        except yt_dlp.utils.DownloadError:
+            if format_spec == 'best':
+                raise
+            info = None
+
+        # Format fallback: if extraction failed, retry with 'best' (issue #362).
         if info is None and format_spec != 'best':
             logger.info(f"Link extraction failed with format '{format_spec}', retrying with 'best' (issue #362)")
             ytdl_opts['format'] = 'best'
             format_spec = 'best'
-            info = try_with_proxy_fallback(ytdl_opts, url, user_id, extract_info_operation)
+            info = extract_with_fallback(ytdl_opts)
         
         if info is None:
             return {'error': 'Failed to extract video information: all proxies failed or video unavailable'}
@@ -212,7 +239,7 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
             player_urls = {
                 'direct': direct_url,
                 'vlc_ios': f"https://vlc.ratu.sh/?url=vlc-x-callback://x-callback-url/stream?url={encoded_url}",
-                'vlc_android': f"https://vlc.ratu.sh/?url=intent://{android_url_clean}#Intent;scheme={scheme};package=org.videolan.vlc;type=video/*;end"
+                'vlc_android': 'https://vlc.ratu.sh/?url=' + quote(f'intent://{android_url_clean}#Intent;scheme={scheme};package=org.videolan.vlc;type=video/*;end', safe='')
             }
         
         if direct_url:

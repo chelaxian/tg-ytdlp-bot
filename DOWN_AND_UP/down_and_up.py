@@ -6,6 +6,7 @@ from HELPERS.cookie_file import validated_cookie_options
 
 from HELPERS.logger import send_to_all  # Импорт в самом начале для гарантии видимости
 import os
+import html
 import glob
 import threading
 import time
@@ -444,9 +445,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         return
     
     # Check if LINK mode is enabled - if yes, get direct link instead of downloading
+    link_mode_active = False
     try:
         from DOWN_AND_UP.always_ask_menu import get_link_mode
         if get_link_mode(user_id):
+            link_mode_active = True
             logger.info(f"LINK mode enabled for user {user_id}, getting direct link instead of downloading")
             
             # Import link function
@@ -469,20 +472,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 
                 # Form response
                 response = safe_get_messages(user_id).DIRECT_LINK_OBTAINED_MSG
-                response += safe_get_messages(user_id).TITLE_FIELD_MSG.format(title=title)
+                response += safe_get_messages(user_id).TITLE_FIELD_MSG.format(title=html.escape(str(title), quote=True))
                 try:
                     duration_val = float(duration) if duration is not None else 0
                     if duration_val > 0:
                         response += safe_get_messages(user_id).DURATION_FIELD_MSG.format(duration=duration_val)
                 except (TypeError, ValueError):
                     pass
-                response += safe_get_messages(user_id).FORMAT_FIELD_MSG.format(format_spec=format_spec)
+                response += safe_get_messages(user_id).FORMAT_FIELD_MSG.format(format_spec=html.escape(str(format_spec), quote=True))
                 
                 if video_url:
-                    response += safe_get_messages(user_id).VIDEO_STREAM_FIELD_MSG.format(video_url=video_url)
+                    response += safe_get_messages(user_id).VIDEO_STREAM_FIELD_MSG.format(video_url=html.escape(str(video_url), quote=True))
                 
                 if audio_url:
-                    response += safe_get_messages(user_id).AUDIO_STREAM_FIELD_MSG.format(audio_url=audio_url)
+                    response += safe_get_messages(user_id).AUDIO_STREAM_FIELD_MSG.format(audio_url=html.escape(str(audio_url), quote=True))
                 
                 if not video_url and not audio_url:
                     response += safe_get_messages(user_id).FAILED_STREAM_LINKS_MSG
@@ -501,7 +504,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 error_msg = result.get('error', 'Unknown error')
                 app.send_message(
                     user_id,
-                    safe_get_messages(user_id).ERROR_GETTING_LINK_MSG.format(error=error_msg),
+                    safe_get_messages(user_id).ERROR_GETTING_LINK_MSG.format(error=html.escape(sanitize_error_message(str(error_msg)), quote=True)),
                     reply_parameters=ReplyParameters(message_id=message.id),
                     parse_mode=enums.ParseMode.HTML
                 )
@@ -511,7 +514,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             return
     except Exception as e:
         logger.error(f"Error checking LINK mode for user {user_id}: {e}")
-        # Continue with normal download if LINK mode check fails
+        # Do not start a download after a failure while handling LINK mode.
+        if link_mode_active:
+            return
     subs_enabled = is_subs_enabled(user_id)
     need_subs = False
     
