@@ -377,7 +377,7 @@ def set_reload_interval_hours(new_hours: int) -> bool:
         new_val = int(new_hours)
     except Exception:
         return False
-    if new_val and new_val < 1 or new_val > 168:
+    if new_val is None or new_val < 1 or new_val > 168:
         return False
     with _thread_lock:
         reload_interval_hours = new_val
@@ -471,7 +471,7 @@ def auto_cache_command(app, message):
             except Exception:
                 send_to_user(message, safe_get_messages().DB_AUTO_CACHE_INVALID_ARGUMENT_MSG)
                 return
-            if n and n < 1 or n > 168:
+            if n is None or n < 1 or n > 168:
                 send_to_user(message, safe_get_messages().DB_AUTO_CACHE_INTERVAL_RANGE_MSG)
                 return
             ok = set_reload_interval_hours(n)

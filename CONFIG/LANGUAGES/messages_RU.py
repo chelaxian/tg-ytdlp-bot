@@ -832,6 +832,7 @@ class Messages(object):
     )
     ADMIN_BLOCK_USER_USAGE_MSG = "❌ Использование: /block_user <user_id>"
     ADMIN_CANNOT_DELETE_ADMIN_MSG = "🚫 Администратор не может удалить администратора"
+    ADMIN_USER_ID_INVALID_MSG = "Неверный ID пользователя: {user_id}\nОжидается числовой Telegram ID (например 123456789)."
     ADMIN_USER_BLOCKED_MSG = "Пользователь заблокирован 🔒❌\n \nID: <code>{user_id}</code>\nДата блокировки: {date}"
     ADMIN_USER_ALREADY_BLOCKED_MSG = "<code>{user_id}</code> уже заблокирован ❌😐"
     ADMIN_NOT_ADMIN_MSG = "🚫 Извините! Вы не администратор"
@@ -1028,6 +1029,7 @@ class Messages(object):
     
     # Additional admin command messages
     ADMIN_ACCESS_DENIED_AUTO_DELETE_MSG = "❌ Доступ запрещен. Только для администраторов."
+    ADMIN_GET_LOGS_USAGE_MSG = "Использование: /log <user_id> - логи загрузок пользователя."
     ADMIN_USER_LOGS_TOTAL_MSG = "Всего: <b>{total}</b>\n<b>{user_id}</b> - логи (Последние 10):\n\n{format_str}"
     
     # Additional keyboard command messages
@@ -1210,6 +1212,7 @@ class Messages(object):
     ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Кэш Firebase перезагружен автоматической задачей."
     ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Кэш Firebase перезагружен администратором."
     ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Ошибка перезагрузки кэша Firebase: {error}"
+    ADMIN_BROADCAST_EMPTY_MSG = "Нечего рассылать.\nОтправьте /broadcast <текст> или сделайте reply /broadcast на сообщение."
     ADMIN_BROADCAST_INITIATED_LOG_MSG = "Трансляция инициирована. Текст:\n{broadcast_text}"
     ADMIN_BROADCAST_SENT_LOG_MSG = "Трансляционное сообщение отправлено всем пользователям."
     ADMIN_BROADCAST_FAILED_LOG_MSG = "Не удалось транслировать сообщение: {error}"
