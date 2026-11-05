@@ -264,6 +264,13 @@ def send_promo_message(app, message):
     # If the message is a reference, we get it
     reply = message.reply_to_message if message.reply_to_message else None
 
+    # Nothing to send: neither a text nor a replied message
+    if not broadcast_text and not reply:
+        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_BROADCAST_EMPTY_MSG
+                     if hasattr(safe_get_messages(message.chat.id), 'ADMIN_BROADCAST_EMPTY_MSG')
+                     else f"Usage: {Config.BROADCAST_MESSAGE} <text> (or reply to a message)")
+        return
+
     send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_BROADCAST_INITIATED_LOG_MSG.format(broadcast_text=broadcast_text))
 
     try:
@@ -323,8 +330,14 @@ def get_user_log(app, message):
     # Lazy import to avoid cycles
     from DATABASE.cache_db import get_from_local_cache
     user_id = str(message.chat.id)
-    if int(message.chat.id) in Config.ADMIN and Config.GET_USER_LOGS_COMMAND in message.text:
-        user_id = message.text.split(Config.GET_USER_LOGS_COMMAND + " ")[1]
+    if int(message.chat.id) in Config.ADMIN and message.text.startswith(Config.GET_USER_LOGS_COMMAND):
+        parts = (message.text or "").strip().split()
+        if len(parts) < 2 or not parts[1].lstrip("-").isdigit():
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_GET_LOGS_USAGE_MSG
+                         if hasattr(safe_get_messages(message.chat.id), 'ADMIN_GET_LOGS_USAGE_MSG')
+                         else f"Usage: {Config.GET_USER_LOGS_COMMAND} <user_id>")
+            return
+        user_id = parts[1]
 
     logs_dict = get_from_local_cache(["bot", Config.BOT_NAME_FOR_USERS, "logs", user_id])
     if not logs_dict:
@@ -700,6 +713,11 @@ def block_user(app, message):
                 pass
 
         b_user_id = argument
+        if not b_user_id.lstrip("-").isdigit():
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_ID_INVALID_MSG
+                         if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_ID_INVALID_MSG')
+                         else f"Invalid user ID: {b_user_id!r} (expected a numeric Telegram ID)")
+            return
         try:
             if int(b_user_id) in Config.ADMIN:
                 send_to_all(message, safe_get_messages(message.chat.id).ADMIN_CANNOT_DELETE_ADMIN_MSG)
@@ -769,6 +787,12 @@ def unblock_user(app, message):
             )
             return
 
+        if not ub_user_id.lstrip("-").isdigit():
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_ID_INVALID_MSG
+                         if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_ID_INVALID_MSG')
+                         else f"Invalid user ID: {ub_user_id!r} (expected a numeric Telegram ID)")
+            return
+
         snapshot = db.child(f"{Config.BOT_DB_PATH}/blocked_users").get()
         all_blocked_users = snapshot.each() if snapshot else []
         b_users = [str(b_user.key()) for b_user in (all_blocked_users or []) if b_user is not None]
@@ -801,6 +825,12 @@ def ignore_user(app, message):
             send_to_user(message, safe_get_messages(message.chat.id).ADMIN_IGNORE_USER_USAGE_MSG if hasattr(safe_get_messages(message.chat.id), 'ADMIN_IGNORE_USER_USAGE_MSG') else f"Usage: {Config.IGNORE_USER_COMMAND} <user_id>")
             return
         i_user_id = parts[1].strip()
+
+        if not i_user_id.lstrip("-").isdigit():
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_ID_INVALID_MSG
+                         if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_ID_INVALID_MSG')
+                         else f"Invalid user ID: {i_user_id!r} (expected a numeric Telegram ID)")
+            return
 
         try:
             if int(i_user_id) in Config.ADMIN:
@@ -845,6 +875,12 @@ def unignore_user(app, message):
             send_to_user(message, safe_get_messages(message.chat.id).ADMIN_UNIGNORE_USER_USAGE_MSG if hasattr(safe_get_messages(message.chat.id), 'ADMIN_UNIGNORE_USER_USAGE_MSG') else f"Usage: {Config.UNIGNORE_USER_COMMAND} <user_id>")
             return
         ui_user_id = parts[1].strip()
+
+        if not ui_user_id.lstrip("-").isdigit():
+            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_USER_ID_INVALID_MSG
+                         if hasattr(safe_get_messages(message.chat.id), 'ADMIN_USER_ID_INVALID_MSG')
+                         else f"Invalid user ID: {ui_user_id!r} (expected a numeric Telegram ID)")
+            return
 
         snapshot = db.child(f"{Config.BOT_DB_PATH}/ignored_users").get()
         all_ignored_users = snapshot.each() if snapshot else []

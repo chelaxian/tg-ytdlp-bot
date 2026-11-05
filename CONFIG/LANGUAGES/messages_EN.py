@@ -831,6 +831,7 @@ Learn more: /playlist"""
     )
     ADMIN_BLOCK_USER_USAGE_MSG = "❌ Usage: /block_user <user_id>"
     ADMIN_CANNOT_DELETE_ADMIN_MSG = "🚫 Admin cannot delete an admin"
+    ADMIN_USER_ID_INVALID_MSG = "Invalid user ID: {user_id}\nExpected a numeric Telegram ID (for example 123456789)."
     ADMIN_USER_BLOCKED_MSG = "User blocked 🔒❌\n \nID: <code>{user_id}</code>\nBlocked Date: {date}"
     ADMIN_USER_ALREADY_BLOCKED_MSG = "<code>{user_id}</code> is already blocked ❌😐"
     ADMIN_NOT_ADMIN_MSG = "🚫 Sorry! You are not an admin"
@@ -1027,6 +1028,7 @@ Learn more: /playlist"""
     
     # Additional admin command messages
     ADMIN_ACCESS_DENIED_AUTO_DELETE_MSG = "❌ Access denied. Admin only."
+    ADMIN_GET_LOGS_USAGE_MSG = "Usage: /log <user_id> - get a user's download logs."
     ADMIN_USER_LOGS_TOTAL_MSG = "Total: <b>{total}</b>\n<b>{user_id}</b> - logs (Last 10):\n\n{format_str}"
     
     # Additional keyboard command messages
@@ -1209,6 +1211,7 @@ Learn more: /playlist"""
     ADMIN_CACHE_RELOADED_AUTO_LOG_MSG = "Firebase cache reloaded by auto task."
     ADMIN_CACHE_RELOADED_ADMIN_LOG_MSG = "Firebase cache reloaded by admin."
     ADMIN_ERROR_RELOADING_CACHE_LOG_MSG = "Error reloading Firebase cache: {error}"
+    ADMIN_BROADCAST_EMPTY_MSG = "Nothing to broadcast.\nSend /broadcast <text> or reply /broadcast to a message."
     ADMIN_BROADCAST_INITIATED_LOG_MSG = "Broadcast initiated. Text:\n{broadcast_text}"
     ADMIN_BROADCAST_SENT_LOG_MSG = "Broadcast message sent to all users."
     ADMIN_BROADCAST_FAILED_LOG_MSG = "Failed to broadcast message: {error}"
