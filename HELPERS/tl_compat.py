@@ -48,9 +48,23 @@ only the first flags2 field (usernames); everything else keeps its order:
       bot_inline_placeholder:flags.19?string lang_code:flags.22?string
       emoji_status:flags.30?EmojiStatus usernames:flags2.0?Vector<Username> = User;
 
-It is parsed into a regular `raw.types.User`. Registration is idempotent and
-never overrides a constructor that Pyrogram itself knows (a future Pyrogram
-release wins).
+It is parsed into a regular `raw.types.User`.
+
+Those legacy users carry legacy statuses too (2026-11-05 12:05 UTC:
+"unknown constructor: 0xe26f42f1"). Before `by_me` was added the "recently /
+within a week / within a month" statuses had no fields (CRC32 verified):
+
+    userStatusRecently#e26f42f1 = UserStatus;
+    userStatusLastWeek#7bf09fc = UserStatus;
+    userStatusLastMonth#77ebc742 = UserStatus;
+
+They are parsed into the current types with by_me=False.
+
+Registration is idempotent and never overrides a constructor that Pyrogram
+itself knows (a future Pyrogram release wins).
+
+The legacy objects show up in the ChannelGuard admin-log scans (00:05 / 12:05
+UTC); each scan so far brought one more of them.
 """
 
 from io import BytesIO
@@ -210,7 +224,31 @@ class UserLegacy:
     read = staticmethod(_read_user_legacy)
 
 
-_SHIMS = (ChannelLegacy, UserLegacy)
+def _status_legacy(constructor_id: int, type_name: str):
+    """Registry entry for a field-less legacy userStatus* constructor."""
+
+    def read(b: BytesIO, *args: Any):
+        from pyrogram.raw import types
+        return getattr(types, type_name)(by_me=False)
+
+    return type(f"{type_name}Legacy", (), {
+        "ID": constructor_id,
+        "QUALNAME": f"types.{type_name}Legacy",
+        "read": staticmethod(read),
+    })
+
+
+USER_STATUS_RECENTLY_LEGACY_ID = 0xE26F42F1
+USER_STATUS_LAST_WEEK_LEGACY_ID = 0x07BF09FC
+USER_STATUS_LAST_MONTH_LEGACY_ID = 0x77EBC742
+
+_SHIMS = (
+    ChannelLegacy,
+    UserLegacy,
+    _status_legacy(USER_STATUS_RECENTLY_LEGACY_ID, "UserStatusRecently"),
+    _status_legacy(USER_STATUS_LAST_WEEK_LEGACY_ID, "UserStatusLastWeek"),
+    _status_legacy(USER_STATUS_LAST_MONTH_LEGACY_ID, "UserStatusLastMonth"),
+)
 
 
 def install() -> bool:

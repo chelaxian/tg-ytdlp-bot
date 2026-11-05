@@ -846,6 +846,45 @@ def is_cloudflare_error(error_text: str) -> bool:
     ]
     return any(indicator in error_lower for indicator in cloudflare_indicators)
 
+
+_SPECIFIC_IMPERSONATE_CACHE = None
+
+
+def available_specific_impersonate_targets(limit: int = 24) -> list:
+    """Concrete browser targets ("chrome-152", "safari-18.4", ...) yt-dlp can impersonate now.
+
+    The list used to be hard-coded as "chrome122", "safari17"... yt-dlp parses those
+    as unknown clients, so with curl_cffi 0.10+ not one of them was ever available
+    and the "specific versions" fallback always stopped after 3 misses (logging that
+    curl_cffi was broken). Newest first, browsers interleaved, cached per process.
+    """
+    global _SPECIFIC_IMPERSONATE_CACHE
+    if _SPECIFIC_IMPERSONATE_CACHE is None:
+        names = []
+        try:
+            with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True}) as ydl:
+                targets = [target for target, _ in ydl._get_available_impersonate_targets()]
+            per_client = {}
+            for target in targets:
+                if not target.client or not target.version:
+                    continue
+                per_client.setdefault(target.client, set()).add(target.version)
+
+            def version_key(version):
+                return tuple(int(part) for part in version.replace('-', '.').split('.') if part.isdigit())
+
+            queues = {client: sorted(versions, key=version_key, reverse=True)
+                      for client, versions in sorted(per_client.items())}
+            while any(queues.values()):
+                for client, versions in queues.items():
+                    if versions:
+                        names.append(f"{client}-{versions.pop(0)}")
+        except Exception as e:  # private yt-dlp API: never break the download path
+            logger.debug(f"Could not list impersonate targets: {e}")
+        _SPECIFIC_IMPERSONATE_CACHE = names
+    return list(_SPECIFIC_IMPERSONATE_CACHE[:limit])
+
+
 def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None, operation_func=None, *args, skip_original_attempt=False, **kwargs):
     """
     Try operation with different impersonate versions in case of Cloudflare 403 error
@@ -875,32 +914,7 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
     
     # Specific versions (require curl_cffi to be installed)
     # Only try these if basic versions fail and we detect curl_cffi availability
-    specific_versions = [
-        'chrome122', 'chrome121', 'chrome120', 'chrome119', 'chrome118', 'chrome117',
-        'chrome116', 'chrome115', 'chrome114', 'chrome113', 'chrome112', 'chrome111',
-        'chrome110', 'chrome109', 'chrome108', 'chrome107', 'chrome106', 'chrome105',
-        'chrome104', 'chrome103', 'chrome102', 'chrome101', 'chrome100',
-        'chrome99', 'chrome98', 'chrome97', 'chrome96', 'chrome95', 'chrome94',
-        'chrome93', 'chrome92', 'chrome91', 'chrome90', 'chrome89', 'chrome88',
-        'chrome87', 'chrome86', 'chrome85', 'chrome84', 'chrome83', 'chrome82',
-        'chrome81', 'chrome80',
-        'edge110', 'edge109', 'edge108', 'edge107', 'edge106', 'edge105',
-        'edge104', 'edge103', 'edge102', 'edge101', 'edge100', 'edge99', 'edge98',
-        'edge97', 'edge96', 'edge95', 'edge94', 'edge93', 'edge92', 'edge91',
-        'edge90', 'edge89', 'edge88', 'edge87', 'edge86', 'edge85', 'edge84',
-        'edge83', 'edge82', 'edge81', 'edge80',
-        'firefox120', 'firefox119', 'firefox118', 'firefox117', 'firefox116',
-        'firefox115', 'firefox114', 'firefox113', 'firefox112', 'firefox111',
-        'firefox110', 'firefox109', 'firefox108', 'firefox107', 'firefox106',
-        'firefox105', 'firefox104', 'firefox103', 'firefox102', 'firefox101',
-        'firefox100', 'firefox99', 'firefox98', 'firefox97', 'firefox96',
-        'firefox95', 'firefox94', 'firefox93', 'firefox92', 'firefox91',
-        'firefox90', 'firefox89', 'firefox88', 'firefox87', 'firefox86',
-        'firefox85', 'firefox84', 'firefox83', 'firefox82', 'firefox81',
-        'firefox80',
-        'safari17', 'safari16', 'safari15', 'safari14', 'safari13', 'safari12',
-        'safari11', 'safari10',
-    ]
+    specific_versions = available_specific_impersonate_targets()
     
     # Check if curl_cffi is available (for specific versions)
     curl_cffi_available = False
