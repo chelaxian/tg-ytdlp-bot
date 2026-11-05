@@ -1860,8 +1860,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         try:
                             # Check if content is NSFW for fallback
                             from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                            _url_nsfw = is_porn(url, "", "", None)
+                            is_nsfw = _url_nsfw or user_forced_nsfw
+                            logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                             
                             # ЖЕСТКО: Используем сохраненный оригинальный текст с диапазоном
                             logger.info(f"[FALLBACK DEBUG] Using saved original_message_text: {original_message_text}")
@@ -2830,8 +2831,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 
                 # Determine if this is NSFW content in private chat (paid media)
                 from HELPERS.porn import is_porn
-                is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                _url_nsfw = is_porn(url, "", "", None)
+                is_nsfw = _url_nsfw or user_forced_nsfw
+                logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                 is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                 # Для логирования используем is_nsfw and is_private_chat (без учета админа)
                 # чтобы логирование оставалось как для всех остальных

@@ -1,5 +1,8 @@
+import functools
 import importlib
 import re
+import threading
+import time
 import types
 from urllib.parse import urlparse, parse_qs, unquote
 
@@ -82,6 +85,13 @@ def load_domain_lists():
         except Exception as e:
             logger.error(f"Failed to load {filepath}: {e}")
             globals()[attr_name] = set()
+    # results depend on the lists: forget memoised verdicts (matchers rebuild lazily)
+    cache = globals().get("_is_porn_cached")
+    if cache is not None:
+        cache.cache_clear()
+    # compile the keyword matchers now (~2 s for 15k keywords) instead of inside the first request
+    if globals().get("_get_keyword_matchers") is not None:
+        threading.Thread(target=_get_keyword_matchers, name="porn-matchers", daemon=True).start()
 
 
 load_domain_lists()
@@ -157,86 +167,169 @@ def extract_domain_parts(url):
         return [url.lower()], url.lower()
 
 
+_LIST_SETS: dict = {}
+
+
+def _config_set(name):
+    """Config.WHITELIST / GREYLIST as a set, rebuilt only when the list object changes
+    (reload_all_porn_caches assigns a new list)."""
+    lst = getattr(Config, name, None) or ()
+    cached = _LIST_SETS.get(name)
+    if cached is None or cached[0] is not lst:
+        cached = (lst, frozenset(str(d).lower() for d in lst))
+        _LIST_SETS[name] = cached
+    return cached[1]
+
+
 def is_porn_domain(domain_parts):
     """Check if any domain variant is in PORN_DOMAINS (respects WHITELIST and GREYLIST)."""
-    for dom in domain_parts:
-        if dom in Config.WHITELIST:
-            return False
-    for dom in domain_parts:
-        if dom in Config.GREYLIST:
-            return False
-    for dom in domain_parts:
-        if dom in PORN_DOMAINS:
-            return True
-    return False
-
-
-# ---------------------------------------------------------------------------
-#  Shared helpers for keyword matching
-# ---------------------------------------------------------------------------
-
-def _compile_url_keyword_regex(raw_keyword: str) -> re.Pattern:
-    """Build delimiter-aware regex for keyword matching inside URLs."""
-    words = [re.escape(w) for w in raw_keyword.split() if w]
-    if not words:
-        return re.compile(r"a^")
-    joiner = r"[^A-Za-z0-9]+"
-    core = joiner.join(words)
-    return re.compile(rf"(?<![A-Za-z0-9])(?:{core})(?![A-Za-z0-9])", flags=re.IGNORECASE)
-
-
-def _prepare_lower(val):
-    """Safely lowercase a string, returning empty string for None."""
-    return val.lower() if val else ""
+    if _check_domain_whitelist(domain_parts):
+        return False
+    grey = _config_set("GREYLIST")
+    if any(dom in grey for dom in domain_parts):
+        return False
+    return any(dom in PORN_DOMAINS for dom in domain_parts)
 
 
 def _check_domain_whitelist(domain_parts):
     """Return True if any domain part is in WHITELIST."""
-    return any(dom in Config.WHITELIST for dom in domain_parts)
+    white = _config_set("WHITELIST")
+    return any(dom in white for dom in domain_parts)
+
+
+# ---------------------------------------------------------------------------
+#  Keyword matchers — compiled ONCE per keyword list, not per call
+# ---------------------------------------------------------------------------
+#
+# PORN_KEYWORDS holds ~15k entries. The text check is one `\b(kw1|kw2|...)\b`
+# regex and the URL check one delimiter-aware regex for all keywords (words of
+# a keyword may be separated by any non-alphanumeric run: "big tits" matches
+# "big-tits", "big_tits", "big%20tits"). Both are built as a trie so the regex
+# engine does not try 15k alternatives at every position. Matching semantics are
+# exactly those of the former per-call / per-keyword regexes.
+
+_END = None
+_URL_JOINER = r"[^A-Za-z0-9]+"
+
+
+def _trie_regex(sequences, sep: str) -> str:
+    """Regex alternation equivalent to `seq1|seq2|...`, factored as a trie.
+
+    Each sequence is a list of literal tokens; consecutive tokens are joined by
+    `sep` (empty for characters, the delimiter class for URL words).
+    """
+    root: dict = {}
+    for seq in sequences:
+        node = root
+        for tok in seq:
+            node = node.setdefault(tok, {})
+        node[_END] = True
+
+    def render(node) -> str:
+        opts = []
+        for tok in sorted(k for k in node if k is not _END):
+            child = node[tok]
+            piece = re.escape(tok)
+            while len(child) == 1 and _END not in child:  # collapse single chains
+                (nxt, child), = child.items()
+                piece += sep + re.escape(nxt)
+            if _END in child and len(child) == 1:
+                opts.append(piece)
+            else:
+                opts.append(f"{piece}(?:{sep}{render(child)}){'?' if _END in child else ''}")
+        return opts[0] if len(opts) == 1 else "(?:" + "|".join(opts) + ")"
+
+    return render(root) if root else r"a^"
+
+
+class _KeywordMatchers:
+    __slots__ = ("source", "text_re", "url_re")
+
+    def __init__(self, keywords):
+        self.source = keywords
+        kws = sorted({kw.lower() for kw in keywords if kw.strip()})
+        if not kws:
+            self.text_re = self.url_re = None
+            return
+        self.text_re = re.compile(r"\b(" + _trie_regex([list(kw) for kw in kws], "") + r")\b",
+                                  flags=re.IGNORECASE)
+        words = [kw.split() for kw in kws]
+        self.url_re = re.compile(
+            r"(?<![A-Za-z0-9])(?:" + _trie_regex([w for w in words if w], _URL_JOINER) + r")(?![A-Za-z0-9])",
+            flags=re.IGNORECASE,
+        )
+
+
+class _WhiteMatcher:
+    __slots__ = ("source", "regex")
+
+    def __init__(self, keywords):
+        self.source = keywords
+        kws = [re.escape(kw.lower().strip()) for kw in keywords if kw.strip()]
+        self.regex = re.compile(r"\b(" + "|".join(kws) + r")\b", flags=re.IGNORECASE) if kws else None
+
+
+_matchers_lock = threading.Lock()
+_kw_matchers = None
+_white_matcher = None
+
+
+def _get_keyword_matchers() -> "_KeywordMatchers":
+    global _kw_matchers
+    m = _kw_matchers
+    if m is None or m.source is not PORN_KEYWORDS:
+        with _matchers_lock:
+            m = _kw_matchers
+            if m is None or m.source is not PORN_KEYWORDS:
+                t0 = time.perf_counter()
+                m = _kw_matchers = _KeywordMatchers(PORN_KEYWORDS)
+                logger.info(f"porn: compiled keyword matchers for {len(PORN_KEYWORDS)} keywords "
+                            f"in {(time.perf_counter() - t0) * 1000:.0f} ms")
+    return m
+
+
+def _get_white_matcher() -> "_WhiteMatcher":
+    global _white_matcher
+    src = getattr(Config, "WHITE_KEYWORDS", None) or []
+    m = _white_matcher
+    if m is None or m.source is not src:
+        m = _white_matcher = _WhiteMatcher(src)
+    return m
+
+
+def _prepare_lower(val):
+    """Safely lowercase a string, returning empty string for None."""
+    val = _as_text(val)
+    return str(val).lower() if val else ""
 
 
 def _check_white_keywords(combined_text):
-    """Return True if any white keyword matches (literal, word-boundary)."""
-    white_keywords = getattr(Config, "WHITE_KEYWORDS", [])
-    if not white_keywords:
+    """Return (hit, matches) for white keywords (literal, word-boundary)."""
+    regex = _get_white_matcher().regex
+    if regex is None:
         return False, []
-    white_kws = [re.escape(kw.lower().strip()) for kw in white_keywords if kw.strip()]
-    if not white_kws:
-        return False, []
-    pattern = re.compile(r"\b(" + "|".join(white_kws) + r")\b", flags=re.IGNORECASE)
-    matches = pattern.findall(combined_text)
+    matches = regex.findall(combined_text)
     return bool(matches), matches
 
 
 def _check_text_keywords(text_to_check, keyword_pattern):
     """Find keyword matches in text. Returns list of matched keywords."""
-    if not text_to_check:
+    if not text_to_check or keyword_pattern is None:
         return []
     return keyword_pattern.findall(text_to_check)
 
 
-def _check_url_keywords(url_lower, raw_keywords):
-    """Find keyword matches in URL using delimiter-aware patterns."""
-    matches = []
-    for raw_kw in raw_keywords:
-        url_pattern = _compile_url_keyword_regex(raw_kw)
-        found = url_pattern.findall(url_lower)
-        if found:
-            matches.extend(found)
-    return matches
-
-
-def _build_text_pattern():
-    """Compile the porn-keywords word-boundary regex from PORN_KEYWORDS."""
-    text_kws = [re.escape(kw.lower()) for kw in PORN_KEYWORDS if kw.strip()]
-    if not text_kws:
-        return None, []
-    pattern = re.compile(r"\b(" + "|".join(text_kws) + r")\b", flags=re.IGNORECASE)
-    return pattern, [kw.lower() for kw in PORN_KEYWORDS if kw.strip()]
+def _check_url_keywords(url_lower, url_pattern=None):
+    """Find keyword matches in URL using the delimiter-aware pattern."""
+    if url_pattern is None:
+        url_pattern = _get_keyword_matchers().url_re
+    if url_pattern is None or not url_lower:
+        return []
+    return url_pattern.findall(url_lower)
 
 
 # ---------------------------------------------------------------------------
-#  is_porn  — fast boolean check
+#  is_porn  — fast boolean check (memoised)
 # ---------------------------------------------------------------------------
 
 def is_porn(url, title, description, caption=None, tags=None, uploader=None):
@@ -244,13 +337,37 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
     Fast boolean check: is content pornographic?
     Checks domain, title, description, caption, tags, URL, uploader via keywords.
     Domain whitelist has highest priority.
+
+    The same URL is checked many times per request (menus, proxy choice, tags,
+    sender, log routing), so results are memoised; the cache is dropped whenever
+    the lists are reloaded.
     """
+    args = tuple(_as_text(a) for a in (url, title, description, caption, tags, uploader))
+    try:
+        return _is_porn_cached(*args)
+    except TypeError:  # still unhashable (exotic object): check without the cache
+        return _is_porn_impl(*args)
+
+
+def _as_text(val):
+    """Lists/tuples/sets of tags or names -> one space-joined string (callers mix both)."""
+    if isinstance(val, (list, tuple, set, frozenset)):
+        return " ".join(str(v) for v in val if v is not None)
+    return val
+
+
+@functools.lru_cache(maxsize=1024)
+def _is_porn_cached(url, title, description, caption, tags, uploader):
+    return _is_porn_impl(url, title, description, caption, tags, uploader)
+
+
+def _is_porn_impl(url, title, description, caption=None, tags=None, uploader=None):
     # 1. Domain check
     clean_url = unwrap_redirect_url(url).lower()
     domain_parts, _ = extract_domain_parts(clean_url)
 
     if _check_domain_whitelist(domain_parts):
-        logger.info(f"is_porn: domain in WHITELIST: {domain_parts}")
+        logger.debug(f"is_porn: domain in WHITELIST: {domain_parts}")
         return False
 
     if is_porn_domain(domain_parts):
@@ -268,7 +385,7 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
     url_lower = clean_url
 
     if not any([title_lower, description_lower, caption_lower, tags_lower, uploader_lower, url_lower]):
-        logger.info("is_porn: all text fields, uploader and URL empty")
+        logger.debug("is_porn: all text fields, uploader and URL empty")
         return False
 
     # 3. White keywords (raw text, preserves underscores)
@@ -278,23 +395,25 @@ def is_porn(url, title, description, caption=None, tags=None, uploader=None):
         logger.info("is_porn: white keyword match found, content considered clean")
         return False
 
-    # 4. Build keyword pattern
-    text_pattern, url_kws = _build_text_pattern()
-    if text_pattern is None:
+    # 4. Keyword matchers (compiled once)
+    matchers = _get_keyword_matchers()
+    if matchers.text_re is None:
         return False
 
     # 5. Text fields check
     text_to_check = " ".join([title_lower, description_lower, caption_lower, tags_lower, uploader_lower])
-    if text_pattern.search(text_to_check):
-        logger.info(f"is_porn: keyword match in text fields (regex): {text_pattern.pattern}")
+    hit = matchers.text_re.search(text_to_check)
+    if hit:
+        logger.info(f"is_porn: keyword match in text fields: {hit.group(0)!r}")
         return True
 
     # 6. URL check with delimiter-aware patterns
-    if _check_url_keywords(url_lower, url_kws):
-        logger.info("is_porn: keyword match in URL with delimiters")
+    hit = matchers.url_re.search(url_lower)
+    if hit:
+        logger.info(f"is_porn: keyword match in URL: {hit.group(0)!r}")
         return True
 
-    logger.info("is_porn: no keyword matches found")
+    logger.debug("is_porn: no keyword matches found")
     return False
 
 
@@ -315,7 +434,8 @@ def check_porn_detailed(url, title, description, caption=None, uploader=None):
     domain_parts, _ = extract_domain_parts(clean_url)
 
     if _check_domain_whitelist(domain_parts):
-        matching = [dom for dom in domain_parts if dom in Config.WHITELIST]
+        white = _config_set("WHITELIST")
+        matching = [dom for dom in domain_parts if dom in white]
         explanation_parts.append(_messages.PORN_DOMAIN_WHITELIST_MSG.format(domain=matching[0]))
         return False, " | ".join(explanation_parts)
 
@@ -344,8 +464,9 @@ def check_porn_detailed(url, title, description, caption=None, uploader=None):
         )
         return False, " | ".join(explanation_parts)
 
-    # 4. Build keyword pattern
-    text_pattern, url_kws = _build_text_pattern()
+    # 4. Keyword matchers (compiled once)
+    matchers = _get_keyword_matchers()
+    text_pattern = matchers.text_re
     if text_pattern is None:
         explanation_parts.append("ℹ️ No porn keywords loaded")
         return False, " | ".join(explanation_parts)
@@ -373,7 +494,7 @@ def check_porn_detailed(url, title, description, caption=None, uploader=None):
         return True, " | ".join(explanation_parts)
 
     # 6. URL check
-    url_matches = _check_url_keywords(url_lower, url_kws)
+    url_matches = _check_url_keywords(url_lower, matchers.url_re)
     if url_matches:
         explanation_parts.append(f"🔗 NSFW keywords found in URL: {', '.join(set(url_matches))}")
         return True, " | ".join(explanation_parts)
