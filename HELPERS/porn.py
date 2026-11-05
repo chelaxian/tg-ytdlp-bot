@@ -328,6 +328,11 @@ def _check_url_keywords(url_lower, url_pattern=None):
     return url_pattern.findall(url_lower)
 
 
+
+# The lists are loaded at import time, before the matcher code above exists, so the
+# background compile in load_domain_lists() only covers reloads; start it here too.
+threading.Thread(target=_get_keyword_matchers, name="porn-matchers", daemon=True).start()
+
 # ---------------------------------------------------------------------------
 #  is_porn  — fast boolean check (memoised)
 # ---------------------------------------------------------------------------
