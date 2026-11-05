@@ -4385,7 +4385,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             if int(video_size_in_bytes) > max_size:
                 safe_edit_message_text(user_id, proc_msg_id,
                     f"{info_text}\n{full_bar}   100.0%\n<i>⚠️ Your video size ({video_size}) is too large.</i>\n<i>Splitting file...</i> ✂️")
-                returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, int(duration), user_id)
+                returned = split_video_2(dir_path, sanitize_filename(caption_name), after_rename_abs_path, int(video_size_in_bytes), max_size, duration, user_id)
                 caption_lst = returned.get("video")
                 path_lst = returned.get("path")
                 # Accumulate all IDs of split video parts
@@ -4396,22 +4396,19 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     
                     # Check if split part file exists and has valid size
                     if not os.path.exists(part_path):
-                        logger.error(f"Split part file not found: {part_path}")
-                        continue
+                        raise RuntimeError(f"Split part file not found: {part_path}")
                     
                     # Check file size - skip empty files (0 bytes)
                     try:
                         part_file_size = os.path.getsize(part_path)
                         if part_file_size == 0:
-                            logger.error(f"Split part file has zero size: {part_path}")
-                            continue
+                            raise RuntimeError(f"Split part file has zero size: {part_path}")
                     except Exception as size_error:
-                        logger.error(f"Error checking split part file size: {size_error}")
-                        continue
+                        raise RuntimeError(f"Error checking split part file size: {size_error}") from size_error
                     
                     part_result = get_duration_thumb(message, dir_path, part_path, sanitize_filename(caption_name))
                     if part_result is None:
-                        continue
+                        raise RuntimeError(f"Failed to inspect split part {p + 1}")
                     part_duration, splited_thumb_dir = part_result
                     # --- TikTok: Don't Pass Title ---
                     _upload_max_retries = 1
@@ -4440,15 +4437,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             raise
                     if not video_msg:
                         _request_failed = True
-                        if is_user_blocked_flagged(user_id):
-                            logger.warning(f"User {user_id} blocked the bot, stopping playlist at split part index {current_index}")
-                            break
-                        flood_remaining_check_split, _ = read_flood_wait_remaining(user_id)
-                        if flood_remaining_check_split is not None:
-                            logger.warning(f"FloodWait active ({flood_remaining_check_split}s remaining), stopping playlist at split part index {current_index}")
-                            break
-                        logger.error(f"send_videos returned None for split part (reason={get_last_send_failure()}); skipping cache save for this part")
-                        continue
+                        raise RuntimeError(f"Failed to upload split part {p + 1}")
                     _delivery_confirmed = True
                     if not _quota_item_counted:
                         _quota_item_counted = True
@@ -4586,114 +4575,20 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.info("down_and_up: skipping forward to LOGS_VIDEO_ID - already forwarded to log")
                                 forwarded_msgs = None
                         logger.info(f"down_and_up: forwarded_msgs result: {forwarded_msgs}")
-                        if forwarded_msgs:
-                            logger.info(f"down_and_up: collecting forwarded message IDs for split video: {[m.id for m in forwarded_msgs]}")
-                            if is_playlist:
-                                # For playlists, save to playlist cache with index
-                                current_video_index = current_index
-                                rounded_quality_key = safe_quality_key
-                                try:
-                                    if safe_quality_key.endswith('p'):
-                                        rounded_quality_key = f"{ceil_to_popular(int(safe_quality_key[:-1]))}p"
-                                except Exception:
-                                    pass
-                                # Use the already determined subtitle availability
-                                # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
-                                if not should_disable_cache and not need_subs:
-                                    # Only cache regular content (not NSFW)
-                                    if not is_nsfw:
-                                        # Передаем уникальную ссылку видео для дополнительного кэширования
-                                        video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
-                                        save_to_playlist_cache(get_clean_playlist_url(url), rounded_quality_key, [current_video_index], [m.id for m in forwarded_msgs], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
-                                    else:
-                                        logger.info(f"NSFW content not cached (found_type={found_type})")
-                                else:
-                                    if should_disable_cache:
-                                        logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
-                                    else:
-                                        logger.info(f"Video with subtitles is not cached (found_type={found_type})")
-                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), rounded_quality_key, [current_video_index])
-                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                playlist_indices.append(current_video_index)
-                                playlist_msg_ids.extend([m.id for m in forwarded_msgs])
+                        # A playlist cache entry represents a whole video, not an
+                        # individual part. Do not cache split playlist entries.
+                        if not is_playlist:
+                            if forwarded_msgs:
+                                split_msg_ids.extend(m.id for m in forwarded_msgs)
                             else:
-                                # Accumulate IDs of parts for split video
-                                split_msg_ids.extend([m.id for m in forwarded_msgs])
-                        else:
-                            logger.info(f"down_and_up: collecting video_msg.id for split video: {video_msg.id}")
-                            if is_playlist:
-                                # For playlists, save to playlist cache with video index
-                                current_video_index = current_index
-                                #found_type = check_subs_availability(url, user_id, safe_quality_key, return_type=True)
-                                subs_enabled = is_subs_enabled(user_id)
-                                auto_mode = get_user_subs_auto_mode(user_id)
-                                need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-                                # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
-                                if not should_disable_cache and not need_subs:
-                                    # Передаем уникальную ссылку видео для дополнительного кэширования
-                                    video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
-                                    save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
-                                else:
-                                    if should_disable_cache:
-                                        logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
-                                    else:
-                                        logger.info("Video with subtitles (subs.txt found) is not cached!")
-                                cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
-                                logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                                playlist_indices.append(current_video_index)
-                                playlist_msg_ids.append(video_msg.id)
-                            else:
-                                # Accumulate IDs of parts for split video
                                 split_msg_ids.append(video_msg.id)
-                                logger.info(f"down_and_up: added video_msg.id to split_msg_ids: {video_msg.id}, current split_msg_ids: {split_msg_ids}")
                     except Exception as e:
-                        # Check if error is related to quality_key - if so, ignore it completely
-                        if "'quality_key'" in str(e):
-                            logger.info(f"quality_key error ignored (non-critical): {e}")
-                            # Quality_key errors don't affect functionality, just continue
-                        else:
-                            logger.error(f"Error forwarding video to logger: {e}")
-                        logger.info(f"down_and_up: collecting video_msg.id after error for split video: {video_msg.id}")
-                        
-                        # PREVENTIVE FIX: Handle split video completion even after quality_key error
-                        if split_msg_ids and not is_playlist:
-                            logger.info(f"PREVENTIVE FIX: Processing split video completion after quality_key error in loop: {split_msg_ids}")
-                            actual_video_count = len(split_msg_ids)
-                            success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
-                            logger.info(f"PREVENTIVE FIX: sending final success message for split video: {success_msg}")
-                            safe_edit_message_text(user_id, proc_msg_id, success_msg)
-                            send_to_logger(message, safe_get_messages(user_id).VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG)
-                            break
-                        if is_playlist:
-                            # For playlists, save to playlist cache with video index
-                            current_video_index = current_index
-                            #found_type = check_subs_availability(url, user_id, safe_quality_key, return_type=True)
-                            subs_enabled = is_subs_enabled(user_id)
-                            auto_mode = get_user_subs_auto_mode(user_id)
-                            need_subs = determine_need_subs(subs_enabled, found_type, user_id)
-                            # Check if cache should be disabled due to active functions (TRIM/SUBS/DUBS)
-                            if not should_disable_cache and not need_subs:
-                                # Передаем уникальную ссылку видео для дополнительного кэширования
-                                video_urls_dict = {current_video_index: playlist_video_urls.get(current_video_index)} if current_video_index in playlist_video_urls else None
-                                save_to_playlist_cache(get_clean_playlist_url(url), safe_quality_key, [current_video_index], [video_msg.id], original_text=message.text or message.caption or "", video_urls_dict=video_urls_dict)
-                            else:
-                                if should_disable_cache:
-                                    logger.info(f"Video not cached due to active functions (TRIM/SUBS/DUBS): TRIM={active_funcs['has_trim']}, SUBS={active_funcs['has_subs']}, DUBS={active_funcs['has_dubs']}")
-                                else:
-                                    logger.info("Video with subtitles (subs.txt found) is not cached!")
-                            cached_check = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, [current_video_index])
-                            logger.info(f"Checking the cache immediately after writing: {cached_check}")
-                            playlist_indices.append(current_video_index)
-                            playlist_msg_ids.append(video_msg.id)
-                        else:
-                            # Accumulate IDs of parts for split video
+                        logger.error(f"Error forwarding split video to logger: {e}")
+                        if not is_playlist:
                             split_msg_ids.append(video_msg.id)
-                            logger.info(f"down_and_up: added video_msg.id to split_msg_ids after error: {video_msg.id}, current split_msg_ids: {split_msg_ids}")
-                            safe_edit_message_text(user_id, proc_msg_id,
-                                f"{info_text}\n{full_bar}   100.0%\n<i>{safe_get_messages(user_id).DOWN_UP_SPLITTED_PART_UPLOADED_MSG.format(part=p + 1)}</i>")
                     if caption_lst and p < len(caption_lst) - 1:
                         pass
-                    if os.path.exists(splited_thumb_dir):
+                    if splited_thumb_dir and os.path.exists(splited_thumb_dir):
                         os.remove(splited_thumb_dir)
                     send_mediainfo_if_enabled(user_id, path_lst[p], message)
                     if os.path.exists(path_lst[p]):
@@ -4727,7 +4622,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             logger.info(f"Split video with subtitles is not cached (found_type={found_type}, auto_mode={auto_mode}) - different users may need different languages")
                 else:
                     logger.warning(f"down_and_up: NOT saving to cache - split_msg_ids={split_msg_ids}, is_playlist={is_playlist}")
-                if os.path.exists(thumb_dir):
+                if thumb_dir and os.path.exists(thumb_dir):
                     os.remove(thumb_dir)
                 if os.path.exists(user_vid_path):
                     os.remove(user_vid_path)

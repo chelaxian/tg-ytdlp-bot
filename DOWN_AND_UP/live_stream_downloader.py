@@ -429,7 +429,7 @@ def download_live_stream_chunked(
                             chunk_file,
                             chunk_size_bytes,
                             max_chunk_size,
-                            int(duration) if duration else int(accumulated_duration) or 0,
+                            duration or accumulated_duration or 0,
                             user_id
                         )
                         part_captions = split_result.get("video") or []
@@ -437,10 +437,12 @@ def download_live_stream_chunked(
                         
                         # Отправляем каждую часть по очереди и сразу удаляем
                         sent_any = False
+                        all_sent = bool(part_paths)
                         for i, part_path in enumerate(part_paths):
                             if not os.path.exists(part_path):
                                 logger.warning(f"Split part not found: {part_path}")
-                                continue
+                                all_sent = False
+                                break
                             
                             # Получаем длительность части
                             try:
@@ -490,6 +492,8 @@ def download_live_stream_chunked(
                                     logger.error(f"Error forwarding split part {part_label} to log channel: {e}")
                             else:
                                 logger.warning(f"Failed to send split part {part_label}")
+                                all_sent = False
+                                break
                             
                             # Удаляем часть после отправки
                             try:
@@ -498,6 +502,10 @@ def download_live_stream_chunked(
                             except Exception as e:
                                 logger.error(f"Error cleaning up split part file: {e}")
                         
+                        if not all_sent:
+                            logger.error(f"Not all split parts were sent for chunk {chunk_idx}; stopping without caching incomplete output")
+                            return False
+
                         # Удаляем исходный крупный файл
                         try:
                             if os.path.exists(chunk_file):
@@ -526,7 +534,8 @@ def download_live_stream_chunked(
                             return successful_chunks > 0
                     except Exception as e:
                         logger.error(f"Error while additional splitting oversized chunk {chunk_idx}: {e}")
-                        # Если доп. сплит сломался, продолжаем обычную логику ниже (попробуем отправить как есть)
+                        # Do not send or cache an incomplete or oversized chunk.
+                        return False
                 
                 # --- REGULAR SEND PATH ---
                 # Пропускаем обычную отправку, если кусок уже был разрезан и отправлен по частям
