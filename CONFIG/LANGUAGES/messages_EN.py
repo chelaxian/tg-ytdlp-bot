@@ -1758,6 +1758,7 @@ Learn more: /playlist"""
     LANG_CHANGED_MSG = "✅ Language changed to {lang_name}"
     LANG_ERROR_MSG = "❌ Error changing language"
     LANG_CLOSED_MSG = "Language selection closed"
+    LANG_INVALID_ARGUMENT_MSG = "❌ Unknown language code. Send /lang to choose from the list, or send a code like /lang ru. Codes: en, ru, ar, in, zh, es, fr, bn, pt, ur, id, ja, tl, ha, vi, it, de, tr, ko, pl, uk, fa, th, uz, kk"
     # Clean command additional messages
     
     # Cookies command additional messages
