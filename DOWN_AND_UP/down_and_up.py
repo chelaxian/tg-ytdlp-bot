@@ -4899,7 +4899,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 logger.error(f"Error cleaning up subtitle files: {e}")
                             
                             # Clear
-                            clear_subs_check_cache()
+                            clear_subs_check_cache(user_id)
                         
                         # MKV postprocessing: embed all audio tracks and subtitles if needed
                         try:

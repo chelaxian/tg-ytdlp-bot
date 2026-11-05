@@ -342,6 +342,24 @@ def get_flag(lang_code: str, use_second_part: bool = False) -> str:
     return DEFAULT_FLAG
 
 
+def resolve_language_code(code):
+    """Return the LANGUAGES key for a user-typed code, ignoring case (pt-br -> pt-BR)."""
+    if not code:
+        return None
+    if code in LANGUAGES:
+        return code
+    lowered = code.lower().replace('_', '-')
+    for key in LANGUAGES:
+        if key.lower() == lowered:
+            return key
+    return None
+
+
+def language_info(code):
+    """{'flag', 'name'} for any code, including ones outside LANGUAGES."""
+    return LANGUAGES.get(code) or {"flag": get_flag(code), "name": code}
+
+
 #ITEMS_PER_PAGE = 10  # Number of languages per page
 
 #############################################################################################################################
@@ -379,7 +397,8 @@ def subs_command(app, message):
     parts = (message.text or "").split()
     if len(parts) >= 2:
         arg = parts[1].lower()
-        
+        lang_arg = resolve_language_code(parts[1])
+
         # /subs off
         if arg == "off":
             save_subs_always_ask(user_id, False)
@@ -398,7 +417,8 @@ def subs_command(app, message):
             return
         
         # /subs ru auto (language + auto mode) - check this BEFORE single language check
-        elif len(parts) >= 3 and parts[2].lower() == "auto" and arg in LANGUAGES:
+        elif len(parts) >= 3 and parts[2].lower() == "auto" and lang_arg:
+            arg = lang_arg
             save_user_subs_language(user_id, arg)
             save_user_subs_auto_mode(user_id, True)
             lang_info = LANGUAGES[arg]
@@ -408,7 +428,8 @@ def subs_command(app, message):
             return
         
         # /subs ru (language code)
-        elif arg in LANGUAGES:
+        elif lang_arg:
+            arg = lang_arg
             save_user_subs_language(user_id, arg)
             # When setting language without "auto", disable auto mode to use manual subs
             save_user_subs_auto_mode(user_id, False)
@@ -486,15 +507,18 @@ def subs_page_callback(app, callback_query):
         auto_text = safe_get_messages(user_id).SUBS_AUTO_SUBS_TEXT if auto_mode else ""
         status_text = safe_get_messages(user_id).SUBS_SELECTED_LANGUAGE_MSG.format(flag=lang_info['flag'], name=lang_info['name'], auto_text=auto_text)
     
-    callback_query.edit_message_text(
-        safe_get_messages(user_id).SUBS_SETTINGS_MENU_MSG.format(status_text=status_text) +
-        safe_get_messages(user_id).SUBS_QUICK_COMMANDS_MSG +
-        safe_get_messages(user_id).SUBS_SETTINGS_ADDITIONAL_MSG +
-        safe_get_messages(user_id).SUBS_SET_LANGUAGE_CODE_MSG +
-        "• <code>/subs ru</code> - set language\n" +
-        "• <code>/subs ru auto</code> - set language with AUTO/TRANS",
-        reply_markup=get_language_keyboard(page, user_id=user_id)
-    )
+    try:
+        callback_query.edit_message_text(
+            safe_get_messages(user_id).SUBS_SETTINGS_MENU_MSG.format(status_text=status_text) +
+            safe_get_messages(user_id).SUBS_QUICK_COMMANDS_MSG +
+            safe_get_messages(user_id).SUBS_SETTINGS_ADDITIONAL_MSG +
+            safe_get_messages(user_id).SUBS_SET_LANGUAGE_CODE_MSG +
+            "• <code>/subs ru</code> - set language\n" +
+            "• <code>/subs ru auto</code> - set language with AUTO/TRANS",
+            reply_markup=get_language_keyboard(page, user_id=user_id)
+        )
+    except Exception as e:
+        logger.debug(f"subs_page_callback edit failed: {e}")
     safe_callback_answer(callback_query)
 
 
@@ -509,9 +533,13 @@ def subs_lang_callback(app, callback_query):
     if lang_code == "OFF":
         status = safe_get_messages(user_id).SUBS_DISABLED_STATUS_MSG
     else:
-        status = safe_get_messages(user_id).SUBS_LANGUAGE_SET_STATUS_MSG.format(flag=LANGUAGES[lang_code]['flag'], name=LANGUAGES[lang_code]['name'])
-    
-    callback_query.edit_message_text(status)
+        lang_info = language_info(lang_code)
+        status = safe_get_messages(user_id).SUBS_LANGUAGE_SET_STATUS_MSG.format(flag=lang_info['flag'], name=lang_info['name'])
+
+    try:
+        callback_query.edit_message_text(status)
+    except Exception as e:
+        logger.debug(f"subs_lang_callback edit failed: {e}")
     safe_callback_answer(callback_query, safe_get_messages(user_id).SUBS_LANGUAGE_UPDATED_MSG)
     send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_LANGUAGE_SET_CALLBACK_LOG_MSG.format(lang_code=lang_code))
 
@@ -548,10 +576,13 @@ def subs_auto_callback(app, callback_query):
             status_text = safe_get_messages(user_id).SUBS_SELECTED_LANGUAGE_MSG.format(flag=lang_info['flag'], name=lang_info['name'], auto_text=auto_text)
         
         # We update the message from the new menu
-        callback_query.edit_message_text(
-            safe_get_messages(user_id).SUBS_AUTO_MENU_MSG.format(status_text=status_text),
-            reply_markup=get_language_keyboard(page=page, user_id=user_id)
-        )
+        try:
+            callback_query.edit_message_text(
+                safe_get_messages(user_id).SUBS_AUTO_MENU_MSG.format(status_text=status_text),
+                reply_markup=get_language_keyboard(page=page, user_id=user_id)
+            )
+        except Exception as e:
+            logger.debug(f"subs_auto_callback edit failed: {e}")
         
         send_to_logger(callback_query.message, safe_get_messages(user_id).SUBS_AUTO_MODE_TOGGLED_LOG_MSG.format(new_auto=new_auto))
 
@@ -598,31 +629,46 @@ def subs_lang_close_callback(app, callback_query):
 
 #############################################################################################
 
-def clear_subs_check_cache():
-    """Cleans the cache of subtitle checks"""
+_SUBS_CACHE_KEY_SUFFIXES = ("True", "False", "normal_langs", "auto_langs", "client")
+
+
+def clear_subs_check_cache(user_id=None):
+    """Clean the subtitle-check cache.
+
+    With ``user_id`` only that user's entries and Always Ask language cache files
+    (users/<id>/ask_subs_*.json) are removed. Without it everything is cleared,
+    which walks every user directory - avoid that on hot paths (it used to run
+    for every incoming URL and wiped other users' in-flight caches).
+    """
     global _subs_check_cache, _subs_check_cache_ts
-    _subs_check_cache.clear()
-    _subs_check_cache_ts.clear()
-    
-    # Also clean up temporary language cache files from Always Ask menu
-    try:
-        # Find all user directories
-        if os.path.exists("users"):
-            for user_dir in os.listdir("users"):
-                user_path = os.path.join("users", user_dir)
-                if os.path.isdir(user_path):
-                    # Remove ask_subs_*.json files
-                    pattern = os.path.join(user_path, "ask_subs_*.json")
-                    for cache_file in glob.glob(pattern):
-                        try:
-                            os.remove(cache_file)
-                            logger.info(f"Removed temp subs cache: {cache_file}")
-                        except Exception as e:
-                            logger.debug(f"Failed to remove {cache_file}: {e}")
-    except Exception as e:
-        logger.debug(f"Error cleaning temp subs cache files: {e}")
-    
-    logger.info("Subs check cache cleared")
+    if user_id is None:
+        _subs_check_cache.clear()
+        _subs_check_cache_ts.clear()
+        user_dirs = []
+        try:
+            if os.path.exists("users"):
+                user_dirs = [os.path.join("users", d) for d in os.listdir("users")]
+        except Exception as e:
+            logger.debug(f"Error listing user dirs for subs cache cleanup: {e}")
+    else:
+        suffixes = tuple(f"_{user_id}_{s}" for s in _SUBS_CACHE_KEY_SUFFIXES)
+        for key in [k for k in list(_subs_check_cache.keys()) if isinstance(k, str) and k.endswith(suffixes)]:
+            _subs_check_cache.pop(key, None)
+            _subs_check_cache_ts.pop(key, None)
+        user_dirs = [os.path.join("users", str(user_id))]
+
+    # Temporary language cache files from the Always Ask menu
+    for user_path in user_dirs:
+        if not os.path.isdir(user_path):
+            continue
+        for cache_file in glob.glob(os.path.join(user_path, "ask_subs_*.json")):
+            try:
+                os.remove(cache_file)
+                logger.info(f"Removed temp subs cache: {cache_file}")
+            except Exception as e:
+                logger.debug(f"Failed to remove {cache_file}: {e}")
+
+    logger.debug(f"Subs check cache cleared ({'all users' if user_id is None else f'user {user_id}'})")
 
 def check_subs_availability(url, user_id, quality_key=None, return_type=False):
     """
@@ -784,22 +830,8 @@ def ensure_utf8_srt(srt_path):
         decoded_text = raw.decode('utf-8', errors='replace')
         successful_encoding = 'utf-8 (force)'
 
-    # We check if there are replacement symbols in the text (Unicode replacement char or '?')
-    if '\ufffd' in decoded_text or '?' in decoded_text:
+    if '\ufffd' in decoded_text:
         logger.warning(f"{LoggerMsg.SUBS_REPLACEMENT_CHARACTERS_FOUND_LOG_MSG}")
-        
-        # We try again with other encodings, ignoring the already tried
-        for encoding in ['cp1256', 'iso-8859-6', 'cp1252', 'utf-8-sig']:
-            if encoding not in [enc.lower() for enc in encodings_to_try[:len(encodings_to_try)//2]]:
-                try:
-                    test_text = raw.decode(encoding)
-                    if '' not in test_text and '?' not in test_text:
-                        decoded_text = test_text
-                        successful_encoding = encoding
-                        logger.info(f"{LoggerMsg.SUBS_BEST_ENCODING_FOUND_LOG_MSG}")
-                        break
-                except Exception:
-                    continue
 
     # Record the result in UTF-8
     try:
@@ -871,11 +903,10 @@ def save_user_subs_language(user_id, lang_code):
         subs_auto_file = os.path.join(user_dir, "subs_auto.txt")
         if os.path.exists(subs_auto_file):
             os.remove(subs_auto_file)
-        clear_subs_check_cache()
     else:
         with open(subs_file, "w", encoding="utf-8") as f:
             f.write(lang_code)
-    clear_subs_check_cache()
+    clear_subs_check_cache(user_id)
 
 def get_user_subs_auto_mode(user_id):
     """Get user's AUTO mode setting for subtitles"""
@@ -897,7 +928,7 @@ def save_user_subs_auto_mode(user_id, auto_enabled):
     else:
         if os.path.exists(auto_file):
             os.remove(auto_file)
-    clear_subs_check_cache()
+    clear_subs_check_cache(user_id)
 
 
 def get_available_subs_languages(url, user_id=None, auto_only=False):
