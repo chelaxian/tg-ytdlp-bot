@@ -688,8 +688,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         elif not is_subs_always_ask(user_id):
             # Check if content is NSFW before looking in cache
             from HELPERS.porn import is_porn
-            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+            _url_nsfw = is_porn(url, "", "", None)
+            is_nsfw = _url_nsfw or user_forced_nsfw
+            logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
             
             if not is_nsfw:
                 cached_videos = get_cached_playlist_videos(get_clean_playlist_url(url), safe_quality_key, requested_indices)
@@ -759,8 +760,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         elif not need_subs and not is_subs_always_ask(user_id):
             # Check if content is NSFW before looking in cache
             from HELPERS.porn import is_porn
-            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+            _url_nsfw = is_porn(url, "", "", None)
+            is_nsfw = _url_nsfw or user_forced_nsfw
+            logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
             
             cached_ids = None
             if not is_nsfw:
@@ -2729,8 +2731,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             # Check if content is NSFW for fallback
                             from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                            _url_nsfw = is_porn(url, "", "", None)
+                            is_nsfw = _url_nsfw or user_forced_nsfw
+                            logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                             
                             # ЖЕСТКО: Используем сохраненный оригинальный текст с диапазоном
                             logger.info(f"[FALLBACK DEBUG] Using saved original_message_text: {original_message_text}")
@@ -3131,8 +3134,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         try:
                             # Check if content is NSFW for fallback
                             from HELPERS.porn import is_porn
-                            is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                            logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                            _url_nsfw = is_porn(url, "", "", None)
+                            is_nsfw = _url_nsfw or user_forced_nsfw
+                            logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                             
                             # ЖЕСТКО: Используем сохраненный оригинальный текст с диапазоном
                             logger.info(f"[FALLBACK DEBUG] Using saved original_message_text: {original_message_text}")
@@ -4448,8 +4452,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     try:
                         # Determine the correct log channel based on content type
                         from HELPERS.porn import is_porn
-                        is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                        logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                        _url_nsfw = is_porn(url, "", "", None)
+                        is_nsfw = _url_nsfw or user_forced_nsfw
+                        logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                         is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                         is_paid = is_nsfw and is_private_chat
                         logger.info(f"[VIDEO CACHE] URL analysis: url={url}, is_nsfw={is_nsfw}, is_private_chat={is_private_chat}, is_paid={is_paid}")
@@ -5435,8 +5440,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 
                                 # Determine the correct log channel based on content type
                                 from HELPERS.porn import is_porn
-                                is_nsfw = is_porn(url, "", "", None) or user_forced_nsfw
-                                logger.info(f"[FALLBACK] is_porn check for {url}: {is_porn(url, '', '', None)}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
+                                _url_nsfw = is_porn(url, "", "", None)
+                                is_nsfw = _url_nsfw or user_forced_nsfw
+                                logger.info(f"[FALLBACK] is_porn check for {url}: {_url_nsfw}, user_forced_nsfw: {user_forced_nsfw}, final is_nsfw: {is_nsfw}")
                                 is_private_chat = getattr(message.chat, "type", None) == enums.ChatType.PRIVATE
                                 is_paid = is_nsfw and is_private_chat
                                 
