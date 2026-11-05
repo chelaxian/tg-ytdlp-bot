@@ -4,6 +4,7 @@
 
 from HELPERS.safe_messeger import safe_callback_answer
 import os
+import html
 import json
 import re
 import threading
@@ -157,7 +158,7 @@ YTDLP_PARAMS = {
     "check_certificate": {
         "type": "boolean", 
         "description_key": "ARGS_CHECK_CERTIFICATE_DESC_MSG",
-        "default": False
+        "default": True
     },
     "live_from_start": {
         "type": "boolean",
@@ -259,7 +260,7 @@ YTDLP_PARAMS = {
     "no_check_certificates": {
         "type": "boolean",
         "description_key": "ARGS_NO_CHECK_CERTIFICATES_DESC_MSG",
-        "default": True
+        "default": False
     },
     "username": {
         "type": "text",
@@ -308,7 +309,7 @@ YTDLP_PARAMS = {
         "description_key": "ARGS_PLAYLIST_ITEMS_DESC_MSG",
         "placeholder": "1,3,5",
         "default": "",
-        "validation": "text"
+        "validation": "playlist_items"
     },
     "date": {
         "type": "text",
@@ -381,109 +382,107 @@ YTDLP_PARAMS = {
     }
 }
 
+_CONTROL_CHARS_RE = re.compile(r'[\x00-\x1f\x7f]')
+_PLAYLIST_ITEMS_RE = re.compile(r'^\s*-?\d*(?:\s*[-:]\s*-?\d*){0,2}(?:\s*,\s*-?\d*(?:\s*[-:]\s*-?\d*){0,2})*\s*$')
+# Values that are credentials: never shown back, exported or logged in clear
+SECRET_PARAMS = frozenset({"password", "twofactor"})
+SECRET_MASK = "••••••"
+
+
+def _parse_yyyymmdd(value: str):
+    from datetime import datetime
+    try:
+        return datetime.strptime(value, "%Y%m%d")
+    except ValueError:
+        return None
+
+
 def validate_input(value: str, param_name: str, user_id: int = None) -> tuple[bool, str]:
     """
-    Validate user input based on parameter type and constraints
-    Returns (is_valid, error_message)
+    Validate a text/JSON value for an /args parameter.
+    Returns (is_valid, error_message).
+
+    Values are stored as JSON and handed to yt-dlp as Python options (no shell,
+    no SQL), so quotes and semicolons are legitimate (User-Agent strings and
+    JSON headers need them). What is rejected: control characters (they would
+    end up in HTTP headers), oversized input and values yt-dlp cannot use.
     """
     messages = get_messages_instance(user_id)
     param_config = YTDLP_PARAMS.get(param_name, {})
     validation_type = param_config.get("validation", "text")
-    
-    # Basic security checks - prevent SQL injection and other attacks
-    dangerous_patterns = [
-        r'[;\'"\\]',  # SQL injection patterns
-        r'<script',   # XSS
-        r'javascript:', # XSS
-        r'data:',     # Data URI attacks
-        r'vbscript:', # VBScript attacks
-        r'<iframe',   # iframe injection
-        r'<object',   # object injection
-        r'<embed',    # embed injection
-        r'<form',     # form injection
-        r'<input',    # input injection
-        r'<meta',     # meta injection
-        r'<link',     # link injection
-        r'<style',    # style injection
-        r'<base',     # base injection
-        r'<applet',   # applet injection
-        r'<param',    # param injection
-        r'<isindex',  # isindex injection
-        r'<textarea', # textarea injection
-        r'<select',   # select injection
-        r'<option',   # option injection
-        r'<button',   # button injection
-        r'<fieldset', # fieldset injection
-        r'<legend',   # legend injection
-        r'<label',    # label injection
-        r'<optgroup', # optgroup injection
-    ]
-    
-    for pattern in dangerous_patterns:
-        if re.search(pattern, value, re.IGNORECASE):
-            return False, messages.ARGS_INPUT_DANGEROUS_MSG.format(pattern=pattern)
-    
-    # Length check
+
     if len(value) > 1000:
         return False, messages.ARGS_INPUT_TOO_LONG_MSG
-    
-    # Type-specific validation
+
+    if validation_type != "json" and _CONTROL_CHARS_RE.search(value):
+        return False, messages.ARGS_INPUT_DANGEROUS_MSG.format(pattern="control characters")
+
     if validation_type == "url":
-        if value and not re.match(r'^https?://[^\s]+$', value):
+        if value and not re.match(r'^https?://[^\s]+$', value, re.IGNORECASE):
             return False, messages.ARGS_INVALID_URL_MSG
-    
+
     elif validation_type == "json":
         if value:
             try:
-                json.loads(value)
-            except json.JSONDecodeError:
+                parsed = json.loads(value)
+            except (json.JSONDecodeError, ValueError):
                 return False, messages.ARGS_INVALID_JSON_MSG
-    
+            if not isinstance(parsed, dict):
+                return False, messages.ARGS_JSON_MUST_BE_OBJECT_MSG
+            for key, val in parsed.items():
+                if (not isinstance(val, str) or not key or _CONTROL_CHARS_RE.search(key)
+                        or _CONTROL_CHARS_RE.search(val)):
+                    return False, getattr(messages, 'ARGS_HEADERS_STRINGS_ONLY_MSG',
+                                          "❌ Header names and values must be single-line strings")
+
     elif validation_type == "number":
         try:
             num = float(value)
-            min_val = param_config.get("min", 0)
-            max_val = param_config.get("max", 999999)
-            if num and num < min_val or num > max_val:
-                return False, messages.ARGS_NUMBER_RANGE_MSG.format(min_val=min_val, max_val=max_val)
         except ValueError:
             return False, messages.ARGS_INVALID_NUMBER_MSG
-    
+        min_val = param_config.get("min", 0)
+        max_val = param_config.get("max", 999999)
+        if num < min_val or num > max_val:
+            return False, messages.ARGS_NUMBER_RANGE_MSG.format(min_val=min_val, max_val=max_val)
+
     elif validation_type == "date":
         if value:
-            # Validate YYYYMMDD format
             if not re.match(r'^\d{8}$', value):
                 return False, messages.ARGS_DATE_FORMAT_MSG
-            try:
-                year = int(value[:4])
-                month = int(value[4:6])
-                day = int(value[6:8])
-                if year and year < 1900 or year > 2100:
-                    return False, messages.ARGS_YEAR_RANGE_MSG
-                if month and month < 1 or month > 12:
-                    return False, messages.ARGS_MONTH_RANGE_MSG
-                if day and day < 1 or day > 31:
-                    return False, messages.ARGS_DAY_RANGE_MSG
-            except ValueError:
+            parsed = _parse_yyyymmdd(value)
+            if parsed is None:
                 return False, messages.ARGS_INVALID_DATE_MSG
-    
+            if parsed.year < 1900 or parsed.year > 2100:
+                return False, messages.ARGS_YEAR_RANGE_MSG
+
     elif validation_type == "xff":
-        if value:
-            # Validate X-Forwarded-For value
-            if value.lower() in ["default", "never"]:
-                return True, ""
-            
-            # Check if it's a country code (2 letters)
-            if re.match(r'^[A-Z]{2}$', value.upper()):
-                return True, ""
-            
-            # Check if it's an IP block in CIDR notation
-            if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(/\d{1,2})?$', value):
-                return True, ""
-            
+        if value and _xff_to_ytdlp(value) is None:
             return False, messages.ARGS_INVALID_XFF_MSG
-    
+
+    elif validation_type == "playlist_items":
+        if value and (not _PLAYLIST_ITEMS_RE.match(value) or not re.search(r'\d', value)):
+            return False, getattr(messages, 'ARGS_INVALID_PLAYLIST_ITEMS_MSG',
+                                  "❌ Use item numbers and ranges, e.g. 1,3,5-7 or 2:10")
+
     return True, ""
+
+
+def _xff_to_ytdlp(value: str):
+    """Map the /args xff value to yt-dlp's Python options (None = invalid)."""
+    import ipaddress
+    value = (value or "").strip()
+    if not value or value.lower() == "default":
+        return {}
+    if value.lower() == "never":
+        return {"geo_bypass": False}
+    if re.fullmatch(r'[A-Za-z]{2}', value):
+        return {"geo_bypass": True, "geo_bypass_country": value.upper()}
+    try:
+        network = ipaddress.ip_network(value, strict=False)
+    except ValueError:
+        return None
+    return {"geo_bypass": True, "geo_bypass_ip_block": str(network)}
+
 
 def get_user_args(user_id: int) -> Dict[str, Any]:
     """Get user's saved args settings"""
@@ -750,7 +749,7 @@ def get_text_input_message(param_name: str, current_value: str, user_id: int = N
     description = get_param_description(param_config, param_name, messages)
     message = messages.ARGS_PARAM_DESCRIPTION_MSG.format(description=description)
     if current_value:
-        message += messages.ARGS_CURRENT_VALUE_MSG.format(current_value=current_value)
+        message += messages.ARGS_CURRENT_VALUE_MSG.format(current_value=_display_value(param_name, current_value))
     
     if param_name == "xff":
         message += messages.ARGS_XFF_EXAMPLES_MSG
@@ -798,7 +797,7 @@ def get_json_input_message(param_name: str, current_value: str, user_id: int = N
     description = get_param_description(param_config, param_name, messages)
     message = messages.ARGS_JSON_PARAM_MSG.format(description=description)
     if current_value and current_value != "{}":
-        message += messages.ARGS_CURRENT_VALUE_MSG.format(current_value=current_value)
+        message += messages.ARGS_CURRENT_VALUE_MSG.format(current_value=html.escape(str(current_value)))
     
     if param_name == "http_headers":
         message += messages.ARGS_HTTP_HEADERS_EXAMPLES_MSG.format(placeholder=placeholder)
@@ -809,6 +808,36 @@ def get_json_input_message(param_name: str, current_value: str, user_id: int = N
     message += messages.ARGS_JSON_VALUE_REQUEST_MSG
     
     return message
+
+def _display_value(param_name: str, value: Any) -> str:
+    """Human-readable, HTML-safe value; credentials are never echoed back."""
+    if isinstance(value, bool):
+        return "✅ True" if value else "❌ False"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if param_name in SECRET_PARAMS and value:
+        return SECRET_MASK
+    return html.escape(str(value)) if value else "Not set"
+
+
+def mask_args_for_log(args: Dict[str, Any]) -> Dict[str, Any]:
+    """Copy of /args (or yt-dlp options) safe to write to the journal."""
+    masked = {}
+    for key, value in (args or {}).items():
+        if key in SECRET_PARAMS and value:
+            masked[key] = SECRET_MASK
+        elif key == "http_headers" and value:
+            if isinstance(value, dict):
+                masked[key] = {k: SECRET_MASK for k in value}
+            else:
+                try:
+                    masked[key] = {k: SECRET_MASK for k in json.loads(value)}
+                except Exception:
+                    masked[key] = SECRET_MASK
+        else:
+            masked[key] = value
+    return masked
+
 
 def format_current_args(user_args: Dict[str, Any], user_id: int = None) -> str:
     """Format current args for display with localized names"""
@@ -822,15 +851,8 @@ def format_current_args(user_args: Dict[str, Any], user_id: int = None) -> str:
     display_names = get_localized_display_names(user_id)
     
     for param_name, value in user_args.items():
-        display_name = display_names.get(param_name, param_name)
-        
-        if isinstance(value, bool):
-            display_value = "✅ True" if value else "❌ False"
-        elif isinstance(value, (int, float)):
-            display_value = str(value)
-        else:
-            display_value = str(value) if value else "Not set"
-        
+        display_name = html.escape(str(display_names.get(param_name, param_name)))
+        display_value = _display_value(param_name, value)
         message += f"<b>{display_name}:</b> <code>{display_value}</code>\n"
     
     return message
@@ -975,14 +997,9 @@ def create_export_message(user_args: Dict[str, Any], user_id: int = None) -> str
     
     for param_name, value in sorted_params:
         display_name = display_names.get(param_name, param_name)
-        
-        if isinstance(value, bool):
-            status = "✅ True" if value else "❌ False"
-        elif isinstance(value, (int, float)):
-            status = str(value)
-        else:
-            status = str(value) if value else "Not set"
-        
+        # Credentials are not exported: the template is meant to be forwarded
+        status = _display_value(param_name, value)
+
         # Make parameter names bold and values monospace
         message += f"<b>{display_name}:</b> <code>{status}</code>\n"
     
@@ -1091,7 +1108,7 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
                 # Clean value string as well
                 value_str = re.sub(r'<[^>]+>', '', value_str).strip()
                 
-                logger.info(f"parse_import_message: Found line '{line}', param_name='{param_name}', value_str='{value_str}'")
+                logger.info(f"parse_import_message: Found param_name='{param_name}'")
                 
                 # Try to map localized name to English parameter name
                 english_param_name = None
@@ -1124,24 +1141,20 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
                             parsed_args[english_param_name] = False
                             logger.info(f"parse_import_message: Set {english_param_name} = False")
                     elif param_type == "number":
-                        try:
-                            # Extract number from string (handle cases like "16" or "Number: 16")
-                            import re
-                            numbers = re.findall(r'\d+', value_str)
-                            if numbers:
-                                num_value = int(numbers[0])
-                                if english_param_name in ["min_filesize", "max_filesize"]:
-                                    # These are in MB, convert to int
-                                    parsed_args[english_param_name] = num_value
-                                else:
-                                    parsed_args[english_param_name] = num_value
+                        numbers = re.findall(r'\d+', value_str)
+                        if numbers:
+                            num_value = int(numbers[0])
+                            min_val = param_config.get("min", 0)
+                            max_val = param_config.get("max", 999999)
+                            if min_val <= num_value <= max_val:
+                                parsed_args[english_param_name] = num_value
                                 logger.info(f"parse_import_message: Set {english_param_name} = {num_value}")
-                        except ValueError:
-                            continue
                     elif param_type in ["text", "json"]:
-                        if value_str and value_str != "Not set":
+                        value_str = html.unescape(value_str)
+                        if (value_str and value_str != "Not set" and value_str != SECRET_MASK
+                                and validate_input(value_str, english_param_name, user_id)[0]):
                             parsed_args[english_param_name] = value_str
-                            logger.info(f"parse_import_message: Set {english_param_name} = '{value_str}'")
+                            logger.info(f"parse_import_message: Set {english_param_name}")
                     elif param_type == "select":
                         if value_str and value_str != "Not set":
                             # Validate that the value is in the allowed options
@@ -1268,7 +1281,7 @@ def args_callback_handler(app, callback_query):
             user_args = get_user_args(user_id)
             current_value = user_args.get(param_name, param_config.get("default", ""))
             
-            if param_config["type"] == "boolean" or param_name == "send_as_file":
+            if param_config["type"] == "boolean":
                 keyboard = get_boolean_menu_keyboard(param_name, current_value, user_id)
                 display_value = messages.ARGS_STATUS_TRUE_DISPLAY_MSG if current_value else messages.ARGS_STATUS_FALSE_DISPLAY_MSG
                 callback_query.edit_message_text(
@@ -1279,10 +1292,9 @@ def args_callback_handler(app, callback_query):
             
             elif param_config["type"] == "select":
                 keyboard = get_select_menu_keyboard(param_name, current_value, user_id)
-                display_value = f'<code>{current_value}</code>'
                 callback_query.edit_message_text(
                     f"<b>⚙️ {get_param_description(param_config, param_name, messages)}</b>\n\n"
-                    f"{messages.ARGS_CURRENT_VALUE_MSG.format(current_value=current_value)}",
+                    f"{messages.ARGS_CURRENT_VALUE_MSG.format(current_value=html.escape(str(current_value)))}",
                     reply_markup=keyboard
                 )
             
@@ -1290,7 +1302,9 @@ def args_callback_handler(app, callback_query):
                 # Set user input state keyed by chat/topic (or DM by user_id)
                 chat_id = callback_query.message.chat.id
                 thread_id = getattr(callback_query.message, 'message_thread_id', None) or 0
-                state = {"param": param_name, "type": param_config["type"]}
+                # owner: only the user who opened the prompt may answer it
+                state = {"param": param_name, "type": param_config["type"],
+                         "owner": callback_query.from_user.id}
                 if thread_id:
                     user_input_states_topic[(chat_id, thread_id)] = state
                     start_input_state_timer(chat_id, thread_id)
@@ -1368,11 +1382,12 @@ def args_callback_handler(app, callback_query):
                     user_args[opposite] = (not value)
             except Exception:
                 pass
-            # Enforce pairs: force_ipv4 vs force_ipv6
+            # force_ipv4 / force_ipv6: at most one of them, but turning one off
+            # must not force the other protocol on
             try:
-                if param_name in ("force_ipv4", "force_ipv6"):
+                if param_name in ("force_ipv4", "force_ipv6") and value:
                     opposite = "force_ipv6" if param_name == "force_ipv4" else "force_ipv4"
-                    user_args[opposite] = (not value)
+                    user_args[opposite] = False
             except Exception:
                 pass
             save_user_args(user_id, user_args)
@@ -1416,21 +1431,24 @@ def args_callback_handler(app, callback_query):
                 safe_callback_answer(callback_query, messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
                 return
             
-            # Validate param_name exists in YTDLP_PARAMS
+            # Validate param_name exists in YTDLP_PARAMS and the value is one of its options
             if param_name not in YTDLP_PARAMS:
                 safe_callback_answer(callback_query, messages.ARGS_INVALID_PARAM_MSG, show_alert=True)
                 return
-            
+            if value not in YTDLP_PARAMS[param_name].get("options", []):
+                safe_callback_answer(callback_query, messages.ARGS_INVALID_SELECT_MSG, show_alert=True)
+                return
+
             user_args = get_user_args(user_id)
             current_value = user_args.get(param_name, YTDLP_PARAMS[param_name].get("default", ""))
-            
+
             # Always save the value (even if it's the same)
             user_args[param_name] = value
             save_user_args(user_id, user_args)
             
             # Only update message if value actually changed
             if current_value != value:
-                keyboard = get_select_menu_keyboard(param_name, value)
+                keyboard = get_select_menu_keyboard(param_name, value, user_id)
                 # If we changed impersonate, it may affect headers; but keep same screen
                 callback_query.edit_message_text(
                     f"<b>⚙️ {get_param_description(YTDLP_PARAMS[param_name], param_name, messages)}</b>\n\n"
@@ -1488,13 +1506,23 @@ def handle_args_text_input(app, message):
     state = None
     if thread_id and (user_id, thread_id) in user_input_states_topic:
         state = user_input_states_topic[(user_id, thread_id)]
+        state_key = user_id
     elif not thread_id and owner_id in user_input_states_dm:
         state = user_input_states_dm[owner_id]
+        state_key = owner_id  # DM state is keyed by the user, also inside groups
     else:
         return
+    if state.get("owner") not in (None, owner_id):
+        return  # someone else in the topic: their message is not the answer
     param_name = state["param"]
     param_type = state["type"]
-    
+
+    def _done():
+        clear_input_state_timer(state_key, thread_id)
+
+    def _invalid(error_msg):
+        safe_send_message(user_id, error_msg, message=message)
+        
     try:
         # Validate and process input based on type
         if param_type == "text":
@@ -1506,16 +1534,21 @@ def handle_args_text_input(app, message):
                 log_error_to_channel(message, error_msg)
                 return
             
+            ok, error_msg = validate_input(text, param_name, owner_id)
+            if not ok:
+                _invalid(error_msg)
+                return
+
             # Save the value
             user_args = get_user_args(owner_id)
             user_args[param_name] = text
             save_user_args(owner_id, user_args)
-            
+
             # Clear state and show success
-            clear_input_state_timer(user_id, thread_id)
+            _done()
             safe_send_message(
                 user_id,
-                    messages.ARGS_PARAM_SET_TO_MSG.format(description=get_param_description(YTDLP_PARAMS[param_name], param_name, messages), value=text),
+                    messages.ARGS_PARAM_SET_TO_MSG.format(description=get_param_description(YTDLP_PARAMS[param_name], param_name, messages), value=_display_value(param_name, text)),
                 parse_mode=enums.ParseMode.HTML,
                 message=message
             )
@@ -1526,22 +1559,24 @@ def handle_args_text_input(app, message):
                 import json
                 parsed_json = json.loads(text)
                 if not isinstance(parsed_json, dict):
-                    error_msg = messages.ARGS_JSON_MUST_BE_OBJECT_MSG
-                    safe_send_message(user_id, error_msg, message=message)
-                    from HELPERS.logger import log_error_to_channel
-                    log_error_to_channel(message, error_msg)
+                    _invalid(messages.ARGS_JSON_MUST_BE_OBJECT_MSG)
                     return
-                
+                ok, error_msg = validate_input(text, param_name, owner_id)
+                if not ok:
+                    _invalid(error_msg)
+                    return
+
                 # Save the value
                 user_args = get_user_args(owner_id)
                 user_args[param_name] = text
                 save_user_args(owner_id, user_args)
-                
-                # Clear state and show success
-                clear_input_state_timer(user_id, thread_id)
+
+                # Clear state and show success (header values may be tokens: names only)
+                _done()
+                shown = ", ".join(parsed_json.keys()) or "{}"
                 safe_send_message(
                     user_id,
-                    messages.ARGS_PARAM_SET_TO_MSG.format(description=get_param_description(YTDLP_PARAMS[param_name], param_name, messages), value=text),
+                    messages.ARGS_PARAM_SET_TO_MSG.format(description=get_param_description(YTDLP_PARAMS[param_name], param_name, messages), value=html.escape(shown)),
                     parse_mode=enums.ParseMode.HTML,
                     message=message
                 )
@@ -1575,7 +1610,7 @@ def handle_args_text_input(app, message):
                 save_user_args(owner_id, user_args)
                 
                 # Clear state and show success
-                clear_input_state_timer(user_id, thread_id)
+                _done()
                 safe_send_message(
                     user_id,
                     messages.ARGS_PARAM_SET_TO_MSG.format(description=get_param_description(YTDLP_PARAMS[param_name], param_name, messages), value='True' if value else 'False'),
@@ -1590,7 +1625,7 @@ def handle_args_text_input(app, message):
                     min_val = param_config.get("min", 0)
                     max_val = param_config.get("max", 999999)
                     
-                    if value and value < min_val or value > max_val:
+                    if value < min_val or value > max_val:
                         safe_send_message(
                             user_id,
                             messages.ARGS_VALUE_MUST_BE_BETWEEN_MSG.format(min_val=min_val, max_val=max_val),
@@ -1604,7 +1639,7 @@ def handle_args_text_input(app, message):
                     save_user_args(owner_id, user_args)
                     
                     # Clear state and show success
-                    clear_input_state_timer(user_id, thread_id)
+                    _done()
                     safe_send_message(
                         user_id,
                         messages.ARGS_PARAM_SET_TO_MSG.format(description=get_param_description(YTDLP_PARAMS[param_name], param_name, messages), value=value),
@@ -1626,18 +1661,18 @@ def handle_args_text_input(app, message):
         from HELPERS.logger import log_error_to_channel
         log_error_to_channel(message, error_msg)
         # Clear state on error
-        clear_input_state_timer(user_id, thread_id)
+        _done()
 
 async def _has_args_state(flt, client, message) -> bool:
     # async: a sync filter runs in Client.executor and stalls when handlers saturate it
     try:
         chat_id = message.chat.id
         thread_id = getattr(message, 'message_thread_id', None) or 0
+        uid = getattr(message, 'from_user', None).id if getattr(message, 'from_user', None) else chat_id
         if thread_id:
-            return (chat_id, thread_id) in user_input_states_topic
-        else:
-            uid = getattr(message, 'from_user', None).id if getattr(message, 'from_user', None) else chat_id
-            return uid in user_input_states_dm
+            state = user_input_states_topic.get((chat_id, thread_id))
+            return state is not None and state.get("owner") in (None, uid)
+        return uid in user_input_states_dm
     except Exception:
         return False
 
@@ -1671,7 +1706,6 @@ def args_import_handler(app, message):
         
         # Log that we're attempting to import settings
         logger.info(f"{LoggerMsg.ARGS_ATTEMPTING_IMPORT_SETTINGS_LOG_MSG}")
-        logger.info(f"args_import_handler: Full message text: {message.text}")
         
         user_id = message.chat.id
         invoker_id = getattr(message, 'from_user', None).id if getattr(message, 'from_user', None) else user_id
@@ -1727,8 +1761,8 @@ def args_import_handler(app, message):
                 if isinstance(value, bool):
                     display_value = "✅" if value else "❌"
                 else:
-                    display_value = str(value)
-                all_settings.append(f"• {description}: {display_value}")
+                    display_value = _display_value(param_name, value)
+                all_settings.append(f"• {html.escape(str(description))}: {display_value}")
             
             if all_settings:
                 success_message += messages.ARGS_KEY_SETTINGS_MSG + "\n".join(all_settings)
@@ -1753,191 +1787,206 @@ def args_import_handler(app, message):
             message=message
         )
 
+def _int_arg(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def get_user_ytdlp_args(user_id: int, url: str = None) -> Dict[str, Any]:
-    """Get user's yt-dlp arguments for use in download functions"""
+    """Translate the user's /args settings into yt-dlp Python API options.
+
+    Only real YoutubeDL parameter names are produced (the CLI-style names used in
+    the menu, such as force_ipv4, xff, datebefore or no_continue, are silently
+    ignored by yt-dlp). A few bot-side keys are passed along for the download
+    code: embed_thumbnail, embed_metadata, audio_format, video_format,
+    send_as_file (yt-dlp ignores unknown keys).
+    """
     user_args = get_user_args(user_id)
-    logger.info(f"User {user_id} args loaded: {user_args}")
-    
-    # Convert user args to yt-dlp format
-    ytdlp_args = {}
-    
-    # Set default values for options (enabled/disabled by default)
-    # These will be overridden if user explicitly set them
-    default_write_thumbnail = True
-    default_embed_thumbnail = True
-    default_check_certificate = False
-    default_no_check_certificates = True
-    
-    # Check if user explicitly set these options
     if user_args:
-        write_thumbnail_set = "write_thumbnail" in user_args
-        embed_thumbnail_set = "embed_thumbnail" in user_args
-        check_certificate_set = "check_certificate" in user_args
-        no_check_certificates_set = "no_check_certificates" in user_args
-    else:
-        write_thumbnail_set = False
-        embed_thumbnail_set = False
-        check_certificate_set = False
-        no_check_certificates_set = False
-    
-    # Apply defaults if not explicitly set by user
-    if not write_thumbnail_set:
-        ytdlp_args["writethumbnail"] = default_write_thumbnail
-        logger.info(f"User {user_id} write_thumbnail not set, using default: {default_write_thumbnail}")
-    if not embed_thumbnail_set:
-        ytdlp_args["embed_thumbnail"] = default_embed_thumbnail
-        logger.info(f"User {user_id} embed_thumbnail not set, using default: {default_embed_thumbnail}")
-    
-    # Apply defaults for certificate options with mutual exclusivity
-    # If user set one, automatically set the opposite
-    if check_certificate_set and user_args:
-        # User explicitly set check_certificate, ensure no_check_certificates is opposite
-        ytdlp_args["check_certificate"] = user_args["check_certificate"]
-        ytdlp_args["no_check_certificates"] = not user_args["check_certificate"]
-        logger.info(f"User {user_id} set check_certificate={user_args['check_certificate']}, auto-setting no_check_certificates={not user_args['check_certificate']}")
-    elif no_check_certificates_set and user_args:
-        # User explicitly set no_check_certificates, ensure check_certificate is opposite
-        ytdlp_args["no_check_certificates"] = user_args["no_check_certificates"]
-        ytdlp_args["check_certificate"] = not user_args["no_check_certificates"]
-        logger.info(f"User {user_id} set no_check_certificates={user_args['no_check_certificates']}, auto-setting check_certificate={not user_args['no_check_certificates']}")
-    else:
-        # Neither is set, apply defaults
-        ytdlp_args["check_certificate"] = default_check_certificate
-        ytdlp_args["no_check_certificates"] = default_no_check_certificates
-        logger.info(f"User {user_id} certificate options not set, using defaults: check_certificate={default_check_certificate}, no_check_certificates={default_no_check_certificates}")
-    
+        logger.info(f"User {user_id} args loaded: {mask_args_for_log(user_args)}")
+
+    ytdlp_args: Dict[str, Any] = {}
+
+    # Thumbnails are on unless the user switched them off
+    ytdlp_args["writethumbnail"] = bool(user_args.get("write_thumbnail", True))
+    ytdlp_args["embed_thumbnail"] = bool(user_args.get("embed_thumbnail", True))
+
     if not user_args:
         return ytdlp_args
-    
-    # Priority parameters - these override other format settings
-    if "video_format" in user_args:
-        value = user_args["video_format"]
-        if value and value != "mp4":
-            # Use more flexible format selection with fallbacks
-            if value == "webm":
-                # For webm, use best available format and let FFmpeg convert to webm
-                ytdlp_args["format"] = "best"
-                logger.info(f"User {user_id} selected video_format=webm, using format=best for compatibility")
-            else:
-                ytdlp_args["format"] = f"best[ext={value}]/best[ext=mp4]/best"
-                logger.info(f"User {user_id} selected video_format={value}, using format={ytdlp_args['format']}")
-    
+
+    # Certificate verification: yt-dlp verifies unless nocheckcertificate is set.
+    # The two menu switches are kept opposite; either one disables verification.
+    if user_args.get("no_check_certificates") is True or user_args.get("check_certificate") is False:
+        ytdlp_args["nocheckcertificate"] = True
+
+    # IPv4 / IPv6 (yt-dlp: source_address)
+    if user_args.get("force_ipv6") is True:
+        ytdlp_args["source_address"] = "::"
+    elif user_args.get("force_ipv4") is True:
+        ytdlp_args["source_address"] = "0.0.0.0"
+
+    # Live streams
+    if "live_from_start" in user_args or "no_live_from_start" in user_args:
+        ytdlp_args["live_from_start"] = bool(user_args.get("live_from_start", True)) and not user_args.get("no_live_from_start", False)
+
+    # Upload date filter (yt-dlp: daterange)
+    def _date(name):
+        value = str(user_args.get(name) or "")
+        return value if re.fullmatch(r"\d{8}", value) and _parse_yyyymmdd(value) else None
+
+    date_on, date_after, date_before = _date("date"), _date("dateafter"), _date("datebefore")
+    if date_on or date_after or date_before:
+        try:
+            from yt_dlp.utils import DateRange
+            ytdlp_args["daterange"] = DateRange.day(date_on) if date_on else DateRange(date_after, date_before)
+        except Exception as e:
+            logger.warning(f"User {user_id}: ignoring date filter: {e}")
+
+    # X-Forwarded-For / geo bypass
+    xff = _xff_to_ytdlp(str(user_args.get("xff") or ""))
+    if xff:
+        ytdlp_args.update(xff)
+
+    # Video container preference
+    video_format = user_args.get("video_format")
+    if video_format and video_format != "mp4":
+        ytdlp_args["video_format"] = video_format
+        if video_format == "webm":
+            # For webm, use best available format and let FFmpeg convert to webm
+            ytdlp_args["format"] = "best"
+        else:
+            ytdlp_args["format"] = f"best[ext={video_format}]/best[ext=mp4]/best"
+        logger.info(f"User {user_id} selected video_format={video_format}, using format={ytdlp_args['format']}")
+
+    headers: Dict[str, str] = {}
     for param_name, value in user_args.items():
         if param_name == "impersonate":
-            ytdlp_args["extractor_args"] = ytdlp_args.get("extractor_args", {})
-            ytdlp_args["extractor_args"]["generic"] = {"impersonate": [value]}
-        
+            if value in YTDLP_PARAMS["impersonate"]["options"]:
+                ytdlp_args["extractor_args"] = {"generic": {"impersonate": [value]}}
+
         elif param_name == "referer":
             if value:
-                # For all services, use both http_headers and referer for maximum compatibility
-                ytdlp_args["http_headers"] = ytdlp_args.get("http_headers", {})
-                ytdlp_args["http_headers"]["Referer"] = value
+                headers["Referer"] = str(value)
                 ytdlp_args["referer"] = value
-                logger.info(f"{LoggerMsg.ARGS_SETTING_REFERER_LOG_MSG}")
-        
+
         elif param_name == "user_agent":
             if value:
-                ytdlp_args["http_headers"] = ytdlp_args.get("http_headers", {})
-                ytdlp_args["http_headers"]["User-Agent"] = value
-        
+                headers["User-Agent"] = str(value)
+
         elif param_name == "http_headers":
             if value and value != "{}":
                 try:
-                    custom_headers = json.loads(value)
-                    ytdlp_args["http_headers"] = ytdlp_args.get("http_headers", {})
-                    ytdlp_args["http_headers"].update(custom_headers)
-                except json.JSONDecodeError:
-                    pass
-        
-        elif param_name in ["geo_bypass", "live_from_start", "no_live_from_start", "hls_use_mpegts", 
-                           "force_ipv4", "force_ipv6", "legacy_server_connect"]:
-            ytdlp_args[param_name] = value
-        
-        elif param_name in ["check_certificate", "no_check_certificates"]:
-            # These are already handled above with mutual exclusivity, skip to avoid overwriting
-            pass
-        
+                    custom_headers = json.loads(value) if isinstance(value, str) else value
+                except (json.JSONDecodeError, ValueError):
+                    custom_headers = None
+                if isinstance(custom_headers, dict):
+                    headers.update({str(k): v for k, v in custom_headers.items()
+                                    if isinstance(v, str) and not _CONTROL_CHARS_RE.search(str(k) + v)})
+
+        elif param_name in ("geo_bypass", "hls_use_mpegts"):
+            if "geo_bypass" not in ytdlp_args or param_name != "geo_bypass":
+                ytdlp_args[param_name] = bool(value)
+
+        elif param_name == "legacy_server_connect":
+            ytdlp_args["legacyserverconnect"] = bool(value)
+
         elif param_name == "ignore_errors":
-            # Convert ignore_errors to ignoreerrors for yt-dlp Python API
-            ytdlp_args["ignoreerrors"] = value
-        
+            ytdlp_args["ignoreerrors"] = bool(value)
+
         elif param_name == "no_playlist":
-            # Convert no_playlist to noplaylist for yt-dlp Python API
-            ytdlp_args["noplaylist"] = value
-        
+            ytdlp_args["noplaylist"] = bool(value)
+
         elif param_name == "no_part":
-            # Convert no_part to nopart for yt-dlp Python API
-            ytdlp_args["nopart"] = value
-        
+            ytdlp_args["nopart"] = bool(value)
+
         elif param_name == "no_continue":
-            # Convert no_continue to continue_dl (inverted value) for yt-dlp Python API
-            # no_continue=True means continue_dl=False
-            ytdlp_args["continue_dl"] = not value
-        
-        elif param_name == "embed_metadata":
-            # embed_metadata is handled via postprocessors, not as direct yt-dlp arg
-            # Store it for later use in download functions
-            ytdlp_args["embed_metadata"] = value
-        
-        elif param_name == "write_thumbnail":
-            # Convert write_thumbnail to writethumbnail for yt-dlp Python API
-            ytdlp_args["writethumbnail"] = value
-        
-        elif param_name == "embed_thumbnail":
-            # embed_thumbnail is handled via postprocessors, not as direct yt-dlp arg
-            # Store it for later use in download functions
-            ytdlp_args["embed_thumbnail"] = value
-        
+            ytdlp_args["continuedl"] = not value
+
+        elif param_name in ("embed_metadata", "send_as_file"):
+            # handled by the bot (postprocessors / sender), not by yt-dlp
+            ytdlp_args[param_name] = bool(value)
+
         elif param_name == "audio_format":
             if value and value != "best":
                 ytdlp_args["audio_format"] = value
-        
+
         elif param_name == "merge_output_format":
             if value and value != "mp4":
                 ytdlp_args["merge_output_format"] = value
                 logger.info(f"{LoggerMsg.ARGS_USER_SELECTED_MERGE_OUTPUT_FORMAT_LOG_MSG}")
-        
+
         elif param_name == "format":
-            # Handle format parameter (including id: format) - only if video_format not set
+            # legacy key; video_format wins
             if value and "format" not in ytdlp_args:
                 ytdlp_args["format"] = value
-        
+
         elif param_name == "concurrent_fragments":
-            # Convert concurrent_fragments to concurrent_fragment_downloads for yt-dlp Python API
-            ytdlp_args["concurrent_fragment_downloads"] = int(value)
-        
-        elif param_name in ["sleep_interval", "max_sleep_interval", "retries", 
-                           "http_chunk_size", "sleep_subtitles"]:
-            ytdlp_args[param_name] = int(value)
-        
-        elif param_name == "xff":
-            if value and value != "default":
-                ytdlp_args["xff"] = value
-        
-        elif param_name in ["username", "password", "twofactor"]:
+            number = _int_arg(value)
+            if number is not None and number >= 1:
+                ytdlp_args["concurrent_fragment_downloads"] = min(number, 16)
+
+        elif param_name in ("sleep_interval", "max_sleep_interval", "retries", "http_chunk_size"):
+            number = _int_arg(value)
+            if number is not None and number >= 0:
+                ytdlp_args[param_name] = number
+
+        elif param_name == "sleep_subtitles":
+            number = _int_arg(value)
+            if number:
+                ytdlp_args["sleep_interval_subtitles"] = number
+
+        elif param_name in ("username", "password", "twofactor"):
             if value:
                 ytdlp_args[param_name] = value
-        
-        elif param_name in ["min_filesize", "max_filesize"]:
-            if value and value > 0:
-                # Convert MB to bytes
-                ytdlp_args[param_name] = int(value * 1024 * 1024)
-        
+
+        elif param_name in ("min_filesize", "max_filesize"):
+            number = _int_arg(value, 0)
+            if number > 0:
+                # Megabytes in the menu, bytes for yt-dlp
+                ytdlp_args[param_name] = number * 1024 * 1024
+
         elif param_name == "playlist_items":
             if value:
                 ytdlp_args["playlist_items"] = value
-        
-        elif param_name in ["date", "datebefore", "dateafter"]:
-            if value:
-                ytdlp_args[param_name] = value
-        
-        elif param_name == "send_as_file":
-            # This parameter is handled in the sender functions, not in yt-dlp
-            # We'll store it in user_args but not pass to yt-dlp
-            ytdlp_args[param_name] = value
-    
-    logger.info(f"User {user_id} final ytdlp_args: {ytdlp_args}")
+
+    if headers:
+        ytdlp_args["http_headers"] = headers
+
+    # yt-dlp sleeps a random time in [sleep_interval, max_sleep_interval]
+    if ytdlp_args.get("max_sleep_interval") is not None and \
+            ytdlp_args.get("max_sleep_interval", 0) < ytdlp_args.get("sleep_interval", 0):
+        ytdlp_args.pop("max_sleep_interval")
+
+    logger.info(f"User {user_id} final ytdlp_args: {mask_args_for_log(ytdlp_args)}")
     return ytdlp_args
+
+
+def merge_user_ytdlp_args(opts: Dict[str, Any], user_args: Dict[str, Any], skip=()) -> Dict[str, Any]:
+    """Apply get_user_ytdlp_args() output to yt-dlp options in place.
+
+    Unlike dict.update(), the nested extractor_args / http_headers are merged,
+    so e.g. a chosen impersonate target does not wipe the youtube / youtubetab /
+    youtubepot extractor arguments the bot set up.
+    """
+    for key, value in (user_args or {}).items():
+        if key in skip:
+            continue
+        current = opts.get(key)
+        if key == "extractor_args" and isinstance(value, dict) and isinstance(current, dict):
+            merged = dict(current)
+            for ie_key, ie_args in value.items():
+                if isinstance(ie_args, dict) and isinstance(merged.get(ie_key), dict):
+                    merged[ie_key] = {**merged[ie_key], **ie_args}
+                else:
+                    merged[ie_key] = ie_args
+            opts[key] = merged
+        elif key == "http_headers" and isinstance(value, dict) and isinstance(current, dict):
+            opts[key] = {**current, **value}
+        else:
+            opts[key] = value
+    return opts
 
 def log_ytdlp_options(user_id: int, ytdlp_opts: dict, operation: str = "download"):
     messages = get_messages_instance(user_id)

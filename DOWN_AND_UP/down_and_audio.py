@@ -1273,7 +1273,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 user_args_copy.pop('ignoreerrors', None)
                 # embed_thumbnail is already handled via EmbedThumbnail postprocessor above
                 user_args_copy.pop('embed_thumbnail', None)
-                ytdl_opts.update(user_args_copy)
+                from COMMANDS.args_cmd import merge_user_ytdlp_args
+                merge_user_ytdlp_args(ytdl_opts, user_args_copy, skip=('playlist_items',))
             
             # Only use ignoreerrors if user explicitly enabled it via /args
             ytdl_opts['ignoreerrors'] = ignore_errors
@@ -2453,7 +2454,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         # Add user's custom yt-dlp arguments
                         # writethumbnail will be set from user_args if user enabled write_thumbnail
                         if user_args:
-                            ytdl_opts.update(user_args)
+                            from COMMANDS.args_cmd import merge_user_ytdlp_args
+                            merge_user_ytdlp_args(ytdl_opts, user_args, skip=('playlist_items',))
                         
                         # Check if we need to use --no-cookies for this domain
                         if is_no_cookie_domain(url):

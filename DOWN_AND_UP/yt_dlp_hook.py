@@ -220,7 +220,8 @@ def _get_video_formats_uncached(url, user_id=None, playlist_start_index=1, cooki
             # Remove format parameter to get all available formats
             user_args_copy = user_args.copy()
             user_args_copy.pop('format', None)
-            ytdl_opts.update(user_args_copy)
+            from COMMANDS.args_cmd import merge_user_ytdlp_args
+            merge_user_ytdlp_args(ytdl_opts, user_args_copy, skip=('playlist_items',))
         
         # Log final yt-dlp options for debugging
         log_ytdlp_options(user_id, ytdl_opts, "get_video_formats")

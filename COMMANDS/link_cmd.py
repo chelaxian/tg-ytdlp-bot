@@ -81,10 +81,10 @@ def get_direct_link(url, user_id, quality_arg=None, cookies_already_checked=Fals
         }
         
         # Add user's custom yt-dlp arguments
-        from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options
+        from COMMANDS.args_cmd import get_user_ytdlp_args, log_ytdlp_options, merge_user_ytdlp_args
         user_args = get_user_ytdlp_args(user_id, url)
         if user_args:
-            ytdl_opts.update(user_args)
+            merge_user_ytdlp_args(ytdl_opts, user_args)
         
         # Log final yt-dlp options for debugging
         log_ytdlp_options(user_id, ytdl_opts, "get_direct_link")

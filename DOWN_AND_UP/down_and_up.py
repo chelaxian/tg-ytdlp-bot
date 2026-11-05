@@ -1627,7 +1627,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 user_args_copy.pop('embed_thumbnail', None)
                 # ignoreerrors is already set above based on user's ignore_errors setting
                 user_args_copy.pop('ignoreerrors', None)
-                common_opts.update(user_args_copy)
+                from COMMANDS.args_cmd import merge_user_ytdlp_args
+                merge_user_ytdlp_args(common_opts, user_args_copy, skip=('playlist_items',))
             
             # Configure subtitle options based on user settings
             if need_subs and is_youtube_url(url):
