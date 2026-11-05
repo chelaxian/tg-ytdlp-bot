@@ -30,9 +30,6 @@ _message_send_locks_lock = threading.Lock()
 _last_msg_ts_cleanup = 0
 _MSG_TS_CLEANUP_INTERVAL = 300  # Every 5 minutes
 
-# Module-level storage for last edit timestamps per chat (throttle edits in groups)
-_last_edit_ts_per_chat = {}
-_last_edit_cleanup_ts = 0
 
 # Permanent "chat unreachable" RPC errors (issue #472): the user blocked the
 # bot, deleted the account, never started a dialog (peer unknown) or the bot
@@ -502,54 +499,101 @@ def safe_forward_messages(chat_id, from_chat_id, message_ids, **kwargs):
             return None
 
 # Helper function for safely editing message text with flood wait handling
+#
+# Return value contract (callers use `result is None` as "message is gone, stop
+# updating it"):
+#   Message  - edited
+#   False    - nothing was sent but the message is still alive (identical text,
+#              throttled, chat under FloodWait, transient failure): skip this tick
+#   None     - the message/chat is gone for good (deleted, unreachable chat)
+_EDIT_SPACING_PRIVATE = 1.0   # Telegram tolerates ~1 edit/s per private chat
+_EDIT_SPACING_GROUP = 5.0     # groups: ~20 edits/min
+_EDIT_MAX_QUEUE_WAIT = 15.0   # a tick that would wait longer is dropped, not queued
+_EDIT_INLINE_FLOOD_MAX = 10   # sleep+retry only for short FloodWaits
+_edit_state_lock = threading.Lock()
+_edit_next_slot = {}          # chat_id -> time.monotonic() when the next edit may go out
+_edit_paused_until = {}       # chat_id -> time.monotonic() until which edits are skipped
+_edit_cleanup_mono = 0.0
+
+
+def _edit_reserve_slot(chat_id, spacing):
+    """Atomically reserve the next edit slot for the chat.
+
+    Returns seconds to wait before sending, or None when the chat is paused by
+    FloodWait or the queue is too long (the caller skips this edit)."""
+    global _edit_cleanup_mono
+    now = time.monotonic()
+    with _edit_state_lock:
+        if now - _edit_cleanup_mono > 300:
+            _edit_cleanup_mono = now
+            for d in (_edit_next_slot, _edit_paused_until):
+                for cid in [c for c, ts in d.items() if ts < now - 600]:
+                    d.pop(cid, None)
+        if _edit_paused_until.get(chat_id, 0.0) > now:
+            return None
+        slot = max(now, _edit_next_slot.get(chat_id, 0.0))
+        wait = slot - now
+        if wait > _EDIT_MAX_QUEUE_WAIT:
+            return None
+        _edit_next_slot[chat_id] = slot + spacing
+        return wait
+
+
+def _edit_pause_chat(chat_id, seconds):
+    with _edit_state_lock:
+        _edit_paused_until[chat_id] = max(_edit_paused_until.get(chat_id, 0.0),
+                                          time.monotonic() + seconds)
+
+
 def safe_edit_message_text(chat_id, message_id, text, **kwargs):
     _messages = safe_get_messages(None)
-    user_id = chat_id
     max_retries = 3
 
-    # Throttle edits in groups to no more than once per 5 seconds per chat
     try:
         is_group = isinstance(chat_id, int) and chat_id < 0
     except Exception:
         is_group = False
 
-    if is_group:
-        now = time.time()
-        last_ts = _last_edit_ts_per_chat.get(chat_id, 0.0)
-        elapsed = now - last_ts
-        if 0 < elapsed < 5.0:
-            try:
-                time.sleep(5.0 - elapsed)
-            except Exception:
-                pass
-        _last_edit_ts_per_chat[chat_id] = time.time()
-
-        # Periodic cleanup
-        global _last_edit_cleanup_ts
-        if now - _last_edit_cleanup_ts > 300:
-            _last_edit_cleanup_ts = now
-            cutoff = now - 600
-            stale = [cid for cid, ts in _last_edit_ts_per_chat.items() if ts < cutoff]
-            for cid in stale:
-                del _last_edit_ts_per_chat[cid]
-
     for attempt in range(max_retries):
+        wait = _edit_reserve_slot(chat_id, _EDIT_SPACING_GROUP if is_group else _EDIT_SPACING_PRIVATE)
+        if wait is None:
+            logger.debug(f"Edit of {message_id} in {chat_id} skipped (throttled / FloodWait pause)")
+            return False
+        if wait > 0:
+            time.sleep(wait)
         try:
             app = get_app_safe()
             return run_pyrogram_client_coroutine(app, app.edit_message_text(chat_id, message_id, text, **kwargs))
         except FloodWait as e:
-            if e.value <= 60 and attempt < max_retries - 1:
+            if e.value <= _EDIT_INLINE_FLOOD_MAX and attempt < max_retries - 1:
                 logger.warning(f"FloodWait ({e.value}s) while editing message for {chat_id}, retrying ({attempt+1}/{max_retries})")
                 time.sleep(e.value + 1)
                 continue
+            # Long wait: pause every edit in this chat so parallel progress bars
+            # do not keep triggering (and escalating) the same FloodWait.
+            _edit_pause_chat(chat_id, e.value + 1)
             _write_flood_wait_file(chat_id, e.value)
-            logger.warning(f"Flood wait detected ({e.value}s) while editing message for {chat_id}")
+            logger.warning(f"Flood wait detected ({e.value}s) while editing message for {chat_id}; edits paused")
+            # The message is alive: the caller must not treat this as deleted.
+            return False
+        except _PERMANENT_PEER_ERRORS as e:
+            _log_unreachable_chat(chat_id, "edit_message_text", e)
             return None
         except Exception as e:
-            if _messages.HELPER_MESSAGE_ID_INVALID_MSG in str(e):
+            err = str(e)
+            if _messages.HELPER_MESSAGE_ID_INVALID_MSG in err:
                 if attempt == 0:
                     logger.debug(f"Tried to edit message that was already deleted: {message_id}")
                 return None
+            if "MESSAGE_NOT_MODIFIED" in err:
+                return False
+            if _dropped_during_shutdown(e, "edit_message_text", chat_id):
+                return None
+            if _should_retry(e, chat_id, 2) and attempt < max_retries - 1:
+                continue
+            logger.warning(f"Failed to edit message {message_id} in {chat_id} (attempt {attempt + 1}/{max_retries}): {type(e).__name__}: {err[:200]}")
+            return False
+    return False
 
 # Helper function for safely clearing reply markup (inline keyboard)
 def safe_edit_reply_markup(chat_id, message_id, reply_markup=None, **kwargs):

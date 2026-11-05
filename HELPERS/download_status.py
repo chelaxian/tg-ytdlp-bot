@@ -231,7 +231,7 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
                 interval = _adaptive_interval(elapsed)
                 
                 if current_time - last_update < interval:
-                    time.sleep(1.0)
+                    stop_anim.wait(1.0)
                     continue
                 
                 emoji = emojis[counter % len(emojis)]
@@ -245,7 +245,7 @@ def start_hourglass_animation(user_id, hourglass_msg_id, stop_anim):
 
                 counter += 1
                 last_update = current_time
-                time.sleep(1.0)  # Check more frequently for stop event
+                stop_anim.wait(1.0)  # Check more frequently for stop event
             except Exception as e:
                 logger.error(f"Error in hourglass animation: {e}")
                 # Stop animation on error to prevent log spam
@@ -270,6 +270,8 @@ _last_upload_log_ts = {}
 # Timestamp of last cache cleanup
 _last_ts_cleanup = time.time()
 _TS_CLEANUP_INTERVAL = 300  # Clean every 5 minutes
+_UPLOAD_EDIT_INTERVAL = 3.0  # seconds between upload progress edits of one message
+_UPLOAD_DEAD_BACKOFF = 60.0  # pause after the progress message turned out to be gone
 
 # Helper function to start cycle progress animation
 def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_name, cycle_stop, progress_data=None):
@@ -313,7 +315,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
                 interval = _adaptive_interval(elapsed)
                 
                 if current_time - last_update < interval:
-                    time.sleep(1.0)
+                    cycle_stop.wait(1.0)
                     continue
                 
                 counter = (counter + 1) % 11
@@ -353,7 +355,7 @@ def start_cycle_progress(user_id, proc_msg_id, current_total_process, user_dir_n
                     break
 
                 last_update = current_time
-                time.sleep(1.0)  # Check more frequently for stop event
+                cycle_stop.wait(1.0)  # Check more frequently for stop event
 
             except Exception as e:
                 logger.warning(f"Cycle progress error: {e}")
@@ -405,7 +407,7 @@ def progress_bar(*args):
     key = (user_id, msg_id)
     with _last_upload_ts_lock:
         last_ts = _last_upload_update_ts.get(key, 0)
-    if now - last_ts < 1.0 and current < total:
+    if now - last_ts < _UPLOAD_EDIT_INTERVAL and current < total:
         return
 
     # Log upload activity every 10 seconds to prevent watchdog false positives
@@ -424,8 +426,14 @@ def progress_bar(*args):
         blocks = int(percent // 10)
         bar = "🟩" * blocks + "⬜️" * (10 - blocks)
         text = f"{status_text}\n{bar}   {percent:.1f}%"
-        safe_edit_message_text(user_id, msg_id, text)
+        # Reserve the slot first: a slow edit (FloodWait sleep) must not let the next
+        # chunk callback start a second edit of the same message.
         with _last_upload_ts_lock:
             _last_upload_update_ts[key] = now
+        result = safe_edit_message_text(user_id, msg_id, text)
+        if result is None:
+            # message deleted / chat unreachable: stop hammering it for a while
+            with _last_upload_ts_lock:
+                _last_upload_update_ts[key] = now + _UPLOAD_DEAD_BACKOFF
     except Exception as e:
         logger.error(f"Error updating upload progress: {e}")
