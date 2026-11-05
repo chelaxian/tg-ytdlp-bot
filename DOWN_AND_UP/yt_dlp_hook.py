@@ -458,8 +458,13 @@ def _get_video_formats_uncached(url, user_id=None, playlist_start_index=1, cooki
         elif isinstance(info, dict) and 'entries' in info:
             entries = info.get('entries')
             if isinstance(entries, list) and len(entries) > 0:
+                # the real playlist length lives on the playlist, not on its entries:
+                # keep it (playlist_utils.get_playlist_total resolves *-1*-5 with it)
+                _pl_count = info.get('playlist_count')
                 # Сохраняем все entries для скачивания обложек
                 info = entries[0]
+                if isinstance(info, dict) and _pl_count and not info.get('playlist_count'):
+                    info['playlist_count'] = _pl_count
                 logger.info(f"🔍 [DEBUG] info содержал entries, взяли первый элемент. Всего entries: {len(entries)}")
                 # Добавляем entries в info для использования в ask_quality_menu
                 info['_playlist_entries'] = entries

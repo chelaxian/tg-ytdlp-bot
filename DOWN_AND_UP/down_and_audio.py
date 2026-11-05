@@ -29,7 +29,7 @@ from URL_PARSERS.nocookie import is_no_cookie_domain
 from URL_PARSERS.filter_check import is_no_filter_domain
 from URL_PARSERS.filter_utils import create_smart_match_filter, create_legacy_match_filter
 from URL_PARSERS.youtube import is_youtube_url, download_thumbnail
-from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail
+from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail, download_thumbnail_from_info
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error
 from CONFIG.limits import LimitsConfig
 from HELPERS.fallback_helper import should_fallback_to_gallery_dl
@@ -43,7 +43,7 @@ from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, is_subs_always_ask
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
-from URL_PARSERS.playlist_utils import is_playlist_with_range, is_playlist_url, is_playlist_from_info_dict
+from URL_PARSERS.playlist_utils import range_indices, playlist_indices_for_range, is_playlist_with_range, is_playlist_url, is_playlist_from_info_dict
 from URL_PARSERS.normalizer import get_clean_playlist_url
 from DATABASE.cache_db import get_cached_playlist_message_ids, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache, remove_playlist_cache_entries
 from HELPERS.cache_repost import repost_playlist_items, repost_single
@@ -525,42 +525,22 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 auto_range_added = True
                 logger.info(f"🔍 [DEBUG] Auto-range added detected for playlist URL: {url}")
     
-    # Определяем, нужен ли обратный порядок (когда start > end)
-    # Для отрицательных индексов: -1 до -7 означает обратный порядок (7, 6, 5, 4, 3, 2, 1)
+    # Indices in the order the user asked for; from-the-end indices resolved ONCE
+    # (see playlist_indices_for_range) so cache, download loop and cache save agree.
     is_reverse_order = False
     has_negative_indices = False
-    if is_playlist and video_start_with is not None and video_end_with is not None:
-        # Если оба отрицательные, всегда используем обратный порядок
-        if video_start_with < 0 and video_end_with < 0:
-            is_reverse_order = True
-            has_negative_indices = True
-        # Если start > end, это обратный порядок
-        elif video_start_with > video_end_with:
-            is_reverse_order = True
-    
-    # Формируем список индексов с учетом обратного порядка
-    # Для отрицательных индексов нужно будет преобразовать их в положительные после получения общего количества видео
     if is_playlist:
-        if has_negative_indices:
-            # Для отрицательных индексов сначала создаем список с отрицательными значениями
-            # Позже преобразуем их в положительные после получения общего количества видео
-            # -1 до -7 означает: качать в порядке 7, 6, 5, 4, 3, 2, 1 (от последнего к первому)
-            if abs(video_start_with) < abs(video_end_with):
-                # -1 до -7: создаем список [-1, -2, -3, -4, -5, -6, -7]
-                requested_indices = list(range(video_start_with, video_end_with - 1, -1))
-            else:
-                # -7 до -1: создаем список [-7, -6, -5, -4, -3, -2, -1]
-                requested_indices = list(range(video_start_with, video_end_with + 1, 1))
-        elif is_reverse_order:
-            # Для обратного порядка: от start до end включительно в обратном порядке
-            requested_indices = list(range(video_start_with, video_end_with - 1, -1))
-        else:
-            # Для прямого порядка: от start до end включительно
-            requested_indices = list(range(video_start_with, video_start_with + video_count))
+        requested_indices = playlist_indices_for_range(
+            video_start_with, video_end_with, url, user_id, cookies_already_checked, use_proxy)
+        if not requested_indices:
+            requested_indices = range_indices(video_start_with, video_end_with)
+        has_negative_indices = any(i < 0 for i in requested_indices)
+        is_reverse_order = len(requested_indices) > 1 and requested_indices[0] > requested_indices[-1]
     else:
         requested_indices = []
     playlist_indices_all = requested_indices[:] if requested_indices else []
-    use_range_download = is_playlist and any(idx < 0 for idx in requested_indices)
+    # still-negative indices (playlist length unknown) go to yt-dlp one by one
+    use_range_download = is_playlist and has_negative_indices
     cached_videos = {}
     uncached_indices = []
     if quality_key and is_playlist:
@@ -2221,16 +2201,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 except Exception as e:
                     logger.warning(f"YouTube thumbnail download failed: {e}")
             
-            # If not YouTube or YouTube thumb not found, try universal thumbnail downloader
-            if not thumbnail_path:
-                try:
-                    universal_thumb_path = os.path.join(user_folder, "universal_thumb.jpg")
-                    if download_universal_thumbnail(url, universal_thumb_path):
-                        if os.path.exists(universal_thumb_path):
-                            thumbnail_path = universal_thumb_path
-                            logger.info(f"Downloaded universal thumbnail: {universal_thumb_path}")
-                except Exception as e:
-                    logger.info(f"Universal thumbnail not available: {e}")
+            # Non-YouTube covers are NOT fetched here any more: the universal downloader
+            # runs a whole second yt-dlp extraction. yt-dlp writes the item's own cover
+            # next to the audio, and the metadata URL is tried after the download.
         except Exception as e:
             logger.warning(f"Thumbnail download failed: {e}")
 
@@ -2238,37 +2211,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         total_playlist_count = None  # Общее количество видео в плейлисте (для преобразования отрицательных индексов)
         has_negative_indices_for_download = False  # Флаг для отрицательных индексов (не используем range_entries_metadata)
         if use_range_download:
-            has_negative_indices_for_download = True  # Для отрицательных индексов скачиваем каждый отдельно
-            # Для отрицательных индексов нужно получить общее количество видео из плейлиста
-            # Делаем предварительный запрос, чтобы получить общее количество видео
-            try:
-                from DOWN_AND_UP.yt_dlp_hook import get_video_formats
-                logger.info(f"Getting total playlist count for negative indices conversion (audio)...")
-                temp_info = get_video_formats(url, user_id, 1, cookies_already_checked, use_proxy, 1)
-                if temp_info and isinstance(temp_info, dict):
-                    if "entries" in temp_info:
-                        total_playlist_count = len(temp_info["entries"])
-                    elif "_playlist_entries" in temp_info:
-                        total_playlist_count = len(temp_info["_playlist_entries"])
-                if total_playlist_count:
-                    logger.info(f"Total playlist count (audio): {total_playlist_count}")
-                    # Преобразуем отрицательные индексы в положительные
-                    # -1 = последнее видео (total_playlist_count), -2 = предпоследнее (total_playlist_count - 1), и т.д.
-                    # Формула: positive_index = total_playlist_count + negative_index + 1
-                    converted_indices = []
-                    for neg_idx in playlist_indices_all:
-                        if neg_idx < 0:
-                            pos_idx = total_playlist_count + neg_idx + 1
-                            converted_indices.append(pos_idx)
-                        else:
-                            converted_indices.append(neg_idx)
-                    # Сортируем в обратном порядке для скачивания от последнего к первому
-                    converted_indices.sort(reverse=True)
-                    playlist_indices_all = converted_indices
-                    logger.info(f"Converted negative indices to positive (audio): {converted_indices}")
-            except Exception as e:
-                logger.warning(f"Failed to get total playlist count for negative indices (audio): {e}, using original indices")
-        
+            has_negative_indices_for_download = True  # each index is downloaded on its own
+
         if use_range_download:
             # Для отрицательных индексов используем весь диапазон сразу
             # Теперь indices_to_download содержит уже преобразованные положительные индексы
@@ -2324,10 +2268,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     result = None
                     break
             else:
-                if use_range_download:
-                    current_playlist_items_override = f"{video_start_with}:{video_end_with}:-1" if is_reverse_order else f"{video_start_with}:{video_end_with}"
-                else:
-                    current_playlist_items_override = None
+                # one item per call: the old override passed the WHOLE range for every
+                # item, so /audio -1-5 downloaded 5 tracks five times (25 downloads)
+                current_playlist_items_override = None
                 result = try_download_audio(url, playlist_item_index)
                 current_playlist_items_override = None
                 # Для отрицательных индексов не используем range_entries_metadata, скачиваем каждый индекс отдельно
@@ -2712,6 +2655,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif item_cover:
                         cover_path = item_cover
                         logger.info(f"Found thumbnail: {cover_path}")
+                    else:
+                        # last resort, only when yt-dlp left no cover: metadata URL, then extraction
+                        _lazy_cover = os.path.join(user_folder, "universal_thumb.jpg")
+                        try:
+                            if download_thumbnail_from_info(info_dict, _lazy_cover) or \
+                                    download_universal_thumbnail(url, _lazy_cover, user_id):
+                                cover_path = _lazy_cover
+                                logger.info(f"Using fetched thumbnail: {cover_path}")
+                        except Exception as e:
+                            logger.info(f"Universal thumbnail not available: {e}")
                     
                     # Embed cover if found
                     if cover_path and os.path.exists(cover_path):

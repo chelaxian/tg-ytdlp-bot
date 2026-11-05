@@ -48,12 +48,13 @@ from DOWN_AND_UP.down_and_audio import down_and_audio
 from DOWN_AND_UP.down_and_up import down_and_up
 
 from URL_PARSERS.playlist_utils import is_playlist_with_range
+from URL_PARSERS.playlist_utils import range_count, range_indices, playlist_indices_for_range
 from URL_PARSERS.tags import generate_final_tags, extract_url_range_tags
 from URL_PARSERS.youtube import is_youtube_url, download_thumbnail, youtube_to_piped_url
 from URL_PARSERS.tiktok import is_tiktok_url
 from URL_PARSERS.normalizer import get_clean_playlist_url
 from URL_PARSERS.embedder import transform_to_embed_url, is_instagram_url, is_twitter_url, is_reddit_url
-from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail
+from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail, download_thumbnail_from_info
 
 # Import function to get user args
 def get_user_args(user_id: int):
@@ -3433,13 +3434,7 @@ def askq_callback(app, callback_query):
         if is_playlist_with_range(original_text):
             logger.info("Detected playlist, using down_and_up")
             _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
-            # Правильное вычисление video_count для отрицательных индексов
-            if video_start_with < 0 and video_end_with < 0:
-                video_count = abs(video_end_with) - abs(video_start_with) + 1
-            elif video_start_with > video_end_with:
-                video_count = abs(video_start_with - video_end_with) + 1
-            else:
-                video_count = video_end_with - video_start_with + 1
+            video_count = range_count(video_start_with, video_end_with)
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
             down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=format_id, cookies_already_checked=True, cached_video_info=None, clear_subs_cache_on_start=False)
@@ -3527,13 +3522,7 @@ def askq_callback(app, callback_query):
         original_text = original_message.text or original_message.caption or ""
         if is_playlist_with_range(original_text):
             _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
-            # Правильное вычисление video_count для отрицательных индексов
-            if video_start_with < 0 and video_end_with < 0:
-                video_count = abs(video_end_with) - abs(video_start_with) + 1
-            elif video_start_with > video_end_with:
-                video_count = abs(video_start_with - video_end_with) + 1
-            else:
-                video_count = video_end_with - video_start_with + 1
+            video_count = range_count(video_start_with, video_end_with)
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
             down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=quality, cookies_already_checked=True, cached_video_info=None, clear_subs_cache_on_start=False)
@@ -3576,62 +3565,11 @@ def askq_callback(app, callback_query):
     if is_playlist_with_range(original_text):
         logger.info(f"{LoggerMsg.ALWAYS_ASK_PLAYLIST_WITH_RANGE_DETECTED_LOG_MSG}: {url}")
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
-        # Правильное вычисление video_count для отрицательных индексов
-        if video_start_with < 0 and video_end_with < 0:
-            video_count = abs(video_end_with) - abs(video_start_with) + 1
-        elif video_start_with > video_end_with:
-            video_count = abs(video_start_with - video_end_with) + 1
-        else:
-            video_count = video_end_with - video_start_with + 1
+        video_count = range_count(video_start_with, video_end_with)
         
-        # Формируем список индексов с учетом отрицательных индексов
-        # Для отрицательных индексов нужно будет преобразовать их в положительные после получения общего количества видео
-        has_negative_indices = video_start_with < 0 or video_end_with < 0
-        if has_negative_indices:
-            # Для отрицательных индексов сначала создаем список с отрицательными значениями
-            if abs(video_start_with) < abs(video_end_with):
-                # -1 до -7: создаем список [-1, -2, -3, -4, -5, -6, -7]
-                requested_indices = list(range(video_start_with, video_end_with - 1, -1))
-            else:
-                # -7 до -1: создаем список [-7, -6, -5, -4, -3, -2, -1]
-                requested_indices = list(range(video_start_with, video_end_with + 1, 1))
-        elif video_start_with > video_end_with:
-            # Для обратного порядка: от start до end включительно в обратном порядке
-            requested_indices = list(range(video_start_with, video_end_with - 1, -1))
-        else:
-            # Для прямого порядка: от start до end включительно
-            requested_indices = list(range(video_start_with, video_start_with + video_count))
-        
-        # Если есть отрицательные индексы, нужно получить общее количество видео и преобразовать их
-        if has_negative_indices:
-            try:
-                from DOWN_AND_UP.yt_dlp_hook import get_video_formats
-                logger.info(f"Getting total playlist count for negative indices conversion (always_ask)...")
-                temp_info = get_video_formats(url, user_id, 1, True, False, 1)
-                if temp_info and isinstance(temp_info, dict):
-                    if "entries" in temp_info:
-                        total_playlist_count = len(temp_info["entries"])
-                    elif "_playlist_entries" in temp_info:
-                        total_playlist_count = len(temp_info["_playlist_entries"])
-                    else:
-                        total_playlist_count = None
-                    
-                    if total_playlist_count:
-                        logger.info(f"Total playlist count (always_ask): {total_playlist_count}")
-                        # Преобразуем отрицательные индексы в положительные
-                        converted_indices = []
-                        for neg_idx in requested_indices:
-                            if neg_idx < 0:
-                                pos_idx = total_playlist_count + neg_idx + 1
-                                converted_indices.append(pos_idx)
-                            else:
-                                converted_indices.append(neg_idx)
-                        # Сортируем в обратном порядке для скачивания от последнего к первому
-                        converted_indices.sort(reverse=True)
-                        requested_indices = converted_indices
-                        logger.info(f"Converted negative indices to positive (always_ask): {converted_indices}")
-            except Exception as e:
-                logger.warning(f"Failed to get total playlist count for negative indices (always_ask): {e}, using original indices")
+        # user's order; from-the-end indices resolved once (cached lookup, shared with the download)
+        requested_indices = (playlist_indices_for_range(video_start_with, video_end_with, url, user_id, True, False)
+            or range_indices(video_start_with, video_end_with))
         
         # Check if Always Ask mode is enabled - if yes, skip cache completely
         # Also check if send_as_file is enabled - if so, skip cache completely
@@ -5595,54 +5533,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             thumb_dir = os.path.join("users", str(user_id))
             create_directory(thumb_dir)
         
-        # Для плейлистов скачиваем обложки для всех видео
-        playlist_entries = (info.get('_playlist_entries') if isinstance(info, dict) else None)
-        if is_playlist and playlist_entries and isinstance(playlist_entries, list):
-            logger.info(f"🔍 [DEBUG] Плейлист обнаружен, скачиваем обложки для {len(playlist_entries)} видео")
-            for entry in playlist_entries:
-                if not entry:
-                    continue
-                entry_id = entry.get('id')
-                entry_url = entry.get('url') or entry.get('webpage_url')
-                if not entry_id:
-                    continue
-                
-                # Для YouTube используем специальную функцию
-                # Безопасная проверка домена через urlparse
-                is_youtube_domain = False
-                try:
-                    from urllib.parse import urlparse
-                    parsed_url = urlparse(url)
-                    url_hostname = (parsed_url.hostname or '').lower()
-                    is_youtube_domain = url_hostname in ('youtube.com', 'www.youtube.com', 'youtu.be', 'www.youtu.be') or \
-                                       url_hostname.endswith('.youtube.com') or url_hostname.endswith('.youtu.be')
-                except Exception:
-                    pass
-                
-                if is_youtube_domain and entry_id:
-                    entry_thumb_path = os.path.join(thumb_dir, f"yt_thumb_{entry_id}.jpg")
-                    try:
-                        # Используем URL конкретного видео, если доступен
-                        entry_video_url = entry_url or f"https://www.youtube.com/watch?v={entry_id}"
-                        download_thumbnail(entry_id, entry_thumb_path, entry_video_url)
-                        logger.info(f"✅ Скачана обложка для видео {entry_id}: {entry_thumb_path}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Не удалось скачать обложку для видео {entry_id}: {e}")
-                elif entry_url:
-                    # Для других сервисов используем универсальный загрузчик
-                    try:
-                        # Используем функцию extract_service_info для определения сервиса
-                        from URL_PARSERS.thumbnail_downloader import extract_service_info
-                        service, _ = extract_service_info(entry_url)
-                        
-                        if service and service != 'unknown':
-                            entry_thumb_path = os.path.join(thumb_dir, f"{service}_thumb_{entry_id}.jpg")
-                            # Для плейлистов передаем app и message для возможности извлечения из Telegram embed
-                            if download_universal_thumbnail(entry_url, entry_thumb_path, user_id, app=app, message=message):
-                                logger.info(f"✅ Скачана обложка для видео {entry_id}: {entry_thumb_path}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Не удалось скачать обложку для видео {entry_id}: {e}")
-        
+        # Only the first video's cover is shown in the menu. The covers of the other
+        # playlist entries used to be fetched here one by one before the menu appeared
+        # (a yt-dlp extraction each for non-YouTube services) and were never used:
+        # every item gets its own cover when it is uploaded.
         # Скачиваем обложку для первого видео (для отображения в меню)
         # Безопасная проверка домена через urlparse
         is_youtube_domain = False
@@ -5674,7 +5568,10 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     thumb_path = os.path.join(thumb_dir, f"{service}_thumb_{video_id or 'unknown'}.jpg")
                     try:
                         # Передаем app и message для возможности извлечения из Telegram embed
-                        if download_universal_thumbnail(url, thumb_path, user_id, app=app, message=message):
+                        # the cover URL is already in `info` (one HTTP request); the universal
+                        # downloader would extract the page with yt-dlp a second time
+                        if download_thumbnail_from_info(info, thumb_path) or \
+                                download_universal_thumbnail(url, thumb_path, user_id, app=app, message=message):
                             thumb_path = thumb_path
                         else:
                             # Fallback: попробуем скачать обложку из метаданных yt-dlp
@@ -5872,42 +5769,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     start, end = playlist_range
                     has_negative = start < 0 or end < 0
                     
-                    if has_negative:
-                        # Для отрицательных индексов сначала создаем список с отрицательными значениями
-                        if abs(start) < abs(end):
-                            indices = list(range(start, end - 1, -1))
-                        else:
-                            indices = list(range(start, end + 1, 1))
-                        
-                        # Преобразуем отрицательные индексы в положительные для проверки кэша
-                        # (в кэше они хранятся как положительные индексы)
-                        try:
-                            from DOWN_AND_UP.yt_dlp_hook import get_video_formats
-                            temp_info = get_video_formats(url, user_id, 1, True, False, 1)
-                            if temp_info and isinstance(temp_info, dict):
-                                if "entries" in temp_info:
-                                    total_playlist_count = len(temp_info["entries"])
-                                elif "_playlist_entries" in temp_info:
-                                    total_playlist_count = len(temp_info["_playlist_entries"])
-                                else:
-                                    total_playlist_count = None
-                                
-                                if total_playlist_count:
-                                    # Преобразуем отрицательные индексы в положительные
-                                    converted_indices = []
-                                    for neg_idx in indices:
-                                        if neg_idx < 0:
-                                            pos_idx = total_playlist_count + neg_idx + 1
-                                            converted_indices.append(pos_idx)
-                                        else:
-                                            converted_indices.append(neg_idx)
-                                    indices = converted_indices
-                        except Exception as e:
-                            logger.warning(f"Failed to convert negative indices for cache check: {e}")
-                    elif start > end:
-                        indices = list(range(start, end - 1, -1))
-                    else:
-                        indices = list(range(start, end + 1))
+                    # resolved once per menu (cached), not once per quality button
+                    indices = (playlist_indices_for_range(start, end, url, user_id, True, False)
+                        or range_indices(start, end))
                     
                     n_cached = get_cached_playlist_count(get_clean_playlist_url(url), q, indices)
                     total = len(indices)
@@ -7669,13 +7533,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         # Extract playlist parameters from the original message
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
-        # Правильное вычисление video_count для отрицательных индексов
-        if video_start_with < 0 and video_end_with < 0:
-            video_count = abs(video_end_with) - abs(video_start_with) + 1
-        elif video_start_with > video_end_with:
-            video_count = abs(video_start_with - video_end_with) + 1
-        else:
-            video_count = video_end_with - video_start_with + 1
+        video_count = range_count(video_start_with, video_end_with)
         # Delete processing message before starting download
         delete_processing_message(app, user_id, proc_msg)
         # Load trim sections if available
@@ -7724,13 +7582,7 @@ def askq_callback_logic(app, callback_query, data, original_message, url, tags_t
         # Extract playlist parameters from the original message
         full_string = original_message.text or original_message.caption or ""
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(full_string)
-        # Правильное вычисление video_count для отрицательных индексов
-        if video_start_with < 0 and video_end_with < 0:
-            video_count = abs(video_end_with) - abs(video_start_with) + 1
-        elif video_start_with > video_end_with:
-            video_count = abs(video_start_with - video_end_with) + 1
-        else:
-            video_count = video_end_with - video_start_with + 1
+        video_count = range_count(video_start_with, video_end_with)
         download_subtitles_only(app, original_message, url, tags, available_langs, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with)
         return
     
@@ -8040,13 +7892,7 @@ def down_and_up_with_format(app, message, url, fmt, tags_text, quality_key=None,
         log_error_to_channel(message, error_msg, url)
         return
 
-    # Правильное вычисление video_count для отрицательных индексов
-    if video_start_with < 0 and video_end_with < 0:
-        video_count = abs(video_end_with) - abs(video_start_with) + 1
-    elif video_start_with > video_end_with:
-        video_count = abs(video_start_with - video_end_with) + 1
-    else:
-        video_count = video_end_with - video_start_with + 1
+    video_count = range_count(video_start_with, video_end_with)
     
     # Check if there is a link to Tiktok
     is_tiktok = is_tiktok_url(url)

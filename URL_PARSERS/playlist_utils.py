@@ -107,4 +107,122 @@ def is_playlist_from_info_dict(info_dict: dict) -> bool:
         return False
     except Exception as e:
         logger.error(f"Error in is_playlist_from_info_dict: {e}", exc_info=True)
-        return False 
+        return False
+
+# ---------------------------------------------------------------------------
+# Playlist ranges: URL*start*end (also /vid start-end URL)
+#   *1*5   -> 1, 2, 3, 4, 5            (forward)
+#   *5*1   -> 5, 4, 3, 2, 1            (reverse)
+#   *-1*-5 -> last, 2nd from end ... 5th from end
+#   *-5*-1 -> 5th from end ... last
+# One definition of "how many" and "which, in what order" for every caller.
+# ---------------------------------------------------------------------------
+
+def range_count(start: int, end: int) -> int:
+    """Number of items in an inclusive playlist range, in either direction."""
+    return abs(int(end) - int(start)) + 1
+
+
+def range_indices(start: int, end: int) -> list:
+    """Indices of an inclusive range in the order the user asked for."""
+    start, end = int(start), int(end)
+    step = 1 if end >= start else -1
+    return list(range(start, end + step, step))
+
+
+def resolve_negative_indices(indices, total: int) -> list:
+    """Map negative (from-the-end) indices to 1-based positions; order is kept.
+
+    Positions outside 1..total are dropped (a range longer than the playlist).
+    """
+    out = []
+    for i in indices:
+        pos = total + i + 1 if i < 0 else i
+        if 1 <= pos <= total:
+            out.append(pos)
+    return out
+
+
+_TOTAL_CACHE = {}
+_TOTAL_CACHE_TTL = 600  # seconds: the menu and the download that follows reuse one lookup
+
+
+def get_playlist_total(url: str, user_id=None, cookies_already_checked: bool = True, use_proxy: bool = False):
+    """Real number of items in a playlist, or None if it cannot be determined.
+
+    Asks yt-dlp for the LAST item only (playlist_items='-1'): its playlist_index is
+    the playlist length. The old code asked for item 1 and took len(entries), which
+    is always 1, so *-1*-5 was mapped to positions 1, 0, -1...
+    """
+    import time
+    key = (user_id, url)
+    hit = _TOTAL_CACHE.get(key)
+    now = time.time()
+    if hit and now - hit[1] < _TOTAL_CACHE_TTL:
+        return hit[0]
+    total = None
+    try:
+        from DOWN_AND_UP.yt_dlp_hook import get_video_formats
+        info = get_video_formats(url, user_id, -1, cookies_already_checked, use_proxy, None)
+        if isinstance(info, dict) and not info.get('error'):
+            for k in ('playlist_count', 'playlist_index'):
+                v = info.get(k)
+                if isinstance(v, int) and v > 0:
+                    total = v
+                    break
+    except Exception as e:
+        logger.warning(f"get_playlist_total failed for {url}: {e}")
+    if total:
+        _TOTAL_CACHE[key] = (total, now)
+        if len(_TOTAL_CACHE) > 512:
+            for k in sorted(_TOTAL_CACHE, key=lambda k: _TOTAL_CACHE[k][1])[:256]:
+                _TOTAL_CACHE.pop(k, None)
+    logger.info(f"get_playlist_total: {url} -> {total}")
+    return total
+
+
+def playlist_indices_for_range(start: int, end: int, url: str = None, user_id=None,
+                               cookies_already_checked: bool = True, use_proxy: bool = False) -> list:
+    """Positive 1-based indices for a range, resolving from-the-end indices once.
+
+    If the playlist length is unknown, negative indices are returned unchanged
+    (yt-dlp itself understands them).
+    """
+    idx = range_indices(start, end)
+    if min(start, end) < 0 and url:
+        total = get_playlist_total(url, user_id, cookies_already_checked, use_proxy)
+        if total:
+            return resolve_negative_indices(idx, total)
+    return idx
+
+_CMD_RANGE_RE = re.compile(r'^(-?\d+)-(-?\d*)$')
+
+
+def command_args_to_range_text(args, max_items: int):
+    """'/vid 3-7 URL #tag' arguments -> 'URL*3*7 #tag' (also used by /audio).
+
+    args: the words after the command. Returns None when args[0] is not a range.
+      3-7   -> *3*7        -3-7 / -3--7 -> *-3*-7 (counted from the end)
+      3-    -> *3*(3+max-1)   -3- -> *-3*(-3-max+1)   (open end: up to the limit)
+    The range is attached to the URL itself, so words after the URL (#tags,
+    a playlist name) no longer swallow it.
+    """
+    if len(args) < 2:
+        return None
+    m = _CMD_RANGE_RE.match(args[0])
+    if not m:
+        return None
+    start = int(m.group(1))
+    if start == 0:
+        return None
+    if m.group(2) == '':
+        step = 1 if start > 0 else -1
+        end = start + step * (max(1, int(max_items)) - 1)
+    else:
+        end = int(m.group(2))
+        if start < 0 and end > 0:
+            end = -end
+        if end == 0 or (start > 0 and end < 0):
+            return None
+    url, rest = args[1], args[2:]
+    return ' '.join([f"{url}*{start}*{end}"] + list(rest))

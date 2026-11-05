@@ -31,7 +31,7 @@ from URL_PARSERS.youtube import is_youtube_url, download_thumbnail, extract_yout
 from URL_PARSERS.nocookie import is_no_cookie_domain
 from URL_PARSERS.filter_check import is_no_filter_domain
 from URL_PARSERS.filter_utils import create_smart_match_filter, create_legacy_match_filter
-from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail
+from URL_PARSERS.thumbnail_downloader import download_thumbnail as download_universal_thumbnail, download_thumbnail_from_info
 from HELPERS.pot_helper import add_pot_to_ytdl_opts, is_age_restriction_error, add_web_creator_to_opts
 from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
@@ -40,7 +40,7 @@ from CONFIG.errors import is_cookie_error
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, get_user_subs_language, clear_subs_check_cache, is_subs_always_ask
 from COMMANDS.split_sizer import get_user_split_size
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
-from URL_PARSERS.playlist_utils import is_playlist_with_range, is_playlist_url, is_playlist_from_info_dict
+from URL_PARSERS.playlist_utils import range_indices, playlist_indices_for_range, is_playlist_with_range, is_playlist_url, is_playlist_from_info_dict
 from URL_PARSERS.normalizer import get_clean_playlist_url
 from urllib.parse import urlparse
 from DATABASE.cache_db import get_cached_playlist_message_ids, get_cached_message_ids, save_to_video_cache, save_to_playlist_cache, remove_playlist_cache_entries
@@ -634,40 +634,21 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     _, parsed_start, parsed_end, _, _, _, _ = extract_url_range_tags(original_text)
     video_end_with = parsed_end if parsed_end != 1 or parsed_start != 1 else (video_start_with + video_count - 1)
     
-    # Определяем, нужен ли обратный порядок (когда start > end)
-    # Для отрицательных индексов: -1 до -7 означает обратный порядок (7, 6, 5, 4, 3, 2, 1)
+    # Indices in the order the user asked for (*1*5, *5*1, *-1*-5, *-5*-1).
+    # From-the-end indices are resolved to real positions ONCE, here, so the cache
+    # check, the download loop and the playlist cache all see the same numbers.
     is_reverse_order = False
     has_negative_indices = False
     use_range_download = False  # Объявляем переменную заранее
-    if is_playlist and video_start_with is not None and video_end_with is not None:
-        # Если оба отрицательные, всегда используем обратный порядок
-        if video_start_with < 0 and video_end_with < 0:
-            is_reverse_order = True
-            has_negative_indices = True
-        # Если start > end, это обратный порядок
-        elif video_start_with > video_end_with:
-            is_reverse_order = True
-    
-    # Формируем список индексов с учетом обратного порядка
-    # Для отрицательных индексов нужно будет преобразовать их в положительные после получения общего количества видео
     if is_playlist:
-        if has_negative_indices:
-            # Для отрицательных индексов сначала создаем список с отрицательными значениями
-            # Позже преобразуем их в положительные после получения общего количества видео
-            # -1 до -7 означает: качать в порядке 7, 6, 5, 4, 3, 2, 1 (от последнего к первому)
-            # Создаем список от -1 до -7 включительно: [-1, -2, -3, -4, -5, -6, -7]
-            if abs(video_start_with) < abs(video_end_with):
-                # -1 до -7: создаем список [-1, -2, -3, -4, -5, -6, -7]
-                requested_indices = list(range(video_start_with, video_end_with - 1, -1))
-            else:
-                # -7 до -1: создаем список [-7, -6, -5, -4, -3, -2, -1]
-                requested_indices = list(range(video_start_with, video_end_with + 1, 1))
-        elif is_reverse_order:
-            # Для обратного порядка: от start до end включительно в обратном порядке
-            requested_indices = list(range(video_start_with, video_end_with - 1, -1))
-        else:
-            # Для прямого порядка: от start до end включительно
-            requested_indices = list(range(video_start_with, video_start_with + video_count))
+        requested_indices = playlist_indices_for_range(
+            video_start_with, video_end_with, url, user_id, cookies_already_checked, use_proxy)
+        if not requested_indices:
+            # range lies completely outside the playlist (e.g. *-50*-60 on a 20-item list)
+            requested_indices = range_indices(video_start_with, video_end_with)
+        # yt-dlp resolves still-negative indices itself (playlist length unknown)
+        has_negative_indices = any(i < 0 for i in requested_indices)
+        is_reverse_order = len(requested_indices) > 1 and requested_indices[0] > requested_indices[-1]
     else:
         requested_indices = []
     playlist_indices_all = requested_indices[:] if requested_indices else []
@@ -3212,47 +3193,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         total_playlist_count = None  # Общее количество видео в плейлисте (для преобразования отрицательных индексов)
         playlist_range_str = None  # Строка диапазона для плейлиста (например, "1:7" или "1:7:-1")
         has_negative_indices_for_download = False  # Флаг для отрицательных индексов (не используем range_entries_metadata)
-        if is_playlist and video_start_with is not None and video_end_with is not None:
-            if video_start_with < 0 or video_end_with < 0:
-                use_range_download = True
-                has_negative_indices_for_download = True  # Для отрицательных индексов скачиваем каждый отдельно
-                # Для отрицательных индексов playlist_range_str не используется, так как обрабатываем каждый индекс отдельно
-                # Для отрицательных индексов нужно получить общее количество видео из плейлиста
-                # Делаем предварительный запрос, чтобы получить общее количество видео
-                try:
-                    from DOWN_AND_UP.yt_dlp_hook import get_video_formats
-                    logger.info(f"Getting total playlist count for negative indices conversion...")
-                    temp_info = get_video_formats(url, user_id, 1, cookies_already_checked, use_proxy, 1)
-                    if temp_info and isinstance(temp_info, dict):
-                        if "entries" in temp_info:
-                            total_playlist_count = len(temp_info["entries"])
-                        elif "_playlist_entries" in temp_info:
-                            total_playlist_count = len(temp_info["_playlist_entries"])
-                    if total_playlist_count:
-                        logger.info(f"Total playlist count: {total_playlist_count}")
-                        # Преобразуем отрицательные индексы в положительные
-                        # -1 = последнее видео (total_playlist_count), -2 = предпоследнее (total_playlist_count - 1), и т.д.
-                        # Формула: positive_index = total_playlist_count + negative_index + 1
-                        converted_indices = []
-                        for neg_idx in playlist_indices_all:
-                            if neg_idx < 0:
-                                pos_idx = total_playlist_count + neg_idx + 1
-                                converted_indices.append(pos_idx)
-                            else:
-                                converted_indices.append(neg_idx)
-                        # Сортируем в обратном порядке для скачивания от последнего к первому
-                        converted_indices.sort(reverse=True)
-                        playlist_indices_all = converted_indices
-                        logger.info(f"Converted negative indices to positive: {converted_indices}")
-                except Exception as e:
-                    logger.warning(f"Failed to get total playlist count for negative indices: {e}, using original indices")
-            elif video_start_with != video_end_with:
-                # Формируем строку диапазона для обычных случаев
-                if is_reverse_order:
-                    playlist_range_str = f"{video_start_with}:{video_end_with}:-1"
-                else:
-                    playlist_range_str = f"{video_start_with}:{video_end_with}"
-        
+        if is_playlist and has_negative_indices:
+            # playlist length unknown: download each from-the-end index as is
+            use_range_download = True
+            has_negative_indices_for_download = True
+
         if use_range_download:
             # Для отрицательных индексов используем весь диапазон сразу
             # Теперь indices_to_download содержит уже преобразованные положительные индексы
@@ -4269,19 +4214,24 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             yt_id = None
                     if yt_id:
                         youtube_thumb_path = os.path.join(dir_path, f"yt_thumb_{yt_id}.jpg")
-                        download_thumbnail(yt_id, youtube_thumb_path, url)
+                        # the Always Ask menu already saved this exact file: reuse it
+                        if not (os.path.isfile(youtube_thumb_path) and os.path.getsize(youtube_thumb_path) > 0):
+                            download_thumbnail(yt_id, youtube_thumb_path, url)
                         if os.path.exists(youtube_thumb_path):
                             thumb_dir = youtube_thumb_path
                             logger.info(f"Downloaded thumbnail to download directory: {youtube_thumb_path}")
                             logger.info(f"Using YouTube thumbnail: {youtube_thumb_path}")
                 except Exception as e:
                     logger.warning(f"YouTube thumbnail download failed: {e}")
-            # If not YouTube or YouTube thumb not found, try universal thumbnail downloader
+            # If not YouTube or YouTube thumb not found: the cover URL yt-dlp already
+            # extracted (one HTTP request), and only then the universal downloader
+            # (a second full extraction of the page)
             if not thumb_dir:
                 try:
                     _thumb_uid = video_id or ''
                     universal_thumb_path = os.path.join(dir_path, f"universal_thumb_{_thumb_uid}.jpg" if _thumb_uid else "universal_thumb.jpg")
-                    if download_universal_thumbnail(thumb_source_url, universal_thumb_path):
+                    if download_thumbnail_from_info(info_dict, universal_thumb_path) or \
+                            download_universal_thumbnail(thumb_source_url, universal_thumb_path, user_id):
                         if os.path.exists(universal_thumb_path):
                             thumb_dir = universal_thumb_path
                             logger.info(f"Using universal thumbnail: {universal_thumb_path}")
