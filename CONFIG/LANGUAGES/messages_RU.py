@@ -1760,6 +1760,7 @@ class Messages(object):
     LANG_CHANGED_MSG = "✅ Язык изменен на {lang_name}"
     LANG_ERROR_MSG = "❌ Ошибка изменения языка"
     LANG_CLOSED_MSG = "Выбор языка закрыт"
+    LANG_INVALID_ARGUMENT_MSG = "❌ Неизвестный код языка. Отправьте /lang, чтобы выбрать из списка, или код, например /lang ru. Коды: en, ru, ar, in, zh, es, fr, bn, pt, ur, id, ja, tl, ha, vi, it, de, tr, ko, pl, uk, fa, th, uz, kk"
     # Clean command additional messages
     
     # Cookies command additional messages

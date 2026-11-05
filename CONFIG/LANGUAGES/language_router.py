@@ -93,8 +93,15 @@ class LanguageRouter:
             
             # Save language preference to lang.txt
             lang_file = os.path.join(user_dir, 'lang.txt')
-            with open(lang_file, 'w', encoding='utf-8') as f:
-                f.write(language_code)
+            # Atomic replace: a concurrent reader never sees an empty file.
+            tmp_file = f"{lang_file}.{os.getpid()}.{threading.get_ident()}.tmp"
+            try:
+                with open(tmp_file, 'w', encoding='utf-8') as f:
+                    f.write(language_code)
+                os.replace(tmp_file, lang_file)
+            finally:
+                if os.path.exists(tmp_file):
+                    os.remove(tmp_file)
             
             # Cached per-language dicts are user-independent, so there is
             # nothing to invalidate here (dropping them only forced a racy
