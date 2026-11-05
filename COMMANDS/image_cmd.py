@@ -3,6 +3,7 @@ from HELPERS.safe_messeger import safe_callback_answer
 import html
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -133,33 +134,6 @@ def generate_video_thumbnail(video_path):
         return None
 
 def ensure_paid_cover_embedded(video_path, existing_thumb=None):
-    """Ensure a small JPEG cover (~<=320x320) with сохранением пропорций (паддинг), для платных медиа."""
-    try:
-        if not _should_generate_cover(video_path):
-            return None
-        # Prefer an existing thumb if available
-        if existing_thumb and os.path.exists(existing_thumb) and os.path.getsize(existing_thumb) > 0:
-            return existing_thumb
-        base_dir = os.path.dirname(video_path)
-        base_name = os.path.splitext(os.path.basename(video_path))[0]
-        cover_path = os.path.join(base_dir, base_name + '.__tgcover_paid.jpg')
-        if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
-            return cover_path
-        # 320x320 максимум: уменьшаем c сохранением пропорций, затем pad до 320x320; стараемся держать файл маленьким
-        subprocess.run([
-            'ffmpeg', '-y', '-i', video_path,
-            '-vf', 'scale=320:320:force_original_aspect_ratio=decrease,pad=320:320:(ow-iw)/2:(oh-ih)/2:black',
-            '-vframes', '1', '-q:v', '4', cover_path
-        ], capture_output=True, text=True, timeout=30)
-        if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
-            return cover_path
-        # Fallback to regular thumb if padding failed
-        reg_thumb = generate_video_thumbnail(video_path)
-        return reg_thumb if reg_thumb and os.path.getsize(reg_thumb) > 0 else None
-    except Exception:
-        return None
-
-def ensure_paid_cover_embedded(video_path, existing_thumb=None):
     """Ensure a small JPEG cover (~<=320x320) with сохранением пропорций (паддинг), для платных медиа.
     For videos >60s or >10MB, also embed the cover into the video file itself."""
     try:
@@ -198,6 +172,10 @@ def ensure_paid_cover_embedded(video_path, existing_thumb=None):
                     # Replace original with embedded version
                     os.replace(embedded_path, video_path)
                     logger.info(LoggerMsg.IMG_PAID_EMBEDDED_COVER_LOG_MSG.format(video_path=video_path))
+                else:
+                    # A killed/timed-out ffmpeg leaves a truncated file that the next
+                    # scan would happily send as an extra video.
+                    _unlink_quiet(embedded_path)
         except Exception as e:
             logger.warning(LoggerMsg.IMG_PAID_FAILED_EMBED_COVER_LOG_MSG.format(video_path=video_path, e=e))
             # Continue with just the cover file
@@ -675,6 +653,16 @@ def is_image_url(url):
     
     return False
 
+def _unlink_quiet(path):
+    """Remove a possibly-partial ffmpeg output; ffmpeg leaves it behind on
+    timeout/kill, and a truncated .mp4/.jpg then gets picked up and sent."""
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+
 def convert_file_to_telegram_format(file_path):
     """
     Convert unsupported file formats to Telegram-supported formats
@@ -790,9 +778,11 @@ def convert_file_to_telegram_format(file_path):
             
     except subprocess.TimeoutExpired:
         logger.error(LoggerMsg.IMG_CONVERSION_TIMEOUT_LOG_MSG.format(file_path=file_path))
+        _unlink_quiet(locals().get("output_path"))
         return file_path
     except Exception as e:
         logger.error(LoggerMsg.IMG_CONVERSION_ERROR_LOG_MSG.format(file_path=file_path, e=e))
+        _unlink_quiet(locals().get("output_path"))
         return file_path
 
 # Telegram limits for photos (sendPhoto / InputMediaPhoto), issue #472:
@@ -946,6 +936,26 @@ def _report_gallery_dl_fatal_error(message, user_id, url, status_msg, result):
             logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
 
 
+
+def _cleanup_run_dir(run_dir):
+    """Remove a finished /img run directory (unique per run) and its empty parent."""
+    if not run_dir or not os.path.isdir(run_dir):
+        return
+    try:
+        from HELPERS.filesystem_hlp import remove_protection_file
+        remove_protection_file(run_dir)
+    except Exception:
+        pass
+    shutil.rmtree(run_dir, ignore_errors=True)
+    parent = os.path.dirname(run_dir)
+    try:
+        if parent and not os.listdir(parent):
+            os.rmdir(parent)
+    except OSError:
+        pass
+    if os.path.isdir(run_dir):
+        logger.warning(f"[IMG CLEANUP] run directory left behind: {run_dir}")
+
 def get_message_thread_id(message):
     """Extract message_thread_id from message, handling fake messages with original message reference"""
     if hasattr(message, '_is_fake_message') and hasattr(message, '_original_message') and message._original_message is not None:
@@ -1091,7 +1101,7 @@ def image_command(app, message):
             # For open-ended ranges or missing start, we can't check limits here - skip validation
             range_count = None
         else:
-            range_count = manual_range[1] - manual_range[0] + 1
+            range_count = abs(manual_range[1] - manual_range[0]) + 1
         
         # Only check limits if we have a specific range count
         if range_count is not None:
@@ -1855,9 +1865,11 @@ def image_command(app, message):
                 elif is_admin:
                     manual_end_cap = original_manual_end_cap
                 else:
-                    # Ensure total_limit is not None before comparison
-                    if total_limit is not None:
-                        manual_end_cap = min(original_manual_end_cap, total_limit)
+                    # Cap the end index by the remaining limit (a COUNT), not an absolute
+                    # index: the range menu starts at 11/21/..., so min(end, total_limit)
+                    # would turn "11-20" into 11-10 and download nothing.
+                    if total_limit:
+                        manual_end_cap = min(original_manual_end_cap, current_start + total_limit - 1)
                     else:
                         manual_end_cap = original_manual_end_cap
                 
@@ -1909,8 +1921,11 @@ def image_command(app, message):
                 else:
                     # IMPORTANT: total_limit=0 means unlimited for admin - never use 0 for total_expected
                     # as it would set upper_cap=0 and cause "current_start > upper_cap" to break the loop immediately
-                    total_expected = (LimitsConfig.MAX_IMG_FILES if (total_limit is not None and total_limit == 0)
-                                     else (total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES))
+                    # Open-ended range: the cap is a COUNT of items to fetch, not an end
+                    # index — otherwise "/img 11- URL" breaks immediately (11 > 10).
+                    quota_cap = (LimitsConfig.MAX_IMG_FILES if (total_limit is not None and total_limit == 0)
+                                 else (total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES))
+                    total_expected = current_start + quota_cap - 1
         
         # For small totals, set end cap to avoid range issues
         if detected_total and detected_total <= 10 and manual_range is None:
@@ -2166,7 +2181,7 @@ def image_command(app, message):
                         # Skip special thumbs/covers generated for Telegram
                         try:
                             base = os.path.basename(file_path)
-                            if base.endswith('.__tgthumb.jpg') or base.endswith('.__tgcover_paid.jpg'):
+                            if base.endswith('.__tgthumb.jpg') or base.endswith('.__tgcover_paid.jpg') or base.endswith('.__embedded_cover.mp4'):
                                 continue
                         except Exception:
                             pass
@@ -2692,7 +2707,7 @@ def image_command(app, message):
                                         except Exception as ex:
                                             last_exc = ex
                                             break
-                                    if attempts and attempts >= 5 and last_exc is not None:
+                                    if last_exc is not None and (attempts >= 5 or not isinstance(last_exc, FloodWait)):
                                         raise last_exc
                                 sent_message_ids.extend([m.id for m in sent])
                                 total_sent += len(media_group)
@@ -3597,7 +3612,7 @@ def image_command(app, message):
                                         except Exception as ex:
                                             last_exc = ex
                                             break
-                                    if attempts and attempts >= 5 and last_exc is not None:
+                                    if last_exc is not None and (attempts >= 5 or not isinstance(last_exc, FloodWait)):
                                         raise last_exc
                                 sent_message_ids.append(sent_msg.id)
                                 total_sent += 1
@@ -3896,7 +3911,7 @@ def image_command(app, message):
                                 except Exception as ex:
                                     last_exc = ex
                                     break
-                            if attempts and attempts >= 5 and last_exc is not None:
+                            if last_exc is not None and (attempts >= 5 or not isinstance(last_exc, FloodWait)):
                                 raise last_exc
                         sent_message_ids.extend([m.id for m in sent])
                         total_sent += len(media_group)
@@ -4153,7 +4168,7 @@ def image_command(app, message):
                                             except Exception as ex:
                                                 last_exc = ex
                                                 break
-                                        if attempts and attempts >= 5 and last_exc is not None:
+                                        if last_exc is not None and (attempts >= 5 or not isinstance(last_exc, FloodWait)):
                                             raise last_exc
                                     else:
                                         # try generate thumbnail
@@ -4215,7 +4230,7 @@ def image_command(app, message):
                                             except Exception as ex:
                                                 last_exc = ex
                                                 break
-                                        if attempts and attempts >= 5 and last_exc is not None:
+                                        if last_exc is not None and (attempts >= 5 or not isinstance(last_exc, FloodWait)):
                                             raise last_exc
                                     sent_message_ids.append(sent_msg.id)
                                     tmp_ids2.append(sent_msg.id)
@@ -4706,90 +4721,29 @@ def image_command(app, message):
         logger.error(f"Error in image command: {e}")
         if not locals().get("_img_quota_recorded"):
             daily_quota.record(message, daily_quota.IMAGE, locals().get("total_sent") or 0)
-        
-        # Clean up only the specific media files that were downloaded on general error
-        try:
-            # Try to find and clean up any recently downloaded files
-            current_time = time.time()
-            gallery_dl_dir = "gallery-dl"
-            if os.path.exists(gallery_dl_dir):
-                for root, _, files in os.walk(gallery_dl_dir):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        file_time = os.path.getctime(file_path)
-                        time_diff = current_time - file_time
-                        # Clean up files created in the last 5 minutes
-                        if time_diff and time_diff < 300:
-                            try:
-                                # Check if file still exists before trying to remove it
-                                if os.path.exists(file_path):
-                                    os.remove(file_path)
-                                    logger.info(f"Cleaned up file after general error: {file_path}")
-                                    
-                                    # If directory is empty after removing file, remove it too
-                                    try:
-                                        if os.path.exists(root) and not os.listdir(root):
-                                            os.rmdir(root)
-                                            logger.info(f"Removed empty directory after general error: {root}")
-                                    except Exception:
-                                        pass  # Directory not empty or other error
-                                else:
-                                    logger.info(f"File already removed after general error: {file_path}")
-                            except Exception as e:
-                                logger.warning(f"Failed to clean up file after general error {file_path}: {e}")
-        except Exception as cleanup_e:
-            logger.warning(f"Failed to clean up downloaded files after general error: {cleanup_e}")
-        
-        # Final cleanup on error: remove all media files from user directory
-        try:
-            logger.info(f"[IMG CLEANUP ERROR] Starting final cleanup of user directory: {run_dir}")
-            if os.path.exists(run_dir):
-                for root, dirs, files in os.walk(run_dir):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        try:
-                            # Remove all media files (including zero-size placeholders)
-                            if file.lower().endswith((
-                                '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff',
-                                '.mp4', '.m4v', '.avi', '.mov', '.mkv', '.webm', '.flv',
-                                '.mp3', '.wav', '.ogg', '.m4a',
-                                '.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.7z'
-                            )):
-                                os.remove(file_path)
-                                logger.info(f"[IMG CLEANUP ERROR] Removed file: {file_path}")
-                        except Exception as e:
-                            logger.warning(f"[IMG CLEANUP ERROR] Failed to remove {file_path}: {e}")
-                    
-                    # Remove empty directories
-                    for dir_name in dirs:
-                        dir_path = os.path.join(root, dir_name)
-                        try:
-                            if os.path.exists(dir_path) and not os.listdir(dir_path):
-                                os.rmdir(dir_path)
-                                logger.info(f"[IMG CLEANUP ERROR] Removed empty directory: {dir_path}")
-                        except Exception as e:
-                            logger.warning(f"[IMG CLEANUP ERROR] Failed to remove directory {dir_path}: {e}")
-            
-            # Remove the entire run directory if empty
+            _img_quota_recorded = True
+
+        # The run directory is unique to this invocation: remove it wholesale — the
+        # old extension filter left .avif/.heic/.jxl/.part/metadata files behind forever.
+        _cleanup_run_dir(run_dir)
+        if status_msg is not None:
             try:
-                if os.path.exists(run_dir) and not os.listdir(run_dir):
-                    os.rmdir(run_dir)
-                    logger.info(f"[IMG CLEANUP ERROR] Removed empty run directory: {run_dir}")
-            except Exception as e:
-                logger.warning(f"[IMG CLEANUP ERROR] Failed to remove run directory {run_dir}: {e}")
-                
-            logger.info(f"[IMG CLEANUP ERROR] Final cleanup completed")
-        except Exception as cleanup_final_e:
-            logger.warning(f"[IMG CLEANUP ERROR] Failed to perform final cleanup: {cleanup_final_e}")
-        
-        safe_edit_message_text(
-            user_id, status_msg.id,
-            safe_get_messages(user_id).ERROR_OCCURRED_MSG.format(url=url, error=str(e)),
-            parse_mode=enums.ParseMode.HTML
-        )
+                safe_edit_message_text(
+                    status_msg.chat.id, status_msg.id,
+                    safe_get_messages(user_id).ERROR_OCCURRED_MSG.format(url=url, error=str(e)),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            except Exception:
+                pass
         from HELPERS.logger import send_error_to_user
         send_error_to_user(message, safe_get_messages(user_id).ERROR_OCCURRED_MSG.format(url=url, error=str(e)))
         log_error_to_channel(message, LoggerMsg.IMAGE_COMMAND_ERROR.format(url=url, error=e), url)
+    finally:
+        # Every exit (early returns on a fatal gallery-dl error or when the range is done
+        # included) must count the quota and free this run's directory.
+        if not locals().get("_img_quota_recorded"):
+            daily_quota.record(message, daily_quota.IMAGE, locals().get("total_sent") or 0)
+        _cleanup_run_dir(locals().get("run_dir"))
 
 @app.on_callback_query(filters.regex(r"^img_help\|"))
 def img_help_callback(app, callback_query: CallbackQuery):
