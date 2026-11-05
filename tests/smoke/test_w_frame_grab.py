@@ -115,5 +115,65 @@ with tempfile.TemporaryDirectory() as d:
     leftovers = [n for n in os.listdir(d) if ".cand" in n]
     check("no temporary candidates left", not leftovers)
 
+# ---- covers with the video's aspect ratio ----
+from PIL import Image  # noqa: E402
+
+with tempfile.TemporaryDirectory() as d:
+    def img(name, w, h, bars=None):
+        if bars is None:
+            im = Image.effect_mandelbrot((w, h), (-2, -1.5, 1, 1.5), 40).convert("RGB")
+        else:
+            im = Image.new("RGB", (w, h), (0, 0, 0))
+            l, t, r, b = bars
+            im.paste(Image.effect_mandelbrot((r - l, b - t), (-2, -1.5, 1, 1.5), 40).convert("RGB"), (l, t))
+        path = os.path.join(d, name)
+        im.save(path, "JPEG", quality=95)
+        return path
+
+    def run(name, w, h, aw, ah, mw=320, mh=320, **kw):
+        src = img(name + "_src.jpg", w, h, **kw)
+        out = os.path.join(d, name + ".jpg")
+        res = fg.fit_cover_to_aspect(src, out, aw, ah, mw, mh)
+        return res, (Image.open(out).size if res else None), out
+
+    r, sz, _ = run("a", 1280, 720, 1080, 1920)
+    check("horizontal cover -> vertical video 180x320", r and sz == (180, 320))
+    r, sz, _ = run("b", 720, 1280, 1920, 1080)
+    check("vertical cover -> horizontal video 320x180", r and sz == (320, 180))
+    r, sz, _ = run("c", 800, 800, 1920, 1080)
+    check("square cover -> 16:9 video 320x180", r and sz == (320, 180))
+    r, sz, o = run("d", 480, 360, 1920, 1080, bars=(0, 45, 480, 315))
+    check("letterboxed 4:3 -> 320x180", r and sz == (320, 180))
+    if r:
+        top = Image.open(o).convert("L").crop((0, 0, 320, 4))
+        check("black bars removed (top rows have picture)", fg.frame_stats(o)[0] > 10 and
+              sum(top.getdata()) / (320 * 4) > 5)
+    r, sz, _ = run("e", 1280, 720, 1920, 1080, 1280, 1280)
+    check("same ratio kept for paid cover 1280x720", r and sz == (1280, 720))
+    r, sz, _ = run("f", 1280, 720, 1080, 1920, 1280, 1280)
+    check("paid cover vertical video 720x1280", r and sz == (720, 1280))
+    r, sz, o = run("g", 1280, 720, 1920, 1080)
+    check("thumb < 200 KB", r and os.path.getsize(o) < 200 * 1024)
+    check("unreadable image returns False",
+          fg.fit_cover_to_aspect(os.path.join(d, "nope.jpg"), os.path.join(d, "z.jpg"), 16, 9) is False)
+    check("bad aspect returns False",
+          fg.fit_cover_to_aspect(os.path.join(d, "g_src.jpg"), os.path.join(d, "z.jpg"), 0, 9) is False)
+
+    # rotated phone video: stored 640x360 + rotation 90 -> displayed 360x640
+    base = os.path.join(d, "base.mp4")
+    make_video(base, [("pattern", 2)], dur=2)
+    check("plain video display size", fg.video_display_size(base) == (640, 360))
+    rot = os.path.join(d, "rot.mp4")
+    rr = subprocess.run(["ffmpeg", "-y", "-v", "error", "-display_rotation", "90", "-i", base, "-c", "copy", rot],
+                        capture_output=True, text=True)
+    if rr.returncode == 0:
+        check("rotated video shows as 360x640", fg.video_display_size(rot) == (360, 640))
+        ro = os.path.join(d, "rot.jpg")
+        check("frame of rotated video is portrait", fg.grab_representative_frame(rot, 2, ro)
+              and Image.open(ro).size[1] > Image.open(ro).size[0])
+    else:
+        print("SKIP rotation (ffmpeg without -display_rotation)")
+    check("missing video -> (0, 0)", fg.video_display_size(os.path.join(d, "nope.mp4")) == (0, 0))
+
 print(f"\n{ok} passed, {fail} failed")
 sys.exit(1 if fail else 0)

@@ -1,10 +1,14 @@
-"""Pick a representative still frame from a video (cover fallback).
+"""Pick a representative still frame from a video (cover fallback) and make covers
+that have the SAME aspect ratio as the video.
 
-Used when the service gave no cover of its own. The first seconds of a video are
-often a black screen or titles, so the frame is taken from the middle; if the
-middle frame is dark or flat (fade, black transition) a few other positions are
-tried and the most informative frame wins. The result keeps the video's aspect
-ratio (Telegram thumbnails: JPEG, <= 320 px per side, < 200 KB).
+Fallback cover: the first seconds of a video are often a black screen or titles, so
+the frame is taken from the middle; if the middle frame is dark or flat (fade, black
+transition) a few other positions are tried and the most informative frame wins.
+The result keeps the video's aspect ratio (Telegram thumbnails: JPEG, <= 320 px per
+side, < 200 KB).
+
+Service cover: `fit_cover_to_aspect` reshapes it to the video's displayed aspect
+ratio (rotation and non-square pixels taken into account) without stretching.
 """
 import os
 import shutil
@@ -112,7 +116,7 @@ def grab_representative_frame(video_path: str, duration, dest: str, max_w: int =
                 best_path, best_score = cand, score
         ok = False
         if best_path and os.path.exists(best_path):
-            if os.path.getsize(best_path) > MAX_THUMB_BYTES:
+            if os.path.getsize(best_path) > MAX_THUMB_BYTES and max(max_w, max_h) <= 320:
                 # re-encode smaller (Telegram rejects thumbs over 200 KB)
                 small = best_path + '.small.jpg'
                 if _extract(ffmpeg, best_path, 0, small, vfs, 5):
@@ -128,4 +132,115 @@ def grab_representative_frame(video_path: str, duration, dest: str, max_w: int =
         return ok
     except Exception as e:  # never break the upload because of a cover
         logger.warning(f"grab_representative_frame failed for {video_path}: {e}")
+        return False
+
+
+def video_display_size(video_path: str) -> Tuple[int, int]:
+    """(width, height) the video is shown with: rotation metadata and non-square
+    pixels (SAR) applied. (0, 0) if it cannot be probed."""
+    try:
+        import json
+        r = subprocess.run(
+            ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',
+             'stream=width,height,sample_aspect_ratio:stream_tags=rotate:stream_side_data=rotation',
+             '-of', 'json', video_path],
+            capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=30)
+        st = (json.loads(r.stdout).get('streams') or [{}])[0]
+        w, h = int(st.get('width') or 0), int(st.get('height') or 0)
+        if w <= 0 or h <= 0:
+            return 0, 0
+        sar = str(st.get('sample_aspect_ratio') or '1:1')
+        try:
+            n, d = sar.split(':')
+            if int(n) > 0 and int(d) > 0 and n != d:
+                w = max(1, round(w * int(n) / int(d)))
+        except (ValueError, ZeroDivisionError):
+            pass
+        rot = (st.get('tags') or {}).get('rotate')
+        for sd in st.get('side_data_list') or []:
+            if 'rotation' in sd:
+                rot = sd['rotation']
+        try:
+            if round(float(rot)) % 180 == 90:
+                w, h = h, w
+        except (TypeError, ValueError):
+            pass
+        return w, h
+    except Exception:
+        return 0, 0
+
+
+def _strip_black_bars(img, limit: int = 24):
+    """Crop letterbox/pillarbox bars (near-black frame around the picture)."""
+    try:
+        bbox = img.convert('L').point(lambda p: 255 if p > limit else 0).getbbox()
+        if not bbox:
+            return img
+        l, t, r, b = bbox
+        w, h = img.size
+        # only real bars: something is removed, and enough picture is left
+        if (r - l) * (b - t) >= 0.4 * w * h and (r - l < w - 4 or b - t < h - 4):
+            return img.crop(bbox)
+    except Exception:
+        pass
+    return img
+
+
+def fit_cover_to_aspect(src: str, dest: str, aspect_w: int, aspect_h: int,
+                        max_w: int = 320, max_h: int = 320, max_crop: float = 0.35) -> bool:
+    """Make `dest` (JPEG) from the image `src` with the aspect ratio aspect_w:aspect_h.
+
+    Black bars of the source are removed first. A slightly different ratio is fixed by
+    a centre crop (no padding); if that would cut away more than `max_crop` of the
+    picture (square poster on a 16:9 video) the whole picture is kept on a blurred
+    copy of itself. Never stretches. Never raises; False if Pillow cannot read `src`.
+    """
+    try:
+        from PIL import Image, ImageFilter
+        if aspect_w <= 0 or aspect_h <= 0:
+            return False
+        target = aspect_w / aspect_h
+        with Image.open(src) as im:
+            img = im.convert('RGB')
+        img = _strip_black_bars(img)
+        w, h = img.size
+        cur = w / h
+        # output size: longest allowed side, aspect ratio of the video, even sides
+        if target >= 1:
+            ow, oh = max_w, max_w / target
+        else:
+            oh, ow = max_h, max_h * target
+        if ow > max_w or oh > max_h:
+            k = min(max_w / ow, max_h / oh)
+            ow, oh = ow * k, oh * k
+        ow, oh = max(2, int(round(ow))), max(2, int(round(oh)))
+        ow, oh = ow + ow % 2, oh + oh % 2
+
+        lost = 1 - min(cur, target) / max(cur, target)
+        if lost <= max_crop:
+            # centre crop to the target ratio
+            if cur > target:
+                nw = int(round(h * target))
+                box = ((w - nw) // 2, 0, (w - nw) // 2 + nw, h)
+            else:
+                nh = int(round(w / target))
+                box = (0, (h - nh) // 2, w, (h - nh) // 2 + nh)
+            out = img.crop(box).resize((ow, oh), Image.Resampling.LANCZOS)
+        else:
+            bg = img.resize((ow, oh), Image.Resampling.BILINEAR).filter(ImageFilter.GaussianBlur(12))
+            k = min(ow / w, oh / h)
+            fw, fh = max(1, int(round(w * k))), max(1, int(round(h * k)))
+            fg = img.resize((fw, fh), Image.Resampling.LANCZOS)
+            bg.paste(fg, ((ow - fw) // 2, (oh - fh) // 2))
+            out = bg
+
+        quality = 92
+        out.save(dest, 'JPEG', quality=quality, optimize=True)
+        if max(max_w, max_h) <= 320:
+            while os.path.getsize(dest) > MAX_THUMB_BYTES and quality > 50:
+                quality -= 10
+                out.save(dest, 'JPEG', quality=quality, optimize=True)
+        return os.path.getsize(dest) > 0
+    except Exception as e:
+        logger.warning(f"fit_cover_to_aspect failed for {src}: {e}")
         return False

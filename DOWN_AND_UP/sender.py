@@ -402,6 +402,16 @@ def send_videos(
     # (YouTube videos can be vertical even without /shorts/ in URL)
     try:
         width, height, _ = get_video_info_ffprobe(video_abs_path)
+        # size the video is SHOWN with (rotation metadata, non-square pixels): a phone
+        # clip stored 1920x1080 + rotate=90 is portrait; wrong width/height give a
+        # crooked, mismatched preview
+        try:
+            from HELPERS.frame_grab import video_display_size
+            _dw, _dh = video_display_size(video_abs_path)
+            if _dw > 0 and _dh > 0:
+                width, height = _dw, _dh
+        except Exception:
+            pass
         logger.info(f"Video dimensions from ffprobe: {width}x{height}")
     except Exception as e:
         logger.error(safe_get_messages(user_id).SENDER_FFPROBE_BYPASS_ERROR_MSG.format(video_path=video_abs_path, error=e))
@@ -517,6 +527,10 @@ def send_videos(
             """Paid media cover: black bars cropped, aspect ratio kept, up to 1280 px (not a 320 px square)."""
             import subprocess as _sp
             try:
+                if width and height and int(width) > 0 and int(height) > 0:
+                    from HELPERS.frame_grab import fit_cover_to_aspect
+                    if fit_cover_to_aspect(src_path, dest_path, int(width), int(height), 1280, 1280):
+                        return True
                 filters = []
                 crop_str = _detect_crop(src_path)
                 if crop_str:
@@ -683,6 +697,11 @@ def send_videos(
                         import shutil
                         shutil.copy2(src_path, dest_path)
                         logger.info(f"_resize_to_thumb_free: source {img_w}x{img_h} matches target {tw}x{th}, skip resize")
+                        return True
+                # cover with exactly the video's aspect ratio (crop / blurred fill, never stretched)
+                if vw > 0 and vh > 0:
+                    from HELPERS.frame_grab import fit_cover_to_aspect
+                    if fit_cover_to_aspect(src_path, dest_path, vw, vh, 320, 320):
                         return True
                 if is_shorts:
                     result = _thumb_crop_center(src_path, dest_path, tw, th)
