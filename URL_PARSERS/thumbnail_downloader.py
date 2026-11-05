@@ -661,9 +661,14 @@ def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = N
             'write_all_thumbnails': False,
             'outtmpl': outtmpl,
             'noplaylist': True,
+            # noplaylist does not stop a pure playlist URL (youtube.com/playlist?list=...):
+            # without this yt-dlp walks every entry (hundreds of YouTube requests) for one cover
+            'playlist_items': '1',
             'extract_flat': False,
             'socket_timeout': 60,
             'convert_thumbnails': 'jpg',
+            # same JS runtime as the downloads; without it YouTube extraction is degraded
+            'js_runtimes': {'node': {}},
         }
         
         # Add cookies if available
@@ -694,9 +699,10 @@ def download_thumbnail_via_ytdlp(url: str, dest: str, user_id: Optional[int] = N
             with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
                 ydl.download([url])
         except Exception as e:
+            # a playlist cover is written before the first entry is extracted,
+            # so an error on that entry can still leave a usable thumbnail below
             logger.warning(f"yt-dlp download failed: {e}")
-            return False
-        
+
         # Find downloaded thumbnail file
         # yt-dlp saves thumbnails with various extensions
         thumbnail_extensions = ['.jpg', '.jpeg', '.png', '.webp']

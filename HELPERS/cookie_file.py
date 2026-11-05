@@ -119,9 +119,38 @@ def ensure_valid_cookie_file(path):
     return None
 
 
-def validated_cookie_options(options):
-    """Проверить cookiefile непосредственно перед созданием YoutubeDL (#478)."""
+# yt-dlp hands HLS/DASH to ffmpeg without any network timeout: when the server
+# stops answering, ffmpeg waits in poll() forever (2026-11-05: four downloads hung
+# for ~3 h with 0 bytes, the task never finished and kept the bot "busy").
+# -rw_timeout (microseconds) applies to connect and every read, and the HLS demuxer
+# passes it on to each segment request.
+FFMPEG_STALL_TIMEOUT_US = 60_000_000
+
+
+def with_ffmpeg_stall_timeout(options):
+    """Return options with an ffmpeg input -rw_timeout, unless ffmpeg input args are already set."""
+    extra = options.get('external_downloader_args')
+    if extra is None:
+        extra = {}
+    elif isinstance(extra, dict):
+        extra = dict(extra)
+    else:
+        return options  # a plain list applies to every downloader: leave the user's choice alone
+    if any(key in extra for key in ('ffmpeg_i', 'ffmpeg_i1')):
+        return options
+    extra['ffmpeg_i'] = ['-rw_timeout', str(FFMPEG_STALL_TIMEOUT_US)]
     result = options.copy()
+    result['external_downloader_args'] = extra
+    return result
+
+
+def validated_cookie_options(options):
+    """Проверить cookiefile непосредственно перед созданием YoutubeDL (#478).
+
+    Also the single choke point before almost every YoutubeDL(): adds the ffmpeg
+    stall timeout (see with_ffmpeg_stall_timeout).
+    """
+    result = with_ffmpeg_stall_timeout(options.copy())
     if result.get('cookiefile'):
         result['cookiefile'] = ensure_valid_cookie_file(result['cookiefile'])
     return result
