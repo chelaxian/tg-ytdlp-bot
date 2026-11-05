@@ -331,7 +331,12 @@ def safe_send_message(chat_id, text, **kwargs):
     if text and isinstance(text, str) and len(text) > _TELEGRAM_TEXT_LIMIT:
         logger.warning(f"[SAFE_SEND] Text truncated from {len(text)} to {_TELEGRAM_TEXT_LIMIT} chars for chat_id={chat_id}")
         text = text[:_TELEGRAM_TEXT_LIMIT - 1] + '…'
-    logger.info(f"[SAFE_SEND_DEBUG] original_message={original_message}")
+    # Only identifiers: the full Message repr dumped the user's text (cookies from
+    # /save_as_cookie, /args headers) into the journal on every reply - about a third
+    # of all journal lines on DE.
+    logger.info("[SAFE_SEND_DEBUG] original_message=%s", (
+        f"chat={getattr(getattr(original_message, 'chat', None), 'id', None)} "
+        f"id={getattr(original_message, 'id', None)}") if original_message is not None else None)
     logger.info(f"[SAFE_SEND_DEBUG] original_message.message_thread_id={getattr(original_message, 'message_thread_id', None) if original_message else None}")
     logger.info(f"[SAFE_SEND_DEBUG] cb_peek={cb_peek}")
     logger.info(f"[SAFE_SEND_DEBUG] kwargs keys: {list(kwargs.keys())}")

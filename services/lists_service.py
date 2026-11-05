@@ -220,9 +220,15 @@ def _bad_ip(ip: ipaddress._BaseAddress) -> bool:
             or ip.is_multicast or ip.is_unspecified or not ip.is_global)
 
 
-def _validate_url_for_ssrf(url: str) -> Tuple[bool, str]:
+def _validate_url_for_ssrf(url: str, allowed_urls=None) -> Tuple[bool, str]:
+    """(ok, reason). allowed_urls: exact admin-configured URLs (Config.*COOKIE_URL,
+    e.g. the local cookie webserver on http://localhost/...) that skip the host
+    filter. Exact full-URL match only, so the rest of localhost stays blocked.
+    COMMANDS/cookies_cmd.py relies on this parameter."""
     if not url or len(url) > 2000:
         return False, "empty_or_long"
+    if allowed_urls and url in allowed_urls:
+        return True, ""
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         return False, "scheme"

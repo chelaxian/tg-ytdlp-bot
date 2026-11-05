@@ -42,6 +42,24 @@ class Redact(unittest.TestCase):
         out = self.assertClean("proxy socks5://bob:s3cr3tpass@1.2.3.4:1080 failed")
         self.assertIn("socks5://***:***@1.2.3.4:1080", out)
 
+    def test_netscape_cookie_lines(self):
+        value = "AFmmF2swRQIhAKsecretcookievalue"
+        cases = (
+            # real tabs (file content), escaped \t (repr/JSON), spaces (Telegram paste)
+            ".youtube.com\tTRUE\t/\tTRUE\t1790000000\tLOGIN_INFO\t" + value,
+            "text='/save_as_cookie\\n.youtube.com\\tTRUE\\t/\\tFALSE\\t0\\tSID\\t" + value + "\\n'",
+            '"text": "/save_as_cookie\\n.youtube.com  TRUE  /  FALSE  1790000000  SID  ' + value + '",',
+            "/save_as_cookie .youtube.com TRUE / TRUE 1790000000 SID " + value,
+            "#HttpOnly_.instagram.com\tTRUE\t/\tTRUE\t1790000000\tsessionid\t" + value,
+        )
+        for line in cases:
+            with self.subTest(line=line):
+                out = log_redact.redact(line)
+                self.assertNotIn(value, out)
+                self.assertIn("***", out)
+        out = log_redact.redact(cases[0])
+        self.assertTrue(out.startswith(".youtube.com\tTRUE\t/\tTRUE\t1790000000\tLOGIN_INFO\t"), out)
+
     def test_ordinary_lines_untouched(self):
         for line in (
             "Copied cookies to download directory: users/1/downloads/x/cookie.txt",
@@ -50,6 +68,8 @@ class Redact(unittest.TestCase):
             "Add PO token provider for YouTube domains",
             "Downloading https://videos.example.cloud/content_store_412/master.m3u8",
             "[CHANNEL_CHECK] User 7 is member of channel @mychannel",
+            "[debug] params: {'quiet': True, 'noplaylist': True, 'skip_download': True}",
+            "is_true TRUE FALSE flags: TRUE / FALSE",
         ):
             with self.subTest(line=line):
                 self.assertEqual(log_redact.redact(line), line)
