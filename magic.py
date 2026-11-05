@@ -27,6 +27,10 @@ import atexit
 import time
 import threading
 
+# mask user credentials (Bearer tokens, cookies, proxy passwords) in every log line
+from HELPERS import log_redact as _log_redact
+_log_redact.install()
+
 from pyrogram import Client, filters, idle
 # Telegram started sending channel#83259464, unknown to the installed Pyrogram (see HELPERS/tl_compat.py)
 from HELPERS import tl_compat as _tl_compat
