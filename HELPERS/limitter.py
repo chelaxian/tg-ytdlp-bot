@@ -244,6 +244,14 @@ def ensure_group_admin(app, message):
     except Exception:
         return True
 
+def get_file_size_limit_bytes(message=None):
+    """Return the configured download size limit, including the group multiplier."""
+    max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 8)
+    if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
+        max_size_gb *= getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
+    return int(max_size_gb * 1024 ** 3)
+
+
 def check_file_size_limit(info_dict, max_size_bytes=None, message=None):
     """
     Checks if the size of the file is the global limit.
@@ -257,17 +265,7 @@ def check_file_size_limit(info_dict, max_size_bytes=None, message=None):
         return True  # Для админов с отключенными ограничениями всегда разрешаем
     
     if max_size_bytes is None:
-        max_size_gb = getattr(Config, 'MAX_FILE_SIZE_GB', 8)  # GiB
-        # Apply group multiplier for groups/channels (но не для ADMIN_GROUP с отключенными ограничениями)
-        try:
-            if message and getattr(message.chat, 'type', None) != enums.ChatType.PRIVATE:
-                # Проверяем, должны ли применяться ограничения (для ADMIN_GROUP с отключенными ограничениями не применяем множитель)
-                if should_apply_limits_to_admin(user_id=user_id, message=message):
-                    mult = getattr(LimitsConfig, 'GROUP_MULTIPLIER', 1)
-                    max_size_gb = int(max_size_gb * mult)
-        except Exception:
-            pass
-        max_size_bytes = int(max_size_gb * 1024 ** 3)
+        max_size_bytes = get_file_size_limit_bytes(message)
 
     # Check if info_dict is None
     if info_dict is None:
