@@ -225,6 +225,30 @@ def _load_from_disk():
 # ── Background ban executor ──────────────────────────────────────────────
 
 _ban_pool = ThreadPoolExecutor(max_workers=_BAN_POOL_SIZE, thread_name_prefix="antiban")
+_pending_bans = set()
+_pending_bans_lock = threading.Lock()
+
+
+def _submit_ban_task(user_id: int, task):
+    """Avoid queuing the same ban repeatedly while its side effects run."""
+    with _pending_bans_lock:
+        if user_id in _pending_bans:
+            return
+        _pending_bans.add(user_id)
+
+    def run():
+        try:
+            task()
+        finally:
+            with _pending_bans_lock:
+                _pending_bans.discard(user_id)
+
+    try:
+        _ban_pool.submit(run)
+    except Exception:
+        with _pending_bans_lock:
+            _pending_bans.discard(user_id)
+        raise
 
 
 def _do_ban_async(user_id: int, reason: str):
@@ -269,7 +293,7 @@ def _do_ban_async(user_id: int, reason: str):
         except Exception as exc:
             logger.error(f"Failed to notify admins about {user_id}: {exc}")
 
-    _ban_pool.submit(_task)
+    _submit_ban_task(user_id, _task)
 
 
 # ── Lazy cleanup helpers ─────────────────────────────────────────────────
