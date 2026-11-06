@@ -94,6 +94,12 @@ def find_executable() -> Optional[str]:
     configured = str(_cfg("BROWSER_EXECUTABLE", "") or "").strip()
     if configured:
         return configured if os.path.isfile(configured) else None
+    import glob
+    for pattern in ("/opt/tg-browser/browsers/chromium-*/chrome-linux*/chrome",
+                    os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-linux*/chrome")):
+        found = sorted(glob.glob(pattern))          # Playwright-installed Chromium (the only ARM64 build)
+        if found:
+            return found[-1]
     for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "chrome",
                  "microsoft-edge", "msedge", "brave-browser"):
         found = shutil.which(name)
@@ -315,6 +321,26 @@ def _user_agent_fix(executable: str) -> Optional[str]:
         return None
 
 
+def _run_as():
+    """(pw_entry) of the unprivileged user Chromium should run as, or None (run as the current user)."""
+    if not hasattr(os, "geteuid") or os.geteuid() != 0:
+        return None
+    name = str(_cfg("BROWSER_RUN_AS", "tgbrowser") or "").strip()
+    if not name:
+        return None
+    try:
+        import pwd
+        entry = pwd.getpwnam(name)
+    except (ImportError, KeyError):
+        return None
+    return entry if entry.pw_uid != 0 else None
+
+
+def _profile_dir() -> Path:
+    entry = _run_as()
+    return Path(entry.pw_dir) / "tg-browser-profile" if entry else PROFILE_DIR
+
+
 def start() -> Dict[str, Any]:
     """Launch Chromium (detached) unless it is already up."""
     if not enabled():
@@ -324,14 +350,18 @@ def start() -> Dict[str, Any]:
     exe = find_executable()
     if not exe:
         raise BrowserError("no_browser")
-    PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    entry = _run_as()
+    profile = _profile_dir()
+    profile.mkdir(parents=True, exist_ok=True)
     try:
-        os.chmod(PROFILE_DIR, 0o700)
+        if entry:
+            os.chown(profile, entry.pw_uid, entry.pw_gid)
+        os.chmod(profile, 0o700)
     except OSError:
         pass
     args = [
         exe, "--headless=new", f"--remote-debugging-port={cdp_port()}", f"--remote-debugging-address={CDP_HOST}",
-        f"--user-data-dir={PROFILE_DIR}", f"--window-size={VIEWPORT[0]},{VIEWPORT[1]}",
+        f"--user-data-dir={profile}", f"--window-size={VIEWPORT[0]},{VIEWPORT[1]}",
         "--force-device-scale-factor=1", "--no-first-run", "--no-default-browser-check",
         "--disable-blink-features=AutomationControlled", "--disable-background-networking",
         "--disable-sync", "--disable-dev-shm-usage", "--password-store=basic", "--lang=en-US",
@@ -343,30 +373,39 @@ def start() -> Dict[str, Any]:
     ua = _user_agent_fix(exe)
     if ua:
         args.append(f"--user-agent={ua}")
-    if hasattr(os, "geteuid") and os.geteuid() == 0:
+    if hasattr(os, "geteuid") and os.geteuid() == 0 and not entry:
         args.append("--no-sandbox")                      # Chromium refuses to run as root otherwise
     args.append("about:blank")
     kwargs: Dict[str, Any] = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    if entry:
+        kwargs.update(user=entry.pw_uid, group=entry.pw_gid, extra_groups=[],
+                      env={"HOME": entry.pw_dir, "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LANG": "C.UTF-8"})
     if sys.platform == "win32":
         kwargs["creationflags"] = 0x00000008 | 0x00000200   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
     else:
         kwargs["start_new_session"] = True                  # survives dashboard / bot restarts
-    try:
-        proc = subprocess.Popen(args, **kwargs)
-    except OSError as exc:
-        raise BrowserError(f"launch_failed: {exc}") from exc
-    try:
-        PID_FILE.write_text(str(proc.pid))
-    except OSError:
-        pass
-    deadline = time.monotonic() + 20
-    while time.monotonic() < deadline:
-        if is_running():
-            return {"started": True, "pid": proc.pid}
-        if proc.poll() is not None:
-            raise BrowserError("launch_failed: exited early")
-        time.sleep(0.3)
-    raise BrowserError("launch_timeout")
+    for attempt in (0, 1):
+        launch = args if attempt == 0 or "--no-sandbox" in args else args[:-1] + ["--no-sandbox", args[-1]]
+        try:
+            proc = subprocess.Popen(launch, **kwargs)
+        except OSError as exc:
+            raise BrowserError(f"launch_failed: {exc}") from exc
+        try:
+            PID_FILE.write_text(str(proc.pid))
+        except OSError:
+            pass
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if is_running():
+                return {"started": True, "pid": proc.pid, "sandbox": "--no-sandbox" not in launch}
+            if proc.poll() is not None:
+                break                                    # died: retry once without the sandbox
+            time.sleep(0.3)
+        else:
+            raise BrowserError("launch_timeout")
+        if "--no-sandbox" in launch:
+            break
+    raise BrowserError("launch_failed: exited early")
 
 
 def stop() -> bool:

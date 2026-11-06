@@ -94,6 +94,15 @@ check("bad tab id rejected", c.post("/api/browser/tab/close", json={"id": "../et
 check("post needs csrf", c.post("/api/browser/start", json={}, headers=SAME).status_code == 403)
 check("blocked url refused", c.post("/api/browser/navigate", json={"id": "A" * 12, "url": "http://127.0.0.1"}, headers=H).status_code in (400, 409))
 
+# the read-only preview blocks everything except the browser tab
+import web.dashboard_app as dash  # noqa: E402
+dash.PREVIEW_READ_ONLY = True
+check("read-only: browser start still allowed (409 = reached the handler or started)",
+      c.post("/api/browser/tab", json={"url": "about:blank"}, headers=H).status_code in (200, 409))
+check("read-only: settings stay blocked", c.post("/api/settings", json={"PROXY_PORT": 1}, headers=H).status_code == 403)
+check("read-only: jobs stay blocked", c.post("/api/jobs/restart-bot", json={"mode": "now"}, headers=H).status_code == 403)
+dash.PREVIEW_READ_ONLY = False
+
 exe = bs.find_executable()
 if not exe:
     print("SKIP live browser tests: no Chromium/Chrome found")

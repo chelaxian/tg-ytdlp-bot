@@ -110,7 +110,9 @@ class GuardMiddleware(BaseHTTPMiddleware):
             request.state.token = token
 
         if request.method not in ("GET", "HEAD", "OPTIONS"):
-            if PREVIEW_READ_ONLY and path not in {"/api/login", "/api/logout", "/api/change-password"}:
+            # The browser tab only drives the separate Chromium session; it cannot change bot settings,
+            # bans or restarts, so it stays usable in the read-only preview.
+            if PREVIEW_READ_ONLY and path not in {"/api/login", "/api/logout", "/api/change-password"}                     and not path.startswith("/api/browser/"):
                 return self._headers(JSONResponse({"error": "preview_read_only"}, status_code=403), request)
             if not security.same_origin(request):
                 return self._headers(JSONResponse({"error": "bad_origin"}, status_code=403), request)
@@ -714,9 +716,6 @@ def api_browser_input(body: BrowserInputBody):
 
 @app.get("/api/browser/screen")
 def api_browser_screen(id: str = Query(..., min_length=8, max_length=64, pattern=r"^[A-Za-z0-9]+$")):
-    if PREVIEW_READ_ONLY:
-        # a live stream of logged-in pages is not part of the read-only preview
-        return JSONResponse({"error": "preview_read_only"}, status_code=403)
     data, err = _browser_call(browser_session.screenshot, id)
     if err:
         return err
