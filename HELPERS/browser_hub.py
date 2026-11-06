@@ -1,0 +1,410 @@
+"""Persistent control channel to the live browser, used by the dashboard.
+
+Why it exists: opening a new DevTools connection and polling a screenshot for every
+frame made the browser tab feel slow (about 1 frame per second, every click paid a
+handshake). The hub keeps ONE websocket to the browser and multiplexes every page
+over it (CDP "flat" sessions):
+
+* frames are pushed by Chromium (Page.startScreencast) only when the picture
+  changes, already scaled down and JPEG-compressed; a static login page costs nothing;
+* clicks and keys go over the open connection;
+* page zoom is an emulated viewport (Emulation.setDeviceMetricsOverride): zoom 50%
+  makes the page lay out in a window twice as large, so more of it fits;
+* every page gets a normal-Chrome identity (client-hint brands, no webdriver flag, no
+  passkey prompts, a real-looking WebGL vendor) so Google sign-in does not treat it as an
+  unsupported "automated" browser.
+
+The hub lives in the dashboard process and reconnects by itself. The browser process
+and its cookies are unaffected when the dashboard restarts.
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+import logging
+import platform
+import queue
+import threading
+import time
+from typing import Any, Dict, Optional, Tuple
+
+from HELPERS import browser_session as bs
+from HELPERS.browser_session import BrowserError
+
+logger = logging.getLogger(__name__)
+
+BASE_W, BASE_H = 1280, 800                      # viewport at 100% zoom
+ZOOM_MIN, ZOOM_MAX = 0.5, 2.0
+PROFILES = {"fast": (35, 800), "normal": (55, 1100), "sharp": (75, 1500)}   # jpeg quality, max frame width
+CAST_IDLE = 15.0                                # stop screencasting a tab nobody looks at
+CALL_TIMEOUT = 10.0
+
+STEALTH = r"""(() => { try {
+  Object.defineProperty(navigator, 'webdriver', { get: () => false });
+  if (!window.chrome) window.chrome = { runtime: {} };
+  try { delete window.PublicKeyCredential; } catch (e) {}
+  try { if (navigator.credentials) navigator.credentials.get = () => Promise.reject(new DOMException('NotAllowedError', 'NotAllowedError')); } catch (e) {}
+  const patch = (proto) => { if (!proto) return; const get = proto.getParameter;
+    proto.getParameter = function (p) { if (p === 37445) return 'Google Inc. (ARM)';
+      if (p === 37446) return 'ANGLE (ARM, Mali-G78, OpenGL ES 3.2)'; return get.call(this, p); }; };
+  patch(window.WebGLRenderingContext && WebGLRenderingContext.prototype);
+  patch(window.WebGL2RenderingContext && WebGL2RenderingContext.prototype);
+} catch (e) {} })();"""
+
+
+class Frame:
+    __slots__ = ("seq", "data", "vw", "vh")
+
+    def __init__(self, seq: int, data: bytes, vw: int, vh: int):
+        self.seq, self.data, self.vw, self.vh = seq, data, vw, vh
+
+
+class BrowserHub:
+    def __init__(self) -> None:
+        self._lock = threading.RLock()
+        self._cond = threading.Condition(self._lock)
+        self._send_lock = threading.Lock()
+        self._attach_lock = threading.Lock()
+        self._ws: Optional[bs._WebSocket] = None
+        self._thread: Optional[threading.Thread] = None
+        self._next_id = 0
+        self._pending: Dict[int, list] = {}
+        self._sessions: Dict[str, str] = {}          # targetId -> sessionId
+        self._by_session: Dict[str, str] = {}
+        self._zoom: Dict[str, float] = {}
+        self._frames: Dict[str, Frame] = {}
+        self._cast: Dict[str, Tuple[int, int, int, int]] = {}   # active screencast: quality, width, vw, vh
+        self._want: Dict[str, float] = {}
+        self._seq = 0
+        self._attach_q: "queue.Queue[str]" = queue.Queue()
+        self._ua: Optional[Dict[str, Any]] = None
+
+    # ------------------------------------------------------------ connection
+    def ensure(self) -> None:
+        """Connect (or reconnect) and attach to every open page. Raises BrowserError when the browser is down."""
+        with self._lock:
+            if self._ws is not None and self._thread is not None and self._thread.is_alive():
+                return
+            ws = bs._WebSocket(bs._browser_ws(), timeout=15)
+            self._ws = ws
+            self._sessions.clear(); self._by_session.clear(); self._frames.clear(); self._cast.clear(); self._want.clear()
+            self._thread = threading.Thread(target=self._run, args=(ws,), daemon=True, name="browser-hub")
+            self._thread.start()
+            threading.Thread(target=self._attach_worker, args=(ws,), daemon=True, name="browser-hub-attach").start()
+        self._call("Target.setDiscoverTargets", {"discover": True})
+        for info in (self._call("Target.getTargets").get("targetInfos") or []):
+            if info.get("type") == "page":
+                self._attach(info["targetId"])
+
+    def _teardown(self, ws) -> None:
+        with self._lock:
+            if self._ws is ws:
+                self._ws = None
+            self._sessions.clear(); self._by_session.clear(); self._cast.clear(); self._want.clear()
+            for slot in self._pending.values():
+                slot[1] = {"_error": "not_running"}
+                slot[0].set()
+            self._pending.clear()
+            self._cond.notify_all()
+        ws.close()
+
+    def _run(self, ws) -> None:
+        try:
+            while self._ws is ws:
+                if not ws.readable(1.0):
+                    self._tick()
+                    continue
+                self._dispatch(json.loads(ws.recv()))
+                self._tick()
+        except (BrowserError, OSError, ValueError) as exc:
+            logger.info("[browser-hub] connection closed: %s", exc)
+        except Exception:
+            logger.exception("[browser-hub] reader failed")
+        finally:
+            self._teardown(ws)
+
+    def _attach_worker(self, ws) -> None:
+        while self._ws is ws:
+            try:
+                tid = self._attach_q.get(timeout=1.0)
+            except queue.Empty:
+                continue
+            try:
+                self._attach(tid)
+            except BrowserError:
+                pass
+
+    # ------------------------------------------------------------ messaging
+    def _send(self, method: str, params: Optional[dict], session: Optional[str], slot: Optional[list]) -> None:
+        with self._send_lock:
+            ws = self._ws
+            if ws is None:
+                raise BrowserError("not_running")
+            with self._lock:
+                self._next_id += 1
+                mid = self._next_id
+                if slot is not None:
+                    self._pending[mid] = slot
+            msg: Dict[str, Any] = {"id": mid, "method": method, "params": params or {}}
+            if session:
+                msg["sessionId"] = session
+            try:
+                ws.send(json.dumps(msg))
+            except OSError as exc:
+                raise BrowserError("not_running") from exc
+
+    def _call(self, method: str, params: Optional[dict] = None, session: Optional[str] = None,
+              timeout: float = CALL_TIMEOUT) -> dict:
+        slot = [threading.Event(), None]
+        self._send(method, params, session, slot)
+        if not slot[0].wait(timeout):
+            raise BrowserError("cdp_timeout")
+        result = slot[1] or {}
+        if "_error" in result:
+            raise BrowserError(result["_error"])
+        return result
+
+    def _dispatch(self, msg: dict) -> None:
+        if "id" in msg:
+            with self._lock:
+                slot = self._pending.pop(msg["id"], None)
+            if slot is not None:
+                if "error" in msg:
+                    slot[1] = {"_error": "cdp_error: " + str(msg["error"].get("message", ""))[:200]}
+                else:
+                    slot[1] = msg.get("result") or {}
+                slot[0].set()
+            return
+        method, params = msg.get("method"), msg.get("params") or {}
+        if method == "Page.screencastFrame":
+            session = msg.get("sessionId")
+            try:
+                self._send("Page.screencastFrameAck", {"sessionId": params.get("sessionId")}, session, None)
+            except BrowserError:
+                pass
+            with self._lock:
+                tid = self._by_session.get(session or "")
+                if tid:
+                    vw, vh = self._viewport(tid)
+                    self._seq += 1
+                    self._frames[tid] = Frame(self._seq, base64.b64decode(params.get("data", "")), vw, vh)
+                    self._cond.notify_all()
+        elif method == "Target.targetCreated":
+            info = params.get("targetInfo") or {}
+            if info.get("type") == "page" and info.get("targetId") not in self._sessions:
+                self._attach_q.put(info["targetId"])
+        elif method in ("Target.targetDestroyed", "Target.detachedFromTarget"):
+            tid = params.get("targetId") or self._by_session.get(params.get("sessionId") or "")
+            if tid:
+                self._forget(tid)
+
+    def _forget(self, tid: str) -> None:
+        with self._lock:
+            sid = self._sessions.pop(tid, None)
+            if sid:
+                self._by_session.pop(sid, None)
+            for table in (self._zoom, self._frames, self._cast, self._want):
+                table.pop(tid, None)
+            self._cond.notify_all()
+
+    def _tick(self) -> None:
+        """Stop the screencast of tabs nobody has asked a frame from for a while."""
+        now = time.monotonic()
+        with self._lock:
+            idle = [tid for tid in list(self._cast) if self._want.get(tid, 0) < now]
+        for tid in idle:
+            sid = self._sessions.get(tid)
+            with self._lock:
+                self._cast.pop(tid, None)
+            if sid:
+                try:
+                    self._send("Page.stopScreencast", {}, sid, None)
+                except BrowserError:
+                    pass
+
+    # ------------------------------------------------------------ pages
+    def _identity(self) -> Dict[str, Any]:
+        if self._ua is None:
+            info = self._call("Browser.getVersion")
+            product = str(info.get("product", "Chrome/156.0.0.0"))
+            full = product.split("/", 1)[-1]
+            major = full.split(".", 1)[0]
+            arch = "arm" if platform.machine().lower() in ("aarch64", "arm64") else "x86"
+            self._ua = {
+                "userAgent": f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{major}.0.0.0 Safari/537.36",
+                "acceptLanguage": "en-US,en;q=0.9",
+                "platform": "Linux x86_64",
+                "userAgentMetadata": {
+                    "brands": [{"brand": "Not:A-Brand", "version": "8"}, {"brand": "Chromium", "version": major},
+                               {"brand": "Google Chrome", "version": major}],
+                    "fullVersionList": [{"brand": "Not:A-Brand", "version": "8.0.0.0"}, {"brand": "Chromium", "version": full},
+                                        {"brand": "Google Chrome", "version": full}],
+                    "platform": "Linux", "platformVersion": "6.5.0", "architecture": arch, "model": "",
+                    "mobile": False, "bitness": "64", "wow64": False,
+                },
+            }
+        return self._ua
+
+    def _attach(self, tid: str) -> str:
+        with self._attach_lock:
+            with self._lock:
+                if tid in self._sessions:
+                    return self._sessions[tid]
+            res = self._call("Target.attachToTarget", {"targetId": tid, "flatten": True})
+            sid = res.get("sessionId")
+            if not sid:
+                raise BrowserError("no_such_tab")
+            with self._lock:
+                self._sessions[tid] = sid
+                self._by_session[sid] = tid
+            for method, params in (
+                ("Page.enable", {}),
+                ("Emulation.setUserAgentOverride", self._identity()),
+                ("Page.addScriptToEvaluateOnNewDocument", {"source": STEALTH}),
+                ("Runtime.evaluate", {"expression": STEALTH}),
+            ):
+                try:
+                    self._call(method, params, sid)
+                except BrowserError as exc:
+                    logger.debug("[browser-hub] %s failed: %s", method, exc)
+            self._apply_zoom(tid, sid)
+            return sid
+
+    def _session(self, tid: str, wait: float = 3.0) -> str:
+        bs._check_id(tid)
+        self.ensure()
+        with self._lock:
+            sid = self._sessions.get(tid)
+        if sid:
+            return sid
+        deadline = time.monotonic() + wait
+        while True:
+            try:
+                return self._attach(tid)
+            except BrowserError as exc:
+                if time.monotonic() > deadline or str(exc) not in ("no_such_tab", "cdp_error: No target with given id found"):
+                    raise BrowserError("no_such_tab") from exc
+                time.sleep(0.2)
+
+    def _viewport(self, tid: str) -> Tuple[int, int]:
+        z = self._zoom.get(tid, 1.0)
+        return round(BASE_W / z), round(BASE_H / z)
+
+    def _apply_zoom(self, tid: str, sid: str) -> None:
+        vw, vh = self._viewport(tid)
+        self._call("Emulation.setDeviceMetricsOverride",
+                   {"width": vw, "height": vh, "deviceScaleFactor": 1, "mobile": False, "screenWidth": vw, "screenHeight": vh}, sid)
+
+    # ------------------------------------------------------------ public API
+    def zoom(self, tid: str) -> float:
+        return self._zoom.get(tid, 1.0)
+
+    def set_zoom(self, tid: str, zoom: float) -> float:
+        sid = self._session(tid)
+        z = max(ZOOM_MIN, min(ZOOM_MAX, round(float(zoom), 2)))
+        with self._lock:
+            self._zoom[tid] = z
+            self._cast.pop(tid, None)
+            self._frames.pop(tid, None)
+        self._apply_zoom(tid, sid)
+        try:
+            self._send("Page.stopScreencast", {}, sid, None)
+        except BrowserError:
+            pass
+        return z
+
+    def new_tab(self, url: str = "about:blank") -> str:
+        """Create a tab, give it the browser identity, then open the URL (so even the first request is covered)."""
+        target = "about:blank" if url == "about:blank" else bs.normalize_url(url)
+        self.ensure()
+        tid = self._call("Target.createTarget", {"url": "about:blank"}).get("targetId", "")
+        sid = self._session(tid)
+        if target != "about:blank":
+            self._call("Page.navigate", {"url": target}, sid)
+        return tid
+
+    def close_tab(self, tid: str) -> None:
+        bs._check_id(tid)
+        self.ensure()
+        self._call("Target.closeTarget", {"targetId": tid})
+
+    def activate(self, tid: str) -> None:
+        bs._check_id(tid)
+        self.ensure()
+        self._call("Target.activateTarget", {"targetId": tid})
+
+    def navigate(self, tid: str, url: str) -> None:
+        self._call("Page.navigate", {"url": bs.normalize_url(url)}, self._session(tid))
+
+    def history(self, tid: str, action: str) -> None:
+        sid = self._session(tid)
+        if action == "reload":
+            self._call("Page.reload", {}, sid)
+            return
+        if action not in ("back", "forward"):
+            raise BrowserError("bad_action")
+        hist = self._call("Page.getNavigationHistory", {}, sid)
+        index = hist.get("currentIndex", 0) + (-1 if action == "back" else 1)
+        entries = hist.get("entries") or []
+        if 0 <= index < len(entries):
+            self._call("Page.navigateToHistoryEntry", {"entryId": entries[index]["id"]}, sid)
+
+    def input(self, tid: str, kind: str, **p: Any) -> None:
+        sid = self._session(tid)
+        vw, vh = self._viewport(tid)
+        for method, params in bs.build_input_calls(kind, vw, vh, **p):
+            self._send(method, params, sid, None)         # in order, no round trip per event
+        with self._lock:
+            self._want[tid] = time.monotonic() + CAST_IDLE
+
+    def evaluate(self, tid: str, expression: str) -> Any:
+        res = self._call("Runtime.evaluate", {"expression": expression, "returnByValue": True, "awaitPromise": True},
+                         self._session(tid))
+        return (res.get("result") or {}).get("value")
+
+    def frame(self, tid: str, since: int = 0, profile: str = "fast", wait: float = 3.0) -> Optional[Frame]:
+        """The next picture newer than `since`; None when nothing changed within `wait` seconds."""
+        sid = self._session(tid)
+        quality, max_w = PROFILES.get(profile, PROFILES["fast"])
+        vw, vh = self._viewport(tid)
+        wanted = (quality, max_w, vw, vh)
+        with self._lock:
+            self._want[tid] = time.monotonic() + CAST_IDLE
+            current = self._cast.get(tid)
+        if current != wanted:
+            with self._lock:
+                self._cast[tid] = wanted
+            if current is not None:
+                self._send("Page.stopScreencast", {}, sid, None)
+            self._send("Page.startScreencast", {"format": "jpeg", "quality": quality, "maxWidth": max_w,
+                                                "maxHeight": max(1, round(max_w * vh / vw)), "everyNthFrame": 1}, sid, None)
+        started = time.monotonic()
+        deadline = started + wait
+        with self._cond:
+            while True:
+                fr = self._frames.get(tid)
+                if fr is not None and fr.seq > since:
+                    return fr
+                now = time.monotonic()
+                if now >= deadline:
+                    break
+                if fr is None and now - started > 1.0:
+                    break                                   # a still page may never emit a frame: take one picture
+                self._cond.wait(min(0.25, deadline - now))
+        if self._frames.get(tid) is None or since == 0:
+            try:
+                res = self._call("Page.captureScreenshot", {
+                    "format": "jpeg", "quality": quality, "optimizeForSpeed": True,
+                    "clip": {"x": 0, "y": 0, "width": vw, "height": vh, "scale": min(1.0, max_w / vw)}}, sid)
+                with self._lock:
+                    self._seq += 1
+                    fr = Frame(self._seq, base64.b64decode(res["data"]), vw, vh)
+                    self._frames[tid] = fr
+                return fr
+            except (BrowserError, KeyError, ValueError):
+                return None
+        return None
+
+
+hub = BrowserHub()
