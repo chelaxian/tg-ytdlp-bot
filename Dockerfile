@@ -80,7 +80,7 @@ RUN if [ "$INSTALL_DASHBOARD" = "1" ]; then \
         && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 RUN if [ "$INSTALL_DASHBOARD" = "1" ] && [ "$INSTALL_BROWSER" = "1" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends chromium fonts-liberation \
+        apt-get update && apt-get install -y --no-install-recommends chromium xvfb fonts-liberation \
         && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 

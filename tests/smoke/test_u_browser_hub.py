@@ -68,11 +68,11 @@ else:
         check("webdriver is false", ident["wd"] is False)
         check("client hints include Google Chrome", "Google Chrome" in ident["brands"], ident)
         check("user agent is not headless", "Headless" not in ident["ua"], ident["ua"])
-        check("no passkey API (no passkey prompts)", ident["pk"] == "undefined", ident)
+        check("passkey API is the native one (no patching)", ident["pk"] == "function", ident)
         check("window.chrome exists", ident["chrome"] == "object")
         hub.navigate(tid, "https://example.com")
         time.sleep(2.5)
-        check("identity survives navigation", hub.evaluate(tid, "typeof window.PublicKeyCredential") == "undefined")
+        check("identity survives navigation", hub.evaluate(tid, "navigator.webdriver") is False)
 
         # frames
         t0 = time.time()
@@ -91,6 +91,9 @@ else:
         check("page change is pushed", changed is not None and changed.seq > fr.seq, changed)
         check("push latency under 1 s", changed is not None and (time.time() - t0) < 1.0, time.time() - t0)
 
+        # at 100%
+        check("screen is a real monitor, larger than the window", hub.evaluate(
+            tid, "screen.width >= outerWidth && screen.height >= outerHeight && screen.width === 1920") is True)
         # zoom
         z = hub.set_zoom(tid, 0.5)
         check("zoom out accepted", z == 0.5)
@@ -105,10 +108,12 @@ else:
         hub.set_zoom(tid, 0.5)
         time.sleep(0.3)
         check("outerWidth follows the emulated page (zoom 50%)", hub.evaluate(tid, "outerWidth >= innerWidth && outerHeight >= innerHeight") is True)
-        check("WebRTC cannot reveal the server address (relay only)",
-              hub.evaluate(tid, "new RTCPeerConnection({iceServers: []}).getConfiguration().iceTransportPolicy") == "relay")
+        check("browser APIs are native (nothing patched that a site could spot)", hub.evaluate(
+            tid, "[String(RTCPeerConnection), String(navigator.credentials.get), "
+                 "String(WebGLRenderingContext.prototype.getParameter)].every(s => s.includes('[native code]'))") is True)
         check("navigator.languages matches Accept-Language", hub.evaluate(tid, "navigator.languages.join()") == "en-US,en")
-        check("deviceMemory within spec", hub.evaluate(tid, "navigator.deviceMemory") == 8)
+        check("no Object.defineProperty on navigator", hub.evaluate(
+            tid, "Object.getOwnPropertyNames(navigator).length") == 0)
         check("Notification.permission looks like a normal profile", hub.evaluate(tid, "Notification.permission") == "default")
         hub.set_zoom(tid, 1.0)
 
@@ -127,7 +132,7 @@ else:
 
         # tabs
         tid2 = hub.new_tab("about:blank")
-        check("second tab has the same identity", hub.evaluate(tid2, "typeof window.PublicKeyCredential") == "undefined")
+        check("second tab has the same identity", hub.evaluate(tid2, "navigator.webdriver") is False)
         hub.close_tab(tid2)
         time.sleep(0.5)
         check("closed tab is forgotten", tid2 not in hub._sessions)
@@ -177,8 +182,8 @@ else:
         check("popup got the browser identity before its first request", "Google Chrome" in seen.get("sec_ch_ua", ""), seen)
         msgs = _json.loads(hub.evaluate(tab_a, "JSON.stringify(window.msgs)") or "[]")
         check("popup talks to its opener", bool(msgs) and msgs[0].get("hasOpener") is True, msgs)
-        check("popup identity: brands, no passkey, no webdriver", bool(msgs) and "Google Chrome" in msgs[0].get("brands", [])
-              and msgs[0].get("pk") == "undefined" and msgs[0].get("wd") is False, msgs)
+        check("popup identity: brands, native passkey API, no webdriver", bool(msgs) and "Google Chrome" in msgs[0].get("brands", [])
+              and msgs[0].get("pk") == "function" and msgs[0].get("wd") is False, msgs)
         if popup:
             check("popup is controllable by the hub", hub.evaluate(popup[0], "document.body.innerText") == "popup")
             hub.close_tab(popup[0])

@@ -45,47 +45,19 @@ BLOCKED_MEDIA = ["*.mp4", "*.mp4?*", "*.webm", "*.webm?*", "*.m3u8", "*.m3u8?*",
 CAST_IDLE = 15.0                                # stop screencasting a tab nobody looks at
 CALL_TIMEOUT = 10.0
 
+# Only for the headless fallback (no Xvfb): a windowed Chrome needs no patches at all. Kept to the two traits headless
+# really differs in; everything else (webdriver, languages, WebGL, WebRTC, passkeys) is native.
 STEALTH = r"""(() => { try {
-  const def = (obj, key, value) => { try { Object.defineProperty(obj, key, { get: () => value, configurable: true }); } catch (e) {} };
-  def(navigator, 'webdriver', false);
-  def(navigator, 'languages', ['en-US', 'en']);          // matches the Accept-Language header
-  def(navigator, 'deviceMemory', 8);                      // the API never reports more than 8
-  // a real window is never smaller than the page area inside it (zoom changes the emulated page size)
   try { Object.defineProperty(window, 'outerWidth', { get: () => window.innerWidth, configurable: true }); } catch (e) {}
-  try { Object.defineProperty(window, 'outerHeight', { get: () => window.innerHeight + 85, configurable: true }); } catch (e) {}
+  try { Object.defineProperty(window, 'outerHeight', { get: () => window.innerHeight + 87, configurable: true }); } catch (e) {}
   try {
-    if (!window.Notification) {                           // headless builds may lack the API a normal profile has
+    if (!window.Notification) {
       const N = function Notification() {};
       N.requestPermission = () => Promise.resolve('default');
       window.Notification = N;
     }
     Object.defineProperty(Notification, 'permission', { get: () => 'default', configurable: true });
   } catch (e) {}
-  if (!window.chrome) window.chrome = {};
-  const c = window.chrome;
-  c.app = c.app || { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },
-    RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' } };
-  c.runtime = c.runtime || {};
-  c.loadTimes = c.loadTimes || (() => ({}));
-  c.csi = c.csi || (() => ({}));
-  // WebRTC would show the server's own address next to the proxy's: only relayed candidates (there are none) are allowed
-  try {
-    for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection']) {
-      const Orig = window[name];
-      if (!Orig) continue;
-      const Patched = function (config, constraints) { return new Orig(Object.assign({}, config || {}, { iceTransportPolicy: 'relay' }), constraints); };
-      Patched.prototype = Orig.prototype;
-      Object.setPrototypeOf(Patched, Orig);
-      window[name] = Patched;
-    }
-  } catch (e) {}
-  try { delete window.PublicKeyCredential; } catch (e) {}   // no passkey prompts
-  try { if (navigator.credentials) navigator.credentials.get = () => Promise.reject(new DOMException('NotAllowedError', 'NotAllowedError')); } catch (e) {}
-  const patch = (proto) => { if (!proto) return; const get = proto.getParameter;
-    proto.getParameter = function (p) { if (p === 37445) return 'Google Inc. (Intel)';
-      if (p === 37446) return 'ANGLE (Intel, Mesa Intel(R) UHD Graphics 620 (KBL GT2), OpenGL 4.6)'; return get.call(this, p); }; };
-  patch(window.WebGLRenderingContext && WebGLRenderingContext.prototype);
-  patch(window.WebGL2RenderingContext && WebGL2RenderingContext.prototype);
 } catch (e) {} })();"""
 
 
@@ -115,6 +87,7 @@ class BrowserHub:
         self._seq = 0
         self._attach_q: "queue.Queue[tuple]" = queue.Queue()
         self._ua: Optional[Dict[str, Any]] = None
+        self._is_headless: Optional[bool] = None
         self._last_frame: Dict[str, float] = {}
         self._ready: set = set()                       # targets whose identity script / emulation is installed
 
@@ -128,6 +101,7 @@ class BrowserHub:
             self._ws = ws
             self._sessions.clear(); self._by_session.clear(); self._frames.clear(); self._cast.clear(); self._want.clear()
             self._ready.clear()
+            self._is_headless = None                     # the browser may have restarted in another mode
             self._thread = threading.Thread(target=self._run, args=(ws,), daemon=True, name="browser-hub")
             self._thread.start()
             threading.Thread(target=self._attach_worker, args=(ws,), daemon=True, name="browser-hub-attach").start()
@@ -313,6 +287,12 @@ class BrowserHub:
             pass
 
     # ------------------------------------------------------------ pages
+    def _headless(self) -> bool:
+        """Headless fallback only: a windowed Chrome (Xvfb) keeps its own, genuine identity."""
+        if self._is_headless is None:
+            self._is_headless = not bs.is_windowed()
+        return self._is_headless
+
     def _identity(self) -> Dict[str, Any]:
         if self._ua is None:
             info = self._call("Browser.getVersion")
@@ -322,7 +302,7 @@ class BrowserHub:
             arch = "arm" if platform.machine().lower() in ("aarch64", "arm64") else "x86"
             self._ua = {
                 "userAgent": f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{major}.0.0.0 Safari/537.36",
-                "acceptLanguage": "en-US,en;q=0.9",
+                "acceptLanguage": "en-US,en",            # Chrome adds the q-values to the header itself
                 "platform": "Linux x86_64",
                 "userAgentMetadata": {
                     "brands": [{"brand": "Not:A-Brand", "version": "8"}, {"brand": "Chromium", "version": major},
@@ -340,9 +320,9 @@ class BrowserHub:
             ("Page.enable", {}),
             ("Network.enable", {}),
             ("Network.setBlockedURLs", {"urls": BLOCKED_MEDIA}),
-            ("Emulation.setUserAgentOverride", self._identity()),
-            ("Page.addScriptToEvaluateOnNewDocument", {"source": STEALTH}),
-            ("Runtime.evaluate", {"expression": STEALTH}),
+            *((("Emulation.setUserAgentOverride", self._identity()),
+               ("Page.addScriptToEvaluateOnNewDocument", {"source": STEALTH}),
+               ("Runtime.evaluate", {"expression": STEALTH})) if self._headless() else ()),
         ):
             try:
                 self._call(method, params, sid)
@@ -405,7 +385,8 @@ class BrowserHub:
     def _apply_zoom(self, tid: str, sid: str) -> None:
         vw, vh = self._viewport(tid)
         self._call("Emulation.setDeviceMetricsOverride",
-                   {"width": vw, "height": vh, "deviceScaleFactor": 1, "mobile": False, "screenWidth": vw, "screenHeight": vh}, sid)
+                   {"width": vw, "height": vh, "deviceScaleFactor": 1, "mobile": False,
+                    "screenWidth": bs.SCREEN[0], "screenHeight": bs.SCREEN[1]}, sid)
 
     # ------------------------------------------------------------ public API
     def zoom(self, tid: str) -> float:
