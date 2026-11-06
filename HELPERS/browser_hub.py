@@ -77,8 +77,9 @@ class BrowserHub:
         self._cast: Dict[str, Tuple[int, int, int, int]] = {}   # active screencast: quality, width, vw, vh
         self._want: Dict[str, float] = {}
         self._seq = 0
-        self._attach_q: "queue.Queue[str]" = queue.Queue()
+        self._attach_q: "queue.Queue[tuple]" = queue.Queue()
         self._ua: Optional[Dict[str, Any]] = None
+        self._ready: set = set()                       # targets whose identity script / emulation is installed
 
     # ------------------------------------------------------------ connection
     def ensure(self) -> None:
@@ -89,13 +90,21 @@ class BrowserHub:
             ws = bs._WebSocket(bs._browser_ws(), timeout=15)
             self._ws = ws
             self._sessions.clear(); self._by_session.clear(); self._frames.clear(); self._cast.clear(); self._want.clear()
+            self._ready.clear()
             self._thread = threading.Thread(target=self._run, args=(ws,), daemon=True, name="browser-hub")
             self._thread.start()
             threading.Thread(target=self._attach_worker, args=(ws,), daemon=True, name="browser-hub-attach").start()
         self._call("Target.setDiscoverTargets", {"discover": True})
-        for info in (self._call("Target.getTargets").get("targetInfos") or []):
-            if info.get("type") == "page":
-                self._attach(info["targetId"])
+        # Every new page, popups included (Sign in with Google, SSO windows), is paused until it has the browser
+        # identity, so even its very first request looks like regular Chrome.
+        self._call("Target.setAutoAttach", {"autoAttach": True, "waitForDebuggerOnStart": True, "flatten": True})
+        existing = [i["targetId"] for i in (self._call("Target.getTargets").get("targetInfos") or []) if i.get("type") == "page"]
+        deadline = time.monotonic() + 0.6
+        while time.monotonic() < deadline and any(t not in self._sessions for t in existing):
+            time.sleep(0.05)
+        for tid in existing:
+            if tid not in self._sessions:
+                self._attach(tid)
 
     def _teardown(self, ws) -> None:
         with self._lock:
@@ -127,13 +136,19 @@ class BrowserHub:
     def _attach_worker(self, ws) -> None:
         while self._ws is ws:
             try:
-                tid = self._attach_q.get(timeout=1.0)
+                tid, sid, waiting = self._attach_q.get(timeout=1.0)
             except queue.Empty:
                 continue
             try:
-                self._attach(tid)
-            except BrowserError:
-                pass
+                self._setup(tid, sid)
+            except BrowserError as exc:
+                logger.debug("[browser-hub] setup of %s failed: %s", tid, exc)
+            finally:
+                if waiting:                                   # never leave a page paused
+                    try:
+                        self._send("Runtime.runIfWaitingForDebugger", {}, sid, None)
+                    except BrowserError:
+                        pass
 
     # ------------------------------------------------------------ messaging
     def _send(self, method: str, params: Optional[dict], session: Optional[str], slot: Optional[list]) -> None:
@@ -190,20 +205,44 @@ class BrowserHub:
                     self._seq += 1
                     self._frames[tid] = Frame(self._seq, base64.b64decode(params.get("data", "")), vw, vh)
                     self._cond.notify_all()
-        elif method == "Target.targetCreated":
-            info = params.get("targetInfo") or {}
-            if info.get("type") == "page" and info.get("targetId") not in self._sessions:
-                self._attach_q.put(info["targetId"])
+        elif method == "Target.attachedToTarget":
+            self._on_attached(params)
         elif method in ("Target.targetDestroyed", "Target.detachedFromTarget"):
             tid = params.get("targetId") or self._by_session.get(params.get("sessionId") or "")
             if tid:
                 self._forget(tid)
+
+    def _on_attached(self, params: dict) -> None:
+        sid = params.get("sessionId") or ""
+        info = params.get("targetInfo") or {}
+        tid = info.get("targetId") or ""
+        waiting = bool(params.get("waitingForDebugger"))
+        if info.get("type") != "page":
+            if waiting:                                       # workers etc.: just let them run
+                try:
+                    self._send("Runtime.runIfWaitingForDebugger", {}, sid, None)
+                    self._send("Target.detachFromTarget", {"sessionId": sid}, None, None)
+                except BrowserError:
+                    pass
+            return
+        with self._lock:
+            if sid in self._by_session or tid in self._sessions:
+                if waiting:
+                    try:
+                        self._send("Runtime.runIfWaitingForDebugger", {}, sid, None)
+                    except BrowserError:
+                        pass
+                return
+            self._sessions[tid] = sid
+            self._by_session[sid] = tid
+        self._attach_q.put((tid, sid, waiting))
 
     def _forget(self, tid: str) -> None:
         with self._lock:
             sid = self._sessions.pop(tid, None)
             if sid:
                 self._by_session.pop(sid, None)
+            self._ready.discard(tid)
             for table in (self._zoom, self._frames, self._cast, self._want):
                 table.pop(tid, None)
             self._cond.notify_all()
@@ -246,7 +285,24 @@ class BrowserHub:
             }
         return self._ua
 
+    def _setup(self, tid: str, sid: str) -> None:
+        for method, params in (
+            ("Page.enable", {}),
+            ("Emulation.setUserAgentOverride", self._identity()),
+            ("Page.addScriptToEvaluateOnNewDocument", {"source": STEALTH}),
+            ("Runtime.evaluate", {"expression": STEALTH}),
+        ):
+            try:
+                self._call(method, params, sid)
+            except BrowserError as exc:
+                logger.debug("[browser-hub] %s failed: %s", method, exc)
+        self._apply_zoom(tid, sid)
+        with self._lock:
+            self._ready.add(tid)
+            self._cond.notify_all()
+
     def _attach(self, tid: str) -> str:
+        """Explicit attach (pages that existed before the hub connected)."""
         with self._attach_lock:
             with self._lock:
                 if tid in self._sessions:
@@ -258,27 +314,30 @@ class BrowserHub:
             with self._lock:
                 self._sessions[tid] = sid
                 self._by_session[sid] = tid
-            for method, params in (
-                ("Page.enable", {}),
-                ("Emulation.setUserAgentOverride", self._identity()),
-                ("Page.addScriptToEvaluateOnNewDocument", {"source": STEALTH}),
-                ("Runtime.evaluate", {"expression": STEALTH}),
-            ):
-                try:
-                    self._call(method, params, sid)
-                except BrowserError as exc:
-                    logger.debug("[browser-hub] %s failed: %s", method, exc)
-            self._apply_zoom(tid, sid)
+            self._setup(tid, sid)
             return sid
 
     def _session(self, tid: str, wait: float = 3.0) -> str:
         bs._check_id(tid)
         self.ensure()
-        with self._lock:
+        with self._cond:
             sid = self._sessions.get(tid)
-        if sid:
-            return sid
+            if sid:
+                end = time.monotonic() + wait
+                while tid not in self._ready and time.monotonic() < end:
+                    self._cond.wait(0.1)
+                return sid
         deadline = time.monotonic() + wait
+        quick = time.monotonic() + 0.5                         # a fresh tab is attached by auto-attach: give it a moment
+        while time.monotonic() < quick:
+            with self._cond:
+                sid = self._sessions.get(tid)
+                if sid:
+                    end = time.monotonic() + wait
+                    while tid not in self._ready and time.monotonic() < end:
+                        self._cond.wait(0.1)
+                    return sid
+            time.sleep(0.05)
         while True:
             try:
                 return self._attach(tid)
