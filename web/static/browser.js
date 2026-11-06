@@ -64,11 +64,7 @@ export function buildBrowser(s, { panel, bindLoader }) {
           .then((yes) => { if (yes) act(() => post("/api/browser/stop"), t("br.stopped")); });
       } else {
         power.disabled = true;
-        act(async () => {
-          const res = await post("/api/browser/start");
-          if (res && res.proxy_wanted && !res.proxy) toast(t("br.proxy.skipped"), "error");
-          return res;
-        }, t("br.started")).finally(() => { power.disabled = false; });
+        act(() => post("/api/browser/start"), t("br.started")).finally(() => { power.disabled = false; });
       }
     });
 
@@ -196,17 +192,9 @@ export function buildBrowser(s, { panel, bindLoader }) {
     const missing = h("div", { class: "state" });
     const live = h("div", { class: "br-live" }, bookmarks, tabs, bar, zoomBar, screen, keys, help);
 
-    // where the browser leaves to the internet: the server's own address (flagged by X / TikTok) or the admin's PC
-    const proxyBox = h("input", { type: "checkbox", id: "br-proxy" });
-    const proxyNote = h("span", { class: "muted br-proxy-note", role: "status" });
-    proxyBox.addEventListener("change", async () => {
-      try { await post("/api/browser/proxy", { enabled: proxyBox.checked }); toast(t("br.proxy.apply"), "ok"); } catch (err) { toast(brError(err), "error"); }
-      reload().catch(() => {});
-    });
-    const proxyRow = h("div", { class: "br-proxy" }, h("label", { for: "br-proxy" }, proxyBox, " ", t("br.proxy")), proxyNote);
     const top = h("div", { class: "br-top" }, statusPill, power);
-    view.body.replaceChildren(top, proxyRow, missing, live);
-    return { statusPill, power, tabs, addTab, address, canvas, empty, live, missing, zoomRange, zoomLabel, proxyBox, proxyNote };
+    view.body.replaceChildren(top, missing, live);
+    return { statusPill, power, tabs, addTab, address, canvas, empty, live, missing, zoomRange, zoomLabel };
   }
 
   function renderTabs() {
@@ -244,10 +232,6 @@ export function buildBrowser(s, { panel, bindLoader }) {
     ui.missing.hidden = ready;
     ui.missing.textContent = !data.enabled ? t("br.disabled") : t("br.nobrowser");
     ui.live.hidden = !data.running;
-    const px = data.proxy || {};
-    if (document.activeElement !== ui.proxyBox) ui.proxyBox.checked = !!px.enabled;
-    ui.proxyNote.textContent = px.enabled ? `${px.reachable ? t("br.proxy.up") : t("br.proxy.down")} ${t("br.proxy.apply")}`
-      : (px.pc_reachable ? t("br.proxy.up") : "");
     if (data.running) {
       const ids = (data.tabs || []).map((x) => x.id);
       // a window the page opened itself (Sign in with Google, SSO) is shown at once; when it closes we return

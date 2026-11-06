@@ -2118,8 +2118,8 @@ commands add `COMPOSE_PROFILES=dashboard` to `.env`.
 
 Browser tab settings (all optional, in `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
 `BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_COOKIES_ADMIN_ONLY`. The bot hands out
-only the cookies of YouTube, X, Instagram, VK and TikTok. If X or TikTok distrust the server's address, the panel can
-route the browser through your own PC (`scripts/browser-egress/`).
+only the cookies of YouTube, X, Instagram, VK and TikTok. The browser runs on the server itself and leaves from its address
+(`BROWSER_PROXY` can point it at a proxy on the server side).
 
 ## 📈 Statistics dashboard (port 5555)
 

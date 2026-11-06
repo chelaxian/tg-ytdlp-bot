@@ -649,10 +649,6 @@ class BrowserInputBody(BrowserTabBody):
     meta: bool = False
 
 
-class BrowserProxyBody(BaseModel):
-    enabled: bool
-
-
 class BrowserClearBody(BaseModel):
     domain: Optional[str] = Field(default=None, max_length=253, pattern=r"^[A-Za-z0-9.-]+$")
 
@@ -675,16 +671,6 @@ def api_browser_start(request: Request):
         return err
     _audit(request, "browser_start")
     return {"ok": True, **data}
-
-
-@app.post("/api/browser/proxy")
-def api_browser_proxy(body: BrowserProxyBody, request: Request):
-    """Switch for the next browser start: leave through the admin's PC (reverse tunnel) or from the server."""
-    url, err = _browser_call(browser_session.set_proxy_enabled, body.enabled)
-    if err:
-        return err
-    _audit(request, "browser_proxy", enabled=body.enabled)
-    return {"ok": True, "enabled": bool(url)}
 
 
 @app.post("/api/browser/stop")
