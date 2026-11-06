@@ -671,6 +671,9 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     _registered_download_dir = None
     _request_failed = False
     _delivery_confirmed = False
+    # Take the user's download slot right before the try whose finally releases it
+    # (set_active_download(False)); nothing can return in between, so it cannot leak.
+    set_active_download(user_id, True)
     try:
         # Check if there is a saved waiting time
         from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
@@ -3091,6 +3094,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         except Exception:
             pass
     finally:
+        # Release the download slot first: the cleanup below must not be able to keep it taken.
+        set_active_download(user_id, False)
         from DOWN_AND_UP.always_ask_menu import record_download_fail, clear_download_fail
         if _delivery_confirmed:
             clear_download_fail(user_id, url)
@@ -3165,7 +3170,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         except Exception as e:
             logger.error(f"Error cleaning up thumbnails: {e}")
 
-        set_active_download(user_id, False)
         clear_download_start_time(user_id)  # Cleaning the start time
 
         # Clean up temporary files
