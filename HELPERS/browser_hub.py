@@ -361,6 +361,8 @@ class BrowserHub:
     def evaluate(self, tid: str, expression: str) -> Any:
         res = self._call("Runtime.evaluate", {"expression": expression, "returnByValue": True, "awaitPromise": True},
                          self._session(tid))
+        if res.get("exceptionDetails"):
+            raise BrowserError("js_error")
         return (res.get("result") or {}).get("value")
 
     def frame(self, tid: str, since: int = 0, profile: str = "fast", wait: float = 3.0) -> Optional[Frame]:
@@ -375,6 +377,7 @@ class BrowserHub:
         if current != wanted:
             with self._lock:
                 self._cast[tid] = wanted
+                self._frames.pop(tid, None)               # a picture of another quality/size is stale now
             if current is not None:
                 self._send("Page.stopScreencast", {}, sid, None)
             self._send("Page.startScreencast", {"format": "jpeg", "quality": quality, "maxWidth": max_w,
