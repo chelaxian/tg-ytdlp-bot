@@ -68,6 +68,17 @@ STEALTH = r"""(() => { try {
   c.runtime = c.runtime || {};
   c.loadTimes = c.loadTimes || (() => ({}));
   c.csi = c.csi || (() => ({}));
+  // WebRTC would show the server's own address next to the proxy's: only relayed candidates (there are none) are allowed
+  try {
+    for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection']) {
+      const Orig = window[name];
+      if (!Orig) continue;
+      const Patched = function (config, constraints) { return new Orig(Object.assign({}, config || {}, { iceTransportPolicy: 'relay' }), constraints); };
+      Patched.prototype = Orig.prototype;
+      Object.setPrototypeOf(Patched, Orig);
+      window[name] = Patched;
+    }
+  } catch (e) {}
   try { delete window.PublicKeyCredential; } catch (e) {}   // no passkey prompts
   try { if (navigator.credentials) navigator.credentials.get = () => Promise.reject(new DOMException('NotAllowedError', 'NotAllowedError')); } catch (e) {}
   const patch = (proto) => { if (!proto) return; const get = proto.getParameter;

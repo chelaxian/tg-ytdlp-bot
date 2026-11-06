@@ -43,6 +43,10 @@ logger = logging.getLogger(__name__)
 PROJECT_DIR = Path(os.environ.get("TG_DASHBOARD_PROJECT_DIR", str(Path(__file__).resolve().parent.parent)))
 PROFILE_DIR = PROJECT_DIR / "CONFIG" / ".browser_profile"
 PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_session.pid"
+PROXY_FILE = PROJECT_DIR / "CONFIG" / ".browser_proxy"
+# The admin's PC offers a SOCKS5 proxy through a reverse SSH tunnel on this loopback port (see browser-egress/).
+PC_PROXY_URL = "socks5://127.0.0.1:1081"
+_PROXY_RE = re.compile(r"(https?|socks5h?|socks4)://[A-Za-z0-9.\-:\[\]]+")
 
 CDP_HOST = "127.0.0.1"
 VIEWPORT = (1280, 800)
@@ -89,6 +93,54 @@ def cdp_port() -> int:
     except (TypeError, ValueError):
         port = 9223
     return port if 1024 <= port <= 65535 else 9223
+
+
+def proxy_url() -> str:
+    """Proxy the browser should leave through: Config.BROWSER_PROXY, else the panel switch (CONFIG/.browser_proxy)."""
+    for candidate in (str(_cfg("BROWSER_PROXY", "") or "").strip(), _read_proxy_file()):
+        if candidate and _PROXY_RE.fullmatch(candidate):
+            return candidate
+    return ""
+
+
+def _read_proxy_file() -> str:
+    try:
+        return PROXY_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def set_proxy_enabled(enabled: bool) -> str:
+    """The panel switch: leave through the admin's PC (home IP) instead of the server's own address."""
+    if enabled:
+        PROXY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        PROXY_FILE.write_text(PC_PROXY_URL, encoding="utf-8")
+        return PC_PROXY_URL
+    try:
+        PROXY_FILE.unlink()
+    except OSError:
+        pass
+    return ""
+
+
+_REACH_CACHE: Dict[str, Tuple[float, bool]] = {}
+
+
+def proxy_reachable(url: str, max_age: float = 5.0) -> bool:
+    """TCP connect to the proxy (a few seconds of cache: the panel polls this)."""
+    now = time.monotonic()
+    cached = _REACH_CACHE.get(url)
+    if cached and now - cached[0] < max_age:
+        return cached[1]
+    parsed = urlparse(url)
+    ok = False
+    try:
+        with socket.create_connection((parsed.hostname, parsed.port or 1080), timeout=1.5):
+            ok = True
+    except (OSError, TypeError, ValueError):
+        ok = False
+    _REACH_CACHE[url] = (now, ok)
+    return ok
 
 
 def find_executable() -> Optional[str]:
@@ -388,9 +440,16 @@ def start() -> Dict[str, Any]:
     ]
     extra = str(_cfg("BROWSER_EXTRA_ARGS", "") or "").split()
     args.extend(a for a in extra if re.fullmatch(r"--[A-Za-z0-9][A-Za-z0-9=,.:_/\-]{0,200}", a))
-    proxy = str(_cfg("BROWSER_PROXY", "") or "").strip()
-    if proxy and re.fullmatch(r"(https?|socks5h?|socks4)://[A-Za-z0-9.\-:\[\]]+", proxy):
-        args.append(f"--proxy-server={proxy}")
+    proxy = proxy_url()
+    using_proxy = False
+    if proxy:
+        if proxy_reachable(proxy, max_age=0):
+            args.append(f"--proxy-server={proxy}")
+            # WebRTC could still reveal the server's own address around the proxy
+            args.append("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
+            using_proxy = True
+        else:
+            logger.warning("[browser] proxy %s is not reachable, starting without it", proxy)
     ua = _user_agent_fix(exe)
     if ua:
         args.append(f"--user-agent={ua}")
@@ -429,7 +488,8 @@ def start() -> Dict[str, Any]:
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             if is_running():
-                return {"started": True, "pid": proc.pid, "sandbox": "--no-sandbox" not in launch}
+                return {"started": True, "pid": proc.pid, "sandbox": "--no-sandbox" not in launch,
+                        "proxy": using_proxy, "proxy_wanted": bool(proxy)}
             if proc.poll() is not None:
                 break                                    # died: retry once without the sandbox
             time.sleep(0.3)
@@ -693,7 +753,10 @@ def clear_cookies(domain: Optional[str] = None) -> int:
 
 def summary() -> Dict[str, Any]:
     """Dashboard overview: never contains cookie values."""
+    wanted = proxy_url()
     info: Dict[str, Any] = {"enabled": enabled(), "executable": bool(find_executable()),
+                            "proxy": {"enabled": bool(wanted), "url": wanted, "reachable": proxy_reachable(wanted) if wanted else False,
+                                      "pc_url": PC_PROXY_URL, "pc_reachable": proxy_reachable(PC_PROXY_URL)},
                             "running": False, "tabs": [], "cookies": {"count": 0, "domains": []},
                             "viewport": {"width": VIEWPORT[0], "height": VIEWPORT[1]}}
     if not info["enabled"] or not is_running():
