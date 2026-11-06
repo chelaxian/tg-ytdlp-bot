@@ -762,6 +762,35 @@ def _notify_admins(user_id: int, reason: str):
 
 # ── Public API ───────────────────────────────────────────────────────────
 
+def _is_group_chat(user_id: int) -> bool:
+    """Groups/channels have negative chat ids. All their members share one id here,
+    so per-user detectors (24/7 activity, duplicates, flood) would ban the whole chat."""
+    try:
+        return int(user_id) < 0
+    except (TypeError, ValueError):
+        return False
+
+
+def reset_user_state(user_id: int) -> None:
+    """Forget a user's anti-bot history (call when an admin unblocks the user).
+
+    Without this the old url/message/command/activity history survives the unblock
+    and the very next message triggers the same ban again."""
+    try:
+        ud = _registry.get(int(user_id))
+    except (TypeError, ValueError):
+        return
+    if ud is None:
+        return
+    with ud.lock:
+        ud.url_history.clear()
+        ud.command_history.clear()
+        ud.message_history.clear()
+        ud.message_timestamps.clear()
+        ud.activity_hours.clear()
+    _dirty.set()
+
+
 def record_user_activity(user_id: int, is_admin: bool = False, message_text: Optional[str] = None):
     """
     Record user activity.  Called for every incoming message.
@@ -769,6 +798,8 @@ def record_user_activity(user_id: int, is_admin: bool = False, message_text: Opt
     Fast path: acquires only the per-user lock, no I/O.
     """
     if is_admin and LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
+        return
+    if _is_group_chat(user_id):
         return
     if not LimitsConfig.ANTI_BOT_PROTECTION_ENABLED:
         return
@@ -800,6 +831,8 @@ def check_and_ban_user(
     to a background pool so this function returns immediately.
     """
     if is_admin and LimitsConfig.TURN_OFF_LIMITS_FOR_ADMINS:
+        return (False, None)
+    if _is_group_chat(user_id):
         return (False, None)
     if not LimitsConfig.ANTI_BOT_PROTECTION_ENABLED:
         return (False, None)

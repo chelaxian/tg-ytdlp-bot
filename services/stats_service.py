@@ -193,7 +193,17 @@ def unblock_user(user_id: int) -> None:
     _db_node("unblocked_users").child(str(user_id)).set(payload)
     _db_node("blocked_users").child(str(user_id)).remove()
     _c().unblock_user_local(user_id)
+    _reset_antibot_state(user_id)
     guard = get_channel_guard()
     if guard:
         guard.record_manual_unblock(user_id)
     invalidate()
+
+
+def _reset_antibot_state(user_id) -> None:
+    """Drop stale anti-bot history so an unblocked user is not banned again at once."""
+    try:
+        from HELPERS.anti_bot_protection import reset_user_state
+        reset_user_state(int(user_id))
+    except Exception:
+        pass

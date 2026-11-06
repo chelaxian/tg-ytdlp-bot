@@ -753,6 +753,15 @@ def block_user(app, message):
 
 # Unblock User
 
+def _reset_antibot_history(user_id) -> None:
+    """Forget the anti-bot history of an unblocked user (otherwise the next message re-bans)."""
+    try:
+        from HELPERS.anti_bot_protection import reset_user_state
+        reset_user_state(int(user_id))
+    except Exception as e:
+        logger.warning(f"Failed to reset anti-bot state for {user_id}: {e}")
+
+
 def unblock_user(app, message):
     messages = safe_get_messages(message.chat.id)
     guard = get_channel_guard()
@@ -779,6 +788,7 @@ def unblock_user(app, message):
                 data = {"ID": user_id, "timestamp": str(dt)}
                 db.child(f"{Config.BOT_DB_PATH}/unblocked_users/{user_id}").set(data)
                 db.child(f"{Config.BOT_DB_PATH}/blocked_users/{user_id}").remove()
+                _reset_antibot_history(user_id)
                 if guard:
                     guard.record_manual_unblock(user_id)
             send_to_user(
@@ -803,6 +813,7 @@ def unblock_user(app, message):
             data = {"ID": ub_user_id, "timestamp": str(dt)}
             db.child(f"{Config.BOT_DB_PATH}/unblocked_users/{ub_user_id}").set(data)
             db.child(f"{Config.BOT_DB_PATH}/blocked_users/{ub_user_id}").remove()
+            _reset_antibot_history(ub_user_id)
             send_to_user(
                 message, safe_get_messages(message.chat.id).ADMIN_USER_UNBLOCKED_MSG.format(user_id=ub_user_id, date=datetime.fromtimestamp(dt)))
             if guard:
