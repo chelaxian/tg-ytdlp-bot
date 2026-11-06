@@ -207,3 +207,6 @@ CONFIG/warp/
 CONFIG/.dashboard_*
 CONFIG/.bot_runtime.json
 CONFIG/.backups/
+
+CONFIG/.browser_profile/
+CONFIG/.browser_session.pid

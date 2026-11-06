@@ -21,6 +21,7 @@ import logging
 import pathlib
 import time
 from enum import Enum
+from urllib.parse import urlparse
 from typing import Any, Dict, List, Optional
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request
@@ -580,3 +581,152 @@ def api_job_cancel(job_id: str, request: Request):
         return JSONResponse({"error": "not_cancellable"}, status_code=400)
     _audit(request, "job_cancel", target=job_id)
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------------------
+# Browser: a live Chromium session the admin logs into; the bot reads its cookies
+# --------------------------------------------------------------------------------------
+
+from fastapi.responses import Response  # noqa: E402
+from HELPERS import browser_session  # noqa: E402
+
+_BROWSER_CLIENT_ERRORS = {"bad_url", "blocked_host", "bad_tab", "no_such_tab", "bad_action", "bad_input", "bad_key"}
+
+
+def _browser_call(fn, *args, **kwargs):
+    """Run a browser action; turn BrowserError into a short JSON error code."""
+    try:
+        return fn(*args, **kwargs), None
+    except browser_session.BrowserError as exc:
+        code = str(exc).split(":", 1)[0]
+        if code in _BROWSER_CLIENT_ERRORS:
+            status = 400
+        elif code in ("not_running", "no_browser", "disabled"):
+            status = 409
+        else:
+            logger.warning("[dashboard] browser: %s", exc)
+            code, status = "browser_error", 502
+        return None, JSONResponse({"error": code}, status_code=status)
+
+
+class BrowserUrlBody(BaseModel):
+    url: str = Field(default="about:blank", max_length=2048)
+
+
+class BrowserTabBody(BaseModel):
+    id: str = Field(..., min_length=8, max_length=64, pattern=r"^[A-Za-z0-9]+$")
+
+
+class BrowserNavBody(BrowserTabBody):
+    url: str = Field(..., min_length=1, max_length=2048)
+
+
+class BrowserHistoryBody(BrowserTabBody):
+    action: str = Field(..., pattern="^(back|forward|reload)$")
+
+
+class BrowserInputBody(BrowserTabBody):
+    kind: str = Field(..., pattern="^(click|dblclick|scroll|text|key)$")
+    x: Optional[float] = Field(default=None, ge=0, le=5000)
+    y: Optional[float] = Field(default=None, ge=0, le=5000)
+    dx: float = Field(default=0, ge=-5000, le=5000)
+    dy: float = Field(default=0, ge=-5000, le=5000)
+    button: str = Field(default="left", pattern="^(left|right|middle)$")
+    text: str = Field(default="", max_length=5000)
+    key: str = Field(default="", max_length=20)
+    ctrl: bool = False
+    alt: bool = False
+    shift: bool = False
+    meta: bool = False
+
+
+class BrowserClearBody(BaseModel):
+    domain: Optional[str] = Field(default=None, max_length=253, pattern=r"^[A-Za-z0-9.-]+$")
+
+
+@app.get("/api/browser")
+def api_browser():
+    data, err = _browser_call(browser_session.summary)
+    return err or data
+
+
+@app.post("/api/browser/start")
+def api_browser_start(request: Request):
+    data, err = _browser_call(browser_session.start)
+    if err:
+        return err
+    _audit(request, "browser_start")
+    return {"ok": True, **data}
+
+
+@app.post("/api/browser/stop")
+def api_browser_stop(request: Request):
+    data, err = _browser_call(browser_session.stop)
+    if err:
+        return err
+    _audit(request, "browser_stop")
+    return {"ok": bool(data)}
+
+
+@app.post("/api/browser/tab")
+def api_browser_new_tab(body: BrowserUrlBody, request: Request):
+    data, err = _browser_call(browser_session.new_tab, body.url)
+    if err:
+        return err
+    if body.url != "about:blank":
+        _audit(request, "browser_open", host=urlparse(browser_session.normalize_url(body.url)).hostname)
+    return {"ok": True, **data}
+
+
+@app.post("/api/browser/tab/close")
+def api_browser_close_tab(body: BrowserTabBody):
+    _, err = _browser_call(browser_session.close_tab, body.id)
+    return err or {"ok": True}
+
+
+@app.post("/api/browser/tab/activate")
+def api_browser_activate(body: BrowserTabBody):
+    _, err = _browser_call(browser_session.activate_tab, body.id)
+    return err or {"ok": True}
+
+
+@app.post("/api/browser/navigate")
+def api_browser_navigate(body: BrowserNavBody, request: Request):
+    _, err = _browser_call(browser_session.navigate, body.id, body.url)
+    if err:
+        return err
+    _audit(request, "browser_navigate", host=urlparse(browser_session.normalize_url(body.url)).hostname)
+    return {"ok": True}
+
+
+@app.post("/api/browser/history")
+def api_browser_history(body: BrowserHistoryBody):
+    _, err = _browser_call(browser_session.history_step, body.id, body.action)
+    return err or {"ok": True}
+
+
+@app.post("/api/browser/input")
+def api_browser_input(body: BrowserInputBody):
+    params = body.model_dump(exclude={"id", "kind"})
+    _, err = _browser_call(browser_session.send_input, body.id, body.kind, **params)
+    return err or {"ok": True}
+
+
+@app.get("/api/browser/screen")
+def api_browser_screen(id: str = Query(..., min_length=8, max_length=64, pattern=r"^[A-Za-z0-9]+$")):
+    if PREVIEW_READ_ONLY:
+        # a live stream of logged-in pages is not part of the read-only preview
+        return JSONResponse({"error": "preview_read_only"}, status_code=403)
+    data, err = _browser_call(browser_session.screenshot, id)
+    if err:
+        return err
+    return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/browser/cookies/clear")
+def api_browser_clear(body: BrowserClearBody, request: Request):
+    data, err = _browser_call(browser_session.clear_cookies, body.domain)
+    if err:
+        return err
+    _audit(request, "browser_cookies_clear", domain=body.domain or "*", removed=data)
+    return {"ok": True, "removed": data}

@@ -1,0 +1,148 @@
+"""Smoke test: live browser session (HELPERS/browser_session + dashboard /api/browser/*).
+
+Run: python tests/smoke/test_t_browser_session.py
+Offline checks always run; the live part needs a Chromium/Chrome binary and is skipped without one.
+"""
+import os
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+TMPDIR = Path(tempfile.mkdtemp(prefix="br_test_"))
+os.environ["TG_DASHBOARD_PROJECT_DIR"] = str(TMPDIR)
+(TMPDIR / "CONFIG").mkdir()
+
+from dashboard_fixture import DEMO_PASSWORD, DEMO_USER, install_stubs  # noqa: E402
+
+app, _collector = install_stubs()
+from fastapi.testclient import TestClient  # noqa: E402
+
+from HELPERS import browser_session as bs  # noqa: E402
+from HELPERS.cookie_file import validate_cookie_bytes  # noqa: E402
+
+ok = fail = 0
+
+
+def check(name, cond, info=""):
+    global ok, fail
+    if cond:
+        ok += 1
+        print(f"PASS {name}")
+    else:
+        fail += 1
+        print(f"FAIL {name} {info}")
+
+
+def blocked(url):
+    try:
+        bs.normalize_url(url)
+        return False
+    except bs.BrowserError:
+        return True
+
+
+# ---- URL policy
+check("plain host gets https", bs.normalize_url("x.com/home") == "https://x.com/home")
+check("http kept", bs.normalize_url("http://example.com") == "http://example.com")
+check("host:port ok", bs.normalize_url("example.com:8443/a") == "https://example.com:8443/a")
+for bad in ("javascript:alert(1)", "data:text/html,x", "file:///etc/passwd", "about:blank", "chrome://settings",
+            "http://127.0.0.1:5555", "http://localhost", "localhost:3000", "http://10.1.2.3", "http://192.168.0.1",
+            "http://169.254.169.254/latest", "http://[::1]/", "http://2130706433/", "http://0x7f.1/", "http://foo.internal",
+            "http://a b.com", "", "http://x.localhost"):
+    check(f"blocked: {bad!r}", blocked(bad))
+check("public IP allowed", not blocked("http://1.1.1.1/"))
+
+# ---- Netscape output is accepted by the bot's own validator
+cookies = [
+    {"name": "auth_token", "value": "abc", "domain": ".x.com", "path": "/", "secure": True, "httpOnly": True, "expires": 2000000000},
+    {"name": "sid", "value": "s", "domain": "www.tiktok.com", "path": "/", "secure": False, "httpOnly": False, "expires": -1},
+    {"name": "c_user", "value": "1", "domain": ".facebook.com", "path": "/", "secure": True, "httpOnly": False, "expires": 0},
+    {"name": "evil\tname", "value": "va\nlue", "domain": ".vk.com", "path": "/", "expires": 2000000000},
+]
+text = bs.to_netscape(cookies)
+good, reason = validate_cookie_bytes(text.encode(), require_entries=True)
+check("netscape passes validate_cookie_bytes", good, reason)
+check("httpOnly prefix", "#HttpOnly_.x.com\tTRUE\t/\tTRUE\t2000000000\tauth_token\tabc" in text)
+check("host-only cookie flag FALSE", "www.tiktok.com\tFALSE\t/\tFALSE\t" in text)
+body = [ln for ln in text.splitlines() if "\t" in ln]
+check("session cookie gets a future expiry", all(int(ln.split("\t")[4]) > time.time() for ln in body))
+check("tabs/newlines stripped from fields", "evilname" in text and "value" in text and "va\nlue" not in text)
+tw = bs.filter_cookies(cookies, services=["twitter"])
+check("service filter twitter", [c["name"] for c in tw] == ["auth_token"])
+check("service filter keeps subdomains", [c["name"] for c in bs.filter_cookies(cookies, services=["tiktok"])] == ["sid"])
+check("no false suffix match", not bs.domain_matches("notx.com", ["x.com"]) and bs.domain_matches(".api.x.com", ["x.com"]))
+check("no filter = everything", len(bs.filter_cookies(cookies)) == 4)
+
+# ---- dashboard API (browser not running)
+BASE = "http://testserver"
+SAME = {"Origin": BASE}
+c = TestClient(app, base_url=BASE)
+check("browser api needs auth", c.get("/api/browser").status_code == 401)
+bs.PROFILE_DIR = TMPDIR / "CONFIG" / ".browser_profile"
+bs.PID_FILE = TMPDIR / "CONFIG" / ".browser_session.pid"
+bs.cdp_port = lambda: 9331
+c.post("/api/login", json={"username": DEMO_USER, "password": DEMO_PASSWORD}, headers=SAME)
+csrf = c.get("/api/session").json()["csrf"]
+H = {**SAME, "X-CSRF-Token": csrf}
+d = c.get("/api/browser").json()
+check("summary when stopped", d["running"] is False and d["tabs"] == [] and d["cookies"]["count"] == 0)
+check("input without browser -> 409", c.post("/api/browser/input", json={"id": "A" * 12, "kind": "key", "key": "Enter"}, headers=H).status_code == 409)
+check("bad tab id rejected", c.post("/api/browser/tab/close", json={"id": "../etc/passwd"}, headers=H).status_code == 422)
+check("post needs csrf", c.post("/api/browser/start", json={}, headers=SAME).status_code == 403)
+check("blocked url refused", c.post("/api/browser/navigate", json={"id": "A" * 12, "url": "http://127.0.0.1"}, headers=H).status_code in (400, 409))
+
+exe = bs.find_executable()
+if not exe:
+    print("SKIP live browser tests: no Chromium/Chrome found")
+else:
+    try:
+        r = c.post("/api/browser/start", json={}, headers=H)
+        check("start", r.status_code == 200 and r.json()["ok"], r.text)
+        d = c.get("/api/browser").json()
+        check("running with one tab", d["running"] and len(d["tabs"]) >= 1, d)
+        tab = d["tabs"][0]["id"]
+        shot = c.get(f"/api/browser/screen?id={tab}")
+        check("screenshot is a jpeg", shot.status_code == 200 and shot.content[:3] == b"\xff\xd8\xff"
+              and shot.headers["content-type"] == "image/jpeg")
+        check("blocked navigation 400", c.post("/api/browser/navigate", json={"id": tab, "url": "http://127.0.0.1:9331"}, headers=H).status_code == 400)
+        r = c.post("/api/browser/tab", json={"url": "about:blank"}, headers=H)
+        check("new tab", r.status_code == 200 and r.json()["id"], r.text)
+        new_id = r.json()["id"]
+        inputs = (
+            {"id": new_id, "kind": "click", "x": 10, "y": 10}, {"id": new_id, "kind": "text", "text": "a"},
+            {"id": new_id, "kind": "text", "text": "hello world"}, {"id": new_id, "kind": "key", "key": "Enter"},
+            {"id": new_id, "kind": "scroll", "x": 5, "y": 5, "dy": 100},
+        )
+        check("click/key/text accepted", all(c.post("/api/browser/input", json=b, headers=H).status_code == 200 for b in inputs))
+        check("unknown key rejected", c.post("/api/browser/input", json={"id": new_id, "kind": "key", "key": "F13"}, headers=H).status_code == 400)
+        check("close tab", c.post("/api/browser/tab/close", json={"id": new_id}, headers=H).status_code == 200)
+        # cookies set the way a login would (CDP), then read as the bot does
+        bs._cdp(bs._browser_ws(), [("Storage.setCookies", {"cookies": [
+            {"name": "auth_token", "value": "TOPSECRET", "domain": ".x.com", "path": "/", "secure": True,
+             "httpOnly": True, "expires": time.time() + 86400},
+            {"name": "sessionid", "value": "IGSECRET", "domain": ".instagram.com", "path": "/", "secure": True},
+            {"name": "other", "value": "v", "domain": "example.org", "path": "/"}]})])
+        d = c.get("/api/browser").json()
+        check("summary lists domains, never values", d["cookies"]["count"] == 3
+              and "TOPSECRET" not in str(d) and "IGSECRET" not in str(d), d)
+        data, n, doms = bs.export_netscape(services=["twitter"])
+        check("export twitter only", n == 1 and b"TOPSECRET" in data and b"IGSECRET" not in data and doms == ["x.com"])
+        good, why = validate_cookie_bytes(data)
+        check("export valid for the bot", good, why)
+        data, n, doms = bs.export_netscape()
+        check("export all tabs/services", n == 3 and b"IGSECRET" in data and b"example.org" in data)
+        check("nothing for a service without cookies", bs.export_netscape(services=["vk"]) == (None, 0, []))
+        r = c.post("/api/browser/cookies/clear", json={"domain": "x.com"}, headers=H)
+        check("clear one domain", r.status_code == 200 and r.json()["removed"] == 1, r.text)
+        check("the rest remains", bs.export_netscape()[1] == 2)
+        r = c.post("/api/browser/cookies/clear", json={}, headers=H)
+        check("clear all", r.status_code == 200 and bs.export_netscape()[1] == 0, r.text)
+    finally:
+        bs.stop()
+    check("stop", not bs.is_running())
+
+print(f"\n{ok} passed, {fail} failed")
+sys.exit(1 if fail else 0)

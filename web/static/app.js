@@ -3,6 +3,7 @@ import {
   h, clear, api, setCsrf, errorText, toast, openDialog, closeDialog, initDialog, confirmDialog,
   num, duration, ago, dateTime, bytes, debounce, userName, userLink, matches,
 } from "./ui.js";
+import { buildBrowser } from "./browser.js";
 
 const state = { section: null, session: null, timers: [], bot: null, built: new Map() };
 
@@ -327,6 +328,7 @@ const SECTIONS = [
   { id: "system", every: 5, build: buildSystem },
   { id: "settings", every: 0, build: buildSettings },
   { id: "lists", every: 0, build: buildLists },
+  { id: "browser", every: 5, build: (s) => buildBrowser(s, { panel, bindLoader }) },
 ];
 
 function buildOverview(s) {
