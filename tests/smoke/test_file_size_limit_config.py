@@ -54,8 +54,24 @@ class FileSizeLimitTest(unittest.TestCase):
     def test_downloader_uses_same_limit(self):
         downloader = (ROOT / 'DOWN_AND_UP' / 'down_and_up.py').read_text(encoding='utf-8')
         self.assertIn('max_size_bytes = get_file_size_limit_bytes(message)', downloader)
-        self.assertIn('check_file_size_limit(selected_format, max_size_bytes=max_size_bytes, message=message)', downloader)
+        self.assertIn('check_file_size_limit(size_format, max_size_bytes=max_size_bytes, message=message)', downloader)
         self.assertNotIn("getattr(Config, 'MAX_FILE_SIZE', 10)", downloader)
+
+    def test_estimate_needs_duration_that_formats_lack(self):
+        gib = 1024 ** 3
+        fmt = {'tbr': 20000}  # 20 Mbit/s video format; yt-dlp keeps duration on the video info
+        msg = message('private')
+        # Without duration the bitrate estimate cannot run: this is the gap that let it through.
+        self.assertTrue(check(fmt, message=msg))
+        # With the video's duration (2 h) the estimate is ~16.7 GiB > 8 GiB limit.
+        self.assertFalse(check({**fmt, 'duration': 7200}, message=msg))
+        self.assertTrue(check({**fmt, 'duration': 600}, message=msg))  # ~1.4 GiB passes
+        self.assertTrue(8 * gib == get_limit(msg))
+
+    def test_downloader_fills_duration_from_video_info(self):
+        downloader = (ROOT / 'DOWN_AND_UP' / 'down_and_up.py').read_text(encoding='utf-8')
+        self.assertIn("size_format = dict(selected_format)", downloader)
+        self.assertIn("size_format['duration'] = pre_info.get('duration')", downloader)
 
 
 if __name__ == '__main__':

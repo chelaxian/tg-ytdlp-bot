@@ -792,6 +792,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     _registered_download_dir = None
     _request_failed = False
     _delivery_confirmed = False
+    # Take the user's download slot right before the try whose finally releases it
+    # (set_active_download(False)); nothing can return in between, so it cannot leak.
+    # Without this the counter never rose and MAX_CONCURRENT_DOWNLOADS was not enforced.
+    set_active_download(user_id, True)
     try:
         # Check if there is a saved waiting time
         from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
@@ -1149,11 +1153,17 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             filesize = 0
             allowed = True  # Allow download if we can't determine the size
         else:
-            filesize = selected_format.get('filesize') or selected_format.get('filesize_approx')
+            # yt-dlp formats rarely carry 'duration' (it lives on the video info), so without
+            # this fallback the tbr*duration estimate below, and the one inside
+            # check_file_size_limit, silently never ran and the limit was not enforced.
+            size_format = dict(selected_format)
+            if not size_format.get('duration'):
+                size_format['duration'] = pre_info.get('duration')
+            filesize = size_format.get('filesize') or size_format.get('filesize_approx')
             if filesize is None:
                 # fallback on rating
-                tbr = selected_format.get('tbr')
-                duration = selected_format.get('duration')
+                tbr = size_format.get('tbr')
+                duration = size_format.get('duration')
                 if tbr is not None and duration is not None:
                     try:
                         filesize = float(tbr) * float(duration) * 125
@@ -1163,9 +1173,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     filesize = None
                 
                 if filesize is None:
-                    width = selected_format.get('width')
-                    height = selected_format.get('height')
-                    duration = selected_format.get('duration')
+                    width = size_format.get('width')
+                    height = size_format.get('height')
+                    duration = size_format.get('duration')
                     if width is not None and height is not None and duration is not None:
                         try:
                             filesize = int(width) * int(height) * float(duration) * 0.07
@@ -1174,7 +1184,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     else:
                         filesize = 0
 
-            allowed = check_file_size_limit(selected_format, max_size_bytes=max_size_bytes, message=message)
+            allowed = check_file_size_limit(size_format, max_size_bytes=max_size_bytes, message=message)
         
         # Secure file size logging
         try:
@@ -5638,6 +5648,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         except Exception as cleanup_error:
             logger.error(f"Error cleaning up temp files after error for user {user_id}: {cleanup_error}")
     finally:
+        # Release the download slot first: the cleanup below must not be able to keep it taken.
+        set_active_download(user_id, False)
         # Once per request, never per format/proxy/playlist entry (#476).
         from DOWN_AND_UP.always_ask_menu import record_download_fail, clear_download_fail
         if _delivery_confirmed:
@@ -5662,7 +5674,6 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
         except Exception as e:
             logger.error(f"Error stopping hourglass animation: {e}")
         
-        set_active_download(user_id, False)
         clear_download_start_time(user_id)  # Clear the download start time
         if playlist_name:
             with playlist_errors_lock:
