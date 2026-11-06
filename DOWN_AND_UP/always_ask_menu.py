@@ -38,8 +38,41 @@ from COMMANDS.dubs_cmd import get_user_dubs_language
 
 from DATABASE.cache_db import (
     get_cached_qualities, get_cached_playlist_count, get_cached_playlist_videos, get_cached_playlist_message_ids,
-    get_cached_playlist_qualities, save_to_video_cache, get_cached_message_ids, remove_playlist_cache_entries
+    get_cached_playlist_qualities, save_to_video_cache, get_cached_message_ids, remove_playlist_cache_entries,
+    dub_cache_key, qualities_for_audio,
 )
+
+
+def _cache_audio_lang(user_id):
+    """Audio track the next best/<N>p download of this user will use, as
+    askq_callback_logic builds it (menu filter + /dubs preference); None = default audio."""
+    if user_id is None:
+        return None
+    try:
+        import copy
+        fstate = copy.deepcopy(get_filters(user_id))
+        try:
+            from COMMANDS.dubs_cmd import apply_dubs_preference
+            fstate = apply_dubs_preference(user_id, fstate)
+        except Exception:
+            pass
+        lang = fstate.get("audio_lang")
+        return lang if lang and str(lang).upper() not in ("ALL", "OFF") else None
+    except Exception:
+        return None
+
+
+def _user_cache_key(user_id, quality_key):
+    """Cache key of quality_key for this user's selected audio track (DUBS)."""
+    return dub_cache_key(quality_key, _cache_audio_lang(user_id))
+
+
+def _user_cached_qualities(url, user_id):
+    return qualities_for_audio(get_cached_qualities(url), _cache_audio_lang(user_id))
+
+
+def _user_cached_playlist_qualities(playlist_url, user_id):
+    return qualities_for_audio(get_cached_playlist_qualities(playlist_url), _cache_audio_lang(user_id))
 from HELPERS.cache_repost import repost_playlist_items, repost_single
 
 from DOWN_AND_UP.yt_dlp_hook import get_video_formats
@@ -2330,7 +2363,7 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
         is_cached_mp3 = False
         if url and not send_as_file:
             try:
-                cq = get_cached_qualities(url)
+                cq = _user_cached_qualities(url, user_id)
                 is_cached_mp3 = ('mp3' in cq)
             except Exception:
                 is_cached_mp3 = False
@@ -2446,7 +2479,7 @@ def build_filter_rows(user_id, url=None, is_private_chat=False, download_dir=Non
     is_cached_mp3 = False
     if url and not send_as_file:
         try:
-            cq = get_cached_qualities(url)
+            cq = _user_cached_qualities(url, user_id)
             is_cached_mp3 = ('mp3' in cq)
         except Exception:
             is_cached_mp3 = False
@@ -2538,7 +2571,7 @@ def askq_cost_mb(callback_query):
         return None
     url = m.group(0)
     try:
-        if get_cached_message_ids(url, key):
+        if get_cached_message_ids(url, _user_cache_key(getattr(getattr(callback_query, "from_user", None), "id", None), key)):
             return 1.0
     except Exception:
         pass
@@ -3578,14 +3611,14 @@ def askq_callback(app, callback_query):
         
         if not is_subs_always_ask(user_id) and not send_as_file:
             # Check cache for selected quality
-            cached_videos = get_cached_playlist_message_ids(get_clean_playlist_url(url), data, requested_indices)
+            cached_videos = get_cached_playlist_message_ids(get_clean_playlist_url(url), _user_cache_key(user_id, data), requested_indices)
             uncached_indices = [i for i in requested_indices if i not in cached_videos]
             used_quality_key = data
             
             # If there is no cache for the selected quality, try fallback to best
             if not cached_videos and data != "best":
                 logger.info(f"{LoggerMsg.ALWAYS_ASK_NO_CACHE_FOR_QUALITY_KEY_LOG_MSG}={data}, trying fallback to best")
-                best_cached = get_cached_playlist_message_ids(get_clean_playlist_url(url), "best", requested_indices)
+                best_cached = get_cached_playlist_message_ids(get_clean_playlist_url(url), _user_cache_key(user_id, "best"), requested_indices)
                 if best_cached:
                     cached_videos = best_cached
                     used_quality_key = "best"
@@ -3625,7 +3658,7 @@ def askq_callback(app, callback_query):
             stale, undelivered = repost_playlist_items(app, target_chat_id, get_log_channel("video"), to_repost,
                                                        cached_videos, thread_id=thread_id)
             if stale:
-                remove_playlist_cache_entries(get_clean_playlist_url(url), used_quality_key, stale)
+                remove_playlist_cache_entries(get_clean_playlist_url(url), _user_cache_key(user_id, used_quality_key), stale)
             for index in to_repost:
                 if index not in undelivered:
                     daily_quota.record(original_message, daily_quota.VIDEO, cached=True)
@@ -3677,6 +3710,13 @@ def askq_callback(app, callback_query):
                     except Exception as e:
                         logger.error(f"askq_callback: error forming format: {e}")
                         format_override = "bestvideo+bestaudio/best/bv+ba/best"
+                    # same audio track as askq_callback_logic (DUBS): otherwise the missing
+                    # items came with the default audio and were cached as such
+                    _dub = _cache_audio_lang(user_id)
+                    if _dub:
+                        format_override = (format_override
+                                           .replace("+ba[acodec*=mp4a]", f"+ba[acodec*=mp4a][language^={_dub}]")
+                                           .replace("]+ba/", f"]+ba[language^={_dub}]/"))
                     
                     # Delete processing message before starting download
                     delete_processing_message(app, user_id, proc_msg)
@@ -3757,7 +3797,7 @@ def askq_callback(app, callback_query):
         logger.info(f"[CACHE] Active functions detected for user {user_id}, URL: {url}, skipping cache repost. TRIM: {active_funcs['has_trim']}, SUBS: {active_funcs['has_subs']}, DUBS: {active_funcs['has_dubs']}")
         message_ids = None  # Force skip cache when any function is active
     elif not need_subs and not is_subs_always_ask(user_id) and not send_as_file:
-        message_ids = get_cached_message_ids(url, data)
+        message_ids = get_cached_message_ids(url, _user_cache_key(user_id, data))
         # Если кэш по основному URL не найден, проверяем кэш по уникальной ссылке видео (для одиночных видео из плейлиста)
         if not message_ids:
             try:
@@ -3772,7 +3812,7 @@ def askq_callback(app, callback_query):
                     )
                     # Если это не URL плейлиста, проверяем кэш по уникальной ссылке
                     if video_page_url and video_page_url != url:
-                        message_ids = get_cached_message_ids(video_page_url, data)
+                        message_ids = get_cached_message_ids(video_page_url, _user_cache_key(user_id, data))
                         if message_ids:
                             logger.info(f"🔍 [CACHE] Найдено одиночное видео в кэше по уникальной ссылке: {video_page_url}, quality: {data}")
                             # Обновляем url для дальнейшей обработки
@@ -3806,7 +3846,7 @@ def askq_callback(app, callback_query):
                 return
             if stale:
                 # the cached messages are gone from the log channel: drop the entry and download
-                save_to_video_cache(url, data, [], clear=True)
+                save_to_video_cache(url, _user_cache_key(user_id, data), [], clear=True)
             askq_callback_logic(app, callback_query, data, original_message, url, tags_text, available_langs, proc_msg)
             
             # Удаляем Always Ask меню после обработки
@@ -3973,9 +4013,9 @@ def show_manual_quality_menu(app, callback_query):
     elif is_playlist:
         _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
         playlist_range = (video_start_with, video_end_with)
-        cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url)) if not send_as_file else set()
+        cached_qualities = _user_cached_playlist_qualities(get_clean_playlist_url(url), user_id) if not send_as_file else set()
     else:
-        cached_qualities = get_cached_qualities(url) if not send_as_file else set()
+        cached_qualities = _user_cached_qualities(url, user_id) if not send_as_file else set()
     
     # Create manual quality buttons
     manual_qualities = ["144p", "240p", "360p", "480p", "720p", "1080p", "1440p", "2160p", "4320p"]
@@ -3997,7 +4037,7 @@ def show_manual_quality_menu(app, callback_query):
             else:
                 # Для прямого порядка
                 indices = list(range(start, end + 1))
-            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality, indices)
+            n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, quality), indices)
             total = len(indices)
             # Проверяем, должен ли админ видеть звездочки для NSFW
             should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
@@ -4040,7 +4080,7 @@ def show_manual_quality_menu(app, callback_query):
             indices = list(range(start, end - 1, -1))
         else:
             indices = list(range(start, end + 1))
-        n_cached = get_cached_playlist_count(get_clean_playlist_url(url), "best", indices)
+        n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, "best"), indices)
         total = len(indices)
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
@@ -4088,7 +4128,7 @@ def show_manual_quality_menu(app, callback_query):
             indices = list(range(start, end - 1, -1))
         else:
             indices = list(range(start, end + 1))
-        n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+        n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, quality_key), indices)
         total = len(indices)
         # Проверяем, должен ли админ видеть звездочки для NSFW
         should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=callback_query.message)
@@ -4459,7 +4499,7 @@ def show_other_qualities_menu(app, callback_query, page=0):
         
         if not send_as_file and not should_disable_cache:
             try:
-                cached_qualities = get_cached_qualities(url)
+                cached_qualities = _user_cached_qualities(url, user_id)
             except Exception:
                 pass
         
@@ -4609,7 +4649,7 @@ def show_formats_from_cache(app, callback_query, format_lines, page, url):
     
     if not send_as_file and not should_disable_cache:
         try:
-            cached_qualities = get_cached_qualities(url)
+            cached_qualities = _user_cached_qualities(url, user_id)
         except Exception:
             pass
     
@@ -4750,9 +4790,9 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
         if send_as_file:
             cached_qualities = set()
         elif is_playlist and playlist_range:
-            cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url))
+            cached_qualities = _user_cached_playlist_qualities(get_clean_playlist_url(url), user_id)
         else:
-            cached_qualities = get_cached_qualities(url)
+            cached_qualities = _user_cached_qualities(url, user_id)
         
         if not cached_qualities:
             logger.info(f"No cached qualities found for user {user_id}")
@@ -4814,7 +4854,7 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                         indices = list(range(start, end - 1, -1))
                     else:
                         indices = list(range(start, end + 1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, quality_key), indices)
                     total = len(indices)
                     # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
                     # Check if cache should be disabled
@@ -4842,7 +4882,7 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                                 )
                                 # Если это не URL плейлиста, проверяем кэш по уникальной ссылке
                                 if video_page_url and video_page_url != url:
-                                    single_video_cached = get_cached_message_ids(video_page_url, quality_key)
+                                    single_video_cached = get_cached_message_ids(video_page_url, _user_cache_key(user_id, quality_key))
                                     if single_video_cached:
                                         is_cached = True
                                         logger.info(f"🔍 [CACHE] Найдено одиночное видео в кэше по уникальной ссылке: {video_page_url}, quality: {quality_key}")
@@ -4878,7 +4918,7 @@ def create_cached_qualities_menu(app, message, url, tags, proc_msg, user_id, ori
                     indices = list(range(start, end - 1, -1))
                 else:
                     indices = list(range(start, end + 1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, quality_key), indices)
                 total = len(indices)
                 # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
                 # Check if cache should be disabled
@@ -5241,9 +5281,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             _, video_start_with, video_end_with, _, _, _, _ = extract_url_range_tags(original_text)
             logger.info(f"🔍 [DEBUG] ask_quality_menu: после extract_url_range_tags: video_start_with={video_start_with}, video_end_with={video_end_with}")
             playlist_range = (video_start_with, video_end_with)
-            cached_qualities = get_cached_playlist_qualities(get_clean_playlist_url(url)) if not send_as_file else set()
+            cached_qualities = _user_cached_playlist_qualities(get_clean_playlist_url(url), user_id) if not send_as_file else set()
         else:
-            cached_qualities = get_cached_qualities(url) if not send_as_file else set()
+            cached_qualities = _user_cached_qualities(url, user_id) if not send_as_file else set()
         # Try load cached info first to make UI instant
         info = load_ask_info(user_id, url)
         if not info:
@@ -5773,7 +5813,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     indices = (playlist_indices_for_range(start, end, url, user_id, True, False)
                         or range_indices(start, end))
                     
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), q, indices)
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, q), indices)
                     total = len(indices)
                     postfix = f" ({n_cached}/{total})"
                     is_cached = n_cached > 0
@@ -5793,7 +5833,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         # Если это не URL плейлиста, проверяем кэш по уникальной ссылке
                         if video_page_url != url and video_page_url:
                             try:
-                                single_video_cached = get_cached_message_ids(video_page_url, q)
+                                single_video_cached = get_cached_message_ids(video_page_url, _user_cache_key(user_id, q))
                                 if single_video_cached:
                                     is_cached = True
                                     logger.info(f"🔍 [CACHE] Найдено одиночное видео в кэше по уникальной ссылке: {video_page_url}, quality: {q}")
@@ -6682,7 +6722,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         indices = list(range(start, end - 1, -1))
                     else:
                         indices = list(range(start, end + 1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, quality_key), indices)
                     total = len(indices)
                     # Get suffix emoji for active functions (TRIM, DUBS, SUBS)
                     # Check if cache should be disabled
@@ -6722,7 +6762,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         # Если это не URL плейлиста, проверяем кэш по уникальной ссылке
                         if video_page_url != url and video_page_url:
                             try:
-                                single_video_cached = get_cached_message_ids(video_page_url, quality_key)
+                                single_video_cached = get_cached_message_ids(video_page_url, _user_cache_key(user_id, quality_key))
                                 if single_video_cached:
                                     is_cached = True
                                     logger.info(f"🔍 [CACHE] Найдено одиночное видео в кэше по уникальной ссылке: {video_page_url}, quality: {quality_key}")
@@ -6768,7 +6808,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                         indices = list(range(start, end - 1, -1))
                     else:
                         indices = list(range(start, end + 1))
-                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                    n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, quality_key), indices)
                     total = len(indices)
                     # Проверяем, должен ли админ видеть звездочки для NSFW
                     should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
@@ -6791,7 +6831,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                                 )
                                 # Если это не URL плейлиста, проверяем кэш по уникальной ссылке
                                 if video_page_url and video_page_url != url:
-                                    single_video_cached = get_cached_message_ids(video_page_url, quality_key)
+                                    single_video_cached = get_cached_message_ids(video_page_url, _user_cache_key(user_id, quality_key))
                                     if single_video_cached:
                                         is_cached = True
                                         logger.info(f"🔍 [CACHE] Найдено одиночное видео в кэше по уникальной ссылке: {video_page_url}, quality: {quality_key}")
@@ -6822,7 +6862,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     indices = list(range(start, end - 1, -1))
                 else:
                     indices = list(range(start, end + 1))
-                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), quality_key, indices)
+                n_cached = get_cached_playlist_count(get_clean_playlist_url(url), _user_cache_key(user_id, quality_key), indices)
                 total = len(indices)
                 # Проверяем, должен ли админ видеть звездочки для NSFW
                 should_show_star = is_nsfw and is_private_chat and should_apply_limits_to_admin(user_id=user_id, message=message)
