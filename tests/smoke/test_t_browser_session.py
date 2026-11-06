@@ -147,6 +147,15 @@ check("bad proxy values are ignored", bs.proxy_url() == "")
 bs._cfg = lambda name, default: "socks5://127.0.0.1:1080" if name == "BROWSER_PROXY" else _orig_cfg(name, default)
 check("server-side BROWSER_PROXY is used", bs.proxy_url() == "socks5://127.0.0.1:1080")
 bs._cfg = _orig_cfg
+# time zone of the browser follows its exit address (configurable, validated)
+bs._cfg = lambda name, default: "Europe/Berlin" if name == "BROWSER_TIMEZONE" else _orig_cfg(name, default)
+check("BROWSER_TIMEZONE is used", bs.browser_timezone() == "Europe/Berlin")
+bs._cfg = lambda name, default: "../../etc/passwd" if name == "BROWSER_TIMEZONE" else _orig_cfg(name, default)
+check("bad BROWSER_TIMEZONE is ignored", bs.browser_timezone() == "")
+bs._cfg = lambda name, default: True if name == "BROWSER_HEADLESS" else _orig_cfg(name, default)
+check("BROWSER_HEADLESS=True: no virtual screen", bs._xvfb_binary() is None)
+bs._cfg = _orig_cfg
+check("no virtual screen -> not windowed", bs.is_windowed() is False)
 
 exe = bs.find_executable()
 if not exe:

@@ -19,9 +19,11 @@ function brError(err) {
 function post(path, body) { return api(path, { method: "POST", body: body || {}, timeout: 30000 }); }
 
 export function buildBrowser(s, { panel, bindLoader }) {
-  const view = panel({ title: t("br.session"), sub: t("br.session.sub"), span: 2 });
-  const cookies = panel({ title: t("br.cookies"), sub: t("br.cookies.sub") });
-  s.root.append(h("div", { class: "grid" }, view.el, cookies.el));
+  // the browser gets the whole width and almost all the height; one slim toolbar, like a remote desktop (neko)
+  const viewBody = h("div", { class: "br-body" });
+  const view = { el: h("section", { class: "panel br-panel", "aria-label": t("br.session") }, viewBody), body: viewBody };
+  const cookies = panel({ title: t("br.cookies"), sub: t("br.cookies.sub"), span: "full" });
+  s.root.append(view.el, h("div", { class: "grid br-below" }, cookies.el));
 
   const st = { data: null, tab: null, ui: null, running: false, known: null, order: [], queue: Promise.resolve(), ws: null, reqGen: 0, useLongPoll: false, wsFails: 0,
     decoding: false, pending: null, lastWatched: null, lastErr: 0, zoomTimer: null, watcher: null, wheel: 0, seq: 0, vw: 1280, vh: 800,
@@ -56,8 +58,8 @@ export function buildBrowser(s, { panel, bindLoader }) {
 
   // ------------------------------------------------------------ ui skeleton
   function buildUi() {
-    const statusPill = h("span", { class: "pill" });
-    const power = h("button", { type: "button", class: "primary" });
+    const statusPill = h("span", { class: "br-dot", role: "status" });
+    const power = h("button", { type: "button", class: "primary br-power" });
     power.addEventListener("click", () => {
       if (st.data && st.data.running) {
         confirmDialog({ title: t("br.stop"), text: t("br.stop.text"), confirm: t("br.stop"), danger: true })
@@ -93,12 +95,11 @@ export function buildBrowser(s, { panel, bindLoader }) {
       if (created && created.id) await selectTab(created.id);
     };
     const bookmarks = h("div", { class: "br-bookmarks", role: "group", "aria-label": t("br.bookmarks") },
-      BOOKMARKS.map(([name, url]) => h("button", { type: "button", class: "ghost", title: url, onclick: () => openBookmark(url) }, name)));
+      BOOKMARKS.map(([name, url]) => h("button", { type: "button", class: "br-chip", title: url, onclick: () => openBookmark(url) }, name)));
     const address = h("input", { type: "text", class: "br-address", inputmode: "url", autocomplete: "off", spellcheck: "false",
       autocapitalize: "off", "aria-label": t("br.address"), placeholder: t("br.address.ph") });
-    const go = h("button", { type: "submit", class: "primary" }, t("br.go"));
     const bar = h("form", { class: "br-toolbar", novalidate: true },
-      nav("back", t("br.back"), "←"), nav("forward", t("br.forward"), "→"), nav("reload", t("br.reload"), "↻"), address, go);
+      nav("back", t("br.back"), "←"), nav("forward", t("br.forward"), "→"), nav("reload", t("br.reload"), "↻"), address);
     bar.addEventListener("submit", async (e) => {
       e.preventDefault();
       const url = address.value.trim();
@@ -108,10 +109,10 @@ export function buildBrowser(s, { panel, bindLoader }) {
     });
 
     const canvas = h("canvas", { class: "br-canvas", width: 1280, height: 800, tabindex: 0, role: "application",
-      "aria-label": t("br.screen") });
+      "aria-label": t("br.screen"), title: t("br.help") });
     // page zoom (zoom out = more of the page fits) and picture quality
     const zoomLabel = h("output", { class: "br-zoom-label", "aria-live": "polite" }, "100%");
-    const zoomRange = h("input", { type: "range", class: "br-zoom-range", min: 50, max: 200, step: 10, value: 100, "aria-label": t("br.zoom") });
+    const zoomRange = h("input", { type: "range", class: "br-zoom-range", min: 50, max: 200, step: 10, value: 100, "aria-label": t("br.zoom"), title: t("br.zoom") });
     const applyZoom = async (percent) => {
       const value = Math.max(50, Math.min(200, Math.round(percent / 10) * 10));
       zoomRange.value = String(value);
@@ -145,17 +146,24 @@ export function buildBrowser(s, { panel, bindLoader }) {
     const quality = h("select", { class: "br-quality", "aria-label": t("br.quality") },
       PROFILES.map((p) => h("option", { value: p, selected: p === st.profile }, t(`br.q.${p}`))));
     quality.addEventListener("change", () => { st.profile = quality.value; localStorage.setItem("dash.br.profile", st.profile); restartStream(); });
+    zoomLabel.title = t("br.zoomReset");
+    zoomLabel.addEventListener("click", () => applyZoom(100));
     const zoomBar = h("div", { class: "br-zoombar", role: "group", "aria-label": t("br.zoom") },
-      stepBtn(t("br.zoomOut"), "−", -10), zoomRange, stepBtn(t("br.zoomIn"), "+", 10),
-      zoomLabel, h("button", { type: "button", class: "ghost", onclick: () => applyZoom(100) }, t("br.zoomReset")), quality);
+      stepBtn(t("br.zoomOut"), "−", -10), zoomRange, stepBtn(t("br.zoomIn"), "+", 10), zoomLabel, quality);
     const empty = h("p", { class: "state br-empty" });
     const screen = h("div", { class: "br-screen" }, canvas, empty);
 
     // mouse
     // the picture is scaled down; clicks are sent in page pixels (the viewport size the server reports)
+    // the canvas fills the screen area and the picture is letterboxed inside it (object-fit: contain)
     const point = (e) => {
       const r = canvas.getBoundingClientRect();
-      return { x: Math.round(((e.clientX - r.left) / r.width) * st.vw), y: Math.round(((e.clientY - r.top) / r.height) * st.vh) };
+      const scale = Math.min(r.width / canvas.width, r.height / canvas.height) || 1;
+      const w = canvas.width * scale;
+      const hgt = canvas.height * scale;
+      const x = (e.clientX - r.left - (r.width - w) / 2) / w;
+      const y = (e.clientY - r.top - (r.height - hgt) / 2) / hgt;
+      return { x: Math.round(Math.max(0, Math.min(1, x)) * st.vw), y: Math.round(Math.max(0, Math.min(1, y)) * st.vh) };
     };
     canvas.addEventListener("click", (e) => { canvas.focus(); if (e.detail < 2) sendInput({ kind: "click", ...point(e) }); });
     canvas.addEventListener("dblclick", (e) => sendInput({ kind: "dblclick", ...point(e) }));
@@ -183,18 +191,29 @@ export function buildBrowser(s, { panel, bindLoader }) {
     const textInput = h("input", { type: "text", class: "br-text", autocomplete: "off", spellcheck: "false", "aria-label": t("br.text"), placeholder: t("br.text.ph") });
     const sendText = () => { if (textInput.value) { sendInput({ kind: "text", text: textInput.value }); textInput.value = ""; } };
     textInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendText(); } });
-    const keyBtn = (key, label) => h("button", { type: "button", class: "ghost", onclick: () => sendInput({ kind: "key", key }) }, label);
-    const keys = h("div", { class: "br-keys" }, textInput,
-      h("button", { type: "button", class: "ghost", onclick: sendText }, t("br.send")),
+    const keyBtn = (key, label) => h("button", { type: "button", class: "br-chip", onclick: () => sendInput({ kind: "key", key }) }, label);
+    const keys = h("div", { class: "br-keys", hidden: true }, textInput,
+      h("button", { type: "button", class: "br-chip", onclick: sendText }, t("br.send")),
       keyBtn("Tab", "Tab"), keyBtn("Enter", "Enter"), keyBtn("Backspace", "⌫"), keyBtn("Escape", "Esc"));
+    // extra keys and a text box (passwords from a manager, IME): out of the way until asked for
+    const kbd = h("button", { type: "button", class: "ghost icon-btn", "aria-pressed": "false", "aria-label": t("br.keyboard"), title: t("br.keyboard") }, "⌨");
+    kbd.addEventListener("click", () => {
+      keys.hidden = !keys.hidden;
+      kbd.setAttribute("aria-pressed", String(!keys.hidden));
+      if (!keys.hidden) textInput.focus();
+    });
+    const full = h("button", { type: "button", class: "ghost icon-btn", "aria-label": t("br.fullscreen"), title: t("br.fullscreen") }, "⛶");
+    full.addEventListener("click", () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else if (view.el.requestFullscreen) view.el.requestFullscreen().catch(() => {});
+    });
 
-    const help = h("p", { class: "muted br-help" }, t("br.help"));
     const missing = h("div", { class: "state" });
-    const live = h("div", { class: "br-live" }, bookmarks, tabs, bar, zoomBar, screen, keys, help);
-
-    const top = h("div", { class: "br-top" }, statusPill, power);
+    const controls = h("div", { class: "br-controls" }, bar, bookmarks, zoomBar, kbd, full);
+    const live = h("div", { class: "br-live" }, tabs, screen, keys);
+    const top = h("div", { class: "br-top" }, statusPill, power, controls);
     view.body.replaceChildren(top, missing, live);
-    return { statusPill, power, tabs, addTab, address, canvas, empty, live, missing, zoomRange, zoomLabel };
+    return { statusPill, power, controls, tabs, addTab, address, canvas, empty, live, missing, zoomRange, zoomLabel };
   }
 
   function renderTabs() {
@@ -226,8 +245,16 @@ export function buildBrowser(s, { panel, bindLoader }) {
     if (!st.ui) st.ui = buildUi();
     const ui = st.ui;
     const ready = data.enabled && data.executable;
-    ui.statusPill.textContent = !data.enabled ? t("br.state.off") : !data.executable ? t("br.state.nobrowser") : data.running ? t("br.state.running") : t("br.state.stopped");
-    ui.power.textContent = data.running ? t("br.stop") : t("br.start");
+    const state = !data.enabled ? t("br.state.off") : !data.executable ? t("br.state.nobrowser") : data.running ? t("br.state.running") : t("br.state.stopped");
+    ui.statusPill.title = state;
+    ui.statusPill.setAttribute("aria-label", state);
+    ui.statusPill.classList.toggle("on", !!data.running);
+    // running: a small power icon; stopped: the one button there is to press
+    ui.power.textContent = data.running ? "⏻" : t("br.start");
+    ui.power.title = data.running ? t("br.stop") : t("br.start");
+    ui.power.setAttribute("aria-label", ui.power.title);
+    ui.power.classList.toggle("icon-btn", !!data.running);
+    ui.controls.hidden = !data.running;
     ui.power.hidden = !ready;
     ui.missing.hidden = ready;
     ui.missing.textContent = !data.enabled ? t("br.disabled") : t("br.nobrowser");
@@ -416,8 +443,8 @@ export function buildBrowser(s, { panel, bindLoader }) {
     })();
   }
 
-  bindLoader(s, view, async () => { await reload(); });
-  cookies.refreshBtn.addEventListener("click", () => reload().catch(() => {}));
+  // the browser area has no panel chrome of its own: the cookies panel carries the refresh button and the error state
   cookies.loaded = true;
   cookies.body.replaceChildren(h("p", { class: "state" }, t("common.loading")));
+  bindLoader(s, cookies, async () => { await reload(); });
 }

@@ -1,7 +1,9 @@
 """Live browser session shared by the admin dashboard and the bot.
 
-An admin logs into any web service in a real (headless) Chromium that is
-driven from the dashboard's "Browser" tab. The bot then reads the *current*
+An admin logs into any web service in a real Chrome that is driven from the
+dashboard's "Browser" tab. When Xvfb is installed Chrome runs as a normal
+windowed browser on a virtual screen (no headless traits, no script patches,
+so sites see an ordinary Linux desktop); otherwise it falls back to headless. The bot then reads the *current*
 cookies of that session whenever a user runs /cookies_from_browser or taps a
 service button in /cookie, so cookies never have to be exported and sent by hand.
 
@@ -43,6 +45,11 @@ logger = logging.getLogger(__name__)
 PROJECT_DIR = Path(os.environ.get("TG_DASHBOARD_PROJECT_DIR", str(Path(__file__).resolve().parent.parent)))
 PROFILE_DIR = PROJECT_DIR / "CONFIG" / ".browser_profile"
 PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_session.pid"
+XVFB_PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_xvfb.pid"
+TZ_CACHE_FILE = PROJECT_DIR / "CONFIG" / ".browser_timezone"
+SCREEN = (1920, 1080)                 # virtual screen of the windowed browser (an ordinary Full HD monitor)
+WINDOW_UI_HEIGHT = 87                 # tab strip + toolbar of a normal Chrome window
+_TZ_RE = re.compile(r"[A-Za-z_]{2,32}(/[A-Za-z0-9_+\-]{1,32}){0,2}")
 _PROXY_RE = re.compile(r"(https?|socks5h?|socks4)://[A-Za-z0-9.\-:\[\]]+")
 
 CDP_HOST = "127.0.0.1"
@@ -123,6 +130,10 @@ def find_executable() -> Optional[str]:
     if configured:
         return configured if os.path.isfile(configured) else None
     import glob
+    for name in ("google-chrome-stable", "google-chrome"):   # the real Chrome first: its identity needs no patching
+        found = shutil.which(name)
+        if found:
+            return found
     for pattern in ("/opt/tg-browser/browsers/chromium-*/chrome-linux*/chrome",
                     os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-linux*/chrome")):
         found = sorted(glob.glob(pattern))          # Playwright-installed Chromium (the only ARM64 build)
@@ -379,8 +390,113 @@ def _profile_dir() -> Path:
     return Path(entry.pw_dir) / "tg-browser-profile" if entry else PROFILE_DIR
 
 
+def _pid_alive(pid_file: Path) -> Optional[int]:
+    try:
+        pid = int(pid_file.read_text().strip())
+        os.kill(pid, 0)
+        return pid
+    except (OSError, ValueError):
+        return None
+
+
+def _xvfb_binary() -> Optional[str]:
+    """Xvfb lets Chrome run as an ordinary windowed browser; BROWSER_HEADLESS=True forces headless instead."""
+    if sys.platform == "win32" or bool(_cfg("BROWSER_HEADLESS", False)):
+        return None
+    return shutil.which("Xvfb")
+
+
+def _start_display(xvfb: str, popen_kwargs: Dict[str, Any]) -> Optional[str]:
+    """Start (or reuse) the virtual screen; returns the DISPLAY value or None when it cannot start."""
+    num = 90 + cdp_port() % 10
+    display = f":{num}"
+    sock = Path(f"/tmp/.X11-unix/X{num}")
+    if _pid_alive(XVFB_PID_FILE) and sock.exists():
+        return display
+    lock = Path(f"/tmp/.X{num}-lock")
+    try:                                                    # a lock left by a crashed server blocks the display
+        if lock.exists():
+            os.kill(int(lock.read_text().strip()), 0)
+    except (OSError, ValueError):
+        for stale in (lock, sock):
+            try:
+                stale.unlink()
+            except OSError:
+                pass
+    try:
+        proc = subprocess.Popen([xvfb, display, "-screen", "0", f"{SCREEN[0]}x{SCREEN[1]}x24", "-nolisten", "tcp",
+                                 "-dpi", "96", "-nocursor"], **popen_kwargs)
+    except OSError as exc:
+        logger.warning("[browser] Xvfb did not start: %s", exc)
+        return None
+    for _ in range(50):
+        if sock.exists():
+            try:
+                XVFB_PID_FILE.write_text(str(proc.pid))
+            except OSError:
+                pass
+            return display
+        if proc.poll() is not None:
+            break
+        time.sleep(0.1)
+    logger.warning("[browser] Xvfb did not come up, falling back to headless")
+    try:
+        proc.kill()
+    except OSError:
+        pass
+    return None
+
+
+def is_windowed() -> bool:
+    """True when the running browser is a normal window on the virtual screen (not headless)."""
+    return bool(_pid_alive(XVFB_PID_FILE))
+
+
+def _stop_display() -> None:
+    pid = _pid_alive(XVFB_PID_FILE)
+    if pid:
+        try:
+            os.kill(pid, 15)
+        except OSError:
+            pass
+    try:
+        XVFB_PID_FILE.unlink()
+    except OSError:
+        pass
+
+
+def browser_timezone() -> str:
+    """Time zone of the place the browser leaves from: BROWSER_TIMEZONE, else looked up once for the server's IP.
+
+    A browser in UTC whose address is in Frankfurt is an obvious mismatch for anti-bot checks.
+    """
+    configured = str(_cfg("BROWSER_TIMEZONE", "") or "").strip()
+    if configured:
+        return configured if _TZ_RE.fullmatch(configured) else ""
+    try:
+        cached = TZ_CACHE_FILE.read_text(encoding="utf-8").strip()
+        if _TZ_RE.fullmatch(cached) and time.time() - TZ_CACHE_FILE.stat().st_mtime < 7 * 86400:
+            return cached
+    except OSError:
+        pass
+    found = ""
+    try:
+        conn = http.client.HTTPConnection("ip-api.com", 80, timeout=4)
+        conn.request("GET", "/json/?fields=timezone")
+        found = str(json.loads(conn.getresponse().read(2048) or b"{}").get("timezone") or "")
+    except (OSError, ValueError, http.client.HTTPException):
+        found = ""
+    if not _TZ_RE.fullmatch(found):
+        return ""
+    try:
+        TZ_CACHE_FILE.write_text(found, encoding="utf-8")
+    except OSError:
+        pass
+    return found
+
+
 def start() -> Dict[str, Any]:
-    """Launch Chromium (detached) unless it is already up."""
+    """Launch Chrome (detached) unless it is already up."""
     if not enabled():
         raise BrowserError("disabled")
     if is_running():
@@ -397,19 +513,42 @@ def start() -> Dict[str, Any]:
         os.chmod(profile, 0o700)
     except OSError:
         pass
+    kwargs: Dict[str, Any] = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    if entry:
+        kwargs.update(user=entry.pw_uid, group=entry.pw_gid, extra_groups=[],
+                      env={"HOME": entry.pw_dir, "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LANG": "C.UTF-8"})
+    elif sys.platform != "win32":
+        kwargs["env"] = dict(os.environ)
+    if sys.platform == "win32":
+        kwargs["creationflags"] = 0x00000008 | 0x00000200   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    else:
+        kwargs["start_new_session"] = True                  # survives dashboard / bot restarts
+        tz = browser_timezone()
+        if tz:
+            kwargs["env"]["TZ"] = tz
+    xvfb = _xvfb_binary()
+    display = _start_display(xvfb, dict(kwargs)) if xvfb else None
+    if display:
+        kwargs["env"]["DISPLAY"] = display
+        # an ordinary Chrome window on a Full HD virtual screen: nothing to hide, nothing patched
+        mode = [f"--window-size={VIEWPORT[0]},{VIEWPORT[1] + WINDOW_UI_HEIGHT}", "--window-position=0,0",
+                "--test-type",                              # no "unsupported command-line flag" bar over the page
+                "--ignore-gpu-blocklist", "--use-angle=gl"]  # WebGL through Mesa (llvmpipe), like any Linux box without a GPU
+    else:
+        mode = ["--headless=new", f"--window-size={VIEWPORT[0]},{VIEWPORT[1]}"]
     args = [
-        exe, "--headless=new", f"--remote-debugging-port={cdp_port()}", f"--remote-debugging-address={CDP_HOST}",
-        f"--user-data-dir={profile}", f"--window-size={VIEWPORT[0]},{VIEWPORT[1]}",
-        "--force-device-scale-factor=1", "--no-first-run", "--no-default-browser-check",
+        exe, *mode, f"--remote-debugging-port={cdp_port()}", f"--remote-debugging-address={CDP_HOST}",
+        f"--user-data-dir={profile}", "--force-device-scale-factor=1", "--no-first-run", "--no-default-browser-check",
         "--disable-blink-features=AutomationControlled", "--disable-background-networking",
-        "--disable-sync", "--disable-dev-shm-usage", "--password-store=basic", "--lang=en-US",
-        "--mute-audio", "--disable-notifications",
-        # lean profile: the browser is only used to log in, speed and memory matter more than looks
+        "--disable-sync", "--disable-dev-shm-usage", "--password-store=basic", "--lang=en-US", "--accept-lang=en-US,en",
+        "--mute-audio",
+        # lean profile: the browser is only used to log in (none of these is visible to a web page)
         "--disable-extensions", "--disable-breakpad", "--disable-component-update", "--no-pings",
         "--disable-default-apps", "--disable-hang-monitor", "--disable-smooth-scrolling", "--disable-lcd-text",
         "--disable-domain-reliability", "--disable-client-side-phishing-detection", "--metrics-recording-only",
-        "--disable-features=Translate,BackForwardCache,MediaRouter,OptimizationHints,InterestFeedContentSuggestions",
-        "--js-flags=--max-old-space-size=256", "--renderer-process-limit=3",
+        # FedCm: "Sign in with Google" would open a browser dialog the panel cannot show; without it Google uses a popup
+        "--disable-features=Translate,BackForwardCache,MediaRouter,OptimizationHints,InterestFeedContentSuggestions,FedCm",
+        "--renderer-process-limit=3",
         # login pages need no video: no autoplay, no hardware decode (the server also runs the bot's ffmpeg jobs)
         "--autoplay-policy=user-gesture-required", "--disable-accelerated-video-decode",
     ]
@@ -425,26 +564,18 @@ def start() -> Dict[str, Any]:
             using_proxy = True
         else:
             logger.warning("[browser] proxy %s is not reachable, starting without it", proxy)
-    ua = _user_agent_fix(exe)
+    ua = None if display else _user_agent_fix(exe)       # only headless announces itself as "HeadlessChrome"
     if ua:
         args.append(f"--user-agent={ua}")
     if hasattr(os, "geteuid") and os.geteuid() == 0 and not entry:
         args.append("--no-sandbox")                      # Chromium refuses to run as root otherwise
     args.append("about:blank")
-    kwargs: Dict[str, Any] = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
     try:
         niceness = int(_cfg("BROWSER_NICE", 0) or 0)       # 0 = normal priority (an interactive login must stay responsive)
     except (TypeError, ValueError):
         niceness = 0
     if niceness > 0 and hasattr(os, "nice"):
         kwargs["preexec_fn"] = lambda: os.nice(niceness)
-    if entry:
-        kwargs.update(user=entry.pw_uid, group=entry.pw_gid, extra_groups=[],
-                      env={"HOME": entry.pw_dir, "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LANG": "C.UTF-8"})
-    if sys.platform == "win32":
-        kwargs["creationflags"] = 0x00000008 | 0x00000200   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
-    else:
-        kwargs["start_new_session"] = True                  # survives dashboard / bot restarts
     for attempt in (0, 1):
         launch = args if attempt == 0 or "--no-sandbox" in args else args[:-1] + ["--no-sandbox", args[-1]]
         try:
@@ -464,7 +595,7 @@ def start() -> Dict[str, Any]:
         while time.monotonic() < deadline:
             if is_running():
                 return {"started": True, "pid": proc.pid, "sandbox": "--no-sandbox" not in launch,
-                        "proxy": using_proxy, "proxy_wanted": bool(proxy)}
+                        "headed": bool(display), "proxy": using_proxy, "proxy_wanted": bool(proxy)}
             if proc.poll() is not None:
                 break                                    # died: retry once without the sandbox
             time.sleep(0.3)
@@ -489,7 +620,10 @@ def stop() -> bool:
         PID_FILE.unlink()
     except OSError:
         pass
-    return not is_running()
+    stopped = not is_running()
+    if stopped:
+        _stop_display()
+    return stopped
 
 
 # --------------------------------------------------------------------------------------

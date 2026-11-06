@@ -2098,14 +2098,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## ⚙️ Optional components: web dashboard and browser tab
 
 The bot works completely without the web dashboard and without the browser integration. Both are **optional**
-because they cost resources: the dashboard is an extra process (FastAPI), and its *Browser* tab runs a real headless
-Chromium (roughly 0.5–1.5 GB of RAM and noticeable CPU while it is open). On a small server skip them.
+because they cost resources: the dashboard is an extra process (FastAPI), and its *Browser* tab runs a real
+Chrome (roughly 0.5–1.5 GB of RAM and noticeable CPU while it is open). On a small server skip them.
 
 | What you want | Python / systemd install | Docker |
 |---|---|---|
 | **Bot only** (default) | `pip install -r requirements.txt` | `docker compose up -d --build` |
 | **+ Web dashboard** | also `pip install -r requirements-dashboard.txt`, then run `uvicorn web.dashboard_app:app` (see below) | `docker compose --profile dashboard up -d --build` (or put `COMPOSE_PROFILES=dashboard` into `.env`) |
-| **+ Browser tab** (log in to services in the panel, the bot takes cookies from that session) | also install Chromium or Chrome: `sudo apt install chromium` (no extra Python packages) | `INSTALL_BROWSER=1` in `.env` before building the dashboard image* |
+| **+ Browser tab** (log in to services in the panel, the bot takes cookies from that session) | also install Google Chrome (or Chromium) and Xvfb: `sudo apt install xvfb` plus the `google-chrome-stable` .deb (amd64 and arm64); Chrome then runs as an ordinary window on a virtual screen, which sites do not mistake for a bot. Without Xvfb it falls back to headless (no extra Python packages) | `INSTALL_BROWSER=1` in `.env` before building the dashboard image* |
 
 \* Inside Docker the browser is reachable only from the dashboard container's own loopback, so the bot cannot read its
 cookies there (the bot keeps working and uses its usual cookie sources). The cookie hand-over is meant for the plain
@@ -2117,7 +2117,7 @@ If you already ran the dashboard in Docker, `scripts/UPDATE_DOCKER.sh` keeps it 
 commands add `COMPOSE_PROFILES=dashboard` to `.env`.
 
 Browser tab settings (all optional, in `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
-`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_COOKIES_ADMIN_ONLY`. The bot hands out
+`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_TIMEZONE`, `BROWSER_HEADLESS`, `BROWSER_COOKIES_ADMIN_ONLY`. The bot hands out
 only the cookies of YouTube, X, Instagram, VK and TikTok. The browser runs on the server itself and leaves from its address
 (`BROWSER_PROXY` can point it at a proxy on the server side).
 

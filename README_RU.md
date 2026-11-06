@@ -1877,14 +1877,14 @@ journalctl -u tg-ytdlp-dashboard -f
 ## ⚙️ Необязательные компоненты: веб-панель и вкладка «Браузер»
 
 Бот полностью работает без веб-панели и без интеграции с браузером. Оба компонента **необязательные**, потому что
-требуют ресурсов: панель — отдельный процесс (FastAPI), а её вкладка «Браузер» запускает настоящий headless Chromium
+требуют ресурсов: панель — отдельный процесс (FastAPI), а её вкладка «Браузер» запускает настоящий Chrome
 (порядка 0,5–1,5 ГБ ОЗУ и заметная нагрузка на CPU, пока открыта). На слабом сервере их лучше пропустить.
 
 | Что нужно | Установка через Python / systemd | Docker |
 |---|---|---|
 | **Только бот** (по умолчанию) | `pip install -r requirements.txt` | `docker compose up -d --build` |
 | **+ Веб-панель** | дополнительно `pip install -r requirements-dashboard.txt`, затем запуск `uvicorn web.dashboard_app:app` (ниже) | `docker compose --profile dashboard up -d --build` (или `COMPOSE_PROFILES=dashboard` в `.env`) |
-| **+ Вкладка «Браузер»** (вход в сервисы в панели, бот берёт cookies из этой сессии) | дополнительно Chromium или Chrome: `sudo apt install chromium` (Python-пакетов не нужно) | `INSTALL_BROWSER=1` в `.env` перед сборкой образа панели* |
+| **+ Вкладка «Браузер»** (вход в сервисы в панели, бот берёт cookies из этой сессии) | дополнительно Google Chrome (или Chromium) и Xvfb: `sudo apt install xvfb` и .deb `google-chrome-stable` (есть для amd64 и arm64); Chrome тогда работает обычным окном на виртуальном экране, и сайты не принимают его за бота. Без Xvfb он запускается в headless (Python-пакетов не нужно) | `INSTALL_BROWSER=1` в `.env` перед сборкой образа панели* |
 
 \* В Docker браузер доступен только с loopback контейнера панели, поэтому бот не может забрать его cookies (бот при этом
 работает как обычно и берёт cookies из прежних источников). Передача cookies рассчитана на обычную установку
@@ -1896,7 +1896,7 @@ journalctl -u tg-ytdlp-dashboard -f
 `COMPOSE_PROFILES=dashboard` в `.env`.
 
 Настройки вкладки «Браузер» (все необязательные, `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
-`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_COOKIES_ADMIN_ONLY`. Бот отдаёт только
+`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_TIMEZONE`, `BROWSER_HEADLESS`, `BROWSER_COOKIES_ADMIN_ONLY`. Бот отдаёт только
 cookies YouTube, X, Instagram, VK и TikTok. Браузер работает на самом сервере и выходит в интернет с его адреса
 (`BROWSER_PROXY` позволяет указать прокси на стороне сервера).
 
