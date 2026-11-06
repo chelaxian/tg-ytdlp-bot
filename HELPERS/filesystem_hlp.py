@@ -393,7 +393,12 @@ def _truncate_name(name, ext, max_total):
     ext_bytes = _byte_len(ext)
     max_name_bytes = max_total - ext_bytes
     if max_name_bytes <= 0:
-        return ext
+        # The extension alone does not fit: never return it unchanged (it may be
+        # a long unsanitized tail), cut it to the byte budget instead.
+        ext_cut = ext
+        while _byte_len(ext_cut) > max_total and ext_cut:
+            ext_cut = ext_cut[:-1]
+        return ext_cut
 
     # Trim character-by-character until the byte budget is met (avoids splitting
     # a multi-byte UTF-8 sequence).
@@ -402,6 +407,27 @@ def _truncate_name(name, ext, max_total):
         truncated = truncated[:-1]
 
     return truncated + ext
+
+
+# A real file extension: dot + 1-8 ASCII letters/digits (".mp4", ".webm", ".jpeg").
+_REAL_EXT_RE = re.compile(r'\.[A-Za-z0-9]{1,8}')
+
+
+def _split_name_ext(filename):
+    """Split a name into (stem, extension) treating only a real extension as one.
+
+    os.path.splitext cuts at the LAST dot, so a title or caption such as
+    "... atmosphere. This is #tag1 #tag2 | Song" gets the whole tail
+    ". This is #tag1 #tag2 | Song" as its "extension". That tail was never
+    sanitized and, when longer than the byte budget, was returned as the file
+    name: yt-dlp then wrote "<tail>.jpg" and failed with Errno 36 (Facebook
+    reel with a long hashtag caption, 2026-11-05). A suffix that is not a
+    plain short alphanumeric extension is part of the name.
+    """
+    name, ext = os.path.splitext(filename)
+    if ext and not _REAL_EXT_RE.fullmatch(ext):
+        return filename, ''
+    return name, ext
 
 
 def _byte_len(text):
@@ -451,7 +477,7 @@ def sanitize_filename(filename, max_length=150):
     if filename is None:
         return "untitled"
 
-    name, ext = os.path.splitext(filename)
+    name, ext = _split_name_ext(filename)
     name = _clean_unicode_name(name)
 
     # Remove invalid filesystem characters
@@ -474,7 +500,7 @@ def sanitize_filename_strict(filename, max_length=100):
     if filename is None:
         return "untitled"
 
-    name, ext = os.path.splitext(filename)
+    name, ext = _split_name_ext(filename)
     name = unicodedata.normalize("NFKC", name)
 
     # Strip diacritics/accent marks: ó→o, ñ→n, í→i, á→a, etc.

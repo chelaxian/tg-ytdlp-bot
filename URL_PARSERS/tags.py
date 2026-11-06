@@ -290,7 +290,13 @@ def extract_url_range_tags(text: str):
             continue
         
         tag = raw.group(1)
-        
+
+        # "#HttpOnly_.youtube.com\tTRUE\t..." is a line of a pasted Netscape
+        # cookie file, not a tag: the user got "Tag #HttpOnly_.youtube.com
+        # contains forbidden characters" instead of the cookie being handled.
+        if tag.startswith('HttpOnly_'):
+            continue
+
         # If tag contains '/' character, it's part of URL, not a tag - skip it
         if '/' in tag:
             continue

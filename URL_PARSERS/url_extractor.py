@@ -109,6 +109,25 @@ def _distractor_is_heavy(message):
     return command in heavy_commands or text == "✅"  # ✅ = /check_cookie
 
 
+def _is_downloadable_manifest(url: str) -> bool:
+    """True for a playlist manifest yt-dlp can download as one video.
+
+    Raw CDN rejection (issue #388) must not fire on HLS/DASH *playlists*
+    (.m3u8/.mpd, optionally with query params): those are a single video for
+    yt-dlp+ffmpeg — e.g. a signed Vidio DASH manifest with hdnts=exp~acl~hmac
+    params. Only media segments/fragments and thumbnails stay rejected.
+    """
+    try:
+        path = (urlparse(url).path or "").lower()
+        clean = path.rstrip('/')
+        for ext in ('.m3u8', '.mpd'):
+            if clean.endswith(ext):
+                return True
+        return False
+    except Exception:
+        return False
+
+
 @app.on_message(filters.text & filters.private)
 @reply_with_keyboard
 @background_handler(label="url_distractor", heavy_if=_distractor_is_heavy)
@@ -1287,6 +1306,11 @@ def url_distractor(app, message):
                 # These are HLS playlists, range fragments, or thumbnails copied
                 # from DevTools — they cannot be processed as a single video and
                 # generate ~38% of all errors when users spam them.
+                # EXCEPT manifests: a signed .mpd/.m3u8 playlist (e.g. a Vidio
+                # DASH manifest with hdnts exp/acl/hmac params) IS a single
+                # downloadable video for yt-dlp+ffmpeg; rejecting it told the
+                # user to "send the page URL" while the page itself was
+                # unsupported. Only raw segments/fragments stay rejected.
                 if raw_url:
                     try:
                         _cdn_parsed = urlparse(raw_url)
@@ -1304,7 +1328,7 @@ def url_distractor(app, message):
                                 logger.debug("URL_EXTRACTOR: CDN_REJECT_DOMAINS not present in deployed build; skipping CDN domain guard")
                             for _cdn_domain in (_cdn_reject_domains or []):
                                 _cdn_domain_lower = _cdn_domain.lower().strip()
-                                if _cdn_host == _cdn_domain_lower or _cdn_host.endswith('.' + _cdn_domain_lower):
+                                if (_cdn_host == _cdn_domain_lower or _cdn_host.endswith('.' + _cdn_domain_lower)) and not _is_downloadable_manifest(raw_url):
                                     logger.info(f"URL_EXTRACTOR: blocking raw CDN domain '{_cdn_domain}' for URL '{raw_url}'")
                                     _cdn_err_msg = (
                                         f"❌ <b>This is a raw CDN URL, not a video page.</b>\n\n"

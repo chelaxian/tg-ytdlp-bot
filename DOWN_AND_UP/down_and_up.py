@@ -2928,6 +2928,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif "Network error" in error_message:
                         error_code = "NETWORK_ERROR"
                         error_description = "Network connection failed"
+                    elif "not made this video available in your country" in error_message.lower():
+                        # Geo-block: yt-dlp appends the full list of allowed
+                        # countries (~200 names). It used to fall through to
+                        # UNKNOWN_ERROR with cookie advice and the whole list
+                        # in "Full Error". Point to /proxy instead.
+                        error_code = "GEO_RESTRICTED"
+                        error_description = (
+                            "This video is not available in the bot's country. "
+                            "Enable proxy (/proxy) so the bot can try proxies from other countries."
+                        )
                     elif "bytes read," in error_message and "more expected" in error_message:
                         error_code = "INCOMPLETE_DOWNLOAD"
                         error_description = "Download was interrupted — network connection unstable. Please try again."
@@ -3014,7 +3024,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         f"────────────────\n"
                         f"❌ <b>Error Code:</b> <code>{error_code}</code>\n"
                         f"📝 <b>Description:</b> {error_description}\n"
-                        f"🔧 <b>Full Error:</b> <code>{error_message}</code>"
+                        f"🔧 <b>Full Error:</b> <code>{html.escape(str(error_message)[:600])}</code>"
                     )
                     error_message_sent = True
                     # Send cookie hint if this is a cookie-related error
