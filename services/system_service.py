@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-import psutil
+try:
+    import psutil
+except ImportError:  # optional: only the web dashboard reads system metrics (requirements-dashboard.txt)
+    psutil = None
 import time
 import subprocess
 import re
@@ -120,6 +123,8 @@ _network_speed_cache = {"last_check": 0, "last_sent": 0, "last_recv": 0, "speed_
 def get_network_speed() -> Dict[str, Any]:
     """Вычисляет текущую скорость сети на основе активных потоков."""
     global _network_speed_cache
+    if psutil is None:
+        return {"speed_sent_mbps": 0, "speed_recv_mbps": 0}
     try:
         now = time.time()
         net_io = psutil.net_io_counters()
@@ -277,6 +282,8 @@ def get_external_ip() -> Dict[str, str]:
 
 def get_system_metrics() -> Dict[str, Any]:
     """Возвращает метрики системы."""
+    if psutil is None:
+        return {"error": "psutil is not installed (pip install -r requirements-dashboard.txt)"}
     try:
         cpu_percent = psutil.cpu_percent(interval=None)  # vs. the previous call: never blocks
         memory = psutil.virtual_memory()

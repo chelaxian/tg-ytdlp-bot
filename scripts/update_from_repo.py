@@ -83,6 +83,7 @@ INCLUDE_DIRS = [
 
 ALWAYS_INCLUDE_FILES = [
     "requirements.txt",
+    "requirements-dashboard.txt",
     # Docker files
     "Dockerfile",
     "docker-compose.yml",

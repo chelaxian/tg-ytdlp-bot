@@ -1,0 +1,9 @@
+# OPTIONAL: web dashboard (web/dashboard_app.py). The bot itself does not need any of this.
+#   pip install -r requirements-dashboard.txt
+# The dashboard's "Browser" tab additionally needs a Chromium/Chrome binary on the server
+# (apt install chromium); there are no extra Python packages for it.
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+psutil

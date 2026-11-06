@@ -12,7 +12,13 @@ import sys
 def main():
     root = Path(__file__).resolve().parents[1]
     commands = [('unittest', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v'])]
+    import importlib.util
+    has_panel = importlib.util.find_spec('fastapi') is not None
+    panel_suites = ('test_m_', 'test_t_browser_session', 'test_u_browser_hub')
     for script in sorted((root / 'tests' / 'smoke').glob('test_*.py')):
+        if not has_panel and script.name.startswith(panel_suites):
+            print(f'SKIP {script.name}: the optional web dashboard packages are not installed')
+            continue
         args = [] if script.name.startswith('test_a2_') else [str(root)]
         commands.append((script.name, [sys.executable, str(script), *args]))
     failures = 0

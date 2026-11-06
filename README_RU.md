@@ -322,7 +322,7 @@ docker compose up -d --build
 Контейнер бота будет собран из `Dockerfile`, и:
 - `configuration-webserver` (по желанию — запускается отдельно командой `docker compose --profile configuration-webserver up -d`) будет обслуживать cookie файлы; он работает в сетевом namespace warp, поэтому бот обращается к ним по `http://localhost/cookies/<filename>`
 - `bgutil-provider` будет доступен по `http://bgutil-provider:4416` для YouTube PO токенов
-- **Dashboard панель** будет доступна по `http://localhost:5555` (или `http://<ваш-ip>:5555`)
+- **Dashboard панель** *(необязательная, по умолчанию выключена, см. «Необязательные компоненты» ниже)* после включения доступна по `http://localhost:5555`
 
 **По желанию – новый IP на каждую загрузку (WARP для каждой задачи):** укажите `WARP_DIRECT_BOT=1` в `.env` и `WARP_PER_TASK = True` в `CONFIG/config.py`, затем `docker compose up -d --build`. Каждая загрузка пойдёт через свой туннель WARP с новым IPv6 (используется аккаунт контейнера `warp`), а собственный трафик бота к Telegram — напрямую, поэтому перезапуски туннеля его не обрывают. Подробности: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
 
@@ -330,7 +330,7 @@ docker compose up -d --build
 
 **Шаг 4 – Доступ к Dashboard Panel:**
 
-После запуска контейнеров веб-панель запустится на порту **5555** (настраивается через `DASHBOARD_PORT` в `CONFIG/config.py`):
+Веб-панель необязательна и **не** запускается командой `docker compose up -d`. Чтобы включить её, выполните `docker compose --profile dashboard up -d --build` (или добавьте `COMPOSE_PROFILES=dashboard` в `.env`). После этого она работает на порту **5555** (настраивается через `DASHBOARD_PORT` в `CONFIG/config.py`):
 - `http://localhost:5555` (если с той же машины)
 - `http://<ваш-ip>:5555` (если удалённо)
 
@@ -1874,6 +1874,32 @@ journalctl -u tg-ytdlp-dashboard -f
 
 ---
 
+## ⚙️ Необязательные компоненты: веб-панель и вкладка «Браузер»
+
+Бот полностью работает без веб-панели и без интеграции с браузером. Оба компонента **необязательные**, потому что
+требуют ресурсов: панель — отдельный процесс (FastAPI), а её вкладка «Браузер» запускает настоящий headless Chromium
+(порядка 0,5–1,5 ГБ ОЗУ и заметная нагрузка на CPU, пока открыта). На слабом сервере их лучше пропустить.
+
+| Что нужно | Установка через Python / systemd | Docker |
+|---|---|---|
+| **Только бот** (по умолчанию) | `pip install -r requirements.txt` | `docker compose up -d --build` |
+| **+ Веб-панель** | дополнительно `pip install -r requirements-dashboard.txt`, затем запуск `uvicorn web.dashboard_app:app` (ниже) | `docker compose --profile dashboard up -d --build` (или `COMPOSE_PROFILES=dashboard` в `.env`) |
+| **+ Вкладка «Браузер»** (вход в сервисы в панели, бот берёт cookies из этой сессии) | дополнительно Chromium или Chrome: `sudo apt install chromium` (Python-пакетов не нужно) | `INSTALL_BROWSER=1` в `.env` перед сборкой образа панели* |
+
+\* В Docker браузер доступен только с loopback контейнера панели, поэтому бот не может забрать его cookies (бот при этом
+работает как обычно и берёт cookies из прежних источников). Передача cookies рассчитана на обычную установку
+(Python / systemd), где бот и панель на одном хосте.
+
+Без панели и браузера ничего не ломается: `/cookies_from_browser` и кнопки `/cookie` используют прежние источники
+(профили браузеров хоста, `COOKIE_URL`, `*_COOKIE_URL`), а бот не импортирует пакеты панели. Если панель уже была
+в Docker, `scripts/UPDATE_DOCKER.sh` сохранит её (находит контейнер); для ручных команд добавьте
+`COMPOSE_PROFILES=dashboard` в `.env`.
+
+Настройки вкладки «Браузер» (все необязательные, `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
+`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_COOKIES_ADMIN_ONLY`. Бот отдаёт только
+cookies YouTube, X, Instagram, VK и TikTok. Если X или TikTok не доверяют адресу сервера, панель может вывести браузер
+через ваш ПК (`scripts/browser-egress/`).
+
 ## 🚀 Панель статистики (порт 5555)
 
 Мы предоставляем отдельный FastAPI сервис с мульти-табличным UI и REST API который показывает ключевые метрики бота в реальном времени без постоянных обращений к базе данных.
@@ -1881,7 +1907,7 @@ journalctl -u tg-ytdlp-dashboard -f
 ### Как запустить
 
 ```bash
-pip install -r requirements.txt           # убедитесь что fastapi/uvicorn установлены
+pip install -r requirements-dashboard.txt   # необязательные пакеты панели (fastapi, uvicorn, ...)
 ./venv/bin/python -m uvicorn web.dashboard_app:app --host 0.0.0.0 --port 5555 --reload
 ```
 
