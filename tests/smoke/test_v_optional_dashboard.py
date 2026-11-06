@@ -112,7 +112,7 @@ docker = read("Dockerfile")
 check("Dockerfile: dashboard and browser are off by default",
       "ARG INSTALL_DASHBOARD=0" in docker and "ARG INSTALL_BROWSER=0" in docker)
 base_apt = docker.split("RUN apt-get update && apt-get install -y --no-install-recommends \\\n", 1)[1].split("&&", 1)[0]
-check("Dockerfile: docker.io only with the dashboard", "docker.io" not in base_apt and "docker.io" in docker)
+check("Dockerfile: the docker CLI package only with the dashboard", base_apt.split().count("docker.io") == 0 and docker.count("install -y --no-install-recommends docker.io") == 1)
 compose = read("docker-compose.yml")
 dash_block = compose.split("  dashboard:\n", 1)[1].split("\n  bgutil-provider:", 1)[0]
 check("compose: dashboard is a profile (not started by `up -d`)", 'profiles: ["dashboard"]' in dash_block)
