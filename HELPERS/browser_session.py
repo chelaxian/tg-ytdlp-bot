@@ -43,9 +43,6 @@ logger = logging.getLogger(__name__)
 PROJECT_DIR = Path(os.environ.get("TG_DASHBOARD_PROJECT_DIR", str(Path(__file__).resolve().parent.parent)))
 PROFILE_DIR = PROJECT_DIR / "CONFIG" / ".browser_profile"
 PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_session.pid"
-PROXY_FILE = PROJECT_DIR / "CONFIG" / ".browser_proxy"
-# The admin's PC offers a SOCKS5 proxy through a reverse SSH tunnel on this loopback port (see browser-egress/).
-PC_PROXY_URL = "socks5://127.0.0.1:1081"
 _PROXY_RE = re.compile(r"(https?|socks5h?|socks4)://[A-Za-z0-9.\-:\[\]]+")
 
 CDP_HOST = "127.0.0.1"
@@ -96,31 +93,9 @@ def cdp_port() -> int:
 
 
 def proxy_url() -> str:
-    """Proxy the browser should leave through: Config.BROWSER_PROXY, else the panel switch (CONFIG/.browser_proxy)."""
-    for candidate in (str(_cfg("BROWSER_PROXY", "") or "").strip(), _read_proxy_file()):
-        if candidate and _PROXY_RE.fullmatch(candidate):
-            return candidate
-    return ""
-
-
-def _read_proxy_file() -> str:
-    try:
-        return PROXY_FILE.read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
-
-
-def set_proxy_enabled(enabled: bool) -> str:
-    """The panel switch: leave through the admin's PC (home IP) instead of the server's own address."""
-    if enabled:
-        PROXY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        PROXY_FILE.write_text(PC_PROXY_URL, encoding="utf-8")
-        return PC_PROXY_URL
-    try:
-        PROXY_FILE.unlink()
-    except OSError:
-        pass
-    return ""
+    """Optional Config.BROWSER_PROXY on the server; empty (default) = the browser leaves from the server itself."""
+    candidate = str(_cfg("BROWSER_PROXY", "") or "").strip()
+    return candidate if candidate and _PROXY_RE.fullmatch(candidate) else ""
 
 
 _REACH_CACHE: Dict[str, Tuple[float, bool]] = {}
@@ -755,8 +730,7 @@ def summary() -> Dict[str, Any]:
     """Dashboard overview: never contains cookie values."""
     wanted = proxy_url()
     info: Dict[str, Any] = {"enabled": enabled(), "executable": bool(find_executable()),
-                            "proxy": {"enabled": bool(wanted), "url": wanted, "reachable": proxy_reachable(wanted) if wanted else False,
-                                      "pc_url": PC_PROXY_URL, "pc_reachable": proxy_reachable(PC_PROXY_URL)},
+                            "proxy": {"enabled": bool(wanted), "reachable": proxy_reachable(wanted) if wanted else False},
                             "running": False, "tabs": [], "cookies": {"count": 0, "domains": []},
                             "viewport": {"width": VIEWPORT[0], "height": VIEWPORT[1]}}
     if not info["enabled"] or not is_running():

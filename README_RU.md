@@ -1897,8 +1897,8 @@ journalctl -u tg-ytdlp-dashboard -f
 
 Настройки вкладки «Браузер» (все необязательные, `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
 `BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_COOKIES_ADMIN_ONLY`. Бот отдаёт только
-cookies YouTube, X, Instagram, VK и TikTok. Если X или TikTok не доверяют адресу сервера, панель может вывести браузер
-через ваш ПК (`scripts/browser-egress/`).
+cookies YouTube, X, Instagram, VK и TikTok. Браузер работает на самом сервере и выходит в интернет с его адреса
+(`BROWSER_PROXY` позволяет указать прокси на стороне сервера).
 
 ## 🚀 Панель статистики (порт 5555)
 
