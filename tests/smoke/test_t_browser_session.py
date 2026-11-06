@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 TMPDIR = Path(tempfile.mkdtemp(prefix="br_test_"))
 os.environ["TG_DASHBOARD_PROJECT_DIR"] = str(TMPDIR)
+os.environ["TG_BROWSER_KEEPER"] = "0"          # no background upkeep thread in tests
 (TMPDIR / "CONFIG").mkdir()
 
 from dashboard_fixture import DEMO_PASSWORD, DEMO_USER, install_stubs  # noqa: E402

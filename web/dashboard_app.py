@@ -169,6 +169,8 @@ def _startup() -> None:
     if callable(reload_stats):
         reload_stats()
     system_service.get_external_ip_cached()   # starts the first lookup in the background
+    if os.environ.get("TG_BROWSER_KEEPER", "1") != "0":
+        browser_hub.start_keeper()             # browser upkeep: rest when idle, keep sessions alive, restart after a crash
     try:
         import psutil
         psutil.cpu_percent(interval=None)      # prime the CPU sampler

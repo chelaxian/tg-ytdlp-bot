@@ -43,6 +43,14 @@ PROFILES = {"fast": (35, 800, 0.12), "normal": (55, 1100, 0.08), "sharp": (75, 1
 BLOCKED_MEDIA = ["*.mp4", "*.mp4?*", "*.webm", "*.webm?*", "*.m3u8", "*.m3u8?*", "*.m4s", "*.m4s?*", "*.mpd", "*.mpd?*",
                  "*/video/tos/*", "*googlevideo.com/videoplayback*"]
 CAST_IDLE = 15.0                                # stop screencasting a tab nobody looks at
+# While nobody has the panel open the browser rests: a blank "parking" tab is brought to the front and the service tabs
+# are frozen (no JS, no painting; logins and cookies stay in the profile). Every tab is woken and reloaded now and
+# then so its session stays alive and rotating cookies are refreshed for the bot.
+PARK_URL = "about:blank#tg-park"
+IDLE_PARK = 60.0                                # seconds without a viewer before the browser rests
+KEEPALIVE_EVERY = 3 * 3600.0                    # each tab is reloaded about this often while resting
+KEEPALIVE_WAIT = 45.0                           # how long a reloaded tab may run before it is frozen again
+KEEPER_TICK = 20.0
 CALL_TIMEOUT = 10.0
 
 # Only for the headless fallback (no Xvfb): a windowed Chrome needs no patches at all. Kept to the two traits headless
@@ -88,6 +96,11 @@ class BrowserHub:
         self._attach_q: "queue.Queue[tuple]" = queue.Queue()
         self._ua: Optional[Dict[str, Any]] = None
         self._is_headless: Optional[bool] = None
+        self._last_view = 0.0                          # monotonic time the panel last looked at / typed into a tab
+        self._parked = False
+        self._frozen: set = set()
+        self._refreshed: Dict[str, float] = {}          # targetId -> wall time of the last keep-alive reload
+        self._keeper: Optional[threading.Thread] = None
         self._last_frame: Dict[str, float] = {}
         self._ready: set = set()                       # targets whose identity script / emulation is installed
 
@@ -102,6 +115,8 @@ class BrowserHub:
             self._sessions.clear(); self._by_session.clear(); self._frames.clear(); self._cast.clear(); self._want.clear()
             self._ready.clear()
             self._is_headless = None                     # the browser may have restarted in another mode
+            self._parked = False
+            self._frozen.clear()
             self._thread = threading.Thread(target=self._run, args=(ws,), daemon=True, name="browser-hub")
             self._thread.start()
             threading.Thread(target=self._attach_worker, args=(ws,), daemon=True, name="browser-hub-attach").start()
@@ -424,6 +439,7 @@ class BrowserHub:
     def activate(self, tid: str) -> None:
         bs._check_id(tid)
         self.ensure()
+        self._wake()
         self._call("Target.activateTarget", {"targetId": tid})
 
     def navigate(self, tid: str, url: str) -> None:
@@ -444,6 +460,7 @@ class BrowserHub:
 
     def input(self, tid: str, kind: str, **p: Any) -> None:
         sid = self._session(tid)
+        self._wake(tid)
         vw, vh = self._viewport(tid)
         for method, params in bs.build_input_calls(kind, vw, vh, **p):
             self._send(method, params, sid, None)         # in order, no round trip per event
@@ -460,6 +477,7 @@ class BrowserHub:
     def frame(self, tid: str, since: int = 0, profile: str = "fast", wait: float = 3.0) -> Optional[Frame]:
         """The next picture newer than `since`; None when nothing changed within `wait` seconds."""
         sid = self._session(tid)
+        self._wake(tid)
         quality, max_w, gap = PROFILES.get(profile, PROFILES["fast"])
         vw, vh = self._viewport(tid)
         wanted = (quality, max_w, vw, vh, gap)
@@ -500,6 +518,119 @@ class BrowserHub:
             except (BrowserError, KeyError, ValueError):
                 return None
         return None
+
+
+    # ------------------------------------------------------------ resting while nobody watches
+    def _wake(self, tid: Optional[str] = None) -> None:
+        """The panel is looking: thaw the tabs and bring the watched one back to the front."""
+        self._last_view = time.monotonic()
+        if not self._parked and not self._frozen:
+            return
+        with self._lock:
+            frozen, self._frozen = list(self._frozen), set()
+            parked, self._parked = self._parked, False
+        for other in frozen:
+            sid = self._sessions.get(other)
+            if sid:
+                try:
+                    self._call("Page.setWebLifecycleState", {"state": "active"}, sid)
+                except BrowserError:
+                    pass
+        if parked and tid:
+            try:
+                self._call("Target.activateTarget", {"targetId": tid})
+            except BrowserError:
+                pass
+
+    def _pages(self) -> list:
+        return [t for t in (bs._http("/json/list") or []) if t.get("type") == "page" and t.get("id")]
+
+    def _freeze(self, tid: str) -> None:
+        try:
+            self._call("Page.setWebLifecycleState", {"state": "frozen"}, self._session(tid))
+            with self._lock:
+                self._frozen.add(tid)
+        except BrowserError as exc:                   # a page still visible cannot be frozen: next tick
+            logger.debug("[browser-hub] freeze %s: %s", tid, exc)
+
+    def rest(self) -> None:
+        """Park the browser (blank tab in front) and freeze the service tabs."""
+        self.ensure()
+        pages = self._pages()
+        park = next((t for t in pages if str(t.get("url", "")).startswith(PARK_URL)), None)
+        if park is None:
+            park_id = self._call("Target.createTarget", {"url": PARK_URL}).get("targetId", "")
+        else:
+            park_id = park["id"]
+        if not self._parked:
+            self._call("Target.activateTarget", {"targetId": park_id})
+            with self._lock:
+                self._parked = True
+            time.sleep(1.0)                               # let the other tabs become hidden first
+        for t in pages:
+            if t["id"] != park_id and t["id"] not in self._frozen:
+                self._freeze(t["id"])
+
+    def keep_alive(self) -> Optional[str]:
+        """While resting: wake and reload the tab whose session was refreshed longest ago (one per call)."""
+        now = time.time()
+        pages = [t for t in self._pages() if not str(t.get("url", "")).startswith(PARK_URL)
+                 and str(t.get("url", "")).startswith("http")]
+        for i, t in enumerate(pages):                     # first sight: spread the tabs over the interval
+            self._refreshed.setdefault(t["id"], now - KEEPALIVE_EVERY + (i + 1) * KEEPALIVE_EVERY / max(1, len(pages)))
+        due = [t for t in pages if now - self._refreshed[t["id"]] >= KEEPALIVE_EVERY]
+        if not due:
+            return None
+        tab = min(due, key=lambda t: self._refreshed[t["id"]])
+        tid = tab["id"]
+        self._refreshed[tid] = now
+        sid = self._session(tid)
+        with self._lock:
+            self._frozen.discard(tid)
+        self._call("Page.setWebLifecycleState", {"state": "active"}, sid)
+        self._call("Page.reload", {}, sid)
+        logger.info("[browser-hub] keep-alive reload of %s", str(tab.get("url", ""))[:80])
+        deadline = time.monotonic() + KEEPALIVE_WAIT
+        while time.monotonic() < deadline:
+            if time.monotonic() - self._last_view < IDLE_PARK:
+                return tid                                 # the panel opened meanwhile: leave it running
+            time.sleep(1.0)
+        self._freeze(tid)
+        return tid
+
+    def _keep_tick(self) -> None:
+        if not bs.enabled():
+            return
+        if not bs.is_running():
+            if bs.wants_autostart():                      # it ran before a crash / reboot: bring it back
+                try:
+                    bs.start()
+                    logger.info("[browser-hub] browser restarted (it was running before)")
+                except BrowserError as exc:
+                    logger.warning("[browser-hub] browser autostart failed: %s", exc)
+            return
+        if time.monotonic() - self._last_view < IDLE_PARK:
+            return
+        self.rest()
+        self.keep_alive()
+
+    def start_keeper(self) -> None:
+        """Background upkeep (dashboard process only): rest when idle, keep sessions alive, restart after a crash."""
+        if self._keeper is not None and self._keeper.is_alive():
+            return
+
+        def loop() -> None:
+            while True:
+                try:
+                    self._keep_tick()
+                except BrowserError as exc:
+                    logger.debug("[browser-hub] keeper: %s", exc)
+                except Exception:
+                    logger.exception("[browser-hub] keeper failed")
+                time.sleep(KEEPER_TICK)
+
+        self._keeper = threading.Thread(target=loop, daemon=True, name="browser-keeper")
+        self._keeper.start()
 
 
 hub = BrowserHub()
