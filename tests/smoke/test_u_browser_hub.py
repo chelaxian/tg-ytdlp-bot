@@ -125,6 +125,54 @@ else:
             check("internal address refused", False)
         except bs.BrowserError:
             check("internal address refused", True)
+        # popups (Sign in with Google / SSO windows): same identity from the very first request, opener kept
+        import http.server
+        import json as _json
+        import threading
+        seen = {}
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                if self.path.startswith("/b"):
+                    seen["sec_ch_ua"] = self.headers.get("Sec-CH-UA", "")
+                    body = ("<script>opener.postMessage({pk: typeof PublicKeyCredential, hasOpener: !!window.opener, "
+                            "brands: navigator.userAgentData.brands.map(b => b.brand), wd: navigator.webdriver}, '*')</script>popup")
+                else:
+                    body = ("<script>window.msgs = []; addEventListener('message', e => msgs.push(e.data));</script>"
+                            "<button style='position:fixed;left:10px;top:100px;width:300px;height:80px' "
+                            "onclick=\"window.open('/b', 'pop', 'width=500,height=600')\">open</button>")
+                data = body.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        base = f"http://127.0.0.1:{srv.server_address[1]}"
+        tab_a = hub.new_tab("about:blank")
+        hub._call("Page.navigate", {"url": base + "/a"}, hub._session(tab_a))
+        time.sleep(1.2)
+        before = {t["id"] for t in bs.list_tabs()}
+        hub.input(tab_a, "click", x=50, y=130)
+        time.sleep(2.0)
+        after = {t["id"] for t in bs.list_tabs()}
+        popup = list(after - before)
+        check("popup opened as a new tab", len(popup) == 1, after - before)
+        check("popup got the browser identity before its first request", "Google Chrome" in seen.get("sec_ch_ua", ""), seen)
+        msgs = _json.loads(hub.evaluate(tab_a, "JSON.stringify(window.msgs)") or "[]")
+        check("popup talks to its opener", bool(msgs) and msgs[0].get("hasOpener") is True, msgs)
+        check("popup identity: brands, no passkey, no webdriver", bool(msgs) and "Google Chrome" in msgs[0].get("brands", [])
+              and msgs[0].get("pk") == "undefined" and msgs[0].get("wd") is False, msgs)
+        if popup:
+            check("popup is controllable by the hub", hub.evaluate(popup[0], "document.body.innerText") == "popup")
+            hub.close_tab(popup[0])
+        srv.shutdown()
+
         # reconnect after the connection drops
         hub._ws.close()
         time.sleep(1.5)

@@ -328,7 +328,7 @@ const SECTIONS = [
   { id: "system", every: 5, build: buildSystem },
   { id: "settings", every: 0, build: buildSettings },
   { id: "lists", every: 0, build: buildLists },
-  { id: "browser", every: 5, build: (s) => buildBrowser(s, { panel, bindLoader }) },
+  { id: "browser", every: 3, build: (s) => buildBrowser(s, { panel, bindLoader }) },
 ];
 
 function buildOverview(s) {

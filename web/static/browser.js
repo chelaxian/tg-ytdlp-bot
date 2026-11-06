@@ -21,7 +21,7 @@ export function buildBrowser(s, { panel, bindLoader }) {
   const cookies = panel({ title: t("br.cookies"), sub: t("br.cookies.sub") });
   s.root.append(h("div", { class: "grid" }, view.el, cookies.el));
 
-  const st = { data: null, tab: null, ui: null, running: false, queue: Promise.resolve(), wheel: 0, seq: 0, vw: 1280, vh: 800,
+  const st = { data: null, tab: null, ui: null, running: false, known: null, order: [], queue: Promise.resolve(), wheel: 0, seq: 0, vw: 1280, vh: 800,
     abort: null, zoom: 1, profile: PROFILES.includes(localStorage.getItem("dash.br.profile")) ? localStorage.getItem("dash.br.profile") : "fast" };
 
   // a new picture is needed (tab, zoom or quality changed): forget the last frame and cancel the pending long poll
@@ -198,13 +198,29 @@ export function buildBrowser(s, { panel, bindLoader }) {
     ui.missing.textContent = !data.enabled ? t("br.disabled") : t("br.nobrowser");
     ui.live.hidden = !data.running;
     if (data.running) {
-      if (!(data.tabs || []).some((x) => x.id === st.tab)) st.tab = data.tabs && data.tabs[0] ? data.tabs[0].id : null;
+      const ids = (data.tabs || []).map((x) => x.id);
+      // a window the page opened itself (Sign in with Google, SSO) is shown at once; when it closes we return
+      // to the tab the user came from
+      const fresh = st.known ? ids.filter((id) => !st.known.has(id)) : [];
+      st.known = new Set(ids);
+      if (fresh.length) {
+        if (st.tab && ids.includes(st.tab)) st.order.push(st.tab);
+        st.tab = fresh[fresh.length - 1];
+        restartStream();
+        post("/api/browser/tab/activate", { id: st.tab }).catch(() => {});
+      } else if (!ids.includes(st.tab)) {
+        st.order = st.order.filter((id) => ids.includes(id));
+        st.tab = st.order.length ? st.order.pop() : (ids[0] || null);
+        restartStream();
+      }
       renderTabs();
       ui.empty.hidden = !!st.tab;
       ui.empty.textContent = st.tab ? "" : t("br.notabs");
       startLoop();
     } else {
       st.tab = null;
+      st.known = null;
+      st.order = [];
     }
     renderCookies(data);
   }
