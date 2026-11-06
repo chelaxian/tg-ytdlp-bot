@@ -172,7 +172,12 @@ def process_multiple_urls_queue(app, message, urls, saved_format, is_admin, is_g
             wait_start = time.time()
             while not can_start_download(user_id) and (time.time() - wait_start) < max_wait:
                 time.sleep(1)
-            
+            if not can_start_download(user_id):
+                safe_send_message(user_id, messages.AUDIO_WAIT_MSG,
+                                  reply_parameters=ReplyParameters(message_id=message.id))
+                logger.warning("Multi-URL queue stopped: download limit still reached for %s", user_id)
+                return
+
             # Process tags
             is_tiktok = is_tiktok_url(url_parsed)
             auto_tags = get_auto_tags(url_parsed, tags)
