@@ -192,6 +192,8 @@ else:
         check("export twitter only", n == 1 and b"TOPSECRET" in data and b"IGSECRET" not in data and doms == ["x.com"])
         good, why = validate_cookie_bytes(data)
         check("export valid for the bot", good, why)
+        check("summary marks which domains reach the bot",
+              {d["domain"]: d["shared"] for d in c.get("/api/browser").json()["cookies"]["domains"]} == {"x.com": True, "instagram.com": True, "example.org": False})
         data, n, doms = bs.export_netscape()
         check("export all tabs/services", n == 3 and b"IGSECRET" in data and {ln.split("	")[0] for ln in data.decode().splitlines()}.issuperset({"example.org"}))
         check("nothing for a service without cookies", bs.export_netscape(services=["vk"]) == (None, 0, []))

@@ -36,7 +36,12 @@ logger = logging.getLogger(__name__)
 
 BASE_W, BASE_H = 1280, 800                      # viewport at 100% zoom
 ZOOM_MIN, ZOOM_MAX = 0.5, 2.0
-PROFILES = {"fast": (35, 800), "normal": (55, 1100), "sharp": (75, 1500)}   # jpeg quality, max frame width
+# jpeg quality, max frame width, minimum seconds between frames: Chromium paints ~60 times a second and a login page
+# does not need that; delaying the acknowledgement of a frame throttles it and the last change is still delivered
+PROFILES = {"fast": (35, 800, 0.12), "normal": (55, 1100, 0.08), "sharp": (75, 1500, 0.05)}
+# no video or streaming media: it only burns CPU (TikTok and YouTube autoplay on their login pages)
+BLOCKED_MEDIA = ["*.mp4", "*.mp4?*", "*.webm", "*.webm?*", "*.m3u8", "*.m3u8?*", "*.m4s", "*.m4s?*", "*.mpd", "*.mpd?*",
+                 "*/video/tos/*", "*googlevideo.com/videoplayback*"]
 CAST_IDLE = 15.0                                # stop screencasting a tab nobody looks at
 CALL_TIMEOUT = 10.0
 
@@ -94,11 +99,12 @@ class BrowserHub:
         self._by_session: Dict[str, str] = {}
         self._zoom: Dict[str, float] = {}
         self._frames: Dict[str, Frame] = {}
-        self._cast: Dict[str, Tuple[int, int, int, int]] = {}   # active screencast: quality, width, vw, vh
+        self._cast: Dict[str, Tuple[int, int, int, int, float]] = {}   # active screencast: quality, width, vw, vh, min gap
         self._want: Dict[str, float] = {}
         self._seq = 0
         self._attach_q: "queue.Queue[tuple]" = queue.Queue()
         self._ua: Optional[Dict[str, Any]] = None
+        self._last_frame: Dict[str, float] = {}
         self._ready: set = set()                       # targets whose identity script / emulation is installed
 
     # ------------------------------------------------------------ connection
@@ -214,12 +220,19 @@ class BrowserHub:
         method, params = msg.get("method"), msg.get("params") or {}
         if method == "Page.screencastFrame":
             session = msg.get("sessionId")
-            try:
-                self._send("Page.screencastFrameAck", {"sessionId": params.get("sessionId")}, session, None)
-            except BrowserError:
-                pass
             with self._lock:
                 tid = self._by_session.get(session or "")
+                cast = self._cast.get(tid or "")
+                now = time.monotonic()
+                gap = cast[4] if cast else 0.0
+                delay = max(0.0, gap - (now - self._last_frame.get(tid or "", 0.0)))
+                self._last_frame[tid or ""] = now + delay
+            ack = {"sessionId": params.get("sessionId")}
+            if delay > 0.005:
+                threading.Timer(delay, self._ack_late, args=(ack, session)).start()
+            else:
+                self._ack_late(ack, session)
+            with self._lock:
                 if tid:
                     vw, vh = self._viewport(tid)
                     self._seq += 1
@@ -282,6 +295,12 @@ class BrowserHub:
                 except BrowserError:
                     pass
 
+    def _ack_late(self, ack: dict, session: Optional[str]) -> None:
+        try:
+            self._send("Page.screencastFrameAck", ack, session, None)
+        except BrowserError:
+            pass
+
     # ------------------------------------------------------------ pages
     def _identity(self) -> Dict[str, Any]:
         if self._ua is None:
@@ -308,6 +327,8 @@ class BrowserHub:
     def _setup(self, tid: str, sid: str) -> None:
         for method, params in (
             ("Page.enable", {}),
+            ("Network.enable", {}),
+            ("Network.setBlockedURLs", {"urls": BLOCKED_MEDIA}),
             ("Emulation.setUserAgentOverride", self._identity()),
             ("Page.addScriptToEvaluateOnNewDocument", {"source": STEALTH}),
             ("Runtime.evaluate", {"expression": STEALTH}),
@@ -447,9 +468,9 @@ class BrowserHub:
     def frame(self, tid: str, since: int = 0, profile: str = "fast", wait: float = 3.0) -> Optional[Frame]:
         """The next picture newer than `since`; None when nothing changed within `wait` seconds."""
         sid = self._session(tid)
-        quality, max_w = PROFILES.get(profile, PROFILES["fast"])
+        quality, max_w, gap = PROFILES.get(profile, PROFILES["fast"])
         vw, vh = self._viewport(tid)
-        wanted = (quality, max_w, vw, vh)
+        wanted = (quality, max_w, vw, vh, gap)
         with self._lock:
             self._want[tid] = time.monotonic() + CAST_IDLE
             current = self._cast.get(tid)

@@ -638,7 +638,9 @@ def _save_live_browser_cookies(message, user_id, services=None):
     # Optional: hand the admin's logins to admins only (Config.BROWSER_COOKIES_ADMIN_ONLY = True)
     if getattr(Config, "BROWSER_COOKIES_ADMIN_ONLY", False) and int(user_id) not in Config.ADMIN:
         return "unavailable"
-    label = ", ".join(services) if services else "all"
+    # only the five services (all their domains), never the rest of the browser session
+    services = [name for name in (services or browser_session.COOKIE_SERVICES) if name in browser_session.SERVICE_DOMAINS]
+    label = ", ".join(services) if len(services) < len(browser_session.COOKIE_SERVICES) else "YouTube, X, Instagram, VK, TikTok"
     try:
         if not browser_session.is_running():
             return "unavailable"
