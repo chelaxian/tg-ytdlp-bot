@@ -47,6 +47,8 @@ PROFILE_DIR = PROJECT_DIR / "CONFIG" / ".browser_profile"
 PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_session.pid"
 XVFB_PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_xvfb.pid"
 TZ_CACHE_FILE = PROJECT_DIR / "CONFIG" / ".browser_timezone"
+AUTOSTART_FILE = PROJECT_DIR / "CONFIG" / ".browser_autostart"   # present while the admin wants the browser running
+PARK_URL = "about:blank#tg-park"                                   # the hub's resting tab, never shown in the panel
 SCREEN = (1920, 1080)                 # virtual screen of the windowed browser (an ordinary Full HD monitor)
 WINDOW_UI_HEIGHT = 87                 # tab strip + toolbar of a normal Chrome window
 _TZ_RE = re.compile(r"[A-Za-z_]{2,32}(/[A-Za-z0-9_+\-]{1,32}){0,2}")
@@ -540,6 +542,7 @@ def start() -> Dict[str, Any]:
         exe, *mode, f"--remote-debugging-port={cdp_port()}", f"--remote-debugging-address={CDP_HOST}",
         f"--user-data-dir={profile}", "--force-device-scale-factor=1", "--no-first-run", "--no-default-browser-check",
         "--disable-blink-features=AutomationControlled", "--disable-background-networking",
+        "--restore-last-session",                   # after a crash or reboot the tabs (and session cookies) come back
         "--disable-sync", "--disable-dev-shm-usage", "--password-store=basic", "--lang=en-US", "--accept-lang=en-US,en",
         "--mute-audio",
         # lean profile: the browser is only used to log in (none of these is visible to a web page)
@@ -569,7 +572,13 @@ def start() -> Dict[str, Any]:
         args.append(f"--user-agent={ua}")
     if hasattr(os, "geteuid") and os.geteuid() == 0 and not entry:
         args.append("--no-sandbox")                      # Chromium refuses to run as root otherwise
-    args.append("about:blank")
+    sessions = profile / "Default" / "Sessions"
+    try:
+        restoring = sessions.is_dir() and any(sessions.iterdir())
+    except OSError:
+        restoring = False
+    if not restoring:                                # a saved session brings its own tabs back (no blank tab pile-up)
+        args.append("about:blank")
     try:
         niceness = int(_cfg("BROWSER_NICE", 0) or 0)       # 0 = normal priority (an interactive login must stay responsive)
     except (TypeError, ValueError):
@@ -594,6 +603,10 @@ def start() -> Dict[str, Any]:
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             if is_running():
+                try:
+                    AUTOSTART_FILE.write_text("1")
+                except OSError:
+                    pass
                 return {"started": True, "pid": proc.pid, "sandbox": "--no-sandbox" not in launch,
                         "headed": bool(display), "proxy": using_proxy, "proxy_wanted": bool(proxy)}
             if proc.poll() is not None:
@@ -606,8 +619,20 @@ def start() -> Dict[str, Any]:
     raise BrowserError("launch_failed: exited early")
 
 
-def stop() -> bool:
-    """Close the browser gracefully (profile and persistent cookies are flushed)."""
+def wants_autostart() -> bool:
+    return AUTOSTART_FILE.exists()
+
+
+def stop(keep_autostart: bool = False) -> bool:
+    """Close the browser gracefully (profile and persistent cookies are flushed).
+
+    An explicit stop also means "do not bring it back by itself" unless keep_autostart is set.
+    """
+    if not keep_autostart:
+        try:
+            AUTOSTART_FILE.unlink()
+        except OSError:
+            pass
     try:
         _cdp(_browser_ws(), [("Browser.close", {})], timeout=5)
     except BrowserError:
@@ -642,7 +667,7 @@ def _check_id(tab_id: str) -> str:
 def list_tabs() -> List[Dict[str, str]]:
     tabs = []
     for t in _http("/json/list") or []:
-        if t.get("type") == "page" and t.get("id"):
+        if t.get("type") == "page" and t.get("id") and not str(t.get("url") or "").startswith(PARK_URL):
             tabs.append({"id": t["id"], "title": str(t.get("title") or "")[:200], "url": str(t.get("url") or "")[:2048]})
     return tabs
 

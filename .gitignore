@@ -210,3 +210,6 @@ CONFIG/.backups/
 
 CONFIG/.browser_profile/
 CONFIG/.browser_session.pid
+CONFIG/.browser_xvfb.pid
+CONFIG/.browser_timezone
+CONFIG/.browser_autostart

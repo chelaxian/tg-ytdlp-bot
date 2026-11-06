@@ -189,6 +189,29 @@ else:
             hub.close_tab(popup[0])
         srv.shutdown()
 
+        # resting while nobody watches: parking tab in front, service tabs frozen, woken by the panel
+        hub.navigate(tid, "https://example.com")
+        time.sleep(2)
+        hub._last_view = 0.0
+        hub.rest()
+        check("resting: parking tab hidden from the panel", all(not t["url"].startswith(bh.PARK_URL) for t in bs.list_tabs()))
+        check("resting: parking tab exists", any(str(t.get("url", "")).startswith(bh.PARK_URL) for t in hub._pages()))
+        check("resting: service tab frozen", tid in hub._frozen, hub._frozen)
+        check("cookies readable while resting", isinstance(bs.get_cookies(), list))
+        fr = hub.frame(tid, 0, "fast", wait=5)
+        check("panel wakes the browser", not hub._parked and not hub._frozen and fr is not None)
+        check("woken tab is in front again", hub.evaluate(tid, "document.visibilityState") == "visible")
+        # keep-alive: a resting tab is reloaded now and then, then frozen again
+        old_every, old_wait = bh.KEEPALIVE_EVERY, bh.KEEPALIVE_WAIT
+        bh.KEEPALIVE_EVERY, bh.KEEPALIVE_WAIT = 0.0, 1.0
+        hub._last_view = 0.0
+        hub.rest()
+        reloaded = hub.keep_alive()
+        check("keep-alive reloads a resting tab", reloaded is not None)
+        check("keep-alive freezes it again", reloaded in hub._frozen, hub._frozen)
+        bh.KEEPALIVE_EVERY, bh.KEEPALIVE_WAIT = old_every, old_wait
+        hub.frame(tid, 0, "fast", wait=3)
+
         # reconnect after the connection drops
         hub._ws.close()
         time.sleep(1.5)
