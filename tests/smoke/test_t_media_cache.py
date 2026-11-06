@@ -117,6 +117,74 @@ def child(engine, workdir):
     cdb.save_to_playlist_cache(pl, "720p", [], [], clear=True)
     t("playlist_clear", cdb.get_cached_playlist_count(pl, "720p", [1, 3, 4]) == 0)
 
+    # ---- DUBS: a dubbed audio track is cached apart from the default audio
+    t("dub_key", cdb.dub_cache_key("720p", "en-US") == "720p@en-US" and cdb.dub_cache_key("best", "de") == "best@de")
+    t("dub_key_default_audio", cdb.dub_cache_key("720p", None) == "720p" and cdb.dub_cache_key("720p", "ALL") == "720p"
+      and cdb.dub_cache_key("720p", "OFF") == "720p")
+    t("dub_key_not_for_mp3_or_format_ids", cdb.dub_cache_key("mp3", "en") == "mp3"
+      and cdb.dub_cache_key("other_id|399", "en") == "other_id|399")
+    t("dub_key_sanitized", cdb.dub_cache_key("720p", "en.US/x") == "720p@enUSx")
+    t("dub_split", cdb.split_dub_cache_key("720p@en-US") == ("720p", "en-US") and cdb.split_dub_cache_key("mp3") == ("mp3", None))
+    fmt = ("bv*[vcodec*=avc1][height<=720][height>480]+ba[language^=en-US]/bv*[vcodec*=avc1][height<=720]+ba[language^=en-US]"
+           "/bv*[vcodec*=avc1]+ba[language^=en-US]/bv+ba/best")
+    t("dub_from_format", cdb.audio_lang_from_format(fmt) == "en-US" and cdb.audio_lang_from_format("bv*+ba/best") is None
+      and cdb.audio_lang_from_format(None) is None)
+    t("dub_expand_keeps_suffix", cdb._expand_quality_keys("721p@de")[0] == "721p@de"
+      and cdb._expand_quality_keys("721p@de")[-1] == cdb._expand_quality_keys("721p")[-1] + "@de")
+
+    dv = "https://www.youtube.com/watch?v=bbbbbbbbbbb"
+    cdb.save_to_video_cache(dv, "720p", [500])                                    # original audio
+    cdb.save_to_video_cache(dv, cdb.dub_cache_key("720p", "en-US"), [501])        # English dub
+    cdb.save_to_video_cache(dv, "mp3", [502])
+    t("dub_original_kept", cdb.get_cached_message_ids(dv, "720p") == [500])
+    t("dub_separate_entry", cdb.get_cached_message_ids(dv, cdb.dub_cache_key("720p", "en-US")) == [501])
+    t("dub_other_lang_misses", cdb.get_cached_message_ids(dv, cdb.dub_cache_key("720p", "de-DE")) is None)
+    allq = cdb.get_cached_qualities(dv)
+    t("menu_original_audio", cdb.qualities_for_audio(allq, None) == {"720p", "mp3"}, cdb.qualities_for_audio(allq, None))
+    t("menu_dub_en", cdb.qualities_for_audio(allq, "en-US") == {"720p", "mp3"}, cdb.qualities_for_audio(allq, "en-US"))
+    t("menu_dub_de_no_rocket_for_720p", cdb.qualities_for_audio(allq, "de-DE") == {"mp3"}, cdb.qualities_for_audio(allq, "de-DE"))
+    pl2 = "https://www.youtube.com/playlist?list=PLdubdubdubdub0001"
+    cdb.save_to_playlist_cache(pl2, cdb.dub_cache_key("720p", "en-US"), [1], [601])
+    cdb.save_to_playlist_cache(pl2, "720p", [1], [600])
+    t("dub_playlist_separate", cdb.get_cached_playlist_videos(pl2, "720p", [1]) == {1: 600}
+      and cdb.get_cached_playlist_videos(pl2, "720p@en-US", [1]) == {1: 601})
+    t("dub_playlist_menu", cdb.qualities_for_audio(cdb.get_cached_playlist_qualities(pl2), "en-US") == {"720p"}
+      and cdb.qualities_for_audio(cdb.get_cached_playlist_qualities(pl2), None) == {"720p"})
+
+    # menu helpers of always_ask_menu (module too heavy to import: run their source)
+    import ast
+    src = open(os.path.join(REPO, "DOWN_AND_UP", "always_ask_menu.py"), encoding="utf-8").read()
+    want = {"_cache_audio_lang", "_user_cache_key", "_user_cached_qualities"}
+    code = "\n\n".join(ast.get_source_segment(src, n) for n in ast.parse(src).body
+                       if isinstance(n, ast.FunctionDef) and n.name in want)
+    filters = {}
+    dubs_mod = types.ModuleType("COMMANDS.dubs_cmd")
+    dubs_pref = {"lang": None}
+
+    def apply_dubs_preference(uid, fstate):
+        if dubs_pref["lang"] and not fstate.get("audio_lang"):
+            fstate["audio_lang"] = dubs_pref["lang"]
+        return fstate
+    dubs_mod.apply_dubs_preference = apply_dubs_preference
+    saved_dubs = sys.modules.get("COMMANDS.dubs_cmd")
+    sys.modules["COMMANDS.dubs_cmd"] = dubs_mod
+    ns = {"get_filters": lambda uid: filters, "dub_cache_key": cdb.dub_cache_key,
+          "qualities_for_audio": cdb.qualities_for_audio, "get_cached_qualities": cdb.get_cached_qualities}
+    exec(code, ns)
+    t("menu_helper_default", ns["_user_cache_key"](1, "720p") == "720p" and ns["_user_cached_qualities"](dv, 1) == {"720p", "mp3"})
+    filters["audio_lang"] = "de-DE"
+    t("menu_helper_dub_de", ns["_user_cache_key"](1, "720p") == "720p@de-DE" and ns["_user_cached_qualities"](dv, 1) == {"mp3"})
+    filters["audio_lang"] = "ALL"
+    t("menu_helper_all_is_default", ns["_user_cache_key"](1, "720p") == "720p")
+    filters["audio_lang"] = None
+    dubs_pref["lang"] = "en-US"
+    t("menu_helper_dubs_preference", ns["_user_cache_key"](1, "best") == "best@en-US" and filters.get("audio_lang") is None,
+      filters)
+    if saved_dubs is not None:
+        sys.modules["COMMANDS.dubs_cmd"] = saved_dubs
+    else:
+        sys.modules.pop("COMMANDS.dubs_cmd", None)
+
     img = "https://example.com/gallery/1"
     cdb.save_to_image_cache(img, 1, [5, 6])
     cdb.save_to_image_cache(img, 2, [7])

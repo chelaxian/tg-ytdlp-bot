@@ -54,7 +54,7 @@ class Tests(unittest.TestCase):
                try_with_proxy_fallback=lambda o,u,i,fn:fn(o),try_with_impersonate_fallback=Mock(),is_cloudflare_error=lambda e:False,has_alternative_proxy_route=lambda *a:False)
         module('DOWN_AND_UP.yt_dlp_hook',get_video_formats=lambda *a,**kw:outer.metadata)
         module('HELPERS.filesystem_hlp',remove_protection_file=lambda *a:None)
-        env=dict(os=os,time=__import__('time'),threading=threading,urlparse=__import__('urllib.parse',fromlist=['urlparse']).urlparse,
+        env=dict(os=os,html=__import__('html'),time=__import__('time'),threading=threading,urlparse=__import__('urllib.parse',fromlist=['urlparse']).urlparse,
                  yt_dlp=types.SimpleNamespace(YoutubeDL=YDL,utils=types.SimpleNamespace(DownloadError=DownloadError)),
                  safe_get_messages=lambda *a:Msg(),logger=Mock(),message=types.SimpleNamespace(chat=types.SimpleNamespace(id=1)),user_id=1,
                  user_dir_name=self.tmp.name,current_total_process='',error_message='',did_cookie_retry=False,did_proxy_retry=False,did_live_from_start_retry=False,

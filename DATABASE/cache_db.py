@@ -50,17 +50,71 @@ def _normalize_playlist_urls(playlist_url: str) -> list:
 
 
 def _expand_quality_keys(quality_key: str) -> list:
-    """Return [quality_key] plus a rounded variant if different (e.g. '721p' -> ['721p', '720p'])."""
+    """Return [quality_key] plus a rounded variant if different (e.g. '721p' -> ['721p', '1080p']).
+    A dub suffix is kept: '721p@de-DE' -> ['721p@de-DE', '1080p@de-DE']."""
     quality_keys = [quality_key]
     try:
-        if quality_key.endswith('p'):
-            h = int(quality_key[:-1])
+        base, lang = split_dub_cache_key(quality_key)
+        if base.endswith('p'):
+            h = int(base[:-1])
             rounded = f"{ceil_to_popular(h)}p"
-            if rounded != quality_key:
-                quality_keys.append(rounded)
+            if rounded != base:
+                quality_keys.append(dub_cache_key(rounded, lang))
     except Exception:
         pass
     return quality_keys
+
+
+# Alternative audio tracks (DUBS). A video downloaded with a dubbed audio track
+# is cached under "<quality>@<lang>" ("720p@en-US"); the plain key ("720p")
+# always means the default/original audio. Only the keys whose download applies
+# the audio-language filter ([language^=<lang>], see askq_callback_logic) get the
+# suffix: "best" and "<height>p". mp3 is always the default audio ("ba").
+DUB_KEY_SEP = "@"
+_DUB_QUALITY_RE = re.compile(r"^(best|\d+p)$")
+_DUB_LANG_FILTER_RE = re.compile(r"\[language\^=([^\]]+)\]")
+
+
+def _clean_dub_lang(audio_lang):
+    if not audio_lang or str(audio_lang).upper() in ("ALL", "OFF"):
+        return None
+    lang = re.sub(r"[^A-Za-z0-9_-]", "", str(audio_lang))
+    return lang or None
+
+
+def dub_cache_key(quality_key, audio_lang):
+    """Cache key of quality_key downloaded with audio track audio_lang (None = default audio)."""
+    lang = _clean_dub_lang(audio_lang)
+    if not quality_key or not lang or not _DUB_QUALITY_RE.match(str(quality_key)):
+        return quality_key
+    return f"{quality_key}{DUB_KEY_SEP}{lang}"
+
+
+def split_dub_cache_key(key):
+    """'720p@en-US' -> ('720p', 'en-US'); '720p' -> ('720p', None)."""
+    key = str(key)
+    base, sep, lang = key.partition(DUB_KEY_SEP)
+    if sep and lang and _DUB_QUALITY_RE.match(base):
+        return base, lang
+    return key, None
+
+
+def audio_lang_from_format(format_spec):
+    """Audio language a yt-dlp format string selects ("...+ba[language^=de]..." -> "de")."""
+    m = _DUB_LANG_FILTER_RE.search(str(format_spec or ""))
+    return m.group(1) if m else None
+
+
+def qualities_for_audio(keys, audio_lang) -> set:
+    """Cached quality keys usable for the given audio track, with the dub suffix removed:
+    with a dub selected only "<q>@<lang>" entries count for best/<N>p (other keys,
+    e.g. mp3, are not dub-specific); without one only plain entries count."""
+    out = set()
+    for key in keys or ():
+        base, lang = split_dub_cache_key(key)
+        if dub_cache_key(base, audio_lang) == key:
+            out.add(base)
+    return out
 
 # Global variable for local cache Firebase
 firebase_cache = {}
