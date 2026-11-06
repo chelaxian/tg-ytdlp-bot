@@ -127,6 +127,27 @@ try:
 except WebSocketDisconnect as exc:
     check("websocket with a wrong CSRF token is refused", exc.code == 4403)
 
+# ---- proxy switch (browser leaves through the admin PC over a reverse tunnel)
+import socket as _socket  # noqa: E402
+
+check("proxy off by default", bs.proxy_url() == "" and d["proxy"]["enabled"] is False)
+check("panel switch on", c.post("/api/browser/proxy", json={"enabled": True}, headers=H).json() == {"ok": True, "enabled": True})
+check("switch writes the PC proxy", bs.proxy_url() == bs.PC_PROXY_URL)
+summary_on = c.get("/api/browser").json()["proxy"]
+check("summary shows the proxy", summary_on["enabled"] is True and summary_on["url"] == bs.PC_PROXY_URL)
+check("no listener -> not reachable", summary_on["reachable"] is False or bs.proxy_reachable("socks5://127.0.0.1:1", max_age=0) is False)
+listener = _socket.socket()
+listener.bind(("127.0.0.1", 0))
+listener.listen(1)
+live_url = f"socks5://127.0.0.1:{listener.getsockname()[1]}"
+check("listener -> reachable", bs.proxy_reachable(live_url, max_age=0) is True)
+listener.close()
+check("closed listener -> not reachable", bs.proxy_reachable(live_url, max_age=0) is False)
+bs.PROXY_FILE.write_text("file:///etc/passwd")
+check("bad proxy values are ignored", bs.proxy_url() == "")
+check("panel switch off", c.post("/api/browser/proxy", json={"enabled": False}, headers=H).json()["enabled"] is False and bs.proxy_url() == "")
+check("proxy switch needs csrf", c.post("/api/browser/proxy", json={"enabled": True}, headers=SAME).status_code == 403)
+
 exe = bs.find_executable()
 if not exe:
     print("SKIP live browser tests: no Chromium/Chrome found")

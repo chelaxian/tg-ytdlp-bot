@@ -105,6 +105,8 @@ else:
         hub.set_zoom(tid, 0.5)
         time.sleep(0.3)
         check("outerWidth follows the emulated page (zoom 50%)", hub.evaluate(tid, "outerWidth >= innerWidth && outerHeight >= innerHeight") is True)
+        check("WebRTC cannot reveal the server address (relay only)",
+              hub.evaluate(tid, "new RTCPeerConnection({iceServers: []}).getConfiguration().iceTransportPolicy") == "relay")
         check("navigator.languages matches Accept-Language", hub.evaluate(tid, "navigator.languages.join()") == "en-US,en")
         check("deviceMemory within spec", hub.evaluate(tid, "navigator.deviceMemory") == 8)
         check("Notification.permission looks like a normal profile", hub.evaluate(tid, "Notification.permission") == "default")

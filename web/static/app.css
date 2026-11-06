@@ -417,3 +417,5 @@ dialog::backdrop { background: rgba(10, 18, 28, .45); }
 .br-zoom-label { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 .br-quality { margin-left: auto; }
 .br-bookmarks { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.br-proxy { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-bottom: var(--s3); }
+.br-proxy label { display: inline-flex; align-items: center; gap: var(--s2); cursor: pointer; }
