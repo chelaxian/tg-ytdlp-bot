@@ -275,7 +275,8 @@ export function buildBrowser(s, { panel, bindLoader }) {
         if (await confirmDialog({ title: t("br.remove", { d: d.domain }), text: t("br.remove.text", { d: d.domain }), confirm: t("br.removeShort"), danger: true }))
           act(() => post("/api/browser/cookies/clear", { domain: d.domain }), t("br.cleared"));
       });
-      return h("li", { class: "row" }, h("span", { class: "row-main" }, d.domain), h("span", { class: "tag" }, num(d.count)), rm);
+      return h("li", { class: "row" }, h("span", { class: "row-main" }, d.domain), d.shared ? h("span", { class: "pill" }, t("br.shared")) : null,
+        h("span", { class: "tag" }, num(d.count)), rm);
     });
     body.replaceChildren(
       h("p", null, t("br.cookies.total", { n: num(info.count), d: num(info.domains.length) })),

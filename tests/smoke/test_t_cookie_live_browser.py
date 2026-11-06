@@ -52,6 +52,8 @@ def make_ns(config, jar):
 
     class FakeBS:
         BrowserError = bs.BrowserError
+        COOKIE_SERVICES = bs.COOKIE_SERVICES
+        SERVICE_DOMAINS = bs.SERVICE_DOMAINS
 
         @staticmethod
         def enabled():
@@ -83,6 +85,8 @@ def make_ns(config, jar):
 JAR = [
     {"name": "auth_token", "value": "T", "domain": ".x.com", "path": "/", "secure": True, "httpOnly": True, "expires": 2000000000},
     {"name": "sessionid", "value": "I", "domain": ".instagram.com", "path": "/", "secure": True, "expires": 2000000000},
+    {"name": "bank", "value": "B", "domain": "bank.example.org", "path": "/", "secure": True, "expires": 2000000000},
+    {"name": "c_user", "value": "F", "domain": ".facebook.com", "path": "/", "secure": True, "expires": 2000000000},
 ]
 cfg = SimpleNamespace(BROWSER_SESSION_ENABLED=True, BROWSER_COOKIES_ADMIN_ONLY=False, ADMIN=[1], COOKIE_FILE_PATH="./cookie.txt")
 save, state = make_ns(cfg, JAR)
@@ -90,9 +94,10 @@ path = os.path.join(".", "users", "42", "cookie.txt")
 
 check("all services (/cookies_from_browser)", save(None, 42) == "saved")
 body = open(path, "rb").read().decode()
-check("file has every cookie", "auth_token" in body and "sessionid" in body)
+check("file has the cookies of the five services", "auth_token" in body and "sessionid" in body)
+check("cookies of other sites never leave the browser", "bank" not in body and "c_user" not in body)
 check("file is valid for yt-dlp loader", validate_cookie_bytes(body.encode())[0])
-check("user is told what was taken", sent[-1].split()[:3] == ["saved", "all", "2"] and sent[-1].replace(",", " ").split().count("x.com") == 1)
+check("user is told what was taken", sent[-1].startswith("saved YouTube, X, Instagram, VK, TikTok 2 ") and sent[-1].replace(",", " ").split().count("x.com") == 1, sent[-1])
 check("log has no cookie values", logged and "T" not in logged[-1].split()[-1] and "auth_token" not in logged[-1])
 
 sent.clear()

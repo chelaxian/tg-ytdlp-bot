@@ -51,13 +51,14 @@ CALL_TIMEOUT = 12.0
 
 # Services the /cookie buttons ask for -> cookie domains that belong to them.
 SERVICE_DOMAINS: Dict[str, Tuple[str, ...]] = {
+    "youtube": ("youtube.com", "youtu.be", "youtube-nocookie.com", "google.com", "googlevideo.com"),
     "twitter": ("x.com", "twitter.com", "t.co", "twimg.com"),
-    "tiktok": ("tiktok.com", "tiktokv.com", "tiktokcdn.com"),
-    "vk": ("vk.com", "vk.ru", "vkontakte.ru", "vk-cdn.net", "userapi.com"),
     "instagram": ("instagram.com", "cdninstagram.com"),
-    "facebook": ("facebook.com", "fbcdn.net"),
-    "youtube": ("youtube.com", "google.com", "googlevideo.com", "youtu.be"),
+    "vk": ("vk.com", "vk.ru", "vk.me", "vkvideo.ru", "vkontakte.ru", "vk-cdn.net", "vkuser.net", "userapi.com"),
+    "tiktok": ("tiktok.com", "tiktokv.com", "tiktokv.eu", "tiktokw.eu", "tiktokcdn.com", "tiktokcdn-us.com"),
 }
+# /cookies_from_browser hands the bot only these services; every other cookie of the browser session stays in the browser
+COOKIE_SERVICES: Tuple[str, ...] = ("youtube", "twitter", "instagram", "vk", "tiktok")
 
 _BLOCKED_HOSTS = {"localhost", "localhost.localdomain", "ip6-localhost", "metadata.google.internal"}
 
@@ -382,7 +383,11 @@ def start() -> Dict[str, Any]:
         "--disable-domain-reliability", "--disable-client-side-phishing-detection", "--metrics-recording-only",
         "--disable-features=Translate,BackForwardCache,MediaRouter,OptimizationHints,InterestFeedContentSuggestions",
         "--js-flags=--max-old-space-size=256", "--renderer-process-limit=3",
+        # login pages need no video: no autoplay, no hardware decode (the server also runs the bot's ffmpeg jobs)
+        "--autoplay-policy=user-gesture-required", "--disable-accelerated-video-decode",
     ]
+    extra = str(_cfg("BROWSER_EXTRA_ARGS", "") or "").split()
+    args.extend(a for a in extra if re.fullmatch(r"--[A-Za-z0-9][A-Za-z0-9=,.:_/\-]{0,200}", a))
     proxy = str(_cfg("BROWSER_PROXY", "") or "").strip()
     if proxy and re.fullmatch(r"(https?|socks5h?|socks4)://[A-Za-z0-9.\-:\[\]]+", proxy):
         args.append(f"--proxy-server={proxy}")
@@ -393,6 +398,8 @@ def start() -> Dict[str, Any]:
         args.append("--no-sandbox")                      # Chromium refuses to run as root otherwise
     args.append("about:blank")
     kwargs: Dict[str, Any] = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    if hasattr(os, "nice"):
+        kwargs["preexec_fn"] = lambda: os.nice(10)      # the bot's downloads keep priority over the browser
     if entry:
         kwargs.update(user=entry.pw_uid, group=entry.pw_gid, extra_groups=[],
                       env={"HOME": entry.pw_dir, "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LANG": "C.UTF-8"})
@@ -686,13 +693,16 @@ def summary() -> Dict[str, Any]:
     try:
         info["tabs"] = list_tabs()
         per: Dict[str, int] = {}
+        shared_map: Dict[str, bool] = {}
         total = 0
         for c in get_cookies():
             key = str(c["domain"]).lstrip(".").lower()
             per[key] = per.get(key, 0) + 1
+            if key not in shared_map:
+                shared_map[key] = domain_matches(key, [d for name in COOKIE_SERVICES for d in SERVICE_DOMAINS[name]])
             total += 1
         info["cookies"] = {"count": total,
-                           "domains": [{"domain": d, "count": n} for d, n in sorted(per.items())][:300]}
+                           "domains": [{"domain": d, "count": n, "shared": shared_map.get(d, False)} for d, n in sorted(per.items())][:300]}
     except BrowserError as exc:
         info["error"] = str(exc)
     return info
