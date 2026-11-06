@@ -411,3 +411,8 @@ dialog::backdrop { background: rgba(10, 18, 28, .45); }
 .br-text { flex: 1 1 220px; min-width: 0; }
 .br-help { margin: 0; }
 @media (max-width: 700px) { .br-toolbar { flex-wrap: wrap; } .br-address { flex-basis: 100%; order: 5; } }
+
+.br-zoombar { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.br-zoom-range { flex: 0 1 220px; min-width: 120px; accent-color: var(--signal); }
+.br-zoom-label { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.br-quality { margin-left: auto; }

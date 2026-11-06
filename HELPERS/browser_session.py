@@ -215,6 +215,16 @@ class _WebSocket:
         data, self._buf = self._buf[:n], self._buf[n:]
         return data
 
+    def readable(self, timeout: float) -> bool:
+        """True when a frame can be read now (data already buffered or arriving within `timeout`)."""
+        if self._buf:
+            return True
+        import select
+        try:
+            return bool(select.select([self.sock], [], [], timeout)[0])
+        except (OSError, ValueError):
+            return True            # let recv() report the closed socket
+
     def send(self, text: str) -> None:
         payload = text.encode("utf-8")
         header = bytearray([0x81])
@@ -366,6 +376,12 @@ def start() -> Dict[str, Any]:
         "--disable-blink-features=AutomationControlled", "--disable-background-networking",
         "--disable-sync", "--disable-dev-shm-usage", "--password-store=basic", "--lang=en-US",
         "--mute-audio", "--disable-notifications",
+        # lean profile: the browser is only used to log in, speed and memory matter more than looks
+        "--disable-extensions", "--disable-breakpad", "--disable-component-update", "--no-pings",
+        "--disable-default-apps", "--disable-hang-monitor", "--disable-smooth-scrolling", "--disable-lcd-text",
+        "--disable-domain-reliability", "--disable-client-side-phishing-detection", "--metrics-recording-only",
+        "--disable-features=Translate,BackForwardCache,MediaRouter,OptimizationHints,InterestFeedContentSuggestions",
+        "--js-flags=--max-old-space-size=256", "--renderer-process-limit=3",
     ]
     proxy = str(_cfg("BROWSER_PROXY", "") or "").strip()
     if proxy and re.fullmatch(r"(https?|socks5h?|socks4)://[A-Za-z0-9.\-:\[\]]+", proxy):
@@ -508,7 +524,7 @@ _KEYS = {  # key -> (code, windowsVirtualKeyCode, text)
 _MODIFIERS = {"alt": 1, "ctrl": 2, "meta": 4, "shift": 8}
 
 
-def _coord(value: Any, upper: int) -> float:
+def _coord(value: Any, upper: float) -> float:
     try:
         number = float(value)
     except (TypeError, ValueError) as exc:
@@ -518,12 +534,24 @@ def _coord(value: Any, upper: int) -> float:
     return number
 
 
-def send_input(tab_id: str, kind: str, **p: Any) -> None:
-    """kind: click | dblclick | scroll | text | key"""
-    ws = _tab_ws(tab_id)
+def _char_key(ch: str) -> Dict[str, Any]:
+    """KeyboardEvent fields for one typed character (sites such as Google read code / keyCode)."""
+    if "a" <= ch.lower() <= "z" and ch.isascii():
+        return {"code": "Key" + ch.upper(), "windowsVirtualKeyCode": ord(ch.upper())}
+    if ch.isdigit() and ch.isascii():
+        return {"code": "Digit" + ch, "windowsVirtualKeyCode": ord(ch)}
+    if ch == " ":
+        return {"code": "Space", "windowsVirtualKeyCode": 32}
+    return {}
+
+
+def build_input_calls(kind: str, vw: float = VIEWPORT[0], vh: float = VIEWPORT[1], **p: Any) -> List[Tuple[str, Dict[str, Any]]]:
+    """CDP commands for one input event. kind: click | dblclick | scroll | text | key.
+
+    x / y are CSS pixels inside the page viewport (vw x vh)."""
     calls: List[Tuple[str, Dict[str, Any]]] = []
     if kind in ("click", "dblclick"):
-        x, y = _coord(p.get("x"), VIEWPORT[0]), _coord(p.get("y"), VIEWPORT[1])
+        x, y = _coord(p.get("x"), vw), _coord(p.get("y"), vh)
         button = p.get("button") if p.get("button") in ("left", "right", "middle") else "left"
         base = {"x": x, "y": y, "button": button}
         calls.append(("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": y}))
@@ -531,19 +559,22 @@ def send_input(tab_id: str, kind: str, **p: Any) -> None:
             calls.append(("Input.dispatchMouseEvent", {**base, "type": "mousePressed", "clickCount": count}))
             calls.append(("Input.dispatchMouseEvent", {**base, "type": "mouseReleased", "clickCount": count}))
     elif kind == "scroll":
-        x, y = _coord(p.get("x"), VIEWPORT[0]), _coord(p.get("y"), VIEWPORT[1])
+        x, y = _coord(p.get("x"), vw), _coord(p.get("y"), vh)
         dx = max(-5000.0, min(5000.0, float(p.get("dx") or 0)))
         dy = max(-5000.0, min(5000.0, float(p.get("dy") or 0)))
         calls.append(("Input.dispatchMouseEvent", {"type": "mouseWheel", "x": x, "y": y, "deltaX": dx, "deltaY": dy}))
     elif kind == "text":
         text = str(p.get("text") or "")[:5000]
         if not text:
-            return
+            return calls
         if len(text) > 1 or not text.isprintable():
             calls.append(("Input.insertText", {"text": text}))       # paste-like, one shot
         else:
-            calls.append(("Input.dispatchKeyEvent", {"type": "keyDown", "text": text, "unmodifiedText": text, "key": text}))
-            calls.append(("Input.dispatchKeyEvent", {"type": "keyUp", "key": text}))
+            fields = _char_key(text)
+            mods = 8 if text.isupper() else 0
+            calls.append(("Input.dispatchKeyEvent", {"type": "keyDown", "text": text, "unmodifiedText": text.lower() if mods else text,
+                                                     "key": text, "modifiers": mods, **fields}))
+            calls.append(("Input.dispatchKeyEvent", {"type": "keyUp", "key": text, "modifiers": mods, **fields}))
     elif kind == "key":
         key = str(p.get("key") or "")
         if key not in _KEYS:
@@ -558,7 +589,12 @@ def send_input(tab_id: str, kind: str, **p: Any) -> None:
         calls.append(("Input.dispatchKeyEvent", {**down, "type": "keyUp"}))
     else:
         raise BrowserError("bad_input")
-    _cdp(ws, calls)
+    return calls
+
+
+def send_input(tab_id: str, kind: str, **p: Any) -> None:
+    """One-shot variant (own connection); the dashboard uses the persistent hub instead."""
+    _cdp(_tab_ws(tab_id), build_input_calls(kind, **p))
 
 
 # --------------------------------------------------------------------------------------

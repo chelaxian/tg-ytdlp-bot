@@ -591,6 +591,7 @@ def api_job_cancel(job_id: str, request: Request):
 
 from fastapi.responses import Response  # noqa: E402
 from HELPERS import browser_session  # noqa: E402
+from HELPERS.browser_hub import hub as browser_hub, PROFILES as BROWSER_PROFILES, ZOOM_MAX, ZOOM_MIN  # noqa: E402
 
 _BROWSER_CLIENT_ERRORS = ("bad_url", "blocked_host", "bad_tab", "no_such_tab", "bad_action", "bad_input", "bad_key")
 _BROWSER_STATE_ERRORS = ("not_running", "no_browser", "disabled")
@@ -655,7 +656,12 @@ class BrowserClearBody(BaseModel):
 @app.get("/api/browser")
 def api_browser():
     data, err = _browser_call(browser_session.summary)
-    return err or data
+    if err:
+        return err
+    for tab in data.get("tabs", []):
+        tab["zoom"] = browser_hub.zoom(tab["id"])
+    data["zoom_range"] = [ZOOM_MIN, ZOOM_MAX]
+    return data
 
 
 @app.post("/api/browser/start")
@@ -678,9 +684,10 @@ def api_browser_stop(request: Request):
 
 @app.post("/api/browser/tab")
 def api_browser_new_tab(body: BrowserUrlBody, request: Request):
-    data, err = _browser_call(browser_session.new_tab, body.url)
+    tid, err = _browser_call(browser_hub.new_tab, body.url)
     if err:
         return err
+    data = {"id": tid}
     if body.url != "about:blank":
         _audit(request, "browser_open", host=urlparse(browser_session.normalize_url(body.url)).hostname)
     return {"ok": True, **data}
@@ -688,19 +695,19 @@ def api_browser_new_tab(body: BrowserUrlBody, request: Request):
 
 @app.post("/api/browser/tab/close")
 def api_browser_close_tab(body: BrowserTabBody):
-    _, err = _browser_call(browser_session.close_tab, body.id)
+    _, err = _browser_call(browser_hub.close_tab, body.id)
     return err or {"ok": True}
 
 
 @app.post("/api/browser/tab/activate")
 def api_browser_activate(body: BrowserTabBody):
-    _, err = _browser_call(browser_session.activate_tab, body.id)
+    _, err = _browser_call(browser_hub.activate, body.id)
     return err or {"ok": True}
 
 
 @app.post("/api/browser/navigate")
 def api_browser_navigate(body: BrowserNavBody, request: Request):
-    _, err = _browser_call(browser_session.navigate, body.id, body.url)
+    _, err = _browser_call(browser_hub.navigate, body.id, body.url)
     if err:
         return err
     _audit(request, "browser_navigate", host=urlparse(browser_session.normalize_url(body.url)).hostname)
@@ -709,23 +716,40 @@ def api_browser_navigate(body: BrowserNavBody, request: Request):
 
 @app.post("/api/browser/history")
 def api_browser_history(body: BrowserHistoryBody):
-    _, err = _browser_call(browser_session.history_step, body.id, body.action)
+    _, err = _browser_call(browser_hub.history, body.id, body.action)
     return err or {"ok": True}
 
 
 @app.post("/api/browser/input")
 def api_browser_input(body: BrowserInputBody):
     params = body.model_dump(exclude={"id", "kind"})
-    _, err = _browser_call(browser_session.send_input, body.id, body.kind, **params)
+    _, err = _browser_call(browser_hub.input, body.id, body.kind, **params)
     return err or {"ok": True}
 
 
 @app.get("/api/browser/screen")
-def api_browser_screen(id: str = Query(..., min_length=8, max_length=64, pattern=r"^[A-Za-z0-9]+$")):
-    data, err = _browser_call(browser_session.screenshot, id)
+def api_browser_screen(id: str = Query(..., min_length=8, max_length=64, pattern=r"^[A-Za-z0-9]+$"),
+                       since: int = Query(default=0, ge=0), profile: str = Query(default="fast", pattern="^(fast|normal|sharp)$")):
+    """Long poll: answers when the page picture changed (204 after a few quiet seconds)."""
+    frame, err = _browser_call(browser_hub.frame, id, since, profile)
     if err:
         return err
-    return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+    if frame is None:
+        return Response(status_code=204, headers={"Cache-Control": "no-store"})
+    # Content-Encoding: identity keeps GZipMiddleware from burning CPU on an already compressed JPEG
+    return Response(content=frame.data, media_type="image/jpeg",
+                    headers={"Cache-Control": "no-store", "Content-Encoding": "identity",
+                             "X-Frame-Seq": str(frame.seq), "X-Viewport-Width": str(frame.vw), "X-Viewport-Height": str(frame.vh)})
+
+
+class BrowserZoomBody(BrowserTabBody):
+    zoom: float = Field(..., ge=0.5, le=2.0)
+
+
+@app.post("/api/browser/zoom")
+def api_browser_zoom(body: BrowserZoomBody):
+    zoom, err = _browser_call(browser_hub.set_zoom, body.id, body.zoom)
+    return err or {"ok": True, "zoom": zoom}
 
 
 @app.post("/api/browser/cookies/clear")

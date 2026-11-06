@@ -5,9 +5,8 @@
 import { t } from "./i18n.js";
 import { h, api, toast, errorText, confirmDialog, num } from "./ui.js";
 
-const FRAME_MS = 700;      // pause between frames while idle
-const FAST_MS = 120;       // pause right after an input
 const MAX_FAILS = 4;
+const PROFILES = ["fast", "normal", "sharp"];     // picture quality: fast = smallest frames, the default
 
 function brError(err) {
   const code = err && err.body && err.body.error;
@@ -22,7 +21,11 @@ export function buildBrowser(s, { panel, bindLoader }) {
   const cookies = panel({ title: t("br.cookies"), sub: t("br.cookies.sub") });
   s.root.append(h("div", { class: "grid" }, view.el, cookies.el));
 
-  const st = { data: null, tab: null, ui: null, loop: 0, fails: 0, queue: Promise.resolve(), wake: null, wheel: 0 };
+  const st = { data: null, tab: null, ui: null, running: false, queue: Promise.resolve(), wheel: 0, seq: 0, vw: 1280, vh: 800,
+    abort: null, zoom: 1, profile: PROFILES.includes(localStorage.getItem("dash.br.profile")) ? localStorage.getItem("dash.br.profile") : "fast" };
+
+  // a new picture is needed (tab, zoom or quality changed): forget the last frame and cancel the pending long poll
+  const restartStream = () => { st.seq = 0; if (st.abort) st.abort.abort(); };
 
   // ------------------------------------------------------------ actions
   const act = async (fn, okText) => {
@@ -33,15 +36,14 @@ export function buildBrowser(s, { panel, bindLoader }) {
   const sendInput = (body) => {
     if (!st.tab) return;
     const payload = { id: st.tab, ...body };
-    st.queue = st.queue.then(() => post("/api/browser/input", payload)).catch((err) => toast(brError(err), "error"))
-      .then(() => { if (st.wake) st.wake(FAST_MS); });
+    st.queue = st.queue.then(() => post("/api/browser/input", payload)).catch((err) => toast(brError(err), "error"));
   };
 
   const selectTab = async (id) => {
     st.tab = id;
+    restartStream();
     renderTabs();
     try { await post("/api/browser/tab/activate", { id }); } catch { /* the frame loop reports real problems */ }
-    if (st.wake) st.wake(0);
   };
 
   // ------------------------------------------------------------ ui skeleton
@@ -85,13 +87,40 @@ export function buildBrowser(s, { panel, bindLoader }) {
 
     const canvas = h("canvas", { class: "br-canvas", width: 1280, height: 800, tabindex: 0, role: "application",
       "aria-label": t("br.screen") });
+    // page zoom (zoom out = more of the page fits) and picture quality
+    const zoomLabel = h("output", { class: "br-zoom-label", "aria-live": "polite" }, "100%");
+    const zoomRange = h("input", { type: "range", class: "br-zoom-range", min: 50, max: 200, step: 10, value: 100, "aria-label": t("br.zoom") });
+    const applyZoom = async (percent) => {
+      const value = Math.max(50, Math.min(200, Math.round(percent / 10) * 10));
+      zoomRange.value = String(value);
+      zoomLabel.textContent = `${value}%`;
+      if (!st.tab) return;
+      try {
+        const r = await post("/api/browser/zoom", { id: st.tab, zoom: value / 100 });
+        st.zoom = r.zoom;
+        const tab = ((st.data && st.data.tabs) || []).find((x) => x.id === st.tab);
+        if (tab) tab.zoom = r.zoom;
+        restartStream();
+      } catch (err) { toast(brError(err), "error"); }
+    };
+    zoomRange.addEventListener("input", () => { zoomLabel.textContent = `${zoomRange.value}%`; });
+    zoomRange.addEventListener("change", () => applyZoom(Number(zoomRange.value)));
+    const stepBtn = (label, glyph, delta) => h("button", { type: "button", class: "ghost icon-btn", "aria-label": label, title: label,
+      onclick: () => applyZoom(Number(zoomRange.value) + delta) }, glyph);
+    const quality = h("select", { class: "br-quality", "aria-label": t("br.quality") },
+      PROFILES.map((p) => h("option", { value: p, selected: p === st.profile }, t(`br.q.${p}`))));
+    quality.addEventListener("change", () => { st.profile = quality.value; localStorage.setItem("dash.br.profile", st.profile); restartStream(); });
+    const zoomBar = h("div", { class: "br-zoombar", role: "group", "aria-label": t("br.zoom") },
+      stepBtn(t("br.zoomOut"), "−", -10), zoomRange, stepBtn(t("br.zoomIn"), "+", 10),
+      zoomLabel, h("button", { type: "button", class: "ghost", onclick: () => applyZoom(100) }, t("br.zoomReset")), quality);
     const empty = h("p", { class: "state br-empty" });
     const screen = h("div", { class: "br-screen" }, canvas, empty);
 
     // mouse
+    // the picture is scaled down; clicks are sent in page pixels (the viewport size the server reports)
     const point = (e) => {
       const r = canvas.getBoundingClientRect();
-      return { x: Math.round(((e.clientX - r.left) / r.width) * canvas.width), y: Math.round(((e.clientY - r.top) / r.height) * canvas.height) };
+      return { x: Math.round(((e.clientX - r.left) / r.width) * st.vw), y: Math.round(((e.clientY - r.top) / r.height) * st.vh) };
     };
     canvas.addEventListener("click", (e) => { canvas.focus(); if (e.detail < 2) sendInput({ kind: "click", ...point(e) }); });
     canvas.addEventListener("dblclick", (e) => sendInput({ kind: "dblclick", ...point(e) }));
@@ -126,11 +155,11 @@ export function buildBrowser(s, { panel, bindLoader }) {
 
     const help = h("p", { class: "muted br-help" }, t("br.help"));
     const missing = h("div", { class: "state" });
-    const live = h("div", { class: "br-live" }, tabs, bar, screen, keys, help);
+    const live = h("div", { class: "br-live" }, tabs, bar, zoomBar, screen, keys, help);
 
     const top = h("div", { class: "br-top" }, statusPill, power);
     view.body.replaceChildren(top, missing, live);
-    return { statusPill, power, tabs, addTab, address, canvas, empty, live, missing };
+    return { statusPill, power, tabs, addTab, address, canvas, empty, live, missing, zoomRange, zoomLabel };
   }
 
   function renderTabs() {
@@ -148,6 +177,11 @@ export function buildBrowser(s, { panel, bindLoader }) {
     }), ui.addTab);
     const current = list.find((x) => x.id === st.tab);
     if (current && document.activeElement !== ui.address) ui.address.value = current.url === "about:blank" ? "" : current.url;
+    if (current && document.activeElement !== ui.zoomRange) {
+      const percent = Math.round((current.zoom || 1) * 100);
+      ui.zoomRange.value = String(percent);
+      ui.zoomLabel.textContent = `${percent}%`;
+    }
   }
 
   // ------------------------------------------------------------ data
@@ -199,33 +233,43 @@ export function buildBrowser(s, { panel, bindLoader }) {
   }
 
   // ------------------------------------------------------------ frame loop
+  // Long poll: the server answers when the picture changed (204 after a few quiet seconds), so a still page
+  // costs nothing and a change shows up as soon as the browser paints it.
   function startLoop() {
-    if (st.wake) { st.wake(0); return; }               // already running: just ask for a frame now
-    const my = ++st.loop;
+    if (st.running) return;
+    st.running = true;
     const canvas = st.ui.canvas;
     const ctx = canvas.getContext("2d");
-    const sleep = (ms) => new Promise((resolve) => { const timer = setTimeout(resolve, ms); st.wake = (next) => { clearTimeout(timer); setTimeout(resolve, next); }; });
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     (async () => {
-      let delay = 0;
-      while (my === st.loop) {
-        await sleep(delay);
-        delay = FRAME_MS;
-        if (!canvas.isConnected || !st.data || !st.data.running) break;      // other section / stopped
-        if (document.hidden || !st.tab || document.getElementById("dialog").open) continue;
+      let fails = 0;
+      while (canvas.isConnected && st.data && st.data.running) {
+        if (document.hidden || !st.tab || document.getElementById("dialog").open) { await sleep(400); continue; }
+        const tab = st.tab;
+        st.abort = new AbortController();
         try {
-          const res = await fetch(`/api/browser/screen?id=${encodeURIComponent(st.tab)}`, { cache: "no-store", credentials: "same-origin" });
+          const res = await fetch(`/api/browser/screen?id=${encodeURIComponent(tab)}&since=${st.seq}&profile=${st.profile}`,
+            { cache: "no-store", credentials: "same-origin", signal: st.abort.signal });
           if (res.status === 401) { window.location.replace("/login"); return; }
+          if (tab !== st.tab) continue;
+          if (res.status === 204) { fails = 0; continue; }
           if (!res.ok) throw new Error(String(res.status));
           const bmp = await createImageBitmap(await res.blob());
+          if (tab !== st.tab) { if (bmp.close) bmp.close(); continue; }
+          st.seq = Number(res.headers.get("X-Frame-Seq")) || 0;
+          st.vw = Number(res.headers.get("X-Viewport-Width")) || st.vw;
+          st.vh = Number(res.headers.get("X-Viewport-Height")) || st.vh;
           if (canvas.width !== bmp.width || canvas.height !== bmp.height) { canvas.width = bmp.width; canvas.height = bmp.height; }
           ctx.drawImage(bmp, 0, 0);
           if (bmp.close) bmp.close();
-          st.fails = 0;
-        } catch {
-          if (++st.fails >= MAX_FAILS) { st.fails = 0; reload().catch(() => {}); delay = 3000; }
+          fails = 0;
+        } catch (err) {
+          if (err && err.name === "AbortError") continue;
+          fails += 1;
+          if (fails >= MAX_FAILS) { fails = 0; reload().catch(() => {}); await sleep(3000); } else await sleep(400 * fails);
         }
       }
-      if (my === st.loop) st.wake = null;
+      st.running = false;
     })();
   }
 
