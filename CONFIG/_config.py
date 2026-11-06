@@ -102,6 +102,9 @@ class Config(object):
     WARP_ENDPOINT = "162.159.192.1:2408"  # engage.cloudflareclient.com over IPv4
     WARP_PROXY_HOST = "127.0.0.1"  # "172.17.0.1" when the bgutil PO-token container runs on Docker
     WARP_MAX_TUNNELS = 40  # concurrent tunnels; beyond that tasks share one fallback tunnel
+    WARP_REROLL_ATTEMPTS = 3  # re-roll a tunnel whose egress IP / IPv6 /64 was used among the latest ones
+    WARP_RECENT_EGRESS = 256  # how many latest egress IPs are remembered for that check
+    WARP_SHARED_MAX_AGE = 120  # seconds; the shared fallback tunnel gets a new IP after this
     # your firebase DB path
     BOT_DB_PATH = f"bot/{BOT_NAME_FOR_USERS}/"
     VIDEO_CACHE_DB_PATH = f"bot/video_cache"
