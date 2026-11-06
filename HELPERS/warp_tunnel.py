@@ -24,6 +24,7 @@ use one shared fallback tunnel, never the server IP.
 from __future__ import annotations
 
 import atexit
+import collections
 import concurrent.futures
 import contextlib
 import ipaddress
@@ -52,6 +53,9 @@ _DEFAULTS = {
     "WARP_PROBE_URL": "https://www.cloudflare.com/cdn-cgi/trace",
     "WARP_RUNTIME_DIR": ".warp-run",
     "WARP_DIRECT_HOSTS": (),
+    "WARP_REROLL_ATTEMPTS": 3,       # tries to get an egress not used a moment ago
+    "WARP_RECENT_EGRESS": 256,       # how many latest egress IPs / prefixes are remembered
+    "WARP_SHARED_MAX_AGE": 120,      # shared (no-task) tunnel gets a new IP after this many seconds
 }
 _DIRECT_SUFFIXES = (
     "localhost", "telegram.org", "t.me", "telegram.me", "firebaseio.com",
@@ -137,6 +141,43 @@ def _read_profile(path: str) -> Dict[str, Dict[str, str]]:
     return sections
 
 
+# --------------------------------------------------------------------- egress history
+# Cloudflare hands out the egress address per WireGuard session; two sessions
+# in a row can land on the same address or inside the same /64. A repeat would
+# put two "different" tasks on one IP for YouTube, so it is re-rolled.
+_recent_lock = threading.Lock()
+_recent_ips: "collections.deque[str]" = collections.deque()
+_recent_nets: "collections.deque[str]" = collections.deque()
+
+
+def _net64(ip: str) -> str:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip
+    if addr.version == 6:
+        return str(ipaddress.ip_network((int(addr) >> 64 << 64, 64)))
+    return str(addr)
+
+
+def _egress_is_fresh(ip: Optional[str]) -> bool:
+    if not ip:
+        return True
+    with _recent_lock:
+        return ip not in _recent_ips and _net64(ip) not in _recent_nets
+
+
+def _remember_egress(ip: Optional[str]) -> None:
+    if not ip:
+        return
+    limit = max(8, int(_cfg("WARP_RECENT_EGRESS")))
+    with _recent_lock:
+        for dq, value in ((_recent_ips, ip), (_recent_nets, _net64(ip))):
+            dq.append(value)
+            while len(dq) > limit:
+                dq.popleft()
+
+
 _profiles_cache = {"mtime": None, "list": []}
 _profile_rr = [0]
 _profile_lock = threading.Lock()
@@ -210,6 +251,21 @@ class Tunnel:
             f.write("\n".join(lines))
 
     def start(self) -> "Tunnel":
+        """Start a tunnel whose egress was not seen among the latest ones."""
+        rerolls = max(0, int(_cfg("WARP_REROLL_ATTEMPTS")))
+        for attempt in range(rerolls + 1):
+            self._start_once()
+            if _egress_is_fresh(self.egress) or attempt == rerolls:
+                if not _egress_is_fresh(self.egress):
+                    logger.warning(f"[WARP] {self.label}: egress {self.egress} repeats a recent one "
+                                   f"after {rerolls} re-rolls")
+                _remember_egress(self.egress)
+                return self
+            logger.info(f"[WARP] {self.label}: egress {self.egress} was used recently, re-rolling")
+            self._kill()
+        return self
+
+    def _start_once(self) -> "Tunnel":
         self._write_conf()
         t0 = time.monotonic()
         self.proc = _spawn([str(_cfg("WARP_WIREPROXY_BIN")), "-c", self._conf, "-s"], self._log)
@@ -226,7 +282,7 @@ class Tunnel:
             except Exception as e:
                 last_err = e
                 time.sleep(0.1)
-        self.stop()
+        self._kill()
         raise RuntimeError(f"WARP tunnel not ready in {_cfg('WARP_STARTUP_TIMEOUT')}s: {last_err}")
 
     def _probe(self) -> Optional[str]:
@@ -252,7 +308,7 @@ class Tunnel:
     def alive(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
 
-    def stop(self) -> None:
+    def _kill(self) -> None:
         proc, self.proc = self.proc, None
         if proc is not None and proc.poll() is None:
             proc.terminate()
@@ -261,6 +317,9 @@ class Tunnel:
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait(timeout=3)
+
+    def stop(self) -> None:
+        self._kill()
         for path in (self._conf, self._log):
             try:
                 os.unlink(path)
@@ -269,7 +328,7 @@ class Tunnel:
 
     def restart(self) -> "Tunnel":
         """New WireGuard session (= new egress IP) on the same proxy port."""
-        self.stop()
+        self._kill()
         return self.start()
 
 
@@ -298,6 +357,7 @@ class TaskScope:
         self._has_slot = False
         self._lock = threading.Lock()
         self.opened = time.monotonic()
+        self.rotations = 0
 
     def proxy_url(self) -> Optional[str]:
         with self._lock:
@@ -329,19 +389,26 @@ class TaskScope:
             self._release()
             return _shared_proxy_url()
 
-    def rotate(self) -> Optional[str]:
-        """Give this task a new egress IP (same proxy URL); other tasks are untouched."""
+    def rotate(self, reason: str = "") -> Optional[str]:
+        """Give this task a new egress IP (same proxy URL); other tasks are untouched.
+
+        Returns the new egress ("?" when the probe is off), None if the task has
+        no tunnel yet (the first request will start a fresh one anyway) or the
+        restart failed. Never call it between extracting a YouTube URL and
+        downloading it: the media URLs are bound to the egress that got them.
+        """
         with self._lock:
-            if self.tunnel is None or not self.tunnel.alive():
+            if self.tunnel is None:
                 return None
             old = self.tunnel.egress
             try:
                 self.tunnel.restart()
-                logger.info(f"[WARP] rotated {self.label}: {old} -> {self.tunnel.egress}")
-                return self.tunnel.egress
             except Exception as e:
                 logger.error(f"[WARP] rotate for {self.label} failed: {e}")
                 return None
+            self.rotations += 1
+            logger.info(f"[WARP] rotated {self.label} ({reason or 'retry'}): {old} -> {self.tunnel.egress}")
+            return self.tunnel.egress or "?"
 
     def _release(self) -> None:
         if self.tunnel is not None:
@@ -360,7 +427,7 @@ class TaskScope:
             self._release()
         if had is not None:
             logger.info(f"[WARP] tunnel down for {self.label} after {time.monotonic() - self.opened:.0f}s "
-                        f"(egress={egress or '?'}, active={len(_active)})")
+                        f"(egress={egress or '?'}, rotations={self.rotations}, active={len(_active)})")
 
 
 @contextlib.contextmanager
@@ -403,7 +470,10 @@ def _shared_proxy_url() -> Optional[str]:
     with _shared_lock:
         tunnel = _shared.get("t")
         if tunnel is not None and tunnel.alive():
-            return tunnel.url
+            max_age = float(_cfg("WARP_SHARED_MAX_AGE") or 0)
+            if not max_age or time.monotonic() - tunnel.started_at < max_age:
+                return tunnel.url
+            logger.info(f"[WARP] shared tunnel is {time.monotonic() - tunnel.started_at:.0f}s old, new egress")
         try:
             if tunnel is not None:
                 tunnel.restart()
@@ -425,9 +495,14 @@ def proxy_url() -> Optional[str]:
     return scope.proxy_url() if scope is not None else _shared_proxy_url()
 
 
-def rotate_current_task() -> Optional[str]:
+def rotate_current_task(reason: str = "") -> Optional[str]:
+    """New egress IP for the next attempt of the current task (e.g. the next
+    YouTube cookie source). Returns the new IP, or None if there is nothing to
+    rotate (no task scope / tunnel not started yet / WARP off)."""
+    if not enabled():
+        return None
     scope = current_scope()
-    return scope.rotate() if scope is not None else None
+    return scope.rotate(reason) if scope is not None else None
 
 
 def active_count() -> int:

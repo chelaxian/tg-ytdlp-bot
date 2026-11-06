@@ -89,3 +89,10 @@ extra registration is needed. To switch it on:
 
 Without these two settings the stack works as before: everything goes through
 the shared `warp` tunnel.
+
+## Egress rotation
+
+* Every task starts its own tunnel (new WireGuard session = new egress IPv6).
+* A new egress that repeats one of the last `WARP_RECENT_EGRESS` addresses or its /64 is re-rolled (up to `WARP_REROLL_ATTEMPTS`).
+* Inside a task, `warp_tunnel.rotate_current_task(reason)` gives the next attempt a new IP on the same proxy port. It is called before every YouTube cookie source (cookie cascade in `retry_download_with_different_cookies` and format detection) so a cookie that failed the bot check is never judged from the same IP twice. Never rotate between extracting a YouTube URL and downloading it (media URLs are bound to the IP).
+* The shared fallback tunnel (no task scope / all slots busy) is renewed after `WARP_SHARED_MAX_AGE` seconds.

@@ -268,6 +268,9 @@ def _get_video_formats_uncached(url, user_id=None, playlist_start_index=1, cooki
                         success = False
                         for i, idx in enumerate(unchecked_indices, 1):
                             cookie_url = cookie_urls[idx]
+                            if i > 1:  # a new egress IP for every next cookie source
+                                from COMMANDS.cookies_cmd import _rotate_warp_ip
+                                _rotate_warp_ip(f"format detection cookie source {idx + 1} user={user_id}")
                             logger.info(
                                 safe_get_messages(user_id).YTDLP_TRYING_YOUTUBE_COOKIE_SOURCE_MSG.format(
                                     i=idx + 1, user_id=user_id
@@ -340,6 +343,9 @@ def _get_video_formats_uncached(url, user_id=None, playlist_start_index=1, cooki
                 if cookie_urls:
                     success = False
                     for i, cookie_url in enumerate(cookie_urls, 1):
+                        if i > 1:  # a new egress IP for every next cookie source
+                            from COMMANDS.cookies_cmd import _rotate_warp_ip
+                            _rotate_warp_ip(f"format detection cookie source {i} user={user_id}")
                         logger.info(f"Trying YouTube cookie source {i} for format detection for user {user_id}")
                         try:
                             ok, status_code, content, error = _download_content(cookie_url, user_id=user_id)

@@ -2705,6 +2705,15 @@ def _is_local_cookie_failure(error) -> bool:
     return is_local_file_error(text) or is_missing_local_file(text)
 
 
+def _rotate_warp_ip(reason: str) -> None:
+    """New WARP egress IPv6 before the next cookie source / retry (no-op without WARP)."""
+    try:
+        from HELPERS.warp_tunnel import rotate_current_task
+        rotate_current_task(reason)
+    except Exception as e:  # rotation is best effort, never breaks the cascade
+        logger.debug(f"WARP rotation skipped: {e}")
+
+
 def retry_download_with_different_cookies(user_id: int, url: str, download_func, *args, **kwargs):
     """
     Повторяет скачивание с разными куками при ошибках, связанных с куками.
@@ -2842,6 +2851,9 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
         
         # Пробуем каждый источник куков
         for attempt, idx in enumerate(indices, 1):
+            # every source gets its own egress IP: the failure that brought us here
+            # (and the previous source's check) already counted against the old one
+            _rotate_warp_ip(f"youtube cookie source {idx + 1} user={user_id}")
             try:
                 logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_ATTEMPT_LOG_MSG.format(attempt=attempt, total_attempts=len(indices), source_index=idx + 1, user_id=user_id))
                 
