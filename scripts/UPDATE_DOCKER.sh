@@ -172,6 +172,12 @@ if [ "$NO_CACHE" = true ]; then
     log_info "Сборка без кеша"
 fi
 
+# The web dashboard is an optional compose profile: keep it if it is already installed on this host
+if [ -z "${COMPOSE_PROFILES:-}" ] && docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx 'tg-ytdlp-dashboard'; then
+    export COMPOSE_PROFILES=dashboard
+    log_info "Найден установленный dashboard: он остаётся в обновлении (COMPOSE_PROFILES=dashboard)"
+fi
+
 if $DOCKER_COMPOSE build $BUILD_ARGS; then
     log_success "Образы успешно собраны"
 else
@@ -227,5 +233,5 @@ echo "  $DOCKER_COMPOSE logs -f"
 echo ""
 log_info "Для просмотра логов конкретного сервиса:"
 echo "  $DOCKER_COMPOSE logs -f bot"
-echo "  $DOCKER_COMPOSE logs -f dashboard"
+if [ "${COMPOSE_PROFILES:-}" = "dashboard" ]; then echo "  $DOCKER_COMPOSE logs -f dashboard"; fi
 echo "  $DOCKER_COMPOSE logs -f warp"

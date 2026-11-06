@@ -21,7 +21,7 @@ from HELPERS.cookie_file import validate_cookie_bytes, write_cookie_file  # noqa
 
 SRC = open(os.path.join(ROOT, "COMMANDS", "cookies_cmd.py"), encoding="utf-8").read()
 tree = ast.parse(SRC)
-fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "_save_live_browser_cookies")
+fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "_save_live_browser_cookies_impl")
 code = ast.get_source_segment(SRC, fn)
 
 ok = fail = 0
@@ -80,7 +80,7 @@ def make_ns(config, jar):
     import HELPERS
     HELPERS.browser_session = FakeBS  # the helper does `from HELPERS import browser_session`
     exec(code, ns)
-    return ns["_save_live_browser_cookies"], state
+    return ns["_save_live_browser_cookies_impl"], state
 
 
 JAR = [

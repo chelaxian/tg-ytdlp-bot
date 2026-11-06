@@ -623,6 +623,19 @@ def get_unchecked_cookie_sources(user_id: int, cookie_urls: list) -> list:
     return unchecked_indices
 
 def _save_live_browser_cookies(message, user_id, services=None):
+    """Live browser cookies for a user; never raises.
+
+    The web dashboard and its browser are optional. Without them (or when anything about them fails)
+    this answers "unavailable" and the caller carries on with its usual menu / backup source.
+    """
+    try:
+        return _save_live_browser_cookies_impl(message, user_id, services)
+    except Exception as e:
+        logger.warning(f"[cookies] live browser cookies unavailable: {type(e).__name__}: {e}")
+        return "unavailable"
+
+
+def _save_live_browser_cookies_impl(message, user_id, services=None):
     """Save the CURRENT cookies of the admin's live browser session as the user's cookie.txt.
 
     services: None = every cookie of the session (/cookies_from_browser), else a

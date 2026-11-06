@@ -214,7 +214,7 @@ docker compose up -d --build
 The bot container will be built from the included `Dockerfile`, and:
 - `configuration-webserver` (opt-in — start it separately with `docker compose --profile configuration-webserver up -d`) will serve cookie files; it shares warp's network namespace, so the bot reaches them at `http://localhost/cookies/<filename>`
 - `bgutil-provider` will be available at `http://bgutil-provider:4416` for YouTube PO tokens
-- **Dashboard panel** will be available at `http://localhost:5555` (or `http://<your-server-ip>:5555`)
+- **Dashboard panel** *(optional, off by default, see "Optional components" below)* is available at `http://localhost:5555` once enabled
 
 **Optional – fresh IP per download (per-task WARP):** set `WARP_DIRECT_BOT=1` in `.env` and `WARP_PER_TASK = True` in `CONFIG/config.py`, then `docker compose up -d --build`. Every download then uses its own WARP tunnel with a new IPv6 (the account of the `warp` container is reused), and the bot's own traffic to Telegram goes directly, so tunnel restarts never cut it. Details: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
 
@@ -222,7 +222,7 @@ The bot container will be built from the included `Dockerfile`, and:
 
 **Step 4 – Access the Dashboard Panel:**
 
-After starting the containers, the web dashboard panel will automatically start on port **5555** (configurable via `DASHBOARD_PORT` in `CONFIG/config.py`). You can access it at:
+The web dashboard is optional and is **not** started by `docker compose up -d`. To enable it run `docker compose --profile dashboard up -d --build` (or add `COMPOSE_PROFILES=dashboard` to `.env`). It then listens on port **5555** (configurable via `DASHBOARD_PORT` in `CONFIG/config.py`). You can access it at:
 - `http://localhost:5555` (if accessing from the same machine)
 - `http://<your-server-ip>:5555` (if accessing remotely)
 
@@ -2095,6 +2095,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## ⚙️ Optional components: web dashboard and browser tab
+
+The bot works completely without the web dashboard and without the browser integration. Both are **optional**
+because they cost resources: the dashboard is an extra process (FastAPI), and its *Browser* tab runs a real headless
+Chromium (roughly 0.5–1.5 GB of RAM and noticeable CPU while it is open). On a small server skip them.
+
+| What you want | Python / systemd install | Docker |
+|---|---|---|
+| **Bot only** (default) | `pip install -r requirements.txt` | `docker compose up -d --build` |
+| **+ Web dashboard** | also `pip install -r requirements-dashboard.txt`, then run `uvicorn web.dashboard_app:app` (see below) | `docker compose --profile dashboard up -d --build` (or put `COMPOSE_PROFILES=dashboard` into `.env`) |
+| **+ Browser tab** (log in to services in the panel, the bot takes cookies from that session) | also install Chromium or Chrome: `sudo apt install chromium` (no extra Python packages) | `INSTALL_BROWSER=1` in `.env` before building the dashboard image* |
+
+\* Inside Docker the browser is reachable only from the dashboard container's own loopback, so the bot cannot read its
+cookies there (the bot keeps working and uses its usual cookie sources). The cookie hand-over is meant for the plain
+Python / systemd install where the bot and the panel share the host.
+
+Without the dashboard and the browser nothing breaks: `/cookies_from_browser` and the `/cookie` buttons simply use their
+usual sources (browser profiles of the host, `COOKIE_URL`, `*_COOKIE_URL`), and the bot never imports the panel packages.
+If you already ran the dashboard in Docker, `scripts/UPDATE_DOCKER.sh` keeps it (it detects the container); for manual
+commands add `COMPOSE_PROFILES=dashboard` to `.env`.
+
+Browser tab settings (all optional, in `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
+`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_COOKIES_ADMIN_ONLY`. The bot hands out
+only the cookies of YouTube, X, Instagram, VK and TikTok. If X or TikTok distrust the server's address, the panel can
+route the browser through your own PC (`scripts/browser-egress/`).
+
 ## 📈 Statistics dashboard (port 5555)
 
 We provide a separate FastAPI service with a multi-tab UI and REST API that shows key bot metrics in real time without constantly hitting the database.
@@ -2102,7 +2128,7 @@ We provide a separate FastAPI service with a multi-tab UI and REST API that show
 ### How to run
 
 ```bash
-pip install -r requirements.txt           # make sure fastapi/uvicorn are installed
+pip install -r requirements-dashboard.txt   # optional packages of the panel (fastapi, uvicorn, ...)
 ./venv/bin/python -m uvicorn web.dashboard_app:app --host 0.0.0.0 --port 5555 --reload
 ```
 

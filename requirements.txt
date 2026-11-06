@@ -4,11 +4,7 @@ pyrotgfork
 aiohttp
 aiofiles
 requests<3,>=2.8.1
-fastapi
-uvicorn[standard]
-jinja2
-python-multipart
-psutil
+# The web dashboard (and its browser tab) is OPTIONAL: its packages are in requirements-dashboard.txt
 TgCrypto-pyrofork
 #TgCrypto>=1.2.5
 moviepy==1.0.3

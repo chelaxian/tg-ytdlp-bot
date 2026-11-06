@@ -8,7 +8,6 @@ ENV TZ="$TZ" \
 # System dependencies:
 # - git, ffmpeg, mediainfo, rsync (README: base deps + FFmpeg)
 # - font packages for Arabic/Asian and emoji support (README: optional fonts)
-# - docker.io for dashboard container to manage Docker
 # - gnupg + curl for adding the NodeSource apt repo (Node.js installed separately below)
 # - phantomjs removed: deprecated and no longer available in Debian repos
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,7 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     mediainfo \
     rsync \
-    docker.io \
     curl \
     iputils-ping \
     gnupg \
@@ -71,12 +69,28 @@ RUN ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" \
     && chmod 755 /usr/local/bin/wireproxy \
     && rm -f /tmp/wp.tgz
 
+# Optional components, OFF by default: they cost RAM / CPU / disk and the bot does not need them.
+#   INSTALL_DASHBOARD=1  web panel packages (requirements-dashboard.txt) + the docker CLI the panel uses
+#   INSTALL_BROWSER=1    Chromium for the panel's "Browser" tab (only meaningful with INSTALL_DASHBOARD=1)
+# docker-compose.yml builds them only for the optional `dashboard` service (docker compose --profile dashboard ...).
+ARG INSTALL_DASHBOARD=0
+ARG INSTALL_BROWSER=0
+RUN if [ "$INSTALL_DASHBOARD" = "1" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends docker.io \
+        && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
+RUN if [ "$INSTALL_DASHBOARD" = "1" ] && [ "$INSTALL_BROWSER" = "1" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends chromium fonts-liberation \
+        && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 WORKDIR /app
 
 # Copy requirements first for better layer caching
-COPY requirements.txt .
+COPY requirements.txt requirements-dashboard.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
+    if [ "$INSTALL_DASHBOARD" = "1" ]; then pip install --no-cache-dir -r requirements-dashboard.txt; fi && \
     rm -rf /root/.cache/pip
 
 # Copy application code

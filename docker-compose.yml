@@ -32,13 +32,22 @@ services:
     working_dir: /app
     network_mode: "service:warp"
 
+  # OPTIONAL web dashboard: not started by `docker compose up -d` (it needs RAM / CPU the bot does not).
+  # Enable it with:  docker compose --profile dashboard up -d --build
+  # or once for all commands:  COMPOSE_PROFILES=dashboard in .env
+  # INSTALL_BROWSER=1 in .env also installs Chromium for its "Browser" tab. Note: the browser is reached over
+  # the container's own loopback, so inside Docker the bot cannot read its cookies (the bot keeps working);
+  # that feature is meant for the plain Python / systemd install where bot and panel share the host.
   dashboard:
+    profiles: ["dashboard"]
     container_name: tg-ytdlp-dashboard
     build:
       context: .
       dockerfile: Dockerfile
       args:
         <<: *default-build-args
+        INSTALL_DASHBOARD: "1"
+        INSTALL_BROWSER: "${INSTALL_BROWSER:-0}"
     env_file:
       - .env
     restart: unless-stopped
