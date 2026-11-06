@@ -18,6 +18,7 @@ from HELPERS.ytdlp_errors import is_local_file_error, is_missing_local_file
 from HELPERS.safe_messeger import fake_message, safe_send_message, safe_edit_message_text
 from pyrogram.errors import FloodWait
 import os
+import contextlib
 from functools import lru_cache
 import json
 import requests
@@ -686,6 +687,62 @@ def _save_live_browser_cookies_impl(message, user_id, services=None):
     send_to_user(message, msgs.COOKIES_LIVE_BROWSER_SAVED_MSG.format(service=label, count=count, domains=shown))
     send_to_logger(message, msgs.COOKIES_LIVE_BROWSER_LOG_MSG.format(user_id=user_id, service=label, count=count))
     return "saved"
+
+
+# --------------------------------------------------------------------------------------
+# Live browser of the dashboard as a cascade step (YouTube / X / Instagram / VK / TikTok)
+# --------------------------------------------------------------------------------------
+_BROWSER_STEP_SERVICES = frozenset({"youtube", "twitter", "instagram", "vk", "tiktok"})
+
+
+def _export_live_browser_cookies(user_id, service):
+    """Cookies of ONE service from the dashboard's live browser -> a per-attempt temp file path.
+
+    None whenever the step does not apply: unknown service, feature off, browser not running,
+    nothing logged in for the service, invalid export, any error. Never raises. The user's own
+    cookie.txt is never touched - callers delete the temp file after the attempt.
+    """
+    if service not in _BROWSER_STEP_SERVICES:
+        return None
+    try:
+        from HELPERS import browser_session
+        if not browser_session.enabled():
+            return None
+        if getattr(Config, "BROWSER_COOKIES_ADMIN_ONLY", False) and int(user_id) not in Config.ADMIN:
+            return None
+        if not browser_session.is_running():
+            return None
+        content, count, _domains = browser_session.export_netscape(services=[service])
+        if not content or not count:
+            return None
+        if not validate_cookie_bytes(content, require_entries=True)[0]:
+            logger.warning(f"[COOKIES] live browser export for {service} rejected (invalid Netscape)")
+            return None
+        user_dir = os.path.join("users", str(user_id))
+        create_directory(user_dir)
+        import uuid
+        path = os.path.join(user_dir, f"temp_browser_{service}_{uuid.uuid4().hex[:8]}_cookie.txt")
+        write_cookie_file(path, content)
+        logger.info(f"[COOKIES] live browser: {count} {service} cookies for a download attempt (user {user_id})")
+        return path
+    except Exception as e:
+        # BrowserError (not running) is routine; everything else is logged but never breaks a download
+        logger.info(f"[COOKIES] live browser step skipped for {service}: {type(e).__name__}: {e}")
+        return None
+
+
+@contextlib.contextmanager
+def _live_browser_cookie_file(user_id, service):
+    """`with _live_browser_cookie_file(uid, 'twitter') as path:` - path or None; the file is removed on exit."""
+    path = _export_live_browser_cookies(user_id, service)
+    try:
+        yield path
+    finally:
+        if path:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
 
 @app.on_message(filters.command("cookies_from_browser") & filters.private)
@@ -2825,7 +2882,27 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
     
     try:
         logger.info(LoggerMsg.COOKIES_YOUTUBE_RETRY_DIFFERENT_COOKIES_LOG_MSG.format(user_id=user_id))
-        
+
+        # Live browser session of the dashboard first: freshest cookies, no cookie-server
+        # request and not counted against the hourly source-rotation limit. Skipped when the
+        # user routes through an own proxy (the browser's cookies belong to another IP).
+        if not proxy_enabled:
+            with _live_browser_cookie_file(user_id, 'youtube') as browser_cookie:
+                if browser_cookie:
+                    try:
+                        result = _call_with_cookie_override(browser_cookie, download_func, *args, **kwargs)
+                        if result is not None:
+                            logger.info(f"Download successful with live browser cookies for user {user_id}")
+                            return result
+                    except Exception as e:
+                        if _is_local_cookie_failure(e):
+                            logger.warning(f"Local file error with live browser cookies for user {user_id}, stopping cookie retry: {e}")
+                            return None
+                        if not is_youtube_cookie_error(str(e)):
+                            logger.info(f"Live browser cookies: error is not cookie-related for user {user_id}, stopping cookie retry")
+                            return None
+                        logger.warning(f"Live browser cookies refused for user {user_id}: {e}")
+
         # Проверяем лимит попыток перебора YouTube куки
         if not check_youtube_cookie_retry_limit(user_id):
             logger.warning(f"YouTube cookie retry limit exceeded for user {user_id}")
@@ -3433,6 +3510,21 @@ def try_non_youtube_cookie_fallback(user_id: int, url: str, download_func, *args
             except Exception as e:
                 logger.warning(f"User cookies failed for {url}: {e}")
 
+        # 1b. Live browser session of the dashboard (X / Instagram / TikTok / VK): only that service
+        browser_service = get_service_name_from_url(url)
+        if browser_service in _BROWSER_STEP_SERVICES:
+            with _live_browser_cookie_file(user_id, browser_service) as browser_cookie:
+                if browser_cookie:
+                    logger.info(f"Trying live browser cookies for {browser_service}: {url}")
+                    try:
+                        _apply_cookie(browser_cookie)
+                        result = download_func(*args)
+                        if result is not None:
+                            finish_cookie_task(task_id, True, browser_cookie)
+                            return result
+                    except Exception as e:
+                        logger.warning(f"Live browser cookies failed for {url}: {e}")
+
         # 2. Пробуем куки по ссылкам сервисов из конфига
         service_name = get_service_name_from_url(url)
         if service_name:
@@ -3531,7 +3623,8 @@ def get_service_name_from_url(url: str) -> str | None:
         elif url_hostname in ('twitter.com', 'www.twitter.com', 'x.com', 'www.x.com') or \
              url_hostname.endswith('.twitter.com') or url_hostname.endswith('.x.com'):
             return 'twitter'
-        elif url_hostname in ('vk.com', 'www.vk.com', 'm.vk.com') or url_hostname.endswith('.vk.com'):
+        elif url_hostname in ('vk.com', 'www.vk.com', 'm.vk.com', 'vk.ru', 'vkvideo.ru', 'vkontakte.ru') or \
+             url_hostname.endswith(('.vk.com', '.vk.ru', '.vkvideo.ru', '.vkontakte.ru')):
             return 'vk'
         elif url_hostname in ('facebook.com', 'www.facebook.com', 'fb.com', 'www.fb.com') or \
              url_hostname.endswith('.facebook.com') or url_hostname.endswith('.fb.com'):
