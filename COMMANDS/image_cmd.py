@@ -886,6 +886,23 @@ def _report_gallery_dl_fatal_error(message, user_id, url, status_msg, result):
     safe_url = html.escape(url or '')
     send_cookie_hint = False
     log_to_channel = True
+    # "No suitable extractor"/"Unsupported URL" (e.g. a video-page link or an
+    # m3u8 manifest sent to /img) is a permanent unsupported-URL state, not a
+    # fatal internal error: show the plain unsupported message and keep it out
+    # of the LOG_EXCEPTION channel (same markers as issue #323).
+    from HELPERS.fallback_helper import is_gallery_dl_no_extractor_error
+    if is_gallery_dl_no_extractor_error(error_details) or is_gallery_dl_no_extractor_error(result):
+        error_msg = (
+            f"❌ <b>Unsupported URL</b>\n\n<b>URL:</b> <code>{safe_url}</code>\n\n"
+            "This link is not supported by gallery-dl as an image/media source. "
+            "You can try sending the link as a plain message."
+        )
+        if status_msg:
+            safe_edit_message_text(status_msg.chat.id, status_msg.id, error_msg, parse_mode=enums.ParseMode.HTML)
+        else:
+            safe_send_message(user_id, error_msg, parse_mode=enums.ParseMode.HTML)
+        logger.info(f"[IMG] gallery-dl has no extractor for {url}; reported as unsupported URL, not logged to channel")
+        return
     if failure_kind == GDL_FAILURE_TWITTER_UNAVAILABLE:
         # The message already explains when /cookie can help.
         error_msg = messages.IMG_TWITTER_UNAVAILABLE_MSG.format(url=safe_url)

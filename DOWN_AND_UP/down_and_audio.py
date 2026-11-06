@@ -2046,6 +2046,15 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     elif "Network error" in error_text:
                         error_code = "NETWORK_ERROR"
                         error_description = "Network connection failed"
+                    elif "not made this video available in your country" in error_text.lower():
+                        # Geo-block (parity with the video path): the allowed-
+                        # countries list in the message used to end up as
+                        # UNKNOWN_ERROR with cookie advice.
+                        error_code = "GEO_RESTRICTED"
+                        error_description = (
+                            "This video is not available in the bot's country. "
+                            "Enable proxy (/proxy) so the bot can try proxies from other countries."
+                        )
                     elif "unable to open for writing" in error_text.lower():
                         # Output directory disappeared mid-download (cleanup
                         # race) — parity with the video path (issue #451).
@@ -2086,7 +2095,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         f"────────────────\n"
                         f"❌ <b>Error Code:</b> <code>{error_code}</code>\n"
                         f"📝 <b>Description:</b> {error_description}\n"
-                        f"🔧 <b>Full Error:</b> <code>{error_text}</code>"
+                        f"🔧 <b>Full Error:</b> <code>{html.escape(str(error_text)[:600])}</code>"
                     )
                     down_and_audio._error_message_sent = True
                 return None
