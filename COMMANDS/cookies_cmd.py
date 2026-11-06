@@ -622,6 +622,54 @@ def get_unchecked_cookie_sources(user_id: int, cookie_urls: list) -> list:
     
     return unchecked_indices
 
+def _save_live_browser_cookies(message, user_id, services=None):
+    """Save the CURRENT cookies of the admin's live browser session as the user's cookie.txt.
+
+    services: None = every cookie of the session (/cookies_from_browser), else a
+    list of service names from browser_session.SERVICE_DOMAINS (the /cookie buttons).
+    Returns "saved", "empty" (browser is up but has nothing for these services) or
+    "unavailable" (feature off, browser not running, error) - callers fall back
+    to their previous behaviour in the last two cases.
+    """
+    from HELPERS import browser_session
+    if not browser_session.enabled():
+        return "unavailable"
+    user_id = str(user_id)
+    # Optional: hand the admin's logins to admins only (Config.BROWSER_COOKIES_ADMIN_ONLY = True)
+    if getattr(Config, "BROWSER_COOKIES_ADMIN_ONLY", False) and int(user_id) not in Config.ADMIN:
+        return "unavailable"
+    label = ", ".join(services) if services else "all"
+    try:
+        if not browser_session.is_running():
+            return "unavailable"
+        content, count, domains = browser_session.export_netscape(services=services)
+    except browser_session.BrowserError as e:
+        logger.warning(f"[cookies] live browser unavailable: {e}")
+        return "unavailable"
+    except Exception as e:
+        logger.error(f"[cookies] live browser export failed: {type(e).__name__}: {e}")
+        return "unavailable"
+    if not content:
+        return "empty"
+    ok, reason = validate_cookie_bytes(content, require_entries=True)
+    if not ok:
+        logger.warning(f"[cookies] live browser export rejected: {reason}")
+        return "unavailable"
+    user_dir = os.path.join(".", "users", user_id)
+    create_directory(user_dir)
+    cookie_path = os.path.join(user_dir, os.path.basename(Config.COOKIE_FILE_PATH))
+    try:
+        write_cookie_file(cookie_path, content)
+    except (OSError, ValueError) as e:
+        logger.error(f"[cookies] could not write live browser cookies for {user_id}: {e}")
+        return "unavailable"
+    shown = ", ".join(domains[:8]) + (" …" if len(domains) > 8 else "")
+    msgs = safe_get_messages(user_id)
+    send_to_user(message, msgs.COOKIES_LIVE_BROWSER_SAVED_MSG.format(service=label, count=count, domains=shown))
+    send_to_logger(message, msgs.COOKIES_LIVE_BROWSER_LOG_MSG.format(user_id=user_id, service=label, count=count))
+    return "saved"
+
+
 @app.on_message(filters.command("cookies_from_browser") & filters.private)
 @background_handler(label="cookies_from_browser", heavy_if=light_only)
 def cookies_from_browser(app, message):
@@ -665,6 +713,11 @@ def cookies_from_browser(app, message):
     # Path to the User's Directory, E.G. "./users/1234567"
     user_dir = os.path.join(".", "users", str(user_id))
     create_directory(user_dir)  # Ensure The User's Folder Exists
+
+    # The admin's live, logged-in browser session (dashboard "Browser" tab) wins:
+    # its current cookies, from every tab and service, are taken on each call.
+    if _save_live_browser_cookies(message, user_id) == "saved":
+        return
 
     # Dictionary with Browsers and Their Paths
     browsers = {
@@ -946,13 +999,17 @@ def download_cookie_callback(app, callback_query):
         )
         download_and_validate_youtube_cookies(app, callback_query, user_id=user_id)
     elif data == "instagram":
-        download_and_save_cookie(app, callback_query, Config.INSTAGRAM_COOKIE_URL, "instagram")
+        if _save_live_browser_cookies(callback_query.message, user_id, ["instagram"]) != "saved":
+            download_and_save_cookie(app, callback_query, Config.INSTAGRAM_COOKIE_URL, "instagram")
     elif data == "twitter":
-        download_and_save_cookie(app, callback_query, Config.TWITTER_COOKIE_URL, "twitter")
+        if _save_live_browser_cookies(callback_query.message, user_id, ["twitter"]) != "saved":
+            download_and_save_cookie(app, callback_query, Config.TWITTER_COOKIE_URL, "twitter")
     elif data == "tiktok":
-        download_and_save_cookie(app, callback_query, Config.TIKTOK_COOKIE_URL, "tiktok")
+        if _save_live_browser_cookies(callback_query.message, user_id, ["tiktok"]) != "saved":
+            download_and_save_cookie(app, callback_query, Config.TIKTOK_COOKIE_URL, "tiktok")
     elif data == "vk":
-        download_and_save_cookie(app, callback_query, Config.VK_COOKIE_URL, "vk")
+        if _save_live_browser_cookies(callback_query.message, user_id, ["vk"]) != "saved":
+            download_and_save_cookie(app, callback_query, Config.VK_COOKIE_URL, "vk")
     elif data == "check_cookie":
         try:
             # Run cookie checking directly using a fake message

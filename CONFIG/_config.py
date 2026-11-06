@@ -127,6 +127,15 @@ class Config(object):
     ########################################################
     # OPTIONAL (NOT REQUIRED) SETTINGS - you can stop here
     ########################################################    
+    # Live browser session (dashboard "Browser" tab): the admin logs into services in a real
+    # Chromium; /cookies_from_browser and the X/TikTok/VK/Instagram buttons of /cookie take the
+    # CURRENT cookies from it (the static *_COOKIE_URL below stay as the fallback).
+    # Needs Chromium/Chrome on the server (apt install chromium) - no pip packages.
+    BROWSER_SESSION_ENABLED = True
+    BROWSER_CDP_PORT = 9223            # DevTools port, bound to 127.0.0.1 only
+    BROWSER_EXECUTABLE = ""            # empty = auto-detect chromium / google-chrome
+    BROWSER_PROXY = ""                 # optional, e.g. "socks5://127.0.0.1:1080"
+    BROWSER_COOKIES_ADMIN_ONLY = False # True = only Config.ADMIN may take the admin's logins
     # Cookie file URL
     # For Docker setup: served by the configuration-webserver container, which shares
     # warp's network namespace — so the bot reaches it at http://localhost/cookies/...

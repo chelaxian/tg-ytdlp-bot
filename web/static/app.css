@@ -389,3 +389,25 @@ dialog::backdrop { background: rgba(10, 18, 28, .45); }
 @media (max-width: 1100px) { .panel.span-2 { grid-column: auto; } }
 
 .preview-notice { max-width:1480px; margin:0 auto 16px; padding:12px 16px; color:var(--warn); background:var(--warn-soft); border-radius:8px; }
+
+/* ---- Browser section ---- */
+.br-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s3); }
+.br-live { display: flex; flex-direction: column; gap: var(--s3); }
+.br-tabs { display: flex; gap: 4px; overflow-x: auto; align-items: center; padding-bottom: 2px; }
+.br-tab-wrap { display: inline-flex; align-items: stretch; flex: 0 1 190px; min-width: 110px; border: 1px solid var(--line); border-radius: var(--r) var(--r) 0 0; background: var(--panel-2); }
+.br-tab-wrap:has(.br-tab.on) { background: var(--panel); border-color: var(--signal); }
+.br-tab { flex: 1 1 auto; min-width: 0; padding: 6px 4px 6px 10px; border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: 13px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.br-tab.on { color: var(--ink); font-weight: 600; }
+.br-tab-close { flex: none; width: 28px; border: 0; background: transparent; color: var(--ink-3); font-size: 16px; cursor: pointer; border-radius: 0 var(--r) 0 0; }
+.br-tab-close:hover { color: var(--ink); background: var(--line); }
+.br-toolbar { display: flex; gap: var(--s2); align-items: center; }
+.br-address { flex: 1 1 auto; min-width: 0; }
+.br-screen { position: relative; border: 1px solid var(--line-strong); border-radius: var(--r); overflow: hidden; background: var(--panel-2); line-height: 0; }
+.br-canvas { display: block; width: 100%; height: auto; cursor: default; outline-offset: -2px; touch-action: pan-y; }
+.br-canvas:focus-visible { outline: 2px solid var(--signal); }
+.br-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; line-height: 1.4; background: var(--panel-2); }
+.br-empty[hidden] { display: none; }
+.br-keys { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.br-text { flex: 1 1 220px; min-width: 0; }
+.br-help { margin: 0; }
+@media (max-width: 700px) { .br-toolbar { flex-wrap: wrap; } .br-address { flex-basis: 100%; order: 5; } }
