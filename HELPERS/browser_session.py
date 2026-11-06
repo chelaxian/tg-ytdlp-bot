@@ -398,8 +398,12 @@ def start() -> Dict[str, Any]:
         args.append("--no-sandbox")                      # Chromium refuses to run as root otherwise
     args.append("about:blank")
     kwargs: Dict[str, Any] = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
-    if hasattr(os, "nice"):
-        kwargs["preexec_fn"] = lambda: os.nice(10)      # the bot's downloads keep priority over the browser
+    try:
+        niceness = int(_cfg("BROWSER_NICE", 0) or 0)       # 0 = normal priority (an interactive login must stay responsive)
+    except (TypeError, ValueError):
+        niceness = 0
+    if niceness > 0 and hasattr(os, "nice"):
+        kwargs["preexec_fn"] = lambda: os.nice(niceness)
     if entry:
         kwargs.update(user=entry.pw_uid, group=entry.pw_gid, extra_groups=[],
                       env={"HOME": entry.pw_dir, "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LANG": "C.UTF-8"})
@@ -417,6 +421,11 @@ def start() -> Dict[str, Any]:
             PID_FILE.write_text(str(proc.pid))
         except OSError:
             pass
+        if niceness < 0 and hasattr(os, "setpriority"):
+            try:
+                os.setpriority(os.PRIO_PROCESS, proc.pid, niceness)
+            except OSError:
+                pass
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             if is_running():

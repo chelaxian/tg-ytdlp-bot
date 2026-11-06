@@ -638,6 +638,7 @@ def _save_live_browser_cookies(message, user_id, services=None):
     # Optional: hand the admin's logins to admins only (Config.BROWSER_COOKIES_ADMIN_ONLY = True)
     if getattr(Config, "BROWSER_COOKIES_ADMIN_ONLY", False) and int(user_id) not in Config.ADMIN:
         return "unavailable"
+    explicit = bool(services)                    # a /cookie button asked for one service
     # only the five services (all their domains), never the rest of the browser session
     services = [name for name in (services or browser_session.COOKIE_SERVICES) if name in browser_session.SERVICE_DOMAINS]
     label = ", ".join(services) if len(services) < len(browser_session.COOKIE_SERVICES) else "YouTube, X, Instagram, VK, TikTok"
@@ -652,6 +653,8 @@ def _save_live_browser_cookies(message, user_id, services=None):
         logger.error(f"[cookies] live browser export failed: {type(e).__name__}: {e}")
         return "unavailable"
     if not content:
+        if explicit:                              # the caller falls back to the static file: say so, the answer differs
+            send_to_user(message, safe_get_messages(user_id).COOKIES_LIVE_BROWSER_EMPTY_MSG.format(service=label))
         return "empty"
     ok, reason = validate_cookie_bytes(content, require_entries=True)
     if not ok:

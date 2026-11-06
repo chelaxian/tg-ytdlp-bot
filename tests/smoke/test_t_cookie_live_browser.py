@@ -40,6 +40,7 @@ def check(name, cond, info=""):
 class Msgs:
     COOKIES_LIVE_BROWSER_SAVED_MSG = "saved {service} {count} {domains}"
     COOKIES_LIVE_BROWSER_LOG_MSG = "log {user_id} {service} {count}"
+    COOKIES_LIVE_BROWSER_EMPTY_MSG = "empty {service}"
 
 
 sent, logged = [], []
@@ -105,7 +106,13 @@ check("service button: twitter", save(None, 42, ["twitter"]) == "saved")
 body = open(path, "rb").read().decode()
 check("only that service's cookies are written", "auth_token" in body and "sessionid" not in body)
 
+sent.clear()
 check("service without cookies -> empty (caller falls back to the static URL)", save(None, 42, ["vk"]) == "empty")
+check("button says that it uses the backup source", sent == ["empty vk"], sent)
+sent.clear()
+saved_jar, state["jar"] = state["jar"], []
+check("all services without any cookie stays silent (the menu follows)", save(None, 42) == "empty" and sent == [], sent)
+state["jar"] = saved_jar
 check("empty result leaves the previous file alone", "auth_token" in open(path).read())
 
 state["running"] = False

@@ -1058,6 +1058,7 @@ class Messages(object):
     COOKIES_LIVE_BROWSER_SAVED_MSG = "✅ Cookies взяты из живой сессии браузера ({service}): {count} шт. для {domains}."
     COOKIES_LIVE_BROWSER_LOG_MSG = "Cookies из живого браузера сохранены для пользователя {user_id}: сервис={service}, количество={count}"
     COOKIES_LIVE_BROWSER_FAILED_MSG = "❌ Не удалось сохранить cookies из живой сессии браузера."
+    COOKIES_LIVE_BROWSER_EMPTY_MSG = "ℹ️ В живой сессии браузера пока нет входа в {service}, беру запасной источник."
     COOKIES_FAILED_TO_SAVE_MSG = "❌ Не удалось сохранить cookies: {error}"
     COOKIES_YOUTUBE_WORKING_PROPERLY_MSG = "✅ YouTube cookies работают правильно"
     COOKIES_YOUTUBE_EXPIRED_INVALID_MSG = "❌ YouTube cookies истекли или недействительны\n\nИспользуйте /cookie для получения новых cookies"
