@@ -103,6 +103,30 @@ check("read-only: settings stay blocked", c.post("/api/settings", json={"PROXY_P
 check("read-only: jobs stay blocked", c.post("/api/jobs/restart-bot", json={"mode": "now"}, headers=H).status_code == 403)
 dash.PREVIEW_READ_ONLY = False
 
+# ---- websocket stream: auth first
+from starlette.websockets import WebSocketDisconnect  # noqa: E402
+
+try:
+    with TestClient(app, base_url=BASE) as anon:
+        with anon.websocket_connect("/api/browser/ws", headers={"origin": BASE}):
+            pass
+    check("websocket without a session is refused", False)
+except WebSocketDisconnect as exc:
+    check("websocket without a session is refused", exc.code == 4403)
+try:
+    with c.websocket_connect("/api/browser/ws", headers={"origin": "https://evil.example"}):
+        pass
+    check("websocket from another origin is refused", False)
+except WebSocketDisconnect as exc:
+    check("websocket from another origin is refused", exc.code == 4403)
+try:
+    with c.websocket_connect("/api/browser/ws", headers={"origin": BASE}) as sock:
+        sock.send_json({"op": "hello", "csrf": "wrong"})
+        sock.receive_json()
+    check("websocket with a wrong CSRF token is refused", False)
+except WebSocketDisconnect as exc:
+    check("websocket with a wrong CSRF token is refused", exc.code == 4403)
+
 exe = bs.find_executable()
 if not exe:
     print("SKIP live browser tests: no Chromium/Chrome found")
@@ -116,6 +140,33 @@ else:
         shot = c.get(f"/api/browser/screen?id={tab}")
         check("screenshot is a jpeg", shot.status_code == 200 and shot.content[:3] == b"\xff\xd8\xff"
               and shot.headers["content-type"] == "image/jpeg")
+        # websocket: pushed frames, input and zoom over one connection
+        import struct as _struct
+        with c.websocket_connect("/api/browser/ws", headers={"origin": BASE}) as sock:
+            sock.send_json({"op": "hello", "csrf": csrf})
+            sock.send_json({"op": "watch", "id": tab, "profile": "fast", "gen": 7})
+            frame = sock.receive_bytes()
+            gen, vw, vh, seq = _struct.unpack(">HHHI", frame[:10])
+            check("ws: first frame is a jpeg with the view number", frame[10:13] == b"\xff\xd8\xff" and gen == 7 and (vw, vh) == (1280, 800), (gen, vw, vh))
+            sock.send_json({"op": "zoom", "id": tab, "zoom": 0.5, "gen": 8})
+            answer = sock.receive_json()
+            check("ws: zoom answered", answer.get("op") == "zoom" and answer.get("zoom") == 0.5, answer)
+            for _ in range(20):
+                frame = sock.receive_bytes()
+                gen, vw, vh, seq = _struct.unpack(">HHHI", frame[:10])
+                if gen == 8:
+                    break
+            check("ws: frames of the new zoom carry the new view number and size", gen == 8 and (vw, vh) == (2560, 1600), (gen, vw, vh))
+            sock.send_json({"op": "zoom", "id": tab, "zoom": 1.0, "gen": 9})
+            sock.send_json({"op": "input", "id": tab, "kind": "key", "key": "Nope"})
+            err = None
+            for _ in range(10):
+                m = sock.receive()
+                if m.get("text") and '"error"' in m["text"]:
+                    err = m["text"]
+                    break
+            check("ws: bad input reports an error and keeps the connection", err is not None and "bad_key" in err, err)
+            sock.send_json({"op": "ping"})
         check("blocked navigation 400", c.post("/api/browser/navigate", json={"id": tab, "url": "http://127.0.0.1:9331"}, headers=H).status_code == 400)
         r = c.post("/api/browser/tab", json={"url": "about:blank"}, headers=H)
         check("new tab", r.status_code == 200 and r.json()["id"], r.text)

@@ -45,6 +45,7 @@ export function clear(el) { el.replaceChildren(); return el; }
 
 let csrfToken = "";
 export function setCsrf(token) { csrfToken = token || ""; }
+export function getCsrf() { return csrfToken; }
 
 export class ApiError extends Error {
   constructor(status, body) {

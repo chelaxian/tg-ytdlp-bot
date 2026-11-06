@@ -3,9 +3,11 @@
 // The page is shown as JPEG frames painted on a <canvas> (no blob:/inline needed by the CSP);
 // clicks, wheel and keys are posted back. No innerHTML anywhere.
 import { t } from "./i18n.js";
-import { h, api, toast, errorText, confirmDialog, num } from "./ui.js";
+import { h, api, toast, errorText, confirmDialog, num, getCsrf } from "./ui.js";
 
 const MAX_FAILS = 4;
+const BOOKMARKS = [["YouTube", "https://www.youtube.com/"], ["X", "https://x.com/"], ["Instagram", "https://www.instagram.com/"],
+  ["VK", "https://vk.com/"], ["TikTok", "https://www.tiktok.com/"]];
 const PROFILES = ["fast", "normal", "sharp"];     // picture quality: fast = smallest frames, the default
 
 function brError(err) {
@@ -21,11 +23,16 @@ export function buildBrowser(s, { panel, bindLoader }) {
   const cookies = panel({ title: t("br.cookies"), sub: t("br.cookies.sub") });
   s.root.append(h("div", { class: "grid" }, view.el, cookies.el));
 
-  const st = { data: null, tab: null, ui: null, running: false, known: null, order: [], queue: Promise.resolve(), wheel: 0, seq: 0, vw: 1280, vh: 800,
+  const st = { data: null, tab: null, ui: null, running: false, known: null, order: [], queue: Promise.resolve(), ws: null, reqGen: 0, useLongPoll: false, wsFails: 0,
+    decoding: false, pending: null, lastWatched: null, lastErr: 0, zoomTimer: null, watcher: null, wheel: 0, seq: 0, vw: 1280, vh: 800,
     abort: null, zoom: 1, profile: PROFILES.includes(localStorage.getItem("dash.br.profile")) ? localStorage.getItem("dash.br.profile") : "fast" };
 
   // a new picture is needed (tab, zoom or quality changed): forget the last frame and cancel the pending long poll
-  const restartStream = () => { st.seq = 0; if (st.abort) st.abort.abort(); };
+  const restartStream = () => {
+    st.seq = 0;
+    if (st.ws && st.ws.readyState === 1) watchNow();
+    else if (st.abort) st.abort.abort();
+  };
 
   // ------------------------------------------------------------ actions
   const act = async (fn, okText) => {
@@ -35,6 +42,7 @@ export function buildBrowser(s, { panel, bindLoader }) {
 
   const sendInput = (body) => {
     if (!st.tab) return;
+    if (st.ws && st.ws.readyState === 1) { st.ws.send(JSON.stringify({ op: "input", id: st.tab, ...body })); return; }
     const payload = { id: st.tab, ...body };
     st.queue = st.queue.then(() => post("/api/browser/input", payload)).catch((err) => toast(brError(err), "error"));
   };
@@ -72,6 +80,20 @@ export function buildBrowser(s, { panel, bindLoader }) {
       b.addEventListener("click", () => { if (st.tab) act(() => post("/api/browser/history", { id: st.tab, action })); });
       return b;
     };
+    // bookmarks: switch to the tab of that site if it is open, reuse a blank tab, else open a new tab
+    const siteHost = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } };
+    const openBookmark = async (url) => {
+      const host = siteHost(url);
+      const tabs = (st.data && st.data.tabs) || [];
+      const same = tabs.find((x) => { const other = siteHost(x.url); return other && (other === host || other.endsWith(`.${host}`)); });
+      if (same) { await selectTab(same.id); return; }
+      const current = tabs.find((x) => x.id === st.tab);
+      if (current && (!current.url || current.url === "about:blank")) { act(() => post("/api/browser/navigate", { id: st.tab, url })); return; }
+      const created = await act(() => post("/api/browser/tab", { url }));
+      if (created && created.id) await selectTab(created.id);
+    };
+    const bookmarks = h("div", { class: "br-bookmarks", role: "group", "aria-label": t("br.bookmarks") },
+      BOOKMARKS.map(([name, url]) => h("button", { type: "button", class: "ghost", title: url, onclick: () => openBookmark(url) }, name)));
     const address = h("input", { type: "text", class: "br-address", inputmode: "url", autocomplete: "off", spellcheck: "false",
       autocapitalize: "off", "aria-label": t("br.address"), placeholder: t("br.address.ph") });
     const go = h("button", { type: "submit", class: "primary" }, t("br.go"));
@@ -95,6 +117,16 @@ export function buildBrowser(s, { panel, bindLoader }) {
       zoomRange.value = String(value);
       zoomLabel.textContent = `${value}%`;
       if (!st.tab) return;
+      const mine = ((st.data && st.data.tabs) || []).find((x) => x.id === st.tab);
+      if (st.ws && st.ws.readyState === 1) {
+        // over the open socket: no round trip, the new picture follows by itself
+        st.reqGen = (st.reqGen + 1) & 0xFFFF;
+        st.seq = 0;
+        st.zoom = value / 100;
+        if (mine) mine.zoom = st.zoom;
+        st.ws.send(JSON.stringify({ op: "zoom", id: st.tab, zoom: st.zoom, gen: st.reqGen }));
+        return;
+      }
       try {
         const r = await post("/api/browser/zoom", { id: st.tab, zoom: value / 100 });
         st.zoom = r.zoom;
@@ -103,8 +135,11 @@ export function buildBrowser(s, { panel, bindLoader }) {
         restartStream();
       } catch (err) { toast(brError(err), "error"); }
     };
-    zoomRange.addEventListener("input", () => { zoomLabel.textContent = `${zoomRange.value}%`; });
-    zoomRange.addEventListener("change", () => applyZoom(Number(zoomRange.value)));
+    zoomRange.addEventListener("input", () => {
+      zoomLabel.textContent = `${zoomRange.value}%`;
+      clearTimeout(st.zoomTimer);
+      st.zoomTimer = setTimeout(() => applyZoom(Number(zoomRange.value)), 100);   // follow the slider while it moves
+    });
     const stepBtn = (label, glyph, delta) => h("button", { type: "button", class: "ghost icon-btn", "aria-label": label, title: label,
       onclick: () => applyZoom(Number(zoomRange.value) + delta) }, glyph);
     const quality = h("select", { class: "br-quality", "aria-label": t("br.quality") },
@@ -155,7 +190,7 @@ export function buildBrowser(s, { panel, bindLoader }) {
 
     const help = h("p", { class: "muted br-help" }, t("br.help"));
     const missing = h("div", { class: "state" });
-    const live = h("div", { class: "br-live" }, tabs, bar, zoomBar, screen, keys, help);
+    const live = h("div", { class: "br-live" }, bookmarks, tabs, bar, zoomBar, screen, keys, help);
 
     const top = h("div", { class: "br-top" }, statusPill, power);
     view.body.replaceChildren(top, missing, live);
@@ -248,10 +283,101 @@ export function buildBrowser(s, { panel, bindLoader }) {
       h("div", { class: "panel-actions" }, clearAll));
   }
 
-  // ------------------------------------------------------------ frame loop
+  // ------------------------------------------------------------ websocket stream
+  // One open connection: the server pushes a picture whenever the page changes, clicks, keys and zoom go back
+  // without a request each. Older browsers or proxies that refuse it fall back to the long poll below.
+  function watchNow() {
+    if (!st.ws || st.ws.readyState !== 1) return;
+    if (st.lastWatched !== st.tab && st.ui) {                 // another tab: do not leave the old picture under it
+      const canvas = st.ui.canvas;
+      canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+      st.lastWatched = st.tab;
+    }
+    st.reqGen = (st.reqGen + 1) & 0xFFFF;
+    st.seq = 0;
+    st.ws.send(JSON.stringify({ op: "watch", id: st.tab, profile: st.profile, gen: st.reqGen }));
+  }
+
+  async function decodeFrames(canvas) {
+    st.decoding = true;
+    const ctx = canvas.getContext("2d");
+    while (st.pending) {
+      const buf = st.pending;
+      st.pending = null;
+      try {
+        const bmp = await createImageBitmap(new Blob([buf], { type: "image/jpeg" }));
+        if (canvas.width !== bmp.width || canvas.height !== bmp.height) { canvas.width = bmp.width; canvas.height = bmp.height; }
+        ctx.drawImage(bmp, 0, 0);
+        if (bmp.close) bmp.close();
+      } catch { /* a broken frame is skipped, the next one repaints */ }
+    }
+    st.decoding = false;
+  }
+
+  function onSocketMessage(data) {
+    const canvas = st.ui && st.ui.canvas;
+    if (!canvas) return;
+    if (typeof data === "string") {
+      let msg = null;
+      try { msg = JSON.parse(data); } catch { return; }
+      if (msg.op === "zoom" && typeof msg.zoom === "number") {
+        st.zoom = msg.zoom;
+        const tab = ((st.data && st.data.tabs) || []).find((x) => x.id === msg.id);
+        if (tab) tab.zoom = msg.zoom;
+      } else if (msg.op === "error") {
+        if (msg.code === "not_running") { reload().catch(() => {}); return; }
+        if (Date.now() - st.lastErr > 3000) {
+          st.lastErr = Date.now();
+          const text = t(`br.err.${msg.code}`);
+          if (text && !text.startsWith("br.err.")) toast(text, "error");
+        }
+      }
+      return;
+    }
+    const view = new DataView(data);
+    if (data.byteLength < 11 || view.getUint16(0) !== st.reqGen) return;            // a picture of an older view
+    st.vw = view.getUint16(2);
+    st.vh = view.getUint16(4);
+    st.seq = view.getUint32(6);
+    st.pending = data.slice(10);
+    if (!st.decoding) decodeFrames(canvas);
+  }
+
+  function ensureSocket() {
+    if (st.ws || !st.ui || !st.data || !st.data.running) return;
+    const ui = st.ui;
+    const ws = new WebSocket(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/browser/ws`);
+    ws.binaryType = "arraybuffer";
+    st.ws = ws;
+    let opened = false;
+    ws.onopen = () => {
+      opened = true;
+      st.wsFails = 0;
+      ws.send(JSON.stringify({ op: "hello", csrf: getCsrf() }));
+      if (st.tab) watchNow();
+    };
+    ws.onmessage = (ev) => onSocketMessage(ev.data);
+    ws.onerror = () => { /* onclose follows */ };
+    ws.onclose = (ev) => {
+      if (st.ws === ws) st.ws = null;
+      if (!ui.canvas.isConnected || !st.data || !st.data.running || document.hidden) return;
+      if (ev && ev.code >= 4400) { st.useLongPoll = true; startLoop(); return; }     // refused: use plain requests
+      if (!opened && ++st.wsFails >= 3) { st.useLongPoll = true; startLoop(); return; }
+      setTimeout(ensureSocket, Math.min(5000, 400 * (st.wsFails + 1)));
+    };
+    if (!st.watcher) {                                      // leaving the section closes the stream
+      st.watcher = setInterval(() => {
+        if (st.ws && !ui.canvas.isConnected) st.ws.close();
+        if (st.ws && document.hidden) st.ws.close();
+      }, 4000);
+    }
+  }
+
+  // ------------------------------------------------------------ frame loop (fallback)
   // Long poll: the server answers when the picture changed (204 after a few quiet seconds), so a still page
   // costs nothing and a change shows up as soon as the browser paints it.
   function startLoop() {
+    if (!st.useLongPoll) { ensureSocket(); return; }
     if (st.running) return;
     st.running = true;
     const canvas = st.ui.canvas;

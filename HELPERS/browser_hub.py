@@ -41,13 +41,33 @@ CAST_IDLE = 15.0                                # stop screencasting a tab nobod
 CALL_TIMEOUT = 10.0
 
 STEALTH = r"""(() => { try {
-  Object.defineProperty(navigator, 'webdriver', { get: () => false });
-  if (!window.chrome) window.chrome = { runtime: {} };
-  try { delete window.PublicKeyCredential; } catch (e) {}
+  const def = (obj, key, value) => { try { Object.defineProperty(obj, key, { get: () => value, configurable: true }); } catch (e) {} };
+  def(navigator, 'webdriver', false);
+  def(navigator, 'languages', ['en-US', 'en']);          // matches the Accept-Language header
+  def(navigator, 'deviceMemory', 8);                      // the API never reports more than 8
+  // a real window is never smaller than the page area inside it (zoom changes the emulated page size)
+  try { Object.defineProperty(window, 'outerWidth', { get: () => window.innerWidth, configurable: true }); } catch (e) {}
+  try { Object.defineProperty(window, 'outerHeight', { get: () => window.innerHeight + 85, configurable: true }); } catch (e) {}
+  try {
+    if (!window.Notification) {                           // headless builds may lack the API a normal profile has
+      const N = function Notification() {};
+      N.requestPermission = () => Promise.resolve('default');
+      window.Notification = N;
+    }
+    Object.defineProperty(Notification, 'permission', { get: () => 'default', configurable: true });
+  } catch (e) {}
+  if (!window.chrome) window.chrome = {};
+  const c = window.chrome;
+  c.app = c.app || { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },
+    RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' } };
+  c.runtime = c.runtime || {};
+  c.loadTimes = c.loadTimes || (() => ({}));
+  c.csi = c.csi || (() => ({}));
+  try { delete window.PublicKeyCredential; } catch (e) {}   // no passkey prompts
   try { if (navigator.credentials) navigator.credentials.get = () => Promise.reject(new DOMException('NotAllowedError', 'NotAllowedError')); } catch (e) {}
   const patch = (proto) => { if (!proto) return; const get = proto.getParameter;
-    proto.getParameter = function (p) { if (p === 37445) return 'Google Inc. (ARM)';
-      if (p === 37446) return 'ANGLE (ARM, Mali-G78, OpenGL ES 3.2)'; return get.call(this, p); }; };
+    proto.getParameter = function (p) { if (p === 37445) return 'Google Inc. (Intel)';
+      if (p === 37446) return 'ANGLE (Intel, Mesa Intel(R) UHD Graphics 620 (KBL GT2), OpenGL 4.6)'; return get.call(this, p); }; };
   patch(window.WebGLRenderingContext && WebGLRenderingContext.prototype);
   patch(window.WebGL2RenderingContext && WebGL2RenderingContext.prototype);
 } catch (e) {} })();"""
