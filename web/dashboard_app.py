@@ -24,7 +24,7 @@ from enum import Enum
 from urllib.parse import urlparse
 from typing import Any, Dict, List, Optional
 
-from fastapi import Body, FastAPI, HTTPException, Query, Request
+from fastapi import Body, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -759,3 +759,127 @@ def api_browser_clear(body: BrowserClearBody, request: Request):
         return err
     _audit(request, "browser_cookies_clear", domain=body.domain or "*", removed=data)
     return {"ok": True, "removed": data}
+
+
+# --------------------------------------------------------------------------------------
+# Browser stream over one websocket: frames pushed to the panel, input and zoom sent back.
+# A request per click or per frame costs a full round trip through the SSH tunnel (about 0.2 s);
+# one open connection removes that wait.
+# --------------------------------------------------------------------------------------
+
+import asyncio  # noqa: E402
+import hmac  # noqa: E402
+import struct  # noqa: E402
+import threading  # noqa: E402
+
+from starlette.concurrency import run_in_threadpool  # noqa: E402
+
+
+def _ws_origin_ok(ws: WebSocket) -> bool:
+    host = ws.headers.get("host", "")
+    origin = ws.headers.get("origin", "")
+    if not host or not origin:
+        return False
+    try:
+        return urlparse(origin).netloc == host
+    except Exception:
+        return False
+
+
+@app.websocket("/api/browser/ws")
+async def api_browser_ws(ws: WebSocket):
+    session = security.sessions.get(ws.cookies.get(security.SESSION_COOKIE))
+    if session is None or session.must_change or not _ws_origin_ok(ws):
+        await ws.close(code=4403)
+        return
+    await ws.accept()
+    try:
+        hello = await asyncio.wait_for(ws.receive_json(), timeout=5)
+        sent = str(hello.get("csrf", "")) if isinstance(hello, dict) else ""
+        if hello.get("op") != "hello" or not sent or not hmac.compare_digest(sent, session.csrf):
+            await ws.close(code=4403)
+            return
+    except Exception:
+        await ws.close(code=4400)
+        return
+
+    loop = asyncio.get_running_loop()
+    watch = {"id": None, "profile": "fast", "gen": 0}
+    latest: dict = {"msg": None}
+    wake = asyncio.Event()
+    stop = threading.Event()
+
+    def deliver(msg: bytes) -> None:                # only the newest picture matters; older ones are dropped
+        latest["msg"] = msg
+        wake.set()
+
+    def pump() -> None:                             # thread: pulls frames from the hub
+        since, gen = 0, -1
+        last_error = 0.0
+        while not stop.is_set():
+            tid, profile, g = watch["id"], watch["profile"], watch["gen"]
+            if not tid:
+                time.sleep(0.1)
+                continue
+            if g != gen:
+                since, gen = 0, g
+            try:
+                frame = browser_hub.frame(tid, since, profile, wait=1.0)
+            except browser_session.BrowserError as exc:
+                if time.monotonic() - last_error > 2:
+                    last_error = time.monotonic()
+                    loop.call_soon_threadsafe(deliver, ("E:" + str(exc).split(":", 1)[0]).encode())
+                time.sleep(0.5)
+                continue
+            if frame is None:
+                continue
+            since = frame.seq
+            header = struct.pack(">HHHI", g & 0xFFFF, frame.vw, frame.vh, frame.seq & 0xFFFFFFFF)
+            loop.call_soon_threadsafe(deliver, b"F" + header + frame.data)
+
+    async def sender() -> None:
+        while True:
+            await wake.wait()
+            wake.clear()
+            msg = latest["msg"]
+            latest["msg"] = None
+            if msg is None:
+                continue
+            if msg[:2] == b"E:":
+                await ws.send_json({"op": "error", "code": msg[2:].decode("ascii", "replace")})
+            else:
+                await ws.send_bytes(msg[1:])
+
+    threading.Thread(target=pump, daemon=True, name="browser-ws-pump").start()
+    send_task = asyncio.create_task(sender())
+    try:
+        while True:
+            data = await ws.receive_json()
+            if not isinstance(data, dict):
+                continue
+            op = data.get("op")
+            tid = data.get("id")
+            if op == "ping":
+                await ws.send_json({"op": "pong"})
+            elif op == "watch":
+                profile = data.get("profile")
+                watch.update(id=tid if isinstance(tid, str) else None, profile=profile if profile in BROWSER_PROFILES else "fast",
+                             gen=int(data.get("gen", 0)) & 0xFFFF)     # the client numbers its views; frames carry the number back
+            elif op in ("input", "zoom") and isinstance(tid, str):
+                try:
+                    if op == "input":
+                        params = {k: data[k] for k in ("x", "y", "dx", "dy", "button", "text", "key", "ctrl", "alt", "shift", "meta") if k in data}
+                        await run_in_threadpool(browser_hub.input, tid, str(data.get("kind", "")), **params)
+                    else:
+                        zoom = await run_in_threadpool(browser_hub.set_zoom, tid, float(data.get("zoom", 1)))
+                        watch["gen"] = int(data.get("gen", watch["gen"])) & 0xFFFF   # new viewport = new view
+                        await ws.send_json({"op": "zoom", "id": tid, "zoom": zoom})
+                except (browser_session.BrowserError, TypeError, ValueError) as exc:
+                    await ws.send_json({"op": "error", "code": str(exc).split(":", 1)[0] if isinstance(exc, browser_session.BrowserError) else "bad_input"})
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        logger.debug("[dashboard] browser websocket ended", exc_info=True)
+    finally:
+        stop.set()
+        send_task.cancel()

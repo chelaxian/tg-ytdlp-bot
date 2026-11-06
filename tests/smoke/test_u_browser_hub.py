@@ -101,6 +101,15 @@ else:
         hub.set_zoom(tid, 1.0)
         check("zoom reset", hub.evaluate(tid, "innerWidth") == 1280)
 
+        # a real window is never smaller than its page, whatever the zoom
+        hub.set_zoom(tid, 0.5)
+        time.sleep(0.3)
+        check("outerWidth follows the emulated page (zoom 50%)", hub.evaluate(tid, "outerWidth >= innerWidth && outerHeight >= innerHeight") is True)
+        check("navigator.languages matches Accept-Language", hub.evaluate(tid, "navigator.languages.join()") == "en-US,en")
+        check("deviceMemory within spec", hub.evaluate(tid, "navigator.deviceMemory") == 8)
+        check("Notification.permission looks like a normal profile", hub.evaluate(tid, "Notification.permission") == "default")
+        hub.set_zoom(tid, 1.0)
+
         # input over the open connection
         hub.navigate(tid, "https://example.com")
         time.sleep(2)
