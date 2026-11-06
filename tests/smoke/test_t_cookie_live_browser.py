@@ -92,7 +92,7 @@ check("all services (/cookies_from_browser)", save(None, 42) == "saved")
 body = open(path, "rb").read().decode()
 check("file has every cookie", "auth_token" in body and "sessionid" in body)
 check("file is valid for yt-dlp loader", validate_cookie_bytes(body.encode())[0])
-check("user is told what was taken", "2" in sent[-1] and "x.com" in sent[-1])
+check("user is told what was taken", sent[-1].split()[:3] == ["saved", "all", "2"] and "x.com" in sent[-1].replace(",", " ").split())
 check("log has no cookie values", logged and "T" not in logged[-1].split()[-1] and "auth_token" not in logged[-1])
 
 sent.clear()

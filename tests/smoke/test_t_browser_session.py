@@ -142,7 +142,7 @@ else:
         good, why = validate_cookie_bytes(data)
         check("export valid for the bot", good, why)
         data, n, doms = bs.export_netscape()
-        check("export all tabs/services", n == 3 and b"IGSECRET" in data and b"example.org" in data)
+        check("export all tabs/services", n == 3 and b"IGSECRET" in data and "example.org" in {ln.split("	")[0] for ln in data.decode().splitlines()})
         check("nothing for a service without cookies", bs.export_netscape(services=["vk"]) == (None, 0, []))
         r = c.post("/api/browser/cookies/clear", json={"domain": "x.com"}, headers=H)
         check("clear one domain", r.status_code == 200 and r.json()["removed"] == 1, r.text)

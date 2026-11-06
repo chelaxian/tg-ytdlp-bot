@@ -592,23 +592,29 @@ def api_job_cancel(job_id: str, request: Request):
 from fastapi.responses import Response  # noqa: E402
 from HELPERS import browser_session  # noqa: E402
 
-_BROWSER_CLIENT_ERRORS = {"bad_url", "blocked_host", "bad_tab", "no_such_tab", "bad_action", "bad_input", "bad_key"}
+_BROWSER_CLIENT_ERRORS = ("bad_url", "blocked_host", "bad_tab", "no_such_tab", "bad_action", "bad_input", "bad_key")
+_BROWSER_STATE_ERRORS = ("not_running", "no_browser", "disabled")
+
+
+def _browser_error_response(exc: Exception) -> JSONResponse:
+    """Only fixed error codes reach the client, never text taken from the exception."""
+    code = str(exc).split(":", 1)[0]
+    for known in _BROWSER_CLIENT_ERRORS:
+        if code == known:
+            return JSONResponse({"error": known}, status_code=400)
+    for known in _BROWSER_STATE_ERRORS:
+        if code == known:
+            return JSONResponse({"error": known}, status_code=409)
+    logger.warning("[dashboard] browser: %s", exc)
+    return JSONResponse({"error": "browser_error"}, status_code=502)
 
 
 def _browser_call(fn, *args, **kwargs):
-    """Run a browser action; turn BrowserError into a short JSON error code."""
+    """Run a browser action; a BrowserError becomes a short JSON error code."""
     try:
         return fn(*args, **kwargs), None
     except browser_session.BrowserError as exc:
-        code = str(exc).split(":", 1)[0]
-        if code in _BROWSER_CLIENT_ERRORS:
-            status = 400
-        elif code in ("not_running", "no_browser", "disabled"):
-            status = 409
-        else:
-            logger.warning("[dashboard] browser: %s", exc)
-            code, status = "browser_error", 502
-        return None, JSONResponse({"error": code}, status_code=status)
+        return None, _browser_error_response(exc)
 
 
 class BrowserUrlBody(BaseModel):
