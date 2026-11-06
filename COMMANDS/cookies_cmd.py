@@ -2668,6 +2668,23 @@ def retry_download_with_proxy(user_id: int, url: str, download_func, *args, erro
         logger.error(LoggerMsg.COOKIES_YOUTUBE_RETRY_PROXY_SETUP_ERROR_LOG_MSG.format(user_id=user_id, e=e))
         return None
 
+def _rotate_warp_egress(reason: str = "") -> None:
+    """Give the current task a new per-task WARP egress IP (no-op without WARP).
+
+    Used between YouTube cookie sources: a cookie that was refused with
+    "Sign in to confirm you're not a bot" often wasn't the problem - the IP had
+    simply collected too many requests. The tunnel keeps its proxy URL, so
+    yt-dlp options already built for the task stay valid.
+    """
+    try:
+        from HELPERS.warp_tunnel import rotate_current_task
+        egress = rotate_current_task()
+        if egress:
+            logger.info(f"[COOKIES] new WARP egress before {reason}: {egress}")
+    except Exception as e:
+        logger.debug(f"[COOKIES] WARP rotate skipped ({reason}): {e}")
+
+
 def _call_with_cookie_override(cookie_path, download_func, *args, **kwargs):
     """Run download_func with a thread-local cookie override (issue #468).
 
@@ -2847,6 +2864,10 @@ def retry_download_with_different_cookies(user_id: int, url: str, download_func,
                 
                 # Отмечаем источник как проверенный
                 mark_cookie_source_checked(user_id, idx)
+                
+                # Every source gets a fresh WARP egress IP: the failed attempt (and the
+                # previous source) already burned the current one for YouTube's bot-check
+                _rotate_warp_egress(f"cookie source {idx + 1}")
                 
                 # Скачиваем куки
                 try:
