@@ -209,5 +209,30 @@ check("legacy user with legacy status", isinstance(users[0], types.User)
       and isinstance(users[0].status, types.UserStatusRecently) and users[0].first_name == "Old")
 check("stream aligned after legacy status", isinstance(users[1], types.User) and users[1].first_name == "Bob")
 
+# ---- legacy emojiStatus / emojiStatusUntil (inside legacy users, admin log 2026-11-06) ----
+for sid in (tl_compat.EMOJI_STATUS_LEGACY_ID, tl_compat.EMOJI_STATUS_UNTIL_LEGACY_ID):
+    check(f"emoji status {hex(sid)} registered", sid in objects)
+
+es = TLObject.read(BytesIO(Int(tl_compat.EMOJI_STATUS_LEGACY_ID, False) + Long(5123456789)))
+check("emojiStatus#929b619d -> EmojiStatus(until=None)", type(es) is types.EmojiStatus
+      and es.document_id == 5123456789 and es.until is None)
+esu = TLObject.read(BytesIO(Int(tl_compat.EMOJI_STATUS_UNTIL_LEGACY_ID, False) + Long(77) + Int(1790000000)))
+check("emojiStatusUntil#fa30a8c7 -> EmojiStatus(until=N)", type(esu) is types.EmojiStatus
+      and esu.document_id == 77 and esu.until == 1790000000)
+check("emoji status same fields as native parse",
+      repr(es) == repr(TLObject.read(BytesIO(types.EmojiStatus(document_id=5123456789).write()))))
+
+# legacy user carrying a legacy emoji status: stream must stay aligned
+lu_emoji = legacy_user_bytes(88, first_name="Em")
+# set flags.30 (emoji_status) and append the legacy status after lang_code (it is the last flags field)
+lu_emoji = bytearray(lu_emoji)
+flags_val = int.from_bytes(lu_emoji[4:8], "little") | (1 << 30)
+lu_emoji[4:8] = flags_val.to_bytes(4, "little")
+lu_emoji = bytes(lu_emoji) + Int(tl_compat.EMOJI_STATUS_LEGACY_ID, False) + Long(4242)
+users = TLObject.read(BytesIO(vector(lu_emoji, modern_user)))
+check("legacy user with legacy emoji status", isinstance(users[0], types.User)
+      and isinstance(users[0].emoji_status, types.EmojiStatus) and users[0].emoji_status.document_id == 4242)
+check("stream aligned after legacy emoji status", isinstance(users[1], types.User) and users[1].first_name == "Bob")
+
 print(f"\n{ok} passed, {fail} failed")
 sys.exit(1 if fail else 0)

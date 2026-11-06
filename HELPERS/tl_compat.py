@@ -60,6 +60,15 @@ within a week / within a month" statuses had no fields (CRC32 verified):
 
 They are parsed into the current types with by_me=False.
 
+Since 2026-11-06 00:05 UTC the guard admin-log replies also carry the old
+`emojiStatus` constructors (pre-v1.40 schema, CRC32 verified against Telethon
+v1.28/v1.33; "unknown constructor: 0x929b619d" / KeyError 2459656605):
+
+    emojiStatus#929b619d document_id:long = EmojiStatus;
+    emojiStatusUntil#fa30a8c7 document_id:long until:int = EmojiStatus;
+
+Both are parsed into the current types.EmojiStatus (until=None / until=N).
+
 Registration is idempotent and never overrides a constructor that Pyrogram
 itself knows (a future Pyrogram release wins).
 
@@ -242,12 +251,37 @@ USER_STATUS_RECENTLY_LEGACY_ID = 0xE26F42F1
 USER_STATUS_LAST_WEEK_LEGACY_ID = 0x07BF09FC
 USER_STATUS_LAST_MONTH_LEGACY_ID = 0x77EBC742
 
+
+EMOJI_STATUS_LEGACY_ID = 0x929B619D
+EMOJI_STATUS_UNTIL_LEGACY_ID = 0xFA30A8C7
+
+
+def _emoji_status_legacy(constructor_id: int, qualname: str, with_until: bool):
+    """Registry entry for a pre-flags emojiStatus* constructor."""
+
+    def read(b: BytesIO, *args: Any):
+        from pyrogram.raw import types
+        from pyrogram.raw.core import Int, Long
+
+        document_id = Long.read(b)
+        until = Int.read(b) if with_until else None
+        return types.EmojiStatus(document_id=document_id, until=until)
+
+    return type(qualname, (), {
+        "ID": constructor_id,
+        "QUALNAME": f"types.{qualname}",
+        "read": staticmethod(read),
+    })
+
+
 _SHIMS = (
     ChannelLegacy,
     UserLegacy,
     _status_legacy(USER_STATUS_RECENTLY_LEGACY_ID, "UserStatusRecently"),
     _status_legacy(USER_STATUS_LAST_WEEK_LEGACY_ID, "UserStatusLastWeek"),
     _status_legacy(USER_STATUS_LAST_MONTH_LEGACY_ID, "UserStatusLastMonth"),
+    _emoji_status_legacy(EMOJI_STATUS_LEGACY_ID, "EmojiStatusLegacy", False),
+    _emoji_status_legacy(EMOJI_STATUS_UNTIL_LEGACY_ID, "EmojiStatusUntilLegacy", True),
 )
 
 
