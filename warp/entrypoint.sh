@@ -15,7 +15,21 @@ mkdir -p /etc/wireguard "$WG_DIR"
 if [ ! -f "$WG_DIR/wgcf-account.toml" ]; then
   echo "[+] Registering wgcf account"
   cd "$WG_DIR"
-  wgcf register --accept-tos
+  # Cloudflare rate-limits wgcf registrations per source IP with HTTP 429
+  # ("Wraps: (3) 429 Too Many Requests"). Retry with backoff instead of dying:
+  # the bot and bgutil containers wait on this service's healthcheck.
+  attempt=1
+  until wgcf register --accept-tos; do
+    if [ "$attempt" -ge "${WGCF_REGISTER_RETRIES:-5}" ]; then
+      echo "[!] wgcf register failed after $attempt attempts (HTTP 429 = Cloudflare rate-limit on registrations from this IP)."
+      echo "[!] Wait ~10-30 minutes and run:  docker compose up -d warp   (the account is cached in the warp-data volume)"
+      exit 1
+    fi
+    delay=$((attempt * 30))
+    echo "[!] wgcf register failed (attempt $attempt), Cloudflare 429 is common; retrying in ${delay}s..."
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
 fi
 
 if [ ! -f "$WG_CONF" ]; then

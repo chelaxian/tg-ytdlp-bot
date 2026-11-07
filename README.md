@@ -211,9 +211,11 @@ docker compose build warp
 docker compose up -d --build
 ```
 
+**If `warp` fails to start with "dependency warp failed to start":** on the first launch the `warp` container registers a free Cloudflare WARP account (`wgcf register`), and Cloudflare rate-limits these registrations per source IP with HTTP `429 Too Many Requests`. The container retries with backoff (up to ~5 attempts over 10 minutes); if all attempts fail, just wait 10–30 minutes and run `docker compose up -d` again — the registration is retried, and once it succeeds the account is cached in the `warp-data` volume, so subsequent restarts never re-register. You can watch the progress with `docker compose logs -f warp`.
+
 The bot container will be built from the included `Dockerfile`, and:
 - `configuration-webserver` (opt-in — start it separately with `docker compose --profile configuration-webserver up -d`) will serve cookie files; it shares warp's network namespace, so the bot reaches them at `http://localhost/cookies/<filename>`
-- `bgutil-provider` will be available at `http://bgutil-provider:4416` for YouTube PO tokens
+- `bgutil-provider` will serve YouTube PO tokens at `http://localhost:4416` from the bot's point of view (it shares the warp container's network namespace, so the service DNS name does not resolve — use `localhost`). The default `YOUTUBE_POT_BASE_URL = "http://localhost:4416"` in `CONFIG/config.py` works out of the box
 - **Dashboard panel** *(optional, off by default, see "Optional components" below)* is available at `http://localhost:5555` once enabled
 
 **Optional – fresh IP per download (per-task WARP):** set `WARP_DIRECT_BOT=1` in `.env` and `WARP_PER_TASK = True` in `CONFIG/config.py`, then `docker compose up -d --build`. Every download then uses its own WARP tunnel with a new IPv6 (the account of the `warp` container is reused), and the bot's own traffic to Telegram goes directly, so tunnel restarts never cut it. Details: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
@@ -253,7 +255,7 @@ P.S. do not forget to add your bot to your channels with admin rights
 ```bash
 git clone https://github.com/chelaxian/tg-ytdlp-bot.git
 cd tg-ytdlp-bot
-chmod +x *.sh
+chmod +x scripts/*.sh
 ```
 
 ### Step 2: Install Dependencies
