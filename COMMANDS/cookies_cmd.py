@@ -682,9 +682,9 @@ def _save_live_browser_cookies_impl(message, user_id, services=None):
     except (OSError, ValueError) as e:
         logger.error(f"[cookies] could not write live browser cookies for {user_id}: {e}")
         return "unavailable"
-    shown = ", ".join(domains[:8]) + (" …" if len(domains) > 8 else "")
     msgs = safe_get_messages(user_id)
-    send_to_user(message, msgs.COOKIES_LIVE_BROWSER_SAVED_MSG.format(service=label, count=count, domains=shown))
+    # service + count only: the host list leaks the browser session's footprint
+    send_to_user(message, msgs.COOKIES_LIVE_BROWSER_SAVED_MSG.format(service=label, count=count))
     send_to_logger(message, msgs.COOKIES_LIVE_BROWSER_LOG_MSG.format(user_id=user_id, service=label, count=count))
     return "saved"
 

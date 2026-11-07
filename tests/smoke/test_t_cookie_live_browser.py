@@ -38,7 +38,7 @@ def check(name, cond, info=""):
 
 
 class Msgs:
-    COOKIES_LIVE_BROWSER_SAVED_MSG = "saved {service} {count} {domains}"
+    COOKIES_LIVE_BROWSER_SAVED_MSG = "saved {service} {count}"
     COOKIES_LIVE_BROWSER_LOG_MSG = "log {user_id} {service} {count}"
     COOKIES_LIVE_BROWSER_EMPTY_MSG = "empty {service}"
 
@@ -98,7 +98,8 @@ body = open(path, "rb").read().decode()
 check("file has the cookies of the five services", "auth_token" in body and "sessionid" in body)
 check("cookies of other sites never leave the browser", "bank" not in body and "c_user" not in body)
 check("file is valid for yt-dlp loader", validate_cookie_bytes(body.encode())[0])
-check("user is told what was taken", sent[-1].startswith("saved YouTube, X, Instagram, VK, TikTok 2 ") and sent[-1].replace(",", " ").split().count("x.com") == 1, sent[-1])
+check("user is told service and count only, no domains",
+      sent[-1] == "saved YouTube, X, Instagram, VK, TikTok 2", sent[-1])
 check("log has no cookie values", logged and "T" not in logged[-1].split()[-1] and "auth_token" not in logged[-1])
 
 sent.clear()
