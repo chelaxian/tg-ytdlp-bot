@@ -1,8 +1,11 @@
 import ast
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PIL import Image
 from HELPERS.telegram_photo import prepare_photo, retry_invalid_photo_upload
@@ -108,7 +111,7 @@ class AlbumFallbackTests(unittest.TestCase):
             def __init__(self, media, caption=None):
                 self.media, self.caption, self.has_spoiler = media, caption, True
         self.BadRequest, self.Photo = BadRequest, Photo
-        filename = os.path.join(os.path.dirname(__file__), 'COMMANDS', 'image_cmd.py')
+        filename = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'COMMANDS', 'image_cmd.py')
         with open(filename, encoding='utf-8') as f:
             tree = ast.parse(f.read(), filename)
         names = {'_is_invalid_photo_rpc_error', '_send_rejected_album_in_parts', '_PartialAlbumSendError'}
