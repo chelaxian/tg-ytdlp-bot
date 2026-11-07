@@ -367,7 +367,10 @@ class TaskScope:
                 try:
                     return self.tunnel.restart().url
                 except Exception as e:
-                    logger.error(f"[WARP] restart for {self.label} failed: {e}")
+                    # Recoverable: the caller falls back to the shared tunnel /
+                    # direct connection, so this is not a download failure.
+                    # Keep out of ERROR selections (issue #524).
+                    logger.warning(f"[WARP] restart for {self.label} failed: {e}")
                     self._release()
             if not self._has_slot:
                 self._has_slot = _slot_sem().acquire(timeout=float(_cfg("WARP_SLOT_WAIT_SECONDS")))
@@ -385,7 +388,8 @@ class TaskScope:
                                 f"egress={tunnel.egress or '?'} (active={active})")
                     return tunnel.url
                 except Exception as e:
-                    logger.error(f"[WARP] tunnel for {self.label} failed (attempt {attempt}/2): {e}")
+                    # Recoverable: attempt 2 or the shared tunnel follows (issue #524).
+                    logger.warning(f"[WARP] tunnel for {self.label} failed (attempt {attempt}/2): {e}")
             self._release()
             return _shared_proxy_url()
 
@@ -404,7 +408,8 @@ class TaskScope:
             try:
                 self.tunnel.restart()
             except Exception as e:
-                logger.error(f"[WARP] rotate for {self.label} failed: {e}")
+                # Recoverable: the task keeps its old egress IP (issue #524).
+                logger.warning(f"[WARP] rotate for {self.label} failed: {e}")
                 return None
             self.rotations += 1
             logger.info(f"[WARP] rotated {self.label} ({reason or 'retry'}): {old} -> {self.tunnel.egress}")
@@ -483,7 +488,8 @@ def _shared_proxy_url() -> Optional[str]:
             logger.info(f"[WARP] shared tunnel up, egress={tunnel.egress or '?'}")
             return tunnel.url
         except Exception as e:
-            logger.error(f"[WARP] shared tunnel failed: {e}; request goes direct")
+            # Recoverable: the request goes direct and can still succeed (issue #524).
+            logger.warning(f"[WARP] shared tunnel failed: {e}; request goes direct")
             return None
 
 
