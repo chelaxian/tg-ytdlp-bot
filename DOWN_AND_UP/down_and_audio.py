@@ -21,7 +21,7 @@ from HELPERS.limitter import TimeFormatter, humanbytes, check_user
 from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, create_directory, check_disk_space, cleanup_user_temp_files
-from HELPERS.ytdlp_errors import should_abort_retries, is_missing_local_file
+from HELPERS.ytdlp_errors import should_abort_retries, is_missing_local_file, classify_retryability
 from DATABASE.firebase_init import write_logs
 from URL_PARSERS.tags import generate_final_tags
 from services.stats_events import update_download_progress
@@ -2299,7 +2299,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     result = info_dict
             
             # If download failed and it's a YouTube URL, try automatic cookie retry
-            if result is None and is_youtube_url(url) and not did_cookie_retry and not should_abort_retries(last_audio_error):
+            if result is None and is_youtube_url(url) and not did_cookie_retry and (not should_abort_retries(last_audio_error) or classify_retryability(last_audio_error) == 'AUTH_REQUIRED'):
                 logger.info(f"Audio download failed for user {user_id}, attempting automatic cookie retry")
                 
                 # Try retry with different cookies
