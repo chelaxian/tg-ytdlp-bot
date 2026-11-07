@@ -1,8 +1,11 @@
 import ast
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PIL import Image
 from HELPERS.telegram_photo import prepare_photo, retry_invalid_photo_upload
