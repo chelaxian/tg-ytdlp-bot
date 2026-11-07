@@ -154,14 +154,33 @@ def can_start_download(user_id, is_playlist=False, is_multi_url=False):
     Returns:
         bool: True if download can start, False if limit reached
     """
-    current_count = get_active_download(user_id)
-    
+    return _slot_available(get_active_download(user_id), is_playlist, is_multi_url)
+
+
+def _slot_available(current_count, is_playlist=False, is_multi_url=False):
     if is_playlist or is_multi_url:
         # Playlists and multi-URLs: only 1 at a time
         return current_count == 0
-    
     # Single URLs: up to MAX_CONCURRENT_DOWNLOADS
     return current_count < LimitsConfig.MAX_CONCURRENT_DOWNLOADS
+
+
+def acquire_download_slot(user_id, is_playlist=False, is_multi_url=False):
+    """Atomically check the per-user limit and take a download slot.
+
+    can_start_download() followed, much later, by set_active_download(True) is a
+    check-then-act race (several quick messages all passed the check), and the
+    Always Ask path (menu -> button -> download) had no check at all. This takes
+    the slot under the same lock that guards the counter, at the moment the
+    download really starts. Returns False (nothing taken) when the limit is
+    reached; a True result must be paired with set_active_download(user_id, False).
+    """
+    with active_downloads_lock:
+        current = active_downloads.get(user_id, 0)
+        if not _slot_available(current, is_playlist, is_multi_url):
+            return False
+        active_downloads[user_id] = current + 1
+        return True
 
 
 def get_download_limit_msg(user_id, is_playlist=False, is_multi_url=False):
