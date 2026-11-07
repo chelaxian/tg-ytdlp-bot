@@ -319,9 +319,11 @@ docker compose build warp
 docker compose up -d --build
 ```
 
+**Если `warp` не стартует с ошибкой «dependency warp failed to start»:** при первом запуске контейнер `warp` регистрирует бесплатный аккаунт Cloudflare WARP (`wgcf register`), а Cloudflare ограничивает количество таких регистраций с одного IP и отвечает `429 Too Many Requests`. Контейнер сам повторяет попытки с нарастающей паузой (до ~5 попыток за 10 минут); если все не удались — подождите 10–30 минут и запустите `docker compose up -d` ещё раз. После успешной регистрации аккаунт кэшируется в volume `warp-data`, и при следующих рестартах регистрация больше не выполняется. Ход регистрации виден в `docker compose logs -f warp`.
+
 Контейнер бота будет собран из `Dockerfile`, и:
 - `configuration-webserver` (по желанию — запускается отдельно командой `docker compose --profile configuration-webserver up -d`) будет обслуживать cookie файлы; он работает в сетевом namespace warp, поэтому бот обращается к ним по `http://localhost/cookies/<filename>`
-- `bgutil-provider` будет доступен по `http://bgutil-provider:4416` для YouTube PO токенов
+- `bgutil-provider` обслуживает YouTube PO токены по `http://localhost:4416` с точки зрения бота (он работает в сетевом namespace контейнера warp, поэтому DNS-имя сервиса не резолвится — используйте `localhost`). Дефолт `YOUTUBE_POT_BASE_URL = "http://localhost:4416"` в `CONFIG/config.py` работает без изменений
 - **Dashboard панель** *(необязательная, по умолчанию выключена, см. «Необязательные компоненты» ниже)* после включения доступна по `http://localhost:5555`
 
 **По желанию – новый IP на каждую загрузку (WARP для каждой задачи):** укажите `WARP_DIRECT_BOT=1` в `.env` и `WARP_PER_TASK = True` в `CONFIG/config.py`, затем `docker compose up -d --build`. Каждая загрузка пойдёт через свой туннель WARP с новым IPv6 (используется аккаунт контейнера `warp`), а собственный трафик бота к Telegram — напрямую, поэтому перезапуски туннеля его не обрывают. Подробности: [docs/WARP_PER_TASK.md](docs/WARP_PER_TASK.md).
@@ -359,7 +361,7 @@ P.S. не забудьте добавить бота в каналы с прав
 ```bash
 git clone https://github.com/chelaxian/tg-ytdlp-bot.git
 cd tg-ytdlp-bot
-chmod +x *.sh
+chmod +x scripts/*.sh
 ```
 
 #### Шаг 2: Установка зависимостей
