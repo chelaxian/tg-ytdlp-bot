@@ -158,6 +158,29 @@ check("BROWSER_HEADLESS=True: no virtual screen", bs._xvfb_binary() is None)
 bs._cfg = _orig_cfg
 check("no virtual screen -> not windowed", bs.is_windowed() is False)
 
+# survives a restart of the dashboard service: own systemd scope, privileges dropped with setpriv
+_env = dict(os.environ)
+os.environ.pop("INVOCATION_ID", None)
+kw = {"user": 1000, "group": 1000, "extra_groups": []}
+check("not under systemd: command unchanged", bs._outside_service(["chrome"], dict(kw), "x") == ["chrome"])
+if sys.platform.startswith("linux") and hasattr(os, "geteuid") and os.geteuid() == 0 and os.path.isdir("/run/systemd/system"):
+    os.environ["INVOCATION_ID"] = "test"
+    kw2 = dict(kw)
+    cmd = bs._outside_service(["chrome", "--a"], kw2, "tg-ytdlp-browser")
+    check("under systemd: own scope", cmd[1:3] == ["--scope", "--quiet"] and cmd[-2:] == ["chrome", "--a"], cmd)
+    check("under systemd: privileges dropped after the scope", "user" not in kw2 and any("--reuid=1000" in c for c in cmd), cmd)
+os.environ.clear(); os.environ.update(_env)
+# saved tabs: only public http(s) addresses come back
+bs.save_tabs(["https://x.com/robots.txt", "about:blank", "chrome://settings", "http://127.0.0.1:5555/"])
+check("saved tabs keep public pages only", bs.saved_tabs() == ["https://x.com/robots.txt"], bs.saved_tabs())
+bs.TABS_FILE.write_text('["file:///etc/passwd", "https://vk.ru/robots.txt"]')
+check("tampered tab file is filtered", bs.saved_tabs() == ["https://vk.ru/robots.txt"], bs.saved_tabs())
+check("nothing listening -> not alive", bs.is_alive() is False)
+import HELPERS.browser_hub as _bh  # noqa: E402
+check("keep-alive goes to the service start page",
+      _bh._home_of("https://www.youtube.com/robots.txt") == "https://www.youtube.com/"
+      and _bh._home_of("https://vk.ru/robots.txt") == "https://vk.ru/feed" and _bh._home_of("https://example.com/") is None)
+
 exe = bs.find_executable()
 if not exe:
     print("SKIP live browser tests: no Chromium/Chrome found")

@@ -49,6 +49,7 @@ XVFB_PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_xvfb.pid"
 TZ_CACHE_FILE = PROJECT_DIR / "CONFIG" / ".browser_timezone"
 AUTOSTART_FILE = PROJECT_DIR / "CONFIG" / ".browser_autostart"   # present while the admin wants the browser running
 PARK_URL = "about:blank#tg-park"                                   # the hub's resting tab, never shown in the panel
+TABS_FILE = PROJECT_DIR / "CONFIG" / ".browser_tabs.json"           # last open tabs, reopened after a restart
 SCREEN = (1920, 1080)                 # virtual screen of the windowed browser (an ordinary Full HD monitor)
 WINDOW_UI_HEIGHT = 87                 # tab strip + toolbar of a normal Chrome window
 _TZ_RE = re.compile(r"[A-Za-z_]{2,32}(/[A-Za-z0-9_+\-]{1,32}){0,2}")
@@ -349,6 +350,79 @@ def is_running() -> bool:
     return isinstance(info, dict) and "webSocketDebuggerUrl" in info
 
 
+def is_alive() -> bool:
+    """The browser exists, even if it is too busy to answer right now (DevTools port taken or the profile locked).
+
+    Used before an automatic restart: starting a second Chrome on a live profile only hands the command line to the
+    running one, so a slow browser must never be "restarted".
+    """
+    if is_running():
+        return True
+    try:
+        with socket.create_connection((CDP_HOST, cdp_port()), timeout=1.5):
+            return True
+    except OSError:
+        pass
+    try:
+        target = os.readlink(_profile_dir() / "SingletonLock")      # "<host>-<pid>" while a Chrome owns the profile
+        os.kill(int(target.rsplit("-", 1)[1]), 0)
+        return True
+    except (OSError, ValueError, IndexError):
+        return False
+
+
+def _outside_service(cmd: List[str], kwargs: Dict[str, Any], name: str) -> List[str]:
+    """Run `cmd` in a systemd scope of its own when the caller is a systemd service.
+
+    Otherwise restarting the dashboard service (cron does it every few hours) kills the browser with it: systemd stops
+    every process of the service's cgroup, whatever session or process group they are in. The scope is created as root
+    and the browser then drops to its unprivileged user with setpriv.
+    """
+    if not sys.platform.startswith("linux") or not hasattr(os, "geteuid") or os.geteuid() != 0:
+        return cmd
+    if not os.path.isdir("/run/systemd/system") or not os.environ.get("INVOCATION_ID"):
+        return cmd                                          # not started by systemd: nothing would kill it
+    run = shutil.which("systemd-run")
+    if not run:
+        return cmd
+    wrapped = [run, "--scope", "--quiet", "--collect", f"--unit={name}-{cdp_port()}-{int(time.time() * 1000)}"]
+    uid, gid = kwargs.pop("user", None), kwargs.pop("group", None)
+    kwargs.pop("extra_groups", None)
+    if uid is not None:
+        setpriv = shutil.which("setpriv")
+        if not setpriv:
+            kwargs.update(user=uid, group=gid, extra_groups=[])  # cannot drop privileges after the scope: stay inside
+            return cmd
+        wrapped += ["--", setpriv, f"--reuid={uid}", f"--regid={gid}", "--clear-groups", "--"]
+    else:
+        wrapped.append("--")
+    return wrapped + cmd
+
+
+def save_tabs(urls: List[str]) -> None:
+    keep = [u for u in urls if u.startswith(("http://", "https://"))][:20]
+    if not keep:
+        return
+    try:
+        TABS_FILE.write_text(json.dumps(keep), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def saved_tabs() -> List[str]:
+    try:
+        data = json.loads(TABS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    out = []
+    for url in data if isinstance(data, list) else []:
+        try:
+            out.append(normalize_url(str(url)))
+        except BrowserError:
+            continue
+    return out[:20]
+
+
 def _browser_ws() -> str:
     info = _http("/json/version")
     if not isinstance(info, dict) or not info.get("webSocketDebuggerUrl"):
@@ -426,8 +500,10 @@ def _start_display(xvfb: str, popen_kwargs: Dict[str, Any]) -> Optional[str]:
             except OSError:
                 pass
     try:
-        proc = subprocess.Popen([xvfb, display, "-screen", "0", f"{SCREEN[0]}x{SCREEN[1]}x24", "-nolisten", "tcp",
-                                 "-dpi", "96", "-nocursor"], **popen_kwargs)
+        kw = dict(popen_kwargs)
+        cmd = _outside_service([xvfb, display, "-screen", "0", f"{SCREEN[0]}x{SCREEN[1]}x24", "-nolisten", "tcp",
+                                "-dpi", "96", "-nocursor"], kw, "tg-ytdlp-xvfb")
+        proc = subprocess.Popen(cmd, **kw)
     except OSError as exc:
         logger.warning("[browser] Xvfb did not start: %s", exc)
         return None
@@ -503,6 +579,8 @@ def start() -> Dict[str, Any]:
         raise BrowserError("disabled")
     if is_running():
         return {"started": False}
+    if is_alive():
+        raise BrowserError("busy")                       # alive but not answering yet: never start a second one
     exe = find_executable()
     if not exe:
         raise BrowserError("no_browser")
@@ -586,9 +664,11 @@ def start() -> Dict[str, Any]:
     if niceness > 0 and hasattr(os, "nice"):
         kwargs["preexec_fn"] = lambda: os.nice(niceness)
     for attempt in (0, 1):
-        launch = args if attempt == 0 or "--no-sandbox" in args else args[:-1] + ["--no-sandbox", args[-1]]
+        launch = args if attempt == 0 or "--no-sandbox" in args else args + ["--no-sandbox"]
+        kw = dict(kwargs)
+        launch = _outside_service(launch, kw, "tg-ytdlp-browser")
         try:
-            proc = subprocess.Popen(launch, **kwargs)
+            proc = subprocess.Popen(launch, **kw)
         except OSError as exc:
             raise BrowserError(f"launch_failed: {exc}") from exc
         try:
