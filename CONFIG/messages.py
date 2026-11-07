@@ -21,6 +21,35 @@ except ImportError:
     def set_user_language(user_id, language_code):
         return False
 
+_FLEET_BOTS = ("tgytdlp_it_bot", "tgytdlp_uae_bot", "tgytdlp_uk_bot", "tgytdlp_fr_bot", "tgytdlp_de_bot")
+
+
+def credits_own_bot_only(text):
+    """Keep only THIS bot's line in a fleet credits block (2026-11-07).
+
+    CREDITS_MSG is shared by all five country servers; a user talking to the
+    DE bot should not get the full IT/UAE/UK/FR bot list. The own bot's
+    username comes from Config.BOT_USERNAME (e.g. "@tgytdlp_de_bot"); if it
+    cannot be determined, the text is returned unchanged.
+    """
+    if not text or "tgytdlp_" not in text:
+        return text
+    own = ""
+    try:
+        from CONFIG.config import Config
+        own = (getattr(Config, "BOT_USERNAME", "") or getattr(Config, "BOT_NAME", "") or "").strip().lstrip("@").lower()
+    except Exception:
+        pass
+    if not own:
+        own = os.environ.get("BOT_USERNAME", "").strip().lstrip("@").lower()
+    if own not in _FLEET_BOTS:
+        return text
+    lines = text.split(chr(10))
+    kept = [ln for ln in lines
+            if not any("@" + b in ln for b in _FLEET_BOTS) or ("@" + own) in ln]
+    return chr(10).join(kept)
+
+
 class Messages(object):
     def __init__(self, user_id=None, language_code=None):
         """
@@ -68,7 +97,10 @@ class Messages(object):
             return super().__getattribute__(name)
         
         if hasattr(self, '_messages') and self._messages and name in self._messages:
-            return self._messages[name]
+            value = self._messages[name]
+            if name == "CREDITS_MSG":
+                value = credits_own_bot_only(value)
+            return value
 
         # Key missing in the selected locale (new message not translated yet,
         # or the locale failed to load): show English instead of a raw
