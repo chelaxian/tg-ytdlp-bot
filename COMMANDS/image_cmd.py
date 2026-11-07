@@ -51,6 +51,15 @@ import json
 from URL_PARSERS.tags import save_user_tags, extract_url_range_tags
 from HELPERS.upload_guard import timed_upload, UploadAlreadyInProgressError
 from URL_PARSERS.service_api_info import get_service_account_info, build_tags
+from HELPERS.telegram_media import PHOTO_EXTS as _TG_PHOTO_EXTS, VIDEO_EXTS as _TG_VIDEO_EXTS, prepare_media
+
+# Everything the scan picks up from a run directory: every photo/video format
+# gallery-dl can produce (prepared for Telegram by HELPERS.telegram_media) plus the
+# audio/document types that are delivered as files.
+_IMG_SCAN_EXTS = tuple(sorted(_TG_PHOTO_EXTS | _TG_VIDEO_EXTS)) + (
+    '.mp3', '.wav', '.ogg', '.m4a',
+    '.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.7z',
+)
 
 # Unified helpers to create thumbnails/covers for videos
 def _get_file_mb(file_path):
@@ -663,128 +672,6 @@ def _unlink_quiet(path):
         pass
 
 
-def convert_file_to_telegram_format(file_path):
-    """
-    Convert unsupported file formats to Telegram-supported formats
-    Returns the converted file path or original path if no conversion needed
-    """
-    if not os.path.exists(file_path):
-        return file_path
-    
-    file_ext = os.path.splitext(file_path)[1].lower()
-    file_dir = os.path.dirname(file_path)
-    file_name = os.path.splitext(os.path.basename(file_path))[0]
-    
-    try:
-        # Convert WebP images to JPEG
-        if file_ext == '.webp':
-            output_path = os.path.join(file_dir, f"{file_name}.jpg")
-            cmd = [
-                'ffmpeg', '-i', file_path, 
-                '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',  # Ensure dimensions are divisible by 2
-                '-c:v', 'mjpeg', '-q:v', '2',  # Use MJPEG codec for JPEG output
-                '-y', output_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            if result.returncode == 0 and os.path.exists(output_path):
-                logger.info(LoggerMsg.IMG_CONVERTED_WEBP_JPEG_LOG_MSG.format(file_path=file_path, output_path=output_path))
-                return output_path
-            else:
-                logger.warning(LoggerMsg.IMG_FAILED_CONVERT_WEBP_LOG_MSG.format(result_stderr=result.stderr))
-                return file_path
-        
-        # Convert WebM videos to MP4 (add thumbnail to avoid black preview)
-        elif file_ext == '.webm':
-            output_path = os.path.join(file_dir, f"{file_name}.mp4")
-            # We will generate/send thumbnail later during sending
-            cmd = [
-                'ffmpeg', '-i', file_path,
-                '-c:v', 'libx264', '-c:a', 'aac',
-                '-movflags', '+faststart',
-                '-y', output_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            if result.returncode == 0 and os.path.exists(output_path):
-                logger.info(LoggerMsg.IMG_CONVERTED_WEBM_MP4_LOG_MSG.format(file_path=file_path, output_path=output_path))
-                return output_path
-            else:
-                logger.warning(LoggerMsg.IMG_FAILED_CONVERT_WEBM_LOG_MSG.format(result_stderr=result.stderr))
-                return file_path
-        
-        # Faststart remux for MP4 to improve metadata parsing
-        elif file_ext == '.mp4':
-            output_path = os.path.join(file_dir, f"{file_name}._fast.mp4")
-            cmd = [
-                'ffmpeg', '-i', file_path,
-                '-c:v', 'copy', '-c:a', 'copy',
-                '-movflags', '+faststart',
-                '-y', output_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            if result.returncode == 0 and os.path.exists(output_path):
-                logger.info(LoggerMsg.IMG_REMUXED_MP4_FASTSTART_LOG_MSG.format(file_path=file_path, output_path=output_path))
-                return output_path
-            else:
-                logger.warning(LoggerMsg.IMG_FAILED_REMUX_MP4_LOG_MSG.format(result_stderr=result.stderr))
-                return file_path
-
-        # Convert/Remux other video formats to MP4
-        elif file_ext in ['.avi', '.mov', '.mkv', '.flv', '.m4v']:
-            output_path = os.path.join(file_dir, f"{file_name}.mp4")
-            # Prefer stream copy for .m4v (usually MP4 container variant), else re-encode
-            if file_ext == '.m4v':
-                cmd = [
-                    'ffmpeg', '-i', file_path,
-                    '-c:v', 'copy', '-c:a', 'copy',
-                    '-movflags', '+faststart',
-                    '-y', output_path
-                ]
-            else:
-                # We will generate/send thumbnail later during sending
-                cmd = [
-                    'ffmpeg', '-i', file_path,
-                    '-c:v', 'libx264', '-c:a', 'aac',
-                    '-movflags', '+faststart',
-                    '-y', output_path
-                ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            if result.returncode == 0 and os.path.exists(output_path):
-                logger.info(LoggerMsg.IMG_CONVERTED_TO_MP4_LOG_MSG.format(file_ext=file_ext, file_path=file_path, output_path=output_path))
-                return output_path
-            else:
-                logger.warning(LoggerMsg.IMG_FAILED_CONVERT_TO_MP4_LOG_MSG.format(file_ext=file_ext, result_stderr=result.stderr))
-                return file_path
-        
-        # Convert other unsupported image formats to JPEG
-        elif file_ext in ['.bmp', '.tiff']:
-            output_path = os.path.join(file_dir, f"{file_name}.jpg")
-            cmd = [
-                'ffmpeg', '-i', file_path,
-                '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',  # Ensure dimensions are divisible by 2
-                '-c:v', 'mjpeg', '-q:v', '2',  # Use MJPEG codec for JPEG output
-                '-y', output_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            if result.returncode == 0 and os.path.exists(output_path):
-                logger.info(LoggerMsg.IMG_CONVERTED_TO_JPEG_LOG_MSG.format(file_ext=file_ext, file_path=file_path, output_path=output_path))
-                return output_path
-            else:
-                logger.warning(LoggerMsg.IMG_FAILED_CONVERT_TO_JPEG_LOG_MSG.format(file_ext=file_ext, result_stderr=result.stderr))
-                return file_path
-        
-        # No conversion needed
-        else:
-            return file_path
-            
-    except subprocess.TimeoutExpired:
-        logger.error(LoggerMsg.IMG_CONVERSION_TIMEOUT_LOG_MSG.format(file_path=file_path))
-        _unlink_quiet(locals().get("output_path"))
-        return file_path
-    except Exception as e:
-        logger.error(LoggerMsg.IMG_CONVERSION_ERROR_LOG_MSG.format(file_path=file_path, e=e))
-        _unlink_quiet(locals().get("output_path"))
-        return file_path
-
 # Telegram limits for photos (sendPhoto / InputMediaPhoto), issue #472:
 # violating any of them makes the whole media group fail with
 # PHOTO_SAVE_FILE_INVALID / PHOTO_INVALID_DIMENSIONS.
@@ -801,6 +688,10 @@ TG_INVALID_PHOTO_ERROR_IDS = (
     "PHOTO_EXT_INVALID",
     "PHOTO_INVALID",
     "IMAGE_PROCESS_FAILED",
+    # videos sent unmodified (webm/mkv) that the server refuses as video
+    "VIDEO_CONTENT_TYPE_INVALID",
+    "VIDEO_FILE_INVALID",
+    "MEDIA_INVALID",
 )
 
 
@@ -844,13 +735,37 @@ def _is_invalid_photo_rpc_error(error):
     return any(marker in text for marker in TG_INVALID_PHOTO_ERROR_IDS)
 
 
-def _retry_photo_upload(send, media, files_to_cleanup):
-    """Re-encode photos once after Telegram explicitly rejects their format."""
-    if PILImage is None:
-        return send()
-    from HELPERS.telegram_photo import prepare_photo, retry_invalid_photo_upload
+def _is_paid_delivery(message, user_id, nsfw_flag):
+    """True when this file would be delivered as paid media (NSFW in a private chat)."""
+    if not nsfw_flag:
+        return False
+    is_private = getattr(message.chat, 'type', None) == enums.ChatType.PRIVATE
+    if getattr(message, '_is_fake_message', False):
+        is_private = not str(getattr(message, '_original_chat_id', user_id)).startswith('-')
+    from HELPERS.limitter import should_apply_limits_to_admin
+    return bool(is_private and should_apply_limits_to_admin(user_id=user_id, message=message))
 
-    def prepare_valid(path):
+
+def _retry_photo_upload(send, media, files_to_cleanup):
+    """Fix media Telegram explicitly rejected, then retry once.
+
+    Photos are re-encoded as JPEG; webm/mkv videos that were sent unmodified are
+    remuxed to mp4 (the universal container).
+    """
+    from HELPERS.telegram_photo import prepare_photo, retry_invalid_photo_upload
+    from HELPERS.telegram_media import MATROSKA_EXTS, prepare_video
+
+    def is_fixable(item):
+        if isinstance(item, (InputMediaPhoto, InputPaidMediaPhoto)):
+            return PILImage is not None
+        if isinstance(item, (InputMediaVideo, InputPaidMediaVideo)):
+            return os.path.splitext(str(getattr(item, 'media', '')))[1].lower() in MATROSKA_EXTS
+        return False
+
+    def prepare(path):
+        if os.path.splitext(str(path))[1].lower() in MATROSKA_EXTS:
+            clip, _temps, _how = prepare_video(path)
+            return clip if clip and clip != path else None
         prepared = prepare_photo(path)
         if prepared and _photo_send_problem(prepared):
             files_to_cleanup.append(prepared)
@@ -858,10 +773,9 @@ def _retry_photo_upload(send, media, files_to_cleanup):
         return prepared
 
     return retry_invalid_photo_upload(
-        send, media,
-        lambda item: isinstance(item, (InputMediaPhoto, InputPaidMediaPhoto)),
+        send, media, is_fixable,
         lambda error: isinstance(error, BadRequest) and _is_invalid_photo_rpc_error(error),
-        prepare_valid, files_to_cleanup,
+        prepare, files_to_cleanup,
     )
 
 
@@ -906,9 +820,15 @@ def _send_rejected_album_in_parts(app, chat_id, message, media, originals, messa
                 sent = timed_upload(lambda: app.send_document(chat_id, document=original_by_id[id(item)], caption=caption,
                                          reply_parameters=reply, message_thread_id=message_thread_id))
         else:
-            sent = timed_upload(lambda: app.send_video(chat_id, video=item.media, caption=caption,
-                                  has_spoiler=getattr(item, 'has_spoiler', False),
-                                  reply_parameters=reply, message_thread_id=message_thread_id))
+            try:
+                sent = timed_upload(lambda: app.send_video(chat_id, video=item.media, caption=caption,
+                                      has_spoiler=getattr(item, 'has_spoiler', False),
+                                      reply_parameters=reply, message_thread_id=message_thread_id))
+            except BadRequest as error:
+                if not _is_invalid_photo_rpc_error(error):
+                    raise
+                sent = timed_upload(lambda: app.send_document(chat_id, document=original_by_id[id(item)], caption=caption,
+                                         reply_parameters=reply, message_thread_id=message_thread_id))
         if sent is not None:
             sent_so_far.append(sent)
 
@@ -1064,7 +984,10 @@ def _cleanup_run_dir(run_dir):
     shutil.rmtree(run_dir, ignore_errors=True)
     parent = os.path.dirname(run_dir)
     try:
-        if parent and not os.listdir(parent):
+        from HELPERS.filesystem_hlp import is_download_dir_in_use, release_download_dir
+        # our own registration would keep the shared parent "in use" forever
+        release_download_dir(run_dir)
+        if parent and not is_download_dir_in_use(parent) and not os.listdir(parent):
             os.rmdir(parent)
     except OSError:
         pass
@@ -1906,6 +1829,9 @@ def image_command(app, message):
 
         # Streaming download: run range-based batches (1-10, 11-20, ...) scoped to a unique per-run directory
         run_dir = create_unique_download_path(user_id, url)
+        from HELPERS.filesystem_hlp import acquire_download_dir
+        acquire_download_dir(run_dir)
+        _run_dir_registered = run_dir
         create_directory(run_dir)
         
         # Create protection file for parallel downloads
@@ -2297,7 +2223,7 @@ def image_command(app, message):
                         # Skip special thumbs/covers generated for Telegram
                         try:
                             base = os.path.basename(file_path)
-                            if base.endswith('.__tgthumb.jpg') or base.endswith('.__tgcover_paid.jpg') or base.endswith('.__embedded_cover.mp4'):
+                            if base.endswith(('.__tgthumb.jpg', '.__tgcover_paid.jpg', '.__embedded_cover.mp4', '.__tgframe.jpg')):
                                 continue
                         except Exception:
                             pass
@@ -2309,12 +2235,7 @@ def image_command(app, message):
                         if file_realpath in seen_files:
                             continue
                         # Only consider media-like files
-                        if not file.lower().endswith((
-                            '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff',
-                            '.mp4', '.m4v', '.avi', '.mov', '.mkv', '.webm', '.flv',
-                            '.mp3', '.wav', '.ogg', '.m4a',
-                            '.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.7z'
-                        )):
+                        if not file.lower().endswith(_IMG_SCAN_EXTS):
                             continue
                         # Skip incomplete/zero-byte files
                         try:
@@ -2332,72 +2253,47 @@ def image_command(app, message):
                         if not is_admin and total_downloaded > total_limit:
                             continue
 
-                        # Convert if needed, then classify
+                        # Prepare for Telegram. prepare_media() walks a cost ladder (remux ->
+                        # audio-only re-encode -> video re-encode; JPEG copy for photos) and
+                        # answers 'document' only when nothing can make Telegram show the file
+                        # as media. The original is never modified.
                         original_path = file_path
-                        converted = convert_file_to_telegram_format(file_path)
-                        # Prevent duplicates: if conversion created a new file, mark it as seen
-                        # (otherwise os.walk would find the converted file and add it again)
-                        if converted != file_path:
+                        # Telegram documents only MPEG4 as video (Bot API sendVideo: "other formats
+                        # may be sent as Document"), so webm/mkv are remuxed to mp4 by default.
+                        # Config.IMG_MATROSKA_AS_IS = True is an opt-in experiment: send them
+                        # unmodified as video for clients with an extended player (e.g. the Telegram
+                        # iOS experimental PlayerV2); a rejected upload is then remuxed to mp4 by
+                        # _retry_photo_upload. Never used for paid media.
+                        as_is = bool(getattr(Config, 'IMG_MATROSKA_AS_IS', False)) and not _is_paid_delivery(message, user_id, nsfw_flag)
+                        kind, converted, prep_temps, prep_how = prepare_media(file_path, _photo_send_problem, matroska_as_is=as_is)
+                        # Prevent duplicates: generated files must not be picked up again by os.walk
+                        for temp_path in prep_temps:
                             try:
-                                seen_files.add(os.path.realpath(converted))
+                                seen_files.add(os.path.realpath(temp_path))
                             except Exception:
-                                seen_files.add(converted)
+                                seen_files.add(temp_path)
+                            prepared_photo_files.append(temp_path)
+                        if prep_temps:
+                            logger.info(f"[IMG PREPARE] {os.path.basename(original_path)} -> {kind} ({prep_how})")
                         files_to_cleanup.append(converted)
                         if converted != original_path:
                             files_to_cleanup.append(original_path)
                         # Skip if converted path already in buffer (deduplication)
                         if any(p[0] == converted for p in photos_videos_buffer):
                             continue
-                        ext = os.path.splitext(converted)[1].lower()
-                        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']:
-                            # Prefer a Telegram-compatible photo copy; retain the source
-                            # as a document fallback when conversion cannot succeed.
-                            photo_problem = _photo_send_problem(converted)
-                            if photo_problem and PILImage is not None:
-                                try:
-                                    from HELPERS.telegram_photo import prepare_photo
-                                    prepared = prepare_photo(converted)
-                                except Exception as exc:
-                                    logger.warning(f"[IMG #472] Photo preparation failed: {exc}")
-                                    prepared = None
-                                if prepared:
-                                    prepared_photo_files.append(prepared)
-                                    if _photo_send_problem(prepared) is None:
-                                        converted = prepared
-                                        photo_problem = None
-                            if photo_problem:
-                                is_private_photo = getattr(message.chat, 'type', None) == enums.ChatType.PRIVATE
-                                if getattr(message, '_is_fake_message', False):
-                                    is_private_photo = not str(getattr(message, '_original_chat_id', user_id)).startswith('-')
-                                from HELPERS.limitter import should_apply_limits_to_admin
-                                if nsfw_flag and is_private_photo and should_apply_limits_to_admin(user_id=user_id, message=message):
-                                    # Documents cannot be sent as paid media; never disclose a paid
-                                    # image for free just because photo conversion failed.
-                                    logger.warning(f"[IMG #472] Paid photo could not be prepared: {photo_problem}")
-                                    safe_send_message(user_id, 'Could not prepare an image for paid delivery; the original was not sent as a free document.')
-                                else:
-                                    logger.info(f"[IMG #472] Sending {original_path} as document instead of photo: {photo_problem}")
-                                    others_buffer.append((original_path, original_path))
+                        if kind == 'document':
+                            is_media_file = os.path.splitext(original_path)[1].lower() in (_TG_PHOTO_EXTS | _TG_VIDEO_EXTS)
+                            if is_media_file and _is_paid_delivery(message, user_id, nsfw_flag):
+                                # A document cannot be paid media: never disclose a paid file for
+                                # free just because it could not be prepared.
+                                logger.warning(f"[IMG PREPARE] Paid media not prepared ({prep_how}): {original_path}")
+                                safe_send_message(user_id, 'Could not prepare a file for paid delivery; the original was not sent as a free document.')
                             else:
-                                photos_videos_buffer.append((converted, 'photo', original_path))
-                        elif ext in ['.mp4']:
-                            photos_videos_buffer.append((converted, 'video', original_path))
-                        elif ext in ['.avi', '.mov', '.mkv', '.webm', '.flv', '.m4v']:
-                            # Try to convert to mp4 if not already
-                            converted = convert_file_to_telegram_format(converted)
-                            if converted != file_path:
-                                try:
-                                    seen_files.add(os.path.realpath(converted))
-                                except Exception:
-                                    seen_files.add(converted)
-                            ext2 = os.path.splitext(converted)[1].lower()
-                            if ext2 != '.mp4':
-                                # keep as document if still not mp4
-                                others_buffer.append((converted, original_path))
-                            else:
-                                photos_videos_buffer.append((converted, 'video', original_path))
+                                if is_media_file:
+                                    logger.info(f"[IMG PREPARE] Sending {original_path} as document: {prep_how}")
+                                others_buffer.append((original_path, original_path))
                         else:
-                            others_buffer.append((converted, original_path))
+                            photos_videos_buffer.append((converted, kind, original_path))
                         
                         # Don't delete files immediately - wait until after sending
                         # This prevents Telegram from not finding files to send
@@ -4902,6 +4798,9 @@ def image_command(app, message):
         _cleanup_run_dir(locals().get("run_dir"))
         for prepared_path in locals().get("prepared_photo_files", ()):
             _unlink_quiet(prepared_path)
+        if locals().get("_run_dir_registered"):
+            from HELPERS.filesystem_hlp import release_download_dir
+            release_download_dir(locals()["_run_dir_registered"])
 
 @app.on_callback_query(filters.regex(r"^img_help\|"))
 def img_help_callback(app, callback_query: CallbackQuery):
