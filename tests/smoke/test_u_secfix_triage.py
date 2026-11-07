@@ -78,13 +78,13 @@ check("videos.noonedu.com not flagged", not _is_numeric_host("videos.noonedu.com
 check("x123 not flagged (not a valid numeric host label set)", not _is_numeric_host("x123"))
 check("127.0.0.1 caught too (also by the ip_address path)", _is_numeric_host("127.0.0.1"))
 
-# ---- CodeQL alerts #442-#444: exception text reduced to its fixed code ----
-check("summary error reduced to fixed code", 'str(exc).split(":", 1)[0]' in bs_src)
-def _summ_err(msg):  # mirrors summary()'s new behavior
-    return str(msg).split(":", 1)[0]
-check("cdp_http_500 kept, transport details dropped",
-      _summ_err("cdp_http_500: Connection refused after 3s") == "cdp_http_500")
-check("code without detail kept whole", _summ_err("not_running") == "not_running")
+# ---- CodeQL alerts #442-#444: no exception-derived text in dashboard JSON ----
+check("summary error is a fixed constant, not exception text",
+      '"browser_error"' in bs_src and "summary failed" in bs_src)
+summ = [ln for ln in bs_src.split("\n") if "info[\"error\"]" in ln]
+check("info.error assignment exists", len(summ) == 1)
+if summ:
+    check("info.error carries no str(exc)", "str(exc)" not in summ[0])
 
 dash_src = open("web/dashboard_app.py", "rb").read().decode("utf-8").replace("\r\n", "\n")
 check("dashboard still sends only fixed codes to the client",

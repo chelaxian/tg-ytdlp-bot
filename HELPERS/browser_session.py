@@ -992,7 +992,9 @@ def summary() -> Dict[str, Any]:
         info["cookies"] = {"count": total,
                            "domains": [{"domain": d, "count": n, "shared": shared_map.get(d, False)} for d, n in sorted(per.items())][:300]}
     except BrowserError as exc:
-        # Only the fixed code ("not_running", "cdp_http_500", ...); the rest of
-        # the message can carry transport details that must not reach the client.
-        info["error"] = str(exc).split(":", 1)[0]
+        # No exception-derived text goes into the JSON the dashboard serves
+        # (CodeQL py/stack-trace-exposure: even a substring of str(exc) is
+        # tainted). Fixed constant here; details only into the server log.
+        logger.warning("[browser] summary failed: %s", exc)
+        info["error"] = "browser_error"
     return info
