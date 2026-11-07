@@ -182,8 +182,11 @@ def normalize_url(raw: str) -> str:
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:
-        # decimal / hex / octal IPv4 tricks ("2130706433", "0x7f.1") are not real domain names
-        if re.fullmatch(r"(0x[0-9a-f]+|\d+)(\.(0x[0-9a-f]+|\d+)){0,3}", host):
+        # decimal / hex / octal IPv4 tricks ("2130706433", "0x7f.1") are not real domain names.
+        # Two separate patterns with no nested alternation: each label is
+        # matched in isolation, so no backtracking blowup is possible on
+        # adversarial hostnames (CodeQL py/polynomial-redos).
+        if all(re.fullmatch(r"0x[0-9a-f]+|[0-9]+", label) for label in host.split(".")):
             raise BrowserError("blocked_host")
     else:
         if not ip.is_global:
@@ -989,5 +992,7 @@ def summary() -> Dict[str, Any]:
         info["cookies"] = {"count": total,
                            "domains": [{"domain": d, "count": n, "shared": shared_map.get(d, False)} for d, n in sorted(per.items())][:300]}
     except BrowserError as exc:
-        info["error"] = str(exc)
+        # Only the fixed code ("not_running", "cdp_http_500", ...); the rest of
+        # the message can carry transport details that must not reach the client.
+        info["error"] = str(exc).split(":", 1)[0]
     return info

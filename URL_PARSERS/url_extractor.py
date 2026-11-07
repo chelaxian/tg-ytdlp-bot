@@ -1342,6 +1342,33 @@ def url_distractor(app, message):
                     except Exception as _cdn_check_error:
                         logger.error(f"URL_EXTRACTOR: failed to apply CDN domain guard: {_cdn_check_error}")
 
+                # Known-unsupported domains (issue #523): sites where yt-dlp's
+                # generic extractor fails and gallery-dl has no extractor at
+                # all. Each attempt only burns an extraction roundtrip and
+                # echoes a raw "Fatal error" at the user, so answer once with
+                # a short human-readable message instead.
+                if raw_url:
+                    try:
+                        _ku_parsed = urlparse(raw_url)
+                        _ku_host = (_ku_parsed.hostname or '').lower()
+                        if _ku_host:
+                            from CONFIG.domains import DomainsConfig as _KUDC
+                            for _ku_domain in (getattr(_KUDC, 'KNOWN_UNSUPPORTED_DOMAINS', None) or []):
+                                _ku_domain_lower = _ku_domain.lower().strip()
+                                if _ku_host == _ku_domain_lower or _ku_host.endswith('.' + _ku_domain_lower):
+                                    logger.info(f"URL_EXTRACTOR: blocking known-unsupported domain '{_ku_host}' for URL '{raw_url}'")
+                                    _ku_err_msg = (
+                                        f"<blockquote>{safe_get_messages(user_id).ERROR_CHECK_SUPPORTED_SITES_MSG}</blockquote>\n"
+                                        f"────────────────\n"
+                                        f"❌ <b>Error Code:</b> <code>UNSUPPORTED_SOURCE</code>\n"
+                                        f"📝 <b>Description:</b> This site (<code>{_ku_host}</code>) is not supported: "
+                                        f"it has no yt-dlp or gallery-dl extractor. Please use another source."
+                                    )
+                                    send_error_to_user(message, _ku_err_msg, url=raw_url)
+                                    return
+                    except Exception as _ku_check_error:
+                        logger.error(f"URL_EXTRACTOR: failed to apply known-unsupported domain guard: {_ku_check_error}")
+
                 parsed = urlparse(raw_url)
                 path_lower = (parsed.path or "").lower()
 

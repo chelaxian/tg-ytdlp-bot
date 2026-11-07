@@ -91,6 +91,15 @@ class DomainsConfig(object):
         'googlevideo.com',     # YouTube media server (raw fragments)
         'ytimg.com',           # YouTube thumbnails
     ]
+    # Domains confirmed unsupported by BOTH yt-dlp (generic extractor fails on
+    # the non-standard player/anti-bot page) and gallery-dl (no extractor).
+    # Every attempt burns a full extraction roundtrip only to echo a raw error
+    # at the user (issue #523: videos.noonedu.com, 10-13 cases/day for 4+ days).
+    # The guard in url_extractor answers with a short human-readable message
+    # instead. Remove a domain if a future yt-dlp/gallery-dl release supports it.
+    KNOWN_UNSUPPORTED_DOMAINS = [
+        'noonedu.com',        # issue #523: Persian educational video site
+    ]
     #BLACK_LIST = ["pornhub", "phncdn.com", "xvideos", "xhcdn.com", "xhamster"]
     # Paths to domain and keyword lists
     PORN_DOMAINS_FILE = "TXT/porn_domains.txt"
