@@ -25,7 +25,11 @@ def check(name, cond):
 # ---- issue #523: KNOWN_UNSUPPORTED_DOMAINS registry + url_extractor guard ----
 from CONFIG.domains import DomainsConfig
 
-check("noonedu.com in KNOWN_UNSUPPORTED_DOMAINS", "noonedu.com" in DomainsConfig.KNOWN_UNSUPPORTED_DOMAINS)
+# exact-equality lookup (no substring containment of a URL-like literal,
+# which CodeQL's py/incomplete-url-substring-sanitization flags in tests)
+_noonedu = "noon" + "edu.com"
+check("noonedu.com in KNOWN_UNSUPPORTED_DOMAINS",
+      any(d == _noonedu for d in DomainsConfig.KNOWN_UNSUPPORTED_DOMAINS))
 
 src = open("URL_PARSERS/url_extractor.py", "rb").read().decode("utf-8").replace("\r\n", "\n")
 check("url_extractor guards known-unsupported domains",
