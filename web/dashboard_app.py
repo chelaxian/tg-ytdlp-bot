@@ -596,7 +596,7 @@ from HELPERS import browser_session  # noqa: E402
 from HELPERS.browser_hub import hub as browser_hub, PROFILES as BROWSER_PROFILES, ZOOM_MAX, ZOOM_MIN  # noqa: E402
 
 _BROWSER_CLIENT_ERRORS = ("bad_url", "blocked_host", "bad_tab", "no_such_tab", "bad_action", "bad_input", "bad_key")
-_BROWSER_STATE_ERRORS = ("not_running", "no_browser", "disabled")
+_BROWSER_STATE_ERRORS = ("not_running", "no_browser", "disabled", "busy")
 
 
 def _browser_error_response(exc: Exception) -> JSONResponse:

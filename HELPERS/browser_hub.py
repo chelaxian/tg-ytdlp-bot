@@ -49,6 +49,11 @@ CAST_IDLE = 15.0                                # stop screencasting a tab nobod
 PARK_URL = "about:blank#tg-park"
 IDLE_PARK = 60.0                                # seconds without a viewer before the browser rests
 KEEPALIVE_EVERY = 3 * 3600.0                    # each tab is reloaded about this often while resting
+# Keep-alive opens the service's own start page (its scripts refresh the login cookies; a robots.txt does not),
+# then returns the tab to the page it was on.
+SERVICE_HOME = {"youtube.com": "https://www.youtube.com/", "x.com": "https://x.com/home", "twitter.com": "https://x.com/home",
+                "instagram.com": "https://www.instagram.com/", "tiktok.com": "https://www.tiktok.com/",
+                "vk.com": "https://vk.com/feed", "vk.ru": "https://vk.ru/feed"}
 KEEPALIVE_WAIT = 45.0                           # how long a reloaded tab may run before it is frozen again
 KEEPER_TICK = 20.0
 CALL_TIMEOUT = 10.0
@@ -588,13 +593,24 @@ class BrowserHub:
         with self._lock:
             self._frozen.discard(tid)
         self._call("Page.setWebLifecycleState", {"state": "active"}, sid)
-        self._call("Page.reload", {}, sid)
-        logger.info("[browser-hub] keep-alive reload of %s", str(tab.get("url", ""))[:80])
+        url = str(tab.get("url", ""))
+        home = _home_of(url)
+        if home and home.rstrip("/") != url.rstrip("/"):
+            self._call("Page.navigate", {"url": home}, sid)
+        else:
+            self._call("Page.reload", {}, sid)
+        logger.info("[browser-hub] keep-alive of %s", (home or url)[:80])
         deadline = time.monotonic() + KEEPALIVE_WAIT
         while time.monotonic() < deadline:
             if time.monotonic() - self._last_view < IDLE_PARK:
                 return tid                                 # the panel opened meanwhile: leave it running
             time.sleep(1.0)
+        if home and home.rstrip("/") != url.rstrip("/"):
+            try:
+                self._call("Page.navigate", {"url": url}, sid)  # back to where the admin left it
+                time.sleep(3.0)
+            except BrowserError:
+                pass
         self._freeze(tid)
         return tid
 
@@ -602,17 +618,53 @@ class BrowserHub:
         if not bs.enabled():
             return
         if not bs.is_running():
+            if bs.is_alive():                             # busy, not dead: wait for it
+                return
             if bs.wants_autostart():                      # it ran before a crash / reboot: bring it back
                 try:
                     bs.start()
                     logger.info("[browser-hub] browser restarted (it was running before)")
+                    self._restore_tabs()
                 except BrowserError as exc:
                     logger.warning("[browser-hub] browser autostart failed: %s", exc)
             return
+        try:
+            bs.save_tabs([t["url"] for t in bs.list_tabs()])
+        except BrowserError:
+            pass
         if time.monotonic() - self._last_view < IDLE_PARK:
             return
         self.rest()
         self.keep_alive()
+
+    def _restore_tabs(self) -> None:
+        """After a restart Chrome restores its session itself; if it did not, reopen the tabs saved before.
+        Then drop the new-tab page Chrome puts next to them."""
+        time.sleep(5.0)
+        try:
+            open_now = {t["url"].rstrip("/") for t in bs.list_tabs() if t["url"].startswith("http")}
+        except BrowserError:
+            return
+        if not open_now:
+            missing = bs.saved_tabs()
+            for url in missing:
+                try:
+                    self.new_tab(url)
+                except BrowserError as exc:
+                    logger.debug("[browser-hub] reopen %s: %s", url, exc)
+            if missing:
+                logger.info("[browser-hub] reopened %d saved tabs", len(missing))
+        try:
+            tabs = bs.list_tabs()
+        except BrowserError:
+            return
+        if any(t["url"].startswith("http") for t in tabs):
+            for t in tabs:
+                if t["url"].startswith(("chrome://newtab", "chrome://new-tab-page", "about:blank")):
+                    try:
+                        self.close_tab(t["id"])
+                    except BrowserError:
+                        pass
 
     def start_keeper(self) -> None:
         """Background upkeep (dashboard process only): rest when idle, keep sessions alive, restart after a crash."""
@@ -631,6 +683,17 @@ class BrowserHub:
 
         self._keeper = threading.Thread(target=loop, daemon=True, name="browser-keeper")
         self._keeper.start()
+
+
+def _home_of(url: str) -> Optional[str]:
+    try:
+        host = (bs.urlparse(url).hostname or "").lower()
+    except ValueError:
+        return None
+    for domain, home in SERVICE_HOME.items():
+        if host == domain or host.endswith("." + domain):
+            return home
+    return None
 
 
 hub = BrowserHub()
