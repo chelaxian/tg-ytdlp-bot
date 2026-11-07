@@ -406,6 +406,11 @@ dialog::backdrop { background: rgba(10, 18, 28, .45); }
 .br-toolbar .icon-btn, .br-zoombar .icon-btn, .br-controls > .icon-btn { width: 28px; height: 28px; font-size: 14px; }
 .br-address { flex: 1 1 auto; min-width: 0; height: 28px; padding: 2px 8px; font-size: 13px; }
 .br-bookmarks { display: flex; gap: 2px; flex: none; }
+.br-bm { display: flex; flex-direction: column; gap: 1px; }
+.br-bm button { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink-2); cursor: pointer; white-space: nowrap; padding: 0 6px; line-height: 1; }
+.br-bm button:hover { color: var(--ink); border-color: var(--line-strong); }
+.br-bm-home { height: 17px; font-size: 11.5px; font-weight: 600; border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.br-bm-robots { height: 12px; font-size: 9.5px; border-radius: 0 0 var(--r-sm) var(--r-sm); color: var(--ink-3) !important; }
 .br-chip { height: 26px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel-2); color: var(--ink-2); font-size: 12px; cursor: pointer; white-space: nowrap; }
 .br-chip:hover { color: var(--ink); border-color: var(--line-strong); }
 .br-zoombar { display: flex; align-items: center; gap: 2px; flex: none; }
@@ -440,3 +445,17 @@ dialog::backdrop { background: rgba(10, 18, 28, .45); }
   .br-zoom-range { display: none; }
   .br-screen { height: 62vw; min-height: 0; }
 }
+/* cookies of the browser session: a dense grid of small chips */
+.br-ck-head { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s2); font-size: 13px; color: var(--ink-2); }
+.br-ck-legend { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-3); }
+.br-ck-mark { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); }
+.br-ck-clear { margin-left: auto; height: 26px; padding: 0 10px; font-size: 12px; border-radius: var(--r-sm); border: 1px solid var(--line); background: transparent; color: var(--rec); cursor: pointer; }
+.br-ck-clear:hover:not(:disabled) { background: var(--rec-soft); }
+.br-ck-clear:disabled { opacity: .5; cursor: default; }
+.br-ck-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px; }
+.br-ck { display: flex; align-items: center; gap: 6px; min-width: 0; height: 26px; padding: 0 2px 0 8px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel-2); font-size: 12.5px; }
+.br-ck.bot { border-left: 3px solid var(--signal); }
+.br-ck-dom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-ck-n { flex: none; font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 11.5px; }
+.br-ck-rm { flex: none; width: 22px; height: 22px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink-3); font-size: 15px; line-height: 1; cursor: pointer; }
+.br-ck-rm:hover { color: var(--rec); background: var(--rec-soft); }

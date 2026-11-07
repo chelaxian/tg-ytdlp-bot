@@ -6,8 +6,14 @@ import { t } from "./i18n.js";
 import { h, api, toast, errorText, confirmDialog, num, getCsrf } from "./ui.js";
 
 const MAX_FAILS = 4;
-const BOOKMARKS = [["YouTube", "https://www.youtube.com/"], ["X", "https://x.com/"], ["Instagram", "https://www.instagram.com/"],
-  ["VK", "https://vk.com/"], ["TikTok", "https://www.tiktok.com/"]];
+// each service lives in its own tab: its start page and its robots.txt (a light page to leave the tab on) open there
+const BOOKMARKS = [
+  { name: "YouTube", home: "https://www.youtube.com/", robots: "https://www.youtube.com/robots.txt", hosts: ["youtube.com"] },
+  { name: "X", home: "https://x.com/home", robots: "https://x.com/robots.txt", hosts: ["x.com", "twitter.com"] },
+  { name: "Instagram", home: "https://www.instagram.com/", robots: "https://www.instagram.com/robots.txt", hosts: ["instagram.com"] },
+  { name: "VK", home: "https://vk.ru/feed", robots: "https://vk.ru/robots.txt", hosts: ["vk.ru", "vk.com"] },
+  { name: "TikTok", home: "https://www.tiktok.com/", robots: "https://www.tiktok.com/robots.txt", hosts: ["tiktok.com"] },
+];
 const PROFILES = ["fast", "normal", "sharp"];     // picture quality: fast = smallest frames, the default
 
 function brError(err) {
@@ -82,20 +88,27 @@ export function buildBrowser(s, { panel, bindLoader }) {
       b.addEventListener("click", () => { if (st.tab) act(() => post("/api/browser/history", { id: st.tab, action })); });
       return b;
     };
-    // bookmarks: switch to the tab of that site if it is open, reuse a blank tab, else open a new tab
+    // bookmarks: the service's own tab if it is open (switched to this page), else a blank tab, else a new tab
     const siteHost = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } };
-    const openBookmark = async (url) => {
-      const host = siteHost(url);
+    const ofService = (svc, url) => { const host = siteHost(url); return !!host && svc.hosts.some((d) => host === d || host.endsWith(`.${d}`)); };
+    const openBookmark = async (svc, url) => {
       const tabs = (st.data && st.data.tabs) || [];
-      const same = tabs.find((x) => { const other = siteHost(x.url); return other && (other === host || other.endsWith(`.${host}`)); });
-      if (same) { await selectTab(same.id); return; }
+      const same = tabs.find((x) => x.id === st.tab && ofService(svc, x.url)) || tabs.find((x) => ofService(svc, x.url));
+      if (same) {
+        if (same.id !== st.tab) await selectTab(same.id);
+        if (same.url.replace(/\/$/, "") !== url.replace(/\/$/, "")) act(() => post("/api/browser/navigate", { id: same.id, url }));
+        return;
+      }
       const current = tabs.find((x) => x.id === st.tab);
       if (current && (!current.url || current.url === "about:blank")) { act(() => post("/api/browser/navigate", { id: st.tab, url })); return; }
       const created = await act(() => post("/api/browser/tab", { url }));
       if (created && created.id) await selectTab(created.id);
     };
     const bookmarks = h("div", { class: "br-bookmarks", role: "group", "aria-label": t("br.bookmarks") },
-      BOOKMARKS.map(([name, url]) => h("button", { type: "button", class: "br-chip", title: url, onclick: () => openBookmark(url) }, name)));
+      BOOKMARKS.map((svc) => h("div", { class: "br-bm" },
+        h("button", { type: "button", class: "br-bm-home", title: svc.home, onclick: () => openBookmark(svc, svc.home) }, svc.name),
+        h("button", { type: "button", class: "br-bm-robots", title: `${svc.robots} — ${t("br.robots.title")}`,
+          "aria-label": `${svc.name} robots.txt`, onclick: () => openBookmark(svc, svc.robots) }, "robots"))));
     const address = h("input", { type: "text", class: "br-address", inputmode: "url", autocomplete: "off", spellcheck: "false",
       autocapitalize: "off", "aria-label": t("br.address"), placeholder: t("br.address.ph") });
     const bar = h("form", { class: "br-toolbar", novalidate: true },
@@ -291,24 +304,26 @@ export function buildBrowser(s, { panel, bindLoader }) {
     const body = cookies.body;
     const info = (data && data.cookies) || { count: 0, domains: [] };
     if (!data || !data.running) { body.replaceChildren(h("p", { class: "state" }, t("br.cookies.off"))); return; }
-    const clearAll = h("button", { type: "button", class: "danger", disabled: !info.count }, t("br.clearAll"));
+    const clearAll = h("button", { type: "button", class: "br-ck-clear", disabled: !info.count }, t("br.clearAll"));
     clearAll.addEventListener("click", async () => {
       if (await confirmDialog({ title: t("br.clearAll"), text: t("br.clearAll.text"), confirm: t("br.clearAll"), danger: true }))
         act(() => post("/api/browser/cookies/clear", {}), t("br.cleared"));
     });
-    const rows = info.domains.map((d) => {
-      const rm = h("button", { type: "button", class: "ghost", "aria-label": t("br.remove", { d: d.domain }) }, t("br.removeShort"));
+    // compact grid: domain, count, a mark when the bot takes it, × to delete
+    const rows = [...info.domains].sort((a, b) => (b.shared ? 1 : 0) - (a.shared ? 1 : 0) || a.domain.localeCompare(b.domain)).map((d) => {
+      const rm = h("button", { type: "button", class: "br-ck-rm", "aria-label": t("br.remove", { d: d.domain }), title: t("br.remove", { d: d.domain }) }, "×");
       rm.addEventListener("click", async () => {
         if (await confirmDialog({ title: t("br.remove", { d: d.domain }), text: t("br.remove.text", { d: d.domain }), confirm: t("br.removeShort"), danger: true }))
           act(() => post("/api/browser/cookies/clear", { domain: d.domain }), t("br.cleared"));
       });
-      return h("li", { class: "row" }, h("span", { class: "row-main" }, d.domain), d.shared ? h("span", { class: "pill" }, t("br.shared")) : null,
-        h("span", { class: "tag" }, num(d.count)), rm);
+      return h("li", { class: "br-ck" + (d.shared ? " bot" : ""), title: d.shared ? t("br.shared") : "" },
+        h("span", { class: "br-ck-dom" }, d.domain), h("span", { class: "br-ck-n" }, num(d.count)), rm);
     });
     body.replaceChildren(
-      h("p", null, t("br.cookies.total", { n: num(info.count), d: num(info.domains.length) })),
-      rows.length ? h("ul", { class: "rows" }, rows) : h("p", { class: "state" }, t("br.cookies.none")),
-      h("div", { class: "panel-actions" }, clearAll));
+      h("div", { class: "br-ck-head" },
+        h("span", null, t("br.cookies.total", { n: num(info.count), d: num(info.domains.length) })),
+        h("span", { class: "br-ck-legend" }, h("span", { class: "br-ck-mark", "aria-hidden": "true" }), t("br.shared")), clearAll),
+      rows.length ? h("ul", { class: "br-ck-grid" }, rows) : h("p", { class: "state" }, t("br.cookies.none")));
   }
 
   // ------------------------------------------------------------ websocket stream
