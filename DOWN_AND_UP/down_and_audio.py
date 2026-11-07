@@ -18,7 +18,7 @@ from pyrogram.errors import FloodWait
 from HELPERS.app_instance import get_app
 from HELPERS.logger import logger, send_to_logger, send_to_user, send_to_all, send_error_to_user, log_error_to_channel, sanitize_error_message
 from HELPERS.limitter import TimeFormatter, humanbytes, check_user
-from HELPERS.download_status import set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock, register_download_cancel_event, unregister_download_cancel_event
+from HELPERS.download_status import acquire_download_slot, set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, create_directory, check_disk_space, cleanup_user_temp_files
 from HELPERS.ytdlp_errors import should_abort_retries, is_missing_local_file, classify_retryability
@@ -673,7 +673,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     _delivery_confirmed = False
     # Take the user's download slot right before the try whose finally releases it
     # (set_active_download(False)); nothing can return in between, so it cannot leak.
-    set_active_download(user_id, True)
+    # Taken atomically with the limit check (see acquire_download_slot).
+    if not acquire_download_slot(user_id, is_playlist=is_playlist):
+        unregister_download_cancel_event(user_id, _cancel_ev)
+        logger.info(f"Download limit reached for user {user_id}: not starting audio {url}")
+        try:
+            safe_send_message(user_id, safe_get_messages(user_id).AUDIO_WAIT_MSG,
+                              reply_parameters=ReplyParameters(message_id=message.id))
+        except Exception as _wait_err:
+            logger.debug(f"Could not send the wait notice: {_wait_err}")
+        return None
     try:
         # Check if there is a saved waiting time
         from HELPERS.safe_messeger import read_flood_wait_remaining, _write_flood_wait_file
