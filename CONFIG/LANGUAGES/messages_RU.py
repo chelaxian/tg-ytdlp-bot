@@ -1055,7 +1055,7 @@ class Messages(object):
     COOKIE_FALLBACK_UNEXPECTED_MSG = "❌ Неожиданная ошибка при загрузке резервного cookie."
     COOKIES_BROWSER_NOT_INSTALLED_MSG = "⚠️ Браузер {browser} не установлен."
     COOKIES_SAVED_USING_BROWSER_MSG = "✅ Cookies сохранены используя браузер: {browser}"
-    COOKIES_LIVE_BROWSER_SAVED_MSG = "✅ Cookies взяты из живой сессии браузера ({service}): {count} шт. для {domains}."
+    COOKIES_LIVE_BROWSER_SAVED_MSG = "✅ Cookies взяты из живой сессии браузера ({service}): {count} шт."
     COOKIES_LIVE_BROWSER_LOG_MSG = "Cookies из живого браузера сохранены для пользователя {user_id}: сервис={service}, количество={count}"
     COOKIES_LIVE_BROWSER_FAILED_MSG = "❌ Не удалось сохранить cookies из живой сессии браузера."
     COOKIES_LIVE_BROWSER_EMPTY_MSG = "ℹ️ В живой сессии браузера пока нет входа в {service}, беру запасной источник."
