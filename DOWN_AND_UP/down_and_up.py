@@ -3474,11 +3474,30 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         send_error_to_user(message, format_error_message)
                         error_message_sent = True
                     else:
-                        generic_error_msg = (
-                            safe_get_messages(user_id).DOWNLOAD_ERROR_GENERIC +
-                            f"\n\n<b>Error:</b> <code>{sanitize_error_message(error_message)[:500]}</code>"
-                        )
-                        send_error_to_user(message, generic_error_msg, url)
+                        # Try the shared semantic classifier first (the same one
+                        # the Always Ask menu uses): terminal errors surfaced by
+                        # the format check ("Sign in to confirm you're not a bot",
+                        # rate limits, removed content, HTTP 4xx) must reach the
+                        # user as a localized explanation, not a raw yt-dlp dump.
+                        _classified_msg = None
+                        try:
+                            from DOWN_AND_UP.always_ask_menu import _classify_ask_error, _ask_error_message
+                            _classified_msg = _ask_error_message(user_id, _classify_ask_error(error_message, url))
+                        except Exception as _cls_err:
+                            logger.debug(f"Semantic error classification unavailable: {_cls_err}")
+                        if _classified_msg:
+                            send_error_to_user(message, _classified_msg, url)
+                            if is_cookie_error(error_message):
+                                try:
+                                    safe_send_message(user_id, safe_get_messages(user_id).SAVE_AS_COOKIE_HINT, reply_parameters=ReplyParameters(message_id=message.id), parse_mode=enums.ParseMode.HTML)
+                                except Exception as _cookie_hint_err:
+                                    logger.warning(f"Failed to send cookie hint: {_cookie_hint_err}")
+                        else:
+                            generic_error_msg = (
+                                safe_get_messages(user_id).DOWNLOAD_ERROR_GENERIC +
+                                f"\n\n<b>Error:</b> <code>{sanitize_error_message(error_message)[:500]}</code>"
+                            )
+                            send_error_to_user(message, generic_error_msg, url)
                         error_message_sent = True
                 with playlist_errors_lock:
                     error_key = f"{user_id}_{playlist_name}"

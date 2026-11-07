@@ -1610,10 +1610,22 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
         # Форматы здесь проверяем мягко: даже если их мало, это чаще проблема формата/PO,
         # а не самих кук, поэтому не считаем это падением теста.
         formats = info.get('formats', [])
+        # Storyboard-only formats (sb0/sb1/... — preview thumbnails) are served
+        # to completely unauthenticated clients. When they are the ONLY formats
+        # returned, the session is effectively logged out / bot-flagged and the
+        # download itself will fail: treat that as a failed test (observed in
+        # production: "test passed - 4 formats available" where all 4 were sb0-sb3).
+        _downloadable = [f for f in formats if not str(f.get('format_id', '')).startswith('sb')]
+        if formats and not _downloadable:
+            logger.warning(
+                f"Cookie test: only storyboard formats ({[f.get('format_id') for f in formats]}) "
+                f"available for {cookie_file_path} - session is not authenticated, treating as failed"
+            )
+            return False
         if len(formats) < 1:
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_INSUFFICIENT_FORMATS_LOG_MSG.format(formats_count=len(formats), cookie_file_path=cookie_file_path))
             # Но всё равно считаем куки рабочими, раз info извлекается.
-        
+
         logger.info(LoggerMsg.COOKIES_YOUTUBE_COOKIES_WORK_LOG_MSG.format(cookie_file_path=cookie_file_path))
         return True
         
@@ -1739,6 +1751,17 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
             
         # Проверяем количество форматов (должно быть достаточно для выбора)
         # Only check if formats exist - if they don't, we already handled that above
+        # Storyboard-only (sb*) formats are served to unauthenticated clients too;
+        # without a real video/audio format the session cannot download anything,
+        # so the test must fail (see test_youtube_cookies_on_url).
+        _downloadable_formats = [f for f in formats if not str(f.get('format_id', '')).startswith('sb')]
+        if formats and not _downloadable_formats:
+            logger.warning(
+                f"Cookie test: only storyboard formats ({[f.get('format_id') for f in formats]}) "
+                f"available for {cookie_file_path} - session is not authenticated, treating as failed"
+            )
+            return False
+        formats = _downloadable_formats or formats
         formats_count = len(formats) if formats else 0
         if formats_count > 0 and formats_count < 3:  # Минимум 3 формата для выбора (только если форматы есть)
             logger.warning(LoggerMsg.COOKIES_YOUTUBE_TEST_FAILED_TOO_FEW_FORMATS_LOG_MSG.format(formats_count=formats_count, cookie_file_path=cookie_file_path))
