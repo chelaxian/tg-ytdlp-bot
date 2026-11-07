@@ -37,7 +37,11 @@ _d = DomainsConfig.KNOWN_UNSUPPORTED_DOMAINS[0]
 for host in ("noonedu.com", "videos.noonedu.com", "NOONEDU.COM"):
     h = host.lower()
     check(f"hostname match {host}", h == _d or h.endswith("." + _d))
-check("no false positive lookalike", not "xnoonedu.com".endswith("." + _d))
+# lookalike hosts must NOT match: the guard compares the whole hostname
+for _bad_host in ("xnoonedu.com", "noonedu.com.evil.example"):
+    _h = _bad_host.lower()
+    check(f"lookalike {_bad_host} not blocked",
+          not (_h == _d or _h.endswith("." + _d)))
 
 # ---- issue #524: recoverable [WARP] events no longer on ERROR level ----
 wsrc = open("HELPERS/warp_tunnel.py", "rb").read().decode("utf-8").replace("\r\n", "\n")
