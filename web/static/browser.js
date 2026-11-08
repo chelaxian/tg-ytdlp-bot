@@ -15,6 +15,9 @@ const BOOKMARKS = [
   { name: "TikTok", home: "https://www.tiktok.com/", robots: "https://www.tiktok.com/robots.txt", hosts: ["tiktok.com"] },
 ];
 const PROFILES = ["fast", "normal", "sharp"];     // picture quality: fast = smallest frames, the default
+const KA_STEPS = [[0, "br.ka.off"], [1800, "br.ka.30m"], [3600, "br.ka.1h"], [3 * 3600, "br.ka.3h"],
+  [6 * 3600, "br.ka.6h"], [12 * 3600, "br.ka.12h"], [24 * 3600, "br.ka.24h"]];
+const kaLabel = (sec) => { const hit = KA_STEPS.find(([v]) => v === sec); return (hit && t(hit[1])) || t("br.ka.custom", { h: Math.round(sec / 360) / 10 }); };
 
 function brError(err) {
   const code = err && err.body && err.body.error;
@@ -160,11 +163,8 @@ export function buildBrowser(s, { panel, bindLoader }) {
       PROFILES.map((p) => h("option", { value: p, selected: p === st.profile }, t(`br.q.${p}`))));
     quality.addEventListener("change", () => { st.profile = quality.value; localStorage.setItem("dash.br.profile", st.profile); restartStream(); });
     // how often each resting tab is woken to refresh its login cookies
-    const KA = [[0, "br.ka.off"], [1800, "br.ka.30m"], [3600, "br.ka.1h"], [3 * 3600, "br.ka.3h"],
-                [6 * 3600, "br.ka.6h"], [12 * 3600, "br.ka.12h"], [24 * 3600, "br.ka.24h"]];
-    const kaLabel = (sec) => (KA.find(([v]) => v === sec) && t(KA.find(([v]) => v === sec)[1])) || t("br.ka.custom", { h: Math.round(sec / 360) / 10 });
     const keepalive = h("select", { class: "br-quality br-ka", "aria-label": t("br.ka"), title: t("br.ka.title") },
-      KA.map(([v, key]) => h("option", { value: String(v) }, t(key))));
+      KA_STEPS.map(([v, key]) => h("option", { value: String(v) }, t(key))));
     keepalive.addEventListener("change", async () => {
       try { const r = await post("/api/browser/keepalive", { seconds: Number(keepalive.value) }); toast(t("br.ka.apply", { v: r.seconds ? kaLabel(r.seconds) : t("br.ka.off") }), "ok"); }
       catch (err) { toast(brError(err), "error"); }
@@ -268,13 +268,15 @@ export function buildBrowser(s, { panel, bindLoader }) {
     if (!st.ui) st.ui = buildUi();
     const ui = st.ui;
     const ready = data.enabled && data.executable;
-    const state = !data.enabled ? t("br.state.off") : !data.executable ? t("br.state.nobrowser") : data.running ? t("br.state.running") : t("br.state.stopped");
+    const state = !data.enabled ? t("br.state.off") : !data.executable ? t("br.state.nobrowser")
+      : data.running ? t("br.state.running") : data.busy ? t("br.state.busy") : t("br.state.stopped");
     ui.statusPill.title = state;
     ui.statusPill.setAttribute("aria-label", state);
     ui.statusPill.classList.toggle("on", !!data.running);
-    // running: a small power icon; stopped: the one button there is to press
+    // running: a small power icon; stopped: the one button there is to press; busy: it comes back on its own
     ui.power.textContent = data.running ? "⏻" : t("br.start");
     ui.power.title = data.running ? t("br.stop") : t("br.start");
+    ui.power.hidden = !ready || !!data.busy;
     ui.power.setAttribute("aria-label", ui.power.title);
     ui.power.classList.toggle("icon-btn", !!data.running);
     if (ui.keepalive && data.keepalive !== undefined && document.activeElement !== ui.keepalive) {
@@ -283,7 +285,6 @@ export function buildBrowser(s, { panel, bindLoader }) {
       ui.keepalive.title = data.keepalive ? `${t("br.ka.title")} ${kaLabel(data.keepalive)}` : t("br.ka.off");
     }
 
-    ui.power.hidden = !ready;
     ui.missing.hidden = ready;
     ui.missing.textContent = !data.enabled ? t("br.disabled") : t("br.nobrowser");
     ui.live.hidden = !data.running;

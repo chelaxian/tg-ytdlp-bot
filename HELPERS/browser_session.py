@@ -1006,7 +1006,11 @@ def summary() -> Dict[str, Any]:
                             "proxy": {"enabled": bool(wanted), "reachable": proxy_reachable(wanted) if wanted else False},
                             "running": False, "tabs": [], "cookies": {"count": 0, "domains": []},
                             "viewport": {"width": VIEWPORT[0], "height": VIEWPORT[1]}}
-    if not info["enabled"] or not is_running():
+    if not info["enabled"]:
+        return info
+    if not is_running():
+        if is_alive():                       # up but too busy to answer right now: it is not stopped
+            info["busy"] = True
         return info
     info["running"] = True
     try:
