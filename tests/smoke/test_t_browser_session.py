@@ -158,6 +158,27 @@ check("BROWSER_HEADLESS=True: no virtual screen", bs._xvfb_binary() is None)
 bs._cfg = _orig_cfg
 check("no virtual screen -> not windowed", bs.is_windowed() is False)
 
+# "busy" in the summary: a listener on the CDP port that never answers DevTools
+import threading
+def _serve_forever(sock):
+    try:
+        while True:
+            sock.accept()
+    except OSError:
+        pass
+fake = _socket.socket(); fake.bind(("127.0.0.1", 0)); fake.listen(1)
+_port = fake.getsockname()[1]
+_orig_port, bs.cdp_port = bs.cdp_port, (lambda _p=_port: _p)
+threading.Thread(target=_serve_forever, args=(fake,), daemon=True).start()
+check("not running but alive -> busy in the summary",
+      bs.is_running() is False and bs.is_alive() is True and bs.summary().get("busy") is True)
+try:
+    bs.start(); check("start refuses a busy browser", False)
+except bs.BrowserError as exc:
+    check("start refuses a busy browser", "busy" in str(exc))
+bs.cdp_port = _orig_port
+fake.close()
+
 # keep-alive interval: file on the server, clamped, 0 = off, Config wins, panel endpoint writes it
 check("default keep-alive interval", bs.keepalive_interval() == 3 * 3600)
 bs.set_keepalive_interval(1800); check("30 min accepted", bs.keepalive_interval() == 1800)

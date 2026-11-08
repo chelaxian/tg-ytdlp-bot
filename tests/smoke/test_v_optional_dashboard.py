@@ -123,5 +123,17 @@ check("bot entrypoint does not start the panel", "uvicorn" not in read("scripts/
 check("update script keeps an installed dashboard", "COMPOSE_PROFILES=dashboard" in read("scripts/UPDATE_DOCKER.sh"))
 check("requirements-dashboard.txt travels with updates", "requirements-dashboard.txt" in read("scripts/update_from_repo.py"))
 
+# the browser tab renders without a live browser: helpers used by reload() must be in scope
+import re as _re
+js = read("web/static/browser.js")
+mod_scope = set(_re.findall(r"^ {0,2}(?:const|let|function)\s+([A-Za-z_$][\w$]*)", js, _re.M))
+funcs = set(_re.findall(r"^  (?:async )?function\s+([A-Za-z_$][\w$]*)", js, _re.M))
+m = _re.search(r"function buildUi\(\) \{([\s\S]*?)\n  \}", js)
+buildui_locals = set(_re.findall(r"(?:const|let)\s+([A-Za-z_$][\w$]*)", m.group(1))) if m else set()
+reload_body = _re.search(r"async function reload\(\) \{([\s\S]*?)\n  \}", js).group(1)
+used = set(_re.findall(r"\bkaLabel\b|\bKA_STEPS\b|\bbrError\b|\brestartStream\b|\brenderTabs\b", reload_body))
+check("browser tab: helpers used by reload() are in scope", used <= mod_scope | funcs | buildui_locals,
+      sorted(used - mod_scope - funcs - buildui_locals))
+
 print(f"\n{ok} passed, {fail} failed")
 sys.exit(1 if fail else 0)
