@@ -202,14 +202,22 @@ else:
         check("panel wakes the browser", not hub._parked and not hub._frozen and fr is not None)
         check("woken tab is in front again", hub.evaluate(tid, "document.visibilityState") == "visible")
         # keep-alive: a resting tab is reloaded now and then, then frozen again
-        old_every, old_wait = bh.KEEPALIVE_EVERY, bh.KEEPALIVE_WAIT
-        bh.KEEPALIVE_EVERY, bh.KEEPALIVE_WAIT = 0.0, 1.0
+        old_wait = bh.KEEPALIVE_WAIT
+        bs.set_keepalive_interval(0)
         hub._last_view = 0.0
         hub.rest()
+        check("interval 0: no keep-alive visit", hub.keep_alive() is None)
+        bs.set_keepalive_interval(1800)
+        hub._interval = -1.0                                      # force a re-read of the new interval
+        hub.keep_alive()                                          # re-reads the interval and re-anchors the tabs
+        for tid in list(hub._refreshed):
+            hub._refreshed[tid] -= 7200                           # pretend the visits are long overdue
         reloaded = hub.keep_alive()
         check("keep-alive reloads a resting tab", reloaded is not None)
         check("keep-alive freezes it again", reloaded in hub._frozen, hub._frozen)
-        bh.KEEPALIVE_EVERY, bh.KEEPALIVE_WAIT = old_every, old_wait
+        bs.set_keepalive_interval(3 * 3600)
+        hub._interval = -1.0
+        bh.KEEPALIVE_WAIT = old_wait
         hub.frame(tid, 0, "fast", wait=3)
 
         # reconnect after the connection drops

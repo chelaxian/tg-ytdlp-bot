@@ -2119,7 +2119,7 @@ If you already ran the dashboard in Docker, `scripts/UPDATE_DOCKER.sh` keeps it 
 commands add `COMPOSE_PROFILES=dashboard` to `.env`.
 
 Browser tab settings (all optional, in `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
-`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_TIMEZONE`, `BROWSER_HEADLESS`, `BROWSER_COOKIES_ADMIN_ONLY`. The bot hands out
+`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_TIMEZONE`, `BROWSER_HEADLESS`, `BROWSER_KEEPALIVE_EVERY`, `BROWSER_COOKIES_ADMIN_ONLY`. The bot hands out
 only the cookies of YouTube, X, Instagram, VK and TikTok. The browser runs on the server itself and leaves from its address
 (`BROWSER_PROXY` can point it at a proxy on the server side).
 

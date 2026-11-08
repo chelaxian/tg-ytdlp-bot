@@ -105,6 +105,7 @@ class BrowserHub:
         self._parked = False
         self._frozen: set = set()
         self._refreshed: Dict[str, float] = {}          # targetId -> wall time of the last keep-alive reload
+        self._interval = -1.0                            # cached keep-alive interval (re-read when it changes)
         self._keeper: Optional[threading.Thread] = None
         self._last_frame: Dict[str, float] = {}
         self._ready: set = set()                       # targets whose identity script / emulation is installed
@@ -579,11 +580,18 @@ class BrowserHub:
     def keep_alive(self) -> Optional[str]:
         """While resting: wake and reload the tab whose session was refreshed longest ago (one per call)."""
         now = time.time()
+        interval = float(bs.keepalive_interval())
+        if interval <= 0:
+            return None                                   # the admin turned the keep-alive visits off
+        if interval != self._interval:                    # changed in the panel: re-spread the tabs over the new period
+            self._interval = interval
+            for tid in list(self._refreshed):
+                self._refreshed[tid] = now
         pages = [t for t in self._pages() if not str(t.get("url", "")).startswith(PARK_URL)
                  and str(t.get("url", "")).startswith("http")]
         for i, t in enumerate(pages):                     # first sight: spread the tabs over the interval
-            self._refreshed.setdefault(t["id"], now - KEEPALIVE_EVERY + (i + 1) * KEEPALIVE_EVERY / max(1, len(pages)))
-        due = [t for t in pages if now - self._refreshed[t["id"]] >= KEEPALIVE_EVERY]
+            self._refreshed.setdefault(t["id"], now - interval + (i + 1) * interval / max(1, len(pages)))
+        due = [t for t in pages if now - self._refreshed[t["id"]] >= interval]
         if not due:
             return None
         tab = min(due, key=lambda t: self._refreshed[t["id"]])
