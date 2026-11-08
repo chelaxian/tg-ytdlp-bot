@@ -49,6 +49,7 @@ XVFB_PID_FILE = PROJECT_DIR / "CONFIG" / ".browser_xvfb.pid"
 TZ_CACHE_FILE = PROJECT_DIR / "CONFIG" / ".browser_timezone"
 AUTOSTART_FILE = PROJECT_DIR / "CONFIG" / ".browser_autostart"   # present while the admin wants the browser running
 PARK_URL = "about:blank#tg-park"                                   # the hub's resting tab, never shown in the panel
+KEEPALIVE_FILE = PROJECT_DIR / "CONFIG" / ".browser_keepalive"       # seconds between keep-alive visits of a tab
 TABS_FILE = PROJECT_DIR / "CONFIG" / ".browser_tabs.json"           # last open tabs, reopened after a restart
 SCREEN = (1920, 1080)                 # virtual screen of the windowed browser (an ordinary Full HD monitor)
 WINDOW_UI_HEIGHT = 87                 # tab strip + toolbar of a normal Chrome window
@@ -704,6 +705,36 @@ def start() -> Dict[str, Any]:
 
 def wants_autostart() -> bool:
     return AUTOSTART_FILE.exists()
+
+
+KEEPALIVE_MIN, KEEPALIVE_MAX = 1800, 7 * 24 * 3600        # 30 minutes .. a week; 0 turns the visits off
+
+
+def keepalive_interval(default: float = 3 * 3600.0) -> int:
+    """Seconds between keep-alive visits of a resting tab (Config.BROWSER_KEEPALIVE_EVERY wins over the file)."""
+    try:
+        cfg = float(_cfg("BROWSER_KEEPALIVE_EVERY", 0) or 0)
+        if cfg:
+            return int(min(max(cfg, KEEPALIVE_MIN), KEEPALIVE_MAX)) if cfg > 0 else 0
+    except (TypeError, ValueError):
+        pass
+    try:
+        value = float(KEEPALIVE_FILE.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return int(default)
+    return 0 if value <= 0 else int(min(max(value, KEEPALIVE_MIN), KEEPALIVE_MAX))
+
+
+def set_keepalive_interval(seconds: int) -> int:
+    try:
+        seconds = int(seconds)
+    except (TypeError, ValueError):
+        raise BrowserError("bad_interval") from None
+    if seconds != 0:
+        seconds = min(max(seconds, KEEPALIVE_MIN), KEEPALIVE_MAX)
+    KEEPALIVE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    KEEPALIVE_FILE.write_text(str(seconds), encoding="utf-8")
+    return seconds
 
 
 def stop(keep_autostart: bool = False) -> bool:

@@ -158,6 +158,22 @@ check("BROWSER_HEADLESS=True: no virtual screen", bs._xvfb_binary() is None)
 bs._cfg = _orig_cfg
 check("no virtual screen -> not windowed", bs.is_windowed() is False)
 
+# keep-alive interval: file on the server, clamped, 0 = off, Config wins, panel endpoint writes it
+check("default keep-alive interval", bs.keepalive_interval() == 3 * 3600)
+bs.set_keepalive_interval(1800); check("30 min accepted", bs.keepalive_interval() == 1800)
+bs.set_keepalive_interval(60); check("too-small interval clamps to 30 min", bs.keepalive_interval() == 1800)
+bs.set_keepalive_interval(60 * 24 * 3600); check("too-large interval clamps to a week", bs.keepalive_interval() == 7 * 24 * 3600)
+bs.set_keepalive_interval(0); check("0 turns the visits off", bs.keepalive_interval() == 0)
+bs.set_keepalive_interval(3 * 3600)
+r = c.post("/api/browser/keepalive", json={"seconds": 7200}, headers=H)
+check("panel sets the interval", r.status_code == 200 and r.json() == {"ok": True, "seconds": 7200} and bs.keepalive_interval() == 7200)
+check("panel clamps a too-small interval", c.post("/api/browser/keepalive", json={"seconds": 5}, headers=H).json() == {"ok": True, "seconds": 1800})
+check("interval change needs csrf", c.post("/api/browser/keepalive", json={"seconds": 7200}, headers=SAME).status_code == 403)
+check("interval is readable", c.get("/api/browser/keepalive", headers=H).json() == {"seconds": 1800})
+summ = c.get("/api/browser", headers=H).json()
+check("summary shows the interval", summ.get("keepalive") == 1800, summ.get("keepalive"))
+bs.set_keepalive_interval(3 * 3600)
+
 # survives a restart of the dashboard service: own systemd scope, privileges dropped with setpriv
 _env = dict(os.environ)
 os.environ.pop("INVOCATION_ID", None)

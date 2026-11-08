@@ -1898,7 +1898,7 @@ journalctl -u tg-ytdlp-dashboard -f
 `COMPOSE_PROFILES=dashboard` в `.env`.
 
 Настройки вкладки «Браузер» (все необязательные, `CONFIG/config.py`): `BROWSER_SESSION_ENABLED`, `BROWSER_CDP_PORT`,
-`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_TIMEZONE`, `BROWSER_HEADLESS`, `BROWSER_COOKIES_ADMIN_ONLY`. Бот отдаёт только
+`BROWSER_EXECUTABLE`, `BROWSER_RUN_AS`, `BROWSER_NICE`, `BROWSER_PROXY`, `BROWSER_TIMEZONE`, `BROWSER_HEADLESS`, `BROWSER_KEEPALIVE_EVERY`, `BROWSER_COOKIES_ADMIN_ONLY`. Бот отдаёт только
 cookies YouTube, X, Instagram, VK и TikTok. Браузер работает на самом сервере и выходит в интернет с его адреса
 (`BROWSER_PROXY` позволяет указать прокси на стороне сервера).
 

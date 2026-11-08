@@ -663,6 +663,7 @@ def api_browser():
     for tab in data.get("tabs", []):
         tab["zoom"] = browser_hub.zoom(tab["id"])
     data["zoom_range"] = [ZOOM_MIN, ZOOM_MAX]
+    data["keepalive"] = browser_session.keepalive_interval()
     return data
 
 
@@ -673,6 +674,25 @@ def api_browser_start(request: Request):
         return err
     _audit(request, "browser_start")
     return {"ok": True, **data}
+
+
+@app.get("/api/browser/keepalive")
+def api_browser_keepalive_get():
+    value, err = _browser_call(browser_session.keepalive_interval)
+    return err if err else {"seconds": value}
+
+
+class BrowserKeepaliveBody(BaseModel):
+    seconds: int
+
+
+@app.post("/api/browser/keepalive")
+def api_browser_keepalive(body: BrowserKeepaliveBody, request: Request):
+    value, err = _browser_call(browser_session.set_keepalive_interval, body.seconds)
+    if err:
+        return err
+    _audit(request, "browser_keepalive", seconds=value)
+    return {"ok": True, "seconds": value}
 
 
 @app.post("/api/browser/stop")

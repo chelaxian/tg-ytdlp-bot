@@ -159,10 +159,20 @@ export function buildBrowser(s, { panel, bindLoader }) {
     const quality = h("select", { class: "br-quality", "aria-label": t("br.quality") },
       PROFILES.map((p) => h("option", { value: p, selected: p === st.profile }, t(`br.q.${p}`))));
     quality.addEventListener("change", () => { st.profile = quality.value; localStorage.setItem("dash.br.profile", st.profile); restartStream(); });
+    // how often each resting tab is woken to refresh its login cookies
+    const KA = [[0, "br.ka.off"], [1800, "br.ka.30m"], [3600, "br.ka.1h"], [3 * 3600, "br.ka.3h"],
+                [6 * 3600, "br.ka.6h"], [12 * 3600, "br.ka.12h"], [24 * 3600, "br.ka.24h"]];
+    const kaLabel = (sec) => (KA.find(([v]) => v === sec) && t(KA.find(([v]) => v === sec)[1])) || t("br.ka.custom", { h: Math.round(sec / 360) / 10 });
+    const keepalive = h("select", { class: "br-quality br-ka", "aria-label": t("br.ka"), title: t("br.ka.title") },
+      KA.map(([v, key]) => h("option", { value: String(v) }, t(key))));
+    keepalive.addEventListener("change", async () => {
+      try { const r = await post("/api/browser/keepalive", { seconds: Number(keepalive.value) }); toast(t("br.ka.apply", { v: r.seconds ? kaLabel(r.seconds) : t("br.ka.off") }), "ok"); }
+      catch (err) { toast(brError(err), "error"); }
+    });
     zoomLabel.title = t("br.zoomReset");
     zoomLabel.addEventListener("click", () => applyZoom(100));
     const zoomBar = h("div", { class: "br-zoombar", role: "group", "aria-label": t("br.zoom") },
-      stepBtn(t("br.zoomOut"), "−", -10), zoomRange, stepBtn(t("br.zoomIn"), "+", 10), zoomLabel, quality);
+      stepBtn(t("br.zoomOut"), "−", -10), zoomRange, stepBtn(t("br.zoomIn"), "+", 10), zoomLabel, quality, keepalive);
     const empty = h("p", { class: "state br-empty" });
     const screen = h("div", { class: "br-screen" }, canvas, empty);
 
@@ -226,7 +236,7 @@ export function buildBrowser(s, { panel, bindLoader }) {
     const live = h("div", { class: "br-live" }, tabs, screen, keys);
     const top = h("div", { class: "br-top" }, statusPill, power, controls);
     view.body.replaceChildren(top, missing, live);
-    return { statusPill, power, controls, tabs, addTab, address, canvas, empty, live, missing, zoomRange, zoomLabel };
+    return { statusPill, power, controls, tabs, addTab, address, canvas, empty, live, missing, zoomRange, zoomLabel, keepalive };
   }
 
   function renderTabs() {
@@ -267,7 +277,12 @@ export function buildBrowser(s, { panel, bindLoader }) {
     ui.power.title = data.running ? t("br.stop") : t("br.start");
     ui.power.setAttribute("aria-label", ui.power.title);
     ui.power.classList.toggle("icon-btn", !!data.running);
-    ui.controls.hidden = !data.running;
+    if (ui.keepalive && data.keepalive !== undefined && document.activeElement !== ui.keepalive) {
+      ui.keepalive.value = String(data.keepalive);
+      if (!ui.keepalive.selectedOptions.length) ui.keepalive.value = "";     // a value between the offered steps
+      ui.keepalive.title = data.keepalive ? `${t("br.ka.title")} ${kaLabel(data.keepalive)}` : t("br.ka.off");
+    }
+
     ui.power.hidden = !ready;
     ui.missing.hidden = ready;
     ui.missing.textContent = !data.enabled ? t("br.disabled") : t("br.nobrowser");

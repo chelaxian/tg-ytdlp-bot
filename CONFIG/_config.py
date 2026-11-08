@@ -137,6 +137,7 @@ class Config(object):
     BROWSER_PROXY = ""                 # optional, e.g. "socks5://127.0.0.1:1080"
     BROWSER_TIMEZONE = ""              # empty = looked up once for the server's IP (e.g. "Europe/Berlin")
     BROWSER_HEADLESS = False           # True = never use Xvfb (by default a windowed Chrome on Xvfb is used when installed)
+    BROWSER_KEEPALIVE_EVERY = 0       # seconds between background cookie-refresh visits per tab; 0 = take the panel value
     BROWSER_COOKIES_ADMIN_ONLY = False # True = only Config.ADMIN may take the admin's logins
     # Cookie file URL
     # For Docker setup: served by the configuration-webserver container, which shares
