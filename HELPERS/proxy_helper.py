@@ -1075,10 +1075,13 @@ def try_with_impersonate_fallback(ytdl_opts: dict, url: str, user_id: int = None
             # if we get Cloudflare error, it's likely the version is unavailable.
             explicit_unavailable = "none of these impersonate targets are available" in error_text.lower()
             
-            # For specific versions: if Cloudflare error and version contains digits (chrome122, etc.),
-            # treat as unavailable (since yt-dlp warning goes to stderr, not exception text)
+            # A specific version is only "unavailable" if yt-dlp explicitly says so.
+            # A plain HTTP 403/Cloudflare challenge means the TARGET site refused
+            # this attempt — curl_cffi and the target are fine (they were just
+            # verified via _get_available_impersonate_targets), so this must be a
+            # retried failure, not "unavailable" evidence.
             is_specific_version = not is_basic and any(char.isdigit() for char in impersonate_version)
-            likely_unavailable = is_specific_version and is_cloudflare_error(error_text)
+            likely_unavailable = False
 
             # Transport-level errors (SSL/TLS/cert) that NO impersonate version can
             # fix — a browser fingerprint cannot repair a self-signed certificate or a
