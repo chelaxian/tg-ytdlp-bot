@@ -246,10 +246,11 @@ def set_format(app, message):
             custom_format = "bv*[vcodec*=avc1][ext=mp4]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bv*[ext=mp4]+ba/bv+ba/best"
             safe_send_message(user_id, safe_get_messages(user_id).FORMAT_BEST_UPDATED_MSG.format(format=custom_format), message=message)
             send_to_logger(message, safe_get_messages(user_id).FORMAT_UPDATED_BEST_LOG_MSG.format(format=custom_format))
-        # Check if it's a format ID (e.g., "id 401", "id401")
-        elif re.match(r'^id\s*\d+$', arg, re.IGNORECASE):
-            # Extract the ID number
-            format_id = re.search(r'\d+', arg).group()
+        # Check if it's a format ID (e.g., "id 401", "id401"); youtube
+        # multi-language streams use "ID-N" track suffixes (e.g. "139-1", "233-0")
+        elif re.match(r'^id\s*\d+(?:-\d+)?$', arg, re.IGNORECASE):
+            # Extract the ID (with optional track suffix)
+            format_id = re.search(r'\d+(?:-\d+)?', arg).group()
             
             # Check if this is an audio-only format by analyzing the URL
             # We need to get the last URL from user's history or ask them to provide URL
@@ -272,10 +273,11 @@ def set_format(app, message):
                 safe_send_message(user_id, safe_get_messages(user_id).FORMAT_ID_UPDATED_MSG.format(id=format_id, format=custom_format), message=message)
                 send_to_logger(message, safe_get_messages(user_id).FORMAT_UPDATED_ID_LOG_MSG.format(format_id=format_id, format=custom_format))
         
-        # Check if it's a format ID with audio flag (e.g., "id 140 audio", "id140 audio")
-        elif re.match(r'^id\s*\d+\s+audio$', arg, re.IGNORECASE):
-            # Extract the ID number
-            format_id = re.search(r'\d+', arg).group()
+        # Check if it's a format ID with audio flag (e.g., "id 140 audio", "id140 audio");
+        # "ID-N" track suffixes (e.g. "139-1") select a specific audio language
+        elif re.match(r'^id\s*\d+(?:-\d+)?\s+audio$', arg, re.IGNORECASE):
+            # Extract the ID (with optional track suffix)
+            format_id = re.search(r'\d+(?:-\d+)?', arg).group()
             
             # Use format ID with bestaudio fallback for audio-only formats
             custom_format = f"{format_id}/bestaudio"

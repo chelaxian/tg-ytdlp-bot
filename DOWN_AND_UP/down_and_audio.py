@@ -1125,11 +1125,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Note: download_sections already handles trimming, so we don't need FFmpegVideoConvertor
             # with postprocessor_args (which is not supported anyway)
             # The trimming will be done by download_sections, then we extract audio
-            postprocessors = [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': audio_format,
-                'preferredquality': '192',
-            }]
+            # When the user pinned an exact audio stream (/format id 139-1 audio ->
+            # format_override like "139-1/bestaudio"), do not re-encode to 192k MP3:
+            # copy the chosen stream as-is so its own bitrate/codec is kept.
+            _pinned_audio_stream = bool(format_override and format_override != 'ba')
+            if _pinned_audio_stream:
+                audio_format = None  # skip FFmpegExtractAudio below
+            postprocessors = []
+            if not _pinned_audio_stream:
+                postprocessors.append({
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': audio_format,
+                    'preferredquality': '192',
+                })
             
             if trim_start_time and trim_end_time:
                 logger.info(f"[TRIM AUDIO] Using download_sections for trimming: {download_sections}")
@@ -2352,16 +2360,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         
                         is_hls = ("m3u8" in url.lower())
                         
-                        ytdl_opts = {
-                           'format': download_format,
-                           'postprocessors': [{
+                        # Pinned audio stream: no re-encode (same rule as the main path)
+                        _pinned_pp = [] if (format_override and format_override != 'ba') else [{
                               'key': 'FFmpegExtractAudio',
                               'preferredcodec': audio_format,
                               'preferredquality': '192',
-                           },
-                           {
+                           }]
+                        _pinned_pp.append({
                               'key': 'FFmpegMetadata'
-                           }],
+                           })
+                        ytdl_opts = {
+                           'format': download_format,
+                           'postprocessors': _pinned_pp,
                            'prefer_ffmpeg': True,
                            'extractaudio': True,
                            # Для обратного порядка используем формат START:STOP:-1, иначе просто номер

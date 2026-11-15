@@ -137,7 +137,22 @@ def audio_command_handler(app, message):
         return
     
     # Note: cached_video_info=None for direct calls (no optimization available)
-    down_and_audio(app, message, url, tags, quality_key="mp3", playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override="ba", cached_video_info=None)
+    # Respect a saved audio format: "/format id 140 audio" writes "140/bestaudio"
+    # into format.txt — use that exact stream instead of the hardcoded 'ba',
+    # so the user's chosen bitrate/language (e.g. 139-1, 48k) is downloaded.
+    saved_audio_format = None
+    format_file = os.path.join(user_dir, "format.txt")
+    try:
+        if os.path.exists(format_file):
+            with open(format_file, "r", encoding="utf-8") as f:
+                saved_fmt = f.read().strip()
+            # Audio-specific format: "ID/bestaudio" set by /format id... audio
+            if saved_fmt and saved_fmt not in ("ALWAYS_ASK",) and saved_fmt.endswith("/bestaudio"):
+                saved_audio_format = saved_fmt
+    except Exception as fmt_err:
+        from HELPERS.logger import logger
+        logger.warning(f"Could not read saved audio format for user {user_id}: {fmt_err}")
+    down_and_audio(app, message, url, tags, quality_key="mp3" if saved_audio_format is None else None, playlist_name=playlist_name, video_count=video_count, video_start_with=video_start_with, format_override=saved_audio_format or "ba", cached_video_info=None)
 
 
 # /Link Command
