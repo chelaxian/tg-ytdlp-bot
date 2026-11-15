@@ -746,7 +746,9 @@ def download_live_stream_chunked(
                     "HTTP Error 404",
                     "unable to download video data",
                     "no video formats found",
-                    "requested format is not available"
+                    "requested format is not available",
+                    "broadcast no longer exists",
+                    "-start is passed, but"
                 ]
                 
                 is_stream_ended = False
