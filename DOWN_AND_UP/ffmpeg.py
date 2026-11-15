@@ -138,20 +138,45 @@ def get_ytdlp_path():
     return ytdlp_path
 
 def _extract_split_part(video_path, start_time, end_time, targetname):
-    """Re-encode a precise time interval; stream-copy can drop non-keyframes."""
+    """Extract a precise time interval.
+
+    Two-stage strategy:
+    1. Fast path: stream copy (-c copy). Keyframe-aligned, runs at I/O speed
+       (minutes instead of hours on a 1-vCPU ARM box for multi-GB files).
+       The caller subdivides any part that still exceeds max_size, so the
+       coarse keyframe granularity converges on correctly-sized parts.
+    2. Fallback: precise re-encode (libx264) when copy fails outright —
+       e.g. streams not copiable into mp4.
+    """
     ffmpeg_path = get_ffmpeg_path()
     if not ffmpeg_path:
         return False
+    duration = end_time - start_time
+    # Stream copy is I/O-bound: even a 10-hour part copies in minutes.
+    copy_timeout = max(600, int(duration) * 2)
+    copy_command = [
+        ffmpeg_path, "-y", "-v", "error", "-ss", str(start_time),
+        "-i", os.path.abspath(video_path), "-t", str(duration),
+        "-map", "0:v:0", "-map", "0:a?", "-c", "copy",
+        "-movflags", "+faststart", os.path.abspath(targetname),
+    ]
+    try:
+        subprocess.run(copy_command, check=True, capture_output=True, timeout=copy_timeout)
+        if os.path.isfile(targetname) and os.path.getsize(targetname) > 0:
+            return True
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.warning(f"Stream-copy split failed, falling back to re-encode: {exc}")
+
+    # Re-encode fallback: precise cut; slow but correct.
+    # Allow ~1 minute per second of video (very generous), 10-minute floor.
     command = [
         ffmpeg_path, "-y", "-v", "error", "-ss", str(start_time),
-        "-i", os.path.abspath(video_path), "-t", str(end_time - start_time),
+        "-i", os.path.abspath(video_path), "-t", str(duration),
         "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264",
         "-preset", "veryfast", "-crf", "23", "-fps_mode", "passthrough", "-c:a", "aac",
         "-movflags", "+faststart", os.path.abspath(targetname),
     ]
-    # Re-encoding a long part on a slow CPU takes time: allow ~1 minute per
-    # second of video (very generous), with a 10-minute floor.
-    timeout = max(600, int(end_time - start_time) * 60)
+    timeout = max(600, int(duration) * 60)
     try:
         subprocess.run(command, check=True, capture_output=True, timeout=timeout)
         return os.path.isfile(targetname) and os.path.getsize(targetname) > 0
