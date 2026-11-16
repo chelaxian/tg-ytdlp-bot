@@ -690,7 +690,10 @@ def ban_user_from_channel(user_id: int, reason: str = "manual"):
                     app, "ban_chat_member",
                     chat_id=subscribe_channel,
                     user_id=user_id,
-                    until_date=0,
+                    # until_date=0 is falsy: pyrogram's datetime_to_timestamp() turns it
+                    # into None and ChatBannedRights serialization then crashes with
+                    # AttributeError ('NoneType' object has no attribute 'to_bytes').
+                    # Default (until_date=None) means ban forever - use that instead.
                 ),
                 what="ban_chat_member",
             )
