@@ -1008,6 +1008,24 @@ def get_reply_message_id(message):
     else:
         return message.id
 
+def _normalize_img_url(url):
+    """Map supported VK hostnames without changing the rest of the URL."""
+    from urllib.parse import urlsplit
+    try:
+        parsed = urlsplit(url)
+        hosts = {'vk.ru': 'vk.com', 'm.vk.ru': 'm.vk.com', 'www.vk.ru': 'www.vk.com'}
+        replacement = hosts.get(parsed.hostname)
+        if replacement is None:
+            return url
+        authority = parsed.netloc
+        userinfo, separator, hostport = authority.rpartition('@')
+        _host, colon, port = hostport.partition(':')
+        new_authority = (userinfo + separator if separator else '') + replacement + colon + port
+        return url.replace(authority, new_authority, 1)
+    except ValueError:
+        return url
+
+
 @background_handler(label="image_command", heavy_if=message_has_url)
 def image_command(app, message):
     """Handle /img command for downloading images"""
@@ -1091,6 +1109,7 @@ def image_command(app, message):
     except Exception:
         user_tags = []
         user_tags_text = ''
+    url = _normalize_img_url(url)
     # Normalize tags: remove duplicates while preserving order
     def _dedupe_tags_text(tags_text: str) -> str:
         try:
