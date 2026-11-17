@@ -101,6 +101,8 @@ def audio_command_handler(app, message):
             converted = command_args_to_range_text(parts[1:], range_limit_for_url(parts[2])[0])
             if converted:
                 text = f"/audio {converted}"
+                # The downloader reparses message.text for the end and direction.
+                message.text = text
     except Exception:
         pass
     url, _, _, _, tags, tags_text, tag_error = extract_url_range_tags(text)

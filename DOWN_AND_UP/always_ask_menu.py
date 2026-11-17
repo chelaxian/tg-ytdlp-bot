@@ -73,6 +73,37 @@ def _user_cached_qualities(url, user_id):
 
 def _user_cached_playlist_qualities(playlist_url, user_id):
     return qualities_for_audio(get_cached_playlist_qualities(playlist_url), _cache_audio_lang(user_id))
+
+
+def _recover_command_range_text(text):
+    """Rebuild the normalized 'URL*start*end' form from a stored command message.
+
+    The /vid and /audio handlers rewrite message.text to 'URL*N*M' only on their
+    in-memory copy; the copy Telegram sends back inside reply_to_message of a
+    later callback still has the raw '/vid -10-3 URL' form, which
+    is_playlist_with_range()/extract_url_range_tags() do not understand, so the
+    (reverse) range never reached the downloader from the quality menu.
+    Same normalization as magic.py (_vid_handler) and audio_command_handler.
+    """
+    try:
+        parts = (text or '').split()
+        if not parts or not parts[0].lower().startswith(('/vid', '/audio')):
+            return text
+        args = parts[1:]
+        if args and args[0].startswith('@'):
+            args = args[1:]  # /vid @bot -10-3 URL
+        if len(args) < 2:
+            return text
+        from URL_PARSERS.playlist_utils import command_args_to_range_text
+        from HELPERS.limitter import range_limit_for_url
+        converted = command_args_to_range_text(args, range_limit_for_url(args[1])[0])
+        if converted:
+            return converted
+    except Exception:
+        pass
+    return text
+
+
 from HELPERS.cache_repost import repost_playlist_items, repost_single
 
 from DOWN_AND_UP.yt_dlp_hook import get_video_formats
@@ -3464,10 +3495,19 @@ def askq_callback(app, callback_query):
         logger.info(f"Using format_override: {format_override}")
         
         # Handle playlists
+        original_text = _recover_command_range_text(original_message.text or original_message.caption or "")
         if is_playlist_with_range(original_text):
             logger.info("Detected playlist, using down_and_up")
             _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
             video_count = range_count(video_start_with, video_end_with)
+            # see the generic quality branch: the downloader re-parses message.text
+            try:
+                if original_message.text is not None:
+                    original_message.text = original_text
+                else:
+                    original_message.caption = original_text
+            except Exception:
+                pass
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
             down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=format_id, cookies_already_checked=True, cached_video_info=None, clear_subs_cache_on_start=False)
@@ -3552,10 +3592,18 @@ def askq_callback(app, callback_query):
                 format_override = "bv*[vcodec*=avc1]+ba[acodec*=mp4a]/bv*[vcodec*=avc1]+ba/bv+ba/best"
         
         # Handle playlists
-        original_text = original_message.text or original_message.caption or ""
+        original_text = _recover_command_range_text(original_message.text or original_message.caption or "")
         if is_playlist_with_range(original_text):
             _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
             video_count = range_count(video_start_with, video_end_with)
+            # see the generic quality branch: the downloader re-parses message.text
+            try:
+                if original_message.text is not None:
+                    original_message.text = original_text
+                else:
+                    original_message.caption = original_text
+            except Exception:
+                pass
             # Delete processing message before starting download
             delete_processing_message(app, user_id, proc_msg)
             down_and_up(app, original_message, url, playlist_name, video_count, video_start_with, tags_text, force_no_title=False, format_override=format_override, quality_key=quality, cookies_already_checked=True, cached_video_info=None, clear_subs_cache_on_start=False)
@@ -3590,15 +3638,29 @@ def askq_callback(app, callback_query):
 
     # We extract tags from the initial message of the user
     original_text = original_message.text or original_message.caption or ""
+    # A command message ('/vid -10-3 URL') stored by Telegram does not carry the
+    # normalized 'URL*N*M' form (the handler rewrote only its in-memory copy), so
+    # the playlist-range branch below never fired for /vid and /audio commands.
+    original_text = _recover_command_range_text(original_text)
     _, _, _, _, tags, tags_text, _ = extract_url_range_tags(original_text)
 
     safe_delete_messages(chat_id=callback_query.message.chat.id, message_ids=[callback_query.message.id])
 
-    original_text = original_message.text or original_message.caption or ""
+    original_text = _recover_command_range_text(original_message.text or original_message.caption or "")
     if is_playlist_with_range(original_text):
         logger.info(f"{LoggerMsg.ALWAYS_ASK_PLAYLIST_WITH_RANGE_DETECTED_LOG_MSG}: {url}")
         _, video_start_with, video_end_with, playlist_name, _, _, tag_error = extract_url_range_tags(original_text)
         video_count = range_count(video_start_with, video_end_with)
+        # The downloader re-parses message.text for the range end and direction;
+        # make it see the normalized 'URL*N*M' form, not the raw command text
+        # (same rewrite the /vid and /audio handlers do on their own copies).
+        try:
+            if original_message.text is not None:
+                original_message.text = original_text
+            else:
+                original_message.caption = original_text
+        except Exception:
+            pass
         
         # user's order; from-the-end indices resolved once (cached lookup, shared with the download)
         requested_indices = (playlist_indices_for_range(video_start_with, video_end_with, url, user_id, True, False)
@@ -3637,6 +3699,12 @@ def askq_callback(app, callback_query):
                 logger.info(f"[VIDEO CACHE] NSFW playlist, cache not used: url={url}")
                 cached_videos = {}
                 uncached_indices = requested_indices
+        # A descending range never replays from the cache: a stale full cache
+        # re-delivers out of order and a partial one would reach the downloader
+        # with a negative new_count — download the whole range in request order.
+        if len(requested_indices) > 1 and requested_indices[0] > requested_indices[-1]:
+            cached_videos = {}
+            uncached_indices = requested_indices
         if cached_videos:
             # Reposting cached videos
             safe_callback_answer(callback_query, "🚀 Found in cache! Reposting...", show_alert=False)

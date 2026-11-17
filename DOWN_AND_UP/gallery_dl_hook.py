@@ -1110,6 +1110,35 @@ def _try_without_cookies(url: str, cfg_path: str, user_id: int = None) -> int | 
         return None
 
 
+def _is_vk_album(url):
+    import re
+    from urllib.parse import urlsplit
+
+    parsed = urlsplit(url)
+    host = (parsed.hostname or '').lower()
+    return bool((host in ('vk.com', 'vk.ru') or host.endswith(('.vk.com', '.vk.ru')))
+                and re.fullmatch(r'/album-?\d+_\d+/?', parsed.path))
+
+
+def _disable_vk_album_skip(job, url):
+    # Do not replace configured predicates: disabling the optimization on this
+    # extractor leaves both file/image filters and range ordering untouched.
+    if _is_vk_album(url):
+        extractor = getattr(job, 'extractor', None)
+        if extractor is not None and callable(getattr(extractor, 'skip_files', None)):
+            extractor.skip_files = lambda count: 0
+
+
+def _range_cli_prefix(url):
+    if not _is_vk_album(url):
+        return [sys.executable, '-m', 'gallery_dl']
+    # Isolated subprocess: no mutation of the bot's gallery-dl module or config.
+    code = ("import gallery_dl; from gallery_dl.extractor.vk import VkAlbumExtractor; "
+            "VkAlbumExtractor.skip_files = lambda self, count: 0; "
+            "raise SystemExit(gallery_dl.main())")
+    return [sys.executable, '-c', code]
+
+
 def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: bool = False, output_dir: str = None) -> bool | str:
     """
     Download only a range of items using extractor.range option.
@@ -1120,6 +1149,7 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
             "timeout": 30,
             "retries": 3,
             "range": range_expr,
+            **({"image-range": range_expr} if _is_vk_album(url) else {}),
         },
     }
     # Set output directory if provided
@@ -1153,6 +1183,7 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
             raise RuntimeError("gallery_dl.job.DownloadJob not available in this build")
         with _GDL_LOCK:
             job = DownloadJob(url)
+            _disable_vk_album_skip(job, url)
             status = job.run()
         if status == 0:
             return True
@@ -1160,13 +1191,9 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
             # For VK, if failed with cookies, try without cookies
             if is_vk_url and config.get('extractor', {}).get('cookies'):
                 logger.info("[VK] Download failed with cookies, trying without cookies")
-                config_no_cookies = {
-                    "extractor": {
-                        "timeout": 30,
-                        "retries": 3,
-                        "range": range_expr,
-                    },
-                }
+                config_no_cookies = (_copy_mod.deepcopy(config) if _is_vk_album(url) else
+                                     {"extractor": {"timeout": 30, "retries": 3, "range": range_expr}})
+                config_no_cookies.get("extractor", {}).pop("cookies", None)
                 if output_dir:
                     config_no_cookies["output"] = {"directory": [output_dir]}
                     config_no_cookies["base-directory"] = output_dir
@@ -1186,6 +1213,7 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
                     with _GDL_LOCK:
                         _apply_config(config_no_cookies, user_id)
                         job_no_cookies = DownloadJob(url)
+                        _disable_vk_album_skip(job_no_cookies, url)
                         status_no_cookies = job_no_cookies.run()
                     if status_no_cookies == 0:
                         logger.info("[VK] Download succeeded without cookies")
@@ -1201,13 +1229,9 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
         if is_vk_url and ('cookies' in error_msg.lower() or 'session' in error_msg.lower() or 'attribute' in error_msg.lower()):
             logger.info("[VK] Error with cookies, trying download without cookies")
             try:
-                config_no_cookies = {
-                    "extractor": {
-                        "timeout": 30,
-                        "retries": 3,
-                        "range": range_expr,
-                    },
-                }
+                config_no_cookies = (_copy_mod.deepcopy(config) if _is_vk_album(url) else
+                                     {"extractor": {"timeout": 30, "retries": 3, "range": range_expr}})
+                config_no_cookies.get("extractor", {}).pop("cookies", None)
                 if output_dir:
                     config_no_cookies["output"] = {"directory": [output_dir]}
                     config_no_cookies["base-directory"] = output_dir
@@ -1230,6 +1254,7 @@ def download_image_range(url: str, range_expr: str, user_id=None, use_proxy: boo
                     DownloadJob = getattr(job_mod, "DownloadJob", None)
                     if DownloadJob:
                         job_no_cookies = DownloadJob(url)
+                        _disable_vk_album_skip(job_no_cookies, url)
                         status_no_cookies = job_no_cookies.run()
                         if status_no_cookies == 0:
                             logger.info("[VK] Download succeeded without cookies after error")
@@ -1605,7 +1630,7 @@ def download_image_range_cli(url: str, range_expr: str, user_id=None, use_proxy:
         try:
             # Use module invocation to avoid PATH issues
             logger.info(f"[gallery-dl] cookies for --range {range_expr}: {cfg.get('extractor',{}).get('cookies')}")
-            cmd = [sys.executable, "-m", "gallery_dl", "--config", cfg_path, "--range", range_expr, url]
+            cmd = _range_cli_prefix(url) + ["--config", cfg_path, "--range", range_expr, url]
             
             # Add cookies via CLI for social media sites
             cmd = _add_cookies_to_cmd(cmd, url, user_id)
@@ -1634,7 +1659,9 @@ def download_image_range_cli(url: str, range_expr: str, user_id=None, use_proxy:
                     logger.info("[VK] CLI download failed with cookies, trying without cookies")
                     try:
                         # Create config without cookies
-                        vk_cfg_no_cookies = {"extractor": {"timeout": 30, "retries": 3}}
+                        vk_cfg_no_cookies = (_copy_mod.deepcopy(cfg) if _is_vk_album(url) else
+                                             {"extractor": {"timeout": 30, "retries": 3}})
+                        vk_cfg_no_cookies.get("extractor", {}).pop("cookies", None)
                         if output_dir:
                             vk_cfg_no_cookies["output"] = {"directory": [output_dir]}
                             vk_cfg_no_cookies["base-directory"] = output_dir
@@ -1658,7 +1685,7 @@ def download_image_range_cli(url: str, range_expr: str, user_id=None, use_proxy:
                             json.dump(vk_cfg_no_cookies, f)
                             vk_cfg_no_cookies_path = f.name
                         try:
-                            vk_cmd = [sys.executable, "-m", "gallery_dl", "--config", vk_cfg_no_cookies_path, "--range", range_expr, url]
+                            vk_cmd = _range_cli_prefix(url) + ["--config", vk_cfg_no_cookies_path, "--range", range_expr, url]
                             # Don't add cookies
                             vk_cmd_pretty = ' '.join(vk_cmd)
                             logger.info(f"[VK] Downloading range via CLI without cookies: {vk_cmd_pretty}")

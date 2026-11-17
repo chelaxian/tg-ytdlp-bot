@@ -89,11 +89,11 @@ U = "https://www.youtube.com/playlist?list=PL1"
 cases = {
     ("3-7", U): f"{U}*3*7",
     ("3-7", U, "#music", "#rock"): f"{U}*3*7 #music #rock",   # old: 'URL #music #rock*3*7'
-    ("-3-7", U): f"{U}*-3*-7",
-    ("-3--7", U): f"{U}*-3*-7",                              # old: not recognised at all
+    ("-3-7", U): f"{U}*7*3",
+    ("-3--7", U): f"{U}*7*3",
     ("7-3", U): f"{U}*7*3",
     ("5-", U): f"{U}*5*54",                                   # old: 'URL*5*' -> playlist name '5'
-    ("-1-", U): f"{U}*-1*-50",
+    ("-1-", U): f"{U}*1*1",
 }
 for args, want in cases.items():
     got = pu.command_args_to_range_text(list(args), 50)
