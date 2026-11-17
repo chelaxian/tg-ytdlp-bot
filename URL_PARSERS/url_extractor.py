@@ -1417,6 +1417,29 @@ def url_distractor(app, message):
             
             from COMMANDS.subtitles_cmd import clear_subs_check_cache
             clear_subs_check_cache(user_id)
+            # Админский мульти-URL режим для gallery-dl (#admin-multi-img):
+            # сообщение без команды /img содержит несколько ссылок, и все они —
+            # gallery-dl (vk.com/album-...): гоняем каждую через image_command
+            # последовательно, со статус-сообщением как у process_multiple_urls_queue.
+            # Лимит количества ссылок (MAX_MULTI_URL_LIMIT) не применяется.
+            # Обычных пользователей не касается: их пачки идут прежним путём.
+            if is_admin and not text.startswith(Config.IMG_COMMAND):
+                try:
+                    from URL_PARSERS.video_extractor import extract_multiple_urls, has_range_syntax
+                    from URL_PARSERS.engine_router import is_gallerydl_url, process_admin_gallery_batch
+                    _batch_text = message.text if hasattr(message, 'text') and message.text else text
+                    _gallery_urls = extract_multiple_urls(_batch_text)
+                    # Диапазоны (*1*5, /vid 1-5) в пачке не поддерживаем —
+                    # плейлистные ограничения не трогаем, уходим в обычный поток.
+                    if len(_gallery_urls) > 1 and not has_range_syntax(_batch_text) \
+                            and all(is_gallerydl_url(_u) for _u in _gallery_urls):
+                        _g_url, _g_s, _g_e, _g_pl, _g_tags, _g_tags_text, _g_err = extract_url_range_tags(_batch_text)
+                        if _g_url and not _g_err:
+                            logger.info(f"🔍 [ADMIN MULTI-IMG] Admin {user_id} sent {len(_gallery_urls)} gallery-dl URLs, processing sequentially")
+                            if process_admin_gallery_batch(app, message, _gallery_urls, tags_text=(_g_tags_text or '')):
+                                return
+                except Exception as _gallery_batch_e:
+                    logger.error(f"URL_EXTRACTOR: admin gallery batch gate failed: {_gallery_batch_e}")
             # Централизованный роутер на gallery-dl для некоторых ссылок
             try:
                 try:
