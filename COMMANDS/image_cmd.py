@@ -1076,21 +1076,9 @@ def image_command(app, message):
     parts = rest.split()
     if len(parts) >= 2:
         rng_candidate = parts[0]
-        if re.fullmatch(r"-?\d+-\d*", rng_candidate):
-            start_str, end_str = rng_candidate.split('-', 1)
-            # Если первое число отрицательное, добавляем минус ко второму числу: /img -1-7 URL -> (-1, -7)
-            if start_str.startswith("-") and end_str != "":
-                end_str = f"-{end_str}"
-            try:
-                start_val = int(start_str)
-                end_val = int(end_str) if end_str != '' else None
-                # Убираем проверку >= 1, так как отрицательные числа тоже валидны
-                manual_range = (start_val, end_val)
-                url = ' '.join(parts[1:]).strip()
-            except Exception:
-                url = rest
-        else:
-            url = rest
+        from URL_PARSERS.img_ranges import parse_img_range
+        manual_range = parse_img_range(rng_candidate)
+        url = ' '.join(parts[1:]).strip() if manual_range else rest
     else:
         url = rest
     
@@ -1101,7 +1089,7 @@ def image_command(app, message):
         if parsed_url:
             url = parsed_url
             # Check if range was specified in URL*start*end format
-            if _s != 1 or _e != 1:
+            if manual_range is None and (_s != 1 or _e != 1):
                 manual_range = (_s, _e)
                 logger.info(LoggerMsg.IMG_DEBUG_RANGE_DETECTED_LOG_MSG.format(_s=_s, _e=_e))
             else:
@@ -1866,6 +1854,7 @@ def image_command(app, message):
         completion_sent = False  # Guard to ensure we exit after first completion announcement
 
         batch_size = 10
+        request_batch_size = 10
         # If total is small (<=10), download all at once without batching
         if detected_total and detected_total <= 10:
             batch_size = detected_total
@@ -1914,81 +1903,32 @@ def image_command(app, message):
         is_reverse_order_img = False  # Флаг для обратного порядка скачивания изображений
         # Removed failed_attempts logic - using only timeout-based stopping
         if manual_range is not None:
-            original_current_start = manual_range[0]
-            original_manual_end_cap = manual_range[1]
-            current_start = original_current_start if original_current_start is not None else 1
-            
-            # Upper cap: if user provided end, respect it (but not above limit for non-admins)
-            if original_manual_end_cap is not None:
-                # Handle invalid range (1, 0) - treat as open-ended
-                if original_manual_end_cap == 0:
-                    logger.warning(f"[IMG] Invalid range end cap 0 detected, treating as open-ended range")
-                    manual_end_cap = None
-                elif is_admin:
-                    manual_end_cap = original_manual_end_cap
-                else:
-                    # Cap the end index by the remaining limit (a COUNT), not an absolute
-                    # index: the range menu starts at 11/21/..., so min(end, total_limit)
-                    # would turn "11-20" into 11-10 and download nothing.
-                    if total_limit:
-                        manual_end_cap = min(original_manual_end_cap, current_start + total_limit - 1)
-                    else:
-                        manual_end_cap = original_manual_end_cap
-                
-                # Для отрицательных индексов нужно получить общее количество постов и преобразовать их
-                if (current_start is not None and current_start < 0) or (manual_end_cap is not None and manual_end_cap < 0):
-                    is_reverse_order_img = True
-                    # Получаем общее количество постов для преобразования отрицательных индексов
-                    total_media_count = detected_total
-                    if not total_media_count:
-                        # Пытаемся получить через get_total_media_count
-                        try:
-                            total_media_count = get_total_media_count(url, user_id, use_proxy)
-                        except Exception:
-                            total_media_count = None
-                    
-                    if total_media_count and total_media_count > 0:
-                        # Преобразуем отрицательные индексы в положительные
-                        # -1 = последний пост (total_media_count), -2 = предпоследний (total_media_count - 1), и т.д.
-                        # Формула: positive_index = total_media_count + negative_index + 1
-                        if current_start < 0:
-                            current_start = total_media_count + current_start + 1
-                        if manual_end_cap < 0:
-                            manual_end_cap = total_media_count + manual_end_cap + 1
-                        logger.info(f"[IMG] Converted negative indices: {original_current_start}->{current_start}, {original_manual_end_cap}->{manual_end_cap} (total={total_media_count})")
-                        # После преобразования отрицательных индексов current_start > manual_end_cap - это нормально для обратного порядка
-                        # Например: -1 до -7 -> 7 до 1, скачиваем в порядке 7, 6, 5, 4, 3, 2, 1
-                        total_expected = abs(current_start - manual_end_cap) + 1
-                    else:
-                        # Если не удалось получить общее количество, используем абсолютные значения
-                        logger.warning(f"[IMG] Could not get total media count for negative indices conversion, using absolute values")
-                        if manual_end_cap is not None and current_start is not None:
-                            total_expected = abs(manual_end_cap) - abs(current_start) + 1
-                        else:
-                            total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
-                elif current_start is not None and manual_end_cap is not None and current_start > manual_end_cap:
-                    is_reverse_order_img = True
-                    total_expected = abs(current_start - manual_end_cap) + 1
-                elif manual_end_cap is not None and current_start is not None:
-                    # Calculate correct expected count for range (end - start + 1)
-                    total_expected = manual_end_cap - current_start + 1
-                else:
-                    # manual_end_cap is None (e.g. invalid range 1,0) or current_start None — open-ended fallback
-                    total_expected = total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES
+            from URL_PARSERS.img_ranges import plan_img_range
+            start, end = manual_range
+            count = detected_total
+            if start < 0 or (end is not None and end < 0):
+                if not count:
+                    try:
+                        count = get_total_media_count(url, user_id, use_proxy)
+                    except Exception:
+                        count = None
+            try:
+                current_start, manual_end_cap, is_reverse_order_img = plan_img_range(
+                    start, end, count, None if is_admin else total_limit)
+            except ValueError as exc:
+                logger.warning(f"[IMG] {exc}")
+                safe_send_message(chat_id, str(exc), message=message)
+                return
+            if is_reverse_order_img:
+                # Process each source index before requesting the next one;
+                # os.walk order cannot preserve the order of a downloaded batch.
+                request_batch_size = 1
+            if manual_end_cap is not None:
+                total_expected = abs(current_start - manual_end_cap) + 1
             else:
-                # Open-ended range (manual_end_cap is None)
-                if current_start is not None and current_start < 0:
-                    # Для отрицательных индексов без конца используем разумное значение
-                    total_expected = abs(current_start) if is_admin else min(abs(current_start), total_limit or 0)
-                else:
-                    # IMPORTANT: total_limit=0 means unlimited for admin - never use 0 for total_expected
-                    # as it would set upper_cap=0 and cause "current_start > upper_cap" to break the loop immediately
-                    # Open-ended range: the cap is a COUNT of items to fetch, not an end
-                    # index — otherwise "/img 11- URL" breaks immediately (11 > 10).
-                    quota_cap = (LimitsConfig.MAX_IMG_FILES if (total_limit is not None and total_limit == 0)
-                                 else (total_limit if total_limit is not None else LimitsConfig.MAX_IMG_FILES))
-                    total_expected = current_start + quota_cap - 1
-        
+                quota_cap = total_limit or LimitsConfig.MAX_IMG_FILES
+                total_expected = current_start + quota_cap - 1
+
         # For small totals, set end cap to avoid range issues
         if detected_total and detected_total <= 10 and manual_range is None:
             manual_end_cap = detected_total
@@ -2084,7 +2024,7 @@ def image_command(app, message):
                 return True
             # Для обратного порядка скачиваем по одному элементу от start до end (в обратном порядке)
             # start > end после преобразования отрицательных индексов
-            if start > end:
+            if start >= end:
                 # Скачиваем от большего к меньшему: start, start-1, ..., end+1, end
                 for idx in range(start, end - 1, -1):
                     range_expr = f"{idx}-{idx}"
@@ -2135,7 +2075,7 @@ def image_command(app, message):
                 
                 if is_reverse_order_img:
                     # Для обратного порядка: скачиваем от большего к меньшему
-                    next_end = (current_start or 1) - batch_size + 1
+                    next_end = (current_start or 1) - request_batch_size + 1
                     if upper_cap is not None:
                         next_end = max(next_end, upper_cap)
                 else:
