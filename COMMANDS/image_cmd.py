@@ -547,6 +547,14 @@ def create_unique_download_path(user_id, url):
             # Remove special characters that might cause issues
             import re
             profile_name = re.sub(r'[^\w\-_.]', '_', profile_name)
+            # Cap the component byte length: signed CDN URLs (e.g. CloudflareStream
+            # customer-*.cloudflarestream.com/<jwt>) carry a JWT as the first path
+            # component. It is already \w-safe but exceeds NAME_MAX (255 bytes),
+            # so os.makedirs() fails with Errno 36 before any download starts
+            # (observed 2026-11-16, 5 failures, 2 users). Keep a byte-safe prefix.
+            profile_name_bytes = profile_name.encode('utf-8')
+            if len(profile_name_bytes) > 100:
+                profile_name = profile_name_bytes[:100].decode('utf-8', errors='ignore')
         else:
             profile_name = 'unknown'
         
