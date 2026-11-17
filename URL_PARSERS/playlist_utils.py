@@ -202,8 +202,8 @@ def command_args_to_range_text(args, max_items: int):
     """'/vid 3-7 URL #tag' arguments -> 'URL*3*7 #tag' (also used by /audio).
 
     args: the words after the command. Returns None when args[0] is not a range.
-      3-7   -> *3*7        -3-7 / -3--7 -> *-3*-7 (counted from the end)
-      3-    -> *3*(3+max-1)   -3- -> *-3*(-3-max+1)   (open end: up to the limit)
+      3-7 -> *3*7; -N-M / -N--M -> absolute positions, descending.
+      3- -> *3*(3+max-1); -N- -> N down to 1, limited by max_items.
     The range is attached to the URL itself, so words after the URL (#tags,
     a playlist name) no longer swallow it.
     """
@@ -216,13 +216,16 @@ def command_args_to_range_text(args, max_items: int):
     if start == 0:
         return None
     if m.group(2) == '':
-        step = 1 if start > 0 else -1
-        end = start + step * (max(1, int(max_items)) - 1)
+        if start < 0:
+            start = abs(start)
+            end = max(1, start - max(1, int(max_items)) + 1)
+        else:
+            end = start + max(1, int(max_items)) - 1
     else:
         end = int(m.group(2))
-        if start < 0 and end > 0:
-            end = -end
         if end == 0 or (start > 0 and end < 0):
             return None
+        if start < 0:
+            start, end = max(abs(start), abs(end)), min(abs(start), abs(end))
     url, rest = args[1], args[2:]
     return ' '.join([f"{url}*{start}*{end}"] + list(rest))

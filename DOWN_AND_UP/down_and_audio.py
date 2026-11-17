@@ -570,6 +570,12 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             logger.info(f"[AUDIO CACHE] Skipping cache check for playlist because Always Ask mode is enabled: url={url}, quality={quality_key}")
             cached_videos = {}
             uncached_indices = requested_indices
+        # A reverse range never replays from the cache: a partial replay reorders
+        # delivery (cached items arrive first) and a stale full replay still
+        # forwards item by item — download the whole range in the requested order.
+        if is_reverse_order:
+            cached_videos = {}
+            uncached_indices = requested_indices
         # First, repost the cached ones (skip if send_as_file is enabled)
         if cached_videos and (not use_range_download or len(uncached_indices) == 0):
             # Check if send_as_file is enabled - if so, skip cache repost
@@ -1377,12 +1383,22 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     entries = info_dict["entries"]
                     if len(entries) > 1 and not current_playlist_items_override:  # If the video in the playlist is more than one
                         actual_index = current_index - 1  # -1 because indexes in entries start from 0
-                        if 0 <= actual_index < len(entries):
+                        if 0 <= actual_index < len(entries) and entries[actual_index] is not None:
                             info_dict = entries[actual_index]
                         else:
-                            raise Exception(f"Audio index {actual_index + 1} out of range (total {len(entries)})")
+                            # A command range can name positions the playlist does not
+                            # have (/audio -100-1 on a shorter list) and yt-dlp returns
+                            # an empty entry there: skip the slot like the video loop
+                            # (NO_VIDEOS_SKIP) instead of aborting the whole playlist.
+                            logger.info(f"[AUDIO RANGE] No entry at index {current_index} (entries={len(entries)}), skipping")
+                            send_error_to_user(message, safe_get_messages(user_id).DOWN_UP_NO_CONTENT_FOUND_MSG.format(index=original_playlist_index))
+                            return "SKIP"
                     else:
                         # If there is only one video in the playlist, just download it
+                        if not entries or entries[0] is None:
+                            logger.info(f"[AUDIO RANGE] Empty single entry at index {current_index}, skipping")
+                            send_error_to_user(message, safe_get_messages(user_id).DOWN_UP_NO_CONTENT_FOUND_MSG.format(index=original_playlist_index))
+                            return "SKIP"
                         info_dict = entries[0]  # Just take the first video
                 
                 # Check if this is a live stream and handle it if detection is disabled
@@ -2432,11 +2448,19 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 entries = info_dict["entries"]
                                 if len(entries) > 1:
                                     actual_index = playlist_item_index - 1
-                                    if 0 <= actual_index < len(entries):
+                                    if 0 <= actual_index < len(entries) and entries[actual_index] is not None:
                                         info_dict = entries[actual_index]
                                     else:
-                                        raise Exception(f"Audio index {actual_index + 1} out of range (total {len(entries)})")
+                                        # Empty/missing slot (reverse range past the playlist
+                                        # end): skip it like the main loop, don't abort.
+                                        logger.info(f"[AUDIO RANGE] Safe-filename retry: no entry at index {playlist_item_index} (entries={len(entries)}), skipping")
+                                        send_error_to_user(message, safe_get_messages(user_id).DOWN_UP_NO_CONTENT_FOUND_MSG.format(index=original_playlist_index))
+                                        return "SKIP"
                                 else:
+                                    if not entries or entries[0] is None:
+                                        logger.info(f"[AUDIO RANGE] Safe-filename retry: empty single entry at index {playlist_item_index}, skipping")
+                                        send_error_to_user(message, safe_get_messages(user_id).DOWN_UP_NO_CONTENT_FOUND_MSG.format(index=original_playlist_index))
+                                        return "SKIP"
                                     info_dict = entries[0]
                             
                             # Download with safe filename

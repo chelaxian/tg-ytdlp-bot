@@ -685,6 +685,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             cached_videos = {}
         
         uncached_indices = [i for i in requested_indices if i not in cached_videos]
+        # A reverse range never replays from the cache: a partial replay reorders
+        # delivery (cached items arrive first) and a stale full replay still
+        # forwards item by item — download the whole range in the requested order.
+        if is_reverse_order:
+            cached_videos = {}
+            uncached_indices = requested_indices
         # First, repost the cached ones (skip if send_as_file is enabled)
         if cached_videos and (not use_range_download or len(uncached_indices) == 0):
             # Check if send_as_file is enabled - if so, skip cache repost
@@ -3360,7 +3366,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     elif result == "NO_VIDEOS_SKIP":
                         consecutive_no_videos_skips += 1
                         logger.info(f"Consecutive no-videos skips: {consecutive_no_videos_skips}/{MAX_CONSECUTIVE_NO_VIDEOS_SKIPS} at index {current_index}")
-                        if consecutive_no_videos_skips >= MAX_CONSECUTIVE_NO_VIDEOS_SKIPS:
+                        if not is_reverse_order and consecutive_no_videos_skips >= MAX_CONSECUTIVE_NO_VIDEOS_SKIPS:
                             logger.warning(f"Reached {MAX_CONSECUTIVE_NO_VIDEOS_SKIPS} consecutive no-videos skips at index {current_index}, stopping playlist")
                             try:
                                 send_error_to_user(message, f"⏹️ Stopped playlist: {MAX_CONSECUTIVE_NO_VIDEOS_SKIPS} consecutive indices had no videos.")
