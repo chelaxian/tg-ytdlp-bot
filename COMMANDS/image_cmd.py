@@ -1228,7 +1228,8 @@ def image_command(app, message):
     
     # Early cache serve before any analysis/downloading (only for non-NSFW content)
     cached_map = {}
-    if not nsfw_flag:
+    # Album cache keys do not identify source image positions.
+    if not nsfw_flag and manual_range is None:
         try:
             requested_indices = None
             if manual_range is not None:
@@ -2100,8 +2101,8 @@ def image_command(app, message):
                 logger.warning(LoggerMsg.IMG_BATCH_INACTIVITY_TIMEOUT_LOG_MSG.format(max_inactivity_time=max_inactivity_time, inactivity_elapsed=inactivity_elapsed))
                 break
                 
-            # Only download next range if buffer is empty (strict batching)
-            if len(photos_videos_buffer) == 0:
+            # A partial album must not prevent the next range from filling it.
+            if len(photos_videos_buffer) < batch_size:
                 upper_cap = manual_end_cap if manual_end_cap is not None else total_expected
                 # Проверка для обратного порядка (отрицательные индексы или start > end)
                 if is_reverse_order_img:
@@ -4509,11 +4510,20 @@ def image_command(app, message):
                 final_expected = total_expected or (min(total_downloaded, total_limit) if total_limit is not None else total_downloaded)
                 try:
                     if not completion_sent:
+                        if total_downloaded == 0:
+                            # Nothing was actually downloaded (site blocked the
+                            # request, extractor failed, etc.) — report failure
+                            # instead of a green "Download complete".
+                            header = "❌ <b>Download failed</b>\n\n"
+                            detail = safe_get_messages(user_id).DOWNLOADED_STATUS_MSG + f" <b>{total_downloaded}</b> / <b>{final_expected}</b>\n"
+                        else:
+                            header = safe_get_messages(user_id).DOWNLOAD_COMPLETE_MSG
+                            detail = safe_get_messages(user_id).DOWNLOADED_STATUS_MSG + f" <b>{total_downloaded}</b> / <b>{final_expected}</b>\n"
                         safe_edit_message_text(
                             user_id,
                             status_msg.id,
-                            safe_get_messages(user_id).DOWNLOAD_COMPLETE_MSG +
-                            f"{safe_get_messages(user_id).DOWNLOADED_STATUS_MSG} <b>{total_downloaded}</b> / <b>{final_expected}</b>\n"
+                            header +
+                            detail +
                             f"{safe_get_messages(user_id).SENT_STATUS_MSG} <b>{total_sent}</b>",
                             parse_mode=enums.ParseMode.HTML,
                         )
@@ -4690,10 +4700,16 @@ def image_command(app, message):
         try:
             if not completion_sent:
                 final_expected = total_expected or (min(total_downloaded, total_limit) if total_limit is not None else total_downloaded)
+                if total_downloaded == 0 and total_sent == 0:
+                    # Nothing was downloaded or sent — site blocked the request
+                    # or the extractor failed; report failure, not success.
+                    header = "❌ <b>Download failed</b>\n\n"
+                else:
+                    header = safe_get_messages(user_id).DOWNLOAD_COMPLETE_MSG
                 safe_edit_message_text(
                     user_id,
                     status_msg.id,
-                    safe_get_messages(user_id).DOWNLOAD_COMPLETE_MSG +
+                    header +
                     f"{safe_get_messages(user_id).DOWNLOADED_STATUS_MSG} <b>{total_downloaded}</b> / <b>{final_expected}</b>\n"
                     f"{safe_get_messages(user_id).SENT_STATUS_MSG} <b>{total_sent}</b>",
                     parse_mode=enums.ParseMode.HTML,
