@@ -168,6 +168,15 @@ def _apply_config(config: dict, user_id=None):
       }
     """
     reset_gallery_dl_config()
+    # Direct-host marker: _prepare_user_cookies_and_proxy pins proxy="" for
+    # WARP_DIRECT_HOSTS (vk.com & co); make the whole task bypass the tunnel.
+    try:
+        if config.get("extractor", {}).get("proxy") == "":
+            from HELPERS.warp_tunnel import set_force_direct
+            set_force_direct(True)
+            logger.info("[GALLERY_DL] proxy='' detected: WARP bypassed for this task")
+    except Exception as e:
+        logger.debug(f"force_direct flag not set: {e}")
     for section, opts in config.items():
         if not isinstance(opts, dict):
             # Top-level scalar such as "base-directory" — a real gallery-dl option
@@ -396,6 +405,20 @@ def _prepare_user_cookies_and_proxy(url: str, user_id, use_proxy: bool, config: 
         except Exception as e:
             logger.warning(safe_get_messages(user_id).GALLERY_DL_PROXY_HELPER_FAILED_MSG.format(error=e))
 
+        # WARP direct hosts (e.g. vk.com, which serves "challenge" pages to
+        # Cloudflare WARP egress IPs): pin an empty proxy so the global
+        # gallery-dl WARP hook (config.interpolate) cannot inject the tunnel
+        # proxy for these URLs. An explicit "" disables proxy lookup.
+        try:
+            from urllib.parse import urlparse
+            from HELPERS.warp_tunnel import is_direct_host
+            _host = (urlparse(url).hostname or "").lower()
+            if _host and is_direct_host(_host) and not config['extractor'].get('proxy'):
+                config['extractor']['proxy'] = ""
+                logger.info(f"[GALLERY_DL] Direct host {_host}: WARP proxy disabled")
+        except Exception as e:
+            logger.debug(f"direct-host proxy pin skipped: {e}")
+
     return config
 
 
@@ -532,6 +555,14 @@ def get_image_info(url: str, user_id=None, use_proxy: bool = False):
                     logger.warning(safe_get_messages(user_id).GALLERY_DL_FAILED_SET_COOKIES_ON_EXTRACTOR_MSG.format(error=cookie_e))
 
             logger.info(safe_get_messages(user_id).GALLERY_DL_EXTRACTOR_FOUND_CALLING_ITEMS_MSG)
+            # gallery-dl >=1.32 initializes _retries/_timeout/_proxies lazily in
+            # initialize(); calling items() without it raises AttributeError
+            # ("no attribute '_retries'"). initialize() is idempotent (a no-op
+            # after the first call).
+            try:
+                extractor.initialize()
+            except Exception as init_e:
+                logger.debug(f"extractor.initialize() skipped: {init_e}")
             items_iter = extractor.items()
             info = _first_info_from_items(items_iter, user_id)
             if info:
@@ -582,6 +613,10 @@ def get_image_info(url: str, user_id=None, use_proxy: bool = False):
                             if find_fn:
                                 extractor = find_fn(url)
                                 if extractor:
+                                    try:
+                                        extractor.initialize()
+                                    except Exception:
+                                        pass
                                     items_iter = extractor.items()
                                     info = _first_info_from_items(items_iter, user_id)
                                     if info:
