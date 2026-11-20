@@ -2897,7 +2897,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     return "SKIP"  # Skip this video and continue with next
                 
                 # Send full error message with instructions immediately (only once)
-                if not error_message_sent:
+                # YouTube may still rotate cookies in the outer attempt loop.  In
+                # particular, recursive live-browser attempts share did_cookie_retry;
+                # none of them may report failure before the whole cascade ends.
+                if not error_message_sent and not is_youtube_url(url):
                     # Extract error code and description from yt-dlp error
                     error_code = "UNKNOWN_ERROR"
                     error_description = error_message
@@ -3074,7 +3077,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # Если все прокси уже провалились - пробуем без прокси как последний fallback
                 if "Failed to download video with all available proxies" in error_message:
                     logger.warning("All available download routes failed; not re-entering the same proxy chain")
-                    if not error_message_sent:
+                    if not error_message_sent and not is_youtube_url(url):
                         # Only show proxy-specific message if user actually has proxy enabled
                         try:
                             from COMMANDS.proxy_cmd import is_proxy_enabled
@@ -3202,7 +3205,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # The file will be found in the file search logic below
                 else:
                     # Отправляем сообщение об ошибке только один раз, чтобы избежать спама
-                    if not error_message_sent:
+                    if not error_message_sent and not is_youtube_url(url):
                         error_str = str(e)
                         # Check for geo-block error and add proxy hint
                         from CONFIG.errors import is_geo_block_error, has_country_list_in_error, classify_yt_dlp_error
@@ -3344,6 +3347,9 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if result is None and is_youtube_url(url) and not did_cookie_retry and (not should_abort_retries(error_message) or classify_retryability(error_message) == 'AUTH_REQUIRED'):
                         logger.info(f"Video download failed for user {user_id}, attempting automatic cookie retry")
                         
+                        # Mark before entering: retry calls try_download recursively and
+                        # must not start a nested cookie rotation of its own.
+                        did_cookie_retry = True
                         # Try retry with different cookies
                         retry_result = retry_download_with_different_cookies(
                             user_id, url, try_download, url, attempt
