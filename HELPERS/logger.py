@@ -128,10 +128,18 @@ if SDNOTIFY_AVAILABLE:
             return False
 
     def watchdog_loop():
+        # Nov 2026: two whole-process freezes (16 & 19 Nov) silenced every
+        # Python thread incl. this one, so systemd SIGABRT left no evidence.
+        # The native faulthandler timer dumps all thread stacks to stderr
+        # before the kill if this loop stops re-arming it.
+        from HELPERS.freeze_diagnostics import arm_freeze_dump, cancel_freeze_dump
+        import atexit
+        atexit.register(cancel_freeze_dump)
         while True:
             if _loop_responsive():
                 notifier.notify("WATCHDOG=1")
                 logger.debug("[Watchdog] Sent WATCHDOG=1")
+            arm_freeze_dump()
             time.sleep(30)  # Frequency is less than WatchdogSec
 
     # Start watchdog thread
