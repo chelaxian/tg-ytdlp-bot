@@ -107,6 +107,67 @@ class Tests(unittest.TestCase):
         self.metadata['formats']=[{'vcodec':'avc1','height':720}]
         result=self.env['try_download']('https://example.test/video',{'format':'bv[vcodec*=av01]/best'})
         self.assertEqual(result['id'],'xyz');self.assertEqual(self.downloads,1)
+    def test_youtube_generic_auth_error_is_deferred_for_cookie_retry(self):
+        self.env['is_youtube_url'] = lambda *a: True
+        self.env['is_cookie_error'] = lambda *a: True
+        self.error = "Sign in to confirm you're not a bot"
+        # Raise a generic exception, as in the live-browser failure.
+        self.env['yt_dlp'].utils.DownloadError = type('OtherDownloadError', (Exception,), {})
+        self.assertIsNone(self.run_download())
+        self.env['send_to_user'].assert_not_called()
+        self.env['send_error_to_user'].assert_not_called()
+        self.assertFalse(self.env['error_message_sent'])
+
+    def test_youtube_cookie_cascade_and_final_failure(self):
+        tree = ast.parse((R/'DOWN_AND_UP/down_and_up.py').read_text(encoding='utf-8-sig'))
+        loop = next(n for n in ast.walk(tree) if isinstance(n, ast.For)
+                    and isinstance(n.target, ast.Tuple)
+                    and [getattr(x, 'id', '') for x in n.target.elts] == ['attempt_no', 'attempt'])
+        final = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
+                     and n.lineno > loop.lineno and isinstance(n.test, ast.Compare)
+                     and isinstance(n.test.left, ast.Name) and n.test.left.id == 'info_dict'
+                     and isinstance(n.test.ops[0], ast.Is) and isinstance(n.test.comparators[0], ast.Constant)
+                     and n.test.comparators[0].value is None and any(isinstance(x, ast.With) for x in n.body))
+        # Execute the real outer format loop and final report, stopping before
+        # bookkeeping/breaks belonging to the enclosing playlist loop.
+        final.body = final.body[:next(i for i, n in enumerate(final.body) if isinstance(n, ast.With))]
+        code = compile(ast.fix_missing_locations(ast.Module(body=[loop, final], type_ignores=[])), '<production-loop>', 'exec')
+        for succeeds in (True, False):
+            with self.subTest(succeeds=succeeds):
+                self.env.update(is_youtube_url=lambda *a: True, is_cookie_error=lambda *a: True,
+                                is_youtube_cookie_error=lambda *a: True,
+                                url='https://youtube.com/watch?v=xyz', info_dict=None, result=None,
+                                stop_all=False, skip_item=False, network_error=False,
+                                consecutive_no_videos_skips=0, _TERMINAL_ATTEMPT_RESULTS=set(),
+                                _clear_net_errors=Mock(), download_stage='extract', did_cookie_retry=False,
+                                error_message='', error_message_sent=False)
+                self.env['message'].id = 1
+                self.env['safe_send_message'] = Mock()
+                self.env['ReplyParameters'] = lambda **kw: kw
+                self.env['enums'] = types.SimpleNamespace(ParseMode=types.SimpleNamespace(HTML='html'))
+                self.env['send_to_user'].reset_mock(); self.env['send_error_to_user'].reset_mock()
+                self.error = "Sign in to confirm you're not a bot"
+                self.env['yt_dlp'].utils.DownloadError = type('OtherDownloadError', (Exception,), {})
+                calls = []
+                def rotate(uid, url, callback, *args):
+                    calls.append(self.env['did_cookie_retry'])
+                    self.assertIsNone(callback(*args))  # live browser failed
+                    if succeeds:
+                        self.error = None
+                    return callback(*args)  # source 6
+                self.env['retry_download_with_different_cookies'] = rotate
+                exec(code, self.env)
+                self.assertEqual(calls, [True])
+                if succeeds:
+                    self.assertIsInstance(self.env['info_dict'], dict)
+                    self.env['send_to_user'].assert_not_called()
+                    self.env['send_error_to_user'].assert_not_called()
+                    self.env['safe_send_message'].assert_not_called()
+                else:
+                    self.assertIsNone(self.env['info_dict'])
+                    self.assertEqual(self.env['send_error_to_user'].call_count, 1)
+                    self.assertTrue(self.env['error_message_sent'])
+
     def test_success(self):
         self.assertEqual(self.run_download()['id'],'xyz');self.assertEqual(self.downloads,1)
     def test_backoff(self):
